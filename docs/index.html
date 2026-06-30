@@ -242,6 +242,18 @@
   }
   .codeblock .c{color:var(--muted-2)}
   .codeblock .g{color:var(--clay-bright)}
+  /* code block with a copy button */
+  .codeblock.copy{position:relative;display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .codeblock.copy code{font-family:inherit;white-space:nowrap}
+  .copy-btn{
+    flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;
+    padding:7px 12px;border-radius:8px;cursor:pointer;
+    background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
+    font-family:'Inter',sans-serif;font-size:.8rem;font-weight:600;
+    transition:background .2s,color .2s,border-color .2s;
+  }
+  .copy-btn:hover{background:var(--clay);color:#fff;border-color:var(--clay)}
+  .copy-btn.copied{background:rgba(35,152,122,.2);color:#3fce9f;border-color:rgba(35,152,122,.5)}
 
   /* ---------- footer ---------- */
   footer{border-top:1px solid var(--line);padding:46px 0 38px;margin-top:30px}
@@ -493,7 +505,12 @@
       <p style="text-align:center;color:var(--muted);font-size:.95rem;margin-bottom:12px">
         Install from the <b style="color:var(--text)">Windows Package Manager</b>:
       </p>
-      <div class="codeblock">winget install <span class="g">alegauss.ClaudeCodeTray</span></div>
+      <div class="codeblock copy">
+        <code id="winget-cmd">winget install <span class="g">alegauss.ClaudeCodeTray</span></code>
+        <button class="copy-btn" type="button" onclick="copyWinget(this)" aria-label="Copy install command">
+          <span class="ic">⧉</span><span class="lbl">Copy</span>
+        </button>
+      </div>
       <p style="text-align:center;color:var(--muted-2);font-size:.85rem;margin-top:12px">
         Prefer a direct download? Grab the installer below.
       </p>
@@ -553,6 +570,33 @@
     entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }});
   },{threshold:.12});
   document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+  // copy the winget install command
+  function copyWinget(btn){
+    const cmd = document.getElementById('winget-cmd').innerText.trim();
+    const done = ()=>{
+      btn.classList.add('copied');
+      btn.querySelector('.lbl').textContent = 'Copied!';
+      btn.querySelector('.ic').textContent = '✓';
+      setTimeout(()=>{
+        btn.classList.remove('copied');
+        btn.querySelector('.lbl').textContent = 'Copy';
+        btn.querySelector('.ic').textContent = '⧉';
+      }, 1800);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(cmd).then(done).catch(()=>fallbackCopy(cmd, done));
+    } else {
+      fallbackCopy(cmd, done);
+    }
+  }
+  function fallbackCopy(text, done){
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); done(); }catch(e){}
+    document.body.removeChild(ta);
+  }
 </script>
 </body>
 </html>
