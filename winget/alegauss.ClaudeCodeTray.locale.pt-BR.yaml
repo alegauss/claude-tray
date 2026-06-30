@@ -1,13 +1,13 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.locale.1.6.0.schema.json
 PackageIdentifier: alegauss.ClaudeCodeTray
-PackageVersion: 1.3.14
+PackageVersion: 1.3.16
 PackageLocale: pt-BR
 Publisher: Alexandre Oliveira
 PublisherUrl: https://github.com/alegauss
 PublisherSupportUrl: https://github.com/alegauss/claude-tray/issues
 Author: Alexandre Oliveira
 PackageName: Claude Code Tray (não oficial)
-PackageUrl: https://github.com/alegauss/claude-tray
+PackageUrl: https://alegauss.github.io/claude-tray/
 License: Apache-2.0
 LicenseUrl: https://github.com/alegauss/claude-tray/blob/main/LICENSE
 Copyright: Copyright (c) 2026 Alexandre Oliveira
@@ -37,6 +37,6 @@ Tags:
   - ferramentas-de-desenvolvimento
   - monitor-de-uso
   - windows
-ReleaseNotesUrl: https://github.com/alegauss/claude-tray/releases/tag/v1.3.14
+ReleaseNotesUrl: https://github.com/alegauss/claude-tray/releases/tag/v1.3.16
 ManifestType: locale
 ManifestVersion: 1.6.0
