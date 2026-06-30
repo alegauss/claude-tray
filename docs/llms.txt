@@ -2,9 +2,11 @@
 
 > A native Windows (10/11) system-tray monitor for Claude Code usage. It shows your
 > rate-limit usage percentage as a crisp, DPI-aware vector icon, projects when you'll
-> hit 100% via burn-rate analysis, and provides a privacy-first 24h usage breakdown
-> computed locally. Built in C# (.NET 10, WinForms + GDI+). Zero configuration — it
-> reuses the OAuth token Claude Code already stores on your machine.
+> hit 100% (a pace line for the weekly window, burn-rate regression for the 5h session),
+> and provides a privacy-first 24h usage breakdown computed locally. Built in C# (.NET 10,
+> WinForms + GDI+). Zero configuration — it reuses the OAuth token Claude Code already
+> stores on your machine. Installable via the Windows Package Manager:
+> `winget install alegauss.ClaudeCodeTray`.
 
 This is an unofficial, open-source community project (Apache License 2.0). It is not
 affiliated with, endorsed by, or sponsored by Anthropic. "Claude" and "Claude Code" are
@@ -14,11 +16,17 @@ trademarks of Anthropic; the tool only reads usage data Claude Code already expo
 
 - **Crisp at any DPI**: the percentage is drawn as a vector at the exact tray size (no downscaled bitmaps), sharp on 125–200% displays.
 - **Task-Manager-style fill bar**: a vertical bar rises with usage; blue when on track, vivid red when projected to exhaust before the window resets.
-- **Burn-rate projection**: short rolling history + least-squares regression projects when usage reaches 100%, warning before the reset.
+- **Smart projection**: warns before the window resets, not after. The weekly (7d) window uses a proportional pace line (usage vs. the share an even burn would have spent by now), accurate from the first reading; the 5h session and extra windows use least-squares regression over a short rolling history of utilization samples.
 - **Color-coded reset notifications**: when a usage window hands quota back, a bespoke on-brand toast (confetti + a refilling quota bar) appears, with a distinct color/headline per kind — clay "Surprise!" (early weekly reset), violet "Bonus!" (mid-window credit), teal "New week!" (routine weekly reset), blue "Fresh session!" (5h session reset). All on by default; each toggles independently in Settings.
 - **24h usage insights**: local, cost-weighted breakdown by model, subagents, and large-context requests — read only from session transcripts, never message content.
 - **Auth recovery**: on an expired token (HTTP 401) the tooltip shows a clear "not authenticated" prompt and an "Open Claude Code" menu item re-authenticates in one click.
 - **Self-updating**: checks GitHub Releases and offers a one-click in-app update; per-user install, no admin rights.
+
+## Installation
+
+- **winget (recommended)**: `winget install alegauss.ClaudeCodeTray` — published to the Microsoft winget-pkgs community repository, with `en-US` and `pt-BR` manifest locales.
+- **Direct download**: run `ClaudeTray-Setup.exe` from the latest GitHub release. Per-user install (no admin); existing installs self-update from GitHub Releases.
+- **Prerequisite**: Claude Code installed and logged in at least once (`claude`), so the OAuth token exists at `%USERPROFILE%\.claude\.credentials.json`.
 
 ## Data source
 
@@ -31,4 +39,5 @@ trademarks of Anthropic; the tool only reads usage data Claude Code already expo
 - [GitHub repository](https://github.com/alegauss/claude-tray): source code
 - [README / documentation](https://github.com/alegauss/claude-tray/blob/main/README.md): full setup, build, and troubleshooting guide
 - [Latest release](https://github.com/alegauss/claude-tray/releases/latest): download the Windows installer (ClaudeTray-Setup.exe)
+- [winget package](https://winget.run/pkg/alegauss/ClaudeCodeTray): install via `winget install alegauss.ClaudeCodeTray`
 - [License](https://github.com/alegauss/claude-tray/blob/main/LICENSE): Apache License 2.0
