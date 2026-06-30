@@ -14,6 +14,15 @@ updates:
     commit-message:
       prefix: "chore(deps)"
 
-  # NOTE: A "github-actions" ecosystem entry was removed because this repo has no
-  # workflows yet. Dependabot's github-actions updater now hard-errors when it finds
-  # no /action.yml or .github/workflows/*.yml. Re-add the block once workflows exist.
+  # GitHub Actions used by .github/workflows/*.yml (keeps checkout/setup-dotnet/
+  # upload-artifact, etc. on supported, non-deprecated runner versions).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
