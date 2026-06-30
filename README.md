@@ -12,6 +12,7 @@ shows your **rate-limit usage percentage** as a crisp, DPI-aware icon.
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows&logoColor=white)
 ![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-WinForms%20%2B%20GDI%2B-239120?logo=csharp&logoColor=white)
+![winget](https://img.shields.io/badge/winget-alegauss.ClaudeCodeTray-2496ED?logo=windows&logoColor=white)
 
 <img src="docs/tooltip.png" alt="Tray icon with usage tooltip" width="46%">
 &nbsp;&nbsp;
@@ -29,6 +30,19 @@ Why .NET instead of Python: the number is drawn as a **vector** (`GraphicsPath`,
 with an outline), **at the actual size** the tray requests (`SM_CXSMICON`) and with
 **DPI awareness** (`PerMonitorV2`). No downscaling a 64px bitmap — the number stays
 crisp, especially on 125–200% displays (20–32px icons).
+
+## Install
+
+The quickest way is the **Windows Package Manager** (winget):
+
+```
+winget install alegauss.ClaudeCodeTray
+```
+
+Or download `ClaudeTray-Setup.exe` from the
+[latest release](https://github.com/alegauss/claude-tray/releases/latest) and run it — a
+per-user install (no admin). Either way, the app self-updates from GitHub Releases afterwards.
+To build from source instead, see [Build and run](#build-and-run).
 
 ## Look
 

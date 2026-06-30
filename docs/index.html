@@ -290,7 +290,7 @@
       <a class="btn btn-ghost" href="https://github.com/alegauss/claude-tray">★ View on GitHub</a>
     </div>
     <div class="hero-meta">
-      <span>🪶 Self-contained .exe — no .NET to install</span>
+      <span>📦 <code>winget install alegauss.ClaudeCodeTray</code></span>
       <span>🔒 No API key, no setup</span>
       <span>🔄 Auto-updates</span>
     </div>
@@ -479,8 +479,8 @@
       </div>
       <div class="step">
         <div class="n">2</div>
-        <h4>Download &amp; install</h4>
-        <p>Grab <code>ClaudeTray-Setup.exe</code> from Releases and run it. Per-user, no admin.</p>
+        <h4>Install it</h4>
+        <p>One command with <b>winget</b>, or grab <code>ClaudeTray-Setup.exe</code> from Releases. Per-user, no admin.</p>
       </div>
       <div class="step">
         <div class="n">3</div>
@@ -489,7 +489,18 @@
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:34px">
+    <div style="max-width:560px;margin:6px auto 0">
+      <p style="text-align:center;color:var(--muted);font-size:.95rem;margin-bottom:12px">
+        Install from the <b style="color:var(--text)">Windows Package Manager</b>:
+      </p>
+      <div class="codeblock"><span class="c"># winget</span>
+winget install <span class="g">alegauss.ClaudeCodeTray</span></div>
+      <p style="text-align:center;color:var(--muted-2);font-size:.85rem;margin-top:12px">
+        Prefer a direct download? Grab the installer below.
+      </p>
+    </div>
+
+    <div style="text-align:center;margin-top:24px">
       <a class="btn btn-primary" href="https://github.com/alegauss/claude-tray/releases/latest">⬇ Download the latest release</a>
     </div>
   </div>
