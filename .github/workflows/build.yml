@@ -1,15 +1,13 @@
 name: build
 
+# Manual only: run it from the Actions tab (Run workflow). Pick a tag ref
+# (e.g. v1.3.15) to also create the release and submit to winget; pick a branch
+# to just build and upload the installer artifact.
 on:
-  push:
-    branches: [main]
-    tags: ['v*']
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write   # needed to create/attach GitHub Releases on tag pushes
+  contents: write   # needed to create/attach GitHub Releases when run on a tag ref
 
 jobs:
   build:
