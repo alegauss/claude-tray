@@ -15,6 +15,11 @@ jobs:
   build:
     runs-on: windows-latest
 
+    # Mapped here so step-level `if:` can test it — the `secrets` context is not
+    # allowed in `if:` conditions, but `env` is.
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -50,3 +55,21 @@ jobs:
           } else {
             gh release create $tag dist/ClaudeTray-Setup.exe --title $tag --generate-notes
           }
+
+      # --- winget: regenerate manifests and open the PR to microsoft/winget-pkgs ---
+      # Runs only on tag pushes, and only if a WINGET_TOKEN secret is configured.
+      # The SHA256 comes from the very .exe just built and attached to the release,
+      # so the manifest hash always matches the published asset.
+      - name: Regenerate winget manifests
+        if: startsWith(github.ref, 'refs/tags/v') && env.WINGET_TOKEN != ''
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}' -replace '^v',''
+          ./update-winget.ps1 -Version $version
+
+      - name: Submit to winget-pkgs
+        if: startsWith(github.ref, 'refs/tags/v') && env.WINGET_TOKEN != ''
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          ./wingetcreate.exe submit winget --token $env:WINGET_TOKEN
