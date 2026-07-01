@@ -580,7 +580,7 @@ internal sealed class TrayContext : ApplicationContext
     private void NotifyReset(string key, BurnTracker.ResetEvent ev, long now)
     {
         LogResetEvent(key, ev, now);
-        var (emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme) = ResetToastContent(key, ev, now);
+        var (emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme) = ResetToastContent(key, ev, now, _settings.ShowRemaining);
         try
         {
             EnsureWpfApp();
@@ -604,7 +604,7 @@ internal sealed class TrayContext : ApplicationContext
     // toast bar lands on the real new level, plus the quota-bar label for the window.
     internal static (string emoji, string title, string subtitle, double fromUsage, double toUsage,
         string caption, string quotaLabel, ToastWindow.ToastTheme theme)
-        ResetToastContent(string key, BurnTracker.ResetEvent ev, long now)
+        ResetToastContent(string key, BurnTracker.ResetEvent ev, long now, bool showRemaining = false)
     {
         bool weekly = key == "7d";
         string quotaLabel = weekly ? "Weekly quota left" : "Session quota left";
@@ -614,6 +614,14 @@ internal sealed class TrayContext : ApplicationContext
         string resetTitle = weekly ? "New week!" : "Fresh session!";
         int fromPct = (int)Math.Round(Math.Clamp(ev.PrevUtil, 0, 1) * 100);
         int toPct = (int)Math.Round(Math.Clamp(ev.NewUtil, 0, 1) * 100);
+        // In "remaining" mode the captions read in quota-left terms (the bar/number already do):
+        // "Was 79% used" → "Had 21% left", "Usage dropped 91% → 50%" → "Quota left rose 9% → 50%".
+        int fromLeftPct = 100 - fromPct;
+        int toLeftPct = 100 - toPct;
+        string ahead = ev.PrevReset > now ? $"{FmtDays(ev.PrevReset - now)} ahead of schedule" : "ahead of schedule";
+        string earlyCaption = showRemaining ? $"Had {fromLeftPct}% left · {ahead}" : $"Was {fromPct}% used · {ahead}";
+        string creditCaption = showRemaining ? $"Quota left rose {fromLeftPct}% → {toLeftPct}%" : $"Usage dropped {fromPct}% → {toPct}%";
+        string routineCaption = showRemaining ? $"Had {fromLeftPct}% left · {freshSuffix}" : $"Was {fromPct}% used · {freshSuffix}";
 
         // Color theme: a session event is always blue; otherwise the weekly kind picks the color
         // (early reset = clay/Surprise, credit = violet/Bonus, routine = teal/Weekly).
@@ -629,17 +637,11 @@ internal sealed class TrayContext : ApplicationContext
         return ev.Kind switch
         {
             BurnTracker.ResetKind.Unexpected => ("🎉", "Surprise!", $"Your {limitNoun} reset early",
-                ev.PrevUtil, ev.NewUtil,
-                $"Was {fromPct}% used · {(ev.PrevReset > now ? $"{FmtDays(ev.PrevReset - now)} ahead of schedule" : "ahead of schedule")}",
-                quotaLabel, theme),
+                ev.PrevUtil, ev.NewUtil, earlyCaption, quotaLabel, theme),
             BurnTracker.ResetKind.Credit => ("🎉", "Bonus!", $"Some {scopeWord} usage was credited back",
-                ev.PrevUtil, ev.NewUtil,
-                $"Usage dropped {fromPct}% → {toPct}%",
-                quotaLabel, theme),
+                ev.PrevUtil, ev.NewUtil, creditCaption, quotaLabel, theme),
             _ => ("✨", resetTitle, $"Your {limitNoun} just reset",
-                ev.PrevUtil, ev.NewUtil,
-                $"Was {fromPct}% used · {freshSuffix}",
-                quotaLabel, theme),
+                ev.PrevUtil, ev.NewUtil, routineCaption, quotaLabel, theme),
         };
     }
 
