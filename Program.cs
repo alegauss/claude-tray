@@ -747,6 +747,11 @@ internal sealed class TrayContext : ApplicationContext
         bool hasEta = eta > 0 && !double.IsInfinity(eta);
         // The projection is about reaching the limit: "100%" used == "0% left" remaining.
         string limit = _settings.ShowRemaining ? "0% left" : "100%";
+        // The same target as a *future event*. In "remaining" mode "0% left" mirrors the current
+        // saldo lines above ("Session 5h left: 97%"), so it reads as a present value; the plain-
+        // language "runs out" marks it as something that happens later. Used mode keeps the "100%"
+        // percentage it always showed, which reads naturally as a ceiling you climb toward.
+        string hits = _settings.ShowRemaining ? "runs out" : "100%";
         // Each projection verdict has a full form and a compact fallback for when the tooltip is
         // tight (see the 127-char cap note below). null => no projection line at all.
         (string full, string compact)? projection = CurrentPct() >= 0.995
@@ -755,11 +760,11 @@ internal sealed class TrayContext : ApplicationContext
             : verdict switch
             {
                 Projection.Danger => hasEta
-                    ? ($"⚠ {scope} projection: {limit} in {FmtDays(eta)} (before reset)", $"⚠ {limit} in {FmtDays(eta)}")
+                    ? ($"⚠ {scope} projection: {hits} in {FmtDays(eta)} (before reset)", $"⚠ {hits} in {FmtDays(eta)}")
                     : ($"⚠ {scope} projection: above safe pace (before reset)", "⚠ above safe pace"),
                 Projection.Ok => double.IsInfinity(eta)
                     ? ($"✓ {scope} projection: on track", "✓ on track")
-                    : ($"✓ {scope} projection: {limit} in {FmtDays(eta)} (after reset)", $"✓ {limit} in {FmtDays(eta)}"),
+                    : ($"✓ {scope} projection: {hits} in {FmtDays(eta)} (after reset)", $"✓ {hits} in {FmtDays(eta)}"),
                 _ => null,
             };
 
