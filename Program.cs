@@ -717,7 +717,7 @@ internal sealed class TrayContext : ApplicationContext
             if (_data.Unauthorized)
                 return _data.NeedsFullLogin
                     ? "Claude Code — not signed in\nOpen Claude Code and run /login to sign in"
-                    : "Claude Code — session expired\nOpen Claude Code to refresh (no login needed)";
+                    : "Claude Code — not tracking yet\nOnce you start using Claude, your usage will appear here";
             return $"Claude Code — API error\n{_data.Error}";
         }
 

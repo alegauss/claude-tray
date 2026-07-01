@@ -134,7 +134,7 @@ internal sealed class ApiClient
     private const string SignInHint =
         "Not signed in to Claude Code. Open Claude Code and run /login to sign in.";
     private const string RefreshHint =
-        "Claude Code session expired. Open Claude Code to refresh it — no login needed.";
+        "Once you start using Claude, your usage will appear here.";
 
     /// <summary>The OAuth material the tray needs: the bearer token, and whether a refresh token
     /// is on disk (which decides silent-refresh vs. full browser login on a 401).</summary>

@@ -313,9 +313,10 @@ build the installer, and attach `ClaudeTray-Setup.exe` to a GitHub release tagge
 ## Troubleshooting
 
 - **Logo icon (spark)** → still connecting; wait for the first call.
-- **"session expired" tooltip** → the access token expired but a refresh token is on disk, so no
-  login is needed. Right-click → **Open Claude Code**; launching it silently refreshes the token.
-  Then **Refresh now**. Common on the first poll after a reboot.
+- **"not tracking yet" tooltip** → the access token expired but a refresh token is on disk, so no
+  login is needed. Just start using Claude Code again (or right-click → **Open Claude Code**);
+  launching it silently refreshes the token and your usage reappears. Common on the first poll
+  after a reboot.
 - **"not signed in" tooltip** → there's no refresh token (or no credentials file at all), so a full
   login is required. Right-click → **Open Claude Code**, type `/login`, then **Refresh now**.
 - **Amber icon / "API error" tooltip** → a network/API problem. Check connectivity and retry.
