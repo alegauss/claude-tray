@@ -36,6 +36,14 @@ internal sealed class Settings
     public bool ShowPercentage { get; set; } = true;
 
     /// <summary>
+    /// Invert the tray display to show quota <em>remaining</em> instead of <em>used</em>: the icon
+    /// starts full at 100% and counts down toward 0%, and the tooltip lines read "… left". The
+    /// underlying data, burn-rate projection, warning color and >=90% flash are unchanged — they
+    /// still track how close you are to the limit; only the displayed number and bar height flip.
+    /// </summary>
+    public bool ShowRemaining { get; set; } = false;
+
+    /// <summary>
     /// Show a tray notification on an unexpected drop in weekly usage — the counter resetting to 0%
     /// before its scheduled deadline, or a partial mid-window credit (e.g. 91% → 50%). Both are known
     /// Claude Code anomalies. Rare by nature, so enabled by default; turn it off to silence the alert.

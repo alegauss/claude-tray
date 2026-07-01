@@ -49,7 +49,10 @@ To build from source instead, see [Build and run](#build-and-run).
 - Background: Claude clay/coral `#D97757`
 - **Vertical fill bar** (Task Manager style) rises from the bottom up, proportional to usage
   (50% = bottom half; 100% = whole tile). **Blue** normally; turns **vivid red** when the
-  projection says usage will hit 100% **before** the window resets (see below)
+  projection says usage will hit 100% **before** the window resets (see below). Prefer to see
+  quota *left* instead? **Settings → Display → Show remaining instead of used** inverts it — the
+  icon starts full at 100% and drains to 0%, and the tooltip reads "… left" (color and alerts
+  are unchanged)
 - **3D bevel border**: light highlight on the top/left and shadow on the bottom/right → relief
 - Number: large digits, white with a **dark outline** (readable at any size)
 - ≥90%: the background flashes

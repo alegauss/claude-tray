@@ -44,10 +44,16 @@ internal static class IconRenderer
     /// colored by the projection <paramref name="verdict"/>: blue while still undefined (not
     /// enough samples yet), green when on track, and orange→red when usage is projected to hit
     /// 100% before the window resets. When <paramref name="showNumber"/> is false, only the
-    /// fill bar is drawn (no digits).
+    /// fill bar is drawn (no digits). When <paramref name="showRemaining"/> is true the display
+    /// inverts to quota left — full at 100%, draining to 0% — while the color still tracks usage.
     /// </summary>
-    public static Bitmap Render(double pct, State state, bool flash, int size, Projection verdict = Projection.Unknown, bool showNumber = true)
+    public static Bitmap Render(double pct, State state, bool flash, int size, Projection verdict = Projection.Unknown, bool showNumber = true, bool showRemaining = false)
     {
+        // pct is always the *used* fraction. In "remaining" mode we display its complement (full
+        // at 100%, draining to 0%), but the danger color still keys off `used` so the bar warms to
+        // red as the limit nears regardless of which number is shown.
+        double used = Math.Min(Math.Max(pct, 0.0), 1.0);
+        double shown = showRemaining ? 1.0 - used : used;
         Color bg = flash ? BlueDeep : state switch
         {
             State.Error => Amber,
@@ -70,9 +76,9 @@ internal static class IconRenderer
 
         // Vertical fill bar (Task-Manager style): a blue level rising from the bottom,
         // proportional to the percentage — 100% = whole tile, 50% = bottom half.
-        if (state == State.Ok && pct > 0)
+        if (state == State.Ok && shown > 0)
         {
-            float barH = (float)(Math.Min(pct, 1.0) * size);
+            float barH = (float)(shown * size);
             using var clip = new Region(tile);
             g.Clip = clip;
             // Blue until a projection exists; green when on track; in danger, blend orange→red
@@ -81,7 +87,7 @@ internal static class IconRenderer
             Color barColor = verdict switch
             {
                 Projection.Unknown => BarUnknown,
-                Projection.Danger  => Lerp(BarOrange, BarDanger, Math.Min(Math.Max(pct, 0.0), 1.0)),
+                Projection.Danger  => Lerp(BarOrange, BarDanger, used),
                 _                  => BarFill,
             };
             using (var barBrush = new SolidBrush(barColor))
@@ -95,7 +101,7 @@ internal static class IconRenderer
         if (!showNumber)
             return bmp;
 
-        string num = ((int)Math.Round(Math.Min(pct, 1.0) * 100)).ToString();
+        string num = ((int)Math.Round(shown * 100)).ToString();
 
         using var family = new FontFamily("Segoe UI");
         const int bold = (int)FontStyle.Bold;

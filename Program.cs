@@ -392,6 +392,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         _settings.RefreshSeconds = updated.RefreshSeconds;
         _settings.ShowPercentage = updated.ShowPercentage;
+        _settings.ShowRemaining = updated.ShowRemaining;
         _settings.NotifyOnUnexpectedReset = updated.NotifyOnUnexpectedReset;
         _settings.NotifyOnScheduledReset = updated.NotifyOnScheduledReset;
         _settings.NotifyOnSessionReset = updated.NotifyOnSessionReset;
@@ -691,7 +692,7 @@ internal sealed class TrayContext : ApplicationContext
         using Bitmap bmp =
             _data is { Unauthorized: true } || state == IconRenderer.State.Connecting
                 ? IconRenderer.RenderLogo(size)
-                : IconRenderer.Render(CurrentPct(), state, flash, size, verdict, _settings.ShowPercentage);
+                : IconRenderer.Render(CurrentPct(), state, flash, size, verdict, _settings.ShowPercentage, _settings.ShowRemaining);
         SetTrayIcon(bmp);
         _tray.Text = Truncate(BuildTooltip(), 127);
     }
@@ -725,10 +726,13 @@ internal sealed class TrayContext : ApplicationContext
         string r5 = _data.Reset5h > 0 ? FmtCountdown(_data.Reset5h - now) : "--";
         string r7 = _data.Reset7d > 0 ? FmtDays(_data.Reset7d - now) : "--";
 
+        // In "remaining" mode the two bounded windows show the complement and read "… left".
+        // Extra is overage (no cap to have quota "left" from), so it always shows the amount used.
+        string leftSuffix = _settings.ShowRemaining ? " left" : "";
         var lines = new List<string>
         {
-            $"Session 5h: {Pct(_data.Session5h)}  ⟳ {r5}",
-            $"Week 7d: {Pct(_data.Week7d)}  ⟳ {r7}",
+            $"Session 5h{leftSuffix}: {PctShown(_data.Session5h)}  ⟳ {r5}",
+            $"Week 7d{leftSuffix}: {PctShown(_data.Week7d)}  ⟳ {r7}",
         };
         if (_data.Extra > 0.001)
         {
@@ -739,19 +743,21 @@ internal sealed class TrayContext : ApplicationContext
         var (verdict, eta) = CurrentProjection();
         string scope = Labels[_metric]; // make clear which window the projection is about
         bool hasEta = eta > 0 && !double.IsInfinity(eta);
+        // The projection is about reaching the limit: "100%" used == "0% left" remaining.
+        string limit = _settings.ShowRemaining ? "0% left" : "100%";
         // Each projection verdict has a full form and a compact fallback for when the tooltip is
         // tight (see the 127-char cap note below). null => no projection line at all.
         (string full, string compact)? projection = CurrentPct() >= 0.995
             // Already maxed: state it plainly rather than "projecting" a limit you've reached.
-            ? ($"⚠ {scope}: at limit (100%)", "⚠ at limit (100%)")
+            ? ($"⚠ {scope}: at limit ({limit})", $"⚠ at limit ({limit})")
             : verdict switch
             {
                 Projection.Danger => hasEta
-                    ? ($"⚠ {scope} projection: 100% in {FmtDays(eta)} (before reset)", $"⚠ 100% in {FmtDays(eta)}")
+                    ? ($"⚠ {scope} projection: {limit} in {FmtDays(eta)} (before reset)", $"⚠ {limit} in {FmtDays(eta)}")
                     : ($"⚠ {scope} projection: above safe pace (before reset)", "⚠ above safe pace"),
                 Projection.Ok => double.IsInfinity(eta)
                     ? ($"✓ {scope} projection: on track", "✓ on track")
-                    : ($"✓ {scope} projection: 100% in {FmtDays(eta)} (after reset)", $"✓ 100% in {FmtDays(eta)}"),
+                    : ($"✓ {scope} projection: {limit} in {FmtDays(eta)} (after reset)", $"✓ {limit} in {FmtDays(eta)}"),
                 _ => null,
             };
 
@@ -772,6 +778,10 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     private static string Pct(double v) => $"{(int)Math.Round(Math.Min(v, 1.0) * 100)}%";
+
+    // A window's percentage as displayed: the used fraction, or its complement in "remaining" mode.
+    private string PctShown(double used)
+        => Pct(_settings.ShowRemaining ? Math.Clamp(1.0 - used, 0.0, 1.0) : used);
 
     private static string FmtCountdown(double s)
     {

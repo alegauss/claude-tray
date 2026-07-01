@@ -256,10 +256,19 @@
                         <!-- ===== Display ===== -->
                         <TextBlock Text="Display" Style="{StaticResource SectionHeader}" />
                         <Border Style="{StaticResource GroupCard}">
-                            <local:SettingsRow Header="Show percentage on the icon"
-                                               Description="Draw the usage percentage number on the tray icon; otherwise just the fill bar.">
-                                <ToggleButton x:Name="ShowPctCheck" Style="{StaticResource ToggleSwitch}" />
-                            </local:SettingsRow>
+                            <StackPanel>
+                                <local:SettingsRow Header="Show percentage on the icon"
+                                                   Description="Draw the usage percentage number on the tray icon; otherwise just the fill bar.">
+                                    <ToggleButton x:Name="ShowPctCheck" Style="{StaticResource ToggleSwitch}" />
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="Show remaining instead of used"
+                                                   Description="Count down the quota you have left: the icon starts full at 100% and drains to 0%, and the tooltip reads “… left”. The warning color and alerts are unchanged.">
+                                    <ToggleButton x:Name="ShowRemainingCheck" Style="{StaticResource ToggleSwitch}" />
+                                </local:SettingsRow>
+                            </StackPanel>
                         </Border>
 
                         <!-- ===== Claude Code ===== -->
