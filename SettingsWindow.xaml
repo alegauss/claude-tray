@@ -177,6 +177,34 @@
                     </Grid>
                 </Border>
 
+                <Border x:Name="NavDisplay" CornerRadius="6" Height="40" Margin="0,0,0,4"
+                        Background="Transparent" Cursor="Hand"
+                        MouseLeftButtonUp="Nav_Click" Tag="Display">
+                    <Grid>
+                        <Border x:Name="AccentDisplay" Width="3" CornerRadius="2"
+                                HorizontalAlignment="Left" Margin="2,8,0,8"
+                                Visibility="Collapsed"
+                                Background="{DynamicResource AccentFillColorDefaultBrush}" />
+                        <TextBlock Text="Display" VerticalAlignment="Center"
+                                   Margin="16,0,0,0" FontSize="14"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    </Grid>
+                </Border>
+
+                <Border x:Name="NavClaudeCode" CornerRadius="6" Height="40" Margin="0,0,0,4"
+                        Background="Transparent" Cursor="Hand"
+                        MouseLeftButtonUp="Nav_Click" Tag="ClaudeCode">
+                    <Grid>
+                        <Border x:Name="AccentClaudeCode" Width="3" CornerRadius="2"
+                                HorizontalAlignment="Left" Margin="2,8,0,8"
+                                Visibility="Collapsed"
+                                Background="{DynamicResource AccentFillColorDefaultBrush}" />
+                        <TextBlock Text="Claude Code" VerticalAlignment="Center"
+                                   Margin="16,0,0,0" FontSize="14"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    </Grid>
+                </Border>
+
                 <Border x:Name="NavNotifications" CornerRadius="6" Height="40" Margin="0,0,0,4"
                         Background="Transparent" Cursor="Hand"
                         MouseLeftButtonUp="Nav_Click" Tag="Notifications">
@@ -226,7 +254,7 @@
                         <TextBlock Text="General"
                                    FontSize="16" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="Polling cadence, tray display, and startup behaviour."
+                        <TextBlock Text="Polling cadence and startup behaviour."
                                    Margin="0,2,0,4" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
@@ -253,9 +281,31 @@
                                    Margin="2,10,2,0" TextWrapping="Wrap" FontSize="12"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
-                        <!-- ===== Display ===== -->
-                        <TextBlock Text="Display" Style="{StaticResource SectionHeader}" />
-                        <Border Style="{StaticResource GroupCard}">
+                        <!-- ===== Startup ===== -->
+                        <TextBlock Text="Startup" Style="{StaticResource SectionHeader}" />
+                        <Border Style="{StaticResource GroupCard}" Margin="0,0,0,4">
+                            <local:SettingsRow Header="Start with Windows"
+                                               Description="Launch Claude Code Tray automatically when you sign in.">
+                                <ToggleButton x:Name="StartupCheck" Style="{StaticResource ToggleSwitch}" />
+                            </local:SettingsRow>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- ========================= DISPLAY PAGE =========================
+                 How the usage reads on the tray icon and its tooltip. -->
+            <Grid x:Name="DisplayPane" Grid.Row="0" Margin="32,28,32,0" Visibility="Collapsed">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,14,0">
+                    <StackPanel>
+                        <TextBlock Text="Display"
+                                   FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="How your usage reads on the tray icon and its tooltip."
+                                   Margin="0,2,0,4" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                        <Border Style="{StaticResource GroupCard}" Margin="0,16,0,4">
                             <StackPanel>
                                 <local:SettingsRow Header="Show percentage on the icon"
                                                    Description="Draw the usage percentage number on the tray icon; otherwise just the fill bar.">
@@ -270,10 +320,23 @@
                                 </local:SettingsRow>
                             </StackPanel>
                         </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
 
-                        <!-- ===== Claude Code ===== -->
-                        <TextBlock Text="Claude Code" Style="{StaticResource SectionHeader}" />
-                        <Border Style="{StaticResource GroupCard}">
+            <!-- ========================= CLAUDE CODE PAGE =========================
+                 Where Claude Code launches from, and how the tray behaves while signed out. -->
+            <Grid x:Name="ClaudeCodePane" Grid.Row="0" Margin="32,28,32,0" Visibility="Collapsed">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,14,0">
+                    <StackPanel>
+                        <TextBlock Text="Claude Code"
+                                   FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="Where Claude Code launches from the tray, and how the tray behaves while you’re signed out."
+                                   Margin="0,2,0,4" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                        <Border Style="{StaticResource GroupCard}" Margin="0,16,0,4">
                             <StackPanel>
                                 <local:SettingsRow Header="Working directory"
                                                    Description="Used when launching Claude Code from the tray menu, a double-click on the tray icon, or auto-open. Defaults to your home directory; clear it to reset.">
@@ -307,15 +370,6 @@
                                     </StackPanel>
                                 </local:SettingsRow>
                             </StackPanel>
-                        </Border>
-
-                        <!-- ===== Startup ===== -->
-                        <TextBlock Text="Startup" Style="{StaticResource SectionHeader}" />
-                        <Border Style="{StaticResource GroupCard}" Margin="0,0,0,4">
-                            <local:SettingsRow Header="Start with Windows"
-                                               Description="Launch Claude Code Tray automatically when you sign in.">
-                                <ToggleButton x:Name="StartupCheck" Style="{StaticResource ToggleSwitch}" />
-                            </local:SettingsRow>
                         </Border>
                     </StackPanel>
                 </ScrollViewer>

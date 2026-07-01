@@ -90,6 +90,8 @@ internal partial class SettingsWindow : Window
         {
             not null when string.Equals(initialPage, "About", StringComparison.OrdinalIgnoreCase) => "About",
             not null when string.Equals(initialPage, "Notifications", StringComparison.OrdinalIgnoreCase) => "Notifications",
+            not null when string.Equals(initialPage, "Display", StringComparison.OrdinalIgnoreCase) => "Display",
+            not null when string.Equals(initialPage, "ClaudeCode", StringComparison.OrdinalIgnoreCase) => "ClaudeCode",
             _ => "General",
         });
     }
@@ -101,19 +103,27 @@ internal partial class SettingsWindow : Window
     private void SelectPage(string page)
     {
         bool general = page == "General";
+        bool display = page == "Display";
+        bool claudeCode = page == "ClaudeCode";
         bool notifications = page == "Notifications";
         bool about = page == "About";
 
         GeneralPane.Visibility = general ? Visibility.Visible : Visibility.Collapsed;
+        DisplayPane.Visibility = display ? Visibility.Visible : Visibility.Collapsed;
+        ClaudeCodePane.Visibility = claudeCode ? Visibility.Visible : Visibility.Collapsed;
         NotificationsPane.Visibility = notifications ? Visibility.Visible : Visibility.Collapsed;
         AboutPane.Visibility = about ? Visibility.Visible : Visibility.Collapsed;
 
         var selected = (System.Windows.Media.Brush)FindResource("SubtleFillColorSecondaryBrush");
         var clear = System.Windows.Media.Brushes.Transparent;
         NavGeneral.Background = general ? selected : clear;
+        NavDisplay.Background = display ? selected : clear;
+        NavClaudeCode.Background = claudeCode ? selected : clear;
         NavNotifications.Background = notifications ? selected : clear;
         NavAbout.Background = about ? selected : clear;
         AccentGeneral.Visibility = general ? Visibility.Visible : Visibility.Collapsed;
+        AccentDisplay.Visibility = display ? Visibility.Visible : Visibility.Collapsed;
+        AccentClaudeCode.Visibility = claudeCode ? Visibility.Visible : Visibility.Collapsed;
         AccentNotifications.Visibility = notifications ? Visibility.Visible : Visibility.Collapsed;
         AccentAbout.Visibility = about ? Visibility.Visible : Visibility.Collapsed;
 
