@@ -4,8 +4,8 @@
         xmlns:local="clr-namespace:ClaudeTray"
         x:ClassModifier="internal"
         Title="Settings"
-        Width="760" Height="600"
-        MinWidth="640" MinHeight="560"
+        Width="880" Height="600"
+        MinWidth="760" MinHeight="560"
         WindowStartupLocation="CenterScreen"
         ThemeMode="System"
         FontFamily="Segoe UI Variable Text, Segoe UI">
