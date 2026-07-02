@@ -284,8 +284,9 @@ internal sealed class TrayContext : ApplicationContext
         };
         Render(); // initial "connecting" icon
 
-        // A double-click on the tray icon opens Claude Code (same as the menu item).
-        _tray.DoubleClick += (_, _) => OpenClaudeCode();
+        // A left-click on the tray icon opens the Statistics window (the pace report). MouseClick with
+        // a left-button filter keeps the right-click context menu untouched.
+        _tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) OpenStatistics(); };
 
         _poll.Interval = _settings.RefreshSeconds * 1000;
         _poll.Tick += async (_, _) => await RefreshAsync();

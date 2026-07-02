@@ -339,7 +339,7 @@
                         <Border Style="{StaticResource GroupCard}" Margin="0,16,0,4">
                             <StackPanel>
                                 <local:SettingsRow Header="Working directory"
-                                                   Description="Used when launching Claude Code from the tray menu, a double-click on the tray icon, or auto-open. Defaults to your home directory; clear it to reset.">
+                                                   Description="Used when launching Claude Code from the tray menu or auto-open. Defaults to your home directory; clear it to reset.">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBox x:Name="DirectoryBox" Width="200"
                                                  VerticalContentAlignment="Center" Padding="8,5" />
