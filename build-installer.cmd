@@ -1,7 +1,8 @@
 @echo off
 REM ==========================================================================
 REM build-installer.cmd - Gera o instalador do ClaudeTray com Inno Setup
-REM Faz o build (dotnet publish) e depois compila installer.iss
+REM Faz o build (dotnet publish), compila installer.iss e por fim regenera os
+REM manifestos winget (update-winget.ps1: versao, SHA256 e ReleaseDate).
 REM Saida: dist\ClaudeTray-Setup.exe
 REM ==========================================================================
 setlocal
@@ -49,5 +50,15 @@ echo.
 echo === Instalador gerado com sucesso ===
 echo Arquivo: dist\ClaudeTray-Setup.exe
 echo.
+
+REM --- 4) Regenera os manifestos winget (versao, SHA256, ReleaseDate) ------
+echo === Atualizando manifestos winget ===
+echo.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0update-winget.ps1"
+if errorlevel 1 (
+    echo.
+    echo *** ERRO: falha ao atualizar os manifestos winget. ***
+    exit /b 1
+)
 
 endlocal
