@@ -95,6 +95,20 @@ internal static class Program
             return;
         }
 
+        // Dev/preview helper: open just the Statistics window, standalone, for the same
+        // launch-and-screenshot loop (see the preview-ui skill). Feeds a synthetic snapshot — a 5h
+        // session burning ahead of pace, a 7d week comfortably on track — so both verdicts render.
+        if (args.Length >= 1 && args[0] == "--stats")
+        {
+            var previewApp = new System.Windows.Application();
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var sample = new PaceSnapshot(
+                Util5h: 0.72, Reset5h: now + 2 * 3600,      // 3h of 5h elapsed (60%), 72% used → ahead
+                Util7d: 0.38, Reset7d: now + 3 * 86400);    // 4d of 7d elapsed (57%), 38% used → on track
+            previewApp.Run(new StatisticsWindow(sample));
+            return;
+        }
+
         // Single instance: if the tray app is already running, just exit — don't add a second icon.
         _instanceMutex = new Mutex(initiallyOwned: true, @"Local\ClaudeTray.SingleInstance", out bool createdNew);
         if (!createdNew)
@@ -311,6 +325,11 @@ internal sealed class TrayContext : ApplicationContext
         insights.DropDownItems.Add(new ToolStripMenuItem("…") { Enabled = false });
         menu.Items.Add(insights);
 
+        // Opens the pacing report: 5h-session and 7d-week usage vs. the clock, with a projection.
+        var stats = new ToolStripMenuItem("Statistics");
+        stats.Click += (_, _) => OpenStatistics();
+        menu.Items.Add(stats);
+
         var refresh = new ToolStripMenuItem("Refresh now");
         refresh.Click += async (_, _) => await RefreshAsync();
         menu.Items.Add(refresh);
@@ -349,9 +368,10 @@ internal sealed class TrayContext : ApplicationContext
         Render();
     }
 
-    // The settings window is shown non-modally; keep a reference so we reuse the open one
-    // instead of stacking duplicates.
+    // The settings and statistics windows are shown non-modally; keep references so we reuse an open
+    // one instead of stacking duplicates.
     private SettingsWindow? _settingsWindow;
+    private StatisticsWindow? _statsWindow;
 
     // A WPF Application must exist before any WPF window (Settings, the reset toast) is shown on this
     // thread, for the Fluent theme and pack-URI resources to resolve. Hosted as a single instance for
@@ -385,6 +405,31 @@ internal sealed class TrayContext : ApplicationContext
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
         _settingsWindow.Activate();
+    }
+
+    // Open the Statistics window (non-modal) with the current live usage as its snapshot, so the pace
+    // report reflects the same numbers the icon does. Reuses an already-open window.
+    private void OpenStatistics()
+    {
+        if (_statsWindow is not null)
+        {
+            if (_statsWindow.WindowState == System.Windows.WindowState.Minimized)
+                _statsWindow.WindowState = System.Windows.WindowState.Normal;
+            _statsWindow.Activate();
+            return;
+        }
+
+        EnsureWpfApp();
+
+        // Only pass a snapshot when we have a good reading; otherwise the window shows a "connect" hint.
+        PaceSnapshot? snap = _data is { Error: null } d
+            ? new PaceSnapshot(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d)
+            : null;
+
+        _statsWindow = new StatisticsWindow(snap);
+        _statsWindow.Closed += (_, _) => _statsWindow = null;
+        _statsWindow.Show();
+        _statsWindow.Activate();
     }
 
     // Persist the edited settings and apply the new values immediately.
