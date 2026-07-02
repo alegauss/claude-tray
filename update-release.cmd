@@ -63,7 +63,7 @@ if errorlevel 1 (
 REM Cria a tag vX.Y.Z e a envia para o remoto.
 git tag "v%~1"
 if errorlevel 1 (
-    echo *** ERRO: falha ao criar a tag v%~1 (ja existe?). ***
+    echo *** ERRO: falha ao criar a tag v%~1 - talvez ja exista. ***
     exit /b 1
 )
 git push origin "v%~1"
