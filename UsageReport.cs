@@ -92,11 +92,15 @@ internal static class UsageReport
             if (r.Session.HasWindow) earliest = Math.Min(earliest, r.Session.ResetUnix - SessionSeconds);
             if (r.Weekly.HasWindow) earliest = Math.Min(earliest, r.Weekly.ResetUnix - WeekSeconds);
 
-            if (!double.IsPositiveInfinity(earliest) && Directory.Exists(ProjectsDir))
+            if (!double.IsPositiveInfinity(earliest))
             {
-                List<(double t, long tok)> samples = ScanTokens(earliest, now);
-                FillCurve(r.Session, samples, now);
-                FillCurve(r.Weekly, samples, now);
+                // Real measured utilizations (preferred), plus token samples as the shaping fallback.
+                List<UsageSample> hist = UsageHistory.Load(earliest);
+                List<(double t, long tok)> samples =
+                    Directory.Exists(ProjectsDir) ? ScanTokens(earliest, now) : new();
+
+                FillCurve(r.Session, samples, hist, s => (s.Util5h, s.Reset5h), now);
+                FillCurve(r.Weekly, samples, hist, s => (s.Util7d, s.Reset7d), now);
             }
 
             return r;
@@ -137,9 +141,17 @@ internal static class UsageReport
             : double.PositiveInfinity;
     }
 
-    // Shape a window's burn-up curve from the token samples that fall inside it, scaled so the
-    // cumulative curve lands exactly on the live utilization at "now".
-    private static void FillCurve(WindowPace w, List<(double t, long tok)> samples, double now)
+    // A logged reading belongs to "this" window only if its reset time matches, so a mid-window
+    // reset cleanly drops the previous window's samples. Reset times are stable within a window.
+    private const double ResetMatchTolerance = 120;
+    // Below this many in-window readings the real curve is too coarse to beat the token shaping.
+    private const int MinRealSamples = 2;
+
+    // Shape a window's burn-up curve. Preferred: the real utilizations logged over this window
+    // (<paramref name="hist"/>, selected by <paramref name="pick"/>). Fallback, when there aren't
+    // enough logged points yet: the token samples, scaled so the curve lands on the live utilization.
+    private static void FillCurve(WindowPace w, List<(double t, long tok)> samples,
+        List<UsageSample> hist, Func<UsageSample, (double util, double reset)> pick, double now)
     {
         if (!w.HasWindow) return;
         double start = w.ResetUnix - w.WindowSeconds;
@@ -150,10 +162,31 @@ internal static class UsageReport
         w.TokensInWindow = total;
         w.RequestsInWindow = inWin.Count;
 
+        // Preferred path: the real measured utilization over this window.
+        var real = new List<(double frac, double cum)>();
+        foreach (UsageSample s in hist)
+        {
+            if (s.T < start || s.T > now) continue;
+            var (util, reset) = pick(s);
+            if (Math.Abs(reset - w.ResetUnix) > ResetMatchTolerance) continue;
+            real.Add((Math.Clamp((s.T - start) / w.WindowSeconds, 0, 1), Math.Clamp(util, 0, 1)));
+        }
+        real.Sort((a, b) => a.frac.CompareTo(b.frac));
+
+        if (real.Count >= MinRealSamples)
+        {
+            var realCurve = new List<(double, double)> { (0, 0) };
+            realCurve.AddRange(real);
+            // Land exactly on the live reading, which is fresher than the last logged sample.
+            realCurve.Add((w.ElapsedFraction, w.Util));
+            w.Curve = realCurve;
+            return;
+        }
+
         var curve = new List<(double, double)> { (0, 0) };
         if (total <= 0)
         {
-            // No token history to shape with — fall back to a straight line to the live level.
+            // No history of any kind to shape with — fall back to a straight line to the live level.
             curve.Add((w.ElapsedFraction, w.Util));
             w.Curve = curve;
             return;

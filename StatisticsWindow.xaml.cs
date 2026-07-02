@@ -61,6 +61,44 @@ internal partial class StatisticsWindow : Window
         if (_snapshot is not null) Reload();
     }
 
+    /// <summary>
+    /// Render the window's content — panes, verdict chips and both burn-up charts — to a PNG at 1.5×,
+    /// off-screen, without depending on the window being visible or foreground. This is the
+    /// deterministic capture path behind <c>--capture-stats</c> (the screen-copy path can't see a
+    /// window that another app covers). Call after the async pace computation has rendered the charts.
+    /// </summary>
+    internal void SaveSnapshot(string path)
+    {
+        UpdateLayout();
+        var target = (FrameworkElement)Content;
+
+        const double scale = 1.5;
+        var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(
+            (int)(target.ActualWidth * scale), (int)(target.ActualHeight * scale),
+            96 * scale, 96 * scale, System.Windows.Media.PixelFormats.Pbgra32);
+        rtb.Render(target);
+
+        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
+        using var fs = System.IO.File.Create(path);
+        encoder.Save(fs);
+    }
+
+    /// <summary>Snapshot each tab in turn to <c>{basePath}-5h.png</c> / <c>{basePath}-7d.png</c>.
+    /// Selecting a tab realizes its chart (its <c>SizeChanged</c> draws it), so both render fully.</summary>
+    internal void SaveAllTabs(string basePath)
+    {
+        string[] suffixes = { "-5h.png", "-7d.png" };
+        for (int i = 0; i < PanesBody.Items.Count && i < suffixes.Length; i++)
+        {
+            PanesBody.SelectedIndex = i;
+            UpdateLayout();
+            // Flush the render queue so the chart drawn on this tab's SizeChanged is present.
+            Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+            SaveSnapshot(basePath + suffixes[i]);
+        }
+    }
+
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
     private void Reload()
@@ -88,6 +126,7 @@ internal partial class StatisticsWindow : Window
         StatusText.Text = message;
         StatusText.Visibility = Visibility.Visible;
         PanesBody.Visibility = Visibility.Collapsed;
+        MethodNote.Visibility = Visibility.Collapsed;
     }
 
     private void Render(PaceReport r)
@@ -102,6 +141,7 @@ internal partial class StatisticsWindow : Window
 
         StatusText.Visibility = Visibility.Collapsed;
         PanesBody.Visibility = Visibility.Visible;
+        MethodNote.Visibility = Visibility.Visible;
 
         _session = r.Session;
         _weekly = r.Weekly;

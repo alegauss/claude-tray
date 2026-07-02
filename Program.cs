@@ -109,6 +109,40 @@ internal static class Program
             return;
         }
 
+        // Dev/preview helper: render the Statistics window off-screen to PNGs (one per tab) via
+        // RenderTargetBitmap, without needing it foreground — the screen-copy capture can't see a
+        // window another app covers. Args: [outBase] (default docs\_preview\stats → -5h.png/-7d.png).
+        if (args.Length >= 1 && args[0] == "--capture-stats")
+        {
+            string outBase = System.IO.Path.GetFullPath(args.Length >= 2 ? args[1] : @"docs\_preview\stats");
+            var previewApp = new System.Windows.Application
+            {
+                ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
+            };
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var sample = new PaceSnapshot(
+                Util5h: 0.72, Reset5h: now + 2 * 3600,
+                Util7d: 0.38, Reset7d: now + 3 * 86400);
+            var win = new StatisticsWindow(sample)
+            {
+                WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
+                Left = -32000,
+                Top = -32000,
+            };
+            win.Show();
+            // Let the async pace computation finish and the charts render, then snapshot each tab.
+            var settle = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
+            settle.Tick += (_, _) =>
+            {
+                settle.Stop();
+                try { win.SaveAllTabs(outBase); Console.WriteLine("wrote " + outBase + "-5h.png / -7d.png"); }
+                finally { previewApp.Shutdown(); }
+            };
+            settle.Start();
+            previewApp.Run();
+            return;
+        }
+
         // Single instance: if the tray app is already running, just exit — don't add a second icon.
         _instanceMutex = new Mutex(initiallyOwned: true, @"Local\ClaudeTray.SingleInstance", out bool createdNew);
         if (!createdNew)
@@ -526,6 +560,11 @@ internal sealed class TrayContext : ApplicationContext
         if (ok)
         {
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+            // Log the live reading so the Statistics charts can draw the real utilization curve over
+            // time, rather than inferring the burn shape from transcript token counts.
+            UsageHistory.Append(now, fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d);
+
             foreach (string key in Metrics)
             {
                 BurnTracker.ResetEvent? ev = _burn.Record(key, fresh.Metric(key), fresh.ResetOf(key), now);

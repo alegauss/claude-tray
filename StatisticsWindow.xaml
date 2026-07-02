@@ -11,14 +11,6 @@
         FontFamily="Segoe UI Variable Text, Segoe UI">
 
     <Window.Resources>
-        <Style x:Key="Panel" TargetType="Border">
-            <Setter Property="CornerRadius" Value="12" />
-            <Setter Property="Padding" Value="20,18" />
-            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
-        </Style>
-
         <!-- A mini stat inside a pane: big value over a small caption. -->
         <Style x:Key="StatValue" TargetType="TextBlock">
             <Setter Property="FontSize" Value="22" />
@@ -36,6 +28,65 @@
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="12,5" />
             <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- ===== Segmented control: the two windows as pill segments instead of faint underline tabs.
+             The selected segment fills with the system accent; the whole thing sits in a rounded track. -->
+        <Style x:Key="SegItem" TargetType="TabItem">
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Seg" CornerRadius="7" Margin="2" Padding="22,8"
+                                Background="Transparent">
+                            <ContentPresenter ContentSource="Header"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Seg" Property="Background"
+                                        Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <!-- Theme's on-accent text brush: adapts to a light *or* dark accent so
+                                     the label always contrasts, instead of a fixed white that vanishes
+                                     on a light accent color. -->
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsSelected" Value="False" />
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                </MultiTrigger.Conditions>
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SegControl" TargetType="TabControl">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" HorizontalAlignment="Left" CornerRadius="9" Padding="2"
+                                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                    BorderThickness="1">
+                                <TabPanel IsItemsHost="True" />
+                            </Border>
+                            <ContentPresenter Grid.Row="1" ContentSource="SelectedContent" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
@@ -56,141 +107,140 @@
                        Text="Are you spending your quota evenly, or faster than the clock — running out before it resets? The dashed line projects where your current pace lands." />
         </StackPanel>
 
-        <!-- ===== Panes ===== -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="18,18,18,0" Padding="14,0,14,0">
-            <StackPanel>
-                <TextBlock x:Name="StatusText"
-                           Margin="2,24,2,0" FontSize="14" TextWrapping="Wrap"
-                           Visibility="Collapsed"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        <!-- ===== Panes (one tab per rate-limit window, so each fits without scrolling) ===== -->
+        <Grid Grid.Row="1" Margin="30,16,30,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-                <StackPanel x:Name="PanesBody" Visibility="Collapsed">
-                    <!-- ============ SESSION (5h) ============ -->
-                    <Border Style="{StaticResource Panel}" Margin="0,4,0,0">
-                        <StackPanel>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock Text="5-hour session" FontSize="17" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                    <TextBlock Text="Short window — resets a few times a day"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                                </StackPanel>
-                                <Border Grid.Column="1" x:Name="ChipS" Style="{StaticResource VerdictChip}">
-                                    <TextBlock x:Name="ChipTextS" Foreground="White" FontWeight="SemiBold" FontSize="13" />
-                                </Border>
-                            </Grid>
+            <TextBlock x:Name="StatusText" Grid.RowSpan="2"
+                       Margin="4,24,4,0" FontSize="14" TextWrapping="Wrap"
+                       Visibility="Collapsed"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
-                            <Grid Margin="0,16,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock x:Name="UsedS" Style="{StaticResource StatValue}" />
-                                    <TextBlock Text="of quota used" Style="{StaticResource StatCaption}" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock x:Name="IdealS" Style="{StaticResource StatValue}" />
-                                    <TextBlock Text="even-pace target now" Style="{StaticResource StatCaption}" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="2">
-                                    <TextBlock x:Name="ResetS" Style="{StaticResource StatValue}" />
-                                    <TextBlock Text="until reset" Style="{StaticResource StatCaption}" />
-                                </StackPanel>
-                            </Grid>
+            <TabControl x:Name="PanesBody" Grid.Row="0" Visibility="Collapsed"
+                        Style="{StaticResource SegControl}" ItemContainerStyle="{StaticResource SegItem}">
+                <!-- ============ SESSION (5h) ============ -->
+                <TabItem Header="5-hour session">
+                    <StackPanel Margin="4,20,4,4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                                       Text="Short window — resets a few times a day"
+                                       FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Border Grid.Column="1" x:Name="ChipS" Style="{StaticResource VerdictChip}">
+                                <TextBlock x:Name="ChipTextS" Foreground="White" FontWeight="SemiBold" FontSize="13" />
+                            </Border>
+                        </Grid>
 
-                            <Canvas x:Name="ChartS" Height="176" Margin="0,18,0,0"
-                                    ClipToBounds="True" SizeChanged="Chart_SizeChanged" />
-
-                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
-                                <TextBlock Text="actual usage" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
-                                <TextBlock Text="even pace" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#E0A030" />
-                                <TextBlock Text="projection" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <Grid Margin="0,20,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock x:Name="UsedS" Style="{StaticResource StatValue}" />
+                                <TextBlock Text="of quota used" Style="{StaticResource StatCaption}" />
                             </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock x:Name="IdealS" Style="{StaticResource StatValue}" />
+                                <TextBlock Text="even-pace target now" Style="{StaticResource StatCaption}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock x:Name="ResetS" Style="{StaticResource StatValue}" />
+                                <TextBlock Text="until reset" Style="{StaticResource StatCaption}" />
+                            </StackPanel>
+                        </Grid>
 
-                            <TextBlock x:Name="ProjectionS" Margin="0,14,0,0" TextWrapping="Wrap" LineHeight="20"
+                        <Canvas x:Name="ChartS" Height="210" Margin="0,22,0,0"
+                                ClipToBounds="True" SizeChanged="Chart_SizeChanged" />
+
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
+                            <TextBlock Text="actual usage" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <TextBlock Text="even pace" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#E0A030" />
+                            <TextBlock Text="projection" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
-                    </Border>
 
-                    <!-- ============ WEEK (7d) ============ -->
-                    <Border Style="{StaticResource Panel}" Margin="0,16,0,14">
-                        <StackPanel>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock Text="Week (7 days)" FontSize="17" FontWeight="SemiBold"
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                    <TextBlock Text="Long window — the limit that defines your week"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                                </StackPanel>
-                                <Border Grid.Column="1" x:Name="ChipW" Style="{StaticResource VerdictChip}">
-                                    <TextBlock x:Name="ChipTextW" Foreground="White" FontWeight="SemiBold" FontSize="13" />
-                                </Border>
-                            </Grid>
+                        <TextBlock x:Name="ProjectionS" Margin="0,16,0,0" TextWrapping="Wrap" LineHeight="20"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </TabItem>
 
-                            <Grid Margin="0,16,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock x:Name="UsedW" Style="{StaticResource StatValue}" />
-                                    <TextBlock Text="of quota used" Style="{StaticResource StatCaption}" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock x:Name="IdealW" Style="{StaticResource StatValue}" />
-                                    <TextBlock Text="even-pace target now" Style="{StaticResource StatCaption}" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="2">
-                                    <TextBlock x:Name="ResetW" Style="{StaticResource StatValue}" />
-                                    <TextBlock Text="until reset" Style="{StaticResource StatCaption}" />
-                                </StackPanel>
-                            </Grid>
+                <!-- ============ WEEK (7d) ============ -->
+                <TabItem Header="Week (7 days)">
+                    <StackPanel Margin="4,20,4,4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" VerticalAlignment="Center"
+                                       Text="Long window — the limit that defines your week"
+                                       FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Border Grid.Column="1" x:Name="ChipW" Style="{StaticResource VerdictChip}">
+                                <TextBlock x:Name="ChipTextW" Foreground="White" FontWeight="SemiBold" FontSize="13" />
+                            </Border>
+                        </Grid>
 
-                            <Canvas x:Name="ChartW" Height="176" Margin="0,18,0,0"
-                                    ClipToBounds="True" SizeChanged="Chart_SizeChanged" />
-
-                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                                <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
-                                <TextBlock Text="actual usage" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
-                                <TextBlock Text="even pace" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                                <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#E0A030" />
-                                <TextBlock Text="projection" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <Grid Margin="0,20,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock x:Name="UsedW" Style="{StaticResource StatValue}" />
+                                <TextBlock Text="of quota used" Style="{StaticResource StatCaption}" />
                             </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock x:Name="IdealW" Style="{StaticResource StatValue}" />
+                                <TextBlock Text="even-pace target now" Style="{StaticResource StatCaption}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock x:Name="ResetW" Style="{StaticResource StatValue}" />
+                                <TextBlock Text="until reset" Style="{StaticResource StatCaption}" />
+                            </StackPanel>
+                        </Grid>
 
-                            <TextBlock x:Name="ProjectionW" Margin="0,14,0,0" TextWrapping="Wrap" LineHeight="20"
+                        <Canvas x:Name="ChartW" Height="210" Margin="0,22,0,0"
+                                ClipToBounds="True" SizeChanged="Chart_SizeChanged" />
+
+                        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                            <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
+                            <TextBlock Text="actual usage" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <TextBlock Text="even pace" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#E0A030" />
+                            <TextBlock Text="projection" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
-                    </Border>
 
-                    <TextBlock Margin="4,0,4,10" TextWrapping="Wrap" FontSize="11"
-                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                               Text="How much is “used” and when it resets come live from Anthropic's rate limits. The curve's shape — whether usage was bunched up or spread out — is reconstructed from your local transcripts (~/.claude/projects) and scaled to land exactly on the current level. The projection assumes this window's average pace." />
-                </StackPanel>
-            </StackPanel>
-        </ScrollViewer>
+                        <TextBlock x:Name="ProjectionW" Margin="0,16,0,0" TextWrapping="Wrap" LineHeight="20"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </TabItem>
+            </TabControl>
+
+            <TextBlock x:Name="MethodNote" Grid.Row="1" Margin="4,14,4,4" TextWrapping="Wrap" FontSize="11"
+                       Visibility="Collapsed"
+                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                       Text="“Used” and the reset time come live from Anthropic's rate limits. When enough readings have been logged, the curve is the real utilization measured across the window; until then it's reconstructed from your local transcripts (~/.claude/projects) and scaled to the current level. The projection assumes this window's average pace." />
+        </Grid>
 
         <!-- ===== Footer ===== -->
         <Grid Grid.Row="2" Margin="32,12,32,20">
