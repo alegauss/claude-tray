@@ -70,7 +70,13 @@ internal partial class StatisticsWindow : Window
     internal void SaveSnapshot(string path)
     {
         UpdateLayout();
-        var target = (FrameworkElement)Content;
+        var target = (System.Windows.Controls.Panel)Content;
+
+        // The window's own backdrop (Mica) isn't part of the visual tree, so paint an opaque themed
+        // surface behind the content for the snapshot, then restore it.
+        Brush? prevBg = target.Background;
+        target.Background = CaptureBackdrop();
+        target.UpdateLayout();
 
         const double scale = 1.5;
         var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(
@@ -78,10 +84,20 @@ internal partial class StatisticsWindow : Window
             96 * scale, 96 * scale, System.Windows.Media.PixelFormats.Pbgra32);
         rtb.Render(target);
 
+        target.Background = prevBg;
+
         var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
         encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
         using var fs = System.IO.File.Create(path);
         encoder.Save(fs);
+    }
+
+    // An opaque background for snapshots: the theme's base surface if present, else a Fluent-dark gray.
+    private Brush CaptureBackdrop()
+    {
+        foreach (string key in new[] { "SolidBackgroundFillColorBaseBrush", "ApplicationBackgroundBrush" })
+            if (TryFindResource(key) is Brush b) return b;
+        return Freeze(new SolidColorBrush(Color.FromRgb(0x20, 0x20, 0x20)));
     }
 
     /// <summary>Snapshot each tab in turn to <c>{basePath}-5h.png</c> / <c>{basePath}-7d.png</c>.

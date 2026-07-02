@@ -278,6 +278,7 @@
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#projection">Projection</a>
+      <a href="#statistics">Statistics</a>
       <a href="#notifications">Notifications</a>
       <a href="#insights">Insights</a>
       <a href="#install">Install</a>
@@ -398,6 +399,34 @@
         <p>At your current pace, usage will hit 100% <b>before</b> the reset. The fill bar turns <b style="color:var(--red)">vivid red</b> so you can ease off in time.</p>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- STATISTICS -->
+<section id="statistics">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">New ✨</div>
+      <h2>See your burn, not just a number</h2>
+      <p>The <b>Statistics</b> window turns each rate-limit window into a burn-up chart: your <b>real measured utilization</b> over time against the even-pace line, plus a dashed projection of where your current pace lands. Two tabs — the <b>5-hour session</b> and the <b>7-day week</b> — each with its own verdict.</p>
+    </div>
+    <div class="notify-grid reveal">
+      <figure class="shot-frame" style="margin:0">
+        <img class="shot" src="statistics-5h.png" alt="Statistics — 5-hour session burn-up chart, pacing ahead of the even-pace line (Too fast)">
+        <figcaption style="color:var(--muted-2);font-size:.86rem;text-align:center;margin-top:12px">
+          <b style="color:var(--text)">5-hour session</b> — burning ahead of pace, projected to hit 100% before the reset.
+        </figcaption>
+      </figure>
+      <figure class="shot-frame" style="margin:0">
+        <img class="shot" src="statistics-7d.png" alt="Statistics — 7-day week burn-up chart, comfortably on track">
+        <figcaption style="color:var(--muted-2);font-size:.86rem;text-align:center;margin-top:12px">
+          <b style="color:var(--text)">Week (7 days)</b> — comfortably on track, well under the even-pace target.
+        </figcaption>
+      </figure>
+    </div>
+    <p style="text-align:center;color:var(--muted-2);font-size:.9rem;margin-top:26px">
+      The curve is your <b style="color:var(--text)">real utilization</b> logged over the window — not an estimate. Until enough readings exist, it falls back to a shape reconstructed from your local transcripts. <b style="color:var(--text)">Nothing leaves your machine.</b>
+    </p>
   </div>
 </section>
 

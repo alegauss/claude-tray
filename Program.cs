@@ -128,6 +128,9 @@ internal static class Program
                 WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
                 Left = -32000,
                 Top = -32000,
+                // Pin the theme for the capture — off-screen there is no system backdrop to follow,
+                // so without this the snapshot renders dark-theme text over an unpainted background.
+                ThemeMode = System.Windows.ThemeMode.Dark,
             };
             win.Show();
             // Let the async pace computation finish and the charts render, then snapshot each tab.
