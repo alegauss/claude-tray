@@ -287,20 +287,34 @@ internal partial class StatisticsWindow : Window
         if (util > 0 && ef > 0)
         {
             var proj = new PointCollection { new Point(X(ef), Y(util)) };
+            double endX, endY;
+            string projTip;
             if (w.ExhaustFraction <= 1)
             {
                 proj.Add(new Point(X(w.ExhaustFraction), Y(1)));
                 proj.Add(new Point(X(1), Y(1)));
+                endX = X(w.ExhaustFraction); endY = Y(1);
+                projTip = $"Projected to hit 100% in {Dur(w.ExhaustSeconds)}";
             }
             else
             {
-                proj.Add(new Point(X(1), Y(util / ef)));
+                double end = util / ef;
+                proj.Add(new Point(X(1), Y(end)));
+                endX = X(1); endY = Y(end);
+                projTip = $"Projected at reset: {Pct(end)}";
             }
             c.Children.Add(new Polyline
             {
                 Points = proj, Stroke = ProjectionBrush, StrokeThickness = 2,
                 StrokeDashArray = new DoubleCollection { 5, 4 },
             });
+
+            // Amber dot at the projection's landing point, with a hover tooltip showing the outcome.
+            var projDot = new Ellipse { Width = 7, Height = 7, Fill = ProjectionBrush };
+            Canvas.SetLeft(projDot, endX - 3.5);
+            Canvas.SetTop(projDot, endY - 3.5);
+            c.Children.Add(projDot);
+            AddHit(c, endX, endY, projTip);
         }
 
         // "Now" marker: vertical line + dot at the current point.
@@ -309,15 +323,44 @@ internal partial class StatisticsWindow : Window
             X1 = X(ef), Y1 = top, X2 = X(ef), Y2 = top + ph,
             Stroke = muted, StrokeThickness = 1, Opacity = 0.5,
         });
+        // Even-pace target for "now": where the vertical "now" line crosses the even-pace diagonal.
+        var idealDot = new Ellipse
+        {
+            Width = 8, Height = 8, Stroke = muted, StrokeThickness = 1.5,
+            Fill = System.Windows.Media.Brushes.Transparent,
+        };
+        Canvas.SetLeft(idealDot, X(ef) - 4);
+        Canvas.SetTop(idealDot, Y(w.IdealNow) - 4);
+        c.Children.Add(idealDot);
+        AddHit(c, X(ef), Y(w.IdealNow), $"Even-pace target now: {Pct(w.IdealNow)}");
+
         var dot = new Ellipse { Width = 9, Height = 9, Fill = accent };
         Canvas.SetLeft(dot, X(ef) - 4.5);
         Canvas.SetTop(dot, Y(util) - 4.5);
         c.Children.Add(dot);
+        AddHit(c, X(ef), Y(util), $"Current usage: {Pct(util)}");
 
         // Axis labels: window start (left) and reset time (right).
         double startUnix = w.ResetUnix - w.WindowSeconds;
         AddAxisLabel(c, "start " + LocalTime(startUnix), left, top + ph + 4, axisFg, TextAlignment.Left);
         AddAxisLabel(c, "reset " + LocalTime(w.ResetUnix), X(1), top + ph + 4, axisFg, TextAlignment.Right);
+    }
+
+    // A transparent circular hit-target with a hover tooltip, laid over a key chart point so the thin
+    // lines and small dots underneath are easy to hover. Added last, so it sits on top for hit-testing.
+    private static void AddHit(Canvas c, double x, double y, string tip)
+    {
+        var hit = new Ellipse
+        {
+            Width = 18, Height = 18,
+            Fill = System.Windows.Media.Brushes.Transparent,
+            ToolTip = tip,
+        };
+        ToolTipService.SetInitialShowDelay(hit, 150);
+        ToolTipService.SetShowDuration(hit, 20000);
+        Canvas.SetLeft(hit, x - 9);
+        Canvas.SetTop(hit, y - 9);
+        c.Children.Add(hit);
     }
 
     private static Line HLine(double x1, double x2, double y, Brush stroke, DoubleCollection? dash) => new()
