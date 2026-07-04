@@ -38,7 +38,9 @@ internal partial class StatisticsWindow : Window
     // Projection line color — a warm amber that reads on both light and dark backgrounds.
     private static readonly Brush ProjectionBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xE0, 0xA0, 0x30)));
 
-    private readonly PaceSnapshot? _snapshot;
+    // The live rate-limit reading, refreshed in place by the tray on each poll (see UpdateSnapshot),
+    // so the report tracks the same cadence configured in Settings without polling the API itself.
+    private PaceSnapshot? _snapshot;
     private int _generation;
     private WindowPace? _session;  // last-rendered data, kept so the charts can redraw on resize
     private WindowPace? _weekly;
@@ -64,6 +66,21 @@ internal partial class StatisticsWindow : Window
     private void Refresh_Click(object sender, RoutedEventArgs e)
     {
         if (_snapshot is not null) Reload();
+    }
+
+    /// <summary>
+    /// Feed a fresh live reading in from the tray's poll loop and re-render, so the open report
+    /// auto-refreshes on the same cadence as the tray icon (the <c>RefreshSeconds</c> from Settings).
+    /// A null snapshot (signed out / no reading) drops back to the "connect" hint. Called on the UI
+    /// thread from <see cref="TrayContext"/>.
+    /// </summary>
+    internal void UpdateSnapshot(PaceSnapshot? snapshot)
+    {
+        _snapshot = snapshot;
+        if (_snapshot is null)
+            ShowStatus(L.T("stats.connect"));
+        else
+            Reload();
     }
 
     /// <summary>

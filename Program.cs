@@ -467,15 +467,18 @@ internal sealed class TrayContext : ApplicationContext
         EnsureWpfApp();
 
         // Only pass a snapshot when we have a good reading; otherwise the window shows a "connect" hint.
-        PaceSnapshot? snap = _data is { Error: null } d
-            ? new PaceSnapshot(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d)
-            : null;
-
-        _statsWindow = new StatisticsWindow(snap);
+        _statsWindow = new StatisticsWindow(CurrentSnapshot());
         _statsWindow.Closed += (_, _) => _statsWindow = null;
         _statsWindow.Show();
         _statsWindow.Activate();
     }
+
+    // The current live reading as a pace snapshot for the Statistics window, or null when there's no
+    // good reading (signed out / error) so the window shows its "connect" hint instead.
+    private PaceSnapshot? CurrentSnapshot()
+        => _data is { Error: null } d
+            ? new PaceSnapshot(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d)
+            : null;
 
     // Persist the edited settings and apply the new values immediately.
     private void ApplySettings(Settings updated)
@@ -599,6 +602,9 @@ internal sealed class TrayContext : ApplicationContext
         }
         _flashOn = false;
         Render();
+        // Push the fresh reading into an open Statistics window so it auto-refreshes on the same
+        // cadence as the icon, rather than staying frozen until the user clicks Refresh.
+        _statsWindow?.UpdateSnapshot(CurrentSnapshot());
         RecomputeInsights();
         AdjustForAuthState();
     }
