@@ -307,6 +307,13 @@ internal sealed class TrayContext : ApplicationContext
 
     private const int ErrorTolerance = 2; // transient blips to ride out before showing an error
 
+    // At/above this utilization (0–1) a window is treated as maxed out — usage is blocked until it
+    // resets, so the poll loop idles to the reset instead of hammering the API. Matches the 0.995
+    // "at limit" threshold used elsewhere (the projection/ExhaustSeconds logic).
+    private const double AtLimitThreshold = 0.995;
+    private const int LimitResetBufferSeconds = 20; // wait past the predicted reset before double-checking
+    private const int LimitDoubleCheckSeconds = 30; // retry cadence once a reset is due but not yet observed
+
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool DestroyIcon(IntPtr handle);
 
@@ -603,7 +610,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         bool unauthorized = _data is { Unauthorized: true };
 
-        int desiredMs = (unauthorized ? _settings.AuthRetrySeconds : _settings.RefreshSeconds) * 1000;
+        int desiredMs = DesiredPollMs();
         if (_poll.Interval != desiredMs)
         {
             _poll.Stop();
@@ -620,6 +627,48 @@ internal sealed class TrayContext : ApplicationContext
             _autoOpenedForAuth = true;
             OpenClaudeCode(forReauth: true);
         }
+    }
+
+    // The poll cadence for the current state. Auth-retry while signed out; the normal interval when
+    // consuming; and — once a window is maxed out — a long idle until just past the known reset. When
+    // a limit is hit, usage is blocked and consumption is frozen until that window resets, so polling
+    // on the normal cadence just burns API calls to read the same 100%. Instead we sleep until the
+    // reset is due and poll once to confirm it landed (see BlockedUntilUnix / the double-check floor).
+    private int DesiredPollMs()
+    {
+        if (_data is { Unauthorized: true })
+            return _settings.AuthRetrySeconds * 1000;
+
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        double blockedUntil = BlockedUntilUnix(now);
+        if (blockedUntil > 0)
+        {
+            // Idle until just past the predicted reset, then double-check. If we're already past it but
+            // still reading at-limit (clock skew or a late server-side reset), fall to the short
+            // double-check cadence so we catch the drop promptly rather than waiting a whole window.
+            double waitMs = (blockedUntil - now + LimitResetBufferSeconds) * 1000;
+            double floorMs = LimitDoubleCheckSeconds * 1000;
+            return (int)Math.Min(Math.Max(waitMs, floorMs), int.MaxValue);
+        }
+
+        return _settings.RefreshSeconds * 1000;
+    }
+
+    // The next reset boundary to wake for while a window is maxed out: the soonest future reset among
+    // the windows currently at their limit. Waking at the earliest (not the latest) means each window's
+    // reset is polled as it happens — logged and, if enabled, notified — and if another window is still
+    // maxed the next DesiredPollMs simply re-idles to its reset. 0 when nothing is blocked.
+    private double BlockedUntilUnix(long now)
+    {
+        if (_data is not { Error: null } d) return 0;
+        double soonest = double.PositiveInfinity;
+        bool atLimit = false;
+        if (d.Session5h >= AtLimitThreshold) { atLimit = true; if (d.Reset5h > now) soonest = Math.Min(soonest, d.Reset5h); }
+        if (d.Week7d >= AtLimitThreshold) { atLimit = true; if (d.Reset7d > now) soonest = Math.Min(soonest, d.Reset7d); }
+        if (!atLimit) return 0;
+        // At limit but no known future reset (0 / stale header): keep checking on the short cadence
+        // rather than idling forever.
+        return double.IsPositiveInfinity(soonest) ? now : soonest;
     }
 
     // Ask GitHub for the latest release; if newer, surface it in the menu and notify once.
