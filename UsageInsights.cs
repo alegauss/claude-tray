@@ -46,7 +46,7 @@ internal static class UsageInsights
         {
             if (!Directory.Exists(ProjectsDir))
             {
-                data.Error = "no transcripts found";
+                data.Error = L.T("insights.noTranscripts");
                 return data;
             }
 

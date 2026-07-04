@@ -76,10 +76,10 @@ internal partial class SettingsWindow : Window
         // "Start with Windows" is a registry entry (HKCU\…\Run), not part of the Settings model;
         // read its live state here and apply it directly on Save.
         StartupCheck.IsChecked = StartupManager.IsEnabled();
-        VersionText.Text = $"Version {Updater.CurrentVersion}";
+        VersionText.Text = L.T("settings.version", Updater.CurrentVersion);
 
         // About page: the same crisp logo the tray draws, plus the live version chip.
-        HeroVersion.Text = $"v{Updater.CurrentVersion}";
+        HeroVersion.Text = L.T("settings.heroVersion", Updater.CurrentVersion);
         LogoImage.Source = RenderLogoSource(192);
 
         try { Icon = System.Windows.Media.Imaging.BitmapFrame.Create(
@@ -129,7 +129,7 @@ internal partial class SettingsWindow : Window
 
         // The About page has nothing to save: hide Save and turn Cancel into a plain Close.
         SaveButton.Visibility = about ? Visibility.Collapsed : Visibility.Visible;
-        CancelButton.Content = about ? "Close" : "Cancel";
+        CancelButton.Content = about ? L.T("settings.close") : L.T("settings.cancel");
     }
 
     // Open a card's Tag URL in the default browser.
@@ -145,8 +145,8 @@ internal partial class SettingsWindow : Window
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show($"Could not open the link:\n{url}\n\n{ex.Message}",
-                "Claude Code Tray", MessageBoxButton.OK, MessageBoxImage.Warning);
+            System.Windows.MessageBox.Show(L.T("dialog.openLinkFailed", url, ex.Message),
+                L.T("dialog.appName"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -185,7 +185,7 @@ internal partial class SettingsWindow : Window
         // RetryValue can be null while the slider's initial value is set during InitializeComponent.
         if (RetryValue is null) return;
         int s = (int)Math.Round(RetrySlider.Value);
-        RetryValue.Text = s == 1 ? "1 second" : $"{s} seconds";
+        RetryValue.Text = s == 1 ? L.T("settings.sec.one") : L.T("settings.sec.many", s);
     }
 
     private void WeeklyMinSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -214,7 +214,7 @@ internal partial class SettingsWindow : Window
     {
         using var dlg = new System.Windows.Forms.FolderBrowserDialog
         {
-            Description = "Choose the directory Claude Code opens in",
+            Description = L.T("settings.cc.browseTitle"),
             UseDescriptionForTitle = true,
             ShowNewFolderButton = false,
         };
@@ -230,7 +230,10 @@ internal partial class SettingsWindow : Window
         // IntervalValue can be null while the slider's initial value is set during InitializeComponent.
         if (IntervalValue is null) return;
         double m = IntervalSlider.Value;
-        IntervalValue.Text = m == 1.0 ? "1 minute" : $"{m:0.#} minutes";
+        // Keep the number invariant (period decimal) to match the rest of the app; translate only the unit.
+        IntervalValue.Text = m == 1.0
+            ? L.T("settings.min.one")
+            : L.T("settings.min.many", m.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture));
         UpdateCostEstimate(m);
     }
 
@@ -248,14 +251,16 @@ internal partial class SettingsWindow : Window
         double costPerCall = (InputTokensPerCall * HaikuInputPerM + OutputTokensPerCall * HaikuOutputPerM) / 1_000_000.0;
         double costPerMonth = costPerCall * callsPerHour * 24.0 * 30.0;
 
-        // Format the numbers with the invariant culture so they read consistently with the
-        // English UI (period decimal, comma thousands) regardless of the OS locale.
-        string stats = System.FormattableString.Invariant(
-            $"At this interval: ≈ {callsPerHour:0.#} calls/h · ~{tokensPerHour:0} tokens/h (~{tokensPerDay:#,0}/day · ≈ ${costPerMonth:0.00}/mo if billed as pay-as-you-go API).");
+        // Format the numbers with the invariant culture so they read consistently (period decimal,
+        // comma thousands) regardless of the OS locale; the surrounding words are localized.
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        string stats = L.T("settings.cost.stats",
+            callsPerHour.ToString("0.#", inv),
+            tokensPerHour.ToString("0", inv),
+            tokensPerDay.ToString("#,0", inv),
+            costPerMonth.ToString("0.00", inv));
 
-        CostEstimate.Text =
-            "Each refresh is one 1-token Haiku call (“heartbeat”) sent with your Claude Code login — " +
-            "it uses a sliver of your usage, not a separate bill.\n" + stats;
+        CostEstimate.Text = L.T("settings.cost.lead") + stats;
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
@@ -281,8 +286,8 @@ internal partial class SettingsWindow : Window
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show($"Could not change the startup setting:\n{ex.Message}",
-                "Claude Code Tray", MessageBoxButton.OK, MessageBoxImage.Warning);
+            System.Windows.MessageBox.Show(L.T("dialog.startupFailed", ex.Message),
+                L.T("dialog.appName"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         _onSave(_settings);

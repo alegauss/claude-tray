@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:ClaudeTray"
         x:ClassModifier="internal"
-        Title="Settings"
+        Title="{local:Loc settings.title}"
         Width="880" Height="600"
         MinWidth="760" MinHeight="560"
         WindowStartupLocation="CenterScreen"
@@ -157,7 +157,7 @@
                 BorderThickness="0,0,1,0"
                 BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
             <StackPanel Margin="12,16,12,12">
-                <TextBlock Text="Settings"
+                <TextBlock Text="{local:Loc settings.title}"
                            FontSize="20" FontWeight="SemiBold"
                            Margin="8,0,0,14"
                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -171,7 +171,7 @@
                         <Border x:Name="AccentGeneral" Width="3" CornerRadius="2"
                                 HorizontalAlignment="Left" Margin="2,8,0,8"
                                 Background="{DynamicResource AccentFillColorDefaultBrush}" />
-                        <TextBlock Text="General" VerticalAlignment="Center"
+                        <TextBlock Text="{local:Loc settings.nav.general}" VerticalAlignment="Center"
                                    Margin="16,0,0,0" FontSize="14"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </Grid>
@@ -185,7 +185,7 @@
                                 HorizontalAlignment="Left" Margin="2,8,0,8"
                                 Visibility="Collapsed"
                                 Background="{DynamicResource AccentFillColorDefaultBrush}" />
-                        <TextBlock Text="Display" VerticalAlignment="Center"
+                        <TextBlock Text="{local:Loc settings.nav.display}" VerticalAlignment="Center"
                                    Margin="16,0,0,0" FontSize="14"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </Grid>
@@ -199,7 +199,7 @@
                                 HorizontalAlignment="Left" Margin="2,8,0,8"
                                 Visibility="Collapsed"
                                 Background="{DynamicResource AccentFillColorDefaultBrush}" />
-                        <TextBlock Text="Claude Code" VerticalAlignment="Center"
+                        <TextBlock Text="{local:Loc settings.nav.claudeCode}" VerticalAlignment="Center"
                                    Margin="16,0,0,0" FontSize="14"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </Grid>
@@ -213,7 +213,7 @@
                                 HorizontalAlignment="Left" Margin="2,8,0,8"
                                 Visibility="Collapsed"
                                 Background="{DynamicResource AccentFillColorDefaultBrush}" />
-                        <TextBlock Text="Notifications" VerticalAlignment="Center"
+                        <TextBlock Text="{local:Loc settings.nav.notifications}" VerticalAlignment="Center"
                                    Margin="16,0,0,0" FontSize="14"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </Grid>
@@ -227,7 +227,7 @@
                                 HorizontalAlignment="Left" Margin="2,8,0,8"
                                 Visibility="Collapsed"
                                 Background="{DynamicResource AccentFillColorDefaultBrush}" />
-                        <TextBlock Text="About" VerticalAlignment="Center"
+                        <TextBlock Text="{local:Loc settings.nav.about}" VerticalAlignment="Center"
                                    Margin="16,0,0,0" FontSize="14"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </Grid>
@@ -251,18 +251,18 @@
                      sections never clips the Save/Cancel buttons. -->
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,14,0">
                     <StackPanel>
-                        <TextBlock Text="General"
+                        <TextBlock Text="{local:Loc settings.general.title}"
                                    FontSize="16" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="Polling cadence and startup behaviour."
+                        <TextBlock Text="{local:Loc settings.general.subtitle}"
                                    Margin="0,2,0,4" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
                         <!-- ===== Refresh ===== -->
-                        <TextBlock Text="Refresh" Style="{StaticResource SectionHeader}" Margin="2,16,0,8" />
+                        <TextBlock Text="{local:Loc settings.general.refresh}" Style="{StaticResource SectionHeader}" Margin="2,16,0,8" />
                         <Border Style="{StaticResource GroupCard}">
-                            <local:SettingsRow Header="Interval"
-                                               Description="How often the tray checks your Claude usage.">
+                            <local:SettingsRow Header="{local:Loc settings.general.interval}"
+                                               Description="{local:Loc settings.general.intervalDesc}">
                                 <StackPanel Orientation="Horizontal">
                                     <Slider x:Name="IntervalSlider" Width="170" VerticalAlignment="Center"
                                             Minimum="0.5" Maximum="60"
@@ -282,10 +282,10 @@
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
                         <!-- ===== Startup ===== -->
-                        <TextBlock Text="Startup" Style="{StaticResource SectionHeader}" />
+                        <TextBlock Text="{local:Loc settings.general.startup}" Style="{StaticResource SectionHeader}" />
                         <Border Style="{StaticResource GroupCard}" Margin="0,0,0,4">
-                            <local:SettingsRow Header="Start with Windows"
-                                               Description="Launch Claude Code Tray automatically when you sign in.">
+                            <local:SettingsRow Header="{local:Loc settings.general.startWithWindows}"
+                                               Description="{local:Loc settings.general.startWithWindowsDesc}">
                                 <ToggleButton x:Name="StartupCheck" Style="{StaticResource ToggleSwitch}" />
                             </local:SettingsRow>
                         </Border>
@@ -298,24 +298,24 @@
             <Grid x:Name="DisplayPane" Grid.Row="0" Margin="32,28,32,0" Visibility="Collapsed">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,14,0">
                     <StackPanel>
-                        <TextBlock Text="Display"
+                        <TextBlock Text="{local:Loc settings.display.title}"
                                    FontSize="16" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="How your usage reads on the tray icon and its tooltip."
+                        <TextBlock Text="{local:Loc settings.display.subtitle}"
                                    Margin="0,2,0,4" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
                         <Border Style="{StaticResource GroupCard}" Margin="0,16,0,4">
                             <StackPanel>
-                                <local:SettingsRow Header="Show percentage on the icon"
-                                                   Description="Draw the usage percentage number on the tray icon; otherwise just the fill bar.">
+                                <local:SettingsRow Header="{local:Loc settings.display.showPct}"
+                                                   Description="{local:Loc settings.display.showPctDesc}">
                                     <ToggleButton x:Name="ShowPctCheck" Style="{StaticResource ToggleSwitch}" />
                                 </local:SettingsRow>
 
                                 <Border Style="{StaticResource RowDivider}" />
 
-                                <local:SettingsRow Header="Show remaining instead of used"
-                                                   Description="Count down the quota you have left: the icon starts full at 100% and drains to 0%, and the tooltip reads “… left”. The warning color and alerts are unchanged.">
+                                <local:SettingsRow Header="{local:Loc settings.display.showRemaining}"
+                                                   Description="{local:Loc settings.display.showRemainingDesc}">
                                     <ToggleButton x:Name="ShowRemainingCheck" Style="{StaticResource ToggleSwitch}" />
                                 </local:SettingsRow>
                             </StackPanel>
@@ -329,21 +329,21 @@
             <Grid x:Name="ClaudeCodePane" Grid.Row="0" Margin="32,28,32,0" Visibility="Collapsed">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,14,0">
                     <StackPanel>
-                        <TextBlock Text="Claude Code"
+                        <TextBlock Text="{local:Loc settings.cc.title}"
                                    FontSize="16" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="Where Claude Code launches from the tray, and how the tray behaves while you’re signed out."
+                        <TextBlock Text="{local:Loc settings.cc.subtitle}"
                                    Margin="0,2,0,4" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
                         <Border Style="{StaticResource GroupCard}" Margin="0,16,0,4">
                             <StackPanel>
-                                <local:SettingsRow Header="Working directory"
-                                                   Description="Used when launching Claude Code from the tray menu or auto-open. Defaults to your home directory; clear it to reset.">
+                                <local:SettingsRow Header="{local:Loc settings.cc.workDir}"
+                                                   Description="{local:Loc settings.cc.workDirDesc}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBox x:Name="DirectoryBox" Width="200"
                                                  VerticalContentAlignment="Center" Padding="8,5" />
-                                        <Button x:Name="BrowseButton" Content="Browse…"
+                                        <Button x:Name="BrowseButton" Content="{local:Loc settings.cc.browse}"
                                                 MinWidth="92" Padding="14,5" Margin="8,0,0,0"
                                                 Click="Browse_Click" />
                                     </StackPanel>
@@ -351,15 +351,15 @@
 
                                 <Border Style="{StaticResource RowDivider}" />
 
-                                <local:SettingsRow Header="Open automatically when signed out"
-                                                   Description="Launch Claude Code when a check finds you signed out, so it can refresh the expired token.">
+                                <local:SettingsRow Header="{local:Loc settings.cc.autoOpen}"
+                                                   Description="{local:Loc settings.cc.autoOpenDesc}">
                                     <ToggleButton x:Name="AutoOpenCheck" Style="{StaticResource ToggleSwitch}" />
                                 </local:SettingsRow>
 
                                 <Border Style="{StaticResource RowDivider}" />
 
-                                <local:SettingsRow Header="Retry while signed out"
-                                                   Description="How often to re-check your usage after a sign-out, until you authenticate again.">
+                                <local:SettingsRow Header="{local:Loc settings.cc.retry}"
+                                                   Description="{local:Loc settings.cc.retryDesc}">
                                     <StackPanel Orientation="Horizontal">
                                         <Slider x:Name="RetrySlider" Width="170" VerticalAlignment="Center"
                                                 TickFrequency="5" IsSnapToTickEnabled="True"
@@ -382,26 +382,26 @@
             <Grid x:Name="NotificationsPane" Grid.Row="0" Margin="32,28,32,0" Visibility="Collapsed">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,14,0">
                     <StackPanel>
-                        <TextBlock Text="Notifications"
+                        <TextBlock Text="{local:Loc settings.notif.title}"
                                    FontSize="16" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="Which usage events show a tray notification, and how much usage is worth a heads-up."
+                        <TextBlock Text="{local:Loc settings.notif.subtitle}"
                                    Margin="0,2,0,4" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
                         <!-- ===== Routine resets ===== -->
-                        <TextBlock Text="Routine resets" Style="{StaticResource SectionHeader}" Margin="2,16,0,8" />
+                        <TextBlock Text="{local:Loc settings.notif.routine}" Style="{StaticResource SectionHeader}" Margin="2,16,0,8" />
                         <Border Style="{StaticResource GroupCard}">
                             <StackPanel>
-                                <local:SettingsRow Header="Routine weekly reset"
-                                                   Description="A calmer “fresh week, quota's back” notification when your weekly limit resets on schedule.">
+                                <local:SettingsRow Header="{local:Loc settings.notif.weekly}"
+                                                   Description="{local:Loc settings.notif.weeklyDesc}">
                                     <ToggleButton x:Name="NotifyWeeklyCheck" Style="{StaticResource ToggleSwitch}" />
                                 </local:SettingsRow>
 
                                 <Border Style="{StaticResource RowDivider}" />
 
-                                <local:SettingsRow Header="Minimum weekly usage to notify"
-                                                   Description="Skip the weekly ping if the window was barely used before resetting."
+                                <local:SettingsRow Header="{local:Loc settings.notif.weeklyMin}"
+                                                   Description="{local:Loc settings.notif.weeklyMinDesc}"
                                                    IsEnabled="{Binding IsChecked, ElementName=NotifyWeeklyCheck}">
                                     <StackPanel Orientation="Horizontal">
                                         <Slider x:Name="WeeklyMinSlider" Width="150" VerticalAlignment="Center"
@@ -416,15 +416,15 @@
 
                                 <Border Style="{StaticResource RowDivider}" />
 
-                                <local:SettingsRow Header="5-hour session reset"
-                                                   Description="A “fresh session” notification when your 5-hour session window resets (can happen several times a day).">
+                                <local:SettingsRow Header="{local:Loc settings.notif.session}"
+                                                   Description="{local:Loc settings.notif.sessionDesc}">
                                     <ToggleButton x:Name="NotifySessionCheck" Style="{StaticResource ToggleSwitch}" />
                                 </local:SettingsRow>
 
                                 <Border Style="{StaticResource RowDivider}" />
 
-                                <local:SettingsRow Header="Minimum session usage to notify"
-                                                   Description="Skip the session ping if the window was barely used before resetting."
+                                <local:SettingsRow Header="{local:Loc settings.notif.sessionMin}"
+                                                   Description="{local:Loc settings.notif.sessionMinDesc}"
                                                    IsEnabled="{Binding IsChecked, ElementName=NotifySessionCheck}">
                                     <StackPanel Orientation="Horizontal">
                                         <Slider x:Name="SessionMinSlider" Width="150" VerticalAlignment="Center"
@@ -440,10 +440,10 @@
                         </Border>
 
                         <!-- ===== Anomaly alerts ===== -->
-                        <TextBlock Text="Anomalies" Style="{StaticResource SectionHeader}" />
+                        <TextBlock Text="{local:Loc settings.notif.anomalies}" Style="{StaticResource SectionHeader}" />
                         <Border Style="{StaticResource GroupCard}" Margin="0,0,0,4">
-                            <local:SettingsRow Header="Unexpected usage drop"
-                                               Description="Shows a tray notification if weekly usage drops unexpectedly — resetting to 0% before its scheduled deadline, or a partial mid-window credit (e.g. 91% → 50%). The event is also saved to reset-events.log.">
+                            <local:SettingsRow Header="{local:Loc settings.notif.unexpected}"
+                                               Description="{local:Loc settings.notif.unexpectedDesc}">
                                 <ToggleButton x:Name="NotifyResetCheck" Style="{StaticResource ToggleSwitch}" />
                             </local:SettingsRow>
                         </Border>
@@ -477,7 +477,7 @@
                                         <TextBlock Text="Claude Code Tray"
                                                    FontSize="29" FontWeight="Bold"
                                                    Foreground="White" TextWrapping="Wrap" />
-                                        <TextBlock Text="A native Windows tray monitor for your Claude Code usage — at a glance, always on."
+                                        <TextBlock Text="{local:Loc settings.about.tagline}"
                                                    Margin="0,4,0,0" FontSize="13"
                                                    TextWrapping="Wrap" Foreground="#EEFFFFFF" />
                                         <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
@@ -485,7 +485,7 @@
                                                 <TextBlock x:Name="HeroVersion" Foreground="White" FontSize="12" FontWeight="SemiBold" />
                                             </Border>
                                             <Border Style="{StaticResource HeroChip}">
-                                                <TextBlock Text="Windows 10 · 11" Foreground="White" FontSize="12" />
+                                                <TextBlock Text="{local:Loc settings.about.platform}" Foreground="White" FontSize="12" />
                                             </Border>
                                             <Border Style="{StaticResource HeroChip}">
                                                 <TextBlock Text=".NET 10" Foreground="White" FontSize="12" />
@@ -500,10 +500,10 @@
                         <StackPanel Margin="32,22,32,26">
                             <TextBlock TextWrapping="Wrap" LineHeight="20"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       Text="Claude Code Tray draws your rate-limit usage as a crisp, DPI-aware icon that lives only in the Windows tray — the session (5h), week (7d) and extra windows, with a burn-rate projection that warns before you run out. It's free, open source, and made by the community." />
+                                       Text="{local:Loc settings.about.intro}" />
 
                             <!-- Quick links — clickable cards (URL in each card's Tag). -->
-                            <TextBlock Text="Project &amp; links"
+                            <TextBlock Text="{local:Loc settings.about.links}"
                                        FontSize="16" FontWeight="SemiBold" Margin="0,22,0,12"
                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
 
@@ -514,9 +514,9 @@
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="🐙" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="GitHub repository" FontWeight="SemiBold"
+                                            <TextBlock Text="{local:Loc settings.about.github}" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                            <TextBlock Text="Source, README &amp; docs" FontSize="12"
+                                            <TextBlock Text="{local:Loc settings.about.githubDesc}" FontSize="12"
                                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                         </StackPanel>
                                     </StackPanel>
@@ -528,9 +528,9 @@
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="📦" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="Releases" FontWeight="SemiBold"
+                                            <TextBlock Text="{local:Loc settings.about.releases}" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                            <TextBlock Text="Downloads &amp; changelog" FontSize="12"
+                                            <TextBlock Text="{local:Loc settings.about.releasesDesc}" FontSize="12"
                                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                         </StackPanel>
                                     </StackPanel>
@@ -542,9 +542,9 @@
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="🐛" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="Report an issue" FontWeight="SemiBold"
+                                            <TextBlock Text="{local:Loc settings.about.report}" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                            <TextBlock Text="Bugs &amp; feature ideas" FontSize="12"
+                                            <TextBlock Text="{local:Loc settings.about.reportDesc}" FontSize="12"
                                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                         </StackPanel>
                                     </StackPanel>
@@ -556,9 +556,9 @@
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="⭐" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="Star the project" FontWeight="SemiBold"
+                                            <TextBlock Text="{local:Loc settings.about.star}" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                            <TextBlock Text="Open the repo and click ★" FontSize="12"
+                                            <TextBlock Text="{local:Loc settings.about.starDesc}" FontSize="12"
                                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                         </StackPanel>
                                     </StackPanel>
@@ -566,7 +566,7 @@
                             </UniformGrid>
 
                             <!-- Get involved -->
-                            <TextBlock Text="Get involved"
+                            <TextBlock Text="{local:Loc settings.about.involved}"
                                        FontSize="16" FontWeight="SemiBold" Margin="0,22,0,12"
                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
 
@@ -577,20 +577,20 @@
                                 <StackPanel>
                                     <TextBlock TextWrapping="Wrap"
                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                               Text="This is an open-source community project — pull requests, bug reports and ideas are all welcome." />
+                                               Text="{local:Loc settings.about.involvedIntro}" />
                                     <StackPanel Margin="0,12,0,0">
                                         <TextBlock Margin="0,0,0,6" TextWrapping="Wrap"
                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                   Text="⭐  Star the repo to follow new releases" />
+                                                   Text="{local:Loc settings.about.involved1}" />
                                         <TextBlock Margin="0,0,0,6" TextWrapping="Wrap"
                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                   Text="🐛  Open an issue for any bug or feature idea" />
+                                                   Text="{local:Loc settings.about.involved2}" />
                                         <TextBlock Margin="0,0,0,6" TextWrapping="Wrap"
                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                   Text="🔧  Fork it, run &quot;dotnet build&quot;, and send a pull request" />
+                                                   Text="{local:Loc settings.about.involved3}" />
                                         <TextBlock TextWrapping="Wrap"
                                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                                   Text="📖  Read the README for the architecture notes" />
+                                                   Text="{local:Loc settings.about.involved4}" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
@@ -598,7 +598,7 @@
                             <!-- Unofficial / community disclaimer (mirrors the README). -->
                             <TextBlock Margin="2,18,2,0" TextWrapping="Wrap" FontSize="11"
                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                       Text="Unofficial community project — not affiliated with, endorsed by, or sponsored by Anthropic. &quot;Claude&quot; and &quot;Claude Code&quot; are trademarks of Anthropic. Released under the MIT License." />
+                                       Text="{local:Loc settings.about.disclaimer}" />
                         </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
@@ -614,10 +614,10 @@
                            VerticalAlignment="Center"
                            Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button x:Name="CancelButton" Content="Cancel"
+                    <Button x:Name="CancelButton" Content="{local:Loc settings.cancel}"
                             MinWidth="92" Padding="14,6" Margin="0,0,8,0"
                             Click="Cancel_Click" />
-                    <Button x:Name="SaveButton" Content="Save"
+                    <Button x:Name="SaveButton" Content="{local:Loc settings.save}"
                             MinWidth="92" Padding="14,6"
                             Style="{DynamicResource AccentButtonStyle}"
                             Click="Save_Click" />

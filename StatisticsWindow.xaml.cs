@@ -27,8 +27,13 @@ namespace ClaudeTray;
 /// </summary>
 internal partial class StatisticsWindow : Window
 {
-    // Invariant formatting, to match the English UI used throughout the app.
+    // Invariant formatting for numbers/percentages, kept consistent regardless of the OS locale.
     private static readonly CultureInfo Fmt = CultureInfo.InvariantCulture;
+
+    // Dates read more naturally in the display language (localized month names), so format them with
+    // the active language's culture rather than the invariant one used for the numeric values.
+    private static readonly CultureInfo DateFmt =
+        L.Current == L.Lang.PtBr ? new CultureInfo("pt-BR") : CultureInfo.InvariantCulture;
 
     // Projection line color — a warm amber that reads on both light and dark backgrounds.
     private static readonly Brush ProjectionBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xE0, 0xA0, 0x30)));
@@ -51,7 +56,7 @@ internal partial class StatisticsWindow : Window
         catch { /* fall back to the default window icon */ }
 
         if (_snapshot is null)
-            ShowStatus("Connect Claude Code to see your consumption pace. As soon as a usage reading comes in, the report appears here.");
+            ShowStatus(L.T("stats.connect"));
         else
             Reload();
     }
@@ -121,7 +126,7 @@ internal partial class StatisticsWindow : Window
     {
         if (_snapshot is not { } snap) return;
         int gen = ++_generation;
-        ShowStatus("Computing your consumption pace…");
+        ShowStatus(L.T("stats.computing"));
 
         DateTime nowUtc = DateTime.UtcNow;
         // Marshal the result back through the window's Dispatcher rather than a sync-context scheduler:
@@ -147,11 +152,11 @@ internal partial class StatisticsWindow : Window
 
     private void Render(PaceReport r)
     {
-        ComputedText.Text = "Updated " + r.ComputedLocal.ToString("MMM d, HH:mm", Fmt);
+        ComputedText.Text = L.T("stats.updated", r.ComputedLocal.ToString("MMM d, HH:mm", DateFmt));
 
         if (r.Error != null)
         {
-            ShowStatus($"Couldn't build the report: {r.Error}");
+            ShowStatus(L.T("stats.buildFailed", r.Error));
             return;
         }
 
@@ -176,10 +181,10 @@ internal partial class StatisticsWindow : Window
 
         var (chipBg, chipLabel) = w.Verdict switch
         {
-            PaceVerdict.Adequate => (Color.FromRgb(0x2E, 0x7D, 0x46), "On track"),
-            PaceVerdict.Ahead => (Color.FromRgb(0xC7, 0x77, 0x00), "Too fast"),
-            PaceVerdict.AtLimit => (Color.FromRgb(0xC4, 0x3E, 0x3E), "At limit"),
-            _ => (Color.FromRgb(0x80, 0x80, 0x80), "No data"),
+            PaceVerdict.Adequate => (Color.FromRgb(0x2E, 0x7D, 0x46), L.T("stats.verdict.onTrack")),
+            PaceVerdict.Ahead => (Color.FromRgb(0xC7, 0x77, 0x00), L.T("stats.verdict.tooFast")),
+            PaceVerdict.AtLimit => (Color.FromRgb(0xC4, 0x3E, 0x3E), L.T("stats.verdict.atLimit")),
+            _ => (Color.FromRgb(0x80, 0x80, 0x80), L.T("stats.verdict.noData")),
         };
         chip.Background = Freeze(new SolidColorBrush(chipBg));
         chipText.Text = chipLabel;
@@ -203,21 +208,21 @@ internal partial class StatisticsWindow : Window
 
         if (!w.HasWindow || w.ElapsedSeconds <= 0 || sum <= 0)
         {
-            head.Text = "No token activity logged for this window yet.";
+            head.Text = L.T("stats.tps.none");
             bar.Visibility = Visibility.Collapsed;
             return;
         }
         bar.Visibility = Visibility.Visible;
 
         double elapsed = w.ElapsedSeconds;
-        head.Text = $"Throughput ≈ {Rate(w.TokensPerSecond)} tok/s  ·  {Big(sum)} tokens (window average, cache reads excluded)";
+        head.Text = L.T("stats.tps.head", Rate(w.TokensPerSecond), Big(sum));
 
         bool dark = IsDarkTheme();
         var types = new (string label, long tokens, Color color)[]
         {
-            ("input",  input,  dark ? Color.FromRgb(0x39, 0x87, 0xE5) : Color.FromRgb(0x2A, 0x78, 0xD6)),
-            ("output", output, dark ? Color.FromRgb(0x19, 0x9E, 0x70) : Color.FromRgb(0x1B, 0xAF, 0x7A)),
-            ("cache-create", cache, dark ? Color.FromRgb(0x90, 0x85, 0xE9) : Color.FromRgb(0x4A, 0x3A, 0xA7)),
+            (L.T("stats.tps.input"),  input,  dark ? Color.FromRgb(0x39, 0x87, 0xE5) : Color.FromRgb(0x2A, 0x78, 0xD6)),
+            (L.T("stats.tps.output"), output, dark ? Color.FromRgb(0x19, 0x9E, 0x70) : Color.FromRgb(0x1B, 0xAF, 0x7A)),
+            (L.T("stats.tps.cacheCreate"), cache, dark ? Color.FromRgb(0x90, 0x85, 0xE9) : Color.FromRgb(0x4A, 0x3A, 0xA7)),
         };
 
         // Stacked bar: one star-weighted column per non-empty type, a 2px surface gap between them.
@@ -254,11 +259,11 @@ internal partial class StatisticsWindow : Window
             double share = sum > 0 ? (double)t.tokens / sum : 0;
             row.Children.Add(new TextBlock
             {
-                Text = $"{t.label}  {Rate(t.tokens / elapsed)}/s",
+                Text = L.T("stats.tps.legend", t.label, Rate(t.tokens / elapsed)),
                 Margin = new Thickness(6, 0, 0, 0), FontSize = 12,
                 VerticalAlignment = VerticalAlignment.Center,
                 Foreground = (Brush)FindResource("TextFillColorSecondaryBrush"),
-                ToolTip = $"{t.label}: {Big(t.tokens)} tokens ({Pct(share)} of throughput)",
+                ToolTip = L.T("stats.tps.tip", t.label, Big(t.tokens), Pct(share)),
             });
             legend.Children.Add(row);
         }
@@ -268,23 +273,19 @@ internal partial class StatisticsWindow : Window
     private string ProjectionText(WindowPace w)
     {
         if (!w.HasWindow)
-            return "No limit reading for this window yet.";
+            return L.T("stats.proj.noWindow");
 
         string toReset = Dur(w.SecondsToReset);
         return w.Verdict switch
         {
             PaceVerdict.AtLimit =>
-                $"You've hit this window's limit. It resets in {toReset} — until then, usage is blocked.",
+                L.T("stats.proj.atLimit", toReset),
             PaceVerdict.Ahead when w.ExhaustFraction <= 1 && !double.IsInfinity(w.ExhaustSeconds) =>
-                $"At the current pace, your quota reaches 100% in {Dur(w.ExhaustSeconds)} — about "
-                + $"{Dur(w.SecondsToReset - w.ExhaustSeconds)} before the reset (in {toReset}). "
-                + "Worth easing off so you don't get blocked.",
+                L.T("stats.proj.aheadEta", Dur(w.ExhaustSeconds), Dur(w.SecondsToReset - w.ExhaustSeconds), toReset),
             PaceVerdict.Ahead =>
-                $"You're consuming above the even pace ({Pct(w.IdealNow)} would be expected "
-                + $"by now, but you've already used {Pct(w.Util)}). It resets in {toReset}.",
+                L.T("stats.proj.ahead", Pct(w.IdealNow), Pct(w.Util), toReset),
             _ =>
-                $"You're pacing evenly — below the even-pace target of {Pct(w.IdealNow)}. "
-                + $"At the current rate, the quota comfortably lasts until the reset, in {toReset}.",
+                L.T("stats.proj.ok", Pct(w.IdealNow), toReset),
         };
     }
 
@@ -319,7 +320,7 @@ internal partial class StatisticsWindow : Window
         {
             var msg = new TextBlock
             {
-                Text = "Sem dados de limite para esta janela.",
+                Text = L.T("stats.chart.noWindow"),
                 Foreground = muted,
                 FontSize = 13,
             };
@@ -371,14 +372,14 @@ internal partial class StatisticsWindow : Window
                 proj.Add(new Point(X(w.ExhaustFraction), Y(1)));
                 proj.Add(new Point(X(1), Y(1)));
                 endX = X(w.ExhaustFraction); endY = Y(1);
-                projTip = $"Projected to hit 100% in {Dur(w.ExhaustSeconds)}";
+                projTip = L.T("stats.chart.projHit", Dur(w.ExhaustSeconds));
             }
             else
             {
                 double end = util / ef;
                 proj.Add(new Point(X(1), Y(end)));
                 endX = X(1); endY = Y(end);
-                projTip = $"Projected at reset: {Pct(end)}";
+                projTip = L.T("stats.chart.projReset", Pct(end));
             }
             c.Children.Add(new Polyline
             {
@@ -409,18 +410,18 @@ internal partial class StatisticsWindow : Window
         Canvas.SetLeft(idealDot, X(ef) - 4);
         Canvas.SetTop(idealDot, Y(w.IdealNow) - 4);
         c.Children.Add(idealDot);
-        AddHit(c, X(ef), Y(w.IdealNow), $"Even-pace target now: {Pct(w.IdealNow)}");
+        AddHit(c, X(ef), Y(w.IdealNow), L.T("stats.chart.idealNow", Pct(w.IdealNow)));
 
         var dot = new Ellipse { Width = 9, Height = 9, Fill = accent };
         Canvas.SetLeft(dot, X(ef) - 4.5);
         Canvas.SetTop(dot, Y(util) - 4.5);
         c.Children.Add(dot);
-        AddHit(c, X(ef), Y(util), $"Current usage: {Pct(util)}");
+        AddHit(c, X(ef), Y(util), L.T("stats.chart.currentUsage", Pct(util)));
 
         // Axis labels: window start (left) and reset time (right).
         double startUnix = w.ResetUnix - w.WindowSeconds;
-        AddAxisLabel(c, "start " + LocalTime(startUnix), left, top + ph + 4, axisFg, TextAlignment.Left);
-        AddAxisLabel(c, "reset " + LocalTime(w.ResetUnix), X(1), top + ph + 4, axisFg, TextAlignment.Right);
+        AddAxisLabel(c, L.T("stats.chart.start", LocalTime(startUnix)), left, top + ph + 4, axisFg, TextAlignment.Left);
+        AddAxisLabel(c, L.T("stats.chart.reset", LocalTime(w.ResetUnix)), X(1), top + ph + 4, axisFg, TextAlignment.Right);
     }
 
     // A transparent circular hit-target with a hover tooltip, laid over a key chart point so the thin
@@ -489,13 +490,13 @@ internal partial class StatisticsWindow : Window
     {
         if (unix <= 0) return "—";
         DateTime local = DateTimeOffset.FromUnixTimeSeconds((long)unix).LocalDateTime;
-        return local.ToString("MMM d, HH:mm", Fmt);
+        return local.ToString("MMM d, HH:mm", DateFmt);
     }
 
     // Compact duration, matching the tray tooltip's style: "2d 4h", "3h 20m", "45m", "now".
     private static string Dur(double seconds)
     {
-        if (double.IsInfinity(seconds) || seconds <= 0) return seconds <= 0 ? "now" : "—";
+        if (double.IsInfinity(seconds) || seconds <= 0) return seconds <= 0 ? L.T("dur.now") : "—";
         int s = (int)Math.Round(seconds);
         int d = s / 86400, h = s % 86400 / 3600, m = s % 3600 / 60;
         if (d > 0) return $"{d}d {h}h";

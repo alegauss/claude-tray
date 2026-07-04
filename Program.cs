@@ -280,7 +280,7 @@ internal sealed class TrayContext : ApplicationContext
     private static readonly string[] Metrics = { "5h", "7d", "extra" };
     private static readonly Dictionary<string, string> Labels = new()
     {
-        ["5h"] = "Session 5h", ["7d"] = "Week 7d", ["extra"] = "Extra",
+        ["5h"] = L.T("menu.metric.5h"), ["7d"] = L.T("menu.metric.7d"), ["extra"] = L.T("menu.metric.extra"),
     };
 
     private readonly NotifyIcon _tray;
@@ -323,7 +323,7 @@ internal sealed class TrayContext : ApplicationContext
         _tray = new NotifyIcon
         {
             Visible = true,
-            Text = "Claude Code — connecting…",
+            Text = L.T("tip.connecting"),
             ContextMenuStrip = BuildMenu(),
         };
         Render(); // initial "connecting" icon
@@ -355,7 +355,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         var menu = new ContextMenuStrip();
 
-        var showOn = new ToolStripMenuItem("Show on icon");
+        var showOn = new ToolStripMenuItem(L.T("menu.showOnIcon"));
         foreach (string key in Metrics)
         {
             var item = new ToolStripMenuItem(Labels[key]) { Tag = key, Checked = key == _metric };
@@ -365,38 +365,38 @@ internal sealed class TrayContext : ApplicationContext
         }
         menu.Items.Add(showOn);
 
-        var insights = new ToolStripMenuItem("Usage insights (24h)");
+        var insights = new ToolStripMenuItem(L.T("menu.insights"));
         insights.DropDownOpening += (_, _) => PopulateInsights(insights);
-        insights.DropDownItems.Add(new ToolStripMenuItem("…") { Enabled = false });
+        insights.DropDownItems.Add(new ToolStripMenuItem(L.T("insights.loading")) { Enabled = false });
         menu.Items.Add(insights);
 
         // Opens the pacing report: 5h-session and 7d-week usage vs. the clock, with a projection.
-        var stats = new ToolStripMenuItem("Statistics");
+        var stats = new ToolStripMenuItem(L.T("menu.statistics"));
         stats.Click += (_, _) => OpenStatistics();
         menu.Items.Add(stats);
 
-        var refresh = new ToolStripMenuItem("Refresh now");
+        var refresh = new ToolStripMenuItem(L.T("menu.refreshNow"));
         refresh.Click += async (_, _) => await RefreshAsync();
         menu.Items.Add(refresh);
 
         // Launches the Claude Code CLI so it can refresh the OAuth token in
         // ~/.claude/.credentials.json — the recovery path when a poll hits HTTP 401.
-        var openClaude = new ToolStripMenuItem("Open Claude Code");
+        var openClaude = new ToolStripMenuItem(L.T("menu.openClaude"));
         openClaude.Click += (_, _) => OpenClaudeCode();
         menu.Items.Add(openClaude);
 
         // Hidden until a newer release is found; then shows "Update to vX.Y.Z".
-        _updateItem = new ToolStripMenuItem("Update available") { Visible = false, Font = new Font(menu.Font, FontStyle.Bold) };
+        _updateItem = new ToolStripMenuItem(L.T("menu.updateAvailable")) { Visible = false, Font = new Font(menu.Font, FontStyle.Bold) };
         _updateItem.Click += (_, _) => { if (!_updating) _ = ApplyUpdateAsync(); };
         menu.Items.Add(_updateItem);
 
-        var settings = new ToolStripMenuItem("Settings…");
+        var settings = new ToolStripMenuItem(L.T("menu.settings"));
         settings.Click += (_, _) => OpenSettings();
         menu.Items.Add(settings);
 
         menu.Items.Add(new ToolStripSeparator());
 
-        var quit = new ToolStripMenuItem("Quit");
+        var quit = new ToolStripMenuItem(L.T("menu.quit"));
         quit.Click += (_, _) => ExitApp();
         menu.Items.Add(quit);
 
@@ -495,8 +495,8 @@ internal sealed class TrayContext : ApplicationContext
         try { _settings.Save(); }
         catch (Exception ex)
         {
-            MessageBox.Show($"Could not save settings:\n{ex.Message}",
-                "Claude Code Tray", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(L.T("dialog.saveFailed", ex.Message),
+                L.T("dialog.appName"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
 
         // Re-arm the poll cadence for the current auth state (handles a changed interval, retry
@@ -513,34 +513,34 @@ internal sealed class TrayContext : ApplicationContext
 
         if (d == null)
         {
-            parent.DropDownItems.Add(new ToolStripMenuItem("Computing…") { Enabled = false });
+            parent.DropDownItems.Add(new ToolStripMenuItem(L.T("insights.computing")) { Enabled = false });
         }
         else if (d.Error != null)
         {
-            parent.DropDownItems.Add(new ToolStripMenuItem($"Unavailable: {d.Error}") { Enabled = false });
+            parent.DropDownItems.Add(new ToolStripMenuItem(L.T("insights.unavailable", d.Error)) { Enabled = false });
         }
         else if (d.Requests == 0)
         {
-            parent.DropDownItems.Add(new ToolStripMenuItem("No usage in the last 24h") { Enabled = false });
+            parent.DropDownItems.Add(new ToolStripMenuItem(L.T("insights.none")) { Enabled = false });
         }
         else
         {
             void Line(string text) => parent.DropDownItems.Add(new ToolStripMenuItem(text) { Enabled = false });
 
-            Line($"Last 24h: {d.Requests} requests, {d.Sessions} sessions");
-            Line($"From subagents: {Pct(d.SubagentPct)}");
-            Line($">150k context: {Pct(d.HeavyContextPct)}");
+            Line(L.T("insights.summary", d.Requests, d.Sessions));
+            Line(L.T("insights.subagents", Pct(d.SubagentPct)));
+            Line(L.T("insights.heavyContext", Pct(d.HeavyContextPct)));
             if (d.ByModel.Count > 0)
             {
                 parent.DropDownItems.Add(new ToolStripSeparator());
-                Line("By model:");
+                Line(L.T("insights.byModel"));
                 foreach (var (model, pct) in d.ByModel.Take(5))
                     Line($"   {model}: {Pct(pct)}");
             }
         }
 
         parent.DropDownItems.Add(new ToolStripSeparator());
-        var refresh = new ToolStripMenuItem("Recompute");
+        var refresh = new ToolStripMenuItem(L.T("insights.recompute"));
         refresh.Click += (_, _) => RecomputeInsights();
         parent.DropDownItems.Add(refresh);
 
@@ -679,11 +679,11 @@ internal sealed class TrayContext : ApplicationContext
         if (info == null || (_update != null && info.Version <= _update.Version)) return;
 
         _update = info;
-        _updateItem.Text = $"Update to {info.Tag}";
+        _updateItem.Text = L.T("menu.updateTo", info.Tag);
         _updateItem.Visible = true;
 
-        _tray.BalloonTipTitle = "Claude Code Tray — update available";
-        _tray.BalloonTipText = $"Version {info.Version} is available (you have {Updater.CurrentVersion}). Click to install.";
+        _tray.BalloonTipTitle = L.T("update.title");
+        _tray.BalloonTipText = L.T("update.body", info.Version, Updater.CurrentVersion);
         _tray.ShowBalloonTip(10_000);
     }
 
@@ -692,7 +692,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         if (_updating || _update is not { } info) return;
         _updating = true;
-        _updateItem.Text = $"Downloading {info.Tag}…";
+        _updateItem.Text = L.T("menu.downloading", info.Tag);
         _updateItem.Enabled = false;
 
         try
@@ -704,10 +704,10 @@ internal sealed class TrayContext : ApplicationContext
         catch (Exception ex)
         {
             _updating = false;
-            _updateItem.Text = $"Update to {info.Tag}";
+            _updateItem.Text = L.T("menu.updateTo", info.Tag);
             _updateItem.Enabled = true;
-            MessageBox.Show($"Could not download the update:\n{ex.Message}",
-                "Claude Code Tray", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(L.T("dialog.downloadFailed", ex.Message),
+                L.T("dialog.appName"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }
 
@@ -744,21 +744,21 @@ internal sealed class TrayContext : ApplicationContext
         ResetToastContent(string key, BurnTracker.ResetEvent ev, long now, bool showRemaining = false)
     {
         bool weekly = key == "7d";
-        string quotaLabel = weekly ? "Weekly quota left" : "Session quota left";
-        string limitNoun = weekly ? "weekly limit" : "5h session";
-        string scopeWord = weekly ? "weekly" : "session";
-        string freshSuffix = weekly ? "fresh quota for the week" : "fresh for the next 5 hours";
-        string resetTitle = weekly ? "New week!" : "Fresh session!";
+        string quotaLabel = L.T(weekly ? "toast.quotaLeft.weekly" : "toast.quotaLeft.session");
+        string limitNoun = L.T(weekly ? "toast.limitNoun.weekly" : "toast.limitNoun.session");
+        string scopeWord = L.T(weekly ? "toast.scope.weekly" : "toast.scope.session");
+        string freshSuffix = L.T(weekly ? "toast.freshSuffix.weekly" : "toast.freshSuffix.session");
+        string resetTitle = L.T(weekly ? "toast.resetTitle.weekly" : "toast.resetTitle.session");
         int fromPct = (int)Math.Round(Math.Clamp(ev.PrevUtil, 0, 1) * 100);
         int toPct = (int)Math.Round(Math.Clamp(ev.NewUtil, 0, 1) * 100);
         // In "remaining" mode the captions read in quota-left terms (the bar/number already do):
         // "Was 79% used" → "Had 21% left", "Usage dropped 91% → 50%" → "Quota left rose 9% → 50%".
         int fromLeftPct = 100 - fromPct;
         int toLeftPct = 100 - toPct;
-        string ahead = ev.PrevReset > now ? $"{FmtDays(ev.PrevReset - now)} ahead of schedule" : "ahead of schedule";
-        string earlyCaption = showRemaining ? $"Had {fromLeftPct}% left · {ahead}" : $"Was {fromPct}% used · {ahead}";
-        string creditCaption = showRemaining ? $"Quota left rose {fromLeftPct}% → {toLeftPct}%" : $"Usage dropped {fromPct}% → {toPct}%";
-        string routineCaption = showRemaining ? $"Had {fromLeftPct}% left · {freshSuffix}" : $"Was {fromPct}% used · {freshSuffix}";
+        string ahead = ev.PrevReset > now ? L.T("toast.aheadDays", FmtDays(ev.PrevReset - now)) : L.T("toast.ahead");
+        string earlyCaption = showRemaining ? L.T("toast.caption.earlyLeft", fromLeftPct, ahead) : L.T("toast.caption.earlyUsed", fromPct, ahead);
+        string creditCaption = showRemaining ? L.T("toast.caption.creditLeft", fromLeftPct, toLeftPct) : L.T("toast.caption.creditUsed", fromPct, toPct);
+        string routineCaption = showRemaining ? L.T("toast.caption.routineLeft", fromLeftPct, freshSuffix) : L.T("toast.caption.routineUsed", fromPct, freshSuffix);
 
         // Color theme: a session event is always blue; otherwise the weekly kind picks the color
         // (early reset = clay/Surprise, credit = violet/Bonus, routine = teal/Weekly).
@@ -773,11 +773,11 @@ internal sealed class TrayContext : ApplicationContext
 
         return ev.Kind switch
         {
-            BurnTracker.ResetKind.Unexpected => ("🎉", "Surprise!", $"Your {limitNoun} reset early",
+            BurnTracker.ResetKind.Unexpected => ("🎉", L.T("toast.title.surprise"), L.T("toast.sub.early", limitNoun),
                 ev.PrevUtil, ev.NewUtil, earlyCaption, quotaLabel, theme),
-            BurnTracker.ResetKind.Credit => ("🎉", "Bonus!", $"Some {scopeWord} usage was credited back",
+            BurnTracker.ResetKind.Credit => ("🎉", L.T("toast.title.bonus"), L.T("toast.sub.credit", scopeWord),
                 ev.PrevUtil, ev.NewUtil, creditCaption, quotaLabel, theme),
-            _ => ("✨", resetTitle, $"Your {limitNoun} just reset",
+            _ => ("✨", resetTitle, L.T("toast.sub.routine", limitNoun),
                 ev.PrevUtil, ev.NewUtil, routineCaption, quotaLabel, theme),
         };
     }
@@ -806,9 +806,16 @@ internal sealed class TrayContext : ApplicationContext
     {
         if (_data is not { Error: null }) return (Projection.Unknown, 0);
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        // Weekly uses the proportional "pace line" for its verdict (window = 7 days); the
-        // other metrics keep the regression-based verdict (windowSeconds = 0).
-        double window = _metric == "7d" ? 7.0 * 24 * 3600 : 0;
+        // Both bounded windows use the proportional "pace line" for their verdict, matching the
+        // Statistics chart's projection (average pace since the window started) so the tray and the
+        // chart never disagree. "extra" is uncapped overage with no fixed window, so it keeps the
+        // regression-based verdict (windowSeconds = 0).
+        double window = _metric switch
+        {
+            "5h" => 5.0 * 3600,
+            "7d" => 7.0 * 24 * 3600,
+            _ => 0,
+        };
         var (verdict, eta, _) = _burn.Project(_metric, _data.Metric(_metric), _data.ResetOf(_metric), now, window);
         return (verdict, eta);
     }
@@ -851,14 +858,14 @@ internal sealed class TrayContext : ApplicationContext
 
     private string BuildTooltip()
     {
-        if (_data == null) return "Claude Code — connecting…";
+        if (_data == null) return L.T("tip.connecting");
         if (_data.Error != null)
         {
             if (_data.Unauthorized)
                 return _data.NeedsFullLogin
-                    ? "Claude Code — not signed in\nOpen Claude Code and run /login to sign in"
-                    : "Once you start using Claude, your usage will appear here";
-            return $"Claude Code — API error\n{_data.Error}";
+                    ? L.T("tip.notSignedIn")
+                    : L.T("tip.willAppear");
+            return L.T("tip.apiError", _data.Error);
         }
 
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -867,46 +874,46 @@ internal sealed class TrayContext : ApplicationContext
 
         // In "remaining" mode the two bounded windows show the complement and read "… left".
         // Extra is overage (no cap to have quota "left" from), so it always shows the amount used.
-        string leftSuffix = _settings.ShowRemaining ? " left" : "";
+        string leftSuffix = _settings.ShowRemaining ? L.T("tip.leftSuffix") : "";
         var lines = new List<string>
         {
-            $"Session 5h{leftSuffix}: {PctShown(_data.Session5h)}  ⟳ {r5}",
-            $"Week 7d{leftSuffix}: {PctShown(_data.Week7d)}  ⟳ {r7}",
+            $"{L.T("tip.session")}{leftSuffix}: {PctShown(_data.Session5h)}  ⟳ {r5}",
+            $"{L.T("tip.week")}{leftSuffix}: {PctShown(_data.Week7d)}  ⟳ {r7}",
         };
         if (_data.Extra > 0.001)
         {
             string re = _data.ResetExtra > 0 ? FmtDays(_data.ResetExtra - now) : "--";
-            lines.Add($"Extra: {Pct(_data.Extra)}  ⟳ {re}");
+            lines.Add($"{L.T("tip.extra")}: {Pct(_data.Extra)}  ⟳ {re}");
         }
 
         var (verdict, eta) = CurrentProjection();
         string scope = Labels[_metric]; // make clear which window the projection is about
         bool hasEta = eta > 0 && !double.IsInfinity(eta);
         // The projection is about reaching the limit: "100%" used == "0% left" remaining.
-        string limit = _settings.ShowRemaining ? "0% left" : "100%";
+        string limit = _settings.ShowRemaining ? L.T("tip.limitLeft") : L.T("tip.limitUsed");
         // The same target as a *future event*. In "remaining" mode "0% left" mirrors the current
         // saldo lines above ("Session 5h left: 97%"), so it reads as a present value; the plain-
         // language "runs out" marks it as something that happens later. Used mode keeps the "100%"
         // percentage it always showed, which reads naturally as a ceiling you climb toward.
-        string hits = _settings.ShowRemaining ? "runs out" : "100%";
+        string hits = _settings.ShowRemaining ? L.T("tip.hitsLeft") : L.T("tip.hitsUsed");
         // Each projection verdict has a full form and a compact fallback for when the tooltip is
         // tight (see the 127-char cap note below). null => no projection line at all.
         (string full, string compact)? projection = CurrentPct() >= 0.995
             // Already maxed: state it plainly rather than "projecting" a limit you've reached.
-            ? ($"⚠ {scope}: at limit ({limit})", $"⚠ at limit ({limit})")
+            ? (L.T("tip.atLimitFull", scope, limit), L.T("tip.atLimitCompact", limit))
             : verdict switch
             {
                 Projection.Danger => hasEta
-                    ? ($"⚠ {scope} projection: {hits} in {FmtDays(eta)} (before reset)", $"⚠ {hits} in {FmtDays(eta)}")
-                    : ($"⚠ {scope} projection: above safe pace (before reset)", "⚠ above safe pace"),
+                    ? (L.T("tip.dangerEtaFull", scope, hits, FmtDays(eta)), L.T("tip.dangerEtaCompact", hits, FmtDays(eta)))
+                    : (L.T("tip.dangerPaceFull", scope), L.T("tip.dangerPaceCompact")),
                 Projection.Ok => double.IsInfinity(eta)
-                    ? ($"✓ {scope} projection: on track", "✓ on track")
-                    : ($"✓ {scope} projection: {hits} in {FmtDays(eta)} (after reset)", $"✓ {hits} in {FmtDays(eta)}"),
+                    ? (L.T("tip.okTrackFull", scope), L.T("tip.okTrackCompact"))
+                    : (L.T("tip.okEtaFull", scope, hits, FmtDays(eta)), L.T("tip.okEtaCompact", hits, FmtDays(eta))),
                 _ => null,
             };
 
         string updated = _lastRefresh is { } t ? $"  ⟳ {t:HH:mm:ss}" : "";
-        string statusLine = $"Status: {_data.Status}{updated}";
+        string statusLine = L.T("tip.status", _data.Status, updated);
 
         // The Windows tray tooltip is capped at 127 chars (NOTIFYICONDATA.szTip). The refresh
         // time sits on the last line, so a blind end-truncation would chop it mid-value. Keep the
@@ -929,14 +936,14 @@ internal sealed class TrayContext : ApplicationContext
 
     private static string FmtCountdown(double s)
     {
-        if (s <= 0) return "now";
+        if (s <= 0) return L.T("dur.now");
         int h = (int)(s / 3600), m = (int)(s % 3600 / 60);
         return h > 0 ? $"{h}h {m:00}m" : $"{m}m";
     }
 
     private static string FmtDays(double s)
     {
-        if (s <= 0) return "now";
+        if (s <= 0) return L.T("dur.now");
         int d = (int)(s / 86400), h = (int)(s % 86400 / 3600);
         return d > 0 ? $"{d}d {h}h" : FmtCountdown(s);
     }
@@ -957,8 +964,8 @@ internal sealed class TrayContext : ApplicationContext
             string command = !forReauth
                 ? "/k claude"
                 : _data is { NeedsFullLogin: true }
-                    ? "/k echo Type  /login  to sign in again, then you can close this window. & claude"
-                    : "/k echo Refreshing your Claude Code session — usage will update shortly. & claude";
+                    ? $"/k echo {L.T("cli.loginHint")} & claude"
+                    : $"/k echo {L.T("cli.refreshHint")} & claude";
             var psi = new ProcessStartInfo
             {
                 FileName = "cmd.exe",
@@ -975,9 +982,8 @@ internal sealed class TrayContext : ApplicationContext
         catch (Exception ex)
         {
             MessageBox.Show(
-                "Could not launch Claude Code automatically.\n" +
-                "Open a terminal, run \"claude\", type /login to sign in, then choose \"Refresh now\".\n\n" + ex.Message,
-                "Claude Code Tray", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                L.T("dialog.launchFailed", ex.Message),
+                L.T("dialog.appName"), MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 

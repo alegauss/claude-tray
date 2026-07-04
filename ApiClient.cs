@@ -89,7 +89,7 @@ internal sealed class ApiClient
                 int code = (int)resp.StatusCode;
                 d.Transient = code >= 500 || code == 429;
                 d.Error = d.Transient
-                    ? $"Anthropic is temporarily unavailable (HTTP {code}). Retrying…"
+                    ? L.T("api.tempUnavailable", code)
                     : $"HTTP {code}";
             }
             d.Unauthorized = (int)resp.StatusCode == 401;
@@ -125,16 +125,14 @@ internal sealed class ApiClient
     // HttpClient.Timeout of 30 seconds elapsing") with something a non-developer can read.
     private static string Friendly(Exception e) => e switch
     {
-        TaskCanceledException or OperationCanceledException => "Couldn't reach Anthropic — the request timed out. Retrying…",
-        HttpRequestException => "Couldn't reach Anthropic — network error. Retrying…",
+        TaskCanceledException or OperationCanceledException => L.T("api.timeout"),
+        HttpRequestException => L.T("api.networkError"),
         _ => e.Message,
     };
 
     // Shown verbatim in the tray tooltip / Insights for each auth state.
-    private const string SignInHint =
-        "Not signed in to Claude Code. Open Claude Code and run /login to sign in.";
-    private const string RefreshHint =
-        "Once you start using Claude, your usage will appear here.";
+    private static string SignInHint => L.T("api.signInHint");
+    private static string RefreshHint => L.T("api.refreshHint");
 
     /// <summary>The OAuth material the tray needs: the bearer token, and whether a refresh token
     /// is on disk (which decides silent-refresh vs. full browser login on a 401).</summary>

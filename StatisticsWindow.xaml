@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:ClaudeTray"
         x:ClassModifier="internal"
-        Title="Statistics"
+        Title="{local:Loc stats.title}"
         Width="880" Height="784"
         MinWidth="800" MinHeight="700"
         WindowStartupLocation="CenterScreen"
@@ -99,12 +99,12 @@
 
         <!-- ===== Header ===== -->
         <StackPanel Grid.Row="0" Margin="32,26,32,0">
-            <TextBlock Text="Consumption pace"
+            <TextBlock Text="{local:Loc stats.header}"
                        FontSize="22" FontWeight="Bold"
                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
             <TextBlock Margin="0,3,0,0" FontSize="13" TextWrapping="Wrap"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                       Text="Are you spending your quota evenly, or faster than the clock — running out before it resets? The dashed line projects where your current pace lands." />
+                       Text="{local:Loc stats.subtitle}" />
         </StackPanel>
 
         <!-- ===== Panes (one tab per rate-limit window, so each fits without scrolling) ===== -->
@@ -122,7 +122,7 @@
             <TabControl x:Name="PanesBody" Grid.Row="0" Visibility="Collapsed"
                         Style="{StaticResource SegControl}" ItemContainerStyle="{StaticResource SegItem}">
                 <!-- ============ SESSION (5h) ============ -->
-                <TabItem Header="5-hour session">
+                <TabItem Header="{local:Loc stats.tab.session}">
                     <StackPanel Margin="4,20,4,4">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -130,7 +130,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" VerticalAlignment="Center"
-                                       Text="Short window — resets a few times a day"
+                                       Text="{local:Loc stats.session.hint}"
                                        FontSize="13"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <Border Grid.Column="1" x:Name="ChipS" Style="{StaticResource VerdictChip}">
@@ -146,15 +146,15 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
                                 <TextBlock x:Name="UsedS" Style="{StaticResource StatValue}" />
-                                <TextBlock Text="of quota used" Style="{StaticResource StatCaption}" />
+                                <TextBlock Text="{local:Loc stats.stat.used}" Style="{StaticResource StatCaption}" />
                             </StackPanel>
                             <StackPanel Grid.Column="1">
                                 <TextBlock x:Name="IdealS" Style="{StaticResource StatValue}" />
-                                <TextBlock Text="even-pace target now" Style="{StaticResource StatCaption}" />
+                                <TextBlock Text="{local:Loc stats.stat.ideal}" Style="{StaticResource StatCaption}" />
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <TextBlock x:Name="ResetS" Style="{StaticResource StatValue}" />
-                                <TextBlock Text="until reset" Style="{StaticResource StatCaption}" />
+                                <TextBlock Text="{local:Loc stats.stat.reset}" Style="{StaticResource StatCaption}" />
                             </StackPanel>
                         </Grid>
 
@@ -163,13 +163,13 @@
 
                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                             <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
-                            <TextBlock Text="actual usage" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
+                            <TextBlock Text="{local:Loc stats.legend.actual}" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
-                            <TextBlock Text="even pace" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
+                            <TextBlock Text="{local:Loc stats.legend.evenPace}" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#E0A030" />
-                            <TextBlock Text="projection" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
+                            <TextBlock Text="{local:Loc stats.legend.projection}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
 
@@ -185,7 +185,7 @@
                 </TabItem>
 
                 <!-- ============ WEEK (7d) ============ -->
-                <TabItem Header="Week (7 days)">
+                <TabItem Header="{local:Loc stats.tab.week}">
                     <StackPanel Margin="4,20,4,4">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -193,7 +193,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" VerticalAlignment="Center"
-                                       Text="Long window — the limit that defines your week"
+                                       Text="{local:Loc stats.week.hint}"
                                        FontSize="13"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <Border Grid.Column="1" x:Name="ChipW" Style="{StaticResource VerdictChip}">
@@ -209,15 +209,15 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
                                 <TextBlock x:Name="UsedW" Style="{StaticResource StatValue}" />
-                                <TextBlock Text="of quota used" Style="{StaticResource StatCaption}" />
+                                <TextBlock Text="{local:Loc stats.stat.used}" Style="{StaticResource StatCaption}" />
                             </StackPanel>
                             <StackPanel Grid.Column="1">
                                 <TextBlock x:Name="IdealW" Style="{StaticResource StatValue}" />
-                                <TextBlock Text="even-pace target now" Style="{StaticResource StatCaption}" />
+                                <TextBlock Text="{local:Loc stats.stat.ideal}" Style="{StaticResource StatCaption}" />
                             </StackPanel>
                             <StackPanel Grid.Column="2">
                                 <TextBlock x:Name="ResetW" Style="{StaticResource StatValue}" />
-                                <TextBlock Text="until reset" Style="{StaticResource StatCaption}" />
+                                <TextBlock Text="{local:Loc stats.stat.reset}" Style="{StaticResource StatCaption}" />
                             </StackPanel>
                         </Grid>
 
@@ -226,13 +226,13 @@
 
                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                             <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
-                            <TextBlock Text="actual usage" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
+                            <TextBlock Text="{local:Loc stats.legend.actual}" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
-                            <TextBlock Text="even pace" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
+                            <TextBlock Text="{local:Loc stats.legend.evenPace}" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#E0A030" />
-                            <TextBlock Text="projection" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
+                            <TextBlock Text="{local:Loc stats.legend.projection}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
 
@@ -251,7 +251,7 @@
             <TextBlock x:Name="MethodNote" Grid.Row="1" Margin="4,14,4,4" TextWrapping="Wrap" FontSize="11"
                        Visibility="Collapsed"
                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                       Text="“Used” and the reset come live from Anthropic's rate limits; the curve is your real measured utilization over the window (until enough is logged, it's reconstructed from local transcripts). The projection assumes the current average pace." />
+                       Text="{local:Loc stats.methodNote}" />
         </Grid>
 
         <!-- ===== Footer ===== -->
@@ -264,10 +264,10 @@
                        VerticalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button x:Name="RefreshButton" Content="Refresh"
+                <Button x:Name="RefreshButton" Content="{local:Loc stats.refresh}"
                         MinWidth="92" Padding="14,6" Margin="0,0,8,0"
                         Click="Refresh_Click" />
-                <Button x:Name="CloseButton" Content="Close"
+                <Button x:Name="CloseButton" Content="{local:Loc stats.close}"
                         MinWidth="92" Padding="14,6"
                         Style="{DynamicResource AccentButtonStyle}"
                         Click="Close_Click" />
