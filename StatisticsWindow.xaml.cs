@@ -45,9 +45,15 @@ internal partial class StatisticsWindow : Window
     private WindowPace? _session;  // last-rendered data, kept so the charts can redraw on resize
     private WindowPace? _weekly;
 
-    public StatisticsWindow(PaceSnapshot? snapshot)
+    // Mirrors Settings.ShowRemaining: when true the report reads as quota *left* — the burn-up chart
+    // flips into a burn-down (starts full at 100%, descends to 0%), and every percentage/caption shows
+    // the remaining side. The underlying pace, verdict and projection are unchanged; only the framing.
+    private bool _remaining;
+
+    public StatisticsWindow(PaceSnapshot? snapshot, bool showRemaining = false)
     {
         _snapshot = snapshot;
+        _remaining = showRemaining;
         InitializeComponent();
 
         try
@@ -81,6 +87,23 @@ internal partial class StatisticsWindow : Window
             ShowStatus(L.T("stats.connect"));
         else
             Reload();
+    }
+
+    /// <summary>
+    /// Flip the report between "used" and "remaining" framing when the Settings toggle changes while
+    /// the window is open. Re-renders from the last computed pace (no re-scan) so it's instant. Called
+    /// on the UI thread from <see cref="TrayContext"/>.
+    /// </summary>
+    internal void SetShowRemaining(bool showRemaining)
+    {
+        if (_remaining == showRemaining) return;
+        _remaining = showRemaining;
+        if (_session is { } s && _weekly is { } w)
+        {
+            ApplyModeLabels();
+            Populate(s, ChipS, ChipTextS, UsedS, IdealS, ResetS, ProjectionS, ChartS, TpsHeadS, TpsBarS, TpsLegendS);
+            Populate(w, ChipW, ChipTextW, UsedW, IdealW, ResetW, ProjectionW, ChartW, TpsHeadW, TpsBarW, TpsLegendW);
+        }
     }
 
     /// <summary>
@@ -184,16 +207,33 @@ internal partial class StatisticsWindow : Window
         _session = r.Session;
         _weekly = r.Weekly;
 
+        ApplyModeLabels();
         Populate(r.Session, ChipS, ChipTextS, UsedS, IdealS, ResetS, ProjectionS, ChartS, TpsHeadS, TpsBarS, TpsLegendS);
         Populate(r.Weekly, ChipW, ChipTextW, UsedW, IdealW, ResetW, ProjectionW, ChartW, TpsHeadW, TpsBarW, TpsLegendW);
     }
+
+    // The static captions/legend labels that change wording between "used" and "remaining" framing.
+    private void ApplyModeLabels()
+    {
+        string usedCaption = L.T(_remaining ? "stats.stat.left" : "stats.stat.used");
+        UsedCaptionS.Text = usedCaption;
+        UsedCaptionW.Text = usedCaption;
+
+        string actual = L.T(_remaining ? "stats.legend.actualLeft" : "stats.legend.actual");
+        LegendActualS.Text = actual;
+        LegendActualW.Text = actual;
+    }
+
+    // A consumption fraction (0=empty, 1=at limit) as its displayed value: the same number when
+    // showing "used", or its complement (quota left) when showing "remaining".
+    private double Disp(double consumption) => _remaining ? 1 - consumption : consumption;
 
     private void Populate(WindowPace w, Border chip, TextBlock chipText,
         TextBlock used, TextBlock ideal, TextBlock reset, TextBlock projection, Canvas chart,
         TextBlock tpsHead, Border tpsBar, StackPanel tpsLegend)
     {
-        used.Text = w.HasWindow ? Pct(w.Util) : "—";
-        ideal.Text = w.HasWindow ? Pct(w.IdealNow) : "—";
+        used.Text = w.HasWindow ? Pct(Disp(w.Util)) : "—";
+        ideal.Text = w.HasWindow ? Pct(Disp(w.IdealNow)) : "—";
         reset.Text = w.HasWindow ? Dur(w.SecondsToReset) : "—";
 
         var (chipBg, chipLabel) = w.Verdict switch
@@ -293,6 +333,20 @@ internal partial class StatisticsWindow : Window
             return L.T("stats.proj.noWindow");
 
         string toReset = Dur(w.SecondsToReset);
+        if (_remaining)
+        {
+            return w.Verdict switch
+            {
+                PaceVerdict.AtLimit =>
+                    L.T("stats.proj.atLimit.left", toReset),
+                PaceVerdict.Ahead when w.ExhaustFraction <= 1 && !double.IsInfinity(w.ExhaustSeconds) =>
+                    L.T("stats.proj.aheadEta.left", Dur(w.ExhaustSeconds), Dur(w.SecondsToReset - w.ExhaustSeconds), toReset),
+                PaceVerdict.Ahead =>
+                    L.T("stats.proj.ahead.left", Pct(1 - w.IdealNow), Pct(1 - w.Util), toReset),
+                _ =>
+                    L.T("stats.proj.ok.left", Pct(1 - w.IdealNow), toReset),
+            };
+        }
         return w.Verdict switch
         {
             PaceVerdict.AtLimit =>
@@ -331,7 +385,12 @@ internal partial class StatisticsWindow : Window
         const double left = 6, right = 36, top = 10, bottom = 22;
         double pw = W - left - right, ph = H - top - bottom;
         double X(double frac) => left + Math.Clamp(frac, 0, 1) * pw;
-        double Y(double cum) => top + (1 - Math.Clamp(cum, 0, 1)) * ph;
+        // Y for a display value (0 at the bottom axis, 1 at the top). The 0/50/100% gridlines and their
+        // labels sit on this axis and read the same in both modes — only the label's *meaning* flips.
+        double Y(double v) => top + (1 - Math.Clamp(v, 0, 1)) * ph;
+        // Y for a consumption fraction: in "used" mode it's Y(cum); in "remaining" mode it's flipped via
+        // Disp, so the curve starts full at the top (100% left) and burns down toward 0%.
+        double Yc(double cum) => Y(Disp(cum));
 
         if (!w.HasWindow)
         {
@@ -357,20 +416,21 @@ internal partial class StatisticsWindow : Window
             c.Children.Add(gl);
         }
 
-        // Even-pace reference: straight line from (0,0) to (reset,100%).
+        // Even-pace reference: straight line between empty (consumption 0) at the start and the limit
+        // (consumption 1) at the reset — rising in "used" mode, falling in "remaining" mode.
         c.Children.Add(new Line
         {
-            X1 = X(0), Y1 = Y(0), X2 = X(1), Y2 = Y(1),
+            X1 = X(0), Y1 = Yc(0), X2 = X(1), Y2 = Yc(1),
             Stroke = muted, StrokeThickness = 1.5,
             StrokeDashArray = new DoubleCollection { 4, 4 },
         });
 
         double ef = w.ElapsedFraction, util = w.Util;
 
-        // Real consumption curve + soft fill under it.
+        // Real consumption curve + soft fill down to the bottom (0%) axis.
         if (w.Curve.Count >= 2)
         {
-            var pts = new PointCollection(w.Curve.Select(p => new Point(X(p.frac), Y(p.cum))));
+            var pts = new PointCollection(w.Curve.Select(p => new Point(X(p.frac), Yc(p.cum))));
 
             var fillPts = new PointCollection(pts) { new Point(X(ef), Y(0)), new Point(X(0), Y(0)) };
             c.Children.Add(new Polygon { Points = fillPts, Fill = accent, Opacity = 0.12 });
@@ -381,22 +441,22 @@ internal partial class StatisticsWindow : Window
         // Projection: extend the average pace from the current point to 100% (or to the reset).
         if (util > 0 && ef > 0)
         {
-            var proj = new PointCollection { new Point(X(ef), Y(util)) };
+            var proj = new PointCollection { new Point(X(ef), Yc(util)) };
             double endX, endY;
             string projTip;
             if (w.ExhaustFraction <= 1)
             {
-                proj.Add(new Point(X(w.ExhaustFraction), Y(1)));
-                proj.Add(new Point(X(1), Y(1)));
-                endX = X(w.ExhaustFraction); endY = Y(1);
-                projTip = L.T("stats.chart.projHit", Dur(w.ExhaustSeconds));
+                proj.Add(new Point(X(w.ExhaustFraction), Yc(1)));
+                proj.Add(new Point(X(1), Yc(1)));
+                endX = X(w.ExhaustFraction); endY = Yc(1);
+                projTip = L.T(_remaining ? "stats.chart.projHitZero" : "stats.chart.projHit", Dur(w.ExhaustSeconds));
             }
             else
             {
                 double end = util / ef;
-                proj.Add(new Point(X(1), Y(end)));
-                endX = X(1); endY = Y(end);
-                projTip = L.T("stats.chart.projReset", Pct(end));
+                proj.Add(new Point(X(1), Yc(end)));
+                endX = X(1); endY = Yc(end);
+                projTip = L.T("stats.chart.projReset", Pct(Disp(end)));
             }
             c.Children.Add(new Polyline
             {
@@ -425,15 +485,15 @@ internal partial class StatisticsWindow : Window
             Fill = System.Windows.Media.Brushes.Transparent,
         };
         Canvas.SetLeft(idealDot, X(ef) - 4);
-        Canvas.SetTop(idealDot, Y(w.IdealNow) - 4);
+        Canvas.SetTop(idealDot, Yc(w.IdealNow) - 4);
         c.Children.Add(idealDot);
-        AddHit(c, X(ef), Y(w.IdealNow), L.T("stats.chart.idealNow", Pct(w.IdealNow)));
+        AddHit(c, X(ef), Yc(w.IdealNow), L.T("stats.chart.idealNow", Pct(Disp(w.IdealNow))));
 
         var dot = new Ellipse { Width = 9, Height = 9, Fill = accent };
         Canvas.SetLeft(dot, X(ef) - 4.5);
-        Canvas.SetTop(dot, Y(util) - 4.5);
+        Canvas.SetTop(dot, Yc(util) - 4.5);
         c.Children.Add(dot);
-        AddHit(c, X(ef), Y(util), L.T("stats.chart.currentUsage", Pct(util)));
+        AddHit(c, X(ef), Yc(util), L.T(_remaining ? "stats.chart.currentLeft" : "stats.chart.currentUsage", Pct(Disp(util))));
 
         // Axis labels: window start (left) and reset time (right).
         double startUnix = w.ResetUnix - w.WindowSeconds;

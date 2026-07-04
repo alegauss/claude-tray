@@ -105,7 +105,8 @@ internal static class Program
             var sample = new PaceSnapshot(
                 Util5h: 0.72, Reset5h: now + 2 * 3600,      // 3h of 5h elapsed (60%), 72% used → ahead
                 Util7d: 0.38, Reset7d: now + 3 * 86400);    // 4d of 7d elapsed (57%), 38% used → on track
-            previewApp.Run(new StatisticsWindow(sample));
+            bool remaining = args.Length >= 2 && args[1].Equals("remaining", StringComparison.OrdinalIgnoreCase);
+            previewApp.Run(new StatisticsWindow(sample, remaining));
             return;
         }
 
@@ -467,7 +468,7 @@ internal sealed class TrayContext : ApplicationContext
         EnsureWpfApp();
 
         // Only pass a snapshot when we have a good reading; otherwise the window shows a "connect" hint.
-        _statsWindow = new StatisticsWindow(CurrentSnapshot());
+        _statsWindow = new StatisticsWindow(CurrentSnapshot(), _settings.ShowRemaining);
         _statsWindow.Closed += (_, _) => _statsWindow = null;
         _statsWindow.Show();
         _statsWindow.Activate();
@@ -506,6 +507,9 @@ internal sealed class TrayContext : ApplicationContext
         // cadence, or a freshly enabled auto-open) and reflect a show-percentage change.
         AdjustForAuthState();
         Render();
+
+        // If the Statistics window is open, flip its used/remaining framing to match right away.
+        _statsWindow?.SetShowRemaining(_settings.ShowRemaining);
     }
 
     // Fill the "Usage insights" submenu from the cached scan; trigger a refresh for next time.

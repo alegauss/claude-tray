@@ -146,7 +146,7 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
                                 <TextBlock x:Name="UsedS" Style="{StaticResource StatValue}" />
-                                <TextBlock Text="{local:Loc stats.stat.used}" Style="{StaticResource StatCaption}" />
+                                <TextBlock x:Name="UsedCaptionS" Text="{local:Loc stats.stat.used}" Style="{StaticResource StatCaption}" />
                             </StackPanel>
                             <StackPanel Grid.Column="1">
                                 <TextBlock x:Name="IdealS" Style="{StaticResource StatValue}" />
@@ -163,7 +163,7 @@
 
                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                             <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
-                            <TextBlock Text="{local:Loc stats.legend.actual}" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
+                            <TextBlock x:Name="LegendActualS" Text="{local:Loc stats.legend.actual}" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
                             <TextBlock Text="{local:Loc stats.legend.evenPace}" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
@@ -209,7 +209,7 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
                                 <TextBlock x:Name="UsedW" Style="{StaticResource StatValue}" />
-                                <TextBlock Text="{local:Loc stats.stat.used}" Style="{StaticResource StatCaption}" />
+                                <TextBlock x:Name="UsedCaptionW" Text="{local:Loc stats.stat.used}" Style="{StaticResource StatCaption}" />
                             </StackPanel>
                             <StackPanel Grid.Column="1">
                                 <TextBlock x:Name="IdealW" Style="{StaticResource StatValue}" />
@@ -226,7 +226,7 @@
 
                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                             <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
-                            <TextBlock Text="{local:Loc stats.legend.actual}" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
+                            <TextBlock x:Name="LegendActualW" Text="{local:Loc stats.legend.actual}" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="{DynamicResource TextFillColorTertiaryBrush}" />
                             <TextBlock Text="{local:Loc stats.legend.evenPace}" Margin="6,0,16,0" FontSize="12" VerticalAlignment="Center"
