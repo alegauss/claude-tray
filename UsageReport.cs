@@ -37,6 +37,21 @@ internal sealed class WindowPace
     public long TokensInWindow;
     public int RequestsInWindow;
 
+    // Per-type token totals in this window, from the transcripts. Kept separate so the throughput
+    // (tokens/sec) breakdown can show where the tokens went. Cache reads are tracked but excluded
+    // from the headline rate — they're huge (the whole context re-read each turn) and barely weigh
+    // on the rate limit, so folding them in would drown out the real work.
+    public long InputTokens;
+    public long OutputTokens;
+    public long CacheCreationTokens;
+    public long CacheReadTokens;
+
+    // Average throughput over the elapsed window (tokens/second), excluding cache reads. This is the
+    // "average over the window" definition: real work / time since the window opened, so it dips when
+    // the session sat idle. 0 until the window has measurable elapsed time.
+    public double TokensPerSecond =>
+        ElapsedSeconds > 0 ? (InputTokens + OutputTokens + CacheCreationTokens) / ElapsedSeconds : 0;
+
     // Burn-up curve: x = fraction of the window elapsed (0–1), y = cumulative utilization (0–1).
     // Runs from (0,0) to (ElapsedFraction, Util).
     public List<(double frac, double cum)> Curve = new();
@@ -61,6 +76,12 @@ internal sealed class PaceReport
     public WindowPace Session = new() { Label = "5-hour session", WindowSeconds = 5 * 3600 };
     public WindowPace Weekly = new() { Label = "Week (7 days)", WindowSeconds = 7 * 86400 };
     public string? Error;
+}
+
+/// <summary>Token counts of one assistant turn, split by type so throughput can be broken down.</summary>
+internal readonly record struct TokenBits(long Input, long Output, long CacheCreate, long CacheRead)
+{
+    public long Total => Input + Output + CacheCreate + CacheRead;
 }
 
 internal static class UsageReport
@@ -96,7 +117,7 @@ internal static class UsageReport
             {
                 // Real measured utilizations (preferred), plus token samples as the shaping fallback.
                 List<UsageSample> hist = UsageHistory.Load(earliest);
-                List<(double t, long tok)> samples =
+                List<(double t, TokenBits bits)> samples =
                     Directory.Exists(ProjectsDir) ? ScanTokens(earliest, now) : new();
 
                 FillCurve(r.Session, samples, hist, s => (s.Util5h, s.Reset5h), now);
@@ -150,7 +171,7 @@ internal static class UsageReport
     // Shape a window's burn-up curve. Preferred: the real utilizations logged over this window
     // (<paramref name="hist"/>, selected by <paramref name="pick"/>). Fallback, when there aren't
     // enough logged points yet: the token samples, scaled so the curve lands on the live utilization.
-    private static void FillCurve(WindowPace w, List<(double t, long tok)> samples,
+    private static void FillCurve(WindowPace w, List<(double t, TokenBits bits)> samples,
         List<UsageSample> hist, Func<UsageSample, (double util, double reset)> pick, double now)
     {
         if (!w.HasWindow) return;
@@ -158,7 +179,14 @@ internal static class UsageReport
 
         var inWin = samples.Where(s => s.t >= start && s.t <= now).OrderBy(s => s.t).ToList();
         long total = 0;
-        foreach (var s in inWin) total += s.tok;
+        foreach (var s in inWin)
+        {
+            total += s.bits.Total;
+            w.InputTokens += s.bits.Input;
+            w.OutputTokens += s.bits.Output;
+            w.CacheCreationTokens += s.bits.CacheCreate;
+            w.CacheReadTokens += s.bits.CacheRead;
+        }
         w.TokensInWindow = total;
         w.RequestsInWindow = inWin.Count;
 
@@ -195,7 +223,7 @@ internal static class UsageReport
         long cum = 0;
         foreach (var s in inWin)
         {
-            cum += s.tok;
+            cum += s.bits.Total;
             double frac = Math.Clamp((s.t - start) / w.WindowSeconds, 0, 1);
             double cu = w.Util * cum / total;
             curve.Add((frac, cu));
@@ -203,10 +231,10 @@ internal static class UsageReport
         w.Curve = curve;
     }
 
-    // Collect (unixTime, tokens) for every in-window assistant request with usage.
-    private static List<(double t, long tok)> ScanTokens(double startUnix, double nowUnix)
+    // Collect (unixTime, token breakdown) for every in-window assistant request with usage.
+    private static List<(double t, TokenBits bits)> ScanTokens(double startUnix, double nowUnix)
     {
-        var samples = new List<(double, long)>();
+        var samples = new List<(double, TokenBits)>();
         DateTime cutoffUtc = DateTimeOffset.FromUnixTimeSeconds((long)startUnix).UtcDateTime;
 
         foreach (string file in Directory.EnumerateFiles(ProjectsDir, "*.jsonl", SearchOption.AllDirectories))
@@ -216,8 +244,8 @@ internal static class UsageReport
             foreach (string line in ReadLinesSafe(file))
             {
                 if (line.Length == 0) continue;
-                if (TryParseSample(line, startUnix, nowUnix, out double t, out long tok))
-                    samples.Add((t, tok));
+                if (TryParseSample(line, startUnix, nowUnix, out double t, out TokenBits bits))
+                    samples.Add((t, bits));
             }
         }
         return samples;
@@ -229,9 +257,9 @@ internal static class UsageReport
         catch { return Array.Empty<string>(); }
     }
 
-    private static bool TryParseSample(string line, double startUnix, double nowUnix, out double t, out long tok)
+    private static bool TryParseSample(string line, double startUnix, double nowUnix, out double t, out TokenBits bits)
     {
-        t = 0; tok = 0;
+        t = 0; bits = default;
         try
         {
             using var doc = JsonDocument.Parse(line);
@@ -256,11 +284,14 @@ internal static class UsageReport
             if (msg.TryGetProperty("model", out var m) && m.GetString() == "<synthetic>")
                 return false;
 
-            long tokens = (long)(Num(usage, "input_tokens") + Num(usage, "output_tokens")
-                + Num(usage, "cache_creation_input_tokens") + Num(usage, "cache_read_input_tokens"));
-            if (tokens <= 0) return false;
+            var b = new TokenBits(
+                Input: (long)Num(usage, "input_tokens"),
+                Output: (long)Num(usage, "output_tokens"),
+                CacheCreate: (long)Num(usage, "cache_creation_input_tokens"),
+                CacheRead: (long)Num(usage, "cache_read_input_tokens"));
+            if (b.Total <= 0) return false;
 
-            t = u; tok = tokens;
+            t = u; bits = b;
             return true;
         }
         catch { return false; }

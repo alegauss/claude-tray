@@ -162,12 +162,13 @@ internal partial class StatisticsWindow : Window
         _session = r.Session;
         _weekly = r.Weekly;
 
-        Populate(r.Session, ChipS, ChipTextS, UsedS, IdealS, ResetS, ProjectionS, ChartS);
-        Populate(r.Weekly, ChipW, ChipTextW, UsedW, IdealW, ResetW, ProjectionW, ChartW);
+        Populate(r.Session, ChipS, ChipTextS, UsedS, IdealS, ResetS, ProjectionS, ChartS, TpsHeadS, TpsBarS, TpsLegendS);
+        Populate(r.Weekly, ChipW, ChipTextW, UsedW, IdealW, ResetW, ProjectionW, ChartW, TpsHeadW, TpsBarW, TpsLegendW);
     }
 
     private void Populate(WindowPace w, Border chip, TextBlock chipText,
-        TextBlock used, TextBlock ideal, TextBlock reset, TextBlock projection, Canvas chart)
+        TextBlock used, TextBlock ideal, TextBlock reset, TextBlock projection, Canvas chart,
+        TextBlock tpsHead, Border tpsBar, StackPanel tpsLegend)
     {
         used.Text = w.HasWindow ? Pct(w.Util) : "—";
         ideal.Text = w.HasWindow ? Pct(w.IdealNow) : "—";
@@ -185,6 +186,82 @@ internal partial class StatisticsWindow : Window
 
         projection.Text = ProjectionText(w);
         DrawChart(chart, w);
+        PopulateThroughput(w, tpsHead, tpsBar, tpsLegend);
+    }
+
+    // Throughput breakdown: average tokens/second over the window, split into input / output /
+    // cache-creation (cache reads are excluded — see WindowPace.TokensPerSecond). A rounded stacked
+    // bar shows the mix; the legend direct-labels each type with its own tokens/sec (so identity is
+    // never color-alone, per the palette's relief rule).
+    private void PopulateThroughput(WindowPace w, TextBlock head, Border bar, StackPanel legend)
+    {
+        bar.Child = null;
+        legend.Children.Clear();
+
+        long input = w.InputTokens, output = w.OutputTokens, cache = w.CacheCreationTokens;
+        long sum = input + output + cache;
+
+        if (!w.HasWindow || w.ElapsedSeconds <= 0 || sum <= 0)
+        {
+            head.Text = "No token activity logged for this window yet.";
+            bar.Visibility = Visibility.Collapsed;
+            return;
+        }
+        bar.Visibility = Visibility.Visible;
+
+        double elapsed = w.ElapsedSeconds;
+        head.Text = $"Throughput ≈ {Rate(w.TokensPerSecond)} tok/s  ·  {Big(sum)} tokens (window average, cache reads excluded)";
+
+        bool dark = IsDarkTheme();
+        var types = new (string label, long tokens, Color color)[]
+        {
+            ("input",  input,  dark ? Color.FromRgb(0x39, 0x87, 0xE5) : Color.FromRgb(0x2A, 0x78, 0xD6)),
+            ("output", output, dark ? Color.FromRgb(0x19, 0x9E, 0x70) : Color.FromRgb(0x1B, 0xAF, 0x7A)),
+            ("cache-create", cache, dark ? Color.FromRgb(0x90, 0x85, 0xE9) : Color.FromRgb(0x4A, 0x3A, 0xA7)),
+        };
+
+        // Stacked bar: one star-weighted column per non-empty type, a 2px surface gap between them.
+        var grid = new Grid();
+        var gap = (Brush)FindResource("SolidBackgroundFillColorBaseBrush");
+        int col = 0;
+        var present = types.Where(t => t.tokens > 0).ToArray();
+        for (int i = 0; i < present.Length; i++)
+        {
+            if (i > 0)
+            {
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
+                var spacer = new System.Windows.Controls.Border { Background = gap };
+                Grid.SetColumn(spacer, col++);
+                grid.Children.Add(spacer);
+            }
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(present[i].tokens, GridUnitType.Star) });
+            var seg = new System.Windows.Controls.Border { Background = Freeze(new SolidColorBrush(present[i].color)) };
+            Grid.SetColumn(seg, col++);
+            grid.Children.Add(seg);
+        }
+        bar.Child = grid;
+
+        // Legend: colored swatch + type + its own rate, with the absolute total on hover.
+        foreach (var t in types)
+        {
+            var row = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 0, 18, 0) };
+            row.Children.Add(new System.Windows.Shapes.Rectangle
+            {
+                Width = 10, Height = 10, RadiusX = 3, RadiusY = 3,
+                VerticalAlignment = VerticalAlignment.Center,
+                Fill = Freeze(new SolidColorBrush(t.color)),
+            });
+            double share = sum > 0 ? (double)t.tokens / sum : 0;
+            row.Children.Add(new TextBlock
+            {
+                Text = $"{t.label}  {Rate(t.tokens / elapsed)}/s",
+                Margin = new Thickness(6, 0, 0, 0), FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)FindResource("TextFillColorSecondaryBrush"),
+                ToolTip = $"{t.label}: {Big(t.tokens)} tokens ({Pct(share)} of throughput)",
+            });
+            legend.Children.Add(row);
+        }
     }
 
     // Plain-language read of the pace + projection for one window.
@@ -386,6 +463,27 @@ internal partial class StatisticsWindow : Window
 
     // "72%" — no space, matching the tray's percentage style.
     private static string Pct(double frac) => Math.Round(Math.Clamp(frac, 0, 1) * 100).ToString("0", Fmt) + "%";
+
+    // A token rate: whole numbers once it's fast, a decimal or two when it's a trickle.
+    private static string Rate(double tps) =>
+        tps >= 100 ? tps.ToString("#,##0", Fmt)
+        : tps >= 10 ? tps.ToString("0.0", Fmt)
+        : tps.ToString("0.00", Fmt);
+
+    // Compact token count: 3.1M / 42k / 517.
+    private static string Big(long n) =>
+        n >= 1_000_000 ? (n / 1e6).ToString("0.0", Fmt) + "M"
+        : n >= 1_000 ? (n / 1e3).ToString("0.0", Fmt) + "k"
+        : n.ToString(Fmt);
+
+    // Dark theme when the primary text ink is light — used to pick the categorical bar hues (the
+    // palette has a light and a dark step per series; the theme brushes only cover text/surfaces).
+    private bool IsDarkTheme()
+    {
+        if (FindResource("TextFillColorPrimaryBrush") is SolidColorBrush b)
+            return 0.299 * b.Color.R + 0.587 * b.Color.G + 0.114 * b.Color.B > 128;
+        return true;
+    }
 
     private static string LocalTime(double unix)
     {
