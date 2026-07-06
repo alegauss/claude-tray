@@ -105,6 +105,23 @@
             <TextBlock Margin="0,3,0,0" FontSize="13" TextWrapping="Wrap"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                        Text="{local:Loc stats.subtitle}" />
+
+            <!-- Shown only during an API outage: the reason, over charts drawn from the last known
+                 local data. Kept collapsed otherwise. -->
+            <Border x:Name="ErrorBanner" Visibility="Collapsed" Margin="0,12,0,0"
+                    CornerRadius="8" Padding="12,9" Background="#332B1416" BorderThickness="1"
+                    BorderBrush="#66E33B30">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" FontSize="15"
+                               VerticalAlignment="Top" Margin="0,1,10,0" Foreground="#E86A5E" />
+                    <TextBlock Grid.Column="1" x:Name="ErrorBannerText" TextWrapping="Wrap" FontSize="13"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                </Grid>
+            </Border>
         </StackPanel>
 
         <!-- ===== Panes (one tab per rate-limit window, so each fits without scrolling) ===== -->

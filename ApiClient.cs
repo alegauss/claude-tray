@@ -71,6 +71,7 @@ internal sealed class ApiClient
             req.Headers.TryAddWithoutValidation("anthropic-version", "2023-06-01");
 
             using HttpResponseMessage resp = await _http.SendAsync(req).ConfigureAwait(false);
+            string bodyText = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             var d = new UsageData
             {
@@ -88,9 +89,10 @@ internal sealed class ApiClient
             {
                 int code = (int)resp.StatusCode;
                 d.Transient = code >= 500 || code == 429;
-                d.Error = d.Transient
-                    ? L.T("api.tempUnavailable", code)
-                    : $"HTTP {code}";
+                // Prefer the API's own explanation from the response body (e.g. a 403 "subscription
+                // payment is past due" message) — it's far more actionable than a bare "HTTP 403".
+                d.Error = ExtractApiError(bodyText)
+                    ?? (d.Transient ? L.T("api.tempUnavailable", code) : $"HTTP {code}");
             }
             d.Unauthorized = (int)resp.StatusCode == 401;
             // A 401 with a refresh token on disk just needs a silent refresh (open Claude Code); without
@@ -158,6 +160,24 @@ internal sealed class ApiClient
 
     /// <summary>No usable OAuth token on disk yet — surfaced as a "needs sign-in" state, not an error.</summary>
     private sealed class NotAuthenticatedException(string message) : Exception(message);
+
+    /// <summary>Pull the human-readable message out of an Anthropic error body
+    /// (<c>{"type":"error","error":{"type":"...","message":"..."}}</c>), or null if the body isn't
+    /// a recognizable error JSON.</summary>
+    private static string? ExtractApiError(string? body)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.TryGetProperty("error", out var err)
+                && err.TryGetProperty("message", out var msg)
+                && msg.GetString() is { Length: > 0 } text)
+                return text.Trim();
+        }
+        catch (JsonException) { /* not JSON — fall back to the HTTP status */ }
+        return null;
+    }
 
     private static double H(HttpResponseMessage r, string name)
     {

@@ -267,6 +267,8 @@ internal static class L
         ["stats.close"] = "Close",
         ["stats.updated"] = "Updated {0}",
         ["stats.connect"] = "Connect Claude Code to see your consumption pace. As soon as a usage reading comes in, the report appears here.",
+        ["stats.apiError"] = "The Anthropic API returned an error, so live usage is unavailable:\n\n{0}",
+        ["stats.errorBanner"] = "Live usage is unavailable — the charts show your last known data. {0}",
         ["stats.computing"] = "Computing your consumption pace…",
         ["stats.buildFailed"] = "Couldn't build the report: {0}",
 
@@ -307,6 +309,7 @@ internal static class L
         ["stats.chart.currentLeft"] = "Currently left: {0}",
         ["stats.chart.start"] = "start {0}",
         ["stats.chart.reset"] = "reset {0}",
+        ["stats.chart.unavailable"] = "Live usage unavailable since {0} — no data for this span",
     };
 
     // ===================================================================================
@@ -524,6 +527,8 @@ internal static class L
         ["stats.close"] = "Fechar",
         ["stats.updated"] = "Atualizado {0}",
         ["stats.connect"] = "Conecte o Claude Code para ver seu ritmo de consumo. Assim que chegar uma leitura de uso, o relatório aparece aqui.",
+        ["stats.apiError"] = "A API da Anthropic retornou um erro, então o uso ao vivo está indisponível:\n\n{0}",
+        ["stats.errorBanner"] = "O uso ao vivo está indisponível — os gráficos mostram seus últimos dados conhecidos. {0}",
         ["stats.computing"] = "Calculando seu ritmo de consumo…",
         ["stats.buildFailed"] = "Não foi possível montar o relatório: {0}",
 
@@ -564,6 +569,7 @@ internal static class L
         ["stats.chart.currentLeft"] = "Restante agora: {0}",
         ["stats.chart.start"] = "início {0}",
         ["stats.chart.reset"] = "reset {0}",
+        ["stats.chart.unavailable"] = "Uso ao vivo indisponível desde {0} — sem dados neste trecho",
     };
 }
 

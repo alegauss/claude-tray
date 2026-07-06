@@ -125,9 +125,11 @@ internal static class IconRenderer
     /// <summary>
     /// Render the application icon (used for the .exe / installer / shortcuts): the same
     /// Claude-clay beveled tile as the tray, but with a clean white spark mark instead of a
-    /// usage number — a recognizable logo at any size.
+    /// usage number — a recognizable logo at any size. When <paramref name="errorBadge"/> is
+    /// true a small red dot is drawn in the bottom-right corner to flag an API error (e.g. an
+    /// HTTP 403) while still showing the recognizable logo rather than a scary amber number.
     /// </summary>
-    public static Bitmap RenderLogo(int size)
+    public static Bitmap RenderLogo(int size, bool errorBadge = false)
     {
         var bmp = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
         using var g = Graphics.FromImage(bmp);
@@ -150,7 +152,28 @@ internal static class IconRenderer
         using (var fill = new SolidBrush(Cream))
             g.FillPath(fill, spark);
 
+        if (errorBadge)
+            DrawErrorBadge(g, size);
+
         return bmp;
+    }
+
+    /// <summary>
+    /// Draw a notification-style error badge in the bottom-right corner: a vivid red dot inside a
+    /// white halo ring, so it reads clearly against the warm clay tile at any tray size.
+    /// </summary>
+    private static void DrawErrorBadge(Graphics g, int size)
+    {
+        float dia = size * 0.38f;              // dot diameter
+        float margin = size * 0.03f;
+        float dx = size - dia - margin;        // dot origin (bottom-right, slightly inset)
+        float dy = size - dia - margin;
+        float ring = Math.Max(1f, size * 0.055f);
+
+        using (var halo = new SolidBrush(Cream))
+            g.FillEllipse(halo, dx - ring, dy - ring, dia + 2 * ring, dia + 2 * ring);
+        using (var dot = new SolidBrush(BarDanger))
+            g.FillEllipse(dot, dx, dy, dia, dia);
     }
 
     /// <summary>

@@ -56,6 +56,12 @@ internal sealed class WindowPace
     // Runs from (0,0) to (ElapsedFraction, Util).
     public List<(double frac, double cum)> Curve = new();
 
+    // Spans of the curve where no live reading was logged — an API outage (e.g. a 403) or the app not
+    // running. Each is the pair of curve points bracketing the gap, so the chart can redraw exactly
+    // that stretch of the usage line in red instead of a normal (misleadingly smooth) segment. The
+    // start fraction also fixes the "unavailable since …" time. Empty when the readings are continuous.
+    public List<(double f0, double cum0, double f1, double cum1)> Gaps = new();
+
     public double ElapsedFraction => WindowSeconds > 0 ? Math.Clamp(ElapsedSeconds / WindowSeconds, 0, 1) : 0;
 
     // At the average pace so far, utilization would reach 100% at this fraction of the window.
@@ -208,6 +214,10 @@ internal static class UsageReport
             // Land exactly on the live reading, which is fresher than the last logged sample.
             realCurve.Add((w.ElapsedFraction, w.Util));
             w.Curve = realCurve;
+            // Mark stretches with no logged reading (outages): look across the real samples plus the
+            // live "now" point, so both past gaps and an ongoing outage (last sample → now) are caught.
+            var known = new List<(double f, double c)>(real) { (w.ElapsedFraction, w.Util) };
+            w.Gaps = FindGaps(known, w.WindowSeconds);
             return;
         }
 
@@ -229,6 +239,39 @@ internal static class UsageReport
             curve.Add((frac, cu));
         }
         w.Curve = curve;
+    }
+
+    // A gap in the logged readings counts as an outage only once it's this much larger than the normal
+    // cadence — so a stray missed poll (or the couple of blips we ride out before alarming) isn't drawn
+    // as unavailable, while a real interruption (a persistent 403, a long app-off stretch) is.
+    private const double GapFloorSeconds = 15 * 60;   // absolute floor, regardless of a fast cadence
+    private const double GapCadenceFactor = 3.0;      // ...or this many times the measured poll spacing
+
+    /// <summary>Find spans between consecutive known points whose time gap is well above the normal
+    /// sample cadence, returning each as the bracketing curve points so the chart can redraw that
+    /// stretch of the usage line as "unavailable". <paramref name="pts"/> must be sorted by fraction.</summary>
+    private static List<(double f0, double cum0, double f1, double cum1)> FindGaps(
+        List<(double f, double c)> pts, double windowSeconds)
+    {
+        var gaps = new List<(double, double, double, double)>();
+        if (pts.Count < 2) return gaps;
+
+        // Typical spacing = median of consecutive deltas (in seconds), a cadence estimate robust to the
+        // one big outage delta that would skew a mean.
+        var deltas = new List<double>();
+        for (int i = 1; i < pts.Count; i++)
+            deltas.Add((pts[i].f - pts[i - 1].f) * windowSeconds);
+        deltas.Sort();
+        double median = deltas[deltas.Count / 2];
+        double threshold = Math.Max(GapFloorSeconds, GapCadenceFactor * median);
+
+        for (int i = 1; i < pts.Count; i++)
+        {
+            double deltaSec = (pts[i].f - pts[i - 1].f) * windowSeconds;
+            if (deltaSec > threshold)
+                gaps.Add((pts[i - 1].f, pts[i - 1].c, pts[i].f, pts[i].c));
+        }
+        return gaps;
     }
 
     // Collect (unixTime, token breakdown) for every in-window assistant request with usage.

@@ -38,6 +38,11 @@ internal partial class StatisticsWindow : Window
     // Projection line color — a warm amber that reads on both light and dark backgrounds.
     private static readonly Brush ProjectionBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xE0, 0xA0, 0x30)));
 
+    // "Unavailable" (API-outage) markers: a vivid red for the dashed span, and a faint red wash for the
+    // band behind it — the stretch of the window where no live reading could be taken.
+    private static readonly Brush OutageBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xE3, 0x3B, 0x30)));
+    private static readonly Brush OutageBandBrush = Freeze(new SolidColorBrush(Color.FromArgb(0x22, 0xE3, 0x3B, 0x30)));
+
     // The live rate-limit reading, refreshed in place by the tray on each poll (see UpdateSnapshot),
     // so the report tracks the same cadence configured in Settings without polling the API itself.
     private PaceSnapshot? _snapshot;
@@ -50,10 +55,16 @@ internal partial class StatisticsWindow : Window
     // the remaining side. The underlying pace, verdict and projection are unchanged; only the framing.
     private bool _remaining;
 
-    public StatisticsWindow(PaceSnapshot? snapshot, bool showRemaining = false)
+    // Set while the live API is unavailable (e.g. a 403): the charts are still drawn from the last known
+    // local data, and this drives the error banner above them. The chart's red "unavailable" spans come
+    // from gaps in the logged readings themselves (WindowPace.Gaps), so they persist after recovery too.
+    private string? _error;
+
+    public StatisticsWindow(PaceSnapshot? snapshot, bool showRemaining = false, string? error = null)
     {
         _snapshot = snapshot;
         _remaining = showRemaining;
+        _error = error;
         InitializeComponent();
 
         try
@@ -63,10 +74,10 @@ internal partial class StatisticsWindow : Window
         }
         catch { /* fall back to the default window icon */ }
 
-        if (_snapshot is null)
-            ShowStatus(L.T("stats.connect"));
-        else
+        if (_snapshot is not null)
             Reload();
+        else
+            ShowStatus(error is { Length: > 0 } ? L.T("stats.apiError", error) : L.T("stats.connect"));
     }
 
     private void Refresh_Click(object sender, RoutedEventArgs e)
@@ -80,13 +91,14 @@ internal partial class StatisticsWindow : Window
     /// A null snapshot (signed out / no reading) drops back to the "connect" hint. Called on the UI
     /// thread from <see cref="TrayContext"/>.
     /// </summary>
-    internal void UpdateSnapshot(PaceSnapshot? snapshot)
+    internal void UpdateSnapshot(PaceSnapshot? snapshot, string? error = null)
     {
         _snapshot = snapshot;
-        if (_snapshot is null)
-            ShowStatus(L.T("stats.connect"));
-        else
+        _error = error;
+        if (_snapshot is not null)
             Reload();
+        else
+            ShowStatus(error is { Length: > 0 } ? L.T("stats.apiError", error) : L.T("stats.connect"));
     }
 
     /// <summary>
@@ -182,12 +194,35 @@ internal partial class StatisticsWindow : Window
         });
     }
 
+    // Dev/preview seam: render a hand-built report directly (bypassing the transcript scan), so the
+    // outage rendering can be inspected deterministically without a matching reading on disk.
+    internal void PreviewReport(PaceReport r, string? error)
+    {
+        _error = error;
+        Render(r);
+    }
+
     private void ShowStatus(string message)
     {
         StatusText.Text = message;
         StatusText.Visibility = Visibility.Visible;
         PanesBody.Visibility = Visibility.Collapsed;
         MethodNote.Visibility = Visibility.Collapsed;
+        ErrorBanner.Visibility = Visibility.Collapsed;
+    }
+
+    // Show or hide the outage banner above the charts, driven by the current _error.
+    private void ApplyErrorBanner()
+    {
+        if (_error is { Length: > 0 } e)
+        {
+            ErrorBannerText.Text = L.T("stats.errorBanner", e);
+            ErrorBanner.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            ErrorBanner.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void Render(PaceReport r)
@@ -203,6 +238,7 @@ internal partial class StatisticsWindow : Window
         StatusText.Visibility = Visibility.Collapsed;
         PanesBody.Visibility = Visibility.Visible;
         MethodNote.Visibility = Visibility.Visible;
+        ApplyErrorBanner();
 
         _session = r.Session;
         _weekly = r.Weekly;
@@ -494,6 +530,31 @@ internal partial class StatisticsWindow : Window
         Canvas.SetTop(dot, Yc(util) - 4.5);
         c.Children.Add(dot);
         AddHit(c, X(ef), Yc(util), L.T(_remaining ? "stats.chart.currentLeft" : "stats.chart.currentUsage", Pct(Disp(util))));
+
+        // Outage spans: stretches where no live reading was logged (an API error like a 403, or the app
+        // not running). Redraw that part of the usage line in red dashed — it *is* the usage line, just
+        // interpolated across a gap we couldn't measure — with a faint band and an "unavailable since …"
+        // hover, so it doesn't read as smooth, real consumption.
+        double windowStart = w.ResetUnix - w.WindowSeconds;
+        foreach (var (f0, c0, f1, c1) in w.Gaps)
+        {
+            double xa = X(f0), xb = X(f1);
+            var band = new System.Windows.Shapes.Rectangle
+            {
+                Width = Math.Max(0, xb - xa), Height = ph, Fill = OutageBandBrush,
+            };
+            Canvas.SetLeft(band, xa);
+            Canvas.SetTop(band, top);
+            c.Children.Add(band);
+            c.Children.Add(new Line
+            {
+                X1 = xa, Y1 = Yc(c0), X2 = xb, Y2 = Yc(c1),
+                Stroke = OutageBrush, StrokeThickness = 2.5,
+                StrokeDashArray = new DoubleCollection { 4, 3 },
+            });
+            AddHit(c, (xa + xb) / 2, Yc((c0 + c1) / 2),
+                L.T("stats.chart.unavailable", LocalTime(windowStart + f0 * w.WindowSeconds)));
+        }
 
         // Axis labels: window start (left) and reset time (right).
         double startUnix = w.ResetUnix - w.WindowSeconds;

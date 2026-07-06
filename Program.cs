@@ -106,7 +106,27 @@ internal static class Program
                 Util5h: 0.72, Reset5h: now + 2 * 3600,      // 3h of 5h elapsed (60%), 72% used → ahead
                 Util7d: 0.38, Reset7d: now + 3 * 86400);    // 4d of 7d elapsed (57%), 38% used → on track
             bool remaining = args.Length >= 2 && args[1].Equals("remaining", StringComparison.OrdinalIgnoreCase);
-            previewApp.Run(new StatisticsWindow(sample, remaining));
+            // "--stats error" previews the API-error state (e.g. a 403 payment-past-due): charts drawn
+            // from the last known local data, with an error banner. Any real gaps in the logged
+            // readings are drawn as red "unavailable" spans on the usage line.
+            if (args.Length >= 2 && args[1].Equals("error", StringComparison.OrdinalIgnoreCase))
+                previewApp.Run(new StatisticsWindow(sample, remaining,
+                    "Your subscription payment is past due. Please pay your overdue invoice to restore access, or reach out to your company admin.")
+                { Topmost = true });
+            else if (args.Length >= 2 && args[1].Equals("gapdemo", StringComparison.OrdinalIgnoreCase))
+            {
+                // Deterministic preview of the recovered state: a hand-built report with a past data gap
+                // that has since recovered — no error banner, but the outage still marked red on the
+                // curve. Pass "ongoing" to also show the error banner (mid-outage).
+                bool ongoing = args.Length >= 3 && args[2].Equals("ongoing", StringComparison.OrdinalIgnoreCase);
+                var win = new StatisticsWindow(null) { Topmost = true };
+                win.Loaded += (_, _) => win.PreviewReport(BuildGapDemoReport(now), ongoing
+                    ? "Your subscription payment is past due. Please pay your overdue invoice to restore access, or reach out to your company admin."
+                    : null);
+                previewApp.Run(win);
+            }
+            else
+                previewApp.Run(new StatisticsWindow(sample, remaining) { Topmost = true });
             return;
         }
 
@@ -233,7 +253,52 @@ internal static class Program
             foreach (var (pct, st, fl, verdict) in cases)
                 using (var bmp = IconRenderer.Render(pct, st, fl, size, verdict))
                     bmp.Save(Path.Combine(dir, $"icon_{(int)(pct * 100)}_{size}.png"));
+
+        // Logo, plain and with the API-error badge (the 403 state), at real + large sizes.
+        foreach (int size in new[] { 16, 20, 32, 128 })
+        {
+            using (var plain = IconRenderer.RenderLogo(size))
+                plain.Save(Path.Combine(dir, $"logo_{size}.png"));
+            using (var err = IconRenderer.RenderLogo(size, errorBadge: true))
+                err.Save(Path.Combine(dir, $"logo_error_{size}.png"));
+        }
         Console.WriteLine("rendered to " + Path.GetFullPath(dir));
+    }
+
+    // Dev helper: a hand-built pacing report with a data gap in the session curve, so the "unavailable"
+    // outage rendering (red dashed span along the usage line) can be inspected deterministically.
+    private static PaceReport BuildGapDemoReport(long now)
+    {
+        var r = new PaceReport { ComputedLocal = DateTimeOffset.FromUnixTimeSeconds(now).LocalDateTime };
+
+        var s = r.Session;
+        s.WindowSeconds = 5 * 3600;
+        s.ResetUnix = now + 2 * 3600;
+        s.SecondsToReset = 2 * 3600;
+        s.ElapsedSeconds = 3 * 3600;
+        s.Util = 0.72;
+        s.HasWindow = true;
+        s.Verdict = PaceVerdict.Ahead;
+        s.ExhaustSeconds = s.ElapsedSeconds * (1 - s.Util) / s.Util;
+        s.InputTokens = 200_000; s.OutputTokens = 560_000; s.CacheCreationTokens = 4_200_000;
+        // A past outage in the middle of the window that has since recovered: readings stop at 32%,
+        // resume at 48%, and continue normally to "now" (60%). The gap segment is drawn red.
+        s.Curve = new() { (0, 0), (0.08, 0.10), (0.16, 0.18), (0.24, 0.26), (0.32, 0.32), (0.48, 0.50), (0.54, 0.60), (0.60, 0.72) };
+        s.Gaps = new() { (0.32, 0.32, 0.48, 0.50) };   // no reading logged from 32% to 48% (the outage)
+
+        var w = r.Weekly;
+        w.WindowSeconds = 7 * 86400;
+        w.ResetUnix = now + 3 * 86400;
+        w.SecondsToReset = 3 * 86400;
+        w.ElapsedSeconds = 4 * 86400;
+        w.Util = 0.38;
+        w.HasWindow = true;
+        w.Verdict = PaceVerdict.Adequate;
+        w.ExhaustSeconds = w.ElapsedSeconds * (1 - w.Util) / w.Util;
+        w.InputTokens = 900_000; w.OutputTokens = 2_100_000; w.CacheCreationTokens = 18_000_000;
+        w.Curve = new() { (0, 0), (0.14, 0.09), (0.29, 0.17), (0.43, 0.26), (0.571, 0.38) };
+
+        return r;
     }
 
     // Dev helper: build a multi-resolution .ico for the app (PNG-compressed entries, valid on
@@ -298,6 +363,10 @@ internal sealed class TrayContext : ApplicationContext
 
     private UsageData? _data;
     private DateTime? _lastRefresh;
+    // The last successful live reading, kept so the Statistics window can still draw its charts from
+    // local data (usage-history + transcripts) during an API outage. The chart marks the unavailable
+    // stretch itself, from the gap in the logged readings (see UsageReport.WindowPace.Gaps).
+    private PaceSnapshot? _lastGoodSnapshot;
     private UpdateInfo? _update;
     private string _metric;
     private bool _flashOn;
@@ -467,8 +536,9 @@ internal sealed class TrayContext : ApplicationContext
 
         EnsureWpfApp();
 
-        // Only pass a snapshot when we have a good reading; otherwise the window shows a "connect" hint.
-        _statsWindow = new StatisticsWindow(CurrentSnapshot(), _settings.ShowRemaining);
+        // Only pass a snapshot when we have a good reading; otherwise the window shows a "connect" hint,
+        // or — on a live API error like a 403 — the API's own message so it isn't a blank page.
+        _statsWindow = new StatisticsWindow(CurrentSnapshot(), _settings.ShowRemaining, CurrentError());
         _statsWindow.Closed += (_, _) => _statsWindow = null;
         _statsWindow.Show();
         _statsWindow.Activate();
@@ -476,10 +546,19 @@ internal sealed class TrayContext : ApplicationContext
 
     // The current live reading as a pace snapshot for the Statistics window, or null when there's no
     // good reading (signed out / error) so the window shows its "connect" hint instead.
+    // The reading the Statistics window charts from: the live one when healthy, otherwise the last good
+    // reading (so the charts stay populated from local data during an API outage), or null if we've
+    // never had a good reading this session.
     private PaceSnapshot? CurrentSnapshot()
         => _data is { Error: null } d
             ? new PaceSnapshot(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d)
-            : null;
+            : _lastGoodSnapshot;
+
+    // The live API error to surface in the Statistics window, if any. A signed-out (401) state is left
+    // to the window's own "connect" hint; only a real API error (e.g. a 403 payment-past-due) is passed
+    // through so the window shows the reason instead of appearing blank.
+    private string? CurrentError()
+        => _data is { Error: { } e, Unauthorized: false } ? e : null;
 
     // Persist the edited settings and apply the new values immediately.
     private void ApplySettings(Settings updated)
@@ -578,6 +657,11 @@ internal sealed class TrayContext : ApplicationContext
         {
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
+            // Remember this good reading so the Statistics window can keep drawing its charts from
+            // local data during a later API outage, and mark when it was taken (the outage gap starts
+            // here).
+            _lastGoodSnapshot = new PaceSnapshot(fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d);
+
             // Log the live reading so the Statistics charts can draw the real utilization curve over
             // time, rather than inferring the burn shape from transcript token counts.
             UsageHistory.Append(now, fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d);
@@ -608,7 +692,7 @@ internal sealed class TrayContext : ApplicationContext
         Render();
         // Push the fresh reading into an open Statistics window so it auto-refreshes on the same
         // cadence as the icon, rather than staying frozen until the user clicks Refresh.
-        _statsWindow?.UpdateSnapshot(CurrentSnapshot());
+        _statsWindow?.UpdateSnapshot(CurrentSnapshot(), CurrentError());
         RecomputeInsights();
         AdjustForAuthState();
     }
@@ -844,10 +928,13 @@ internal sealed class TrayContext : ApplicationContext
 
         // Before we're connected to Claude Code — either still connecting (no data yet) or signed out
         // on a 401 (expired token) — show the Claude Code Tray logo rather than a gray "0" or a play
-        // triangle. Once a poll succeeds the usage icon takes over.
+        // triangle. On a live API error (e.g. an HTTP 403) show the same logo but with a red error dot
+        // in the corner, instead of an amber tile with a misleading usage number. Once a poll succeeds
+        // the usage icon takes over.
+        bool apiError = state == IconRenderer.State.Error && _data is not { Unauthorized: true };
         using Bitmap bmp =
-            _data is { Unauthorized: true } || state == IconRenderer.State.Connecting
-                ? IconRenderer.RenderLogo(size)
+            _data is { Unauthorized: true } || state == IconRenderer.State.Connecting || apiError
+                ? IconRenderer.RenderLogo(size, apiError)
                 : IconRenderer.Render(CurrentPct(), state, flash, size, verdict, _settings.ShowPercentage, _settings.ShowRemaining);
         SetTrayIcon(bmp);
         _tray.Text = Truncate(BuildTooltip(), 127);
