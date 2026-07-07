@@ -43,15 +43,12 @@ internal partial class SettingsWindow : Window
 
         InitializeComponent();
 
-        // Language picker: "Automatic (system)" plus each shipped language by its own name (endonym),
-        // with the preference code carried in each item's Tag. Selection falls back to Automatic.
-        foreach (var (tag, label) in new[]
-        {
-            ("auto", L.T("settings.lang.auto")),
-            ("en", "English"),
-            ("pt-BR", "Português (Brasil)"),
-        })
-            LanguageCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = label, Tag = tag });
+        // Language picker: "Automatic (system)" plus each shipped language by its own name (endonym,
+        // from L.PickerLanguages), with the preference code carried in each item's Tag. Selection falls
+        // back to Automatic.
+        LanguageCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = L.T("settings.lang.auto"), Tag = "auto" });
+        foreach (var (code, name) in L.PickerLanguages)
+            LanguageCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = name, Tag = code });
         LanguageCombo.SelectedIndex = 0; // Automatic, unless a saved preference matches below
         for (int i = 0; i < LanguageCombo.Items.Count; i++)
             if ((string)((System.Windows.Controls.ComboBoxItem)LanguageCombo.Items[i]).Tag == _settings.Language)

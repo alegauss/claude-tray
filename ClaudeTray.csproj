@@ -37,4 +37,12 @@
     <Using Include="System.IO" />
   </ItemGroup>
 
+  <!-- UI translations: one JSON file per language, embedded in the assembly so the single
+       self-contained .exe still carries them (no loose files, no build steps). With RootNamespace
+       "ClaudeTray" each becomes the resource "ClaudeTray.lang.<code>.json"; L loads them at startup.
+       Adding a language = drop a lang\<code>.json here and add one row to L.Languages. -->
+  <ItemGroup>
+    <EmbeddedResource Include="lang\*.json" />
+  </ItemGroup>
+
 </Project>

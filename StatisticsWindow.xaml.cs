@@ -32,8 +32,7 @@ internal partial class StatisticsWindow : Window
 
     // Dates read more naturally in the display language (localized month names), so format them with
     // the active language's culture rather than the invariant one used for the numeric values.
-    private static readonly CultureInfo DateFmt =
-        L.Current == L.Lang.PtBr ? new CultureInfo("pt-BR") : CultureInfo.InvariantCulture;
+    private static readonly CultureInfo DateFmt = L.Culture;
 
     // Projection line color — a warm amber that reads on both light and dark backgrounds.
     private static readonly Brush ProjectionBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xE0, 0xA0, 0x30)));

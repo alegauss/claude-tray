@@ -30,9 +30,6 @@ internal sealed class Settings
     private static readonly string[] ValidMetrics = { "5h", "7d", "extra" };
 
     public const string DefaultLanguage = "auto";
-    // The languages the app ships translations for: "auto" follows the OS UI language (the historical
-    // behaviour), the rest force a specific one. Add a language's table in Localization first.
-    private static readonly string[] ValidLanguages = { "auto", "en", "pt-BR" };
 
     /// <summary>How often the tray polls the usage API, in seconds.</summary>
     public int RefreshSeconds { get; set; } = DefaultRefreshSeconds;
@@ -84,9 +81,9 @@ internal sealed class Settings
 
     /// <summary>
     /// Display language for the whole UI: <c>"auto"</c> (follow the OS UI language — the default and
-    /// historical behaviour), <c>"en"</c>, or <c>"pt-BR"</c>. Read once at startup by
-    /// <see cref="L.Apply"/>; because the localized strings resolve when a window is parsed, changing
-    /// this prompts a restart to take effect.
+    /// historical behaviour) or one of the shipped language codes (see <see cref="L"/>). Read once at
+    /// startup by <see cref="L.Apply"/>; because the localized strings resolve when a window is parsed,
+    /// changing this prompts a restart to take effect.
     /// </summary>
     public string Language { get; set; } = DefaultLanguage;
 
@@ -147,7 +144,7 @@ internal sealed class Settings
             ClaudeCodeDirectory = DefaultDirectory;
         if (Array.IndexOf(ValidMetrics, Metric) < 0)
             Metric = DefaultMetric;
-        if (Array.IndexOf(ValidLanguages, Language) < 0)
+        if (!L.IsValidPreference(Language))
             Language = DefaultLanguage;
     }
 }
