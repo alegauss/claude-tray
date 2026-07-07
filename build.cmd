@@ -12,7 +12,14 @@ echo === Publicando ClaudeTray (Release, win-x64, self-contained) ===
 echo.
 
 dotnet publish -c Release
-if errorlevel 1 (
+set "PUBERR=%errorlevel%"
+
+REM O SDK do WPF gera um projeto temporario "<nome>_<aleatorio>_wpftmp.csproj" na pasta do projeto
+REM durante a compilacao do XAML e normalmente o apaga; se um build for interrompido ele fica para
+REM tras. Remove qualquer resquicio aqui (esta no .gitignore) para nao poluir a pasta / o git.
+del /q "%~dp0*_wpftmp.csproj" >nul 2>nul
+
+if not "%PUBERR%"=="0" (
     echo.
     echo *** ERRO: falha no dotnet publish. ***
     exit /b 1

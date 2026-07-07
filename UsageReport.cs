@@ -99,10 +99,6 @@ internal static class UsageReport
     private const double SessionSeconds = 5 * 3600;
     private const double WeekSeconds = 7 * 86400;
 
-    // A window counts as "ahead of pace" only once it clears the even-pace line by this margin, so a
-    // reading that is marginally above the ideal isn't flagged as alarming.
-    private const double AheadMargin = 0.05;
-
     /// <summary>Build the pacing report for both windows from the live snapshot plus the transcripts.</summary>
     public static PaceReport ComputePace(DateTime nowUtc, PaceSnapshot snap)
     {
@@ -157,8 +153,12 @@ internal static class UsageReport
         double start = reset - windowSeconds;
         w.ElapsedSeconds = Math.Clamp(now - start, 0, windowSeconds);
 
+        // Verdict off the even-pace line, with NO extra tolerance — so the chip and the status message
+        // agree with the projection line/tooltip and the tray icon, which all flag "won't last to reset"
+        // as soon as usage passes the pace line (util > elapsed fraction ⟺ ExhaustFraction < 1). An
+        // earlier margin here made the chip say "on track" while the chart already projected running out.
         w.Verdict = w.Util >= 0.995 ? PaceVerdict.AtLimit
-            : w.Util > w.ElapsedFraction + AheadMargin ? PaceVerdict.Ahead
+            : w.Util > w.ElapsedFraction ? PaceVerdict.Ahead
             : PaceVerdict.Adequate;
 
         // Seconds until 100% at the average pace since the window started (rule of three):

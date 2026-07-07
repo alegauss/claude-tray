@@ -109,7 +109,18 @@ internal static class Program
             // "--stats error" previews the API-error state (e.g. a 403 payment-past-due): charts drawn
             // from the last known local data, with an error banner. Any real gaps in the logged
             // readings are drawn as red "unavailable" spans on the usage line.
-            if (args.Length >= 2 && args[1].Equals("error", StringComparison.OrdinalIgnoreCase))
+            // "--stats history" previews the offline fallback: no live reading, so the snapshot is
+            // rebuilt from the last reading persisted on disk (usage-history.jsonl) — exactly what
+            // TrayContext.CurrentSnapshot() does when signed out / the token expired at launch. Falls
+            // back to the "connect" hint only when there's genuinely no history yet.
+            if (args.Length >= 2 && args[1].Equals("history", StringComparison.OrdinalIgnoreCase))
+            {
+                PaceSnapshot? fromDisk = UsageHistory.Latest() is { } h
+                    ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d)
+                    : null;
+                previewApp.Run(new StatisticsWindow(fromDisk, remaining) { Topmost = true });
+            }
+            else if (args.Length >= 2 && args[1].Equals("error", StringComparison.OrdinalIgnoreCase))
                 previewApp.Run(new StatisticsWindow(sample, remaining,
                     "Your subscription payment is past due. Please pay your overdue invoice to restore access, or reach out to your company admin.")
                 { Topmost = true });
@@ -544,15 +555,21 @@ internal sealed class TrayContext : ApplicationContext
         _statsWindow.Activate();
     }
 
-    // The current live reading as a pace snapshot for the Statistics window, or null when there's no
-    // good reading (signed out / error) so the window shows its "connect" hint instead.
     // The reading the Statistics window charts from: the live one when healthy, otherwise the last good
-    // reading (so the charts stay populated from local data during an API outage), or null if we've
-    // never had a good reading this session.
+    // reading this session (so the charts stay populated from local data during an API outage), and
+    // failing that the last reading persisted on disk — so a signed-out / expired-token launch still
+    // draws the charts from yesterday's history instead of a blank "connect" hint. Null only when we've
+    // genuinely never logged a reading (first run), which keeps that hint for a true cold start.
     private PaceSnapshot? CurrentSnapshot()
-        => _data is { Error: null } d
-            ? new PaceSnapshot(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d)
-            : _lastGoodSnapshot;
+    {
+        if (_data is { Error: null } d)
+            return new PaceSnapshot(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d);
+        if (_lastGoodSnapshot is { } s)
+            return s;
+        return UsageHistory.Latest() is { } h
+            ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d)
+            : null;
+    }
 
     // The live API error to surface in the Statistics window, if any. A signed-out (401) state is left
     // to the window's own "connect" hint; only a real API error (e.g. a 403 payment-past-due) is passed

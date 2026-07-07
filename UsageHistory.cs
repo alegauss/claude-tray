@@ -44,6 +44,31 @@ internal static class UsageHistory
         catch { /* logging is best-effort */ }
     }
 
+    /// <summary>The most recent logged reading, or null when the log is empty/unreadable. Lets the
+    /// Statistics window reconstruct a snapshot and draw its charts from local history when there's no
+    /// live reading (signed out / expired token at launch), instead of a blank "connect" hint.</summary>
+    public static UsageSample? Latest()
+    {
+        UsageSample? latest = null;
+        try
+        {
+            string path = FilePath;
+            if (!File.Exists(path)) return null;
+
+            foreach (string line in File.ReadLines(path))
+            {
+                if (line.Length == 0) continue;
+                // Lines are appended in time order, but a stray out-of-order line shouldn't win — keep
+                // the newest by timestamp rather than blindly taking the last line.
+                if (TryParse(line, out UsageSample s) && (latest is not { } l || s.T >= l.T))
+                    latest = s;
+            }
+        }
+        catch { /* a partial/locked read just means no fallback — the window shows its hint */ }
+
+        return latest;
+    }
+
     /// <summary>Read every logged sample at or after <paramref name="sinceUnix"/>, oldest first.
     /// Read-only — never rewrites, so it can run off-thread while the poll appends.</summary>
     public static List<UsageSample> Load(double sinceUnix)
