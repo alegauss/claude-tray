@@ -452,6 +452,43 @@ internal partial class StatisticsWindow : Window
             c.Children.Add(gl);
         }
 
+        // Day boundaries: a faint dashed vertical at each local midnight, so a multi-day span (the 7-day
+        // weekly chart) reads as day-sized columns instead of one long ramp. Skipped for short windows
+        // like the 5-hour session, where day marks would be meaningless.
+        if (w.WindowSeconds >= 2 * 86400)
+        {
+            double dayStart = w.ResetUnix - w.WindowSeconds;
+            DateTime startLocal = DateTimeOffset.FromUnixTimeSeconds((long)dayStart).LocalDateTime;
+            DateTime resetLocal = DateTimeOffset.FromUnixTimeSeconds((long)w.ResetUnix).LocalDateTime;
+
+            // The start/reset axis labels own the two ends of this same bottom strip; a day label that
+            // would run into either is dropped (its divider line still shows) so the dates never collide.
+            double startRight = left + MeasureText(L.T("stats.chart.start", LocalTime(dayStart)), 10);
+            double resetLeft = X(1) - MeasureText(L.T("stats.chart.reset", LocalTime(w.ResetUnix)), 10);
+
+            // First local midnight after the window opens, then step a day at a time until the reset.
+            for (DateTime day = startLocal.Date.AddDays(1); day < resetLocal; day = day.AddDays(1))
+            {
+                double frac = (new DateTimeOffset(day).ToUnixTimeSeconds() - dayStart) / w.WindowSeconds;
+                if (frac <= 0.001 || frac >= 0.999) continue; // don't double the start/reset edges
+                double x = X(frac);
+                c.Children.Add(new Line
+                {
+                    X1 = x, Y1 = top, X2 = x, Y2 = top + ph,
+                    Stroke = grid, StrokeThickness = 1,
+                    StrokeDashArray = new DoubleCollection { 2, 4 }, Opacity = 0.7,
+                });
+                // Date of the division, centered under its line on the bottom axis — unless it would
+                // overlap the start/reset labels sharing that strip.
+                double dw = MeasureText(day.ToString("d/M", DateFmt), 9);
+                if (x - dw / 2 < startRight + 4 || x + dw / 2 > resetLeft - 4) continue;
+                var dl = new TextBlock { Text = day.ToString("d/M", DateFmt), FontSize = 9, Foreground = axisFg };
+                Canvas.SetLeft(dl, x - dw / 2);
+                Canvas.SetTop(dl, top + ph + 4);
+                c.Children.Add(dl);
+            }
+        }
+
         // Even-pace reference: straight line between empty (consumption 0) at the start and the limit
         // (consumption 1) at the reset — rising in "used" mode, falling in "remaining" mode.
         c.Children.Add(new Line
@@ -577,6 +614,14 @@ internal partial class StatisticsWindow : Window
         Canvas.SetLeft(hit, x - 9);
         Canvas.SetTop(hit, y - 9);
         c.Children.Add(hit);
+    }
+
+    // Rendered width of a chart label, for laying out / collision-testing the bottom axis strip.
+    private static double MeasureText(string text, double fontSize)
+    {
+        var t = new TextBlock { Text = text, FontSize = fontSize };
+        t.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        return t.DesiredSize.Width;
     }
 
     private static Line HLine(double x1, double x2, double y, Brush stroke, DoubleCollection? dash) => new()
