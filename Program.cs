@@ -36,6 +36,10 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        // Pick the UI language before anything localized is built (menus, dialogs, and XAML windows all
+        // resolve strings at parse time): honor the saved Settings preference, falling back to the OS.
+        L.Apply(Settings.Load().Language);
+
         if (args.Length >= 1 && args[0] == "--render")
         {
             RenderTest(args.Length >= 2 ? args[1] : ".");
@@ -592,6 +596,11 @@ internal sealed class TrayContext : ApplicationContext
         _settings.AutoOpenOnUnauthenticated = updated.AutoOpenOnUnauthenticated;
         _settings.AuthRetrySeconds = updated.AuthRetrySeconds;
 
+        // A language change only takes effect after a restart (localized strings resolve when a window
+        // is parsed), so note whether the *active* language would change before saving the new value.
+        bool languageChanged = L.Resolve(updated.Language) != L.Current;
+        _settings.Language = updated.Language;
+
         try { _settings.Save(); }
         catch (Exception ex)
         {
@@ -606,6 +615,37 @@ internal sealed class TrayContext : ApplicationContext
 
         // If the Statistics window is open, flip its used/remaining framing to match right away.
         _statsWindow?.SetShowRemaining(_settings.ShowRemaining);
+
+        // Offer to restart so the new language applies immediately; the saved preference is read back
+        // on the next launch either way.
+        if (languageChanged && MessageBox.Show(L.T("dialog.restartForLanguage"), L.T("dialog.appName"),
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            RestartApp();
+    }
+
+    // Relaunch the app to pick up a setting that only applies at startup (the UI language). Spawns a
+    // detached shell that waits a beat for this instance to exit — releasing the single-instance mutex —
+    // then starts a fresh copy, and quits immediately.
+    private void RestartApp()
+    {
+        try
+        {
+            string? exe = Environment.ProcessPath;
+            if (exe is { Length: > 0 })
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    // `ping -n 2` (~1s) delays reliably even with no console — unlike `timeout`, which
+                    // aborts when stdin is redirected. `start ""` launches the new copy detached so cmd
+                    // exits right after instead of lingering for the whole session.
+                    Arguments = $"/c ping -n 2 127.0.0.1 >nul & start \"\" \"{exe}\"",
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+                });
+        }
+        catch { /* if the relaunch can't be scheduled, the user reopens it manually */ }
+        ExitApp();
     }
 
     // Fill the "Usage insights" submenu from the cached scan; trigger a refresh for next time.

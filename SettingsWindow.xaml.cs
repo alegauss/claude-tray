@@ -38,9 +38,24 @@ internal partial class SettingsWindow : Window
             ClaudeCodeDirectory = current.ClaudeCodeDirectory,
             AutoOpenOnUnauthenticated = current.AutoOpenOnUnauthenticated,
             AuthRetrySeconds = current.AuthRetrySeconds,
+            Language = current.Language,
         };
 
         InitializeComponent();
+
+        // Language picker: "Automatic (system)" plus each shipped language by its own name (endonym),
+        // with the preference code carried in each item's Tag. Selection falls back to Automatic.
+        foreach (var (tag, label) in new[]
+        {
+            ("auto", L.T("settings.lang.auto")),
+            ("en", "English"),
+            ("pt-BR", "Português (Brasil)"),
+        })
+            LanguageCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = label, Tag = tag });
+        LanguageCombo.SelectedIndex = 0; // Automatic, unless a saved preference matches below
+        for (int i = 0; i < LanguageCombo.Items.Count; i++)
+            if ((string)((System.Windows.Controls.ComboBoxItem)LanguageCombo.Items[i]).Tag == _settings.Language)
+                LanguageCombo.SelectedIndex = i;
 
         IntervalSlider.Minimum = MinMinutes;
         IntervalSlider.Maximum = MaxMinutes;
@@ -276,6 +291,8 @@ internal partial class SettingsWindow : Window
         _settings.ClaudeCodeDirectory = DirectoryBox.Text.Trim();
         _settings.AutoOpenOnUnauthenticated = AutoOpenCheck.IsChecked == true;
         _settings.AuthRetrySeconds = (int)Math.Round(RetrySlider.Value);
+        _settings.Language = (LanguageCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string
+                             ?? Settings.DefaultLanguage;
 
         // Apply the autostart registry entry directly (it lives outside the Settings model).
         bool startup = StartupCheck.IsChecked == true;

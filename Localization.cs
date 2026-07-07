@@ -5,25 +5,40 @@ namespace ClaudeTray;
 
 /// <summary>
 /// Lightweight, dependency-free localization for the whole app. The display language is picked once
-/// at startup from the operating system's UI language (<see cref="CultureInfo.CurrentUICulture"/>) —
-/// Portuguese for any <c>pt-*</c> culture, English for everything else — with English as the default
-/// and the fallback for any key a language table is missing.
+/// at startup: a saved preference in Settings (<see cref="Apply"/>) wins, otherwise it follows the
+/// operating system's UI language (<see cref="CultureInfo.CurrentUICulture"/>) — Portuguese for any
+/// <c>pt-*</c> culture, English for everything else. English is the default and the fallback for any
+/// key a language table is missing.
 ///
 /// Strings are held in plain in-memory dictionaries (keyed by a stable identifier) rather than .resx
 /// satellite assemblies, so they travel inside the single self-contained .exe with zero extra build
 /// or publish steps. Code reads a string with <see cref="T(string)"/> / <see cref="T(string, object[])"/>;
 /// XAML reads one with the <c>{local:Loc Key}</c> markup extension.
 ///
-/// The language is fixed for the process lifetime (there is no runtime switch), which is why the XAML
-/// extension can resolve at parse time. To add a language, add its table and extend
-/// <see cref="Detect"/>.
+/// The language is fixed for the process lifetime once applied (changing the Settings preference
+/// prompts a restart), which is why the XAML extension can resolve at parse time. To add a language,
+/// add its table, extend <see cref="Detect"/>/<see cref="Resolve"/>, and list it in Settings.
 /// </summary>
 internal static class L
 {
     internal enum Lang { En, PtBr }
 
-    /// <summary>The active language, decided from the OS UI language at first access.</summary>
-    public static Lang Current { get; } = Detect();
+    /// <summary>The active language. Defaults to the OS UI language; a saved preference overrides it
+    /// via <see cref="Apply"/>, called once at startup before any window is built.</summary>
+    public static Lang Current { get; private set; } = Detect();
+
+    /// <summary>Map a saved language preference to a concrete language without changing the active one:
+    /// explicit codes win, anything else (<c>"auto"</c>/null/unknown) follows the OS.</summary>
+    public static Lang Resolve(string? pref) => pref switch
+    {
+        "en" => Lang.En,
+        "pt-BR" => Lang.PtBr,
+        _ => Detect(),
+    };
+
+    /// <summary>Apply a saved language preference as the active language. Must run before any XAML with
+    /// <c>{local:Loc}</c> is parsed (the extension resolves at parse time), i.e. at the top of startup.</summary>
+    public static void Apply(string? pref) => Current = Resolve(pref);
 
     private static Lang Detect()
     {
@@ -119,6 +134,7 @@ internal static class L
         // ---- Message boxes / dialogs ----
         ["dialog.appName"] = "Claude Code Tray",
         ["dialog.saveFailed"] = "Could not save settings:\n{0}",
+        ["dialog.restartForLanguage"] = "The display language was changed. Restart Claude Code Tray now to apply it?",
         ["dialog.downloadFailed"] = "Could not download the update:\n{0}",
         ["dialog.launchFailed"] = "Could not launch Claude Code automatically.\nOpen a terminal, run \"claude\", type /login to sign in, then choose \"Refresh now\".\n\n{0}",
         ["dialog.openLinkFailed"] = "Could not open the link:\n{0}\n\n{1}",
@@ -182,6 +198,10 @@ internal static class L
         ["settings.general.startup"] = "Startup",
         ["settings.general.startWithWindows"] = "Start with Windows",
         ["settings.general.startWithWindowsDesc"] = "Launch Claude Code Tray automatically when you sign in.",
+        ["settings.general.language"] = "Language",
+        ["settings.general.appLanguage"] = "Display language",
+        ["settings.general.appLanguageDesc"] = "Language for the app's menus, settings and reports. Changing it restarts the app.",
+        ["settings.lang.auto"] = "Automatic (system)",
         ["settings.min.one"] = "1 minute",
         ["settings.min.many"] = "{0} minutes",
         ["settings.sec.one"] = "1 second",
@@ -379,6 +399,7 @@ internal static class L
         // ---- Message boxes / dialogs ----
         ["dialog.appName"] = "Claude Code Tray",
         ["dialog.saveFailed"] = "Não foi possível salvar as configurações:\n{0}",
+        ["dialog.restartForLanguage"] = "O idioma da interface foi alterado. Reiniciar o Claude Code Tray agora para aplicar?",
         ["dialog.downloadFailed"] = "Não foi possível baixar a atualização:\n{0}",
         ["dialog.launchFailed"] = "Não foi possível iniciar o Claude Code automaticamente.\nAbra um terminal, execute \"claude\", digite /login para entrar e escolha \"Atualizar agora\".\n\n{0}",
         ["dialog.openLinkFailed"] = "Não foi possível abrir o link:\n{0}\n\n{1}",
@@ -442,6 +463,10 @@ internal static class L
         ["settings.general.startup"] = "Inicialização",
         ["settings.general.startWithWindows"] = "Iniciar com o Windows",
         ["settings.general.startWithWindowsDesc"] = "Iniciar o Claude Code Tray automaticamente quando você fizer login.",
+        ["settings.general.language"] = "Idioma",
+        ["settings.general.appLanguage"] = "Idioma da interface",
+        ["settings.general.appLanguageDesc"] = "Idioma dos menus, das configurações e dos relatórios do app. Alterar reinicia o app.",
+        ["settings.lang.auto"] = "Automático (sistema)",
         ["settings.min.one"] = "1 minuto",
         ["settings.min.many"] = "{0} minutos",
         ["settings.sec.one"] = "1 segundo",

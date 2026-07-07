@@ -281,6 +281,15 @@
                                    Margin="2,10,2,0" TextWrapping="Wrap" FontSize="12"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
+                        <!-- ===== Language ===== -->
+                        <TextBlock Text="{local:Loc settings.general.language}" Style="{StaticResource SectionHeader}" />
+                        <Border Style="{StaticResource GroupCard}">
+                            <local:SettingsRow Header="{local:Loc settings.general.appLanguage}"
+                                               Description="{local:Loc settings.general.appLanguageDesc}">
+                                <ComboBox x:Name="LanguageCombo" MinWidth="180" VerticalAlignment="Center" />
+                            </local:SettingsRow>
+                        </Border>
+
                         <!-- ===== Startup ===== -->
                         <TextBlock Text="{local:Loc settings.general.startup}" Style="{StaticResource SectionHeader}" />
                         <Border Style="{StaticResource GroupCard}" Margin="0,0,0,4">
