@@ -140,6 +140,16 @@ internal static class Program
                     : null);
                 previewApp.Run(win);
             }
+            else if (args.Length >= 2 && args[1].Equals("idle", StringComparison.OrdinalIgnoreCase))
+            {
+                // Preview the "not using Claude" state: the 5h session is idle (0% used → flat chart),
+                // while the week still carries accumulated usage. The window should open on the weekly
+                // tab, since the 5h chart has nothing interesting to show.
+                var idle = new PaceSnapshot(
+                    Util5h: 0.0, Reset5h: now + 5 * 3600,       // fresh/expired session, nothing used
+                    Util7d: 0.38, Reset7d: now + 3 * 86400);    // week still has accumulated usage
+                previewApp.Run(new StatisticsWindow(idle, remaining) { Topmost = true });
+            }
             else
                 previewApp.Run(new StatisticsWindow(sample, remaining) { Topmost = true });
             return;

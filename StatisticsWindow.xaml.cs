@@ -54,6 +54,12 @@ internal partial class StatisticsWindow : Window
     // the remaining side. The underlying pace, verdict and projection are unchanged; only the framing.
     private bool _remaining;
 
+    // The default tab (5-hour session vs. weekly) is auto-picked once, on the first successful render:
+    // when Claude isn't currently being used the 5-hour chart is flat/empty, so the weekly view — with
+    // its accumulated usage — opens as the more useful default. Only the initial open is steered; later
+    // auto-refreshes must not yank the user off whichever tab they're reading.
+    private bool _defaultTabPicked;
+
     // Set while the live API is unavailable (e.g. a 403): the charts are still drawn from the last known
     // local data, and this drives the error banner above them. The chart's red "unavailable" spans come
     // from gaps in the logged readings themselves (WindowPace.Gaps), so they persist after recovery too.
@@ -241,6 +247,18 @@ internal partial class StatisticsWindow : Window
 
         _session = r.Session;
         _weekly = r.Weekly;
+
+        // On the first render, open the weekly tab instead of the 5-hour one when the session is idle
+        // (expired / not using Claude): the 5-hour chart is then flat at 100% and the weekly chart, with
+        // its accumulated usage, is the more interesting view. Any usage in the session keeps the 5-hour
+        // default. Guarded so subsequent auto-refreshes leave the user's current tab alone.
+        if (!_defaultTabPicked)
+        {
+            _defaultTabPicked = true;
+            bool sessionIdle = !r.Session.HasWindow || r.Session.Util <= 0;
+            if (sessionIdle && r.Weekly.HasWindow)
+                PanesBody.SelectedIndex = 1;
+        }
 
         ApplyModeLabels();
         Populate(r.Session, ChipS, ChipTextS, UsedS, IdealS, ResetS, ProjectionS, ChartS, TpsHeadS, TpsBarS, TpsLegendS);
