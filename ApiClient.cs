@@ -84,11 +84,20 @@ internal sealed class ApiClient
                 Status    = S(resp, "anthropic-ratelimit-unified-5h-status") ?? "unknown",
             };
 
-            // If the call itself failed (e.g. expired token) and no headers came back, surface it.
-            if (!resp.IsSuccessStatusCode && d.Session5h == 0 && d.Week7d == 0)
+            // The unified rate-limit headers are the entire reading we care about. When none of them
+            // come back — the call failed (expired token, 403…), or it "succeeded" but a gateway/edge
+            // stripped the headers — there is no real usage data. Surface it as an error so the tray
+            // keeps its last good value. This guard is critical: without it a header-less HTTP 200
+            // parses as utilization 0, which the burn tracker reads as usage collapsing to 0% — firing
+            // a phantom early "weekly reset" and wiping the burn history — when nothing actually reset.
+            bool hasHeaders = resp.Headers.Contains("anthropic-ratelimit-unified-5h-utilization")
+                              || resp.Headers.Contains("anthropic-ratelimit-unified-7d-utilization");
+            if (!hasHeaders)
             {
                 int code = (int)resp.StatusCode;
-                d.Transient = code >= 500 || code == 429;
+                // A 2xx that arrived without the headers is a transient blip worth retrying quietly,
+                // same as a 5xx/429.
+                d.Transient = resp.IsSuccessStatusCode || code >= 500 || code == 429;
                 // Prefer the API's own explanation from the response body (e.g. a 403 "subscription
                 // payment is past due" message) — it's far more actionable than a bare "HTTP 403".
                 d.Error = ExtractApiError(bodyText)
