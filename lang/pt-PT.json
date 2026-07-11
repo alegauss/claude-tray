@@ -146,6 +146,8 @@
   "settings.display.showPctDesc": "Desenha o número da percentagem de utilização no ícone; caso contrário, apenas a barra de preenchimento.",
   "settings.display.showRemaining": "Mostrar restante em vez de utilizado",
   "settings.display.showRemainingDesc": "Conta a quota que resta: o ícone começa cheio a 100% e desce até 0%, e a descrição mostra “… restante”. A cor de aviso e os alertas não mudam.",
+  "settings.display.flashWarn": "Piscar o ícone perto do limite",
+  "settings.display.flashWarnDesc": "Faz o ícone da bandeja piscar quando a utilização passa dos 90% (a zona “allowed_warning”). Desativado por predefinição — a cor de aviso continua a acompanhar o limite de qualquer forma.",
 
   // Claude Code page
   "settings.cc.title": "Claude Code",

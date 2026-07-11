@@ -430,7 +430,7 @@ internal sealed class TrayContext : ApplicationContext
         _poll.Interval = _settings.RefreshSeconds * 1000;
         _poll.Tick += async (_, _) => await RefreshAsync();
         _poll.Start();
-        _flash.Tick += (_, _) => { if (CurrentPct() >= 0.90) { _flashOn = !_flashOn; Render(); } };
+        _flash.Tick += (_, _) => { if (_settings.FlashNearLimit && CurrentPct() >= Settings.FlashWarnThreshold) { _flashOn = !_flashOn; Render(); } };
         _flash.Start();
         _updateCheck.Tick += async (_, _) => await CheckForUpdateAsync();
         _updateCheck.Start();
@@ -597,6 +597,10 @@ internal sealed class TrayContext : ApplicationContext
         _settings.RefreshSeconds = updated.RefreshSeconds;
         _settings.ShowPercentage = updated.ShowPercentage;
         _settings.ShowRemaining = updated.ShowRemaining;
+        _settings.FlashNearLimit = updated.FlashNearLimit;
+        // Clear any in-progress flash frame so turning the setting off calms the icon on the next
+        // Render() below, rather than leaving it stuck on the deep-slate half of the blink.
+        if (!_settings.FlashNearLimit) _flashOn = false;
         _settings.NotifyOnUnexpectedReset = updated.NotifyOnUnexpectedReset;
         _settings.NotifyOnScheduledReset = updated.NotifyOnScheduledReset;
         _settings.NotifyOnSessionReset = updated.NotifyOnSessionReset;
@@ -988,7 +992,7 @@ internal sealed class TrayContext : ApplicationContext
             _data.Error != null ? IconRenderer.State.Error :
             IconRenderer.State.Ok;
 
-        bool flash = CurrentPct() >= 0.90 && _flashOn;
+        bool flash = _settings.FlashNearLimit && CurrentPct() >= Settings.FlashWarnThreshold && _flashOn;
         int size = Math.Max(16, SystemInformation.SmallIconSize.Width);
 
         Projection verdict = CurrentProjection().verdict;

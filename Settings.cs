@@ -46,6 +46,17 @@ internal sealed class Settings
     public bool ShowRemaining { get; set; } = false;
 
     /// <summary>
+    /// Blink the tray icon (background flashes every 500 ms) once usage crosses the near-limit
+    /// warning threshold (&gt;=90%, the point where the API reports <c>allowed_warning</c>). Off by
+    /// default: the constant flashing can be distracting, so it's opt-in — the warning color still
+    /// tracks the limit regardless. See <see cref="FlashWarnThreshold"/>.
+    /// </summary>
+    public bool FlashNearLimit { get; set; } = false;
+
+    /// <summary>Usage fraction (0 to 1) at which the near-limit flash kicks in, when enabled.</summary>
+    public const double FlashWarnThreshold = 0.90;
+
+    /// <summary>
     /// Show a tray notification on an unexpected drop in weekly usage — the counter resetting to 0%
     /// before its scheduled deadline, or a partial mid-window credit (e.g. 91% → 50%). Both are known
     /// Claude Code anomalies. Rare by nature, so enabled by default; turn it off to silence the alert.

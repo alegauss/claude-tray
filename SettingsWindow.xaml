@@ -327,6 +327,13 @@
                                                    Description="{local:Loc settings.display.showRemainingDesc}">
                                     <ToggleButton x:Name="ShowRemainingCheck" Style="{StaticResource ToggleSwitch}" />
                                 </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="{local:Loc settings.display.flashWarn}"
+                                                   Description="{local:Loc settings.display.flashWarnDesc}">
+                                    <ToggleButton x:Name="FlashCheck" Style="{StaticResource ToggleSwitch}" />
+                                </local:SettingsRow>
                             </StackPanel>
                         </Border>
                     </StackPanel>

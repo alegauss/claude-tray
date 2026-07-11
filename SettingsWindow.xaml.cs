@@ -30,6 +30,7 @@ internal partial class SettingsWindow : Window
             RefreshSeconds = current.RefreshSeconds,
             ShowPercentage = current.ShowPercentage,
             ShowRemaining = current.ShowRemaining,
+            FlashNearLimit = current.FlashNearLimit,
             NotifyOnUnexpectedReset = current.NotifyOnUnexpectedReset,
             NotifyOnScheduledReset = current.NotifyOnScheduledReset,
             NotifyOnSessionReset = current.NotifyOnSessionReset,
@@ -71,6 +72,7 @@ internal partial class SettingsWindow : Window
         AutoOpenCheck.IsChecked = _settings.AutoOpenOnUnauthenticated;
         ShowPctCheck.IsChecked = _settings.ShowPercentage;
         ShowRemainingCheck.IsChecked = _settings.ShowRemaining;
+        FlashCheck.IsChecked = _settings.FlashNearLimit;
         NotifyResetCheck.IsChecked = _settings.NotifyOnUnexpectedReset;
         NotifyWeeklyCheck.IsChecked = _settings.NotifyOnScheduledReset;
         NotifySessionCheck.IsChecked = _settings.NotifyOnSessionReset;
@@ -280,6 +282,7 @@ internal partial class SettingsWindow : Window
         _settings.RefreshSeconds = (int)Math.Round(IntervalSlider.Value * 60.0);
         _settings.ShowPercentage = ShowPctCheck.IsChecked == true;
         _settings.ShowRemaining = ShowRemainingCheck.IsChecked == true;
+        _settings.FlashNearLimit = FlashCheck.IsChecked == true;
         _settings.NotifyOnUnexpectedReset = NotifyResetCheck.IsChecked == true;
         _settings.NotifyOnScheduledReset = NotifyWeeklyCheck.IsChecked == true;
         _settings.NotifyOnSessionReset = NotifySessionCheck.IsChecked == true;
