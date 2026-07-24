@@ -251,8 +251,8 @@
 
   // Chart
   "stats.chart.noWindow": "Sin datos de límite para esta ventana.",
-  "stats.chart.projHit": "Proyección de alcanzar el 100% en {0}",
-  "stats.chart.projHitZero": "Proyección de agotarse en {0}",
+  "stats.chart.projHit": "Proyección de alcanzar el 100% en {0} — aprox. {1}",
+  "stats.chart.projHitZero": "Proyección de agotarse en {0} — aprox. {1}",
   "stats.chart.projReset": "Proyección en el reinicio: {0}",
   "stats.chart.idealNow": "Objetivo de ritmo equilibrado ahora: {0}",
   "stats.chart.currentUsage": "Uso actual: {0}",

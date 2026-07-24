@@ -534,12 +534,19 @@ internal partial class StatisticsWindow : Window
             var proj = new PointCollection { new Point(X(ef), Yc(util)) };
             double endX, endY;
             string projTip;
+            // Clock time of the landing point, drawn in-plot when the quota runs out early — "in 1h 20m"
+            // alone makes you do the arithmetic; the wall-clock time is what you plan around. Only for
+            // the early-exhaust branch: landing at the reset, the time is already the reset axis label.
+            string? projClock = null;
             if (w.ExhaustFraction <= 1)
             {
                 proj.Add(new Point(X(w.ExhaustFraction), Yc(1)));
                 proj.Add(new Point(X(1), Yc(1)));
                 endX = X(w.ExhaustFraction); endY = Yc(1);
-                projTip = L.T(_remaining ? "stats.chart.projHitZero" : "stats.chart.projHit", Dur(w.ExhaustSeconds));
+                double exhaustUnix = w.ResetUnix - w.WindowSeconds + w.ExhaustFraction * w.WindowSeconds;
+                projClock = ShortTime(exhaustUnix, w.WindowSeconds);
+                projTip = L.T(_remaining ? "stats.chart.projHitZero" : "stats.chart.projHit",
+                    Dur(w.ExhaustSeconds), LocalTime(exhaustUnix));
             }
             else
             {
@@ -559,6 +566,23 @@ internal partial class StatisticsWindow : Window
             Canvas.SetLeft(projDot, endX - 3.5);
             Canvas.SetTop(projDot, endY - 3.5);
             c.Children.Add(projDot);
+
+            // The landing time, centered on the dot and kept inside the plot: below it in "used" mode
+            // (the dot sits on the 100% line at the top), above it in "remaining" mode (it sits on the
+            // 0%-left line at the bottom).
+            if (projClock != null)
+            {
+                var cl = new TextBlock
+                {
+                    Text = projClock, FontSize = 10, FontWeight = FontWeights.SemiBold,
+                    Foreground = ProjectionBrush,
+                };
+                double cw = MeasureText(projClock, 10);
+                Canvas.SetLeft(cl, Math.Clamp(endX - cw / 2, left, X(1) - cw));
+                Canvas.SetTop(cl, _remaining ? endY - 16 : endY + 4);
+                c.Children.Add(cl);
+            }
+
             AddHit(c, endX, endY, projTip);
         }
 
@@ -691,6 +715,18 @@ internal partial class StatisticsWindow : Window
         if (unix <= 0) return "—";
         DateTime local = DateTimeOffset.FromUnixTimeSeconds((long)unix).LocalDateTime;
         return local.ToString("MMM d, HH:mm", DateFmt);
+    }
+
+    // Clock time for a label drawn inside the plot, where space is tight: just "18:40" in a window that
+    // can't span days (the 5-hour session), with the date prefixed on the multi-day weekly chart — same
+    // "d/M" form as its day dividers — where the time alone wouldn't say which day.
+    private static string ShortTime(double unix, double windowSeconds)
+    {
+        if (unix <= 0) return "—";
+        DateTime local = DateTimeOffset.FromUnixTimeSeconds((long)unix).LocalDateTime;
+        return windowSeconds >= 2 * 86400
+            ? local.ToString("d/M HH:mm", DateFmt)
+            : local.ToString("HH:mm", DateFmt);
     }
 
     // Compact duration, matching the tray tooltip's style: "2d 4h", "3h 20m", "45m", "now".

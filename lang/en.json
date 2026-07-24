@@ -255,8 +255,8 @@
 
   // Chart
   "stats.chart.noWindow": "No limit data for this window.",
-  "stats.chart.projHit": "Projected to hit 100% in {0}",
-  "stats.chart.projHitZero": "Projected to run out in {0}",
+  "stats.chart.projHit": "Projected to hit 100% in {0} — around {1}",
+  "stats.chart.projHitZero": "Projected to run out in {0} — around {1}",
   "stats.chart.projReset": "Projected at reset: {0}",
   "stats.chart.idealNow": "Even-pace target now: {0}",
   "stats.chart.currentUsage": "Current usage: {0}",
