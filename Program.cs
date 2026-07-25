@@ -72,6 +72,16 @@ internal static class Program
             return;
         }
 
+        // Headless view of the Context Load Inspector: what every session in a project costs before
+        // the first prompt. `--context` lists projects; `--context <slug-or-name>` breaks one down
+        // source by source; `--context --all` does that for every project; `--context --calibrate`
+        // fits the estimate against what the transcripts actually measured.
+        if (args.Length >= 1 && args[0] == "--context")
+        {
+            PrintContext(args.Skip(1).ToArray());
+            return;
+        }
+
         // Dev/preview helper: show a reset toast with sample data so the variants can be seen /
         // screenshotted standalone. Optional second arg: "scheduled", "credit", or "unexpected" (default).
         if (args.Length >= 1 && args[0] == "--simulate-reset")
@@ -201,6 +211,191 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayContext());
     }
+
+    // Headless report for the context scanner — the CLI half of the Context Load Inspector, the same
+    // role `--insights` plays for UsageInsights: the whole model is validated here before any XAML.
+    // Flags: a project slug or directory name to drill into one project, `--all` for every project,
+    // `--calibrate` for the estimate-vs-measured fit, `--no-cache` to force a cold scan.
+    private static void PrintContext(string[] flags)
+    {
+        bool all = flags.Contains("--all");
+        bool calibrate = flags.Contains("--calibrate");
+        bool noCache = flags.Contains("--no-cache");
+        string? filter = flags.FirstOrDefault(f => !f.StartsWith("--"));
+
+        // The report is full of "≈" — without this the console renders every estimate as a
+        // replacement character on a non-UTF-8 codepage (cmd.exe defaults to 850 here).
+        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
+        // A developer report, read alongside the source: invariant numbers throughout, so
+        // "2.79 chars/token" can't render as "2,79" and read like a thousands separator. Safe to set
+        // process-wide here — this command prints and exits, it never reaches the localized UI.
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+
+        // `--root <dir>` points the scan at a stand-in for ~/.claude. It exists so the scanner can be
+        // exercised against a fixture tree (imports, cycles, orphans, a zero-state project) instead
+        // of only against whatever the dev machine happens to contain.
+        int rootAt = Array.IndexOf(flags, "--root");
+        string? root = rootAt >= 0 && rootAt + 1 < flags.Length ? flags[rootAt + 1] : null;
+        if (root != null) filter = flags.FirstOrDefault(f => !f.StartsWith("--") && f != root);
+
+        var scan = ContextScanner.Scan(DateTimeOffset.UtcNow.UtcDateTime, new ContextScanner.Options
+        {
+            UseCache = !noCache && root == null,   // a fixture scan must never poison the real cache
+            ClaudeRoot = root ?? ContextScanner.DefaultClaudeRoot,
+        });
+        if (scan.Error != null) { Console.WriteLine("error: " + scan.Error); return; }
+
+        Console.WriteLine($"Context load — {scan.Projects.Count} projects, {scan.FilesWalked} files, " +
+                          $"{scan.ElapsedMs:0}ms {(scan.FromCache ? "(cached)" : "(fresh scan)")}");
+        if (scan.Truncated)
+            Console.WriteLine("  ! the walk hit its file/directory cap — totals below are a floor, not a total");
+        Console.WriteLine();
+
+        // Shared sources first: these load for every project, so they belong to no project and to
+        // all of them. Counting them once here is what keeps a cross-project total honest.
+        Console.WriteLine($"Shared (every session, every project) — eager {TokenEstimate.Format(scan.SharedEagerTokens)}:");
+        // The 31 plugin skills are always folded here: they are the same list for every project, so
+        // reading them one by one belongs to a skills view, not to a project's breakdown.
+        PrintSources(scan.Shared, groupSkills: !flags.Contains("--skills"));
+        Console.WriteLine();
+
+        if (filter != null)
+        {
+            ContextProject? p = scan.Projects.FirstOrDefault(x =>
+                x.Slug.Equals(filter, StringComparison.OrdinalIgnoreCase) ||
+                x.Name.Equals(filter, StringComparison.OrdinalIgnoreCase) ||
+                x.ShortPath.Equals(filter, StringComparison.OrdinalIgnoreCase) ||
+                x.Path.Equals(filter, StringComparison.OrdinalIgnoreCase));
+            if (p == null) { Console.WriteLine($"no project matching '{filter}'"); return; }
+            PrintProjectDetail(scan, p);
+            return;
+        }
+
+        // The summary table: one line per project, sorted by what it costs every session.
+        Console.WriteLine($"{"project",-34} {"eager",8} {"observed",9} {"delta",8} {"src",4} {"mem",4}  state");
+        foreach (ContextProject p in scan.Projects)
+        {
+            int est = scan.EstimatedSessionZero(p);
+            string observed = p.Observed is { } o ? TokenEstimate.Format(o.Median) : "—";
+            string delta = p.Observed is { } o2 ? $"{o2.Median - est:+#;-#;0}" : "—";
+            int memory = p.Sources.Count(s => s.Kind is ContextKind.MemoryFile or ContextKind.MemoryIndex);
+            Console.WriteLine($"{Clip(p.ShortPath, 34),-34} {TokenEstimate.Format(est),8} {observed,9} " +
+                              $"{delta,8} {p.Sources.Count,4} {memory,4}  {StateWord(p)}{(p.Truncated ? " !capped" : "")}");
+        }
+
+        Console.WriteLine();
+        long bytes = scan.Shared.Sum(s => s.Bytes) + scan.Projects.Sum(p => p.Bytes);
+        Console.WriteLine($"footprint: {Kb(bytes)} across {scan.Projects.Sum(p => p.Sources.Count) + scan.Shared.Count} files");
+        Console.WriteLine($"heaviest eager: {string.Join(", ", scan.Projects.Take(3).Select(p => $"{p.ShortPath} {TokenEstimate.Format(scan.EstimatedSessionZero(p))}"))}");
+        int orphans = scan.Projects.Count(p => p.State != PathState.Resolved);
+        if (orphans > 0) Console.WriteLine($"unresolved project dirs: {orphans} (see 'state' column)");
+
+        if (all)
+            foreach (ContextProject p in scan.Projects)
+            {
+                Console.WriteLine();
+                PrintProjectDetail(scan, p);
+            }
+
+        if (calibrate) PrintCalibration(scan);
+    }
+
+    private static void PrintProjectDetail(ContextScan scan, ContextProject p)
+    {
+        int est = scan.EstimatedSessionZero(p);
+        Console.WriteLine($"=== {p.Slug}");
+        Console.WriteLine($"    path: {(p.Path.Length > 0 ? p.Path : "(not a filesystem path)")}" +
+                          $"  [{StateWord(p)}{(p.FromTranscript ? ", from transcript cwd" : "")}" +
+                          $"{(p.Truncated ? ", nested walk capped" : "")}]");
+        Console.WriteLine($"    session zero (estimated): {TokenEstimate.Format(est)} " +
+                          $"= shared {TokenEstimate.Format(scan.SharedEagerTokens)} + project {TokenEstimate.Format(p.EagerTokens)}");
+        if (p.Observed is { } o)
+            Console.WriteLine($"    session zero (observed):  {TokenEstimate.Format(o.Median)} median of {o.Samples} " +
+                              $"session{(o.Samples == 1 ? "" : "s")} ({TokenEstimate.Format(o.Min)}–{TokenEstimate.Format(o.Max)}), " +
+                              $"{o.Model}, ≈${o.Cost:0.000} per session start");
+        else
+            Console.WriteLine($"    session zero (observed):  no fresh session in the window " +
+                              $"({p.TranscriptsRead} transcript{(p.TranscriptsRead == 1 ? "" : "s")} checked)");
+        PrintSources(p.Sources, groupSkills: false);
+    }
+
+    // One line per source: kind, eager/lazy, bytes, estimated tokens, the eager share of those
+    // tokens, last-modified, label. Grouped by kind so the eager block reads first.
+    private static void PrintSources(List<ContextSource> sources, bool groupSkills)
+    {
+        if (sources.Count == 0) { Console.WriteLine("    (none)"); return; }
+
+        foreach (var group in sources
+                     .GroupBy(s => s.Kind)
+                     .OrderBy(g => (int)g.Key))
+        {
+            // The 31 plugin skills would drown the summary; fold them into one line unless asked.
+            if (groupSkills && group.Key is ContextKind.Skill or ContextKind.Agent && group.Count() > 4)
+            {
+                Console.WriteLine($"    {group.Key,-20} {"index",-9} {Kb(group.Sum(s => s.Bytes)),9} " +
+                                  $"{TokenEstimate.Format(group.Sum(s => s.Tokens)),8} " +
+                                  $"{TokenEstimate.Format(group.Sum(s => s.EagerTokens)),8}  " +
+                                  $"{group.Count()} entries (bodies lazy, descriptions eager)");
+                continue;
+            }
+
+            foreach (ContextSource s in group.OrderByDescending(s => s.EagerTokens).ThenByDescending(s => s.Bytes))
+                Console.WriteLine($"    {s.Kind,-20} {Mode(s),-9} {Kb(s.Bytes),9} " +
+                                  $"{TokenEstimate.Format(s.Tokens),8} {TokenEstimate.Format(s.EagerTokens),8}  " +
+                                  $"{s.ModifiedUtc.ToLocalTime():yyyy-MM-dd}  {Clip(s.Label, 44)}" +
+                                  $"{(s.Note != null ? "  ! " + s.Note : "")}");
+        }
+    }
+
+    // The estimate-vs-measurement fit: proves the token numbers are a measurement with a correction,
+    // not a guess. `Base` is what no filesystem scan can see (system prompt + tool definitions).
+    private static void PrintCalibration(ContextScan scan)
+    {
+        Console.WriteLine();
+        if (ContextScanner.Calibrate(scan) is not { } c)
+        {
+            Console.WriteLine("calibration: not enough projects with observed sessions (need 3+)");
+            return;
+        }
+
+        Console.WriteLine($"calibration over {c.Points} projects with observed sessions:");
+        Console.WriteLine($"  base overhead, invisible to any filesystem scan (system prompt, tool");
+        Console.WriteLine($"  definitions, MCP schemas): {TokenEstimate.Format((int)c.Base)} median " +
+                          $"(p25 {TokenEstimate.Format((int)c.BaseP25)}, p75 {TokenEstimate.Format((int)c.BaseP75)})");
+        Console.WriteLine($"  measured chars/token, from {c.SlopePairs} project pairs: {c.CharsPerToken:0.00}  " +
+                          $"(estimator uses {TokenEstimate.ProseCharsPerToken:0.00} prose / " +
+                          $"{TokenEstimate.CodeCharsPerToken:0.00} code / {TokenEstimate.TableCharsPerToken:0.00} table)");
+        Console.WriteLine($"  corrected estimate (scan + base) vs observed: within ±{ContextScanner.Calibration.BandPct:0}% " +
+                          $"for {c.WithinBand}/{c.Points} projects, median error {c.MedianErrorPct:0.#}%, worst {c.WorstErrorPct:0.#}%");
+        Console.WriteLine();
+        Console.WriteLine($"  {"project",-34} {"chars",9} {"scanned",9} {"corrected",10} {"observed",9} {"err",7}");
+        foreach (var p in c.Samples)
+            Console.WriteLine($"  {Clip(p.Slug, 34),-34} {p.Chars,9:0} {TokenEstimate.Format(p.Estimated),9} " +
+                              $"{TokenEstimate.Format(p.Corrected(c.Base)),10} {TokenEstimate.Format(p.Observed),9} " +
+                              $"{p.ErrorPct(c.Base),6:0.#}%");
+    }
+
+    private static string Mode(ContextSource s) => s.Mode switch
+    {
+        LoadMode.Eager => "eager",
+        // A skill/agent body is lazy, but its description is in the always-loaded index — the
+        // "index" word marks exactly that, rather than pretending the whole file is free.
+        LoadMode.Lazy => s.EagerTokens > 0 ? "index" : "lazy",
+        _ => "not-loaded",
+    };
+
+    private static string StateWord(ContextProject p) => p.State switch
+    {
+        PathState.Resolved => "ok",
+        PathState.Missing => "MISSING",
+        _ => "not-a-path",
+    };
+
+    private static string Kb(long bytes) => bytes < 1024
+        ? $"{bytes} B"
+        : (bytes / 1024.0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " KB";
+
+    private static string Clip(string s, int max) => s.Length <= max ? s : "…" + s[^(max - 1)..];
 
     // Dev helper: show a reset toast with sample data so it can be previewed / screenshotted
     // standalone. Uses the same display strings as the live notifier. `variant`: "scheduled" (routine

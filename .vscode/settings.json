@@ -1,0 +1,18 @@
+{
+  // Título da janela: nome do projeto na frente, para identificar no Alt+Tab
+  // e no preview da barra de tarefas (onde todas as janelas do VS Code se agrupam).
+  "window.title": "🟠 claude-tray  —  ${activeEditorShort}${dirty}",
+
+  // Cor de identificação desta janela (laranja Claude #D97757), só no rodapé.
+  "workbench.colorCustomizations": {
+    "statusBar.background": "#D97757",
+    "statusBar.foreground": "#1F1E1D",
+    "statusBar.border": "#B75F42",
+    "statusBar.debuggingBackground": "#B75F42",
+    "statusBar.debuggingForeground": "#FFFFFF",
+    "statusBar.noFolderBackground": "#B75F42",
+    "statusBarItem.hoverBackground": "#1F1E1D22",
+    "statusBarItem.remoteBackground": "#B75F42",
+    "statusBarItem.remoteForeground": "#FFFFFF"
+  }
+}

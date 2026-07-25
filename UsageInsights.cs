@@ -31,7 +31,9 @@ internal static class UsageInsights
 
     // Price per 1M tokens: (input, output, cacheWrite5m, cacheRead). cacheWrite = 1.25x input,
     // cacheRead = 0.1x input. Matched by substring of the model id; default = Opus-tier.
-    private static (double inp, double outp, double cw, double cr) Price(string model)
+    // Internal because the context scanner prices its session-zero measurement the same way — one
+    // table for the whole app, so a rate change can't be applied in one place and missed in another.
+    internal static (double inp, double outp, double cw, double cr) Price(string model)
     {
         if (model.Contains("haiku")) return (1, 5, 1.25, 0.10);
         if (model.Contains("sonnet")) return (3, 15, 3.75, 0.30);
