@@ -27,9 +27,10 @@
 > `~/.claude` and already knows per-model pricing, so it is the natural place to show the number and
 > advise on it. Design in [IMPROVEMENTS.md](IMPROVEMENTS.md) §II; measured baseline §III.
 >
-> **T66–T72 shipped** (Phase 1 — the headless scanner behind `--context` — plus the window shell, its
-> session-zero gauge and the source table; see [CHANGELOG.md](CHANGELOG.md) Block I). Three findings
-> from Phase 1 bind the rest of the block and are written up in §II.0: the **≈32k base overhead** no
+> **T66–T72 and T74 shipped** (the headless scanner behind `--context`, the window with its
+> session-zero gauge and source table, and the rule engine behind `--context --check`; see
+> [CHANGELOG.md](CHANGELOG.md) Block I). Three findings from Phase 1 bind the rest of the block and
+> are written up in §II.0: the **≈32k base overhead** no
 > scan can see is its own segment of the gauge, observed session zero needs **all three** usage terms,
 > and every displayed token count stays an estimate with a visible "≈".
 >
@@ -41,7 +42,6 @@
 - 📋 **T73** (deps: T70, T74) **Cross-project overview** — an "All projects" view: total footprint, the ten heaviest eager loads, and the duplicate/orphan clusters from the rule engine. The expensive problems are only visible *between* projects. → §II.4
 
 **The advisor (where the feature earns its place — no finding without a fix):**
-- 📋 **T74** (deps: —) **Rule engine with real, grounded rules** — the 11 rules in §II.5 (oversized eager index, stale/orphan index pointers, duplicated memory dirs, dead project dirs, missing frontmatter, bloated `CLAUDE.md`, weak skill descriptions, `settings.json` bloat…), each = severity + one plain sentence + the concrete fix. Every rule fires on the §III baseline, so none are hypothetical. Ships headless first as `--context --check`, grouped by severity, with at least one true positive and no false positive on the dev machine. → §II.5
 - 📋 **T75** (deps: —) **Evidence: was it ever actually used?** — mine transcripts for `Skill` invocations and memory-recall markers over 30/90 days and annotate each skill/memory "used 12×" or **"never used"**. The highest-value idea in the block: *"never invoked in 90 days and its description costs you ~180 tokens every session"* is a decision, not nagging. Names and counts only — never arguments, never content. → §II.6
 - 📋 **T76** (deps: T71, T74) **What-if simulator** — tick items to hypothetically remove; the gauge and ≈cost update live; nothing is written until "Apply". Makes the payoff visible before the risk. → §II.7
 - 📋 **T77** (deps: T74) **Safe actions only** — reveal / open / **copy a ready-made cleanup prompt for Claude**. If a destructive action ships at all it moves files to `memory/.archive/<date>/` with a visible undo that round-trips byte-identically — never a silent or bulk delete. → §II.8

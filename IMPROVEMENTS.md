@@ -109,32 +109,8 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
 ### §II.4 Cross-project overview
 
 An "All projects" view: total footprint, the ten heaviest eager loads, and the duplicate/orphan
-clusters from §II.5. The expensive problems — duplication across worktree siblings, dead project
+clusters the rule engine finds. The expensive problems — duplication across worktree siblings, dead project
 dirs — are only visible *between* projects, never inside one.
-
-### §II.5 The rule engine
-
-This is where the feature earns its place. Each finding = severity + one plain sentence + the
-concrete fix. **No finding without a fix.** Every rule below fires on the real baseline in §III, so
-none of them are hypothetical:
-
-| Rule | Severity | Fix offered |
-|---|---|---|
-| `MEMORY.md` index > ~8 KB | high — it is eager, every session | split by area / prune |
-| index pointer resolves to no file | medium | drop the line |
-| memory file with no pointer in the index | medium | add pointer or delete |
-| single memory file > 4 KB | low | "one memory = one fact" — split |
-| missing/invalid frontmatter (`name`, `description`, `type`) | medium | a description is what recall matches on; add it |
-| memory dir byte-identical to a sibling project's | high | one shared dir + junction, not two copies |
-| project dir whose real path no longer exists | medium | archive the whole dir |
-| memory untouched > 90 days | info | review queue |
-| `CLAUDE.md` > ~12 KB, or restating `AGENTS.md` | high | it is eager — trim or move detail into a skill |
-| skill `description` missing trigger words, or > ~500 chars | medium | descriptions are eager; names/descriptions are the index, bodies are not |
-| `settings.json` > ~40 KB | low | usually accumulated permissions; consolidate |
-
-The scanner already parses the frontmatter (`Name`/`Description`/`Type`) and resolves path state
-(`Resolved`/`Missing`/`NotAPath`), so most rules are a pass over the existing model rather than new
-IO.
 
 ### §II.6 Evidence: was it ever actually used?
 
@@ -207,14 +183,14 @@ token counts only; nothing leaves the machine.
 ## §III — Measured baseline (context load)
 
 Taken from one real developer machine (33 project dirs, 19 with memory). Project names are withheld
-deliberately — this file is published with the repo. The right-hand column is the rule in §II.5 the
-observation justifies.
+deliberately — this file is published with the repo. The right-hand column is the rule (now shipped in
+`ContextRules.cs`) the observation justifies.
 
 | Observation | Value | Rule it proves |
 |---|---|---|
 | Heaviest memory dir | 122 files / 316 KB | size rules |
 | `MEMORY.md` index (eager, every session) | 20 KB ≈ 5.4k tokens | index size |
-| Index lines vs actual files | 128 vs 122 | stale pointers |
+| Index pointers vs memory files | 121 pointers / 122 files, none dead (the extra index *lines* are headers); one unindexed memory in another project | stale pointers / orphan memories |
 | Largest single memory file | 18 KB | "one fact" |
 | Memory dirs byte-identical to a sibling | 2 pairs | duplication |
 | Project dirs whose path no longer exists | 2 (+1 that is not a path at all) | orphans |

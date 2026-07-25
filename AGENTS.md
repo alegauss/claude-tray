@@ -35,6 +35,7 @@ usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don'
 | `BurnTracker.cs` | Utilization history → least-squares slope → projects exhaustion (`Projection.Ok/Danger/Unknown`). |
 | `UsageInsights.cs` | Aggregates last 24h of `~/.claude/projects/**/*.jsonl` into a cost-weighted breakdown. Owns the per-model `Price` table the whole app shares. |
 | `ContextScanner.cs` | Scans every file Claude Code loads before the first prompt (instruction chain + `@imports`, memory index/files, skill & agent frontmatter), splits **eager** (paid every request) from **lazy**, measures observed session-zero from transcripts, and caches the scan by a path+size+mtime fingerprint. |
+| `ContextRules.cs` | The advisor over a `ContextScan`: grounded rules → `Finding` (severity + one sentence + the concrete fix). No new IO and never file contents; narrowed to what is objectively measurable so it doesn't cry wolf. |
 | `TokenEstimate.cs` | Chars→tokens estimation for markdown, classified per line (prose / code fence / table). Always rendered as an estimate ("≈4.9k"). |
 | `IconRenderer.cs` | GDI+ icon (vector number + outline + fill bar + projection color) at the real size; also the app `.ico` and social image. |
 | `Updater.cs` | Checks GitHub Releases; downloads/runs the installer for in-app self-update. `CurrentVersion`. |
@@ -87,6 +88,7 @@ dotnet run -- --context               # what every session costs before you type
 dotnet run -- --context <slug|name>   # one project, source by source (eager/lazy, bytes, ≈tokens)
 dotnet run -- --context --all         # every project in full detail
 dotnet run -- --context --calibrate   # estimate vs. transcript-measured session zero, and the fit
+dotnet run -- --context --check       # the rule engine's findings, grouped by severity
 dotnet run -- --context --skills      # expand the folded skill/agent index instead of one summary row
 dotnet run -- --context --no-cache    # force a cold scan (skip %LocalAppData%\ClaudeTray cache)
 dotnet run -- --context --root <dir>  # scan a fixture tree instead of ~/.claude

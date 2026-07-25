@@ -74,6 +74,20 @@ internal sealed class ContextSource
 
     /// <summary>Anything the scan wants to flag: "@import", "import cycle", "unreadable".</summary>
     public string? Note { get; set; }
+
+    /// <summary>
+    /// Markdown link targets found in a memory index (<c>MEMORY.md</c>) — bare file names, no
+    /// directory parts, no URLs. This is what lets the rules tell a pointer to a deleted memory from
+    /// a memory nobody indexed. File names only: nothing from the body is retained.
+    /// </summary>
+    public List<string>? IndexLinks { get; set; }
+
+    /// <summary>
+    /// Content hash, set for memory files only. Two projects whose memory directories hash the same
+    /// file-for-file are copies of each other, which is a real finding — one shared directory plus a
+    /// junction, not two copies drifting apart.
+    /// </summary>
+    public string? ContentHash { get; set; }
 }
 
 /// <summary>
@@ -673,6 +687,13 @@ internal static class ContextScanner
         s.Description = description;
         s.Type = type;
 
+        // Extras the rule engine needs, gathered here because the file is already in hand — a
+        // second pass would mean reading every memory file twice.
+        if (f.Kind is ContextKind.MemoryIndex or ContextKind.MemoryFile)
+            s.ContentHash = Hash(text);
+        if (f.Kind == ContextKind.MemoryIndex)
+            s.IndexLinks = MarkdownLinks(text);
+
         s.EagerTokens = f.Mode switch
         {
             LoadMode.Eager => s.Tokens,
@@ -698,6 +719,45 @@ internal static class ContextScanner
         return Scaffolding + TokenEstimate.Of(name + ": " + (s.Description ?? ""));
     }
 
+    /// <summary>
+    /// The <c>](target)</c> half of every markdown link, reduced to bare file names: the index format
+    /// is <c>- [Title](file.md) — hook</c>. Anything with a directory part or a scheme is dropped, so
+    /// a link to <c>../ROADMAP.md</c> or an URL can never be reported as a broken memory pointer.
+    /// </summary>
+    private static List<string> MarkdownLinks(string text)
+    {
+        var links = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int i = 0;
+        while ((i = text.IndexOf("](", i, StringComparison.Ordinal)) >= 0)
+        {
+            i += 2;
+            int end = text.IndexOf(')', i);
+            if (end < 0) break;
+            string target = text[i..end].Trim();
+            i = end + 1;
+
+            if (target.Length == 0 || target.Contains('/') || target.Contains('\\') ||
+                target.Contains(':') || target.StartsWith('#')) continue;
+            if (!target.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) continue;
+            if (seen.Add(target)) links.Add(target);
+        }
+        return links;
+    }
+
+    // FNV-1a 64 over the text — the same non-cryptographic hash the cache fingerprint uses. Enough to
+    // decide two files are the same content; nothing here is a security boundary.
+    private static string Hash(string text)
+    {
+        ulong h = 14695981039346656037UL;
+        foreach (byte b in Encoding.UTF8.GetBytes(text))
+        {
+            h ^= b;
+            h *= 1099511628211UL;
+        }
+        return h.ToString("x16");
+    }
+
     // Minimal YAML frontmatter reader: `name`, `description`, `type`, supporting the single-line
     // form and the folded/literal block forms (`>-`, `|`) that long skill descriptions use.
     private static (string? name, string? description, string? type) Frontmatter(string text)
@@ -720,7 +780,7 @@ internal static class ContextScanner
                 block.Append(line.Trim()).Append(' ');
                 continue;
             }
-            if (current != null) { Assign(current, block.ToString().Trim()); current = null; block.Clear(); }
+            if (current != null) { Assign(current, Folded(block)); current = null; block.Clear(); }
 
             int colon = line.IndexOf(':');
             if (colon <= 0) continue;
@@ -728,10 +788,14 @@ internal static class ContextScanner
             string value = line[(colon + 1)..].Trim();
             if (key is not ("name" or "description" or "type")) continue;
 
-            if (value is ">" or ">-" or "|" or "|-") { current = key; continue; }
+            // A block indicator, or nothing at all after the colon: both mean the value is the
+            // indented lines that follow. The bare form is what a plain multi-line YAML scalar looks
+            // like, and treating it as an empty value made real skill descriptions read as missing —
+            // which both understated their (eager) index cost and produced a bogus finding.
+            if (value is ">" or ">-" or "|" or "|-" or "") { current = key; continue; }
             Assign(key, value.Trim('"', '\''));
         }
-        if (current != null) Assign(current, block.ToString().Trim());
+        if (current != null) Assign(current, Folded(block));
 
         void Assign(string key, string value)
         {
@@ -745,6 +809,9 @@ internal static class ContextScanner
         }
 
         return (name, description, type);
+
+        // A collected block, with the quotes a multi-line scalar may be wrapped in removed.
+        static string Folded(StringBuilder sb) => sb.ToString().Trim().Trim('"', '\'');
     }
 
     // `@path` on its own line pulls another file into the instructions. Follow one level and flag
@@ -1111,9 +1178,16 @@ internal static class ContextScanner
     // transcript in the sample window, plus the project set and its resolution. A directory-mtime
     // fingerprint would be cheaper but wrong — editing MEMORY.md in place leaves its directory
     // untouched, and that is the single most important change to notice.
+    /// <summary>
+    /// Bumped whenever a field is added to what a scan produces. The fingerprint is otherwise purely
+    /// about the files on disk, so without this an older cache would deserialize cleanly with the new
+    /// fields empty — and the rules would quietly see no index links and no content hashes.
+    /// </summary>
+    private const string CacheSchema = "v2";
+
     private static string Fingerprint(Plan plan)
     {
-        var sb = new StringBuilder();
+        var sb = new StringBuilder(CacheSchema + "\n");
         void Stamp(PlanFile f) => sb.Append(f.Path).Append('|').Append(f.Bytes).Append('|')
                                    .Append(f.ModifiedUtc.Ticks).Append('\n');
 

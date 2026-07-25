@@ -270,6 +270,14 @@ internal static class Program
             Console.WriteLine("  ! the walk hit its file/directory cap — totals below are a floor, not a total");
         Console.WriteLine();
 
+        // `--check` is the advisor rather than the measurement: findings grouped by severity, each
+        // with the concrete fix. It replaces the table because the point is what to do, not what is.
+        if (flags.Contains("--check"))
+        {
+            PrintFindings(scan);
+            return;
+        }
+
         // Shared sources first: these load for every project, so they belong to no project and to
         // all of them. Counting them once here is what keeps a cross-project total honest.
         Console.WriteLine($"Shared (every session, every project) — eager {TokenEstimate.Format(scan.SharedEagerTokens)}:");
@@ -363,6 +371,39 @@ internal static class Program
                                   $"{TokenEstimate.Format(s.Tokens),8} {TokenEstimate.Format(s.EagerTokens),8}  " +
                                   $"{s.ModifiedUtc.ToLocalTime():yyyy-MM-dd}  {Clip(s.Label, 44)}" +
                                   $"{(s.Note != null ? "  ! " + s.Note : "")}");
+        }
+    }
+
+    // The advisor's headless half (`--context --check`): every finding from ContextRules, grouped by
+    // severity, each on two lines — what is true, then what to do about it. Verified against a whole
+    // machine here before any of it reaches the window.
+    private static void PrintFindings(ContextScan scan)
+    {
+        List<Finding> findings = ContextRules.Evaluate(scan, DateTimeOffset.UtcNow.UtcDateTime);
+        if (findings.Count == 0)
+        {
+            Console.WriteLine("no findings — nothing to advise on");
+            return;
+        }
+
+        Console.WriteLine($"{findings.Count} findings: " + string.Join(", ",
+            Enum.GetValues<RuleSeverity>()
+                .Select(s => (severity: s, count: findings.Count(f => f.Severity == s)))
+                .Where(x => x.count > 0)
+                .Select(x => $"{x.count} {x.severity.ToString().ToLowerInvariant()}")));
+
+        foreach (var group in findings.GroupBy(f => f.Severity).OrderBy(g => (int)g.Key))
+        {
+            Console.WriteLine();
+            Console.WriteLine($"--- {group.Key.ToString().ToUpperInvariant()} ({group.Count()})");
+            foreach (Finding f in group)
+            {
+                // Unclipped: a duplication finding's scope is every project in the cluster, and
+                // Clip keeps the tail — it would hide the first project's name.
+                Console.WriteLine($"  [{f.RuleId}] {f.Scope}");
+                Console.WriteLine($"      {f.Message}");
+                Console.WriteLine($"      fix: {f.Fix}");
+            }
         }
     }
 
