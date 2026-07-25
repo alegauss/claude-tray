@@ -288,7 +288,18 @@
   "context.observed": "Mesuré sur les sessions récentes",
   "context.observed.parts": "médiane de {0} sessions ({1}–{2}) · ≈{3} $ pour charger à froid",
   "context.observed.none": "Aucune session depuis 30 jours ({0} transcriptions vérifiées)",
-  "context.baseNote": "Les deux nombres ne sont pas de même nature : l'estimation ne compte que les fichiers ci-dessous, tandis que la mesure inclut aussi ≈32k tokens du prompt système et des définitions d'outils de Claude Code, qu'aucune analyse de fichiers ne peut voir. Chaque nombre de tokens ici est une estimation — c'est le sens du ≈.",
+  "context.baseNote": "L'estimation ne compte que les fichiers ci-dessous ; la mesure inclut aussi le prompt système et les définitions d'outils de Claude Code — le segment gris ci-dessus, qu'aucune analyse de fichiers ne peut voir. Chaque nombre de tokens ici est une estimation, c'est le sens du ≈.",
+
+  // Jauge de la session zéro
+  "context.gauge.caption": "{0} de la fenêtre de contexte de {1} ({2}) · ≈{3} $ pour charger à froid",
+  "context.gauge.measured": "mesuré {0}",
+  "context.gauge.measuredTip": "Médiane des {0} sessions les plus récentes, lue dans les transcriptions",
+  "context.gauge.base": "Claude Code lui-même",
+  "context.gauge.instructions": "Instructions",
+  "context.gauge.memory": "Index de mémoire",
+  "context.gauge.skills": "Index des skills et agents",
+  "context.gauge.free": "Libre",
+  "context.gauge.tip": "{0} : {1} — {2} de la fenêtre",
 
   // Tableau des sources
   "context.col.source": "Source",

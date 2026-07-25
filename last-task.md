@@ -34,3 +34,4 @@ here. This file is a terse index, not a memory.
 - **T68 SHIPPED** (Block I — session-zero calibration from real transcripts) — 2026-07-25.
 - **T69 SHIPPED** (Block I — bounded, cached, parallel scanning) — 2026-07-25.
 - **T70 SHIPPED** (Block I — ContextWindow: master/detail window on the scanner) — 2026-07-25.
+- **T71 SHIPPED** (Block I — session-zero gauge with the measured tick) — 2026-07-25.

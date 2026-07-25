@@ -40,7 +40,7 @@ usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don'
 | `Updater.cs` | Checks GitHub Releases; downloads/runs the installer for in-app self-update. `CurrentVersion`. |
 | `Settings.cs` | `Settings` model (JSON in `%LocalAppData%\ClaudeTray`); clamps out-of-range values. |
 | `SettingsWindow.xaml(.cs)` | The WPF Fluent settings window. **All layout lives in the XAML.** |
-| `ContextWindow.xaml(.cs)` | The Context Load window: master/detail over `ContextScanner` — projects left, per-source eager/lazy breakdown right. Scans on a background thread; view models are `public` because WPF binding resolves paths by reflection over public types only. |
+| `ContextWindow.xaml(.cs)` | The Context Load window: master/detail over `ContextScanner` — projects left; right, the session-zero gauge (base overhead / instructions / memory / skills, with the transcript-measured tick) over the per-source eager/lazy breakdown. Scans on a background thread; view models are `public` because WPF binding resolves paths by reflection over public types only. |
 
 ## UI conventions — the rules that prevent the bugs we already hit
 

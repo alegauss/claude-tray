@@ -229,6 +229,25 @@ internal static class ContextScanner
     internal static string DefaultClaudeRoot => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude");
 
+    /// <summary>
+    /// Claude Code's own system prompt, tool definitions and MCP schemas — the part of session zero
+    /// no filesystem scan can see. <see cref="Calibrate"/> fits it from transcripts when at least
+    /// three projects have an observed session; this is the measured median from the dev machine's
+    /// 27 projects (p25 30k, p75 34k), used when there isn't enough to fit. It is a real cost, so it
+    /// is shown as its own segment rather than folded into a project's number.
+    /// </summary>
+    internal const int FallbackBaseTokens = 32_000;
+
+    /// <summary>
+    /// The context window session zero is measured against. 200k is the standard; the 1M-context
+    /// models report it in their id, which is the only signal available here — so the window is read
+    /// off the model of the observed session rather than assumed.
+    /// </summary>
+    internal static int ContextWindowFor(string? model)
+        => model is { Length: > 0 } m && m.Contains("[1m]", StringComparison.OrdinalIgnoreCase)
+            ? 1_000_000
+            : 200_000;
+
     private static string CachePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "ClaudeTray", "context-cache.json");

@@ -288,7 +288,18 @@
   "context.observed": "Medido en sesiones recientes",
   "context.observed.parts": "mediana de {0} sesiones ({1}–{2}) · ≈{3} US$ para cargar en frío",
   "context.observed.none": "Ninguna sesión en los últimos 30 días ({0} transcripciones revisadas)",
-  "context.baseNote": "Los dos números no son del mismo tipo: la estimación solo cuenta los archivos de abajo, mientras que la medición incluye además ≈32k tokens del propio prompt de sistema y de las definiciones de herramientas de Claude Code, que ningún análisis de archivos puede ver. Cada recuento de tokens aquí es una estimación — eso significa el ≈.",
+  "context.baseNote": "La estimación solo cuenta los archivos de abajo; la medición incluye además el propio prompt de sistema y las definiciones de herramientas de Claude Code — el segmento gris de arriba, que ningún análisis de archivos puede ver. Cada recuento de tokens aquí es una estimación, eso significa el ≈.",
+
+  // Medidor de la sesión cero
+  "context.gauge.caption": "{0} de la ventana de contexto de {1} ({2}) · ≈{3} US$ para cargar en frío",
+  "context.gauge.measured": "medido {0}",
+  "context.gauge.measuredTip": "Mediana de las {0} sesiones más recientes, leída de las transcripciones",
+  "context.gauge.base": "Claude Code en sí",
+  "context.gauge.instructions": "Instrucciones",
+  "context.gauge.memory": "Índice de memoria",
+  "context.gauge.skills": "Índice de skills y agentes",
+  "context.gauge.free": "Libre",
+  "context.gauge.tip": "{0}: {1} — {2} de la ventana",
 
   // Tabla de fuentes
   "context.col.source": "Fuente",

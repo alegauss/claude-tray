@@ -27,18 +27,17 @@
 > `~/.claude` and already knows per-model pricing, so it is the natural place to show the number and
 > advise on it. Design in [IMPROVEMENTS.md](IMPROVEMENTS.md) §II; measured baseline §III.
 >
-> **T66–T70 shipped** (Phase 1 — the headless scanner behind `--context` — plus the window shell;
-> see [CHANGELOG.md](CHANGELOG.md) Block I). Three findings from Phase 1 bind the rest of the block
-> and are written up in §II.0: the **≈32k base overhead** no scan can see must be a separate segment
-> of the gauge, observed session zero needs **all three** usage terms, and every displayed token count
-> stays an estimate with a visible "≈".
+> **T66–T71 shipped** (Phase 1 — the headless scanner behind `--context` — plus the window shell and
+> its session-zero gauge; see [CHANGELOG.md](CHANGELOG.md) Block I). Three findings from Phase 1 bind
+> the rest of the block and are written up in §II.0: the **≈32k base overhead** no scan can see is its
+> own segment of the gauge, observed session zero needs **all three** usage terms, and every displayed
+> token count stays an estimate with a visible "≈".
 >
 > The window is `Context…` in the tray menu, "Context Load — memories, skills & instructions" as the
 > title, and previews standalone with `--context --window [slug]` (the bare `--context` stays the
 > headless report).
 
 **The window (needs the scanner — T66–T69, all shipped):**
-- 📋 **T71** (deps: T70) **The session-zero gauge (the hero element)** — one honest bar of eager context against the 200k window, split by source, with the observed measurement overlaid as a tick and the ≈32k base overhead as its own segment (§II.0.1); caption = tokens, ≈cost per session start, share of the window. Must render for a healthy project, a bloated one, and a zero-memory project (this repo). → §II.2
 - 📋 **T72** (deps: T70) **Source breakdown, sortable and actionable** — grouped rows (Instructions / Memory / Skills / Agents) with kind badge, Eager/Lazy/— chip, size, tokens, last-modified, health dot; a skill's chip must say *both* that its body is lazy and its description eager. Row actions: reveal in Explorer, open in editor. Sort by tokens or age. → §II.3
 - 📋 **T73** (deps: T70, T74) **Cross-project overview** — an "All projects" view: total footprint, the ten heaviest eager loads, and the duplicate/orphan clusters from the rule engine. The expensive problems are only visible *between* projects. → §II.4
 

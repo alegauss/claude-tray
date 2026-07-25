@@ -46,7 +46,7 @@ in §II.8, and it moves files rather than deleting them.
 
 ### §I.5 What NOT to build (binding non-goals)
 
-- **No tokenizer dependency.** Token counts stay estimates with an honest ± (§II.2 rationale). A real
+- **No tokenizer dependency.** Token counts stay estimates with a visible "≈" (§II.0.3). A real
   tokenizer would mean a native/managed dependency and break §I.3.
 - **Not a memory editor / not a config manager.** Measure and advise; hand the edit to Claude.
 - **No content display or export**, anywhere, ever — sizes, names, frontmatter, timestamps, counts.
@@ -92,8 +92,9 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
 
 1. **The invisible base overhead dominates.** ≈32k tokens (p25 30k, p75 34k) of Claude Code's own
    system prompt + tool definitions + MCP schemas, against only ≈4k–22k of *scannable* instructions
-   across 33 real projects. A gauge that omits it makes a bloated project look like the whole
-   problem when it is a third of it. **The gauge in §II.2 must show base and scannable separately.**
+   across 33 real projects. A total that omits it makes a bloated project look like the whole
+   problem when it is a third of it. **Base and scannable stay separate wherever either is shown** —
+   in the gauge, in a cross-project total, and in a grade.
 2. **Observed session zero needs all three usage terms** — `input_tokens +
    cache_creation_input_tokens + cache_read_input_tokens`. The stable prefix is shared *between*
    sessions, so a session opened while an earlier one's cache is alive reports most of its startup
@@ -104,17 +105,6 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
    fitted base, so the calibration cannot pick them; Theil–Sen over project pairs suggests
    instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
    estimate with a visible "≈".**
-
-### §II.2 The session-zero gauge (the hero element)
-
-One honest visual at the top: a bar of eager context against the 200k window, split by source, with
-the observed measurement overlaid as a tick. Caption: tokens, ≈cost per session start, and share of
-the context window. Per §II.0.1 the base overhead is a distinct segment, not folded into the total,
-and per §II.0.3 the number carries its "≈".
-
-This single number is the reason someone opens the window; everything else is detail. It must render
-for a healthy project, a bloated one, and a project with no memory at all (this repo — the zero
-state, see §II.14).
 
 ### §II.3 Source breakdown
 
@@ -240,4 +230,4 @@ observation justifies.
 | Plugin skills available | 31 `SKILL.md`, largest 33 KB, ≈3.1k tokens of eager descriptions | the eager/lazy split — bodies are lazy, the 31 descriptions are not |
 | `settings.json` | 87 KB | settings bloat |
 | Base overhead (system prompt + tools + MCP) | ≈32k tokens, p25 30k / p75 34k | §II.0.1 — the gauge must show it |
-| Heaviest scannable eager load | ≈22k tokens (a 43 KB `AGENTS.md` + 20 KB index) | §II.2 — worth a hero number |
+| Heaviest scannable eager load | ≈22k tokens (a 43 KB `AGENTS.md` + 20 KB index) | the hero number the gauge shows |

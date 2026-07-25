@@ -292,7 +292,18 @@
   "context.observed": "Measured in recent sessions",
   "context.observed.parts": "median of {0} sessions ({1}–{2}) · ≈${3} to load on a cold cache",
   "context.observed.none": "No session in the last 30 days ({0} transcripts checked)",
-  "context.baseNote": "The two aren't the same kind of number: the estimate counts only the files below, while the measurement also carries ≈32k tokens of Claude Code's own system prompt and tool definitions, which no file scan can see. Every token count here is an estimate — that is what the ≈ means.",
+  "context.baseNote": "The estimate counts only the files below; the measurement also carries Claude Code's own system prompt and tool definitions — the gray segment above, which no file scan can see. Every token count here is an estimate, which is what the ≈ means.",
+
+  // The session-zero gauge
+  "context.gauge.caption": "{0} of the {1} context window ({2}) · ≈${3} to load on a cold cache",
+  "context.gauge.measured": "measured {0}",
+  "context.gauge.measuredTip": "Median of the {0} most recent sessions, read from the transcripts",
+  "context.gauge.base": "Claude Code itself",
+  "context.gauge.instructions": "Instructions",
+  "context.gauge.memory": "Memory index",
+  "context.gauge.skills": "Skills & agents index",
+  "context.gauge.free": "Free",
+  "context.gauge.tip": "{0}: {1} — {2} of the window",
 
   // Source table
   "context.col.source": "Source",

@@ -183,6 +183,28 @@
                                    TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
 
+                        <!-- ===== The hero: one honest bar of session zero against the context
+                             window, split by source, with what the transcripts actually measured
+                             overlaid as a tick. Both grids are filled in code (see BuildGauge) —
+                             star-weighted columns keep every position correct on resize with no
+                             re-layout code. ===== -->
+                        <Grid Margin="0,20,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" /><!-- measured tick, above the bar -->
+                                <RowDefinition Height="Auto" /><!-- the bar itself -->
+                            </Grid.RowDefinitions>
+                            <Grid x:Name="GaugeTick" Grid.Row="0" Height="26" />
+                            <Border x:Name="GaugeBar" Grid.Row="1" Height="24" CornerRadius="6"
+                                    ClipToBounds="True"
+                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                        </Grid>
+                        <TextBlock x:Name="GaugeCaption" Margin="0,10,0,0" FontSize="13"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <!-- Every segment is direct-labeled here with its own number, so identity is
+                             never carried by color alone. -->
+                        <WrapPanel x:Name="GaugeLegend" Margin="0,9,0,0" />
+
                         <!-- The two honest numbers, side by side: what the files on disk add up to,
                              and what recent sessions actually reported. They are not the same kind of
                              number — the caption below says why. -->
