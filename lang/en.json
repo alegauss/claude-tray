@@ -402,5 +402,16 @@
   "context.grade.tip": "Grade {0} — from {1} of eager context plus {2} open findings ({3} high, {4} medium, {5} low). A summary, not a verdict: the numbers above it are the measurement.",
   "context.drift.up": "+{0} tokens (+{1}) in the last {2} days",
   "context.drift.down": "−{0} tokens (−{1}) in the last {2} days",
-  "context.drift.building": "Tracking drift: {0} measurements over {1} days so far — a weekly comparison needs a week of history."
+  "context.drift.building": "Tracking drift: {0} measurements over {1} days so far — a weekly comparison needs a week of history.",
+
+  // Context-load nudge (Settings -> Notifications, and the toast itself)
+  "settings.notif.context": "Context load",
+  "settings.notif.contextGrowth": "Warn when a project's startup context gets heavy",
+  "settings.notif.contextGrowthDesc": "One toast, at most once a week per project, when what a session loads before your first prompt crosses the threshold below. Off by default — these are your own files.",
+  "settings.notif.contextThreshold": "Threshold",
+  "settings.notif.contextThresholdDesc": "Measured in eager tokens: the instruction files, memory index and skill descriptions loaded on every request.",
+  "toast.context.title": "Heavy startup context",
+  "toast.context.subtitle": "{0} loads a lot before your first prompt",
+  "toast.context.caption": "{0} every session · ≈${1} to load on a cold cache",
+  "toast.context.quotaLabel": "Context window still free"
 }

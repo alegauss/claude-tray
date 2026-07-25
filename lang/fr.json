@@ -398,5 +398,16 @@
   "context.grade.tip": "Note {0} — d'après {1} de contexte fixe plus {2} constats ouverts ({3} élevés, {4} moyens, {5} faibles). Un résumé, pas un verdict : la mesure, ce sont les nombres au-dessus.",
   "context.drift.up": "+{0} tokens (+{1}) sur les {2} derniers jours",
   "context.drift.down": "−{0} tokens (−{1}) sur les {2} derniers jours",
-  "context.drift.building": "Suivi de la dérive : {0} mesures sur {1} jours pour l'instant — une comparaison hebdomadaire demande une semaine d'historique."
+  "context.drift.building": "Suivi de la dérive : {0} mesures sur {1} jours pour l'instant — une comparaison hebdomadaire demande une semaine d'historique.",
+
+  // Alerte de charge de contexte (Paramètres -> Notifications, et le toast lui-même)
+  "settings.notif.context": "Charge de contexte",
+  "settings.notif.contextGrowth": "Alerter quand le contexte de démarrage d'un projet devient lourd",
+  "settings.notif.contextGrowthDesc": "Un toast, au plus une fois par semaine et par projet, lorsque ce qu'une session charge avant votre premier prompt dépasse le seuil ci-dessous. Désactivé par défaut — ce sont vos propres fichiers.",
+  "settings.notif.contextThreshold": "Seuil",
+  "settings.notif.contextThresholdDesc": "Mesuré en tokens fixes : les fichiers d'instructions, l'index de mémoire et les descriptions de skills chargés à chaque requête.",
+  "toast.context.title": "Contexte de démarrage lourd",
+  "toast.context.subtitle": "{0} charge beaucoup avant votre premier prompt",
+  "toast.context.caption": "{0} à chaque session · ≈{1} $ pour charger à froid",
+  "toast.context.quotaLabel": "Fenêtre de contexte encore libre"
 }

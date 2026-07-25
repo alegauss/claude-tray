@@ -113,12 +113,6 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
    instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
    estimate with a visible "≈".**
 
-### §II.10 Optional nudge
-
-When a project's eager context crosses a user-set threshold, one `ToastWindow`, rate-limited to at
-most once a week per project. Default **off**, with a checkbox in Settings → Notifications. The app
-already owns tasteful, color-coded toasts (Block E) — reuse, don't invent.
-
 ### §II.11 Localization
 
 All new strings into `lang/en.json` first, then the other four (`pt-BR`, `pt-PT`, `fr`, `es`);

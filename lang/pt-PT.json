@@ -399,5 +399,16 @@
   "context.grade.tip": "Nota {0} — de {1} de contexto fixo mais {2} achados abertos ({3} alta, {4} média, {5} baixa). Um resumo, não um veredito: os números acima dele são a medição.",
   "context.drift.up": "+{0} tokens (+{1}) nos últimos {2} dias",
   "context.drift.down": "−{0} tokens (−{1}) nos últimos {2} dias",
-  "context.drift.building": "A acompanhar a deriva: {0} medições em {1} dias até agora — uma comparação semanal precisa de uma semana de histórico."
+  "context.drift.building": "A acompanhar a deriva: {0} medições em {1} dias até agora — uma comparação semanal precisa de uma semana de histórico.",
+
+  // Aviso de carga de contexto (Definições -> Notificações, e o próprio toast)
+  "settings.notif.context": "Carga de contexto",
+  "settings.notif.contextGrowth": "Avisar quando o contexto inicial de um projeto ficar pesado",
+  "settings.notif.contextGrowthDesc": "Um toast, no máximo uma vez por semana por projeto, quando o que uma sessão carrega antes do primeiro prompt passar o limite abaixo. Desligado por omissão — são os seus próprios ficheiros.",
+  "settings.notif.contextThreshold": "Limite",
+  "settings.notif.contextThresholdDesc": "Medido em tokens fixos: os ficheiros de instruções, o índice de memória e as descrições de skills carregados em todos os pedidos.",
+  "toast.context.title": "Contexto inicial pesado",
+  "toast.context.subtitle": "{0} carrega muito antes do primeiro prompt",
+  "toast.context.caption": "{0} em cada sessão · ≈US$ {1} para carregar com cache frio",
+  "toast.context.quotaLabel": "Janela de contexto ainda livre"
 }

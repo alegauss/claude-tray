@@ -35,6 +35,7 @@ usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don'
 | `BurnTracker.cs` | Utilization history → least-squares slope → projects exhaustion (`Projection.Ok/Danger/Unknown`). |
 | `UsageInsights.cs` | Aggregates last 24h of `~/.claude/projects/**/*.jsonl` into a cost-weighted breakdown. Owns the per-model `Price` table the whole app shares. |
 | `ContextScanner.cs` | Scans every file Claude Code loads before the first prompt (instruction chain + `@imports`, memory index/files, skill & agent frontmatter), splits **eager** (paid every request) from **lazy**, measures observed session-zero from transcripts, and caches the scan by a path+size+mtime fingerprint. |
+| `ContextNudges.cs` | Rate limiter for the opt-in context-growth toast: at most one per project per week, remembered in `context-nudges.json`. |
 | `ContextHistory.cs` | Append-only log of each project's eager context (`context-history.jsonl`), one line per project per day and only when it moved. Feeds the drift sparkline and the "+N this week" line. |
 | `ContextPrompt.cs` | Builds the cleanup prompt handed to Claude Code: findings + fixes + paths, never file contents, and it asks Claude to show its plan before deleting. The app has **no** write path into `~/.claude` — see IMPROVEMENTS §I.4. |
 | `ContextUsage.cs` | Mines the transcripts for `Skill`/agent invocations (names and counts only) so the window can say "used 45×" or "never". Per-file cache; runs outside `Scan` because it reads hundreds of MB. Memory recalls are deliberately not counted — see the type doc. |
@@ -104,6 +105,7 @@ dotnet run -- --context --window <slug> --scroll  # ...scrolled to the source ta
 dotnet run -- --context --window <slug> --simulate # ...with the 3 heaviest sources ticked (what-if)
 dotnet run -- --context --window <slug> --demo-history # ...with a synthetic drift series
 dotnet run -- --makeicon ClaudeTray.ico   # regenerate the multi-resolution app icon
+dotnet run -- --capture-toast context docs\_preview\toast-context.png  # the nudge toast
 dotnet run -- --social docs\social-preview.png  # regenerate the social card
 ```
 

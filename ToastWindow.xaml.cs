@@ -23,10 +23,11 @@ namespace ClaudeTray;
 internal partial class ToastWindow : Window
 {
     /// <summary>Color theme per notification type, so each is identifiable at a glance.</summary>
-    internal enum ToastTheme { Surprise, Bonus, Weekly, Session }
+    internal enum ToastTheme { Surprise, Bonus, Weekly, Session, Context }
 
     private bool _closing;
     private double _targetScale = 1.0; // available quota after the event; the bar animates to this
+    private ToastTheme _theme = ToastTheme.Surprise;
 
     // Festive palette for the confetti — golds, white, coral and soft pastels read well on the gradient.
     private static readonly Color[] ConfettiColors =
@@ -47,6 +48,7 @@ internal partial class ToastWindow : Window
         double fromAvail = 1 - Math.Clamp(fromUsage, 0, 1);
         _targetScale = 1 - Math.Clamp(toUsage, 0, 1); // quota left after the event
 
+        _theme = theme;
         Card.Background = Gradient(theme);
         Emoji.Text = emoji;
         TitleText.Text = title;
@@ -60,7 +62,8 @@ internal partial class ToastWindow : Window
     }
 
     // A distinct top-left→bottom-right gradient per type: clay (Surprise), violet (Bonus),
-    // teal (Weekly), blue (Session). White text and confetti read on all four.
+    // teal (Weekly), blue (Session), ochre (Context). White text reads on all five; the first four
+    // also carry confetti, which Context deliberately does not — see OnLoaded.
     private static LinearGradientBrush Gradient(ToastTheme theme)
     {
         (string a, string b, string c) = theme switch
@@ -68,6 +71,7 @@ internal partial class ToastWindow : Window
             ToastTheme.Bonus => ("#B98BDD", "#9460C6", "#5E3496"),   // violet
             ToastTheme.Weekly => ("#43B894", "#23987A", "#136E58"),  // teal/green
             ToastTheme.Session => ("#6BA3E6", "#3F79CF", "#234E96"), // blue
+            ToastTheme.Context => ("#D9A85C", "#BE8535", "#8A5E1E"),  // ochre — a nudge, not a party
             _ => ("#E89072", "#D97757", "#B0512F"),                  // clay (Surprise)
         };
         static Color C(string hex) => (Color)ColorConverter.ConvertFromString(hex);
@@ -81,7 +85,9 @@ internal partial class ToastWindow : Window
         PositionBottomRight();
         PlayEntrance();
         FillTheBar();
-        LaunchConfetti();
+        // Every toast so far has been good news (quota back). The context nudge is the first that
+        // isn't, so it gets the same card and animation without the celebration.
+        if (_theme != ToastTheme.Context) LaunchConfetti();
 
         // Auto-dismiss after a comfortable read; the user can also close or act before then.
         var life = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };

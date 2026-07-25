@@ -589,6 +589,21 @@ internal static class Program
             ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
         };
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        // "context" is not a reset at all: it previews the context-load nudge, which shares the toast
+        // card but not its festive framing (ochre, no confetti).
+        if (variant.Equals("context", StringComparison.OrdinalIgnoreCase))
+        {
+            var nudge = new ToastWindow("📇", L.T("toast.context.title"),
+                L.T("toast.context.subtitle", "viglet/turing/2026.2"),
+                0.27, 0.27,
+                L.T("toast.context.caption", TokenEstimate.Format(54_000), (0.336).ToString("0.000", L.Culture)),
+                L.T("toast.context.quotaLabel"), ToastWindow.ToastTheme.Context);
+            nudge.Closed += (_, _) => app.Shutdown();
+            nudge.Show();
+            app.Run();
+            return;
+        }
         var (key, ev) = variant.ToLowerInvariant() switch
         {
             "scheduled" => ("7d", new BurnTracker.ResetEvent(BurnTracker.ResetKind.Scheduled, 0.79, 0.0, now, now + 7 * 86400)),
@@ -614,6 +629,34 @@ internal static class Program
             ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
         };
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        // The context-load nudge shares the card but is not a reset event, so it is built directly.
+        if (variant.Equals("context", StringComparison.OrdinalIgnoreCase))
+        {
+            var nudge = new ToastWindow("📇", L.T("toast.context.title"),
+                L.T("toast.context.subtitle", "viglet/turing/2026.2"),
+                0.27, 0.27,
+                L.T("toast.context.caption", TokenEstimate.Format(54_000), (0.336).ToString("0.000", L.Culture)),
+                L.T("toast.context.quotaLabel"), ToastWindow.ToastTheme.Context);
+            nudge.Show();
+            var settleNudge = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(1700),
+            };
+            settleNudge.Tick += (_, _) =>
+            {
+                settleNudge.Stop();
+                try
+                {
+                    nudge.SaveSnapshot(System.IO.Path.GetFullPath(outPath));
+                    Console.WriteLine("wrote " + System.IO.Path.GetFullPath(outPath));
+                }
+                finally { app.Shutdown(); }
+            };
+            settleNudge.Start();
+            app.Run();
+            return;
+        }
         var (key, ev) = variant.ToLowerInvariant() switch
         {
             "scheduled" => ("7d", new BurnTracker.ResetEvent(BurnTracker.ResetKind.Scheduled, 0.79, 0.0, now, now + 7 * 86400)),
@@ -759,6 +802,9 @@ internal sealed class TrayContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _poll = new(); // interval set from settings
     private readonly System.Windows.Forms.Timer _flash = new() { Interval = 500 };
     private readonly System.Windows.Forms.Timer _updateCheck = new() { Interval = 21_600_000 }; // 6 h
+    // Context is a weekly-scale phenomenon, so it is sampled four times a day rather than per poll.
+    // This also keeps the drift history (ContextHistory) accumulating without the window being opened.
+    private readonly System.Windows.Forms.Timer _contextCheck = new() { Interval = 21_600_000 }; // 6 h
     private readonly List<ToolStripMenuItem> _metricItems = new();
     private ToolStripMenuItem _updateItem = null!;
 
@@ -810,12 +856,79 @@ internal sealed class TrayContext : ApplicationContext
         _flash.Start();
         _updateCheck.Tick += async (_, _) => await CheckForUpdateAsync();
         _updateCheck.Start();
+        _contextCheck.Tick += (_, _) => ScanContextInBackground();
+        _contextCheck.Start();
 
         _tray.BalloonTipClicked += (_, _) => { if (_update != null) _ = ApplyUpdateAsync(); };
 
         _ = RefreshAsync(); // fire first fetch immediately
         _ = CheckForUpdateAsync(); // look for a newer release on launch
         RecomputeInsights(); // build the 24h usage breakdown in the background
+        ScanContextInBackground(); // record context drift, and nudge if the user asked to be nudged
+    }
+
+    /// <summary>
+    /// Scan the context sources off the UI thread, record the drift sample, and — only if the user
+    /// opted in — nudge once when a project crosses their threshold. The scan is cached on a
+    /// path+size+mtime fingerprint, so a warm pass is ~100ms of stats and nothing else.
+    /// </summary>
+    private async void ScanContextInBackground()
+    {
+        // The scan runs on the pool; the toast has to be created back on the STA thread that owns the
+        // message pump, which is what awaiting here buys us (the same shape as RefreshAsync).
+        (ContextProject project, int eager)? nudge = await Task.Run(() =>
+        {
+            try
+            {
+                DateTime now = DateTimeOffset.UtcNow.UtcDateTime;
+                ContextScan scan = ContextScanner.Scan(now);
+                if (scan.Error != null) return ((ContextProject, int)?)null;
+
+                ContextHistory.Record(scan, now);
+                if (!_settings.NotifyOnContextGrowth) return null;
+
+                foreach (ContextProject p in scan.Projects)
+                {
+                    int eager = scan.EstimatedSessionZero(p);
+                    if (eager < _settings.ContextNudgeTokens) continue;
+                    if (!ContextNudges.ShouldNotify(p.Slug, now)) continue;
+
+                    ContextNudges.Mark(p.Slug, now);
+                    return (p, eager);   // one nudge per pass, never a burst of them
+                }
+                return null;
+            }
+            catch { return null; }   // a background nudge is never worth disturbing the app over
+        });
+
+        if (nudge is { } n) NudgeContext(n.project, n.eager);
+    }
+
+    // The nudge itself, in the existing toast style: same card, same bar, ochre instead of festive,
+    // and no confetti (see ToastWindow.OnLoaded).
+    private void NudgeContext(ContextProject project, int eager)
+    {
+        int window = ContextScanner.ContextWindowFor(project.Observed?.Model);
+        double share = Math.Clamp((double)eager / window, 0, 1);
+        double cost = eager * UsageInsights.Price(project.Observed?.Model ?? "").cw / 1_000_000.0;
+
+        string title = L.T("toast.context.title");
+        string subtitle = L.T("toast.context.subtitle", project.ShortPath);
+        string caption = L.T("toast.context.caption",
+            TokenEstimate.Format(eager), cost.ToString("0.000", L.Culture));
+        try
+        {
+            EnsureWpfApp();
+            new ToastWindow("📇", title, subtitle, share, share, caption,
+                L.T("toast.context.quotaLabel"), ToastWindow.ToastTheme.Context).Show();
+        }
+        catch
+        {
+            _tray.BalloonTipTitle = title;
+            _tray.BalloonTipText = $"{subtitle} — {caption}";
+            _tray.BalloonTipIcon = ToolTipIcon.Info;
+            _tray.ShowBalloonTip(10_000);
+        }
     }
 
     // Scan local transcripts off the UI thread; the submenu reads the cached result.
@@ -1008,6 +1121,8 @@ internal sealed class TrayContext : ApplicationContext
         _settings.NotifyOnUnexpectedReset = updated.NotifyOnUnexpectedReset;
         _settings.NotifyOnScheduledReset = updated.NotifyOnScheduledReset;
         _settings.NotifyOnSessionReset = updated.NotifyOnSessionReset;
+        _settings.NotifyOnContextGrowth = updated.NotifyOnContextGrowth;
+        _settings.ContextNudgeTokens = updated.ContextNudgeTokens;
         _settings.SessionResetMinPercent = updated.SessionResetMinPercent;
         _settings.ScheduledResetMinPercent = updated.ScheduledResetMinPercent;
         _settings.ClaudeCodeDirectory = updated.ClaudeCodeDirectory;

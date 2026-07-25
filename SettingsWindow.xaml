@@ -455,6 +455,33 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- ===== Context load ===== -->
+                        <TextBlock Text="{local:Loc settings.notif.context}" Style="{StaticResource SectionHeader}" />
+                        <Border Style="{StaticResource GroupCard}" Margin="0,0,0,4">
+                            <StackPanel>
+                                <local:SettingsRow Header="{local:Loc settings.notif.contextGrowth}"
+                                                   Description="{local:Loc settings.notif.contextGrowthDesc}">
+                                    <ToggleButton x:Name="NotifyContextCheck" Style="{StaticResource ToggleSwitch}" />
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="{local:Loc settings.notif.contextThreshold}"
+                                                   Description="{local:Loc settings.notif.contextThresholdDesc}"
+                                                   IsEnabled="{Binding IsChecked, ElementName=NotifyContextCheck}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Slider x:Name="ContextThresholdSlider" Width="150" VerticalAlignment="Center"
+                                                Minimum="2000" Maximum="40000"
+                                                TickFrequency="1000" IsSnapToTickEnabled="True"
+                                                ValueChanged="ContextThresholdSlider_ValueChanged" />
+                                        <TextBlock x:Name="ContextThresholdValue" VerticalAlignment="Center"
+                                                   MinWidth="52" Margin="14,0,0,0"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+                            </StackPanel>
+                        </Border>
+
                         <!-- ===== Anomaly alerts ===== -->
                         <TextBlock Text="{local:Loc settings.notif.anomalies}" Style="{StaticResource SectionHeader}" />
                         <Border Style="{StaticResource GroupCard}" Margin="0,0,0,4">

@@ -76,6 +76,7 @@ internal partial class SettingsWindow : Window
         NotifyResetCheck.IsChecked = _settings.NotifyOnUnexpectedReset;
         NotifyWeeklyCheck.IsChecked = _settings.NotifyOnScheduledReset;
         NotifySessionCheck.IsChecked = _settings.NotifyOnSessionReset;
+        NotifyContextCheck.IsChecked = _settings.NotifyOnContextGrowth;
 
         WeeklyMinSlider.Minimum = Settings.MinResetNotifyPercent;
         WeeklyMinSlider.Maximum = Settings.MaxResetNotifyPercent;
@@ -85,8 +86,13 @@ internal partial class SettingsWindow : Window
         SessionMinSlider.Maximum = Settings.MaxResetNotifyPercent;
         SessionMinSlider.Value = Math.Clamp(_settings.SessionResetMinPercent,
             Settings.MinResetNotifyPercent, Settings.MaxResetNotifyPercent);
+        ContextThresholdSlider.Minimum = Settings.MinContextNudgeTokens;
+        ContextThresholdSlider.Maximum = Settings.MaxContextNudgeTokens;
+        ContextThresholdSlider.Value = Math.Clamp(_settings.ContextNudgeTokens,
+            Settings.MinContextNudgeTokens, Settings.MaxContextNudgeTokens);
         UpdateWeeklyMinLabel();
         UpdateSessionMinLabel();
+        UpdateContextThresholdLabel();
         // "Start with Windows" is a registry entry (HKCU\…\Run), not part of the Settings model;
         // read its live state here and apply it directly on Save.
         StartupCheck.IsChecked = StartupManager.IsEnabled();
@@ -222,6 +228,17 @@ internal partial class SettingsWindow : Window
         SessionMinValue.Text = $"{(int)Math.Round(SessionMinSlider.Value)}%";
     }
 
+    private void ContextThresholdSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        => UpdateContextThresholdLabel();
+
+    // Shown the same way the window shows every other token count, so the threshold reads in the same
+    // units as the gauge it is about.
+    private void UpdateContextThresholdLabel()
+    {
+        if (ContextThresholdValue is null) return;
+        ContextThresholdValue.Text = TokenEstimate.Format((int)Math.Round(ContextThresholdSlider.Value));
+    }
+
     // Pick the working directory Claude Code opens in. WinForms' folder dialog is already available
     // (this is a WinForms+WPF hybrid) and gives the familiar Windows folder picker.
     private void Browse_Click(object sender, RoutedEventArgs e)
@@ -286,6 +303,8 @@ internal partial class SettingsWindow : Window
         _settings.NotifyOnUnexpectedReset = NotifyResetCheck.IsChecked == true;
         _settings.NotifyOnScheduledReset = NotifyWeeklyCheck.IsChecked == true;
         _settings.NotifyOnSessionReset = NotifySessionCheck.IsChecked == true;
+        _settings.NotifyOnContextGrowth = NotifyContextCheck.IsChecked == true;
+        _settings.ContextNudgeTokens = (int)Math.Round(ContextThresholdSlider.Value);
         _settings.ScheduledResetMinPercent = (int)Math.Round(WeeklyMinSlider.Value);
         _settings.SessionResetMinPercent = (int)Math.Round(SessionMinSlider.Value);
         _settings.ClaudeCodeDirectory = DirectoryBox.Text.Trim();

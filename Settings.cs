@@ -24,6 +24,9 @@ internal sealed class Settings
     public const int MinResetNotifyPercent = 0;
     public const int MaxResetNotifyPercent = 100;
     public const int DefaultSessionResetMinPercent = 2;    // 5h session: notify only above 2%
+    public const int DefaultContextNudgeTokens = 15_000;   // above the middle of the measured 4k–22k spread
+    public const int MinContextNudgeTokens = 2_000;
+    public const int MaxContextNudgeTokens = 100_000;
     public const int DefaultScheduledResetMinPercent = 5;  // routine weekly: notify only above 5%
 
     public const string DefaultMetric = "5h";
@@ -74,6 +77,17 @@ internal sealed class Settings
     /// default; turn it off if the several-times-a-day heads-up is too frequent.
     /// </summary>
     public bool NotifyOnSessionReset { get; set; } = true;
+
+    /// <summary>
+    /// Nudge once when a project's startup context crosses <see cref="ContextNudgeTokens"/>. Default
+    /// off, deliberately: nobody asked to be told their memory directory is growing, and an unsolicited
+    /// warning about the developer's own files is exactly the kind of nagging this feature avoids.
+    /// </summary>
+    public bool NotifyOnContextGrowth { get; set; } = false;
+
+    /// <summary>Eager-token threshold for that nudge. The measured spread across real projects is
+    /// ≈4k–22k (IMPROVEMENTS §III), so the default sits above the middle of it.</summary>
+    public int ContextNudgeTokens { get; set; } = DefaultContextNudgeTokens;
 
     /// <summary>
     /// Minimum usage (percent) the 5-hour window must have reached before its reset to be worth a
@@ -151,6 +165,7 @@ internal sealed class Settings
         AuthRetrySeconds = Math.Clamp(AuthRetrySeconds, MinAuthRetrySeconds, MaxAuthRetrySeconds);
         SessionResetMinPercent = Math.Clamp(SessionResetMinPercent, MinResetNotifyPercent, MaxResetNotifyPercent);
         ScheduledResetMinPercent = Math.Clamp(ScheduledResetMinPercent, MinResetNotifyPercent, MaxResetNotifyPercent);
+        ContextNudgeTokens = Math.Clamp(ContextNudgeTokens, MinContextNudgeTokens, MaxContextNudgeTokens);
         if (string.IsNullOrWhiteSpace(ClaudeCodeDirectory))
             ClaudeCodeDirectory = DefaultDirectory;
         if (Array.IndexOf(ValidMetrics, Metric) < 0)
