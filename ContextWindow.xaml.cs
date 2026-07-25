@@ -6,6 +6,7 @@ using System.Windows.Media;
 // names to the WPF ones the gauge is drawn with (same convention as StatisticsWindow).
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
+using CheckBox = System.Windows.Controls.CheckBox;
 using Color = System.Windows.Media.Color;
 using HorizontalAlignment = System.Windows.HorizontalAlignment;
 using Orientation = System.Windows.Controls.Orientation;
@@ -39,12 +40,27 @@ internal partial class ContextWindow : Window
     private UsageEvidence? _evidence;
 
     /// <summary>
+    /// The what-if selection: full paths of sources the user has ticked as "suppose this were gone".
+    /// It is the single source of truth for the checkboxes, so it survives switching projects and
+    /// rescanning, and it is <em>only</em> ever read — nothing in this window writes to ~/.claude
+    /// (IMPROVEMENTS §I.4).
+    /// </summary>
+    private readonly HashSet<string> _simulated = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Preview-only: once the panes are populated, scroll down to the source table so it can be
     /// screenshotted. The detail pane is taller than any screen at the default window size (the gauge
     /// is the hero and owns the top), and a screen-copy capture cannot scroll — the same reason the
     /// Statistics window has its own preview entry points.
     /// </summary>
     internal bool PreviewScrollToTable { get; set; }
+
+    /// <summary>
+    /// Preview-only: pre-tick the three heaviest removable sources so the what-if banner and the
+    /// shrunken gauge can be screenshotted. Ticking is a mouse gesture, and a screen-copy capture
+    /// cannot click — same reason <see cref="PreviewScrollToTable"/> exists.
+    /// </summary>
+    internal bool PreviewSimulateTop { get; set; }
 
     /// <param name="selectSlug">Project to open on (slug, directory name or path); null = the heaviest.</param>
     public ContextWindow(string? selectSlug = null)
@@ -58,6 +74,7 @@ internal partial class ContextWindow : Window
         SortBox.SelectionChanged += (_, _) => { if (IsLoaded) ShowSelected(); };
         RescanButton.Click += (_, _) => StartScan();
         CloseButton.Click += (_, _) => Close();
+        SimClearButton.Click += (_, _) => { _simulated.Clear(); ShowSelected(); };
         Loaded += (_, _) => StartScan();
     }
 
@@ -204,13 +221,22 @@ internal partial class ContextWindow : Window
             ObservedParts.Text = L.T("context.observed.none", row.Project!.TranscriptsRead);
         }
 
+        // Preview hook: seed the selection once, before the gauge is drawn, so the first render
+        // already shows the simulated state.
+        if (PreviewSimulateTop && _simulated.Count == 0)
+            foreach (ContextSource s in Relevant(row)
+                         .Where(s => s.EagerTokens > 0)
+                         .OrderByDescending(s => s.EagerTokens)
+                         .Take(3))
+                _simulated.Add(s.Path);
+
         BuildGauge(row);
 
         var style = RowStyle.For(this, IsDarkTheme());
         SourceSort sort = (SourceSort)Math.Clamp(SortBox.SelectedIndex, 0, 2);
         DateTime now = DateTimeOffset.UtcNow.UtcDateTime;
-        ProjectGroups.ItemsSource = SourceGroup.Build(row.Project!.Sources, style, sort, _evidence, now);
-        SharedGroups.ItemsSource = SourceGroup.Build(row.Scan.Shared, style, sort, _evidence, now);
+        ProjectGroups.ItemsSource = SourceGroup.Build(row.Project!.Sources, style, sort, _evidence, now, _simulated);
+        SharedGroups.ItemsSource = SourceGroup.Build(row.Scan.Shared, style, sort, _evidence, now, _simulated);
 
         // After layout, so the new rows have a height to scroll past. BringIntoView stops at the
         // top of the project's own table rather than running on to the shared section at the end.
@@ -447,6 +473,8 @@ internal partial class ContextWindow : Window
 
     private void SourceRow_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
+        // A double-click on the simulate checkbox is a double toggle, not a request to open the file.
+        if (e.OriginalSource is CheckBox) return;
         if (e.ChangedButton == System.Windows.Input.MouseButton.Left && e.ClickCount == 2 &&
             RowOf(sender) is { } row)
             Launch(row, row.FullPath, null);
@@ -489,7 +517,9 @@ internal partial class ContextWindow : Window
     {
         SessionZero? observed = row.Project!.Observed;
         int window = ContextScanner.ContextWindowFor(observed?.Model);
-        int total = _baseTokens + row.Estimated;
+        // The simulated saving comes off the total as well as off the segments, so the bar, the
+        // caption and the banner all describe the same hypothetical session.
+        int total = _baseTokens + row.Estimated - SimulatedSaving(row);
 
         bool dark = IsDarkTheme();
         var segments = new List<(string label, int tokens, Color color)>
@@ -581,6 +611,8 @@ internal partial class ContextWindow : Window
             GaugeTick.Children.Add(label);
         }
 
+        BuildSimBanner(row, observed?.Model, window);
+
         // Caption: the total, its share of the window, and what loading it costs on a cold cache —
         // priced with the observed session's model when there is one, else the Opus-tier default.
         double cost = total * UsageInsights.Price(observed?.Model ?? "").cw / 1_000_000.0;
@@ -594,6 +626,47 @@ internal partial class ContextWindow : Window
         foreach (var (label, tokens, color) in segments)
             AddLegendItem(label, tokens, Freeze(new SolidColorBrush(color)), window);
         AddLegendItem(L.T("context.gauge.free"), free, track, window);
+    }
+
+    /// <summary>
+    /// What the ticked rows would give back — the whole point of the exercise: see the payoff before
+    /// taking any risk. This window never deletes anything, so the banner says so plainly rather than
+    /// offering an Apply button it would not honour.
+    /// </summary>
+    private void BuildSimBanner(ProjectRow row, string? model, int window)
+    {
+        int saving = SimulatedSaving(row);
+        if (saving <= 0 && _simulated.Count == 0)
+        {
+            SimBanner.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        SimBanner.Visibility = Visibility.Visible;
+        int before = _baseTokens + row.Estimated;
+        int after = before - saving;
+        double saved = saving * UsageInsights.Price(model ?? "").cw / 1_000_000.0;
+        int ticked = Relevant(row).Count(s => _simulated.Contains(s.Path));
+
+        SimHeadline.Text = L.T("context.sim.headline",
+            TokenEstimate.Format(saving), saved.ToString("0.000", L.Culture));
+        SimDetail.Text = L.T("context.sim.detail",
+            ticked, TokenEstimate.Format(before), TokenEstimate.Format(after),
+            ((double)after / window).ToString("P0", L.Culture));
+    }
+
+    // A checkbox toggled: update the selection and redraw the gauge only. The table is deliberately
+    // not rebuilt — it would reset the scroll position under the pointer that just clicked.
+    private void SimulateToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Primitives.ToggleButton box) return;
+        if (RowOf(sender) is not { } row) return;
+
+        if (box.IsChecked == true) _simulated.Add(row.FullPath);
+        else _simulated.Remove(row.FullPath);
+
+        if (ProjectList.SelectedItem is ProjectRow selected && !selected.IsAll)
+            BuildGauge(selected);
     }
 
     private void AddLegendItem(string label, int tokens, Brush swatch, int window)
@@ -635,10 +708,21 @@ internal partial class ContextWindow : Window
 
     /// <summary>Eager tokens in one bucket, over the project's own sources and the shared ones —
     /// which is exactly what the project's session zero is made of.</summary>
-    private static int Eager(ProjectRow row, Bucket bucket)
-        => row.Project!.Sources.Concat(row.Scan.Shared)
+    private int Eager(ProjectRow row, Bucket bucket)
+        => Relevant(row)
             .Where(s => BucketOf(s.Kind) == bucket)
+            .Where(s => !_simulated.Contains(s.Path))
             .Sum(s => s.EagerTokens);
+
+    /// <summary>Everything a session in this project loads: its own sources plus the shared ones.</summary>
+    private static IEnumerable<ContextSource> Relevant(ProjectRow row)
+        => row.Project!.Sources.Concat(row.Scan.Shared);
+
+    /// <summary>What the ticked rows would give back in this project, in eager tokens.</summary>
+    private int SimulatedSaving(ProjectRow row)
+        => _simulated.Count == 0
+            ? 0
+            : Relevant(row).Where(s => _simulated.Contains(s.Path)).Sum(s => s.EagerTokens);
 
     private static Bucket BucketOf(ContextKind kind) => kind switch
     {
@@ -782,7 +866,7 @@ internal sealed record RowStyle(
 public sealed class SourceGroup
 {
     private SourceGroup(ContextKind kind, List<ContextSource> sources, RowStyle style, SourceSort sort,
-        UsageEvidence? evidence, DateTime nowUtc)
+        UsageEvidence? evidence, DateTime nowUtc, HashSet<string> selected)
     {
         // The count rides in the header rather than in a "{0} files" string: it needs no plural rule
         // in any of the five languages, and it leaves the Load column to the rows, where the
@@ -794,7 +878,7 @@ public sealed class SourceGroup
         // A whole group that costs nothing every session (memory bodies, settings files) reads as an
         // em dash like its rows do — "≈0" invites the question of whether it is a rounding artifact.
         Eager = eager > 0 ? TokenEstimate.Format(eager) : "—";
-        Items = Sorted(sources, sort).Select(s => new SourceRow(s, style, evidence, nowUtc)).ToList();
+        Items = Sorted(sources, sort).Select(s => new SourceRow(s, style, evidence, nowUtc, selected)).ToList();
     }
 
     private static IEnumerable<ContextSource> Sorted(List<ContextSource> sources, SourceSort sort)
@@ -816,11 +900,11 @@ public sealed class SourceGroup
     /// <summary>Group by kind, in the enum's own order — which puts the eager instruction chain
     /// first and the never-loaded settings files last.</summary>
     internal static List<SourceGroup> Build(List<ContextSource> sources, RowStyle style, SourceSort sort,
-        UsageEvidence? evidence, DateTime nowUtc)
+        UsageEvidence? evidence, DateTime nowUtc, HashSet<string> selected)
         => sources
             .GroupBy(s => s.Kind)
             .OrderBy(g => (int)g.Key)
-            .Select(g => new SourceGroup(g.Key, g.ToList(), style, sort, evidence, nowUtc))
+            .Select(g => new SourceGroup(g.Key, g.ToList(), style, sort, evidence, nowUtc, selected))
             .ToList();
 }
 
@@ -831,8 +915,10 @@ public sealed class SourceRow
     /// review queue, and the one health signal available before the rule engine lands.</summary>
     private const int StaleDays = 90;
 
-    internal SourceRow(ContextSource s, RowStyle style, UsageEvidence? evidence, DateTime nowUtc)
+    internal SourceRow(ContextSource s, RowStyle style, UsageEvidence? evidence, DateTime nowUtc,
+        HashSet<string> selected)
     {
+        EagerTokens = s.EagerTokens;
         Label = s.Label;
         FullPath = s.Path;
         Mode = ContextText.Mode(s);
@@ -871,6 +957,13 @@ public sealed class SourceRow
 
         // Evidence of use. Only skills and agents can carry it: a memory recall leaves no structured
         // trace, so a memory row stays blank rather than implying it is unused (see ContextUsage).
+        // A row can be simulated away only if doing so would free eager context. For everything else
+        // (a lazy memory body, a settings file) the honest answer is that removing it saves nothing
+        // per session, so no checkbox is offered.
+        Removable = s.EagerTokens > 0;
+        SelectVisibility = Removable ? Visibility.Visible : Visibility.Collapsed;
+        Selected = Removable && selected.Contains(s.Path);
+
         bool eligible = s.Kind is ContextKind.Skill or ContextKind.Agent;
         UsageStat? stat = eligible ? evidence?.For(s) : null;
         bool canReportZero = eligible && evidence?.CanReportZero(s) == true;
@@ -902,6 +995,14 @@ public sealed class SourceRow
     public Brush ChipBackground { get; }
     public Brush ChipForeground { get; }
     public string ChipTip { get; }
+
+    /// <summary>Eager tokens this row would give back if it were gone.</summary>
+    internal int EagerTokens { get; }
+    /// <summary>Whether removing it would free eager context at all.</summary>
+    internal bool Removable { get; }
+    public Visibility SelectVisibility { get; }
+    /// <summary>Bound once at construction; the selection set stays the source of truth afterwards.</summary>
+    public bool Selected { get; }
 
     /// <summary>"12×", the localized "never", or "" / "—" when there is nothing honest to say.</summary>
     public string Used { get; }

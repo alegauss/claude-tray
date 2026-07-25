@@ -98,6 +98,7 @@ dotnet run -- --context --window      # open just the Context Load window (previ
 dotnet run -- --context --window <slug|name>   # ...opened on one project
 dotnet run -- --context --window all   # ...opened on the cross-project overview
 dotnet run -- --context --window <slug> --scroll  # ...scrolled to the source table (for screenshots)
+dotnet run -- --context --window <slug> --simulate # ...with the 3 heaviest sources ticked (what-if)
 dotnet run -- --makeicon ClaudeTray.ico   # regenerate the multi-resolution app icon
 dotnet run -- --social docs\social-preview.png  # regenerate the social card
 ```

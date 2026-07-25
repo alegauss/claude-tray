@@ -378,4 +378,11 @@
   "context.usage.tip": "Invoqué {0}× au cours des {1} derniers jours ({2} sur les {3} derniers) ; la dernière fois le {4}.",
   "context.usage.neverTip": "Pas invoqué une seule fois au cours des {0} derniers jours. Le corps est à la demande, mais la description est dans l'index toujours chargé.",
   "context.usage.unknownTip": "Aucune preuve d'usage ici — les rappels de mémoire et une passe de transcriptions incomplète sont signalés comme inconnus, jamais comme inutilisés.",
+
+  // Simulateur « et si »
+  "context.sim.tableHint": "Cochez une ligne pour voir ce que sa suppression libérerait. Rien n'est écrit — la barre ci-dessus est simplement redessinée sans elle.",
+  "context.sim.hint": "Simuler la suppression : la jauge et le coût se mettent à jour, et rien ne change sur le disque.",
+  "context.sim.headline": "Simulation : {0} libérés par session · ≈{1} $ par démarrage de session",
+  "context.sim.detail": "{0} cochés · était {1}, serait {2} ({3} de la fenêtre) · rien n'a été supprimé ni modifié.",
+  "context.sim.clear": "Effacer"
 }

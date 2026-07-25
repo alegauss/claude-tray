@@ -378,4 +378,11 @@
   "context.usage.tip": "Invocado {0}× en los últimos {1} días ({2} en los últimos {3}); la última vez el {4}.",
   "context.usage.neverTip": "No se ha invocado ni una vez en los últimos {0} días. El cuerpo es a demanda, pero la descripción está en el índice siempre cargado.",
   "context.usage.unknownTip": "Sin evidencia de uso para este — los recuerdos de memoria y una pasada de transcripciones incompleta se muestran como desconocido, nunca como no usado.",
+
+  // Simulador «qué pasaría si»
+  "context.sim.tableHint": "Marca una fila para ver qué liberaría quitarla. No se escribe nada — la barra de arriba solo se redibuja sin ella.",
+  "context.sim.hint": "Simular quitarlo: el medidor y el coste se actualizan, y nada cambia en el disco.",
+  "context.sim.headline": "Simulación: {0} liberados por sesión · ≈{1} US$ por inicio de sesión",
+  "context.sim.detail": "{0} marcados · era {1}, sería {2} ({3} de la ventana) · no se ha borrado ni cambiado nada.",
+  "context.sim.clear": "Limpiar"
 }

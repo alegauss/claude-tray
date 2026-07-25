@@ -109,18 +109,27 @@
                         <ColumnDefinition Width="80" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Health dot in a fixed-width gutter so every label starts at the same x,
-                         with or without a dot. -->
+                    <!-- Simulate checkbox, then the health dot, both in fixed-width gutters so every
+                         label starts at the same x whether or not it has either. -->
                     <Grid Grid.Column="0" Margin="0,0,10,0">
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="22" />
                             <ColumnDefinition Width="13" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Ellipse Grid.Column="0" Width="6" Height="6"
+                        <!-- Only offered where removing the file would actually free eager context;
+                             a checkbox that can't move the gauge would promise a saving that isn't
+                             there. -->
+                        <CheckBox Grid.Column="0" VerticalAlignment="Center"
+                                  Visibility="{Binding SelectVisibility}"
+                                  IsChecked="{Binding Selected, Mode=OneTime}"
+                                  Click="SimulateToggle_Click"
+                                  ToolTip="{local:Loc context.sim.hint}" />
+                        <Ellipse Grid.Column="1" Width="6" Height="6"
                                  HorizontalAlignment="Left" VerticalAlignment="Center"
                                  Fill="{Binding DotBrush}" Visibility="{Binding DotVisibility}"
                                  ToolTip="{Binding DotTip}" />
-                        <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="12"
+                        <TextBlock Grid.Column="2" Text="{Binding Label}" FontSize="12"
                                    TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </Grid>
@@ -313,6 +322,33 @@
                              never carried by color alone. -->
                         <WrapPanel x:Name="GaugeLegend" Margin="0,9,0,0" />
 
+                        <!-- ===== What-if: what the ticked rows would give back. Collapsed until
+                             something is ticked. Nothing here writes to disk — the gauge above is
+                             simply redrawn without the ticked sources. ===== -->
+                        <Border x:Name="SimBanner" Visibility="Collapsed" Margin="0,14,0,0"
+                                CornerRadius="8" Padding="12,10"
+                                Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                BorderThickness="1"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                    <TextBlock x:Name="SimHeadline" FontSize="13" FontWeight="SemiBold"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <TextBlock x:Name="SimDetail" FontSize="11.5" Margin="0,3,0,0"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                                <Button x:Name="SimClearButton" Grid.Column="1"
+                                        Content="{local:Loc context.sim.clear}"
+                                        VerticalAlignment="Center" Padding="12,5" />
+                            </Grid>
+                        </Border>
+
                         <!-- The two honest numbers, side by side: what the files on disk add up to,
                              and what recent sessions actually reported. They are not the same kind of
                              number — the caption below says why. -->
@@ -350,10 +386,14 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="{local:Loc context.action.hint}"
-                                       FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center"
-                                       Margin="0,0,16,0"
-                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <StackPanel Grid.Column="0" Margin="0,0,16,0" VerticalAlignment="Center">
+                                <TextBlock Text="{local:Loc context.sim.tableHint}"
+                                           FontSize="11" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                <TextBlock Text="{local:Loc context.action.hint}" Margin="0,2,0,0"
+                                           FontSize="11" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Horizontal">
                                 <TextBlock Text="{local:Loc context.sort.label}" FontSize="12"
                                            VerticalAlignment="Center" Margin="0,0,8,0"

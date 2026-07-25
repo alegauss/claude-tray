@@ -106,11 +106,6 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
    instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
    estimate with a visible "≈".**
 
-### §II.7 What-if simulator
-
-Tick items to hypothetically remove; the gauge and the ≈cost update live. Nothing is written until
-"Apply". Makes the payoff of cleanup visible *before* the risk of deleting anything.
-
 ### §II.8 Safe actions only
 
 Reveal / open / **copy a ready-made cleanup prompt for Claude** ("Here are the 6 stale pointers in

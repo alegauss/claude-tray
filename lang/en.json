@@ -382,4 +382,11 @@
   "context.usage.tip": "Invoked {0}× in the last {1} days ({2} in the last {3}); last on {4}.",
   "context.usage.neverTip": "Not invoked once in the last {0} days. Its body is lazy, but its description is in the always-loaded index.",
   "context.usage.unknownTip": "No usage evidence for this one — memory recalls and an incomplete transcript pass are both reported as unknown, never as unused.",
+
+  // What-if simulator
+  "context.sim.tableHint": "Tick a row to see what removing it would free. Nothing is written — the bar above is simply redrawn without it.",
+  "context.sim.hint": "Simulate removing this: the gauge and the cost update, and nothing on disk changes.",
+  "context.sim.headline": "Simulated: {0} freed per session · ≈${1} per session start",
+  "context.sim.detail": "{0} ticked · was {1}, would be {2} ({3} of the window) · nothing has been deleted or changed.",
+  "context.sim.clear": "Clear"
 }

@@ -94,6 +94,9 @@ internal static class Program
                     // `--scroll` opens on the source table instead of the gauge, so the rows can be
                     // screenshotted — the pane is taller than the screen at the default size.
                     PreviewScrollToTable = contextFlags.Contains("--scroll"),
+                    // `--simulate` pre-ticks the three heaviest removable sources, so the what-if
+                    // banner can be screenshotted without a mouse.
+                    PreviewSimulateTop = contextFlags.Contains("--simulate"),
                 });
                 return;
             }

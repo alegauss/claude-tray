@@ -39,3 +39,4 @@ here. This file is a terse index, not a memory.
 - **T74 SHIPPED** (Block I — grounded rule engine behind --context --check) — 2026-07-25.
 - **T73 SHIPPED** (Block I — cross-project "All projects" overview) — 2026-07-25.
 - **T75 SHIPPED** (Block I — usage evidence for skills and agents from transcripts) — 2026-07-25.
+- **T76 SHIPPED** (Block I — what-if simulator over the gauge) — 2026-07-25.

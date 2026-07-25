@@ -378,4 +378,11 @@
   "context.usage.tip": "Invocado {0}× nos últimos {1} dias ({2} nos últimos {3}); a última vez em {4}.",
   "context.usage.neverTip": "Não foi invocado nenhuma vez nos últimos {0} dias. O corpo é sob demanda, mas a descrição está no índice sempre carregado.",
   "context.usage.unknownTip": "Sem evidência de uso para este — recuperações de memória e um exame incompleto de transcrições aparecem como desconhecido, nunca como não usado.",
+
+  // Simulador "e se"
+  "context.sim.tableHint": "Marque uma linha para ver o que a remoção liberaria. Nada é gravado — a barra acima é apenas redesenhada sem ela.",
+  "context.sim.hint": "Simular a remoção: o medidor e o custo se atualizam, e nada muda em disco.",
+  "context.sim.headline": "Simulação: {0} liberados por sessão · ≈US$ {1} por início de sessão",
+  "context.sim.detail": "{0} marcados · era {1}, ficaria {2} ({3} da janela) · nada foi apagado nem alterado.",
+  "context.sim.clear": "Limpar"
 }
