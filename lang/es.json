@@ -327,6 +327,23 @@
   // Cómo se carga la fuente — «índice» = cuerpo a demanda cuya descripción está en el índice fijo
   "context.mode.eager": "fijo",
   "context.mode.lazy": "a demanda",
-  "context.mode.index": "índice",
-  "context.mode.notLoaded": "no cargado"
+  "context.mode.index": "a demanda + índice",
+  "context.mode.notLoaded": "no cargado",
+
+  // Descripciones del chip de carga
+  "context.mode.eagerTip": "Está en el prompt desde la primera solicitud — lo pagas en cada solicitud de la sesión.",
+  "context.mode.lazyTip": "Solo se lee cuando se usa de verdad, así que normalmente no cuesta nada.",
+  "context.mode.indexTip": "Dos costes en uno: el cuerpo solo se lee al invocarlo, pero su nombre y su descripción están en el índice siempre cargado.",
+  "context.mode.notLoadedTip": "Nunca entra en el prompt. Se mide porque su tamaño es un síntoma, no un coste.",
+
+  // Acciones de fila, orden y salud
+  "context.action.hint": "Haz clic derecho en una fila para mostrarla en el Explorador o abrirla; el doble clic la abre.",
+  "context.action.reveal": "Mostrar en el Explorador",
+  "context.action.open": "Abrir",
+  "context.actionFailed": "No se pudo abrir {0}:\n{1}",
+  "context.sort.label": "Ordenar",
+  "context.sort.eager": "Más tokens fijos",
+  "context.sort.tokens": "Archivo más grande",
+  "context.sort.age": "Más antiguos primero",
+  "context.health.stale": "Sin cambios desde hace {0} días"
 }

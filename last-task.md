@@ -35,3 +35,4 @@ here. This file is a terse index, not a memory.
 - **T69 SHIPPED** (Block I — bounded, cached, parallel scanning) — 2026-07-25.
 - **T70 SHIPPED** (Block I — ContextWindow: master/detail window on the scanner) — 2026-07-25.
 - **T71 SHIPPED** (Block I — session-zero gauge with the measured tick) — 2026-07-25.
+- **T72 SHIPPED** (Block I — source table: load chips, health dots, row actions, sort) — 2026-07-25.

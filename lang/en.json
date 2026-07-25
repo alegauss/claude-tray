@@ -331,6 +331,23 @@
   // How a source is loaded — "index" = a lazy body whose description is in the always-loaded index
   "context.mode.eager": "eager",
   "context.mode.lazy": "lazy",
-  "context.mode.index": "index",
-  "context.mode.notLoaded": "not loaded"
+  "context.mode.index": "lazy + index",
+  "context.mode.notLoaded": "not loaded",
+
+  // Load-chip tooltips
+  "context.mode.eagerTip": "In the prompt from the first request on — you pay for it on every request of the session.",
+  "context.mode.lazyTip": "Only read when it is actually used, so it usually costs nothing.",
+  "context.mode.indexTip": "Two costs in one: the body is only read when invoked, but its name and description sit in the always-loaded index.",
+  "context.mode.notLoadedTip": "Never enters the prompt. Measured because its size is a symptom, not a cost.",
+
+  // Row actions, sort and health
+  "context.action.hint": "Right-click a row to reveal it in Explorer or open it; double-click opens it.",
+  "context.action.reveal": "Reveal in Explorer",
+  "context.action.open": "Open",
+  "context.actionFailed": "Couldn't open {0}:\n{1}",
+  "context.sort.label": "Sort",
+  "context.sort.eager": "Most eager tokens",
+  "context.sort.tokens": "Largest file",
+  "context.sort.age": "Oldest first",
+  "context.health.stale": "Untouched for {0} days"
 }

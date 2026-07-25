@@ -327,6 +327,23 @@
   // Mode de chargement — « index » = corps à la demande dont la description est dans l'index fixe
   "context.mode.eager": "fixe",
   "context.mode.lazy": "à la demande",
-  "context.mode.index": "index",
-  "context.mode.notLoaded": "non chargé"
+  "context.mode.index": "demande + index",
+  "context.mode.notLoaded": "non chargé",
+
+  // Infobulles de la puce de chargement
+  "context.mode.eagerTip": "Présent dans le prompt dès la première requête — vous le payez à chaque requête de la session.",
+  "context.mode.lazyTip": "Lu seulement lorsqu'il est réellement utilisé, donc généralement gratuit.",
+  "context.mode.indexTip": "Deux coûts en un : le corps n'est lu qu'à l'invocation, mais son nom et sa description sont dans l'index toujours chargé.",
+  "context.mode.notLoadedTip": "N'entre jamais dans le prompt. Mesuré parce que sa taille est un symptôme, pas un coût.",
+
+  // Actions de ligne, tri et santé
+  "context.action.hint": "Clic droit sur une ligne pour l'afficher dans l'Explorateur ou l'ouvrir ; le double-clic l'ouvre.",
+  "context.action.reveal": "Afficher dans l'Explorateur",
+  "context.action.open": "Ouvrir",
+  "context.actionFailed": "Impossible d'ouvrir {0} :\n{1}",
+  "context.sort.label": "Trier",
+  "context.sort.eager": "Plus de tokens fixes",
+  "context.sort.tokens": "Fichier le plus gros",
+  "context.sort.age": "Les plus anciens d'abord",
+  "context.health.stale": "Inchangé depuis {0} jours"
 }

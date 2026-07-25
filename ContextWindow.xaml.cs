@@ -5,6 +5,7 @@ using System.Windows.Media;
 // WinForms and WPF each contribute a Brush / Color / Orientation / HorizontalAlignment; pin these
 // names to the WPF ones the gauge is drawn with (same convention as StatisticsWindow).
 using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
 using Color = System.Windows.Media.Color;
 using HorizontalAlignment = System.Windows.HorizontalAlignment;
 using Orientation = System.Windows.Controls.Orientation;
@@ -34,6 +35,14 @@ internal partial class ContextWindow : Window
     /// enough observed sessions, otherwise the measured fallback.</summary>
     private int _baseTokens = ContextScanner.FallbackBaseTokens;
 
+    /// <summary>
+    /// Preview-only: once the panes are populated, scroll down to the source table so it can be
+    /// screenshotted. The detail pane is taller than any screen at the default window size (the gauge
+    /// is the hero and owns the top), and a screen-copy capture cannot scroll — the same reason the
+    /// Statistics window has its own preview entry points.
+    /// </summary>
+    internal bool PreviewScrollToTable { get; set; }
+
     /// <param name="selectSlug">Project to open on (slug, directory name or path); null = the heaviest.</param>
     public ContextWindow(string? selectSlug = null)
     {
@@ -41,6 +50,9 @@ internal partial class ContextWindow : Window
         _initialSelection = selectSlug;
 
         ProjectList.SelectionChanged += (_, _) => ShowSelected();
+        // Re-sorting is just a rebuild of the two tables from the same scan — no IO, so it can be
+        // wired straight to the selection.
+        SortBox.SelectionChanged += (_, _) => { if (IsLoaded) ShowSelected(); };
         RescanButton.Click += (_, _) => StartScan();
         CloseButton.Click += (_, _) => Close();
         Loaded += (_, _) => StartScan();
@@ -155,8 +167,59 @@ internal partial class ContextWindow : Window
 
         BuildGauge(row);
 
-        ProjectGroups.ItemsSource = SourceGroup.Build(row.Project.Sources);
-        SharedGroups.ItemsSource = SourceGroup.Build(row.Scan.Shared);
+        var style = RowStyle.For(this, IsDarkTheme());
+        SourceSort sort = (SourceSort)Math.Clamp(SortBox.SelectedIndex, 0, 2);
+        ProjectGroups.ItemsSource = SourceGroup.Build(row.Project.Sources, style, sort);
+        SharedGroups.ItemsSource = SourceGroup.Build(row.Scan.Shared, style, sort);
+
+        // After layout, so the new rows have a height to scroll past. BringIntoView stops at the
+        // top of the project's own table rather than running on to the shared section at the end.
+        if (PreviewScrollToTable) Dispatcher.BeginInvoke(() => ProjectGroups.BringIntoView());
+    }
+
+    // ---------------------------------------------------------------- row actions
+
+    // Reveal and open are the only actions here, and deliberately so: this window measures
+    // ~/.claude, it never edits it (see IMPROVEMENTS §I.4). The edit is handed to Explorer, to the
+    // user's editor, or later to Claude itself.
+    private void RevealRow_Click(object sender, RoutedEventArgs e)
+    {
+        if (RowOf(sender) is not { } row) return;
+        // /select needs the path quoted as a single argument, and Explorer wants backslashes.
+        Launch(row, "explorer.exe", $"/select,\"{row.FullPath}\"");
+    }
+
+    private void OpenRow_Click(object sender, RoutedEventArgs e)
+    {
+        if (RowOf(sender) is { } row) Launch(row, row.FullPath, null);
+    }
+
+    private void SourceRow_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == System.Windows.Input.MouseButton.Left && e.ClickCount == 2 &&
+            RowOf(sender) is { } row)
+            Launch(row, row.FullPath, null);
+    }
+
+    /// <summary>The row a context-menu item or a click belongs to. A <c>ContextMenu</c> declared
+    /// inside the row template inherits the row's DataContext, so both paths land here.</summary>
+    private static SourceRow? RowOf(object sender)
+        => (sender as FrameworkElement)?.DataContext as SourceRow;
+
+    private void Launch(SourceRow row, string file, string? arguments)
+    {
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo(file) { UseShellExecute = true };
+            if (arguments != null) psi.Arguments = arguments;
+            System.Diagnostics.Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(this, L.T("context.actionFailed", row.Label, ex.Message),
+                L.T("dialog.appName"), System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning);
+        }
     }
 
     // ---------------------------------------------------------------- the session-zero gauge
@@ -404,10 +467,54 @@ public sealed class ProjectRow
          Project.Path.Equals(name, StringComparison.OrdinalIgnoreCase));
 }
 
+/// <summary>How the rows inside each group are ordered. Matches the order of the sort picker.</summary>
+internal enum SourceSort
+{
+    /// <summary>What it costs every request, biggest first — the default, and the actionable one.</summary>
+    Eager,
+    /// <summary>Biggest file first, eager or not.</summary>
+    Size,
+    /// <summary>Oldest first — the review queue.</summary>
+    Age,
+}
+
+/// <summary>
+/// The theme-resolved brushes the rows are drawn with, looked up once per render instead of per row.
+/// Tints are translucent so one pair of values works on both the light and the dark card surface.
+/// </summary>
+internal sealed record RowStyle(
+    Brush EagerChip, Brush IndexChip, Brush LazyChip, Brush ChipText, Brush LazyChipText,
+    Brush MutedText, Brush ProblemDot, Brush StaleDot)
+{
+    public static RowStyle For(FrameworkElement host, bool dark)
+    {
+        Brush Tint(byte r, byte g, byte b) => Frozen(new SolidColorBrush(
+            Color.FromArgb(dark ? (byte)0x40 : (byte)0x30, r, g, b)));
+
+        return new RowStyle(
+            // Blue for what is paid every request, green for the index-only cost of a skill/agent —
+            // the same two hues the gauge uses for those sources, so the chip and the bar agree.
+            EagerChip: Tint(0x39, 0x87, 0xE5),
+            IndexChip: Tint(0x19, 0x9E, 0x70),
+            LazyChip: (Brush)host.FindResource("SubtleFillColorSecondaryBrush"),
+            ChipText: (Brush)host.FindResource("TextFillColorPrimaryBrush"),
+            LazyChipText: (Brush)host.FindResource("TextFillColorSecondaryBrush"),
+            MutedText: (Brush)host.FindResource("TextFillColorTertiaryBrush"),
+            ProblemDot: Frozen(new SolidColorBrush(dark
+                ? Color.FromRgb(0xE8, 0x6A, 0x5E)
+                : Color.FromRgb(0xC4, 0x3E, 0x3E))),
+            StaleDot: Frozen(new SolidColorBrush(dark
+                ? Color.FromRgb(0xE0, 0xA0, 0x30)
+                : Color.FromRgb(0xC7, 0x77, 0x00))));
+    }
+
+    private static Brush Frozen(Brush b) { b.Freeze(); return b; }
+}
+
 /// <summary>One kind of context source — Instructions, Memory, Skills, Agents — and its files.</summary>
 public sealed class SourceGroup
 {
-    private SourceGroup(ContextKind kind, List<ContextSource> sources)
+    private SourceGroup(ContextKind kind, List<ContextSource> sources, RowStyle style, SourceSort sort)
     {
         // The count rides in the header rather than in a "{0} files" string: it needs no plural rule
         // in any of the five languages, and it leaves the Load column to the rows, where the
@@ -419,12 +526,18 @@ public sealed class SourceGroup
         // A whole group that costs nothing every session (memory bodies, settings files) reads as an
         // em dash like its rows do — "≈0" invites the question of whether it is a rounding artifact.
         Eager = eager > 0 ? TokenEstimate.Format(eager) : "—";
-        Items = sources
-            .OrderByDescending(s => s.EagerTokens)
-            .ThenByDescending(s => s.Bytes)
-            .Select(s => new SourceRow(s))
-            .ToList();
+        Items = Sorted(sources, sort).Select(s => new SourceRow(s, style)).ToList();
     }
+
+    private static IEnumerable<ContextSource> Sorted(List<ContextSource> sources, SourceSort sort)
+        => sort switch
+        {
+            SourceSort.Size => sources.OrderByDescending(s => s.Bytes).ThenBy(s => s.Label),
+            SourceSort.Age => sources.OrderBy(s => s.ModifiedUtc).ThenBy(s => s.Label),
+            // Eager first, then size — so a group of all-lazy bodies still reads biggest-first
+            // rather than in whatever order the directory happened to enumerate.
+            _ => sources.OrderByDescending(s => s.EagerTokens).ThenByDescending(s => s.Bytes),
+        };
 
     public string Header { get; }
     public string Size { get; }
@@ -434,19 +547,24 @@ public sealed class SourceGroup
 
     /// <summary>Group by kind, in the enum's own order — which puts the eager instruction chain
     /// first and the never-loaded settings files last.</summary>
-    internal static List<SourceGroup> Build(List<ContextSource> sources) => sources
-        .GroupBy(s => s.Kind)
-        .OrderBy(g => (int)g.Key)
-        .Select(g => new SourceGroup(g.Key, g.ToList()))
-        .ToList();
+    internal static List<SourceGroup> Build(List<ContextSource> sources, RowStyle style, SourceSort sort)
+        => sources
+            .GroupBy(s => s.Kind)
+            .OrderBy(g => (int)g.Key)
+            .Select(g => new SourceGroup(g.Key, g.ToList(), style, sort))
+            .ToList();
 }
 
 /// <summary>One measured file in the detail table.</summary>
 public sealed class SourceRow
 {
-    internal SourceRow(ContextSource s)
+    /// <summary>A file nobody has touched in this long is worth a look — the info-level end of the
+    /// review queue, and the one health signal available before the rule engine lands.</summary>
+    private const int StaleDays = 90;
+
+    internal SourceRow(ContextSource s, RowStyle style)
     {
-        Label = s.Note is { Length: > 0 } note ? $"{s.Label}  ! {note}" : s.Label;
+        Label = s.Label;
         FullPath = s.Path;
         Mode = ContextText.Mode(s);
         Size = ContextText.Size(s.Bytes);
@@ -454,6 +572,33 @@ public sealed class SourceRow
         Eager = s.EagerTokens > 0 ? TokenEstimate.Format(s.EagerTokens) : "—";
         EagerWeight = s.EagerTokens > 0 ? "SemiBold" : "Normal";
         Modified = s.ModifiedUtc.ToLocalTime().ToString("yyyy-MM-dd");
+
+        bool indexed = s.Mode == LoadMode.Lazy && s.EagerTokens > 0;
+        (ChipBackground, ChipForeground) = s.Mode switch
+        {
+            LoadMode.Eager => (style.EagerChip, style.ChipText),
+            LoadMode.Lazy when indexed => (style.IndexChip, style.ChipText),
+            LoadMode.Lazy => (style.LazyChip, style.LazyChipText),
+            _ => (Brushes.Transparent, style.MutedText),
+        };
+        ChipTip = L.T(s.Mode switch
+        {
+            LoadMode.Eager => "context.mode.eagerTip",
+            LoadMode.Lazy when indexed => "context.mode.indexTip",
+            LoadMode.Lazy => "context.mode.lazyTip",
+            _ => "context.mode.notLoadedTip",
+        });
+
+        // The health dot, from the two signals the scan already carries. The rule engine will have a
+        // great deal more to say (severity per finding); this is the honest subset available now, and
+        // an absent dot means "nothing to report", never "checked and healthy".
+        int ageDays = (int)(DateTime.UtcNow - s.ModifiedUtc).TotalDays;
+        Brush? dot = null;
+        if (s.Note is { Length: > 0 } note) { dot = style.ProblemDot; DotTip = note; }
+        else if (ageDays >= StaleDays) { dot = style.StaleDot; DotTip = L.T("context.health.stale", ageDays); }
+
+        DotBrush = dot ?? Brushes.Transparent;
+        DotVisibility = dot is null ? Visibility.Hidden : Visibility.Visible;
     }
 
     public string Label { get; }
@@ -465,6 +610,16 @@ public sealed class SourceRow
     /// <summary>Bold the eager column only where there is a cost — the row's whole point.</summary>
     public string EagerWeight { get; }
     public string Modified { get; }
+
+    public Brush ChipBackground { get; }
+    public Brush ChipForeground { get; }
+    public string ChipTip { get; }
+
+    public Brush DotBrush { get; }
+    /// <summary><see cref="Visibility.Hidden"/>, not Collapsed — the gutter keeps its width so every
+    /// label in the table starts at the same x.</summary>
+    public Visibility DotVisibility { get; }
+    public string? DotTip { get; }
 }
 
 /// <summary>The display words shared by the window's view models.</summary>

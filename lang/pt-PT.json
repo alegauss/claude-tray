@@ -328,6 +328,23 @@
   // Como a fonte é carregada — "índice" = corpo a pedido cuja descrição está no índice fixo
   "context.mode.eager": "fixo",
   "context.mode.lazy": "a pedido",
-  "context.mode.index": "índice",
-  "context.mode.notLoaded": "não carregado"
+  "context.mode.index": "a pedido + índice",
+  "context.mode.notLoaded": "não carregado",
+
+  // Dicas do chip de carga
+  "context.mode.eagerTip": "Está no prompt desde o primeiro pedido — paga por ele em todos os pedidos da sessão.",
+  "context.mode.lazyTip": "Só é lido quando é realmente usado, pelo que normalmente não custa nada.",
+  "context.mode.indexTip": "Dois custos num: o corpo só é lido quando invocado, mas o nome e a descrição ficam no índice sempre carregado.",
+  "context.mode.notLoadedTip": "Nunca entra no prompt. Medido porque o tamanho é um sintoma, não um custo.",
+
+  // Ações de linha, ordenação e saúde
+  "context.action.hint": "Clique com o botão direito numa linha para a mostrar no Explorador ou abrir; duplo clique abre.",
+  "context.action.reveal": "Mostrar no Explorador",
+  "context.action.open": "Abrir",
+  "context.actionFailed": "Não foi possível abrir {0}:\n{1}",
+  "context.sort.label": "Ordenar",
+  "context.sort.eager": "Mais tokens fixos",
+  "context.sort.tokens": "Ficheiro maior",
+  "context.sort.age": "Mais antigos primeiro",
+  "context.health.stale": "Sem alteração há {0} dias"
 }

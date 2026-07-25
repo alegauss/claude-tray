@@ -106,14 +106,6 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
    instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
    estimate with a visible "≈".**
 
-### §II.3 Source breakdown
-
-Grouped rows (Instructions / Memory / Skills / Agents), each with a kind badge, an **Eager** /
-**Lazy** / **—** chip, size, tokens, last-modified, and a health dot. A skill's chip needs to say
-*both* things — the body is lazy, its description is eager (the scanner already models this as
-`Mode = Lazy` with `EagerTokens > 0`, rendered as "index" in the CLI). Row actions: reveal in
-Explorer, open in the default editor. Sortable by tokens or by age.
-
 ### §II.4 Cross-project overview
 
 An "All projects" view: total footprint, the ten heaviest eager loads, and the duplicate/orphan

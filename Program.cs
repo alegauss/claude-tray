@@ -85,7 +85,16 @@ internal static class Program
             if (contextFlags.Contains("--window"))
             {
                 var contextApp = new System.Windows.Application();
-                contextApp.Run(new ContextWindow(contextFlags.FirstOrDefault(f => !f.StartsWith("--"))));
+                // Topmost like the other previews: the capture script can't always take foreground
+                // (Windows refuses the steal when another app owns it), and a screen-copy of an
+                // occluded window is a screenshot of whatever covered it.
+                contextApp.Run(new ContextWindow(contextFlags.FirstOrDefault(f => !f.StartsWith("--")))
+                {
+                    Topmost = true,
+                    // `--scroll` opens on the source table instead of the gauge, so the rows can be
+                    // screenshotted — the pane is taller than the screen at the default size.
+                    PreviewScrollToTable = contextFlags.Contains("--scroll"),
+                });
                 return;
             }
             PrintContext(contextFlags);

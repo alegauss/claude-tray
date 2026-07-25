@@ -76,29 +76,72 @@
              them, and hand-matched widths stay predictable. ===== -->
 
         <DataTemplate x:Key="SourceRowTemplate">
-            <Grid Margin="0,4,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="100" />
-                    <ColumnDefinition Width="66" />
-                    <ColumnDefinition Width="66" />
-                    <ColumnDefinition Width="66" />
-                    <ColumnDefinition Width="84" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="12" Margin="0,0,10,0"
-                           TextTrimming="CharacterEllipsis" ToolTip="{Binding FullPath}"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                <!-- "eager" / "index" / "lazy" / "not loaded": the word is the whole point of the
-                     row, so it stays plain text here — the colored chip is a later task. -->
-                <TextBlock Grid.Column="1" Text="{Binding Mode}" Style="{StaticResource Cell}"
-                           TextAlignment="Left" />
-                <TextBlock Grid.Column="2" Text="{Binding Size}" Style="{StaticResource Cell}" />
-                <TextBlock Grid.Column="3" Text="{Binding Tokens}" Style="{StaticResource Cell}" />
-                <TextBlock Grid.Column="4" Text="{Binding Eager}" Style="{StaticResource Cell}"
-                           FontWeight="{Binding EagerWeight}" />
-                <TextBlock Grid.Column="5" Text="{Binding Modified}" Style="{StaticResource Cell}"
-                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-            </Grid>
+            <!-- The negative margin cancels the padding, so the hover highlight bleeds past the text
+                 while the columns stay aligned with the header above to the pixel. -->
+            <Border Background="Transparent" CornerRadius="4"
+                    Padding="5,3" Margin="-5,1,-5,0"
+                    MouseDown="SourceRow_MouseDown"
+                    ToolTip="{Binding FullPath}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background"
+                                        Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Border.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{local:Loc context.action.reveal}" Click="RevealRow_Click" />
+                        <MenuItem Header="{local:Loc context.action.open}" Click="OpenRow_Click" />
+                    </ContextMenu>
+                </Border.ContextMenu>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="132" />
+                        <ColumnDefinition Width="66" />
+                        <ColumnDefinition Width="66" />
+                        <ColumnDefinition Width="66" />
+                        <ColumnDefinition Width="84" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Health dot in a fixed-width gutter so every label starts at the same x,
+                         with or without a dot. -->
+                    <Grid Grid.Column="0" Margin="0,0,10,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="13" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Ellipse Grid.Column="0" Width="6" Height="6"
+                                 HorizontalAlignment="Left" VerticalAlignment="Center"
+                                 Fill="{Binding DotBrush}" Visibility="{Binding DotVisibility}"
+                                 ToolTip="{Binding DotTip}" />
+                        <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="12"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    </Grid>
+
+                    <!-- The load chip: what this file actually costs per request. For a skill or an
+                         agent it has to say both things at once — the body is lazy, the description
+                         is in the always-loaded index — which is what "lazy + index" means. -->
+                    <Border Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center"
+                            CornerRadius="4" Padding="6,1" Background="{Binding ChipBackground}"
+                            ToolTip="{Binding ChipTip}">
+                        <TextBlock Text="{Binding Mode}" FontSize="11"
+                                   Foreground="{Binding ChipForeground}" />
+                    </Border>
+
+                    <TextBlock Grid.Column="2" Text="{Binding Size}" Style="{StaticResource Cell}" />
+                    <TextBlock Grid.Column="3" Text="{Binding Tokens}" Style="{StaticResource Cell}" />
+                    <TextBlock Grid.Column="4" Text="{Binding Eager}" Style="{StaticResource Cell}"
+                               FontWeight="{Binding EagerWeight}" />
+                    <TextBlock Grid.Column="5" Text="{Binding Modified}" Style="{StaticResource Cell}"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                </Grid>
+            </Border>
         </DataTemplate>
 
         <DataTemplate x:Key="SourceGroupTemplate">
@@ -106,13 +149,17 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="100" />
+                        <ColumnDefinition Width="132" />
                         <ColumnDefinition Width="66" />
                         <ColumnDefinition Width="66" />
                         <ColumnDefinition Width="66" />
                         <ColumnDefinition Width="84" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{Binding Header}" FontSize="12" FontWeight="SemiBold"
+                    <!-- Spans the Load column too: a group has no single load mode, so that cell is
+                         empty and the header may as well use the room (kind names are long once
+                         translated). -->
+                    <TextBlock Grid.Column="0" Grid.ColumnSpan="2" Text="{Binding Header}"
+                               FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
                                Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     <TextBlock Grid.Column="2" Text="{Binding Size}" Style="{StaticResource Cell}" />
                     <TextBlock Grid.Column="3" Text="{Binding Tokens}" Style="{StaticResource Cell}" />
@@ -174,7 +221,8 @@
             <!-- Detail: what a session in the selected project loads. -->
             <Border x:Name="DetailPane" Grid.Column="1" Margin="14,0,0,0"
                     Style="{StaticResource GroupCard}">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18,16,18,18">
+                <ScrollViewer x:Name="DetailScroll" VerticalScrollBarVisibility="Auto"
+                              Padding="18,16,18,18">
                     <StackPanel>
                         <TextBlock x:Name="ProjectTitle" FontSize="17" FontWeight="SemiBold"
                                    TextTrimming="CharacterEllipsis"
@@ -235,11 +283,34 @@
                                    FontSize="11.5" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
 
-                        <!-- Column header for both source tables below. -->
+                        <!-- Row actions + sort. The hint carries its own discoverability: a row's
+                             actions live on its context menu, which nothing else would advertise. -->
                         <Grid Margin="0,22,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{local:Loc context.action.hint}"
+                                       FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center"
+                                       Margin="0,0,16,0"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <TextBlock Text="{local:Loc context.sort.label}" FontSize="12"
+                                           VerticalAlignment="Center" Margin="0,0,8,0"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                <ComboBox x:Name="SortBox" MinWidth="150" SelectedIndex="0">
+                                    <ComboBoxItem Content="{local:Loc context.sort.eager}" />
+                                    <ComboBoxItem Content="{local:Loc context.sort.tokens}" />
+                                    <ComboBoxItem Content="{local:Loc context.sort.age}" />
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Column header for both source tables below. -->
+                        <Grid Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="132" />
                                 <ColumnDefinition Width="66" />
                                 <ColumnDefinition Width="66" />
                                 <ColumnDefinition Width="66" />
