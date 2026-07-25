@@ -116,10 +116,12 @@
 ## Block I — Context Load Inspector
 
 > Phase 1 of the epic: the whole model validated headlessly behind `--context` before any XAML,
-> exactly as `--insights` did for `UsageInsights`. Active tasks and the remaining phases are in
-> [ROADMAP.md](ROADMAP.md); design rationale in [IMPROVEMENTS.md](IMPROVEMENTS.md) §II.
+> exactly as `--insights` did for `UsageInsights`. Phase 2 puts a window on it. Active tasks and the
+> remaining phases are in [ROADMAP.md](ROADMAP.md); design rationale in
+> [IMPROVEMENTS.md](IMPROVEMENTS.md) §II.
 
 - **T66** — `ContextScanner.cs`: discovers every context source per project — the user + project instruction chain with `@imports`, the memory index and its files, skill/agent frontmatter, settings sizes — splits **eager** (paid on every request) from **lazy** and **not-loaded**, and resolves each `~/.claude/projects/<slug>` back to a real path by filesystem probing with the transcript `cwd` as the authoritative fallback. Verified byte-for-byte against `find`/`stat` on two projects. (`159d714`)
 - **T67** — `TokenEstimate.cs`: chars→tokens for markdown, classified per line (prose / code fence / table), always rendered as an estimate ("≈4.9k"). (`159d714`)
 - **T68** — Session-zero calibration from real transcripts: observed startup context for 27 of 33 projects, a robust base-overhead fit (median residual + Theil–Sen slope) putting the unscannable system-prompt/tools/MCP overhead at ≈32k tokens, and a corrected estimate within ±15% of measurement for 23/27 projects (median error 6.2%). Found that `cache_read_input_tokens` must be counted too — see the ROADMAP note. (`159d714`)
 - **T69** — Bounded, cached scanning: 92ms cold / 76ms warm over 33 projects and 940 files, cache keyed on a path+size+mtime fingerprint (directory mtimes would miss an in-place `MEMORY.md` edit), file/directory caps reported rather than silent, and a parallel IO-bound walk. Caught a real double-count bug where a one-line `CLAUDE.md` containing `@agents.md` billed a 43 KB file twice. (`159d714`)
+- **T70** — `ContextWindow.xaml(.cs)`: the master/detail window on the scanner — projects on the left (name, sources, what a session there costs), and on the right the estimated vs. transcript-measured session zero plus every source grouped by kind with its eager/lazy/index word. Settles the naming decision (**`Context…`** in the tray menu, "Context Load — memories, skills & instructions" as the title) and the first `context.*` keys in all five languages. Previewable standalone via `--context --window [slug]`; the bare `--context` stays the headless report.

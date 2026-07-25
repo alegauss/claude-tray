@@ -8,6 +8,7 @@
   "menu.metric.extra": "Extra",
   "menu.insights": "Análise de uso (24h)",
   "menu.statistics": "Estatísticas",
+  "menu.context": "Contexto…",
   "menu.refreshNow": "Atualizar agora",
   "menu.openClaude": "Abrir Claude Code",
   "menu.updateAvailable": "Atualização disponível",
@@ -259,5 +260,62 @@
   "stats.chart.currentLeft": "Restante agora: {0}",
   "stats.chart.start": "início {0}",
   "stats.chart.reset": "reset {0}",
-  "stats.chart.unavailable": "Uso ao vivo indisponível desde {0} — sem dados neste trecho"
+  "stats.chart.unavailable": "Uso ao vivo indisponível desde {0} — sem dados neste trecho",
+
+  // ---- Janela de carga de contexto (ContextWindow) ----
+  "context.title": "Carga de contexto — memórias, skills e instruções",
+  "context.header": "O que cada sessão custa antes de você digitar",
+  "context.subtitle": "O Claude Code carrega seus arquivos de instruções, o índice de memória e a descrição de cada skill antes do seu primeiro prompt — um pedágio pago em toda requisição da sessão. Apenas tamanhos, nomes, datas e estimativas de tokens; nada sai desta máquina.",
+  "context.scanning": "Examinando ~/.claude…",
+  "context.scanFailed": "Não foi possível examinar as fontes de contexto: {0}",
+  "context.empty": "Nenhum projeto encontrado em ~/.claude/projects ainda.",
+  "context.projects": "Projetos",
+  "context.refresh": "Examinar de novo",
+  "context.close": "Fechar",
+
+  // Rodapé
+  "context.footer": "{0} projetos · {1} arquivos · {2} ms ({3})",
+  "context.footer.cached": "em cache",
+  "context.footer.fresh": "exame novo",
+  "context.truncated": "O exame atingiu o limite de arquivos/diretórios — estes totais são um piso, não um total.",
+
+  // Lista de projetos + cabeçalho do detalhe
+  "context.project.detail": "{0} fontes · {1} arquivos de memória",
+  "context.state.missing": "o diretório não existe mais",
+  "context.state.notAPath": "não é um caminho de arquivos",
+  "context.sessionZero": "Sessão zero, estimada pelos arquivos em disco",
+  "context.sessionZero.parts": "compartilhado {0} + este projeto {1}",
+  "context.observed": "Medido em sessões recentes",
+  "context.observed.parts": "mediana de {0} sessões ({1}–{2}) · ≈US$ {3} para carregar com cache frio",
+  "context.observed.none": "Nenhuma sessão nos últimos 30 dias ({0} transcrições verificadas)",
+  "context.baseNote": "Os dois números não são do mesmo tipo: a estimativa conta apenas os arquivos abaixo, enquanto a medição também carrega ≈32k tokens do próprio prompt de sistema e das definições de ferramentas do Claude Code, que nenhum exame de arquivos consegue ver. Todo número de tokens aqui é uma estimativa — é o que o ≈ significa.",
+
+  // Tabela de fontes
+  "context.col.source": "Fonte",
+  "context.col.mode": "Carga",
+  "context.col.size": "Tamanho",
+  "context.col.tokens": "Tokens",
+  "context.col.eager": "Fixo",
+  "context.col.modified": "Modificado",
+  "context.shared": "Fontes compartilhadas",
+  "context.shared.note": "Carregadas para todos os projetos, então fazem parte da sessão zero de cada um — contadas uma só vez.",
+  "context.size.bytes": "{0} B",
+  "context.size.kb": "{0} KB",
+
+  // Tipos de fonte de contexto
+  "context.kind.userInstructions": "Instruções do usuário",
+  "context.kind.projectInstructions": "Instruções do projeto",
+  "context.kind.nestedInstructions": "Instruções aninhadas",
+  "context.kind.import": "Arquivos importados",
+  "context.kind.memoryIndex": "Índice de memória",
+  "context.kind.memoryFile": "Arquivos de memória",
+  "context.kind.skill": "Skills",
+  "context.kind.agent": "Agentes",
+  "context.kind.settings": "Configurações (nunca no prompt)",
+
+  // Como a fonte é carregada — "índice" = corpo sob demanda cuja descrição está no índice fixo
+  "context.mode.eager": "fixo",
+  "context.mode.lazy": "sob demanda",
+  "context.mode.index": "índice",
+  "context.mode.notLoaded": "não carregado"
 }

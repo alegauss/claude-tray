@@ -40,6 +40,7 @@ usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don'
 | `Updater.cs` | Checks GitHub Releases; downloads/runs the installer for in-app self-update. `CurrentVersion`. |
 | `Settings.cs` | `Settings` model (JSON in `%LocalAppData%\ClaudeTray`); clamps out-of-range values. |
 | `SettingsWindow.xaml(.cs)` | The WPF Fluent settings window. **All layout lives in the XAML.** |
+| `ContextWindow.xaml(.cs)` | The Context Load window: master/detail over `ContextScanner` — projects left, per-source eager/lazy breakdown right. Scans on a background thread; view models are `public` because WPF binding resolves paths by reflection over public types only. |
 
 ## UI conventions — the rules that prevent the bugs we already hit
 
@@ -89,6 +90,8 @@ dotnet run -- --context --calibrate   # estimate vs. transcript-measured session
 dotnet run -- --context --skills      # expand the folded skill/agent index instead of one summary row
 dotnet run -- --context --no-cache    # force a cold scan (skip %LocalAppData%\ClaudeTray cache)
 dotnet run -- --context --root <dir>  # scan a fixture tree instead of ~/.claude
+dotnet run -- --context --window      # open just the Context Load window (preview)
+dotnet run -- --context --window <slug|name>   # ...opened on one project
 dotnet run -- --makeicon ClaudeTray.ico   # regenerate the multi-resolution app icon
 dotnet run -- --social docs\social-preview.png  # regenerate the social card
 ```

@@ -8,6 +8,7 @@
   "menu.metric.extra": "Extra",
   "menu.insights": "Analyse d'utilisation (24 h)",
   "menu.statistics": "Statistiques",
+  "menu.context": "Contexte…",
   "menu.refreshNow": "Actualiser maintenant",
   "menu.openClaude": "Ouvrir Claude Code",
   "menu.updateAvailable": "Mise à jour disponible",
@@ -259,5 +260,62 @@
   "stats.chart.currentLeft": "Restant actuel : {0}",
   "stats.chart.start": "début {0}",
   "stats.chart.reset": "réinit. {0}",
-  "stats.chart.unavailable": "Consommation en direct indisponible depuis {0} — aucune donnée sur cet intervalle"
+  "stats.chart.unavailable": "Consommation en direct indisponible depuis {0} — aucune donnée sur cet intervalle",
+
+  // ---- Fenêtre de charge de contexte (ContextWindow) ----
+  "context.title": "Charge de contexte — mémoires, skills et instructions",
+  "context.header": "Ce que chaque session coûte avant votre première saisie",
+  "context.subtitle": "Claude Code charge vos fichiers d'instructions, l'index de mémoire et la description de chaque skill avant votre premier prompt — un péage payé à chaque requête de la session. Uniquement tailles, noms, dates et estimations de tokens ; rien ne quitte cette machine.",
+  "context.scanning": "Analyse de ~/.claude…",
+  "context.scanFailed": "Impossible d'analyser les sources de contexte : {0}",
+  "context.empty": "Aucun projet trouvé dans ~/.claude/projects pour l'instant.",
+  "context.projects": "Projets",
+  "context.refresh": "Réanalyser",
+  "context.close": "Fermer",
+
+  // Pied de fenêtre
+  "context.footer": "{0} projets · {1} fichiers · {2} ms ({3})",
+  "context.footer.cached": "en cache",
+  "context.footer.fresh": "nouvelle analyse",
+  "context.truncated": "L'analyse a atteint sa limite de fichiers/dossiers — ces totaux sont un plancher, pas un total.",
+
+  // Liste de projets + en-tête du détail
+  "context.project.detail": "{0} sources · {1} fichiers de mémoire",
+  "context.state.missing": "le dossier n'existe plus",
+  "context.state.notAPath": "pas un chemin de fichiers",
+  "context.sessionZero": "Session zéro, estimée d'après les fichiers sur le disque",
+  "context.sessionZero.parts": "partagé {0} + ce projet {1}",
+  "context.observed": "Mesuré sur les sessions récentes",
+  "context.observed.parts": "médiane de {0} sessions ({1}–{2}) · ≈{3} $ pour charger à froid",
+  "context.observed.none": "Aucune session depuis 30 jours ({0} transcriptions vérifiées)",
+  "context.baseNote": "Les deux nombres ne sont pas de même nature : l'estimation ne compte que les fichiers ci-dessous, tandis que la mesure inclut aussi ≈32k tokens du prompt système et des définitions d'outils de Claude Code, qu'aucune analyse de fichiers ne peut voir. Chaque nombre de tokens ici est une estimation — c'est le sens du ≈.",
+
+  // Tableau des sources
+  "context.col.source": "Source",
+  "context.col.mode": "Chargement",
+  "context.col.size": "Taille",
+  "context.col.tokens": "Tokens",
+  "context.col.eager": "Fixe",
+  "context.col.modified": "Modifié",
+  "context.shared": "Sources partagées",
+  "context.shared.note": "Chargées pour tous les projets : elles font donc partie de la session zéro de chacun — comptées une seule fois.",
+  "context.size.bytes": "{0} B",
+  "context.size.kb": "{0} Ko",
+
+  // Types de source de contexte
+  "context.kind.userInstructions": "Instructions utilisateur",
+  "context.kind.projectInstructions": "Instructions du projet",
+  "context.kind.nestedInstructions": "Instructions imbriquées",
+  "context.kind.import": "Fichiers importés",
+  "context.kind.memoryIndex": "Index de mémoire",
+  "context.kind.memoryFile": "Fichiers de mémoire",
+  "context.kind.skill": "Skills",
+  "context.kind.agent": "Agents",
+  "context.kind.settings": "Paramètres (jamais dans le prompt)",
+
+  // Mode de chargement — « index » = corps à la demande dont la description est dans l'index fixe
+  "context.mode.eager": "fixe",
+  "context.mode.lazy": "à la demande",
+  "context.mode.index": "index",
+  "context.mode.notLoaded": "non chargé"
 }

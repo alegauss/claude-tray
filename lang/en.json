@@ -12,6 +12,7 @@
   "menu.metric.extra": "Extra",
   "menu.insights": "Usage insights (24h)",
   "menu.statistics": "Statistics",
+  "menu.context": "Context…",
   "menu.refreshNow": "Refresh now",
   "menu.openClaude": "Open Claude Code",
   "menu.updateAvailable": "Update available",
@@ -263,5 +264,62 @@
   "stats.chart.currentLeft": "Currently left: {0}",
   "stats.chart.start": "start {0}",
   "stats.chart.reset": "reset {0}",
-  "stats.chart.unavailable": "Live usage unavailable since {0} — no data for this span"
+  "stats.chart.unavailable": "Live usage unavailable since {0} — no data for this span",
+
+  // ---- Context Load window (ContextWindow) ----
+  "context.title": "Context Load — memories, skills & instructions",
+  "context.header": "What every session costs before you type",
+  "context.subtitle": "Claude Code loads your instruction files, the memory index and every skill's description before your first prompt — a toll paid on every request of the session. Sizes, names, timestamps and token estimates only; nothing leaves this machine.",
+  "context.scanning": "Scanning ~/.claude…",
+  "context.scanFailed": "Couldn't scan the context sources: {0}",
+  "context.empty": "No projects found under ~/.claude/projects yet.",
+  "context.projects": "Projects",
+  "context.refresh": "Rescan",
+  "context.close": "Close",
+
+  // Footer
+  "context.footer": "{0} projects · {1} files · {2} ms ({3})",
+  "context.footer.cached": "cached",
+  "context.footer.fresh": "fresh scan",
+  "context.truncated": "The scan hit its file/directory cap — these totals are a floor, not a total.",
+
+  // Project list + detail header
+  "context.project.detail": "{0} sources · {1} memory files",
+  "context.state.missing": "directory no longer exists",
+  "context.state.notAPath": "not a filesystem path",
+  "context.sessionZero": "Session zero, estimated from the files on disk",
+  "context.sessionZero.parts": "shared {0} + this project {1}",
+  "context.observed": "Measured in recent sessions",
+  "context.observed.parts": "median of {0} sessions ({1}–{2}) · ≈${3} to load on a cold cache",
+  "context.observed.none": "No session in the last 30 days ({0} transcripts checked)",
+  "context.baseNote": "The two aren't the same kind of number: the estimate counts only the files below, while the measurement also carries ≈32k tokens of Claude Code's own system prompt and tool definitions, which no file scan can see. Every token count here is an estimate — that is what the ≈ means.",
+
+  // Source table
+  "context.col.source": "Source",
+  "context.col.mode": "Load",
+  "context.col.size": "Size",
+  "context.col.tokens": "Tokens",
+  "context.col.eager": "Eager",
+  "context.col.modified": "Modified",
+  "context.shared": "Shared sources",
+  "context.shared.note": "Loaded for every project, so they are part of every project's session zero — counted once.",
+  "context.size.bytes": "{0} B",
+  "context.size.kb": "{0} KB",
+
+  // Kinds of context source
+  "context.kind.userInstructions": "User instructions",
+  "context.kind.projectInstructions": "Project instructions",
+  "context.kind.nestedInstructions": "Nested instructions",
+  "context.kind.import": "Imported files",
+  "context.kind.memoryIndex": "Memory index",
+  "context.kind.memoryFile": "Memory files",
+  "context.kind.skill": "Skills",
+  "context.kind.agent": "Agents",
+  "context.kind.settings": "Settings (never in the prompt)",
+
+  // How a source is loaded — "index" = a lazy body whose description is in the always-loaded index
+  "context.mode.eager": "eager",
+  "context.mode.lazy": "lazy",
+  "context.mode.index": "index",
+  "context.mode.notLoaded": "not loaded"
 }

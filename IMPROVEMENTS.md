@@ -105,21 +105,6 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
    instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
    estimate with a visible "≈".**
 
-### §II.1 Naming
-
-**Decision still open — it becomes urgent at the first user-visible string (§II.1's own task).**
-
-Suggested over "Memories & Skills": the menu item is **`Context…`** and the window is **"Context
-Load — memories, skills & instructions"**. Reasons: it names the *cost* rather than the *folders*, it
-stays correct when Claude Code adds a fifth kind of context file, it fits the app's existing
-vocabulary (usage / burn / projection), and it survives translation cleanly. "Memories & Skills"
-works as the window subtitle. `--context` as the CLI flag is already committed to, which is a mild
-argument for `Context…`.
-
-The window itself is master/detail: project list on the left (name, grade, eager tokens), source
-detail on the right. Opened from the tray menu, and previewable standalone via `--context` /
-`--context <slug>` exactly like `--settings`, so the `preview-ui` loop applies unchanged.
-
 ### §II.2 The session-zero gauge (the hero element)
 
 One honest visual at the top: a bar of eager context against the 200k window, split by source, with

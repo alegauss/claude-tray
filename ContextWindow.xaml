@@ -1,0 +1,273 @@
+<Window x:Class="ClaudeTray.ContextWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ClaudeTray"
+        x:ClassModifier="internal"
+        Title="{local:Loc context.title}"
+        Width="1000" Height="720"
+        MinWidth="880" MinHeight="620"
+        WindowStartupLocation="CenterScreen"
+        ThemeMode="System"
+        FontFamily="Segoe UI Variable Text, Segoe UI">
+
+    <Window.Resources>
+        <!-- The rounded surface that holds the project list and the detail pane. -->
+        <Style x:Key="GroupCard" TargetType="Border">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+        </Style>
+
+        <!-- Small muted label that titles a pane or a section of the detail. -->
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        </Style>
+
+        <!-- One measured number over its caption, used for the estimated / measured pair. -->
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="21" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Style>
+        <Style x:Key="StatCaption" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+
+        <!-- Column header / body cell in the source table. -->
+        <Style x:Key="ColHeader" TargetType="TextBlock" BasedOn="{StaticResource SectionHeader}">
+            <Setter Property="TextAlignment" Value="Right" />
+        </Style>
+        <Style x:Key="Cell" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextAlignment" Value="Right" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+        </Style>
+
+        <!-- One project in the master list: name + a one-line summary, with what a session in it
+             costs on the right. -->
+        <DataTemplate x:Key="ProjectItemTemplate">
+            <Grid Margin="0,2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <TextBlock Text="{Binding Detail}" FontSize="11" Margin="0,1,0,0"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="{Binding Eager}" VerticalAlignment="Center"
+                           FontSize="12" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </Grid>
+        </DataTemplate>
+
+        <!-- ===== The source table's six columns are repeated in the header, the group rows and the
+             file rows below. They are explicit pixel widths on purpose: the three templates are
+             separate visual trees, so a shared-size scope can't align a `*` first column across
+             them, and hand-matched widths stay predictable. ===== -->
+
+        <DataTemplate x:Key="SourceRowTemplate">
+            <Grid Margin="0,4,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="100" />
+                    <ColumnDefinition Width="66" />
+                    <ColumnDefinition Width="66" />
+                    <ColumnDefinition Width="66" />
+                    <ColumnDefinition Width="84" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="12" Margin="0,0,10,0"
+                           TextTrimming="CharacterEllipsis" ToolTip="{Binding FullPath}"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                <!-- "eager" / "index" / "lazy" / "not loaded": the word is the whole point of the
+                     row, so it stays plain text here — the colored chip is a later task. -->
+                <TextBlock Grid.Column="1" Text="{Binding Mode}" Style="{StaticResource Cell}"
+                           TextAlignment="Left" />
+                <TextBlock Grid.Column="2" Text="{Binding Size}" Style="{StaticResource Cell}" />
+                <TextBlock Grid.Column="3" Text="{Binding Tokens}" Style="{StaticResource Cell}" />
+                <TextBlock Grid.Column="4" Text="{Binding Eager}" Style="{StaticResource Cell}"
+                           FontWeight="{Binding EagerWeight}" />
+                <TextBlock Grid.Column="5" Text="{Binding Modified}" Style="{StaticResource Cell}"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="SourceGroupTemplate">
+            <StackPanel Margin="0,14,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="100" />
+                        <ColumnDefinition Width="66" />
+                        <ColumnDefinition Width="66" />
+                        <ColumnDefinition Width="66" />
+                        <ColumnDefinition Width="84" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{Binding Header}" FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <TextBlock Grid.Column="2" Text="{Binding Size}" Style="{StaticResource Cell}" />
+                    <TextBlock Grid.Column="3" Text="{Binding Tokens}" Style="{StaticResource Cell}" />
+                    <TextBlock Grid.Column="4" Text="{Binding Eager}" Style="{StaticResource Cell}"
+                               FontWeight="SemiBold" />
+                </Grid>
+                <Border Height="1" Margin="0,5,0,0"
+                        Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+                <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource SourceRowTemplate}" />
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /><!-- header -->
+            <RowDefinition Height="*" />   <!-- master / detail -->
+            <RowDefinition Height="Auto" /><!-- footer -->
+        </Grid.RowDefinitions>
+
+        <!-- ===== Header ===== -->
+        <StackPanel Grid.Row="0" Margin="28,22,28,0">
+            <TextBlock Text="{local:Loc context.header}" FontSize="21" FontWeight="Bold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+            <TextBlock Margin="0,4,0,0" FontSize="12.5" TextWrapping="Wrap"
+                       Text="{local:Loc context.subtitle}"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+
+        <!-- ===== Master / detail ===== -->
+        <Grid Grid.Row="1" Margin="26,16,26,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="290" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Shown instead of the panes while scanning, on a scan error, or with nothing to show. -->
+            <TextBlock x:Name="StatusText" Grid.ColumnSpan="2" Margin="4,20,4,0"
+                       FontSize="13.5" TextWrapping="Wrap" Visibility="Collapsed"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+            <!-- Master: one row per ~/.claude/projects directory, heaviest first. -->
+            <Border x:Name="MasterPane" Grid.Column="0" Style="{StaticResource GroupCard}" Padding="12,10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="{local:Loc context.projects}"
+                               Style="{StaticResource SectionHeader}" Margin="2,0,0,8" />
+                    <ListBox x:Name="ProjectList" Grid.Row="1"
+                             Background="Transparent" BorderThickness="0"
+                             HorizontalContentAlignment="Stretch"
+                             ItemTemplate="{StaticResource ProjectItemTemplate}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+                </Grid>
+            </Border>
+
+            <!-- Detail: what a session in the selected project loads. -->
+            <Border x:Name="DetailPane" Grid.Column="1" Margin="14,0,0,0"
+                    Style="{StaticResource GroupCard}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="18,16,18,18">
+                    <StackPanel>
+                        <TextBlock x:Name="ProjectTitle" FontSize="17" FontWeight="SemiBold"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock x:Name="ProjectPath" FontSize="12" Margin="0,3,0,0"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+
+                        <!-- The two honest numbers, side by side: what the files on disk add up to,
+                             and what recent sessions actually reported. They are not the same kind of
+                             number — the caption below says why. -->
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                <TextBlock x:Name="EstimatedValue" Style="{StaticResource StatValue}" />
+                                <TextBlock Text="{local:Loc context.sessionZero}"
+                                           Style="{StaticResource StatCaption}" />
+                                <TextBlock x:Name="EstimatedParts" Style="{StaticResource StatCaption}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock x:Name="ObservedValue" Style="{StaticResource StatValue}" />
+                                <TextBlock Text="{local:Loc context.observed}"
+                                           Style="{StaticResource StatCaption}" />
+                                <TextBlock x:Name="ObservedParts" Style="{StaticResource StatCaption}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock Text="{local:Loc context.baseNote}" Margin="0,12,0,0"
+                                   FontSize="11.5" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+
+                        <!-- Column header for both source tables below. -->
+                        <Grid Margin="0,22,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="100" />
+                                <ColumnDefinition Width="66" />
+                                <ColumnDefinition Width="66" />
+                                <ColumnDefinition Width="66" />
+                                <ColumnDefinition Width="84" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{local:Loc context.col.source}"
+                                       Style="{StaticResource SectionHeader}" />
+                            <TextBlock Grid.Column="1" Text="{local:Loc context.col.mode}"
+                                       Style="{StaticResource ColHeader}" TextAlignment="Left" />
+                            <TextBlock Grid.Column="2" Text="{local:Loc context.col.size}"
+                                       Style="{StaticResource ColHeader}" />
+                            <TextBlock Grid.Column="3" Text="{local:Loc context.col.tokens}"
+                                       Style="{StaticResource ColHeader}" />
+                            <TextBlock Grid.Column="4" Text="{local:Loc context.col.eager}"
+                                       Style="{StaticResource ColHeader}" />
+                            <TextBlock Grid.Column="5" Text="{local:Loc context.col.modified}"
+                                       Style="{StaticResource ColHeader}" />
+                        </Grid>
+
+                        <ItemsControl x:Name="ProjectGroups"
+                                      ItemTemplate="{StaticResource SourceGroupTemplate}" />
+
+                        <TextBlock x:Name="SharedHeader" Text="{local:Loc context.shared}"
+                                   Margin="0,26,0,0" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="{local:Loc context.shared.note}" Margin="0,3,0,0"
+                                   FontSize="11.5" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        <ItemsControl x:Name="SharedGroups"
+                                      ItemTemplate="{StaticResource SourceGroupTemplate}" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- ===== Footer: what the scan cost, and the two actions ===== -->
+        <Grid Grid.Row="2" Margin="28,16,28,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="ScanInfo" Grid.Column="0" VerticalAlignment="Center"
+                       FontSize="12" TextWrapping="Wrap" Margin="0,0,16,0"
+                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button x:Name="RescanButton" Content="{local:Loc context.refresh}"
+                        MinWidth="104" Padding="14,7" Margin="0,0,10,0" />
+                <Button x:Name="CloseButton" Content="{local:Loc context.close}"
+                        MinWidth="104" Padding="14,7" IsCancel="True" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

@@ -78,7 +78,17 @@ internal static class Program
         // fits the estimate against what the transcripts actually measured.
         if (args.Length >= 1 && args[0] == "--context")
         {
-            PrintContext(args.Skip(1).ToArray());
+            string[] contextFlags = args.Skip(1).ToArray();
+            // `--context --window [slug]` opens the real window standalone instead of printing —
+            // the same launch-and-screenshot loop as `--settings` (see the preview-ui skill). The
+            // bare `--context` stays the headless developer report it has always been.
+            if (contextFlags.Contains("--window"))
+            {
+                var contextApp = new System.Windows.Application();
+                contextApp.Run(new ContextWindow(contextFlags.FirstOrDefault(f => !f.StartsWith("--"))));
+                return;
+            }
+            PrintContext(contextFlags);
             return;
         }
 
@@ -665,6 +675,12 @@ internal sealed class TrayContext : ApplicationContext
         stats.Click += (_, _) => OpenStatistics();
         menu.Items.Add(stats);
 
+        // Opens the Context Load window: what every session in a project costs before the first
+        // prompt — the instruction chain, the memory index and the skill/agent index.
+        var context = new ToolStripMenuItem(L.T("menu.context"));
+        context.Click += (_, _) => OpenContext();
+        menu.Items.Add(context);
+
         var refresh = new ToolStripMenuItem(L.T("menu.refreshNow"));
         refresh.Click += async (_, _) => await RefreshAsync();
         menu.Items.Add(refresh);
@@ -707,6 +723,7 @@ internal sealed class TrayContext : ApplicationContext
     // one instead of stacking duplicates.
     private SettingsWindow? _settingsWindow;
     private StatisticsWindow? _statsWindow;
+    private ContextWindow? _contextWindow;
 
     // A WPF Application must exist before any WPF window (Settings, the reset toast) is shown on this
     // thread, for the Fluent theme and pack-URI resources to resolve. Hosted as a single instance for
@@ -762,6 +779,27 @@ internal sealed class TrayContext : ApplicationContext
         _statsWindow.Closed += (_, _) => _statsWindow = null;
         _statsWindow.Show();
         _statsWindow.Activate();
+    }
+
+    // Open the Context Load window (non-modal): the per-project eager/lazy breakdown of everything
+    // Claude Code loads before the first prompt. It scans on open, on its own background thread, so
+    // there is nothing to hand it here. Reuses an already-open window.
+    private void OpenContext()
+    {
+        if (_contextWindow is not null)
+        {
+            if (_contextWindow.WindowState == System.Windows.WindowState.Minimized)
+                _contextWindow.WindowState = System.Windows.WindowState.Normal;
+            _contextWindow.Activate();
+            return;
+        }
+
+        EnsureWpfApp();
+
+        _contextWindow = new ContextWindow();
+        _contextWindow.Closed += (_, _) => _contextWindow = null;
+        _contextWindow.Show();
+        _contextWindow.Activate();
     }
 
     // The reading the Statistics window charts from: the live one when healthy, otherwise the last good
