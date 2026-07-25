@@ -94,6 +94,7 @@ dotnet run -- --context --no-cache    # force a cold scan (skip %LocalAppData%\C
 dotnet run -- --context --root <dir>  # scan a fixture tree instead of ~/.claude
 dotnet run -- --context --window      # open just the Context Load window (preview)
 dotnet run -- --context --window <slug|name>   # ...opened on one project
+dotnet run -- --context --window all   # ...opened on the cross-project overview
 dotnet run -- --context --window <slug> --scroll  # ...scrolled to the source table (for screenshots)
 dotnet run -- --makeicon ClaudeTray.ico   # regenerate the multi-resolution app icon
 dotnet run -- --social docs\social-preview.png  # regenerate the social card

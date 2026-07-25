@@ -316,6 +316,7 @@
   "context.shared.note": "Loaded for every project, so they are part of every project's session zero — counted once.",
   "context.size.bytes": "{0} B",
   "context.size.kb": "{0} KB",
+  "context.size.mb": "{0} MB",
 
   // Kinds of context source
   "context.kind.userInstructions": "User instructions",
@@ -349,5 +350,29 @@
   "context.sort.eager": "Most eager tokens",
   "context.sort.tokens": "Largest file",
   "context.sort.age": "Oldest first",
-  "context.health.stale": "Untouched for {0} days"
+  "context.health.stale": "Untouched for {0} days",
+
+  // Cross-project overview ("All projects")
+  "context.all.title": "All projects",
+  "context.all.rowDetail": "{0} projects · {1}",
+  "context.all.subtitle": "{0} projects · {1} measured files · {2} on disk",
+  "context.all.footprint": "Total footprint on disk",
+  "context.all.shared": "Shared eager context, counted once",
+  "context.all.heaviestStat": "Heaviest session zero",
+  "context.all.note": "These are the files on disk. Claude Code's own {0} base overhead is paid once per session, not once per project, so it is named here rather than added in.",
+  "context.all.heaviest": "The ten heaviest eager loads",
+  "context.all.heaviestHint": "What a session in each project costs before the first prompt. Click a row to open it.",
+  "context.all.crossProject": "Problems only visible between projects",
+  "context.all.none": "Nothing to report: no duplicated memory directories, and no project directory whose real path has gone.",
+  "context.all.dup": "{0} projects hold the same {1} memory files ({2}) byte for byte: {3}",
+  "context.all.dupFix": "Keep one directory and point the others at it with a junction, so they cannot drift apart.",
+  "context.all.dead": "{0} — the project directory no longer exists, but {1} of context is still stored for it.",
+  "context.all.deadEmpty": "{0} — the project directory no longer exists; nothing is stored for it.",
+  "context.all.deadFix": "Archive the ~/.claude/projects directory for it; nothing will ever recall from it again.",
+
+  // Severity labels
+  "context.severity.high": "High",
+  "context.severity.medium": "Medium",
+  "context.severity.low": "Low",
+  "context.severity.info": "Info"
 }

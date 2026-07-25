@@ -27,8 +27,9 @@
 > `~/.claude` and already knows per-model pricing, so it is the natural place to show the number and
 > advise on it. Design in [IMPROVEMENTS.md](IMPROVEMENTS.md) §II; measured baseline §III.
 >
-> **T66–T72 and T74 shipped** (the headless scanner behind `--context`, the window with its
-> session-zero gauge and source table, and the rule engine behind `--context --check`; see
+> **T66–T74 shipped** — the whole window and the advisor's engine: the headless scanner behind
+> `--context`, the window with its session-zero gauge, source table and cross-project overview, and
+> the rule engine behind `--context --check`; see
 > [CHANGELOG.md](CHANGELOG.md) Block I). Three findings from Phase 1 bind the rest of the block and
 > are written up in §II.0: the **≈32k base overhead** no
 > scan can see is its own segment of the gauge, observed session zero needs **all three** usage terms,
@@ -37,9 +38,6 @@
 > The window is `Context…` in the tray menu, "Context Load — memories, skills & instructions" as the
 > title, and previews standalone with `--context --window [slug]` (the bare `--context` stays the
 > headless report).
-
-**The window (needs the scanner — T66–T69, all shipped):**
-- 📋 **T73** (deps: T70, T74) **Cross-project overview** — an "All projects" view: total footprint, the ten heaviest eager loads, and the duplicate/orphan clusters from the rule engine. The expensive problems are only visible *between* projects. → §II.4
 
 **The advisor (where the feature earns its place — no finding without a fix):**
 - 📋 **T75** (deps: —) **Evidence: was it ever actually used?** — mine transcripts for `Skill` invocations and memory-recall markers over 30/90 days and annotate each skill/memory "used 12×" or **"never used"**. The highest-value idea in the block: *"never invoked in 90 days and its description costs you ~180 tokens every session"* is a decision, not nagging. Names and counts only — never arguments, never content. → §II.6

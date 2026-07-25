@@ -112,9 +112,20 @@ internal partial class ContextWindow : Window
         string? keep = (ProjectList.SelectedItem as ProjectRow)?.Slug
                        ?? (_selected ? null : _initialSelection);
 
-        var rows = scan.Projects.Select(p => new ProjectRow(scan, p)).ToList();
+        // "All projects" leads the list: the duplication and dead-directory problems only exist
+        // between projects, so there has to be somewhere they are visible. The default selection is
+        // still the heaviest project — the gauge is what the window is for.
+        var rows = new List<ProjectRow> { new(scan, null) };
+        rows.AddRange(scan.Projects.Select(p => new ProjectRow(scan, p)));
         ProjectList.ItemsSource = rows;
-        ProjectList.SelectedItem = rows.FirstOrDefault(r => r.Matches(keep)) ?? rows[0];
+        // "all" selects the overview — it mirrors `--context --all` on the CLI and gives the preview
+        // loop a way to open this view, which is otherwise never the default.
+        ProjectList.SelectedItem =
+            "all".Equals(keep, StringComparison.OrdinalIgnoreCase)
+                ? rows[0]
+                : rows.FirstOrDefault(r => r.Matches(keep))
+                  ?? rows.FirstOrDefault(r => !r.IsAll)
+                  ?? rows[0];
         // The list is sorted by weight, so a project named on the command line — or simply kept
         // across a rescan — is usually below the fold; without this the selection is invisible.
         ProjectList.ScrollIntoView(ProjectList.SelectedItem);
@@ -144,15 +155,19 @@ internal partial class ContextWindow : Window
     {
         if (ProjectList.SelectedItem is not ProjectRow row) return;
 
-        ProjectTitle.Text = row.Project.ShortPath;
+        AllDetail.Visibility = row.IsAll ? Visibility.Visible : Visibility.Collapsed;
+        ProjectDetail.Visibility = row.IsAll ? Visibility.Collapsed : Visibility.Visible;
+        if (row.IsAll) { BuildAllProjects(row.Scan); ScrollToCrossProjectIssues(); return; }
+
+        ProjectTitle.Text = row.Project!.ShortPath;
         ProjectPath.Text = row.PathLine;
 
         EstimatedValue.Text = TokenEstimate.Format(row.Estimated);
         EstimatedParts.Text = L.T("context.sessionZero.parts",
             TokenEstimate.Format(row.Scan.SharedEagerTokens),
-            TokenEstimate.Format(row.Project.EagerTokens));
+            TokenEstimate.Format(row.Project!.EagerTokens));
 
-        if (row.Project.Observed is { } o)
+        if (row.Project!.Observed is { } o)
         {
             ObservedValue.Text = TokenEstimate.Format(o.Median);
             ObservedParts.Text = L.T("context.observed.parts",
@@ -162,19 +177,230 @@ internal partial class ContextWindow : Window
         else
         {
             ObservedValue.Text = "—";
-            ObservedParts.Text = L.T("context.observed.none", row.Project.TranscriptsRead);
+            ObservedParts.Text = L.T("context.observed.none", row.Project!.TranscriptsRead);
         }
 
         BuildGauge(row);
 
         var style = RowStyle.For(this, IsDarkTheme());
         SourceSort sort = (SourceSort)Math.Clamp(SortBox.SelectedIndex, 0, 2);
-        ProjectGroups.ItemsSource = SourceGroup.Build(row.Project.Sources, style, sort);
+        ProjectGroups.ItemsSource = SourceGroup.Build(row.Project!.Sources, style, sort);
         SharedGroups.ItemsSource = SourceGroup.Build(row.Scan.Shared, style, sort);
 
         // After layout, so the new rows have a height to scroll past. BringIntoView stops at the
         // top of the project's own table rather than running on to the shared section at the end.
         if (PreviewScrollToTable) Dispatcher.BeginInvoke(() => ProjectGroups.BringIntoView());
+    }
+
+    /// <summary>Preview-only, as above: bring the cross-project findings into view.</summary>
+    private void ScrollToCrossProjectIssues()
+    {
+        if (PreviewScrollToTable) Dispatcher.BeginInvoke(() => AllIssuesList.BringIntoView());
+    }
+
+    // ---------------------------------------------------------------- all projects
+
+    /// <summary>
+    /// The cross-project view. Everything here answers a question no single project can: which
+    /// projects actually carry the weight, and what is duplicated or dead between them. Worktree
+    /// siblings sharing one memory directory byte for byte is the expensive case, and it is
+    /// completely invisible from inside either of them.
+    /// </summary>
+    private void BuildAllProjects(ContextScan scan)
+    {
+        int files = scan.Shared.Count + scan.Projects.Sum(p => p.Sources.Count);
+        long bytes = scan.Shared.Sum(s => s.Bytes) + scan.Projects.Sum(p => p.Bytes);
+
+        AllSubtitle.Text = L.T("context.all.subtitle",
+            scan.Projects.Count, files, ContextText.Size(bytes));
+        AllFootprint.Text = ContextText.Size(bytes);
+        AllShared.Text = TokenEstimate.Format(scan.SharedEagerTokens);
+
+        var ranked = scan.Projects
+            .Select(p => (project: p, eager: scan.EstimatedSessionZero(p)))
+            .OrderByDescending(x => x.eager)
+            .ToList();
+
+        AllHeaviestValue.Text = ranked.Count > 0 ? TokenEstimate.Format(ranked[0].eager) : "—";
+        AllHeaviestName.Text = ranked.Count > 0 ? ranked[0].project.ShortPath : "";
+        // Per §II.0.1: the base overhead is never folded into a per-project number, and it is paid
+        // per session rather than per project — so it is named here instead of added in.
+        AllNote.Text = L.T("context.all.note", TokenEstimate.Format(_baseTokens));
+
+        BuildHeaviestList(ranked.Take(10).ToList());
+        BuildCrossProjectIssues(scan);
+    }
+
+    // One row per heavy project: name, a bar relative to the heaviest, and the number. The bar is two
+    // star-weighted columns, so it stays correct when the window is resized.
+    private void BuildHeaviestList(List<(ContextProject project, int eager)> ranked)
+    {
+        AllHeaviestList.Children.Clear();
+        if (ranked.Count == 0) return;
+
+        int max = Math.Max(1, ranked[0].eager);
+        var track = (Brush)FindResource("SubtleFillColorSecondaryBrush");
+        var fill = Freeze(new SolidColorBrush(IsDarkTheme()
+            ? Color.FromRgb(0x39, 0x87, 0xE5)
+            : Color.FromRgb(0x2A, 0x78, 0xD6)));
+
+        foreach (var (project, eager) in ranked)
+        {
+            var grid = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(200) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
+
+            var name = new TextBlock
+            {
+                Text = project.ShortPath,
+                FontSize = 12,
+                Margin = new Thickness(0, 0, 10, 0),
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)FindResource("TextFillColorPrimaryBrush"),
+            };
+            Grid.SetColumn(name, 0);
+            grid.Children.Add(name);
+
+            double ratio = Math.Clamp((double)eager / max, 0, 1);
+            var bar = new Grid { Height = 10, Margin = new Thickness(0, 0, 10, 0) };
+            bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(ratio, GridUnitType.Star) });
+            bar.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1 - ratio, GridUnitType.Star) });
+            var filled = new Border { Background = fill, CornerRadius = new CornerRadius(5) };
+            Grid.SetColumn(filled, 0);
+            bar.Children.Add(filled);
+            var barTrack = new Border
+            {
+                Background = track,
+                CornerRadius = new CornerRadius(5),
+                Height = 10,
+                Child = bar,
+            };
+            Grid.SetColumn(barTrack, 1);
+            grid.Children.Add(barTrack);
+
+            var value = new TextBlock
+            {
+                Text = TokenEstimate.Format(eager),
+                FontSize = 12,
+                TextAlignment = TextAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)FindResource("TextFillColorSecondaryBrush"),
+            };
+            Grid.SetColumn(value, 2);
+            grid.Children.Add(value);
+
+            // Clicking a row opens that project — the overview is a way in, not a dead end.
+            var hit = new Border
+            {
+                Background = Brushes.Transparent,
+                CornerRadius = new CornerRadius(4),
+                Padding = new Thickness(5, 3, 5, 3),
+                Margin = new Thickness(-5, 0, -5, 0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                Child = grid,
+                Tag = project.Slug,
+                ToolTip = project.Path.Length > 0 ? project.Path : project.Slug,
+            };
+            hit.MouseLeftButtonUp += (s, _) =>
+            {
+                if ((s as Border)?.Tag is string slug) SelectProject(slug);
+            };
+            AllHeaviestList.Children.Add(hit);
+        }
+    }
+
+    // The two findings that are inherently cross-project. Detection is the rule engine's
+    // (ContextRules owns what counts as a duplicate); the sentences are localized here, because the
+    // CLI's English and the window's five languages are different surfaces over the same fact.
+    private void BuildCrossProjectIssues(ContextScan scan)
+    {
+        AllIssuesList.Children.Clear();
+
+        var style = RowStyle.For(this, IsDarkTheme());
+        int shown = 0;
+
+        foreach (ContextRules.DuplicateCluster c in ContextRules.DuplicateMemoryDirs(scan))
+        {
+            AddIssue(style.ProblemDot, L.T("context.severity.high"),
+                L.T("context.all.dup", c.Projects.Count, c.Files, ContextText.Size(c.Bytes),
+                    string.Join(", ", c.Projects.Select(p => p.ShortPath))),
+                L.T("context.all.dupFix"));
+            shown++;
+        }
+
+        foreach (ContextProject p in scan.Projects.Where(p => p.State == PathState.Missing))
+        {
+            long bytes = p.Bytes;
+            AddIssue(bytes > 0 ? style.StaleDot : style.MutedText,
+                L.T(bytes > 0 ? "context.severity.medium" : "context.severity.low"),
+                bytes > 0
+                    ? L.T("context.all.dead", p.ShortPath, ContextText.Size(bytes))
+                    : L.T("context.all.deadEmpty", p.ShortPath),
+                L.T("context.all.deadFix"));
+            shown++;
+        }
+
+        if (shown == 0)
+            AllIssuesList.Children.Add(new TextBlock
+            {
+                Text = L.T("context.all.none"),
+                FontSize = 12,
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = (Brush)FindResource("TextFillColorSecondaryBrush"),
+            });
+    }
+
+    // Severity dot + label, the plain sentence, and the fix under it — the same shape the CLI prints,
+    // because a finding without a fix is nagging.
+    private void AddIssue(Brush dot, string severity, string message, string fix)
+    {
+        var grid = new Grid { Margin = new Thickness(0, 0, 0, 12) };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+        var mark = new System.Windows.Shapes.Ellipse
+        {
+            Width = 7, Height = 7, Fill = dot,
+            VerticalAlignment = VerticalAlignment.Top,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Margin = new Thickness(0, 5, 0, 0),
+            ToolTip = severity,
+        };
+        Grid.SetColumn(mark, 0);
+        grid.Children.Add(mark);
+
+        var text = new StackPanel();
+        text.Children.Add(new TextBlock
+        {
+            Text = message,
+            FontSize = 12,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = (Brush)FindResource("TextFillColorPrimaryBrush"),
+        });
+        text.Children.Add(new TextBlock
+        {
+            Text = fix,
+            FontSize = 11.5,
+            Margin = new Thickness(0, 2, 0, 0),
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = (Brush)FindResource("TextFillColorSecondaryBrush"),
+        });
+        Grid.SetColumn(text, 1);
+        grid.Children.Add(text);
+
+        AllIssuesList.Children.Add(grid);
+    }
+
+    /// <summary>Move the selection to a project by slug (the overview's rows link into it).</summary>
+    private void SelectProject(string slug)
+    {
+        if (ProjectList.ItemsSource is not IEnumerable<ProjectRow> rows) return;
+        if (rows.FirstOrDefault(r => !r.IsAll && r.Slug == slug) is not { } target) return;
+        ProjectList.SelectedItem = target;
+        ProjectList.ScrollIntoView(target);
+        DetailScroll.ScrollToTop();
     }
 
     // ---------------------------------------------------------------- row actions
@@ -236,7 +462,7 @@ internal partial class ContextWindow : Window
     /// </summary>
     private void BuildGauge(ProjectRow row)
     {
-        SessionZero? observed = row.Project.Observed;
+        SessionZero? observed = row.Project!.Observed;
         int window = ContextScanner.ContextWindowFor(observed?.Model);
         int total = _baseTokens + row.Estimated;
 
@@ -385,7 +611,7 @@ internal partial class ContextWindow : Window
     /// <summary>Eager tokens in one bucket, over the project's own sources and the shared ones —
     /// which is exactly what the project's session zero is made of.</summary>
     private static int Eager(ProjectRow row, Bucket bucket)
-        => row.Project.Sources.Concat(row.Scan.Shared)
+        => row.Project!.Sources.Concat(row.Scan.Shared)
             .Where(s => BucketOf(s.Kind) == bucket)
             .Sum(s => s.EagerTokens);
 
@@ -413,28 +639,43 @@ internal partial class ContextWindow : Window
 /// </summary>
 public sealed class ProjectRow
 {
-    internal ProjectRow(ContextScan scan, ContextProject project)
+    /// <param name="project">The project, or <c>null</c> for the "All projects" row that leads the list.</param>
+    internal ProjectRow(ContextScan scan, ContextProject? project)
     {
         Scan = scan;
         Project = project;
-        Estimated = scan.EstimatedSessionZero(project);
+        Estimated = project is null ? 0 : scan.EstimatedSessionZero(project);
     }
 
     internal ContextScan Scan { get; }
-    internal ContextProject Project { get; }
+    internal ContextProject? Project { get; }
+    /// <summary>True for the cross-project overview row.</summary>
+    internal bool IsAll => Project is null;
     /// <summary>Session zero as the filesystem sees it: shared eager + this project's eager.</summary>
     internal int Estimated { get; }
-    internal string Slug => Project.Slug;
+    internal string Slug => Project?.Slug ?? "";
 
-    public string Title => Project.ShortPath;
-    public string Eager => TokenEstimate.Format(Estimated);
+    public string Title => IsAll ? L.T("context.all.title") : Project!.ShortPath;
+
+    /// <summary>
+    /// What a session in this project costs. Blank for the overview row on purpose: this column means
+    /// "per session", and there is no such thing for all projects at once — the shared part would be
+    /// counted 33 times. The overview's own pane carries the three honest machine-wide numbers.
+    /// </summary>
+    public string Eager => IsAll ? "" : TokenEstimate.Format(Estimated);
 
     /// <summary>"18 sources · 6 memories", with the path state appended when it isn't a live directory.</summary>
     public string Detail
     {
         get
         {
-            int memories = Project.Sources.Count(s =>
+            // Size rather than a file count: the footer already shows how many files were *walked*
+            // (transcripts included), and two different file counts side by side read as a bug.
+            if (IsAll)
+                return L.T("context.all.rowDetail", Scan.Projects.Count,
+                    ContextText.Size(Scan.Shared.Sum(s => s.Bytes) + Scan.Projects.Sum(p => p.Bytes)));
+
+            int memories = Project!.Sources.Count(s =>
                 s.Kind is ContextKind.MemoryFile or ContextKind.MemoryIndex);
             string detail = L.T("context.project.detail", Project.Sources.Count, memories);
             return Project.State switch
@@ -451,17 +692,18 @@ public sealed class ProjectRow
     {
         get
         {
-            if (Project.Path.Length == 0) return L.T("context.state.notAPath");
+            if (Project!.Path.Length == 0) return L.T("context.state.notAPath");
             return Project.State == PathState.Missing
                 ? Project.Path + "  ·  " + L.T("context.state.missing")
                 : Project.Path;
         }
     }
 
-    /// <summary>Whether this row is the one named by a slug, directory name or full path.</summary>
+    /// <summary>Whether this row is the one named by a slug, directory name or full path. Never the
+    /// overview row — a name on the command line always means a project.</summary>
     internal bool Matches(string? name) =>
-        name is { Length: > 0 } &&
-        (Project.Slug.Equals(name, StringComparison.OrdinalIgnoreCase) ||
+        !IsAll && name is { Length: > 0 } &&
+        (Project!.Slug.Equals(name, StringComparison.OrdinalIgnoreCase) ||
          Project.Name.Equals(name, StringComparison.OrdinalIgnoreCase) ||
          Project.ShortPath.Equals(name, StringComparison.OrdinalIgnoreCase) ||
          Project.Path.Equals(name, StringComparison.OrdinalIgnoreCase));
@@ -650,7 +892,12 @@ internal static class ContextText
         _ => "context.mode.notLoaded",
     });
 
-    public static string Size(long bytes) => bytes < 1024
-        ? L.T("context.size.bytes", bytes)
-        : L.T("context.size.kb", (bytes / 1024.0).ToString("0.#", L.Culture));
+    /// <summary>Bytes / KB / MB — MB because a whole machine's footprint is megabytes, and "1434 KB"
+    /// is a number nobody reads.</summary>
+    public static string Size(long bytes) => bytes switch
+    {
+        < 1024 => L.T("context.size.bytes", bytes),
+        < 1024 * 1024 => L.T("context.size.kb", (bytes / 1024.0).ToString("0.#", L.Culture)),
+        _ => L.T("context.size.mb", (bytes / (1024.0 * 1024)).ToString("0.#", L.Culture)),
+    };
 }

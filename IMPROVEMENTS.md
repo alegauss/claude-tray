@@ -106,12 +106,6 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
    instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
    estimate with a visible "≈".**
 
-### §II.4 Cross-project overview
-
-An "All projects" view: total footprint, the ten heaviest eager loads, and the duplicate/orphan
-clusters the rule engine finds. The expensive problems — duplication across worktree siblings, dead project
-dirs — are only visible *between* projects, never inside one.
-
 ### §II.6 Evidence: was it ever actually used?
 
 Mine the transcripts for `Skill` invocations and memory-recall markers over the last 30/90 days, and

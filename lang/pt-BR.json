@@ -312,6 +312,7 @@
   "context.shared.note": "Carregadas para todos os projetos, então fazem parte da sessão zero de cada um — contadas uma só vez.",
   "context.size.bytes": "{0} B",
   "context.size.kb": "{0} KB",
+  "context.size.mb": "{0} MB",
 
   // Tipos de fonte de contexto
   "context.kind.userInstructions": "Instruções do usuário",
@@ -345,5 +346,29 @@
   "context.sort.eager": "Mais tokens fixos",
   "context.sort.tokens": "Arquivo maior",
   "context.sort.age": "Mais antigos primeiro",
-  "context.health.stale": "Sem alteração há {0} dias"
+  "context.health.stale": "Sem alteração há {0} dias",
+
+  // Visão geral entre projetos ("Todos os projetos")
+  "context.all.title": "Todos os projetos",
+  "context.all.rowDetail": "{0} projetos · {1}",
+  "context.all.subtitle": "{0} projetos · {1} arquivos medidos · {2} em disco",
+  "context.all.footprint": "Espaço total em disco",
+  "context.all.shared": "Contexto fixo compartilhado, contado uma vez",
+  "context.all.heaviestStat": "Maior sessão zero",
+  "context.all.note": "Estes são os arquivos em disco. Os {0} de sobrecarga do próprio Claude Code são pagos uma vez por sessão, não uma vez por projeto — por isso aparecem nomeados aqui, e não somados.",
+  "context.all.heaviest": "As dez maiores cargas fixas",
+  "context.all.heaviestHint": "O que uma sessão em cada projeto custa antes do primeiro prompt. Clique numa linha para abri-la.",
+  "context.all.crossProject": "Problemas que só aparecem entre projetos",
+  "context.all.none": "Nada a relatar: nenhum diretório de memória duplicado e nenhum diretório de projeto cujo caminho real tenha desaparecido.",
+  "context.all.dup": "{0} projetos têm os mesmos {1} arquivos de memória ({2}) byte por byte: {3}",
+  "context.all.dupFix": "Mantenha um diretório e aponte os outros para ele com uma junção, para que não divirjam.",
+  "context.all.dead": "{0} — o diretório do projeto não existe mais, mas ainda há {1} de contexto guardado para ele.",
+  "context.all.deadEmpty": "{0} — o diretório do projeto não existe mais; nada está guardado para ele.",
+  "context.all.deadFix": "Arquive o diretório em ~/.claude/projects; nada será recuperado dele novamente.",
+
+  // Rótulos de severidade
+  "context.severity.high": "Alta",
+  "context.severity.medium": "Média",
+  "context.severity.low": "Baixa",
+  "context.severity.info": "Informativo"
 }

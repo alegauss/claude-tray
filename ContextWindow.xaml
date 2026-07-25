@@ -223,7 +223,61 @@
                     Style="{StaticResource GroupCard}">
                 <ScrollViewer x:Name="DetailScroll" VerticalScrollBarVisibility="Auto"
                               Padding="18,16,18,18">
-                    <StackPanel>
+                  <StackPanel>
+                    <!-- ===== "All projects": the problems that are invisible inside any single
+                         project — duplication across worktree siblings, dead project directories,
+                         and which projects actually carry the weight. Filled by BuildAllProjects. -->
+                    <StackPanel x:Name="AllDetail" Visibility="Collapsed">
+                        <TextBlock Text="{local:Loc context.all.title}" FontSize="17" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock x:Name="AllSubtitle" FontSize="12" Margin="0,3,0,0"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+
+                        <Grid Margin="0,18,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                <TextBlock x:Name="AllFootprint" Style="{StaticResource StatValue}" />
+                                <TextBlock Text="{local:Loc context.all.footprint}"
+                                           Style="{StaticResource StatCaption}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                                <TextBlock x:Name="AllShared" Style="{StaticResource StatValue}" />
+                                <TextBlock Text="{local:Loc context.all.shared}"
+                                           Style="{StaticResource StatCaption}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock x:Name="AllHeaviestValue" Style="{StaticResource StatValue}" />
+                                <TextBlock Text="{local:Loc context.all.heaviestStat}"
+                                           Style="{StaticResource StatCaption}" />
+                                <TextBlock x:Name="AllHeaviestName" Style="{StaticResource StatCaption}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <TextBlock x:Name="AllNote" Margin="0,12,0,0" FontSize="11.5" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+
+                        <TextBlock Text="{local:Loc context.all.heaviest}" Margin="0,22,0,0"
+                                   FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="{local:Loc context.all.heaviestHint}" Margin="0,3,0,0"
+                                   FontSize="11" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        <StackPanel x:Name="AllHeaviestList" Margin="0,8,0,0" />
+
+                        <TextBlock Text="{local:Loc context.all.crossProject}" Margin="0,24,0,0"
+                                   FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <StackPanel x:Name="AllIssuesList" Margin="0,8,0,0" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="ProjectDetail">
                         <TextBlock x:Name="ProjectTitle" FontSize="17" FontWeight="SemiBold"
                                    TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -342,6 +396,7 @@
                         <ItemsControl x:Name="SharedGroups"
                                       ItemTemplate="{StaticResource SourceGroupTemplate}" />
                     </StackPanel>
+                  </StackPanel>
                 </ScrollViewer>
             </Border>
         </Grid>

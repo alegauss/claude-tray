@@ -195,9 +195,16 @@ internal static class ContextRules
             oldest.Path));
     }
 
+    /// <summary>
+    /// A set of projects whose memory directories are copies of each other, and what one copy holds.
+    /// Public because the cross-project view renders these too: detection lives here once, and each
+    /// surface formats its own sentence — the CLI in English, the window localized.
+    /// </summary>
+    internal sealed record DuplicateCluster(List<ContextProject> Projects, int Files, long Bytes);
+
     // Two projects whose memory hashes match file-for-file are copies. On a machine that uses git
     // worktrees this happens by construction, and the copies then drift apart independently.
-    private static void CheckDuplicateMemoryDirs(List<Finding> into, ContextScan scan)
+    public static List<DuplicateCluster> DuplicateMemoryDirs(ContextScan scan)
     {
         var bySignature = new Dictionary<string, List<ContextProject>>(StringComparer.Ordinal);
         foreach (ContextProject p in scan.Projects)
@@ -208,17 +215,24 @@ internal static class ContextRules
             group.Add(p);
         }
 
-        foreach (List<ContextProject> group in bySignature.Values.Where(g => g.Count > 1))
-        {
-            int files = group[0].Sources.Count(s => s.Kind is ContextKind.MemoryFile or ContextKind.MemoryIndex);
-            long bytes = group[0].Sources
-                .Where(s => s.Kind is ContextKind.MemoryFile or ContextKind.MemoryIndex)
-                .Sum(s => s.Bytes);
+        return bySignature.Values
+            .Where(g => g.Count > 1)
+            .Select(g => new DuplicateCluster(g,
+                g[0].Sources.Count(IsMemory),
+                g[0].Sources.Where(IsMemory).Sum(s => s.Bytes)))
+            .OrderByDescending(c => c.Bytes)
+            .ToList();
+
+        static bool IsMemory(ContextSource s) => s.Kind is ContextKind.MemoryFile or ContextKind.MemoryIndex;
+    }
+
+    private static void CheckDuplicateMemoryDirs(List<Finding> into, ContextScan scan)
+    {
+        foreach (DuplicateCluster c in DuplicateMemoryDirs(scan))
             into.Add(new Finding("memory-duplicated", RuleSeverity.High,
-                string.Join(", ", group.Select(p => p.ShortPath)),
-                $"{group.Count} projects hold the same {files} memory files ({Kb(bytes)}) byte for byte.",
+                string.Join(", ", c.Projects.Select(p => p.ShortPath)),
+                $"{c.Projects.Count} projects hold the same {c.Files} memory files ({Kb(c.Bytes)}) byte for byte.",
                 "Keep one directory and point the others at it with a junction, so they can't drift apart."));
-        }
     }
 
     /// <summary>

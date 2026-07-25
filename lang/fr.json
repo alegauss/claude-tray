@@ -312,6 +312,7 @@
   "context.shared.note": "Chargées pour tous les projets : elles font donc partie de la session zéro de chacun — comptées une seule fois.",
   "context.size.bytes": "{0} B",
   "context.size.kb": "{0} Ko",
+  "context.size.mb": "{0} Mo",
 
   // Types de source de contexte
   "context.kind.userInstructions": "Instructions utilisateur",
@@ -345,5 +346,29 @@
   "context.sort.eager": "Plus de tokens fixes",
   "context.sort.tokens": "Fichier le plus gros",
   "context.sort.age": "Les plus anciens d'abord",
-  "context.health.stale": "Inchangé depuis {0} jours"
+  "context.health.stale": "Inchangé depuis {0} jours",
+
+  // Vue inter-projets (« Tous les projets »)
+  "context.all.title": "Tous les projets",
+  "context.all.rowDetail": "{0} projets · {1}",
+  "context.all.subtitle": "{0} projets · {1} fichiers mesurés · {2} sur le disque",
+  "context.all.footprint": "Empreinte totale sur le disque",
+  "context.all.shared": "Contexte fixe partagé, compté une seule fois",
+  "context.all.heaviestStat": "Session zéro la plus lourde",
+  "context.all.note": "Ce sont les fichiers sur le disque. Les {0} de surcharge propre à Claude Code sont payés une fois par session, pas une fois par projet — ils sont donc nommés ici plutôt qu'ajoutés.",
+  "context.all.heaviest": "Les dix charges fixes les plus lourdes",
+  "context.all.heaviestHint": "Ce que coûte une session dans chaque projet avant le premier prompt. Cliquez une ligne pour l'ouvrir.",
+  "context.all.crossProject": "Problèmes visibles seulement entre projets",
+  "context.all.none": "Rien à signaler : aucun répertoire de mémoire dupliqué, et aucun répertoire de projet dont le chemin réel a disparu.",
+  "context.all.dup": "{0} projets contiennent les mêmes {1} fichiers de mémoire ({2}) octet pour octet : {3}",
+  "context.all.dupFix": "Gardez un seul répertoire et faites pointer les autres dessus par une jonction, pour qu'ils ne divergent pas.",
+  "context.all.dead": "{0} — le répertoire du projet n'existe plus, mais {1} de contexte y est toujours stocké.",
+  "context.all.deadEmpty": "{0} — le répertoire du projet n'existe plus ; rien n'y est stocké.",
+  "context.all.deadFix": "Archivez son répertoire ~/.claude/projects ; plus rien n'en sera jamais rappelé.",
+
+  // Niveaux de gravité
+  "context.severity.high": "Élevée",
+  "context.severity.medium": "Moyenne",
+  "context.severity.low": "Faible",
+  "context.severity.info": "Info"
 }
