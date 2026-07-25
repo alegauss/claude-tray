@@ -282,6 +282,7 @@
   "context.footer": "{0} projects · {1} files · {2} ms ({3})",
   "context.footer.cached": "cached",
   "context.footer.fresh": "fresh scan",
+  "context.footer.live": "· updated automatically",
   "context.truncated": "The scan hit its file/directory cap — these totals are a floor, not a total.",
 
   // Project list + detail header

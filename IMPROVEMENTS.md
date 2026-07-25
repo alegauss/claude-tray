@@ -113,12 +113,6 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
    instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
    estimate with a visible "≈".**
 
-### §II.13 Live refresh
-
-A debounced `FileSystemWatcher` on `~/.claude` so the window updates while Claude Code writes
-memories, with the watcher disposed with the window. The scan is already cheap enough (76ms warm) for
-this to be a re-scan rather than an incremental update.
-
 ### §II.14 Fixtures + dogfood
 
 This repo's own memory dir is empty, which makes it the zero-state test case. A `--context --sample`

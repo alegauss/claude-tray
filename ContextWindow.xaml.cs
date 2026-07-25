@@ -47,6 +47,14 @@ internal partial class ContextWindow : Window
     /// </summary>
     private readonly HashSet<string> _simulated = new(StringComparer.OrdinalIgnoreCase);
 
+    // Live refresh: a watcher over ~/.claude, debounced, so the numbers keep up while Claude Code is
+    // writing memories in another window. Both are disposed with the window.
+    private FileSystemWatcher? _watcher;
+    private System.Windows.Threading.DispatcherTimer? _debounce;
+    /// <summary>Set when the pending scan was triggered by a file change rather than by the user, so
+    /// the footer can say why the numbers just moved.</summary>
+    private bool _liveRefresh;
+
     /// <summary>Findings for the whole scan, recomputed when the scan or the evidence changes. A pass
     /// over data already in memory, so it is cheap enough to redo on every render.</summary>
     private List<Finding> _findings = new();
@@ -87,7 +95,82 @@ internal partial class ContextWindow : Window
         SimClearButton.Click += (_, _) => { _simulated.Clear(); ShowSelected(); };
         CopyPromptButton.Click += (_, _) => CopyCleanupPrompt(projectScope: true);
         AllCopyPromptButton.Click += (_, _) => CopyCleanupPrompt(projectScope: false);
-        Loaded += (_, _) => StartScan();
+        Loaded += (_, _) =>
+        {
+            StartScan();
+            StartWatching();
+        };
+        Closed += (_, _) => StopWatching();
+    }
+
+    /// <summary>
+    /// Watch <c>~/.claude</c> and re-scan shortly after it settles. A warm scan is ~100ms, so this can
+    /// be a plain re-scan rather than an incremental update — far less to get wrong.
+    ///
+    /// Two deliberate limits. The filter is <c>*.md</c>, which keeps the transcripts out: they are
+    /// appended to continuously by every running session, and watching them would mean re-scanning
+    /// forever. And project instruction files (<c>AGENTS.md</c> next to the code) live outside
+    /// <c>~/.claude</c>, so editing one still needs the Rescan button — watching dozens of whole repos
+    /// would cost more than it is worth, and build output would trigger it constantly.
+    /// </summary>
+    private void StartWatching()
+    {
+        try
+        {
+            string root = ContextScanner.DefaultClaudeRoot;
+            if (!Directory.Exists(root)) return;
+
+            _debounce = new System.Windows.Threading.DispatcherTimer
+            {
+                // Long enough to coalesce a burst of memory writes into one scan, short enough that
+                // the window feels live rather than stale.
+                Interval = TimeSpan.FromMilliseconds(900),
+            };
+            _debounce.Tick += (_, _) =>
+            {
+                _debounce!.Stop();
+                _liveRefresh = true;
+                StartScan();
+            };
+
+            _watcher = new FileSystemWatcher(root, "*.md")
+            {
+                IncludeSubdirectories = true,
+                NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
+                InternalBufferSize = 64 * 1024,   // a memory-writing burst shouldn't overflow the queue
+            };
+
+            void Bump() => Dispatcher.BeginInvoke(() => { _debounce?.Stop(); _debounce?.Start(); });
+            _watcher.Changed += (_, _) => Bump();
+            _watcher.Created += (_, _) => Bump();
+            _watcher.Deleted += (_, _) => Bump();
+            _watcher.Renamed += (_, _) => Bump();
+            // A watcher that has errored (buffer overflow, the directory going away) is finished; drop
+            // it and leave the user with the Rescan button rather than a silently dead feature.
+            _watcher.Error += (_, _) => Dispatcher.BeginInvoke(StopWatching);
+            _watcher.EnableRaisingEvents = true;
+        }
+        catch
+        {
+            // No watcher is a supported state: the window simply stops updating by itself.
+            StopWatching();
+        }
+    }
+
+    private void StopWatching()
+    {
+        try
+        {
+            _debounce?.Stop();
+            _debounce = null;
+            if (_watcher is { } w)
+            {
+                w.EnableRaisingEvents = false;
+                w.Dispose();
+            }
+        }
+        catch { /* disposal is best-effort */ }
+        finally { _watcher = null; }
     }
 
     // Scan off the UI thread, then render. Deliberately re-plans rather than forcing a cold walk:
@@ -205,12 +288,19 @@ internal partial class ContextWindow : Window
 
     // "33 projects · 812 files · 76 ms (cached)", plus the capped-walk warning when the file cap cut
     // the scan short — a silent cap reads as "all clear", which it isn't.
-    private static string ScanInfoText(ContextScan scan)
+    private string ScanInfoText(ContextScan scan)
     {
         string info = L.T("context.footer",
             scan.Projects.Count, scan.FilesWalked,
             scan.ElapsedMs.ToString("0", L.Culture),
             L.T(scan.FromCache ? "context.footer.cached" : "context.footer.fresh"));
+
+        // Numbers that change on their own are unsettling unless the window says why.
+        if (_liveRefresh)
+        {
+            _liveRefresh = false;
+            info += "  " + L.T("context.footer.live");
+        }
         return scan.Truncated ? info + "  " + L.T("context.truncated") : info;
     }
 

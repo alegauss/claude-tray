@@ -278,6 +278,7 @@
   "context.footer": "{0} projetos · {1} arquivos · {2} ms ({3})",
   "context.footer.cached": "em cache",
   "context.footer.fresh": "exame novo",
+  "context.footer.live": "· atualizado automaticamente",
   "context.truncated": "O exame atingiu o limite de arquivos/diretórios — estes totais são um piso, não um total.",
 
   // Lista de projetos + cabeçalho do detalhe

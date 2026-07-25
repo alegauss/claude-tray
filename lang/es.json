@@ -278,6 +278,7 @@
   "context.footer": "{0} proyectos · {1} archivos · {2} ms ({3})",
   "context.footer.cached": "en caché",
   "context.footer.fresh": "análisis nuevo",
+  "context.footer.live": "· actualizado automáticamente",
   "context.truncated": "El análisis alcanzó su límite de archivos/directorios — estos totales son un mínimo, no un total.",
 
   // Lista de proyectos + encabezado del detalle

@@ -45,3 +45,4 @@ here. This file is a terse index, not a memory.
 - **T79 SHIPPED** (Block I — opt-in context-growth nudge, off by default) — 2026-07-25.
 - **T80 SHIPPED** (Block I — localization audit, --lang override, es/fr/pt-BR verified) — 2026-07-25.
 - **T81 SHIPPED** (Block I — --context-report markdown document) — 2026-07-25.
+- **T82 SHIPPED** (Block I — debounced live refresh over ~/.claude) — 2026-07-25.
