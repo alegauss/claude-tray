@@ -19,32 +19,19 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block I — Context Load Inspector ("what every session costs you before you type") (§II)
+## Block I — Context Load Inspector ("what every session costs you before you type")
 
-> Claude Code loads the user `CLAUDE.md`, the project `CLAUDE.md`/`AGENTS.md` chain, the `MEMORY.md`
-> index and every skill's description **before the first prompt** — a fixed toll paid on every
-> request of the session, today completely invisible. This app already watches usage, already reads
-> `~/.claude` and already knows per-model pricing, so it is the natural place to show the number and
-> advise on it. Design in [IMPROVEMENTS.md](IMPROVEMENTS.md) §II; measured baseline §III.
+> **Shipped: T66–T84.** The scanner, the window (session-zero gauge, source table, cross-project
+> overview, what-if simulator), the rule engine, the evidence pass, the A–F grade with drift, the
+> opt-in nudge, live refresh, the fixture, the markdown report and the docs. See
+> [CHANGELOG.md](CHANGELOG.md) Block I for what each task did; the measured baseline the whole block
+> was calibrated against is [IMPROVEMENTS.md](IMPROVEMENTS.md) §III.
 >
-> **T66–T75 shipped** — the whole window and the advisor's engine: the headless scanner behind
-> `--context`, the window with its session-zero gauge, source table, cross-project overview and
-> what-if simulator, the rule engine behind `--context --check`, the evidence pass behind
-> `--context --usage`, the cleanup prompt behind `--context --prompt`, the A-F debt grade with its
-> drift history, and the opt-in growth nudge; see
-> [CHANGELOG.md](CHANGELOG.md) Block I). Three findings from Phase 1 bind the rest of the block and
-> are written up in §II.0: the **≈32k base overhead** no
-> scan can see is its own segment of the gauge, observed session zero needs **all three** usage terms,
-> and every displayed token count stays an estimate with a visible "≈".
->
-> The window is `Context…` in the tray menu, "Context Load — memories, skills & instructions" as the
-> title, and previews standalone with `--context --window [slug]` (the bare `--context` stays the
-> headless report).
+> In the tray menu it is `Context…`; the window is "Context Load — memories, skills & instructions".
+> Headless: `--context`, `--context --check`, `--context --usage`, `--context --prompt`,
+> `--context-report <file.md>`, `--context --sample`.
 
 - 💭 **T85** (deps: —) **Usage evidence for memory files — only if a structured signal appears** — T75 covers skills and agents, where an invocation is a real tool call in the transcript. A memory recall has no such record: the harness injects it into the conversation, so the only trace is message content, which the app never reads (§I.1). Annotating memories would therefore mean guessing, and a wrong "never used" is the one error an advisor must not make. Revisit only if Claude Code starts recording recalls as structured metadata.
-
-**Ship it properly:**
-- 📋 **T84** (deps: T70, T71, T72) **Docs** — README section with a screenshot, a `docs/index.html` block, and the privacy line restated: sizes, names, timestamps and token counts only; nothing leaves the machine. (The [AGENTS.md](AGENTS.md) file-map row shipped with T70, since a stale file map misleads the next session.) → §II.15
 
 ## Non-goals (do NOT add as tasks)
 

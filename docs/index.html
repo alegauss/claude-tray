@@ -281,6 +281,7 @@
       <a href="#statistics">Statistics</a>
       <a href="#notifications">Notifications</a>
       <a href="#insights">Insights</a>
+      <a href="#context">Context</a>
       <a href="#install">Install</a>
       <a class="btn btn-primary" href="https://github.com/alegauss/claude-tray/releases/latest">⬇ Download</a>
     </div>
@@ -488,6 +489,36 @@
   </div>
 </section>
 
+<!-- CONTEXT LOAD -->
+<section id="context">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Local · Private</div>
+      <h2>What every session costs before you type</h2>
+      <p class="sec-sub">Claude Code loads your instruction files, your memory index and every skill's description before your first prompt — a toll paid on every request of the session, and normally invisible.</p>
+    </div>
+    <div class="shot-frame reveal">
+      <img class="shot" src="context.png" alt="The Context Load window: session-zero gauge, per-source breakdown and findings">
+    </div>
+    <div class="split rev reveal" style="margin-top:28px">
+      <div class="shot-frame">
+        <img class="shot" src="context-all.png" alt="All projects: total footprint, heaviest loads, duplicated memory directories">
+      </div>
+      <div class="split-txt">
+        <h2>Then tells you what to do about it</h2>
+        <p>Every finding comes with one plain sentence and the concrete fix — and the only action is <b>Copy cleanup prompt</b>, which hands paths and numbers to Claude Code. This app measures your files; it never edits them.</p>
+        <ul class="feat-list">
+          <li><span class="chk">✓</span><span><b>Eager vs lazy</b> — a 300 KB memory directory can cost less than one bloated <code>AGENTS.md</code></span></li>
+          <li><span class="chk">✓</span><span><b>Was it ever used?</b> — skills annotated <b>45×</b> or <b>never</b>, mined from your own transcripts</span></li>
+          <li><span class="chk">✓</span><span><b>What-if</b> — tick rows and watch the gauge and the cost drop, before changing anything</span></li>
+          <li><span class="chk">✓</span><span><b>Grade &amp; drift</b> — A–F per project, and “+2.4 KB in the last 7 days”</span></li>
+          <li><span class="chk">✓</span><span><b>Between projects</b> — duplicated memory directories and dead project dirs, invisible from inside either</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- PRIVACY -->
 <section style="padding-top:20px">
   <div class="wrap reveal">
@@ -500,6 +531,9 @@
         The rate-limit reading is a single 1-token API call every 5 minutes. Nothing leaves your machine
         beyond that, and there's nothing to log into.
         Usage history is stored locally on disk and never uploaded.
+        The context scan reads only sizes, names, timestamps and frontmatter from <code>~/.claude</code> —
+        <b>never the contents of your memories, instructions or skills</b> — and it never edits them:
+        the one action it offers is copying a cleanup prompt for Claude Code to act on.
       </p>
     </div>
   </div>

@@ -6,13 +6,16 @@
 > **When a task ships, delete its design subsection here.** `git log` is the history. Letting
 > shipped implementation reports accrete in this file is the single failure mode it exists to avoid.
 >
-> Sections are Roman-numbered and referenced from the roadmap as `→ §II.3`.
+> Sections are Roman-numbered and referenced from the roadmap as `→ §III`.
 
 | § | Subject |
 |---|---|
 | [§I](#i--house-constraints) | House constraints (binding, app-wide) |
-| [§II](#ii--context-load-inspector) | Context Load Inspector (Block I) |
-| [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature |
+| [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature (kept: it is data, not design) |
+
+> Block I's design sections (§II) are gone: every one of them shipped, and `git log` plus
+> [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a **measurement** — the
+> numbers the rule thresholds and the base-overhead constant were calibrated against.
 
 ---
 
@@ -53,7 +56,7 @@ cover.
 
 ### §I.5 What NOT to build (binding non-goals)
 
-- **No tokenizer dependency.** Token counts stay estimates with a visible "≈" (§II.0.3). A real
+- **No tokenizer dependency.** Token counts stay estimates with a visible "≈". A real
   tokenizer would mean a native/managed dependency and break §I.3.
 - **Not a memory editor / not a config manager.** Measure and advise; hand the edit to Claude.
 - **No content display or export**, anywhere, ever — sizes, names, frontmatter, timestamps, counts.
@@ -66,58 +69,6 @@ cover.
   dark and the system accent all follow for free.
 - **No second source of truth for the version.** `<Version>` in `ClaudeTray.csproj`; everything else
   derives from it.
-
----
-
-## §II — Context Load Inspector
-
-**The problem.** Claude Code loads things into context *before the first prompt*: the user
-`CLAUDE.md`, the project `CLAUDE.md` / `AGENTS.md` chain, the `MEMORY.md` index of the file-based
-memory, and the frontmatter description of every available skill. That is a fixed toll paid on
-**every single request of the session**, because it sits in the cached prefix — and today it is
-completely invisible. Nobody knows their number.
-
-The tray app is already the thing that watches usage, already reads `~/.claude`, and already knows
-per-model token pricing. It is the natural place to answer: *how much of my quota do I burn just by
-opening a session in this project, and which files are worth keeping?*
-
-**The insight the whole UI hangs off.** Not everything is loaded. Total-bytes-on-disk is the wrong
-number and would only scare people:
-
-| Bucket | What's in it | Cost |
-|---|---|---|
-| **Eager** — paid every session | user + project `CLAUDE.md`/`AGENTS.md` (and `@imports`), `MEMORY.md` index, every skill's *name + description*, agent descriptions | Real. Multiplies by every request in the session. |
-| **Lazy** — paid only if used | memory file *bodies* (recalled on relevance), skill *bodies* (read on invoke), referenced `references/*.md` | Usually free. A 33 KB skill body you never trigger costs nothing. |
-| **Not loaded** — measured only | `settings.json` / `settings.local.json` | Never in the prompt. Its size is a symptom (accumulated permissions), not a cost. |
-
-So a 316 KB memory dir may cost less per session than one bloated `CLAUDE.md`. Showing that
-correctly is what turns this from a file browser into advice.
-
-### §II.0 What Phase 1 measured, and what it constrains
-
-Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
-
-1. **The invisible base overhead dominates.** ≈32k tokens (p25 30k, p75 34k) of Claude Code's own
-   system prompt + tool definitions + MCP schemas, against only ≈4k–22k of *scannable* instructions
-   across 33 real projects. A total that omits it makes a bloated project look like the whole
-   problem when it is a third of it. **Base and scannable stay separate wherever either is shown** —
-   in the gauge, in a cross-project total, and in a grade.
-2. **Observed session zero needs all three usage terms** — `input_tokens +
-   cache_creation_input_tokens + cache_read_input_tokens`. The stable prefix is shared *between*
-   sessions, so a session opened while an earlier one's cache is alive reports most of its startup
-   as a cache *read*. Counting only the creation side made 21 of 33 projects look like they had no
-   measurable startup at all.
-3. **The estimate is good but not tunable by that fit.** Corrected estimate within ±15% for 23/27
-   projects, median error 6.2%. A uniform change to the chars-per-token divisors is absorbed by the
-   fitted base, so the calibration cannot pick them; Theil–Sen over project pairs suggests
-   instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
-   estimate with a visible "≈".**
-
-### §II.15 Docs
-
-README section with a screenshot, a `docs/index.html` block, and an [AGENTS.md](AGENTS.md) file-map
-row for `ContextWindow.xaml`. Restate the privacy line explicitly: sizes, names, timestamps and
-token counts only; nothing leaves the machine.
 
 ---
 
@@ -138,5 +89,5 @@ deliberately — this file is published with the repo. The right-hand column is 
 | `type:` distribution | 93 project / 12 feedback / 2 reference / 0 user | frontmatter |
 | Plugin skills available | 31 `SKILL.md`, largest 33 KB, ≈3.1k tokens of eager descriptions | the eager/lazy split — bodies are lazy, the 31 descriptions are not |
 | `settings.json` | 87 KB | settings bloat |
-| Base overhead (system prompt + tools + MCP) | ≈32k tokens, p25 30k / p75 34k | §II.0.1 — the gauge must show it |
+| Base overhead (system prompt + tools + MCP) | ≈32k tokens, p25 30k / p75 34k | shown as its own gauge segment, never folded into a project's number |
 | Heaviest scannable eager load | ≈22k tokens (a 43 KB `AGENTS.md` + 20 KB index) | the hero number the gauge shows |

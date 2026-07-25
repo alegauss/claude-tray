@@ -144,6 +144,57 @@ weighted by per-model price (Opus/Sonnet/Haiku/Fable) so each percentage reflect
 Only token counts, model ids, and flags are read — never message content. The scan is
 bounded to files touched in the last 24h and runs in the background (refreshed on each poll).
 
+## Context load — what every session costs before you type
+
+<div align="center">
+<img src="docs/context.png" alt="The Context Load window: session-zero gauge, per-source breakdown and findings" width="88%">
+</div>
+
+Claude Code loads your instruction files, your memory index and **every skill's description**
+before your first prompt. That is a fixed toll paid on *every request* of the session, and it is
+normally invisible. **Context…** in the tray menu shows the number.
+
+- **Session-zero gauge** — one honest bar of what a session loads against the 200k window, split
+  into Claude Code's own ≈32k system prompt and tool definitions, your instructions, your memory
+  index and the skill/agent index — with what recent sessions *actually* reported drawn over it as
+  a tick. The estimate and the measurement are shown side by side, never blended.
+- **Eager vs lazy** — the distinction the whole window hangs off. A 300 KB memory directory can cost
+  less per session than one bloated `AGENTS.md`, because memory *bodies* are read only when recalled
+  while every skill *description* is loaded every single time.
+- **Was it ever actually used?** — skills and agents are annotated `45×` or `never`, mined from your
+  own transcripts. *"Never invoked in 90 days, and its description costs ≈180 tokens every session"*
+  is a decision; "trim your skills" is nagging.
+- **What to fix, and the fix** — grounded findings (oversized memory index, index pointers to
+  deleted files, memory directories duplicated between worktrees, project directories whose repo is
+  gone, 500-character skill descriptions, 40 KB of accumulated permissions…), each with one plain
+  sentence and the concrete remedy.
+- **What-if** — tick rows to see what removing them would free, live, before touching anything.
+- **A–F grade and drift** — a grade per project, plus *"+620 tokens (+2.4 KB) in the last 7 days"*
+  and a sparkline, because bloat arrives one memory at a time.
+
+An **All projects** view carries what no single project can show: total footprint, the ten heaviest
+loads, and the duplicated memory directories and dead project directories that are only visible
+*between* projects.
+
+**The app never edits your files.** The one action on a finding is **Copy cleanup prompt** — it puts
+paths and numbers on your clipboard for Claude Code to act on, asking it to show its plan before
+deleting anything. Measuring is a read; rewriting your memory directory on a size heuristic is not.
+
+Command line, all of it local:
+
+```
+--context                     per-project table
+--context --check             findings, grouped by severity
+--context --usage             which skills/agents were actually invoked (90d)
+--context --prompt [project]  the cleanup prompt the window copies
+--context-report report.md    the whole picture as one markdown file
+--context --sample            a bundled fixture where every rule fires
+```
+
+Only **sizes, names, timestamps and token estimates** are ever read — never file contents — and
+nothing leaves your machine. Token counts are estimates and always carry a visible `≈`; there is no
+tokenizer bundled, by design.
+
 ## Data source
 
 A minimal call to the Anthropic API (Haiku, 1 token) every 5 min reads the
@@ -279,6 +330,8 @@ installs pick it up automatically (see [Updates](#updates)).
 
 - **Show on icon** — Session 5h / Week 7d / Extra (remembered across restarts)
 - **Usage insights (24h)** — local cost breakdown from session transcripts (see below)
+- **Context…** — what every session in a project loads before your first prompt, what it costs,
+  and what is worth pruning (see below)
 - **Refresh now** — immediate API read
 - **Open Claude Code** — launches the Claude Code CLI so it re-authenticates and refreshes the
   OAuth token; the recovery path when the icon shows a *not authenticated* (HTTP 401) state
