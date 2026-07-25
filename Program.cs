@@ -89,6 +89,14 @@ internal static class Program
         // the first prompt. `--context` lists projects; `--context <slug-or-name>` breaks one down
         // source by source; `--context --all` does that for every project; `--context --calibrate`
         // fits the estimate against what the transcripts actually measured.
+        // The archival companion to the copy-a-prompt action: the whole picture as one markdown file,
+        // paths and numbers only (see ContextReport).
+        if (args.Length >= 1 && args[0] == "--context-report")
+        {
+            WriteContextReport(args.Length >= 2 ? args[1] : "context-report.md");
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--context")
         {
             string[] contextFlags = args.Skip(1).ToArray();
@@ -406,6 +414,41 @@ internal static class Program
                                   $"{TokenEstimate.Format(s.Tokens),8} {TokenEstimate.Format(s.EagerTokens),8}  " +
                                   $"{s.ModifiedUtc.ToLocalTime():yyyy-MM-dd}  {Clip(s.Label, 44)}" +
                                   $"{(s.Note != null ? "  ! " + s.Note : "")}");
+        }
+    }
+
+    // `--context-report <file.md>`: scan, evaluate, mine the evidence, and write it all out as one
+    // markdown document. Everything it prints about itself (path, size) is so the caller knows what it
+    // got without opening the file.
+    private static void WriteContextReport(string path)
+    {
+        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
+        DateTime now = DateTimeOffset.UtcNow.UtcDateTime;
+
+        ContextScan scan = ContextScanner.Scan(now);
+        if (scan.Error != null) { Console.WriteLine("error: " + scan.Error); return; }
+
+        UsageEvidence evidence = ContextUsage.Compute(now);
+        List<Finding> findings = ContextRules.Evaluate(scan, now, evidence);
+        var debt = scan.Projects.ToDictionary(p => p.Slug, p => ContextRules.Debt(scan, p, findings));
+        int baseTokens = ContextScanner.Calibrate(scan) is { Base: > 0 } c
+            ? (int)Math.Round(c.Base)
+            : ContextScanner.FallbackBaseTokens;
+
+        string markdown = ContextReport.Build(scan, findings, evidence, debt, baseTokens,
+            DateTimeOffset.Now.LocalDateTime);
+        try
+        {
+            string full = Path.GetFullPath(path);
+            if (Path.GetDirectoryName(full) is { Length: > 0 } dir) Directory.CreateDirectory(dir);
+            File.WriteAllText(full, markdown);
+            // Invariant, like the rest of the developer CLI: "18.9 KB" must not render as "18,9 KB".
+            Console.WriteLine(FormattableString.Invariant(
+                $"wrote {full} ({markdown.Length / 1024.0:0.#} KB, {findings.Count} findings)"));
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("error: " + e.Message);
         }
     }
 

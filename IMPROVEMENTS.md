@@ -113,12 +113,6 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
    instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
    estimate with a visible "≈".**
 
-### §II.12 Markdown report
-
-`--context-report <file.md>` writes the findings as markdown — paths and numbers only, no file
-contents (§I.1). Useful to hand straight to Claude for the cleanup, and the natural companion to the
-copy-a-prompt action shipped in T77.
-
 ### §II.13 Live refresh
 
 A debounced `FileSystemWatcher` on `~/.claude` so the window updates while Claude Code writes
