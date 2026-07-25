@@ -113,13 +113,6 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
    instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
    estimate with a visible "≈".**
 
-### §II.14 Fixtures + dogfood
-
-This repo's own memory dir is empty, which makes it the zero-state test case. A `--context --sample`
-fixture set (healthy / bloated / orphaned) lets the UI be previewed and screenshotted without
-depending on the dev's real `~/.claude`. Phase 1 already added the seam: `--context --root <dir>`
-points the scan at any tree, and was used to prove the import/cycle/orphan paths.
-
 ### §II.15 Docs
 
 README section with a screenshot, a `docs/index.html` block, and an [AGENTS.md](AGENTS.md) file-map

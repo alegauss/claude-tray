@@ -35,6 +35,7 @@ usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don'
 | `BurnTracker.cs` | Utilization history → least-squares slope → projects exhaustion (`Projection.Ok/Danger/Unknown`). |
 | `UsageInsights.cs` | Aggregates last 24h of `~/.claude/projects/**/*.jsonl` into a cost-weighted breakdown. Owns the per-model `Price` table the whole app shares. |
 | `ContextScanner.cs` | Scans every file Claude Code loads before the first prompt (instruction chain + `@imports`, memory index/files, skill & agent frontmatter), splits **eager** (paid every request) from **lazy**, measures observed session-zero from transcripts, and caches the scan by a path+size+mtime fingerprint. |
+| `ContextFixture.cs` | Builds a throwaway `~/.claude` lookalike (`--sample`) where all 16 rules fire. Use it for any published screenshot — the real machine's project names are client names. |
 | `ContextReport.cs` | Renders a whole scan as one markdown document (`--context-report`): summary, project table, findings, evidence, and the method behind the numbers. Paths and counts only. |
 | `ContextNudges.cs` | Rate limiter for the opt-in context-growth toast: at most one per project per week, remembered in `context-nudges.json`. |
 | `ContextHistory.cs` | Append-only log of each project's eager context (`context-history.jsonl`), one line per project per day and only when it moved. Feeds the drift sparkline and the "+N this week" line. |
@@ -101,9 +102,11 @@ dotnet run -- --context-report report.md   # the whole picture as one markdown f
 dotnet run -- --context --skills      # expand the folded skill/agent index instead of one summary row
 dotnet run -- --context --no-cache    # force a cold scan (skip %LocalAppData%\ClaudeTray cache)
 dotnet run -- --context --root <dir>  # scan a fixture tree instead of ~/.claude
+dotnet run -- --context --sample      # build + scan the bundled fixture (all rules fire)
 dotnet run -- --context --window      # open just the Context Load window (preview)
 dotnet run -- --context --window <slug|name>   # ...opened on one project
 dotnet run -- --context --window all   # ...opened on the cross-project overview
+dotnet run -- --context --window --sample --lang en  # the fixture, in English (for screenshots)
 dotnet run -- --context --window <slug> --scroll  # ...scrolled to the source table (for screenshots)
 dotnet run -- --context --window <slug> --simulate # ...with the 3 heaviest sources ticked (what-if)
 dotnet run -- --context --window <slug> --demo-history # ...with a synthetic drift series

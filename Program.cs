@@ -105,12 +105,24 @@ internal static class Program
             // bare `--context` stays the headless developer report it has always been.
             if (contextFlags.Contains("--window"))
             {
+                string? windowRoot = null;
+                int at = Array.IndexOf(contextFlags, "--root");
+                if (at >= 0 && at + 1 < contextFlags.Length) windowRoot = contextFlags[at + 1];
+                if (contextFlags.Contains("--sample"))
+                {
+                    try { windowRoot = ContextFixture.Build(DateTimeOffset.UtcNow.UtcDateTime); }
+                    catch (Exception e) { Console.WriteLine("error building the sample fixture: " + e.Message); return; }
+                }
+
                 var contextApp = new System.Windows.Application();
                 // Topmost like the other previews: the capture script can't always take foreground
                 // (Windows refuses the steal when another app owns it), and a screen-copy of an
                 // occluded window is a screenshot of whatever covered it.
-                contextApp.Run(new ContextWindow(contextFlags.FirstOrDefault(f => !f.StartsWith("--")))
+                // A slug/name may follow the flags; --root's value must not be mistaken for one.
+                string? select = contextFlags.FirstOrDefault(f => !f.StartsWith("--") && f != windowRoot);
+                contextApp.Run(new ContextWindow(select)
                 {
+                    ScanRoot = windowRoot,
                     Topmost = true,
                     // `--scroll` opens on the source table instead of the gauge, so the rows can be
                     // screenshotted — the pane is taller than the screen at the default size.
@@ -283,6 +295,23 @@ internal static class Program
         int rootAt = Array.IndexOf(flags, "--root");
         string? root = rootAt >= 0 && rootAt + 1 < flags.Length ? flags[rootAt + 1] : null;
         if (root != null) filter = flags.FirstOrDefault(f => !f.StartsWith("--") && f != root);
+
+        // `--sample` builds a throwaway ~/.claude lookalike and scans that instead: every rule fires
+        // on demand, and a screenshot taken from it carries no real project names.
+        if (flags.Contains("--sample"))
+        {
+            try
+            {
+                root = ContextFixture.Build(DateTimeOffset.UtcNow.UtcDateTime);
+                Console.WriteLine("sample fixture: " + root);
+                Console.WriteLine();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("error building the sample fixture: " + e.Message);
+                return;
+            }
+        }
 
         var scan = ContextScanner.Scan(DateTimeOffset.UtcNow.UtcDateTime, new ContextScanner.Options
         {

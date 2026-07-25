@@ -80,6 +80,13 @@ internal partial class ContextWindow : Window
     /// </summary>
     internal bool PreviewDemoHistory { get; set; }
 
+    /// <summary>
+    /// Scan somewhere other than <c>~/.claude</c> — a fixture tree (<c>--sample</c>) or any stand-in
+    /// (<c>--root</c>). Null means the real one. The live watcher follows it, so a fixture behaves
+    /// exactly like the real thing.
+    /// </summary>
+    internal string? ScanRoot { get; set; }
+
     /// <param name="selectSlug">Project to open on (slug, directory name or path); null = the heaviest.</param>
     public ContextWindow(string? selectSlug = null)
     {
@@ -117,7 +124,7 @@ internal partial class ContextWindow : Window
     {
         try
         {
-            string root = ContextScanner.DefaultClaudeRoot;
+            string root = ScanRoot ?? ContextScanner.DefaultClaudeRoot;
             if (!Directory.Exists(root)) return;
 
             _debounce = new System.Windows.Threading.DispatcherTimer
@@ -186,7 +193,13 @@ internal partial class ContextWindow : Window
         ContextScan scan;
         try
         {
-            scan = await Task.Run(() => ContextScanner.Scan(DateTimeOffset.UtcNow.UtcDateTime));
+            scan = await Task.Run(() => ContextScanner.Scan(DateTimeOffset.UtcNow.UtcDateTime,
+                new ContextScanner.Options
+                {
+                    ClaudeRoot = ScanRoot ?? ContextScanner.DefaultClaudeRoot,
+                    // A fixture scan must never write to (or read from) the real cache.
+                    UseCache = ScanRoot is null,
+                }));
         }
         catch (Exception e)
         {
@@ -218,8 +231,9 @@ internal partial class ContextWindow : Window
             : ContextScanner.FallbackBaseTokens;
 
         _findings = ContextRules.Evaluate(scan, DateTimeOffset.UtcNow.UtcDateTime, _evidence);
-        // One line per project per day, and only when the number moved - see ContextHistory.
-        ContextHistory.Record(scan, DateTimeOffset.UtcNow.UtcDateTime);
+        // One line per project per day, and only when the number moved - see ContextHistory. Skipped
+        // for a fixture scan: sample projects have no business in the real drift history.
+        if (ScanRoot is null) ContextHistory.Record(scan, DateTimeOffset.UtcNow.UtcDateTime);
 
         StatusText.Visibility = Visibility.Collapsed;
         MasterPane.Visibility = Visibility.Visible;
@@ -265,7 +279,12 @@ internal partial class ContextWindow : Window
         _usageRunning = true;
         try
         {
-            _evidence = await Task.Run(() => ContextUsage.Compute(DateTimeOffset.UtcNow.UtcDateTime));
+            _evidence = await Task.Run(() => ContextUsage.Compute(DateTimeOffset.UtcNow.UtcDateTime,
+                new ContextUsage.Options
+                {
+                    ClaudeRoot = ScanRoot ?? ContextScanner.DefaultClaudeRoot,
+                    UseCache = ScanRoot is null,
+                }));
             // The evidence unlocks one more rule (never-invoked), so the findings are recomputed with
             // it rather than left as they were at first render.
             if ((ProjectList.SelectedItem as ProjectRow)?.Scan is { } scan)
