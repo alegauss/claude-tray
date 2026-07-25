@@ -105,11 +105,30 @@ build-installer.cmd                   # publish + build dist\ClaudeTray-Setup.ex
 Then create a GitHub release tagged `vX.Y.Z` and attach `ClaudeTray-Setup.exe`. Installed copies
 self-update from it.
 
+## Roadmap & docs maintenance
+
+Planned and shipped work is tracked across **five root files**, each with one job. Read the
+**`roadmap-docs` skill** before adding a task, marking one shipped, or editing any of them — it holds
+the cross-file update rules, the T-number/block-letter discipline, and the one-task-one-commit rule.
+
+| File | Job |
+|---|---|
+| [`ROADMAP.md`](ROADMAP.md) | Active backlog — the only source of truth for task status. One line per task. |
+| [`CHANGELOG.md`](CHANGELOG.md) | What has shipped. One line per task; `git log` is authoritative for detail. |
+| [`IMPROVEMENTS.md`](IMPROVEMENTS.md) | Design rationale for *unshipped* work, plus §I the binding house constraints. |
+| [`STRATEGY.md`](STRATEGY.md) | Positioning, licence, distribution, the trust promise. Never a task. |
+| [`last-task.md`](last-task.md) | Next free `T<n>` + next block letter + a one-line-per-task log. |
+
+They live at the repo root on purpose: `docs/` is the published GitHub Pages site.
+
 ## Conventions
 
 - **Commits**: use `run-commit.cmd -m "<conventional-commits title>"` (stages all, AI writes body).
-  One commit per finished, validated task.
-- **Privacy**: only token counts, model ids, and flags are ever read from transcripts — never
-  message content. Keep it that way.
+  **One commit per finished, validated task — never batch two tasks into one commit**, and check
+  `git status` first, since it stages everything. A batch of ≥2 tasks runs under `/loop`, one task
+  per iteration. See the `roadmap-docs` skill.
+- **Privacy**: only token counts, model ids, flags, tool/skill names and the session `cwd` are ever
+  read from transcripts — never message content. Keep it that way.
 - **Single instance** is enforced by a named mutex; a second launch exits silently.
 - The marketing page is `docs/index.html` (GitHub Pages, served from `/docs`).
+- **New user-visible strings go into all five `lang/*.json`**, not just `en`.

@@ -1,0 +1,258 @@
+# Claude Code Tray — Design rationale (IMPROVEMENTS)
+
+> The **what/why** behind *unshipped* work. Status lives **only** in [ROADMAP.md](ROADMAP.md) and
+> [CHANGELOG.md](CHANGELOG.md) — never put ✅/📋 markers in this file's prose.
+>
+> **When a task ships, delete its design subsection here.** `git log` is the history. Letting
+> shipped implementation reports accrete in this file is the single failure mode it exists to avoid.
+>
+> Sections are Roman-numbered and referenced from the roadmap as `→ §II.3`.
+
+| § | Subject |
+|---|---|
+| [§I](#i--house-constraints) | House constraints (binding, app-wide) |
+| [§II](#ii--context-load-inspector) | Context Load Inspector (Block I) |
+| [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature |
+
+---
+
+## §I — House constraints
+
+Binding for every task. These are product decisions, not preferences — a task that violates one is
+wrong even if it works.
+
+### §I.1 Privacy promise
+
+The app reads only what Claude Code already stores locally, and from transcripts **only** usage
+counts, model ids, flags, tool/skill *names* and the session `cwd` — **never message content**. This
+is the app's whole trust model. Any new reader of `~/.claude` inherits it.
+
+### §I.2 No network beyond two endpoints
+
+The usage API (`ApiClient`) and GitHub Releases (`Updater`). Nothing else — no telemetry, no
+analytics, no crash reporting. Every scan and every computation is local.
+
+### §I.3 Zero extra dependencies
+
+The single self-contained `.exe` + installer story depends on the app having no third-party
+packages. WPF's built-in Fluent theme, GDI+ and `System.Text.Json` are the toolkit. A task that
+wants a NuGet package needs to justify breaking this first (see §I.5).
+
+### §I.4 Read-only against `~/.claude`
+
+The app observes; it does not manage Claude Code. It never edits `CLAUDE.md`, memories, skills,
+hooks, MCP servers or permissions. The one sanctioned exception under design is the archive-with-undo
+in §II.8, and it moves files rather than deleting them.
+
+### §I.5 What NOT to build (binding non-goals)
+
+- **No tokenizer dependency.** Token counts stay estimates with an honest ± (§II.2 rationale). A real
+  tokenizer would mean a native/managed dependency and break §I.3.
+- **Not a memory editor / not a config manager.** Measure and advise; hand the edit to Claude.
+- **No content display or export**, anywhere, ever — sizes, names, frontmatter, timestamps, counts.
+- **Don't swap the UI stack.** WinForms owns the tray icon (WPF has no native tray support); WPF owns
+  windows. Both live on one STA thread pumped by `Application.Run(new TrayContext())`. This is
+  settled — see [AGENTS.md](AGENTS.md).
+- **Don't stack imperative layout.** Layout is declarative XAML with explicit rows/columns; the
+  original WinForms sidebar overlapped precisely because it relied on reverse `Dock=Top` add-order.
+- **No hardcoded hex for theme-able surfaces** — `{DynamicResource}` Fluent brushes only, so light,
+  dark and the system accent all follow for free.
+- **No second source of truth for the version.** `<Version>` in `ClaudeTray.csproj`; everything else
+  derives from it.
+
+---
+
+## §II — Context Load Inspector
+
+**The problem.** Claude Code loads things into context *before the first prompt*: the user
+`CLAUDE.md`, the project `CLAUDE.md` / `AGENTS.md` chain, the `MEMORY.md` index of the file-based
+memory, and the frontmatter description of every available skill. That is a fixed toll paid on
+**every single request of the session**, because it sits in the cached prefix — and today it is
+completely invisible. Nobody knows their number.
+
+The tray app is already the thing that watches usage, already reads `~/.claude`, and already knows
+per-model token pricing. It is the natural place to answer: *how much of my quota do I burn just by
+opening a session in this project, and which files are worth keeping?*
+
+**The insight the whole UI hangs off.** Not everything is loaded. Total-bytes-on-disk is the wrong
+number and would only scare people:
+
+| Bucket | What's in it | Cost |
+|---|---|---|
+| **Eager** — paid every session | user + project `CLAUDE.md`/`AGENTS.md` (and `@imports`), `MEMORY.md` index, every skill's *name + description*, agent descriptions | Real. Multiplies by every request in the session. |
+| **Lazy** — paid only if used | memory file *bodies* (recalled on relevance), skill *bodies* (read on invoke), referenced `references/*.md` | Usually free. A 33 KB skill body you never trigger costs nothing. |
+| **Not loaded** — measured only | `settings.json` / `settings.local.json` | Never in the prompt. Its size is a symptom (accumulated permissions), not a cost. |
+
+So a 316 KB memory dir may cost less per session than one bloated `CLAUDE.md`. Showing that
+correctly is what turns this from a file browser into advice.
+
+### §II.0 What Phase 1 measured, and what it constrains
+
+Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
+
+1. **The invisible base overhead dominates.** ≈32k tokens (p25 30k, p75 34k) of Claude Code's own
+   system prompt + tool definitions + MCP schemas, against only ≈4k–22k of *scannable* instructions
+   across 33 real projects. A gauge that omits it makes a bloated project look like the whole
+   problem when it is a third of it. **The gauge in §II.2 must show base and scannable separately.**
+2. **Observed session zero needs all three usage terms** — `input_tokens +
+   cache_creation_input_tokens + cache_read_input_tokens`. The stable prefix is shared *between*
+   sessions, so a session opened while an earlier one's cache is alive reports most of its startup
+   as a cache *read*. Counting only the creation side made 21 of 33 projects look like they had no
+   measurable startup at all.
+3. **The estimate is good but not tunable by that fit.** Corrected estimate within ±15% for 23/27
+   projects, median error 6.2%. A uniform change to the chars-per-token divisors is absorbed by the
+   fitted base, so the calibration cannot pick them; Theil–Sen over project pairs suggests
+   instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
+   estimate with a visible "≈".**
+
+### §II.1 Naming
+
+**Decision still open — it becomes urgent at the first user-visible string (§II.1's own task).**
+
+Suggested over "Memories & Skills": the menu item is **`Context…`** and the window is **"Context
+Load — memories, skills & instructions"**. Reasons: it names the *cost* rather than the *folders*, it
+stays correct when Claude Code adds a fifth kind of context file, it fits the app's existing
+vocabulary (usage / burn / projection), and it survives translation cleanly. "Memories & Skills"
+works as the window subtitle. `--context` as the CLI flag is already committed to, which is a mild
+argument for `Context…`.
+
+The window itself is master/detail: project list on the left (name, grade, eager tokens), source
+detail on the right. Opened from the tray menu, and previewable standalone via `--context` /
+`--context <slug>` exactly like `--settings`, so the `preview-ui` loop applies unchanged.
+
+### §II.2 The session-zero gauge (the hero element)
+
+One honest visual at the top: a bar of eager context against the 200k window, split by source, with
+the observed measurement overlaid as a tick. Caption: tokens, ≈cost per session start, and share of
+the context window. Per §II.0.1 the base overhead is a distinct segment, not folded into the total,
+and per §II.0.3 the number carries its "≈".
+
+This single number is the reason someone opens the window; everything else is detail. It must render
+for a healthy project, a bloated one, and a project with no memory at all (this repo — the zero
+state, see §II.14).
+
+### §II.3 Source breakdown
+
+Grouped rows (Instructions / Memory / Skills / Agents), each with a kind badge, an **Eager** /
+**Lazy** / **—** chip, size, tokens, last-modified, and a health dot. A skill's chip needs to say
+*both* things — the body is lazy, its description is eager (the scanner already models this as
+`Mode = Lazy` with `EagerTokens > 0`, rendered as "index" in the CLI). Row actions: reveal in
+Explorer, open in the default editor. Sortable by tokens or by age.
+
+### §II.4 Cross-project overview
+
+An "All projects" view: total footprint, the ten heaviest eager loads, and the duplicate/orphan
+clusters from §II.5. The expensive problems — duplication across worktree siblings, dead project
+dirs — are only visible *between* projects, never inside one.
+
+### §II.5 The rule engine
+
+This is where the feature earns its place. Each finding = severity + one plain sentence + the
+concrete fix. **No finding without a fix.** Every rule below fires on the real baseline in §III, so
+none of them are hypothetical:
+
+| Rule | Severity | Fix offered |
+|---|---|---|
+| `MEMORY.md` index > ~8 KB | high — it is eager, every session | split by area / prune |
+| index pointer resolves to no file | medium | drop the line |
+| memory file with no pointer in the index | medium | add pointer or delete |
+| single memory file > 4 KB | low | "one memory = one fact" — split |
+| missing/invalid frontmatter (`name`, `description`, `type`) | medium | a description is what recall matches on; add it |
+| memory dir byte-identical to a sibling project's | high | one shared dir + junction, not two copies |
+| project dir whose real path no longer exists | medium | archive the whole dir |
+| memory untouched > 90 days | info | review queue |
+| `CLAUDE.md` > ~12 KB, or restating `AGENTS.md` | high | it is eager — trim or move detail into a skill |
+| skill `description` missing trigger words, or > ~500 chars | medium | descriptions are eager; names/descriptions are the index, bodies are not |
+| `settings.json` > ~40 KB | low | usually accumulated permissions; consolidate |
+
+The scanner already parses the frontmatter (`Name`/`Description`/`Type`) and resolves path state
+(`Resolved`/`Missing`/`NotAPath`), so most rules are a pass over the existing model rather than new
+IO.
+
+### §II.6 Evidence: was it ever actually used?
+
+Mine the transcripts for `Skill` invocations and memory-recall markers over the last 30/90 days, and
+annotate each skill/memory with "used 12×" or **"never used"**.
+
+The highest-value idea in the epic. "Trim your memory" is nagging; *"this skill has never been
+invoked in 90 days and its description costs you ~180 tokens every session"* is a decision. Prune by
+evidence. Privacy (§I.1): tool/skill *names* and counts only — never arguments, never content.
+
+### §II.7 What-if simulator
+
+Tick items to hypothetically remove; the gauge and the ≈cost update live. Nothing is written until
+"Apply". Makes the payoff of cleanup visible *before* the risk of deleting anything.
+
+### §II.8 Safe actions only
+
+Reveal / open / **copy a ready-made cleanup prompt for Claude** ("Here are the 6 stale pointers in
+MEMORY.md — fix the index"). If a destructive action ships at all it moves files to
+`memory/.archive/<date>/` with a visible undo — never a silent delete, never a bulk delete, and the
+archive must round-trip byte-identically. Per §I.4, writing into a developer's memory is a different
+risk class from reading it; hand the edit to Claude instead of guessing.
+
+### §II.9 Context debt grade + drift
+
+An A–F grade per project from eager tokens + open findings, and the eager total tracked over time
+(same shape as `UsageHistory.cs`) with "+2.1 KB this week" and a sparkline. Bloat arrives one memory
+at a time; only the trend makes it noticeable.
+
+### §II.10 Optional nudge
+
+When a project's eager context crosses a user-set threshold, one `ToastWindow`, rate-limited to at
+most once a week per project. Default **off**, with a checkbox in Settings → Notifications. The app
+already owns tasteful, color-coded toasts (Block E) — reuse, don't invent.
+
+### §II.11 Localization
+
+All new strings into `lang/en.json` first, then the other four (`pt-BR`, `pt-PT`, `fr`, `es`);
+`{local:Loc key}` in XAML, `L.T(...)` in code. Keep the `context.*` prefix in its own commented
+section. Phase 1 added **zero** keys (the CLI report is developer-facing English), so the whole
+surface arrives at once with the window.
+
+### §II.12 Markdown report
+
+`--context-report <file.md>` writes the findings as markdown — paths and numbers only, no file
+contents (§I.1). Useful to hand straight to Claude for the cleanup, and the natural companion to the
+copy-a-prompt action in §II.8.
+
+### §II.13 Live refresh
+
+A debounced `FileSystemWatcher` on `~/.claude` so the window updates while Claude Code writes
+memories, with the watcher disposed with the window. The scan is already cheap enough (76ms warm) for
+this to be a re-scan rather than an incremental update.
+
+### §II.14 Fixtures + dogfood
+
+This repo's own memory dir is empty, which makes it the zero-state test case. A `--context --sample`
+fixture set (healthy / bloated / orphaned) lets the UI be previewed and screenshotted without
+depending on the dev's real `~/.claude`. Phase 1 already added the seam: `--context --root <dir>`
+points the scan at any tree, and was used to prove the import/cycle/orphan paths.
+
+### §II.15 Docs
+
+README section with a screenshot, a `docs/index.html` block, and an [AGENTS.md](AGENTS.md) file-map
+row for `ContextWindow.xaml`. Restate the privacy line explicitly: sizes, names, timestamps and
+token counts only; nothing leaves the machine.
+
+---
+
+## §III — Measured baseline (context load)
+
+Taken from one real developer machine (33 project dirs, 19 with memory). Project names are withheld
+deliberately — this file is published with the repo. The right-hand column is the rule in §II.5 the
+observation justifies.
+
+| Observation | Value | Rule it proves |
+|---|---|---|
+| Heaviest memory dir | 122 files / 316 KB | size rules |
+| `MEMORY.md` index (eager, every session) | 20 KB ≈ 5.4k tokens | index size |
+| Index lines vs actual files | 128 vs 122 | stale pointers |
+| Largest single memory file | 18 KB | "one fact" |
+| Memory dirs byte-identical to a sibling | 2 pairs | duplication |
+| Project dirs whose path no longer exists | 2 (+1 that is not a path at all) | orphans |
+| `type:` distribution | 93 project / 12 feedback / 2 reference / 0 user | frontmatter |
+| Plugin skills available | 31 `SKILL.md`, largest 33 KB, ≈3.1k tokens of eager descriptions | the eager/lazy split — bodies are lazy, the 31 descriptions are not |
+| `settings.json` | 87 KB | settings bloat |
+| Base overhead (system prompt + tools + MCP) | ≈32k tokens, p25 30k / p75 34k | §II.0.1 — the gauge must show it |
+| Heaviest scannable eager load | ≈22k tokens (a 43 KB `AGENTS.md` + 20 KB index) | §II.2 — worth a hero number |
