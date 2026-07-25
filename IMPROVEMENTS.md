@@ -41,8 +41,15 @@ wants a NuGet package needs to justify breaking this first (see §I.5).
 ### §I.4 Read-only against `~/.claude`
 
 The app observes; it does not manage Claude Code. It never edits `CLAUDE.md`, memories, skills,
-hooks, MCP servers or permissions. The one sanctioned exception under design is the archive-with-undo
-in §II.8, and it moves files rather than deleting them.
+hooks, MCP servers or permissions.
+
+**Settled with T77: there is no exception.** The archive-with-undo that was under design (move files
+to `memory/.archive/<date>/`) was deliberately *not* built. What shipped instead is a generated
+cleanup prompt: the app writes down what it measured — paths, sizes, token estimates — and hands that
+to Claude Code, which can read the files and decide. Measuring is a read; rewriting somebody's memory
+directory on a size heuristic is a different risk class, and the tool that can actually read the file
+should be the one to touch it. Revisit only with a concrete reason the copy-a-prompt path cannot
+cover.
 
 ### §I.5 What NOT to build (binding non-goals)
 
@@ -106,14 +113,6 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
    instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
    estimate with a visible "≈".**
 
-### §II.8 Safe actions only
-
-Reveal / open / **copy a ready-made cleanup prompt for Claude** ("Here are the 6 stale pointers in
-MEMORY.md — fix the index"). If a destructive action ships at all it moves files to
-`memory/.archive/<date>/` with a visible undo — never a silent delete, never a bulk delete, and the
-archive must round-trip byte-identically. Per §I.4, writing into a developer's memory is a different
-risk class from reading it; hand the edit to Claude instead of guessing.
-
 ### §II.9 Context debt grade + drift
 
 An A–F grade per project from eager tokens + open findings, and the eager total tracked over time
@@ -137,7 +136,7 @@ surface arrives at once with the window.
 
 `--context-report <file.md>` writes the findings as markdown — paths and numbers only, no file
 contents (§I.1). Useful to hand straight to Claude for the cleanup, and the natural companion to the
-copy-a-prompt action in §II.8.
+copy-a-prompt action shipped in T77.
 
 ### §II.13 Live refresh
 

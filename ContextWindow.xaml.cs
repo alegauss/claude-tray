@@ -47,6 +47,10 @@ internal partial class ContextWindow : Window
     /// </summary>
     private readonly HashSet<string> _simulated = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Findings for the whole scan, recomputed when the scan or the evidence changes. A pass
+    /// over data already in memory, so it is cheap enough to redo on every render.</summary>
+    private List<Finding> _findings = new();
+
     /// <summary>
     /// Preview-only: once the panes are populated, scroll down to the source table so it can be
     /// screenshotted. The detail pane is taller than any screen at the default window size (the gauge
@@ -75,6 +79,8 @@ internal partial class ContextWindow : Window
         RescanButton.Click += (_, _) => StartScan();
         CloseButton.Click += (_, _) => Close();
         SimClearButton.Click += (_, _) => { _simulated.Clear(); ShowSelected(); };
+        CopyPromptButton.Click += (_, _) => CopyCleanupPrompt(projectScope: true);
+        AllCopyPromptButton.Click += (_, _) => CopyCleanupPrompt(projectScope: false);
         Loaded += (_, _) => StartScan();
     }
 
@@ -122,6 +128,8 @@ internal partial class ContextWindow : Window
             ? (int)Math.Round(c.Base)
             : ContextScanner.FallbackBaseTokens;
 
+        _findings = ContextRules.Evaluate(scan, DateTimeOffset.UtcNow.UtcDateTime, _evidence);
+
         StatusText.Visibility = Visibility.Collapsed;
         MasterPane.Visibility = Visibility.Visible;
         DetailPane.Visibility = Visibility.Visible;
@@ -165,6 +173,10 @@ internal partial class ContextWindow : Window
         try
         {
             _evidence = await Task.Run(() => ContextUsage.Compute(DateTimeOffset.UtcNow.UtcDateTime));
+            // The evidence unlocks one more rule (never-invoked), so the findings are recomputed with
+            // it rather than left as they were at first render.
+            if ((ProjectList.SelectedItem as ProjectRow)?.Scan is { } scan)
+                _findings = ContextRules.Evaluate(scan, DateTimeOffset.UtcNow.UtcDateTime, _evidence);
             ShowSelected();
         }
         catch { /* no evidence is a supported state — every consumer renders "—" for unknown */ }
@@ -280,7 +292,26 @@ internal partial class ContextWindow : Window
 
         BuildHeaviestList(ranked.Take(10).ToList());
         BuildCrossProjectIssues(scan);
+
+        // The machine-wide findings live here, with the cross-project ones — a per-project view has
+        // no business advising about ~/.claude/settings.json.
+        int machineWide = MachineFindings().Count;
+        AllFixCount.Text = machineWide > 0
+            ? L.T("context.fix.count", machineWide)
+            : L.T("context.fix.none");
+        AllFixHint.Text = L.T("context.fix.hint");
     }
+
+    /// <summary>Findings that belong to the machine rather than to one project: the shared instruction
+    /// file, the user/plugin skill index, user settings, and the cross-project clusters.</summary>
+    private List<Finding> MachineFindings()
+        => _findings
+            .Where(f => f.Scope == "~/.claude" || f.RuleId is "memory-duplicated" or "project-dir-dead"
+                        or "project-dir-dead-empty")
+            .ToList();
+
+    private List<Finding> ProjectFindings(ProjectRow row)
+        => _findings.Where(f => f.Scope == row.Project!.ShortPath).ToList();
 
     // One row per heavy project: name, a bar relative to the heaviest, and the number. The bar is two
     // star-weighted columns, so it stays correct when the window is resized.
@@ -454,6 +485,58 @@ internal partial class ContextWindow : Window
         DetailScroll.ScrollToTop();
     }
 
+    /// <summary>
+    /// Put a cleanup prompt on the clipboard: the findings for this view, each with its fix, plus
+    /// whatever the user ticked in the what-if simulator. Copying is the whole action — the app does
+    /// not edit ~/.claude, it hands the job to Claude, which can read the files and decide.
+    /// </summary>
+    private void CopyCleanupPrompt(bool projectScope)
+    {
+        if (ProjectList.SelectedItem is not ProjectRow row) return;
+
+        List<Finding> findings;
+        string title;
+        List<ContextSource> candidates = new();
+        int candidateTokens = 0;
+
+        if (projectScope && !row.IsAll)
+        {
+            findings = ProjectFindings(row);
+            title = row.Project!.Path.Length > 0 ? row.Project.Path : row.Project.ShortPath;
+            candidates = Relevant(row).Where(s => _simulated.Contains(s.Path)).ToList();
+            candidateTokens = candidates.Sum(s => s.EagerTokens);
+        }
+        else
+        {
+            findings = MachineFindings();
+            title = ContextScanner.DefaultClaudeRoot;
+        }
+
+        string prompt = ContextPrompt.Build(title, findings, candidates, candidateTokens);
+        try
+        {
+            System.Windows.Clipboard.SetText(prompt);
+            ShowCopied(projectScope, L.T("context.fix.copied"));
+        }
+        catch (Exception ex)
+        {
+            // The clipboard can genuinely be locked by another process; say so rather than silently
+            // doing nothing.
+            System.Windows.MessageBox.Show(this, L.T("context.fix.copyFailed", ex.Message),
+                L.T("dialog.appName"), System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning);
+        }
+    }
+
+    // Confirm in place, then put the hint back — a message box for "it worked" would be noise.
+    private async void ShowCopied(bool projectScope, string message)
+    {
+        TextBlock target = projectScope ? FixHint : AllFixHint;
+        target.Text = message;
+        await Task.Delay(4000);
+        if (target.Text == message) target.Text = L.T("context.fix.hint");
+    }
+
     // ---------------------------------------------------------------- row actions
 
     // Reveal and open are the only actions here, and deliberately so: this window measures
@@ -612,6 +695,10 @@ internal partial class ContextWindow : Window
         }
 
         BuildSimBanner(row, observed?.Model, window);
+
+        int fixable = ProjectFindings(row).Count;
+        FixCount.Text = fixable > 0 ? L.T("context.fix.count", fixable) : L.T("context.fix.none");
+        FixHint.Text = L.T("context.fix.hint");
 
         // Caption: the total, its share of the window, and what loading it costs on a cold cache —
         // priced with the observed session's model when there is one, else the Opus-tier default.

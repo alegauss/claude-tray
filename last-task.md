@@ -40,3 +40,4 @@ here. This file is a terse index, not a memory.
 - **T73 SHIPPED** (Block I — cross-project "All projects" overview) — 2026-07-25.
 - **T75 SHIPPED** (Block I — usage evidence for skills and agents from transcripts) — 2026-07-25.
 - **T76 SHIPPED** (Block I — what-if simulator over the gauge) — 2026-07-25.
+- **T77 SHIPPED** (Block I — cleanup prompt for Claude; no write path) — 2026-07-25.

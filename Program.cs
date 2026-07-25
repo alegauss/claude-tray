@@ -281,6 +281,14 @@ internal static class Program
             return;
         }
 
+        // `--prompt` prints the same cleanup prompt the window copies to the clipboard, so what gets
+        // handed to Claude is inspectable (and pipeable) rather than only visible in a paste.
+        if (flags.Contains("--prompt"))
+        {
+            PrintPrompt(scan, root, filter);
+            return;
+        }
+
         // `--check` is the advisor rather than the measurement: findings grouped by severity, each
         // with the concrete fix. It replaces the table because the point is what to do, not what is.
         if (flags.Contains("--check"))
@@ -427,6 +435,43 @@ internal static class Program
                 Console.WriteLine($"      fix: {f.Fix}");
             }
         }
+    }
+
+    // The cleanup prompt (`--context --prompt [project]`): exactly what the window's "Copy cleanup
+    // prompt" button puts on the clipboard. Without a project name it is the machine-wide one.
+    private static void PrintPrompt(ContextScan scan, string? root, string? filter)
+    {
+        DateTime now = DateTimeOffset.UtcNow.UtcDateTime;
+        UsageEvidence evidence = ContextUsage.Compute(now, new ContextUsage.Options
+        {
+            ClaudeRoot = root ?? ContextScanner.DefaultClaudeRoot,
+            UseCache = root == null,
+        });
+        List<Finding> all = ContextRules.Evaluate(scan, now, evidence);
+
+        ContextProject? project = filter is { Length: > 0 }
+            ? scan.Projects.FirstOrDefault(x =>
+                x.Slug.Equals(filter, StringComparison.OrdinalIgnoreCase) ||
+                x.Name.Equals(filter, StringComparison.OrdinalIgnoreCase) ||
+                x.ShortPath.Equals(filter, StringComparison.OrdinalIgnoreCase))
+            : null;
+
+        if (filter is { Length: > 0 } && project == null)
+        {
+            Console.WriteLine($"no project matching '{filter}'");
+            return;
+        }
+
+        List<Finding> findings = project is null
+            ? all.Where(f => f.Scope == "~/.claude" || f.RuleId is "memory-duplicated"
+                or "project-dir-dead" or "project-dir-dead-empty").ToList()
+            : all.Where(f => f.Scope == project.ShortPath).ToList();
+
+        string title = project is null
+            ? ContextScanner.DefaultClaudeRoot
+            : project.Path.Length > 0 ? project.Path : project.ShortPath;
+
+        Console.WriteLine(ContextPrompt.Build(title, findings, Array.Empty<ContextSource>(), 0));
     }
 
     // The evidence report (`--context --usage`): every skill and agent the scan found, with how often

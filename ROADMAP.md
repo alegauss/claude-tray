@@ -29,8 +29,8 @@
 >
 > **T66–T75 shipped** — the whole window and the advisor's engine: the headless scanner behind
 > `--context`, the window with its session-zero gauge, source table, cross-project overview and
-> what-if simulator, the rule engine behind `--context --check`, and the evidence pass behind
-> `--context --usage`; see
+> what-if simulator, the rule engine behind `--context --check`, the evidence pass behind
+> `--context --usage`, and the cleanup prompt behind `--context --prompt`; see
 > [CHANGELOG.md](CHANGELOG.md) Block I). Three findings from Phase 1 bind the rest of the block and
 > are written up in §II.0: the **≈32k base overhead** no
 > scan can see is its own segment of the gauge, observed session zero needs **all three** usage terms,
@@ -42,7 +42,6 @@
 
 **The advisor (where the feature earns its place — no finding without a fix):**
 - 💭 **T85** (deps: —) **Usage evidence for memory files — only if a structured signal appears** — T75 covers skills and agents, where an invocation is a real tool call in the transcript. A memory recall has no such record: the harness injects it into the conversation, so the only trace is message content, which the app never reads (§I.1). Annotating memories would therefore mean guessing, and a wrong "never used" is the one error an advisor must not make. Revisit only if Claude Code starts recording recalls as structured metadata.
-- 📋 **T77** (deps: T74) **Safe actions only** — reveal / open / **copy a ready-made cleanup prompt for Claude**. If a destructive action ships at all it moves files to `memory/.archive/<date>/` with a visible undo that round-trips byte-identically — never a silent or bulk delete. → §II.8
 - 💭 **T78** (deps: T74) **Context debt grade + drift** — an A–F grade per project from eager tokens + open findings, and the eager total tracked over time (same shape as `UsageHistory.cs`) with "+2.1 KB this week" and a sparkline. Bloat arrives one memory at a time; only the trend makes it noticeable. → §II.9
 - 💭 **T79** (deps: T71) **Optional nudge, in the existing toast style** — one `ToastWindow` when a project's eager context crosses a user-set threshold, rate-limited to once a week per project, default **off**, checkbox in Settings → Notifications. → §II.10
 
@@ -63,8 +62,9 @@ Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full 
   and the session `cwd` only. No content display or export anywhere in the app.
 - **No network** beyond the usage API and GitHub Releases. No telemetry, analytics or crash reporting.
 - **Not a memory editor, not a Claude Code config manager.** Hooks, MCP servers, permissions and
-  instruction files are *measured*, never edited — measure, advise, hand the edit to Claude. The one
-  sanctioned exception under design is the archive-with-undo in T77.
+  instruction files are *measured*, never edited — measure, advise, hand the edit to Claude. **T77
+  settled this: no write path at all.** The archive-with-undo was considered and dropped in favour of
+  a generated cleanup prompt (see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I.4).
 - **Don't swap the UI stack.** WinForms owns the tray icon, WPF owns windows, both on one STA thread.
   No imperative `Dock=Top` stacking; no hardcoded hex for theme-able surfaces.
 - **No second source of truth for the version** — `<Version>` in `ClaudeTray.csproj` only.

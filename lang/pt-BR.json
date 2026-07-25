@@ -384,5 +384,13 @@
   "context.sim.hint": "Simular a remoção: o medidor e o custo se atualizam, e nada muda em disco.",
   "context.sim.headline": "Simulação: {0} liberados por sessão · ≈US$ {1} por início de sessão",
   "context.sim.detail": "{0} marcados · era {1}, ficaria {2} ({3} da janela) · nada foi apagado nem alterado.",
-  "context.sim.clear": "Limpar"
+  "context.sim.clear": "Limpar",
+
+  // Ações seguras: entregar os achados ao Claude
+  "context.fix.count": "{0} coisas que vale corrigir aqui",
+  "context.fix.none": "Nada que valha corrigir aqui",
+  "context.fix.copy": "Copiar prompt de limpeza",
+  "context.fix.hint": "Copia um prompt para o Claude Code com apenas caminhos e números — pedindo que ele mostre o plano antes de apagar qualquer coisa. Este app nunca edita seus arquivos.",
+  "context.fix.copied": "Copiado. Cole no Claude Code dentro deste projeto.",
+  "context.fix.copyFailed": "Não foi possível copiar para a área de transferência:\n{0}"
 }

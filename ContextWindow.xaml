@@ -290,6 +290,29 @@
                                    FontSize="13" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                         <StackPanel x:Name="AllIssuesList" Margin="0,8,0,0" />
+
+                        <Border Margin="0,18,0,0" CornerRadius="8" Padding="12,10"
+                                Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                                BorderThickness="1"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                    <TextBlock x:Name="AllFixCount" FontSize="13" FontWeight="SemiBold"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <TextBlock x:Name="AllFixHint" FontSize="11.5" Margin="0,3,0,0"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                                <Button x:Name="AllCopyPromptButton" Grid.Column="1"
+                                        Content="{local:Loc context.fix.copy}"
+                                        VerticalAlignment="Center" Padding="14,7" />
+                            </Grid>
+                        </Border>
                     </StackPanel>
 
                     <StackPanel x:Name="ProjectDetail">
@@ -378,6 +401,32 @@
                         <TextBlock Text="{local:Loc context.baseNote}" Margin="0,12,0,0"
                                    FontSize="11.5" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+
+                        <!-- ===== The one action that acts on findings: hand them to Claude. The
+                             window itself never edits ~/.claude (§I.4) — it writes down what it
+                             measured and lets the tool that can read the files do the editing. ===== -->
+                        <Border Margin="0,20,0,0" CornerRadius="8" Padding="12,10"
+                                Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                                BorderThickness="1"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                                    <TextBlock x:Name="FixCount" FontSize="13" FontWeight="SemiBold"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <TextBlock x:Name="FixHint" FontSize="11.5" Margin="0,3,0,0"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                                <Button x:Name="CopyPromptButton" Grid.Column="1"
+                                        Content="{local:Loc context.fix.copy}"
+                                        VerticalAlignment="Center" Padding="14,7" />
+                            </Grid>
+                        </Border>
 
                         <!-- Row actions + sort. The hint carries its own discoverability: a row's
                              actions live on its context menu, which nothing else would advertise. -->

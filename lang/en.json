@@ -388,5 +388,13 @@
   "context.sim.hint": "Simulate removing this: the gauge and the cost update, and nothing on disk changes.",
   "context.sim.headline": "Simulated: {0} freed per session · ≈${1} per session start",
   "context.sim.detail": "{0} ticked · was {1}, would be {2} ({3} of the window) · nothing has been deleted or changed.",
-  "context.sim.clear": "Clear"
+  "context.sim.clear": "Clear",
+
+  // Safe actions: hand the findings to Claude
+  "context.fix.count": "{0} things worth fixing here",
+  "context.fix.none": "Nothing worth fixing here",
+  "context.fix.copy": "Copy cleanup prompt",
+  "context.fix.hint": "Copies a prompt for Claude Code listing paths and numbers only — and asking it to show its plan before deleting anything. This app never edits your files.",
+  "context.fix.copied": "Copied. Paste it into Claude Code in this project.",
+  "context.fix.copyFailed": "Couldn't copy to the clipboard:\n{0}"
 }

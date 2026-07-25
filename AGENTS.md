@@ -35,6 +35,7 @@ usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don'
 | `BurnTracker.cs` | Utilization history → least-squares slope → projects exhaustion (`Projection.Ok/Danger/Unknown`). |
 | `UsageInsights.cs` | Aggregates last 24h of `~/.claude/projects/**/*.jsonl` into a cost-weighted breakdown. Owns the per-model `Price` table the whole app shares. |
 | `ContextScanner.cs` | Scans every file Claude Code loads before the first prompt (instruction chain + `@imports`, memory index/files, skill & agent frontmatter), splits **eager** (paid every request) from **lazy**, measures observed session-zero from transcripts, and caches the scan by a path+size+mtime fingerprint. |
+| `ContextPrompt.cs` | Builds the cleanup prompt handed to Claude Code: findings + fixes + paths, never file contents, and it asks Claude to show its plan before deleting. The app has **no** write path into `~/.claude` — see IMPROVEMENTS §I.4. |
 | `ContextUsage.cs` | Mines the transcripts for `Skill`/agent invocations (names and counts only) so the window can say "used 45×" or "never". Per-file cache; runs outside `Scan` because it reads hundreds of MB. Memory recalls are deliberately not counted — see the type doc. |
 | `ContextRules.cs` | The advisor over a `ContextScan`: grounded rules → `Finding` (severity + one sentence + the concrete fix). No new IO and never file contents; narrowed to what is objectively measurable so it doesn't cry wolf. |
 | `TokenEstimate.cs` | Chars→tokens estimation for markdown, classified per line (prose / code fence / table). Always rendered as an estimate ("≈4.9k"). |
@@ -91,6 +92,7 @@ dotnet run -- --context --all         # every project in full detail
 dotnet run -- --context --calibrate   # estimate vs. transcript-measured session zero, and the fit
 dotnet run -- --context --check       # the rule engine's findings, grouped by severity
 dotnet run -- --context --usage       # which skills/agents were actually invoked (90d)
+dotnet run -- --context --prompt [project]  # the cleanup prompt the window copies
 dotnet run -- --context --skills      # expand the folded skill/agent index instead of one summary row
 dotnet run -- --context --no-cache    # force a cold scan (skip %LocalAppData%\ClaudeTray cache)
 dotnet run -- --context --root <dir>  # scan a fixture tree instead of ~/.claude

@@ -384,5 +384,13 @@
   "context.sim.hint": "Simuler la suppression : la jauge et le coût se mettent à jour, et rien ne change sur le disque.",
   "context.sim.headline": "Simulation : {0} libérés par session · ≈{1} $ par démarrage de session",
   "context.sim.detail": "{0} cochés · était {1}, serait {2} ({3} de la fenêtre) · rien n'a été supprimé ni modifié.",
-  "context.sim.clear": "Effacer"
+  "context.sim.clear": "Effacer",
+
+  // Actions sûres : confier les constats à Claude
+  "context.fix.count": "{0} points à corriger ici",
+  "context.fix.none": "Rien à corriger ici",
+  "context.fix.copy": "Copier le prompt de nettoyage",
+  "context.fix.hint": "Copie un prompt pour Claude Code contenant uniquement des chemins et des nombres — en lui demandant de montrer son plan avant de supprimer quoi que ce soit. Cette app ne modifie jamais vos fichiers.",
+  "context.fix.copied": "Copié. Collez-le dans Claude Code dans ce projet.",
+  "context.fix.copyFailed": "Impossible de copier dans le presse-papiers :\n{0}"
 }
