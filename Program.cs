@@ -97,6 +97,9 @@ internal static class Program
                     // `--simulate` pre-ticks the three heaviest removable sources, so the what-if
                     // banner can be screenshotted without a mouse.
                     PreviewSimulateTop = contextFlags.Contains("--simulate"),
+                    // `--demo-history` draws the drift row from a synthetic series, so the sparkline
+                    // can be screenshotted before weeks of real history exist.
+                    PreviewDemoHistory = contextFlags.Contains("--demo-history"),
                 });
                 return;
             }

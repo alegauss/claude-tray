@@ -64,9 +64,20 @@
                                TextTrimming="CharacterEllipsis"
                                Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                 </StackPanel>
-                <TextBlock Grid.Column="1" Text="{Binding Eager}" VerticalAlignment="Center"
-                           FontSize="12" FontWeight="SemiBold"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Eager}" VerticalAlignment="Center"
+                               FontSize="12" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <!-- Context-debt grade. A letter is an authority claim, so it always travels with
+                         its inputs — the tooltip spells out the tokens and findings behind it. -->
+                    <Border Margin="8,0,0,0" CornerRadius="4" Padding="5,1" MinWidth="20"
+                            Visibility="{Binding GradeVisibility}"
+                            Background="{Binding GradeBrush}" ToolTip="{Binding GradeTip}">
+                        <TextBlock Text="{Binding Grade}" FontSize="11" FontWeight="Bold"
+                                   TextAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    </Border>
+                </StackPanel>
             </Grid>
         </DataTemplate>
 
@@ -316,9 +327,16 @@
                     </StackPanel>
 
                     <StackPanel x:Name="ProjectDetail">
-                        <TextBlock x:Name="ProjectTitle" FontSize="17" FontWeight="SemiBold"
-                                   TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="ProjectTitle" FontSize="17" FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <Border x:Name="GradeChip" Margin="10,0,0,0" CornerRadius="5" Padding="8,2"
+                                    VerticalAlignment="Center">
+                                <TextBlock x:Name="GradeText" FontSize="12" FontWeight="Bold"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Border>
+                        </StackPanel>
                         <TextBlock x:Name="ProjectPath" FontSize="12" Margin="0,3,0,0"
                                    TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
@@ -344,6 +362,20 @@
                         <!-- Every segment is direct-labeled here with its own number, so identity is
                              never carried by color alone. -->
                         <WrapPanel x:Name="GaugeLegend" Margin="0,9,0,0" />
+
+                        <!-- ===== Drift: bloat arrives one memory at a time, so the trend is the only
+                             thing that makes it noticeable. Collapsed until there is history. ===== -->
+                        <Grid x:Name="DriftRow" Visibility="Collapsed" Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Canvas x:Name="DriftSpark" Grid.Column="0" Width="132" Height="26"
+                                    VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <TextBlock x:Name="DriftText" Grid.Column="1" FontSize="12"
+                                       VerticalAlignment="Center" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        </Grid>
 
                         <!-- ===== What-if: what the ticked rows would give back. Collapsed until
                              something is ticked. Nothing here writes to disk — the gauge above is

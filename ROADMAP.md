@@ -30,7 +30,8 @@
 > **T66–T75 shipped** — the whole window and the advisor's engine: the headless scanner behind
 > `--context`, the window with its session-zero gauge, source table, cross-project overview and
 > what-if simulator, the rule engine behind `--context --check`, the evidence pass behind
-> `--context --usage`, and the cleanup prompt behind `--context --prompt`; see
+> `--context --usage`, the cleanup prompt behind `--context --prompt`, and the A-F debt grade
+> with its drift history; see
 > [CHANGELOG.md](CHANGELOG.md) Block I). Three findings from Phase 1 bind the rest of the block and
 > are written up in §II.0: the **≈32k base overhead** no
 > scan can see is its own segment of the gauge, observed session zero needs **all three** usage terms,
@@ -42,7 +43,6 @@
 
 **The advisor (where the feature earns its place — no finding without a fix):**
 - 💭 **T85** (deps: —) **Usage evidence for memory files — only if a structured signal appears** — T75 covers skills and agents, where an invocation is a real tool call in the transcript. A memory recall has no such record: the harness injects it into the conversation, so the only trace is message content, which the app never reads (§I.1). Annotating memories would therefore mean guessing, and a wrong "never used" is the one error an advisor must not make. Revisit only if Claude Code starts recording recalls as structured metadata.
-- 💭 **T78** (deps: T74) **Context debt grade + drift** — an A–F grade per project from eager tokens + open findings, and the eager total tracked over time (same shape as `UsageHistory.cs`) with "+2.1 KB this week" and a sparkline. Bloat arrives one memory at a time; only the trend makes it noticeable. → §II.9
 - 💭 **T79** (deps: T71) **Optional nudge, in the existing toast style** — one `ToastWindow` when a project's eager context crosses a user-set threshold, rate-limited to once a week per project, default **off**, checkbox in Settings → Notifications. → §II.10
 
 **Ship it properly:**

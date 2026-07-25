@@ -396,5 +396,11 @@
   "context.fix.copy": "Copy cleanup prompt",
   "context.fix.hint": "Copies a prompt for Claude Code listing paths and numbers only — and asking it to show its plan before deleting anything. This app never edits your files.",
   "context.fix.copied": "Copied. Paste it into Claude Code in this project.",
-  "context.fix.copyFailed": "Couldn't copy to the clipboard:\n{0}"
+  "context.fix.copyFailed": "Couldn't copy to the clipboard:\n{0}",
+
+  // Context debt grade + drift
+  "context.grade.tip": "Grade {0} — from {1} of eager context plus {2} open findings ({3} high, {4} medium, {5} low). A summary, not a verdict: the numbers above it are the measurement.",
+  "context.drift.up": "+{0} tokens (+{1}) in the last {2} days",
+  "context.drift.down": "−{0} tokens (−{1}) in the last {2} days",
+  "context.drift.building": "Tracking drift: {0} measurements over {1} days so far — a weekly comparison needs a week of history."
 }

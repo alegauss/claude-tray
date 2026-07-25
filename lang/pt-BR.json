@@ -392,5 +392,11 @@
   "context.fix.copy": "Copiar prompt de limpeza",
   "context.fix.hint": "Copia um prompt para o Claude Code com apenas caminhos e números — pedindo que ele mostre o plano antes de apagar qualquer coisa. Este app nunca edita seus arquivos.",
   "context.fix.copied": "Copiado. Cole no Claude Code dentro deste projeto.",
-  "context.fix.copyFailed": "Não foi possível copiar para a área de transferência:\n{0}"
+  "context.fix.copyFailed": "Não foi possível copiar para a área de transferência:\n{0}",
+
+  // Nota de dívida de contexto + deriva
+  "context.grade.tip": "Nota {0} — de {1} de contexto fixo mais {2} achados abertos ({3} alta, {4} média, {5} baixa). Um resumo, não um veredito: os números acima dele são a medição.",
+  "context.drift.up": "+{0} tokens (+{1}) nos últimos {2} dias",
+  "context.drift.down": "−{0} tokens (−{1}) nos últimos {2} dias",
+  "context.drift.building": "Acompanhando a deriva: {0} medições em {1} dias até agora — uma comparação semanal precisa de uma semana de histórico."
 }

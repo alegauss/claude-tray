@@ -113,12 +113,6 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
    instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
    estimate with a visible "≈".**
 
-### §II.9 Context debt grade + drift
-
-An A–F grade per project from eager tokens + open findings, and the eager total tracked over time
-(same shape as `UsageHistory.cs`) with "+2.1 KB this week" and a sparkline. Bloat arrives one memory
-at a time; only the trend makes it noticeable.
-
 ### §II.10 Optional nudge
 
 When a project's eager context crosses a user-set threshold, one `ToastWindow`, rate-limited to at

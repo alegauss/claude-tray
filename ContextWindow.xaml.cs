@@ -66,6 +66,12 @@ internal partial class ContextWindow : Window
     /// </summary>
     internal bool PreviewSimulateTop { get; set; }
 
+    /// <summary>
+    /// Preview-only: draw the drift row from a synthetic series. Real history needs weeks to
+    /// accumulate, and a feature nobody can look at cannot be verified.
+    /// </summary>
+    internal bool PreviewDemoHistory { get; set; }
+
     /// <param name="selectSlug">Project to open on (slug, directory name or path); null = the heaviest.</param>
     public ContextWindow(string? selectSlug = null)
     {
@@ -129,6 +135,8 @@ internal partial class ContextWindow : Window
             : ContextScanner.FallbackBaseTokens;
 
         _findings = ContextRules.Evaluate(scan, DateTimeOffset.UtcNow.UtcDateTime, _evidence);
+        // One line per project per day, and only when the number moved - see ContextHistory.
+        ContextHistory.Record(scan, DateTimeOffset.UtcNow.UtcDateTime);
 
         StatusText.Visibility = Visibility.Collapsed;
         MasterPane.Visibility = Visibility.Visible;
@@ -143,8 +151,10 @@ internal partial class ContextWindow : Window
         // "All projects" leads the list: the duplication and dead-directory problems only exist
         // between projects, so there has to be somewhere they are visible. The default selection is
         // still the heaviest project — the gauge is what the window is for.
+        var listStyle = RowStyle.For(this, IsDarkTheme());
         var rows = new List<ProjectRow> { new(scan, null) };
-        rows.AddRange(scan.Projects.Select(p => new ProjectRow(scan, p)));
+        rows.AddRange(scan.Projects.Select(p =>
+            new ProjectRow(scan, p, ContextRules.Debt(scan, p, _findings), listStyle)));
         ProjectList.ItemsSource = rows;
         // "all" selects the overview — it mirrors `--context --all` on the CLI and gives the preview
         // loop a way to open this view, which is otherwise never the default.
@@ -696,6 +706,9 @@ internal partial class ContextWindow : Window
 
         BuildSimBanner(row, observed?.Model, window);
 
+        BuildGrade(row);
+        BuildDrift(row);
+
         int fixable = ProjectFindings(row).Count;
         FixCount.Text = fixable > 0 ? L.T("context.fix.count", fixable) : L.T("context.fix.none");
         FixHint.Text = L.T("context.fix.hint");
@@ -713,6 +726,82 @@ internal partial class ContextWindow : Window
         foreach (var (label, tokens, color) in segments)
             AddLegendItem(label, tokens, Freeze(new SolidColorBrush(color)), window);
         AddLegendItem(L.T("context.gauge.free"), free, track, window);
+    }
+
+    // The grade chip beside the project title, with its inputs in the tooltip.
+    private void BuildGrade(ProjectRow row)
+    {
+        if (row.Debt is not { } debt)
+        {
+            GradeChip.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        GradeChip.Visibility = Visibility.Visible;
+        GradeChip.Background = RowStyle.For(this, IsDarkTheme()).GradeChip(debt.Grade);
+        GradeText.Text = debt.Grade.ToString();
+        GradeChip.ToolTip = row.GradeTip;
+    }
+
+    /// <summary>
+    /// The drift line: what this project&apos;s eager context did over the last weeks. Without history
+    /// there is nothing honest to draw, so the row stays hidden rather than showing a flat line that
+    /// would read as "stable".
+    /// </summary>
+    private void BuildDrift(ProjectRow row)
+    {
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        ContextTrend? trend = PreviewDemoHistory
+            ? ContextHistory.Demo(row.Estimated, row.Project!.Bytes, now)
+            : ContextHistory.Trend(row.Slug, DateTimeOffset.UtcNow.UtcDateTime);
+
+        DriftSpark.Children.Clear();
+        if (trend is null || !trend.CanDraw)
+        {
+            DriftRow.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        DriftRow.Visibility = Visibility.Visible;
+        DriftText.Text = trend.HasBaseline
+            ? L.T(trend.DeltaTokens >= 0 ? "context.drift.up" : "context.drift.down",
+                TokenEstimate.Format(Math.Abs(trend.DeltaTokens)),
+                ContextText.Size(Math.Abs(trend.DeltaBytes)), ContextHistory.WeekDays)
+            : L.T("context.drift.building", trend.Points.Count, trend.SpanDays);
+
+        DrawSparkline(trend);
+    }
+
+    // A sparkline of the eager total, min-max scaled over its samples so the shape of the change is
+    // visible even when the absolute movement is small.
+    private void DrawSparkline(ContextTrend trend)
+    {
+        double w = DriftSpark.Width, h = DriftSpark.Height;
+        int min = trend.Points.Min(s => s.Eager);
+        int max = trend.Points.Max(s => s.Eager);
+        double span = Math.Max(1, max - min);
+        long t0 = trend.Points[0].T, t1 = trend.Points[^1].T;
+        double dt = Math.Max(1, t1 - t0);
+
+        var line = new System.Windows.Shapes.Polyline
+        {
+            Stroke = Freeze(new SolidColorBrush(IsDarkTheme()
+                ? Color.FromRgb(0x39, 0x87, 0xE5)
+                : Color.FromRgb(0x2A, 0x78, 0xD6))),
+            StrokeThickness = 1.6,
+            StrokeLineJoin = PenLineJoin.Round,
+        };
+        foreach (ContextSample s in trend.Points)
+            line.Points.Add(new System.Windows.Point(
+                (s.T - t0) / dt * (w - 2) + 1,
+                h - 3 - (s.Eager - min) / span * (h - 6)));
+        DriftSpark.Children.Add(line);
+
+        // The latest sample gets a dot: it is the number every other panel is talking about.
+        var dot = new System.Windows.Shapes.Ellipse { Width = 4, Height = 4, Fill = line.Stroke };
+        System.Windows.Controls.Canvas.SetLeft(dot, line.Points[^1].X - 2);
+        System.Windows.Controls.Canvas.SetTop(dot, line.Points[^1].Y - 2);
+        DriftSpark.Children.Add(dot);
     }
 
     /// <summary>
@@ -836,15 +925,31 @@ internal partial class ContextWindow : Window
 public sealed class ProjectRow
 {
     /// <param name="project">The project, or <c>null</c> for the "All projects" row that leads the list.</param>
-    internal ProjectRow(ContextScan scan, ContextProject? project)
+    /// <param name="debt">Its context-debt grade, or null for the overview row.</param>
+    /// <param name="style">Theme-resolved brushes, for the grade chip.</param>
+    internal ProjectRow(ContextScan scan, ContextProject? project, ContextDebt? debt = null,
+        RowStyle? style = null)
     {
         Scan = scan;
         Project = project;
+        Debt = debt;
+        GradeVisibility = debt is null ? Visibility.Collapsed : Visibility.Visible;
+        GradeBrush = debt is null || style is null ? Brushes.Transparent : style.GradeChip(debt.Grade);
+        GradeTip = debt is null
+            ? null
+            : L.T("context.grade.tip", debt.Grade, TokenEstimate.Format(debt.EagerTokens),
+                debt.Findings, debt.High, debt.Medium, debt.Low);
         Estimated = project is null ? 0 : scan.EstimatedSessionZero(project);
     }
 
     internal ContextScan Scan { get; }
     internal ContextProject? Project { get; }
+    internal ContextDebt? Debt { get; }
+
+    public string Grade => Debt?.Grade.ToString() ?? "";
+    public Visibility GradeVisibility { get; }
+    public Brush GradeBrush { get; }
+    public string? GradeTip { get; }
     /// <summary>True for the cross-project overview row.</summary>
     internal bool IsAll => Project is null;
     /// <summary>Session zero as the filesystem sees it: shared eager + this project's eager.</summary>
@@ -922,8 +1027,17 @@ internal enum SourceSort
 /// </summary>
 internal sealed record RowStyle(
     Brush EagerChip, Brush IndexChip, Brush LazyChip, Brush ChipText, Brush LazyChipText,
-    Brush MutedText, Brush ProblemDot, Brush StaleDot)
+    Brush MutedText, Brush ProblemDot, Brush StaleDot, Brush GoodChip, Brush WarnChip, Brush BadChip)
 {
+    /// <summary>Green / amber / red tint for A-B, C-D and F. Three tones rather than five: the letter
+    /// carries the detail, and five shades of one hue are not distinguishable anyway.</summary>
+    public Brush GradeChip(DebtGrade grade) => grade switch
+    {
+        DebtGrade.A or DebtGrade.B => GoodChip,
+        DebtGrade.C or DebtGrade.D => WarnChip,
+        _ => BadChip,
+    };
+
     public static RowStyle For(FrameworkElement host, bool dark)
     {
         Brush Tint(byte r, byte g, byte b) => Frozen(new SolidColorBrush(
@@ -943,7 +1057,10 @@ internal sealed record RowStyle(
                 : Color.FromRgb(0xC4, 0x3E, 0x3E))),
             StaleDot: Frozen(new SolidColorBrush(dark
                 ? Color.FromRgb(0xE0, 0xA0, 0x30)
-                : Color.FromRgb(0xC7, 0x77, 0x00))));
+                : Color.FromRgb(0xC7, 0x77, 0x00))),
+            GoodChip: Tint(0x19, 0x9E, 0x70),
+            WarnChip: Tint(0xE0, 0xA0, 0x30),
+            BadChip: Tint(0xE3, 0x3B, 0x30));
     }
 
     private static Brush Frozen(Brush b) { b.Freeze(); return b; }

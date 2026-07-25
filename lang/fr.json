@@ -392,5 +392,11 @@
   "context.fix.copy": "Copier le prompt de nettoyage",
   "context.fix.hint": "Copie un prompt pour Claude Code contenant uniquement des chemins et des nombres — en lui demandant de montrer son plan avant de supprimer quoi que ce soit. Cette app ne modifie jamais vos fichiers.",
   "context.fix.copied": "Copié. Collez-le dans Claude Code dans ce projet.",
-  "context.fix.copyFailed": "Impossible de copier dans le presse-papiers :\n{0}"
+  "context.fix.copyFailed": "Impossible de copier dans le presse-papiers :\n{0}",
+
+  // Note de dette de contexte + dérive
+  "context.grade.tip": "Note {0} — d'après {1} de contexte fixe plus {2} constats ouverts ({3} élevés, {4} moyens, {5} faibles). Un résumé, pas un verdict : la mesure, ce sont les nombres au-dessus.",
+  "context.drift.up": "+{0} tokens (+{1}) sur les {2} derniers jours",
+  "context.drift.down": "−{0} tokens (−{1}) sur les {2} derniers jours",
+  "context.drift.building": "Suivi de la dérive : {0} mesures sur {1} jours pour l'instant — une comparaison hebdomadaire demande une semaine d'historique."
 }

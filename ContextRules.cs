@@ -26,6 +26,20 @@ internal enum RuleSeverity
 internal sealed record Finding(
     string RuleId, RuleSeverity Severity, string Scope, string Message, string Fix, string? Path = null);
 
+/// <summary>An A–F reading of how much context debt a project carries.</summary>
+internal enum DebtGrade { A, B, C, D, F }
+
+/// <summary>
+/// A project's context debt: the grade, and every input that produced it. The inputs travel with the
+/// grade on purpose — a bare letter is an authority claim, and this one is a heuristic. Shown as
+/// "B · ≈7.4k eager, 4 findings" so it can be argued with.
+/// </summary>
+internal sealed record ContextDebt(
+    DebtGrade Grade, int Score, int EagerTokens, int Penalty, int High, int Medium, int Low)
+{
+    public int Findings => High + Medium + Low;
+}
+
 /// <summary>
 /// The advisor. Every rule here fires on the baseline measured from a real machine
 /// (IMPROVEMENTS §III), so none of them are hypothetical, and each one carries the concrete fix.
@@ -101,6 +115,49 @@ internal static class ContextRules
             .ThenBy(f => f.Scope, StringComparer.OrdinalIgnoreCase)
             .ThenBy(f => f.RuleId, StringComparer.Ordinal)
             .ToList();
+    }
+
+    // ---------------------------------------------------------------- the grade
+
+    // What an open finding is "worth" in tokens-equivalent debt. Deliberately coarse: the grade is a
+    // summary, and pretending to more precision than that would be false confidence.
+    private const int HighPenalty = 1_500;
+    private const int MediumPenalty = 600;
+    private const int LowPenalty = 200;
+
+    // Score thresholds, chosen against the measured spread of real projects (IMPROVEMENTS §III:
+    // ≈4k–22k of scannable eager context) so that the grades actually separate them instead of
+    // landing every project on the same letter. Info findings carry no penalty — they are a review
+    // queue, not debt.
+    private static readonly (int max, DebtGrade grade)[] Bands =
+    {
+        (6_000, DebtGrade.A),
+        (9_000, DebtGrade.B),
+        (13_000, DebtGrade.C),
+        (18_000, DebtGrade.D),
+    };
+
+    /// <summary>
+    /// Grade one project: its scannable eager context plus a penalty per open finding. Claude Code's
+    /// own base overhead is excluded — every project pays it equally, so including it would grade the
+    /// harness rather than the project (§II.0.1).
+    /// </summary>
+    public static ContextDebt Debt(ContextScan scan, ContextProject project, IReadOnlyList<Finding> findings)
+    {
+        string scope = project.ShortPath;
+        int high = findings.Count(f => f.Scope == scope && f.Severity == RuleSeverity.High);
+        int medium = findings.Count(f => f.Scope == scope && f.Severity == RuleSeverity.Medium);
+        int low = findings.Count(f => f.Scope == scope && f.Severity == RuleSeverity.Low);
+
+        int eager = scan.EstimatedSessionZero(project);
+        int penalty = high * HighPenalty + medium * MediumPenalty + low * LowPenalty;
+        int score = eager + penalty;
+
+        DebtGrade grade = DebtGrade.F;
+        foreach (var (max, g) in Bands)
+            if (score < max) { grade = g; break; }
+
+        return new ContextDebt(grade, score, eager, penalty, high, medium, low);
     }
 
     // ---------------------------------------------------------------- memory
