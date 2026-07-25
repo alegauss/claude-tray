@@ -43,3 +43,4 @@ here. This file is a terse index, not a memory.
 - **T77 SHIPPED** (Block I — cleanup prompt for Claude; no write path) — 2026-07-25.
 - **T78 SHIPPED** (Block I — A-F context debt grade and drift sparkline) — 2026-07-25.
 - **T79 SHIPPED** (Block I — opt-in context-growth nudge, off by default) — 2026-07-25.
+- **T80 SHIPPED** (Block I — localization audit, --lang override, es/fr/pt-BR verified) — 2026-07-25.

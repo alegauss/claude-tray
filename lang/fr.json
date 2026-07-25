@@ -262,7 +262,8 @@
   "stats.chart.reset": "réinit. {0}",
   "stats.chart.unavailable": "Consommation en direct indisponible depuis {0} — aucune donnée sur cet intervalle",
 
-  // ---- Fenêtre de charge de contexte (ContextWindow) ----
+  // ================= Fenêtre de charge de contexte (ContextWindow) =================
+  // Toutes les clés ci-dessous appartiennent à cette fonctionnalité ; les sous-commentaires les groupent par panneau.
   "context.title": "Charge de contexte — mémoires, skills et instructions",
   "context.header": "Ce que chaque session coûte avant votre première saisie",
   "context.subtitle": "Claude Code charge vos fichiers d'instructions, l'index de mémoire et la description de chaque skill avant votre premier prompt — un péage payé à chaque requête de la session. Uniquement tailles, noms, dates et estimations de tokens ; rien ne quitte cette machine.",

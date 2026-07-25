@@ -262,7 +262,8 @@
   "stats.chart.reset": "reinicio {0}",
   "stats.chart.unavailable": "Uso en directo no disponible desde {0} — sin datos en este tramo",
 
-  // ---- Ventana de carga de contexto (ContextWindow) ----
+  // ================= Ventana de carga de contexto (ContextWindow) =================
+  // Todas las claves de abajo pertenecen a esta función; los subcomentarios las agrupan por panel.
   "context.title": "Carga de contexto — memorias, skills e instrucciones",
   "context.header": "Lo que cuesta cada sesión antes de escribir",
   "context.subtitle": "Claude Code carga tus archivos de instrucciones, el índice de memoria y la descripción de cada skill antes de tu primer prompt — un peaje que se paga en cada solicitud de la sesión. Solo tamaños, nombres, fechas y estimaciones de tokens; nada sale de esta máquina.",

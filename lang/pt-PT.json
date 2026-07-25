@@ -263,7 +263,8 @@
   "stats.chart.reset": "reposição {0}",
   "stats.chart.unavailable": "Utilização em direto indisponível desde {0} — sem dados neste intervalo",
 
-  // ---- Janela de carga de contexto (ContextWindow) ----
+  // ================= Janela de carga de contexto (ContextWindow) =================
+  // Todas as chaves abaixo pertencem a esta funcionalidade; os subcomentários agrupam por painel.
   "context.title": "Carga de contexto — memórias, skills e instruções",
   "context.header": "O que cada sessão custa antes de escrever",
   "context.subtitle": "O Claude Code carrega os seus ficheiros de instruções, o índice de memória e a descrição de cada skill antes do primeiro prompt — uma portagem paga em todos os pedidos da sessão. Apenas tamanhos, nomes, datas e estimativas de tokens; nada sai desta máquina.",

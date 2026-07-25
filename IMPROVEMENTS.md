@@ -113,13 +113,6 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
    instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
    estimate with a visible "≈".**
 
-### §II.11 Localization
-
-All new strings into `lang/en.json` first, then the other four (`pt-BR`, `pt-PT`, `fr`, `es`);
-`{local:Loc key}` in XAML, `L.T(...)` in code. Keep the `context.*` prefix in its own commented
-section. Phase 1 added **zero** keys (the CLI report is developer-facing English), so the whole
-surface arrives at once with the window.
-
 ### §II.12 Markdown report
 
 `--context-report <file.md>` writes the findings as markdown — paths and numbers only, no file

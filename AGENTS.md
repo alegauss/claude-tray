@@ -85,6 +85,7 @@ dotnet run -c Release                 # build + run the tray app
 dotnet publish -c Release             # single self-contained .exe -> bin\Release\net10.0-windows\win-x64\publish\
 
 dotnet run -- --settings              # open just the Settings window (preview)
+dotnet run -- --lang es --context --window   # any command, rendered in another language (i18n check)
 dotnet run -- --render <dir>          # dump tray-icon PNGs at 16/20/32 px
 dotnet run -- --insights              # print the 24h usage breakdown to the console
 
@@ -148,3 +149,5 @@ They live at the repo root on purpose: `docs/` is the published GitHub Pages sit
 - **Single instance** is enforced by a named mutex; a second launch exits silently.
 - The marketing page is `docs/index.html` (GitHub Pages, served from `/docs`).
 - **New user-visible strings go into all five `lang/*.json`**, not just `en`.
+  Verify with `--lang <code>` (process-only override, saved preference untouched) and screenshot at
+  least one non-English language before calling a UI change done.

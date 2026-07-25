@@ -36,9 +36,22 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        // `--lang <code>` anywhere in the arguments overrides the display language for this process
+        // only, leaving the saved preference alone. It exists for the i18n screenshot loop: verifying
+        // that a window still fits in Spanish should not mean editing the user's settings and
+        // restarting. Both tokens are removed before anything else parses the arguments, or a stray
+        // "es" would be read as a project name.
+        string? langOverride = null;
+        int langAt = Array.IndexOf(args, "--lang");
+        if (langAt >= 0 && langAt + 1 < args.Length)
+        {
+            langOverride = args[langAt + 1];
+            args = args.Take(langAt).Concat(args.Skip(langAt + 2)).ToArray();
+        }
+
         // Pick the UI language before anything localized is built (menus, dialogs, and XAML windows all
         // resolve strings at parse time): honor the saved Settings preference, falling back to the OS.
-        L.Apply(Settings.Load().Language);
+        L.Apply(langOverride ?? Settings.Load().Language);
 
         if (args.Length >= 1 && args[0] == "--render")
         {

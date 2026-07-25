@@ -266,7 +266,8 @@
   "stats.chart.reset": "reset {0}",
   "stats.chart.unavailable": "Live usage unavailable since {0} — no data for this span",
 
-  // ---- Context Load window (ContextWindow) ----
+  // ================= Context Load window (ContextWindow) =================
+  // Every key below belongs to this one feature; the sub-comments group them by panel.
   "context.title": "Context Load — memories, skills & instructions",
   "context.header": "What every session costs before you type",
   "context.subtitle": "Claude Code loads your instruction files, the memory index and every skill's description before your first prompt — a toll paid on every request of the session. Sizes, names, timestamps and token estimates only; nothing leaves this machine.",
