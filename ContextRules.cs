@@ -64,8 +64,12 @@ internal static class ContextRules
     /// <summary>The valid <c>type:</c> values for a memory file, per the memory format.</summary>
     private static readonly string[] MemoryTypes = { "user", "feedback", "project", "reference" };
 
-    /// <summary>Every finding in the scan, most severe first.</summary>
-    public static List<Finding> Evaluate(ContextScan scan, DateTime nowUtc)
+    /// <summary>
+    /// Every finding in the scan, most severe first. <paramref name="evidence"/> is optional: without
+    /// it the usage rule simply does not fire, which is the correct failure mode — a missing evidence
+    /// pass must never be read as "nothing is used".
+    /// </summary>
+    public static List<Finding> Evaluate(ContextScan scan, DateTime nowUtc, UsageEvidence? evidence = null)
     {
         var findings = new List<Finding>();
 
@@ -73,6 +77,7 @@ internal static class ContextRules
         CheckInstructions(findings, "~/.claude", scan.Shared);
         CheckDescriptions(findings, "~/.claude", scan.Shared);
         CheckSettings(findings, "~/.claude", scan.Shared);
+        CheckNeverUsed(findings, scan, nowUtc, evidence);
 
         foreach (ContextProject p in scan.Projects)
         {
@@ -335,6 +340,45 @@ internal static class ContextRules
                 "Keep the trigger words and move the rest into the body — every character of a description is eager.",
                 verbose[0].Path));
     }
+
+    /// <summary>
+    /// The evidence rule, and the sharpest one in the set: a skill or agent that has not been invoked
+    /// once in the whole window, whose description is nevertheless in the always-loaded index of every
+    /// session. Reported once for the whole machine, since the eager index is machine-wide.
+    ///
+    /// Two guards, because the cost of being wrong here is somebody deleting something they use: the
+    /// evidence pass must have read every transcript in the window
+    /// (<see cref="UsageEvidence.CanReportZero"/>), and the total has to be worth naming. The claim
+    /// itself is deliberately about the window — "not invoked in 90 days" — rather than "never",
+    /// which would also require knowing when each skill first existed.
+    /// </summary>
+    private static void CheckNeverUsed(List<Finding> into, ContextScan scan, DateTime nowUtc,
+        UsageEvidence? evidence)
+    {
+        if (evidence is null || !evidence.Complete || evidence.Error != null) return;
+
+        var unused = scan.Shared.Concat(scan.Projects.SelectMany(p => p.Sources))
+            .Where(s => s.Kind is ContextKind.Skill or ContextKind.Agent)
+            .GroupBy(s => s.Label, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .Where(s => evidence.CanReportZero(s) && (evidence.For(s)?.Total ?? 0) == 0)
+            .OrderByDescending(s => s.EagerTokens)
+            .ToList();
+        if (unused.Count == 0) return;
+
+        int tokens = unused.Sum(s => s.EagerTokens);
+        if (tokens < UnusedMinTokens) return;
+
+        into.Add(new Finding("never-invoked", RuleSeverity.Low, "~/.claude",
+            $"{unused.Count} {Plural(unused.Count, "skill/agent was", "skills/agents were")} never invoked " +
+            $"in the last {evidence.WindowDays} days of transcripts, and {Plural(unused.Count, "its", "their")} description costs " +
+            $"{TokenEstimate.Format(tokens)} of eager index in every session ({Examples(unused.Select(s => s.Label))}).",
+            "Prune by evidence: remove the ones you did not know you had. The bodies are lazy, but the descriptions are not."));
+    }
+
+    /// <summary>Below this the finding is noise — an unused skill with a 20-token description is not
+    /// worth anyone's attention.</summary>
+    public const int UnusedMinTokens = 200;
 
     private static void CheckSettings(List<Finding> into, string scope, List<ContextSource> sources)
     {

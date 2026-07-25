@@ -270,11 +270,19 @@ internal static class Program
             Console.WriteLine("  ! the walk hit its file/directory cap — totals below are a floor, not a total");
         Console.WriteLine();
 
+        // `--usage` is the evidence: which skills and agents were actually invoked, mined from the
+        // transcripts. The one number that turns "trim your skills" into a decision.
+        if (flags.Contains("--usage"))
+        {
+            PrintUsage(scan, root);
+            return;
+        }
+
         // `--check` is the advisor rather than the measurement: findings grouped by severity, each
         // with the concrete fix. It replaces the table because the point is what to do, not what is.
         if (flags.Contains("--check"))
         {
-            PrintFindings(scan);
+            PrintFindings(scan, root);
             return;
         }
 
@@ -377,9 +385,20 @@ internal static class Program
     // The advisor's headless half (`--context --check`): every finding from ContextRules, grouped by
     // severity, each on two lines — what is true, then what to do about it. Verified against a whole
     // machine here before any of it reaches the window.
-    private static void PrintFindings(ContextScan scan)
+    private static void PrintFindings(ContextScan scan, string? root)
     {
-        List<Finding> findings = ContextRules.Evaluate(scan, DateTimeOffset.UtcNow.UtcDateTime);
+        DateTime now = DateTimeOffset.UtcNow.UtcDateTime;
+        // The evidence pass is what lets a "never invoked" finding exist at all; without it the rule
+        // simply doesn't fire, which is the right failure mode.
+        UsageEvidence evidence = ContextUsage.Compute(now, new ContextUsage.Options
+        {
+            ClaudeRoot = root ?? ContextScanner.DefaultClaudeRoot,
+            UseCache = root == null,
+        });
+        Console.WriteLine($"usage evidence: {ContextUsage.Summary(evidence)}");
+        Console.WriteLine();
+
+        List<Finding> findings = ContextRules.Evaluate(scan, now, evidence);
         if (findings.Count == 0)
         {
             Console.WriteLine("no findings — nothing to advise on");
@@ -405,6 +424,57 @@ internal static class Program
                 Console.WriteLine($"      fix: {f.Fix}");
             }
         }
+    }
+
+    // The evidence report (`--context --usage`): every skill and agent the scan found, with how often
+    // it was actually invoked over the last 90 days. Sorted so the expensive-and-unused come first —
+    // that is the actionable end of the list.
+    private static void PrintUsage(ContextScan scan, string? root)
+    {
+        DateTime now = DateTimeOffset.UtcNow.UtcDateTime;
+        UsageEvidence evidence = ContextUsage.Compute(now, new ContextUsage.Options
+        {
+            ClaudeRoot = root ?? ContextScanner.DefaultClaudeRoot,
+            UseCache = root == null,
+        });
+
+        Console.WriteLine($"Evidence of use over {evidence.WindowDays} days — {ContextUsage.Summary(evidence)}");
+        if (evidence.Error != null) Console.WriteLine("  ! " + evidence.Error);
+        Console.WriteLine("  memory files carry no usage annotation on purpose: a recall leaves no");
+        Console.WriteLine("  structured trace, and only message content would show it (never read).");
+        Console.WriteLine();
+
+        // One row per distinct skill/agent. The same skill can be visible from several projects, so
+        // they are folded by label — the eager cost is paid once per session either way.
+        var entries = scan.Shared.Concat(scan.Projects.SelectMany(p => p.Sources))
+            .Where(s => s.Kind is ContextKind.Skill or ContextKind.Agent)
+            .GroupBy(s => s.Label, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.First())
+            .Select(s => (source: s, stat: evidence.For(s), unused: evidence.CanReportZero(s)))
+            .OrderBy(x => x.stat?.Total ?? 0)
+            .ThenByDescending(x => x.source.EagerTokens)
+            .ToList();
+
+        Console.WriteLine($"{"skill / agent",-42} {"used 90d",9} {"30d",5} {"eager",7}  last used");
+        foreach (var (source, stat, unused) in entries)
+        {
+            string used = stat is { Total: > 0 }
+                ? stat.Total.ToString()
+                : unused ? "never" : "—";
+            string last = stat is { Total: > 0 } ? stat.LastUsedUtc.ToLocalTime().ToString("yyyy-MM-dd") : "";
+            Console.WriteLine($"{Clip(source.Label, 42),-42} {used,9} {stat?.Recent ?? 0,5} " +
+                              $"{TokenEstimate.Format(source.EagerTokens),7}  {last}");
+        }
+
+        int neverTokens = entries.Where(x => x.unused && (x.stat?.Total ?? 0) == 0)
+            .Sum(x => x.source.EagerTokens);
+        int neverCount = entries.Count(x => x.unused && (x.stat?.Total ?? 0) == 0);
+        Console.WriteLine();
+        if (neverCount > 0)
+            Console.WriteLine($"{neverCount} never invoked in the last {evidence.WindowDays} days of transcripts, " +
+                              $"costing {TokenEstimate.Format(neverTokens)} of eager index in every session");
+        else
+            Console.WriteLine("nothing is provably unused");
     }
 
     // The estimate-vs-measurement fit: proves the token numbers are a measurement with a correction,

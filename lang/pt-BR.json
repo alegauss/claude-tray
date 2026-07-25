@@ -370,5 +370,12 @@
   "context.severity.high": "Alta",
   "context.severity.medium": "Média",
   "context.severity.low": "Baixa",
-  "context.severity.info": "Informativo"
+  "context.severity.info": "Informativo",
+
+  // Evidence of use (mined from transcripts)
+  "context.usage.never": "nunca",
+  "context.col.used": "Usos 90d",
+  "context.usage.tip": "Invocado {0}× nos últimos {1} dias ({2} nos últimos {3}); a última vez em {4}.",
+  "context.usage.neverTip": "Não foi invocado nenhuma vez nos últimos {0} dias. O corpo é sob demanda, mas a descrição está no índice sempre carregado.",
+  "context.usage.unknownTip": "Sem evidência de uso para este — recuperações de memória e um exame incompleto de transcrições aparecem como desconhecido, nunca como não usado.",
 }

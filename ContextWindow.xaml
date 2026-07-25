@@ -101,11 +101,12 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="132" />
-                        <ColumnDefinition Width="66" />
-                        <ColumnDefinition Width="66" />
-                        <ColumnDefinition Width="66" />
-                        <ColumnDefinition Width="84" />
+                        <ColumnDefinition Width="122" />
+                        <ColumnDefinition Width="62" />
+                        <ColumnDefinition Width="62" />
+                        <ColumnDefinition Width="62" />
+                        <ColumnDefinition Width="56" />
+                        <ColumnDefinition Width="80" />
                     </Grid.ColumnDefinitions>
 
                     <!-- Health dot in a fixed-width gutter so every label starts at the same x,
@@ -138,7 +139,11 @@
                     <TextBlock Grid.Column="3" Text="{Binding Tokens}" Style="{StaticResource Cell}" />
                     <TextBlock Grid.Column="4" Text="{Binding Eager}" Style="{StaticResource Cell}"
                                FontWeight="{Binding EagerWeight}" />
-                    <TextBlock Grid.Column="5" Text="{Binding Modified}" Style="{StaticResource Cell}"
+                    <!-- Evidence of use, for skills and agents. "—" means unknown, never "unused". -->
+                    <TextBlock Grid.Column="5" Text="{Binding Used}" Style="{StaticResource Cell}"
+                               FontWeight="{Binding UsedWeight}" ToolTip="{Binding UsedTip}"
+                               Foreground="{Binding UsedBrush}" />
+                    <TextBlock Grid.Column="6" Text="{Binding Modified}" Style="{StaticResource Cell}"
                                Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                 </Grid>
             </Border>
@@ -149,11 +154,12 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="132" />
-                        <ColumnDefinition Width="66" />
-                        <ColumnDefinition Width="66" />
-                        <ColumnDefinition Width="66" />
-                        <ColumnDefinition Width="84" />
+                        <ColumnDefinition Width="122" />
+                        <ColumnDefinition Width="62" />
+                        <ColumnDefinition Width="62" />
+                        <ColumnDefinition Width="62" />
+                        <ColumnDefinition Width="56" />
+                        <ColumnDefinition Width="80" />
                     </Grid.ColumnDefinitions>
                     <!-- Spans the Load column too: a group has no single load mode, so that cell is
                          empty and the header may as well use the room (kind names are long once
@@ -364,11 +370,12 @@
                         <Grid Margin="0,14,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="132" />
-                                <ColumnDefinition Width="66" />
-                                <ColumnDefinition Width="66" />
-                                <ColumnDefinition Width="66" />
-                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="122" />
+                                <ColumnDefinition Width="62" />
+                                <ColumnDefinition Width="62" />
+                                <ColumnDefinition Width="62" />
+                                <ColumnDefinition Width="56" />
+                                <ColumnDefinition Width="80" />
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0" Text="{local:Loc context.col.source}"
                                        Style="{StaticResource SectionHeader}" />
@@ -380,7 +387,9 @@
                                        Style="{StaticResource ColHeader}" />
                             <TextBlock Grid.Column="4" Text="{local:Loc context.col.eager}"
                                        Style="{StaticResource ColHeader}" />
-                            <TextBlock Grid.Column="5" Text="{local:Loc context.col.modified}"
+                            <TextBlock Grid.Column="5" Text="{local:Loc context.col.used}"
+                                       Style="{StaticResource ColHeader}" />
+                            <TextBlock Grid.Column="6" Text="{local:Loc context.col.modified}"
                                        Style="{StaticResource ColHeader}" />
                         </Grid>
 

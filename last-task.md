@@ -1,6 +1,6 @@
-# Last task number — `T84` · next block letter — `J`
+# Last task number — `T85` · next block letter — `J`
 
-> **Single source of truth for the next free task number.** The next new task is `T85`; after
+> **Single source of truth for the next free task number.** The next new task is `T86`; after
 > assigning it, bump the number above and append a log line below.
 >
 > **Next block letter — `J`** (Block **I** = Context Load Inspector — measure what every session
@@ -38,3 +38,4 @@ here. This file is a terse index, not a memory.
 - **T72 SHIPPED** (Block I — source table: load chips, health dots, row actions, sort) — 2026-07-25.
 - **T74 SHIPPED** (Block I — grounded rule engine behind --context --check) — 2026-07-25.
 - **T73 SHIPPED** (Block I — cross-project "All projects" overview) — 2026-07-25.
+- **T75 SHIPPED** (Block I — usage evidence for skills and agents from transcripts) — 2026-07-25.

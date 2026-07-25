@@ -27,9 +27,9 @@
 > `~/.claude` and already knows per-model pricing, so it is the natural place to show the number and
 > advise on it. Design in [IMPROVEMENTS.md](IMPROVEMENTS.md) §II; measured baseline §III.
 >
-> **T66–T74 shipped** — the whole window and the advisor's engine: the headless scanner behind
-> `--context`, the window with its session-zero gauge, source table and cross-project overview, and
-> the rule engine behind `--context --check`; see
+> **T66–T75 shipped** — the whole window and the advisor's engine: the headless scanner behind
+> `--context`, the window with its session-zero gauge, source table and cross-project overview, the
+> rule engine behind `--context --check`, and the evidence pass behind `--context --usage`; see
 > [CHANGELOG.md](CHANGELOG.md) Block I). Three findings from Phase 1 bind the rest of the block and
 > are written up in §II.0: the **≈32k base overhead** no
 > scan can see is its own segment of the gauge, observed session zero needs **all three** usage terms,
@@ -40,7 +40,7 @@
 > headless report).
 
 **The advisor (where the feature earns its place — no finding without a fix):**
-- 📋 **T75** (deps: —) **Evidence: was it ever actually used?** — mine transcripts for `Skill` invocations and memory-recall markers over 30/90 days and annotate each skill/memory "used 12×" or **"never used"**. The highest-value idea in the block: *"never invoked in 90 days and its description costs you ~180 tokens every session"* is a decision, not nagging. Names and counts only — never arguments, never content. → §II.6
+- 💭 **T85** (deps: —) **Usage evidence for memory files — only if a structured signal appears** — T75 covers skills and agents, where an invocation is a real tool call in the transcript. A memory recall has no such record: the harness injects it into the conversation, so the only trace is message content, which the app never reads (§I.1). Annotating memories would therefore mean guessing, and a wrong "never used" is the one error an advisor must not make. Revisit only if Claude Code starts recording recalls as structured metadata.
 - 📋 **T76** (deps: T71, T74) **What-if simulator** — tick items to hypothetically remove; the gauge and ≈cost update live; nothing is written until "Apply". Makes the payoff visible before the risk. → §II.7
 - 📋 **T77** (deps: T74) **Safe actions only** — reveal / open / **copy a ready-made cleanup prompt for Claude**. If a destructive action ships at all it moves files to `memory/.archive/<date>/` with a visible undo that round-trips byte-identically — never a silent or bulk delete. → §II.8
 - 💭 **T78** (deps: T74) **Context debt grade + drift** — an A–F grade per project from eager tokens + open findings, and the eager total tracked over time (same shape as `UsageHistory.cs`) with "+2.1 KB this week" and a sparkline. Bloat arrives one memory at a time; only the trend makes it noticeable. → §II.9

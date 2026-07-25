@@ -106,15 +106,6 @@ Three findings from the shipped scanner (Block I, T66–T69) bind the UI design:
    instruction-heavy projects are under-estimated by ~20%. **Every displayed number stays an
    estimate with a visible "≈".**
 
-### §II.6 Evidence: was it ever actually used?
-
-Mine the transcripts for `Skill` invocations and memory-recall markers over the last 30/90 days, and
-annotate each skill/memory with "used 12×" or **"never used"**.
-
-The highest-value idea in the epic. "Trim your memory" is nagging; *"this skill has never been
-invoked in 90 days and its description costs you ~180 tokens every session"* is a decision. Prune by
-evidence. Privacy (§I.1): tool/skill *names* and counts only — never arguments, never content.
-
 ### §II.7 What-if simulator
 
 Tick items to hypothetically remove; the gauge and the ≈cost update live. Nothing is written until

@@ -370,5 +370,12 @@
   "context.severity.high": "Élevée",
   "context.severity.medium": "Moyenne",
   "context.severity.low": "Faible",
-  "context.severity.info": "Info"
+  "context.severity.info": "Info",
+
+  // Evidence of use (mined from transcripts)
+  "context.usage.never": "jamais",
+  "context.col.used": "Usages 90j",
+  "context.usage.tip": "Invoqué {0}× au cours des {1} derniers jours ({2} sur les {3} derniers) ; la dernière fois le {4}.",
+  "context.usage.neverTip": "Pas invoqué une seule fois au cours des {0} derniers jours. Le corps est à la demande, mais la description est dans l'index toujours chargé.",
+  "context.usage.unknownTip": "Aucune preuve d'usage ici — les rappels de mémoire et une passe de transcriptions incomplète sont signalés comme inconnus, jamais comme inutilisés.",
 }

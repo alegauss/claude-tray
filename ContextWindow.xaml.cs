@@ -34,6 +34,9 @@ internal partial class ContextWindow : Window
     /// <summary>Base overhead for the gauge: fitted from this machine's transcripts when there are
     /// enough observed sessions, otherwise the measured fallback.</summary>
     private int _baseTokens = ContextScanner.FallbackBaseTokens;
+    /// <summary>Evidence of use, mined after the first render because it reads hundreds of megabytes
+    /// of transcripts. Null until that pass finishes — every consumer treats null as "unknown".</summary>
+    private UsageEvidence? _evidence;
 
     /// <summary>
     /// Preview-only: once the panes are populated, scroll down to the source table so it can be
@@ -130,7 +133,28 @@ internal partial class ContextWindow : Window
         // across a rescan — is usually below the fold; without this the selection is invisible.
         ProjectList.ScrollIntoView(ProjectList.SelectedItem);
         _selected = true;
+
+        StartUsagePass();
     }
+
+    // The evidence pass reads every recent transcript — hundreds of megabytes on a real machine — so
+    // it runs after the window is already useful, and the table re-renders with the counts when it
+    // lands. Once per window: the per-file cache makes a later rescan cheap, but the first pass is
+    // seconds, and nothing here changes while the window is open.
+    private async void StartUsagePass()
+    {
+        if (_evidence != null || _usageRunning) return;
+        _usageRunning = true;
+        try
+        {
+            _evidence = await Task.Run(() => ContextUsage.Compute(DateTimeOffset.UtcNow.UtcDateTime));
+            ShowSelected();
+        }
+        catch { /* no evidence is a supported state — every consumer renders "—" for unknown */ }
+        finally { _usageRunning = false; }
+    }
+
+    private bool _usageRunning;
 
     private void ShowStatus(string text)
     {
@@ -184,8 +208,9 @@ internal partial class ContextWindow : Window
 
         var style = RowStyle.For(this, IsDarkTheme());
         SourceSort sort = (SourceSort)Math.Clamp(SortBox.SelectedIndex, 0, 2);
-        ProjectGroups.ItemsSource = SourceGroup.Build(row.Project!.Sources, style, sort);
-        SharedGroups.ItemsSource = SourceGroup.Build(row.Scan.Shared, style, sort);
+        DateTime now = DateTimeOffset.UtcNow.UtcDateTime;
+        ProjectGroups.ItemsSource = SourceGroup.Build(row.Project!.Sources, style, sort, _evidence, now);
+        SharedGroups.ItemsSource = SourceGroup.Build(row.Scan.Shared, style, sort, _evidence, now);
 
         // After layout, so the new rows have a height to scroll past. BringIntoView stops at the
         // top of the project's own table rather than running on to the shared section at the end.
@@ -756,7 +781,8 @@ internal sealed record RowStyle(
 /// <summary>One kind of context source — Instructions, Memory, Skills, Agents — and its files.</summary>
 public sealed class SourceGroup
 {
-    private SourceGroup(ContextKind kind, List<ContextSource> sources, RowStyle style, SourceSort sort)
+    private SourceGroup(ContextKind kind, List<ContextSource> sources, RowStyle style, SourceSort sort,
+        UsageEvidence? evidence, DateTime nowUtc)
     {
         // The count rides in the header rather than in a "{0} files" string: it needs no plural rule
         // in any of the five languages, and it leaves the Load column to the rows, where the
@@ -768,7 +794,7 @@ public sealed class SourceGroup
         // A whole group that costs nothing every session (memory bodies, settings files) reads as an
         // em dash like its rows do — "≈0" invites the question of whether it is a rounding artifact.
         Eager = eager > 0 ? TokenEstimate.Format(eager) : "—";
-        Items = Sorted(sources, sort).Select(s => new SourceRow(s, style)).ToList();
+        Items = Sorted(sources, sort).Select(s => new SourceRow(s, style, evidence, nowUtc)).ToList();
     }
 
     private static IEnumerable<ContextSource> Sorted(List<ContextSource> sources, SourceSort sort)
@@ -789,11 +815,12 @@ public sealed class SourceGroup
 
     /// <summary>Group by kind, in the enum's own order — which puts the eager instruction chain
     /// first and the never-loaded settings files last.</summary>
-    internal static List<SourceGroup> Build(List<ContextSource> sources, RowStyle style, SourceSort sort)
+    internal static List<SourceGroup> Build(List<ContextSource> sources, RowStyle style, SourceSort sort,
+        UsageEvidence? evidence, DateTime nowUtc)
         => sources
             .GroupBy(s => s.Kind)
             .OrderBy(g => (int)g.Key)
-            .Select(g => new SourceGroup(g.Key, g.ToList(), style, sort))
+            .Select(g => new SourceGroup(g.Key, g.ToList(), style, sort, evidence, nowUtc))
             .ToList();
 }
 
@@ -804,7 +831,7 @@ public sealed class SourceRow
     /// review queue, and the one health signal available before the rule engine lands.</summary>
     private const int StaleDays = 90;
 
-    internal SourceRow(ContextSource s, RowStyle style)
+    internal SourceRow(ContextSource s, RowStyle style, UsageEvidence? evidence, DateTime nowUtc)
     {
         Label = s.Label;
         FullPath = s.Path;
@@ -841,6 +868,25 @@ public sealed class SourceRow
 
         DotBrush = dot ?? Brushes.Transparent;
         DotVisibility = dot is null ? Visibility.Hidden : Visibility.Visible;
+
+        // Evidence of use. Only skills and agents can carry it: a memory recall leaves no structured
+        // trace, so a memory row stays blank rather than implying it is unused (see ContextUsage).
+        bool eligible = s.Kind is ContextKind.Skill or ContextKind.Agent;
+        UsageStat? stat = eligible ? evidence?.For(s) : null;
+        bool canReportZero = eligible && evidence?.CanReportZero(s) == true;
+
+        Used = eligible ? ContextUsage.Format(stat, canReportZero) : "";
+        UsedWeight = stat is { Total: > 0 } ? "SemiBold" : "Normal";
+        UsedBrush = stat is { Total: > 0 } ? style.LazyChipText
+            : canReportZero ? style.StaleDot
+            : style.MutedText;
+        UsedTip = !eligible ? null
+            : stat is { Total: > 0 }
+                ? L.T("context.usage.tip", stat.Total, evidence!.WindowDays, stat.Recent,
+                    evidence.RecentDays, stat.LastUsedUtc.ToLocalTime().ToString("yyyy-MM-dd"))
+                : canReportZero
+                    ? L.T("context.usage.neverTip", evidence!.WindowDays)
+                    : L.T("context.usage.unknownTip");
     }
 
     public string Label { get; }
@@ -856,6 +902,12 @@ public sealed class SourceRow
     public Brush ChipBackground { get; }
     public Brush ChipForeground { get; }
     public string ChipTip { get; }
+
+    /// <summary>"12×", the localized "never", or "" / "—" when there is nothing honest to say.</summary>
+    public string Used { get; }
+    public string UsedWeight { get; }
+    public Brush UsedBrush { get; }
+    public string? UsedTip { get; }
 
     public Brush DotBrush { get; }
     /// <summary><see cref="Visibility.Hidden"/>, not Collapsed — the gutter keeps its width so every
