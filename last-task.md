@@ -1,12 +1,11 @@
-# Last task number — `T85` · next block letter — `J`
+# Last task number — `T90` · next block letter — `K`
 
-> **Single source of truth for the next free task number.** The next new task is `T86`; after
+> **Single source of truth for the next free task number.** The next new task is `T91`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `J`** (Block **I** = Context Load Inspector — measure what every session
-> costs before the first prompt: the eager/lazy split over the instruction chain, memory index and
-> skill descriptions, a session-zero gauge calibrated against real transcripts, a grounded rule
-> engine, and evidence-based pruning; §II, created 2026-07-25).
+> **Next block letter — `K`** (Block **J** = Activity-aware pacing — model *when* the user is actually
+> active from the transcripts and project the weekly quota along that shape instead of a uniform
+> slope, so the exhaustion marker stops landing at 4am; §IV, created 2026-07-28).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -18,6 +17,8 @@
   per commit. Their entries live only in [CHANGELOG.md](CHANGELOG.md) — there is no per-task log line
   below for them, and none should be back-filled.
 - Block **I** is the first block numbered as it happens.
+- Block **J** opens against the Statistics window, not the Context Load Inspector — the two blocks are
+  independent, so J's tasks carry no dependency on T85.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 

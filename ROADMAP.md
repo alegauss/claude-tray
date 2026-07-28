@@ -33,6 +33,22 @@
 
 - 💭 **T85** (deps: —) **Usage evidence for memory files — only if a structured signal appears** — T75 covers skills and agents, where an invocation is a real tool call in the transcript. A memory recall has no such record: the harness injects it into the conversation, so the only trace is message content, which the app never reads (§I.1). Annotating memories would therefore mean guessing, and a wrong "never used" is the one error an advisor must not make. Revisit only if Claude Code starts recording recalls as structured metadata.
 
+## Block J — Activity-aware pacing ("the week doesn't burn at 4am")
+
+> The weekly projection extrapolates the **average pace since the window opened**
+> ([`UsageReport.Fill`](UsageReport.cs)) — a straight line that spends quota uniformly, including
+> through the nights and weekends still ahead. It therefore lands the "you run out here" marker at
+> times nobody is working (03:59 on a Friday), and it misreads any window whose *remaining* active/idle
+> mix differs from its elapsed one — a partial day, an approaching weekend, a window that opened at
+> 02:00. This block models **when** the user is actually active and projects along that shape instead.
+> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §IV.
+
+- 📋 **T86** (deps: —) **`ActivityProfile` — a weekly activity shape from the transcripts** — 168 buckets (day-of-week × local hour) holding `p(active)` over the last N weeks with recency decay, built from `~/.claude/projects` timestamps (`usage-history.jsonl` retains only 8 days, so it cannot see past weeks), cached in `%LocalAppData%\ClaudeTray\activity-profile.json` and recomputed ~daily. Headless `--activity` prints the grid. → §IV.1
+- 📋 **T87** (deps: T86) **Staircase projection on the weekly chart** — spend the remaining quota weighted by `p_h` instead of uniformly: flat through projected-idle hours, sloped through active ones, with faint amber bands behind the projected-idle stretches. Falls back to today's straight line below ~3 weeks of coverage. Red stays reserved for "no reading" (`OutageBandBrush`); the grey even-pace line and the verdict chip are deliberately untouched. → §IV.2
+- 💭 **T88** (deps: —) **Long-term hourly usage summary** — fold each pruned day of `usage-history.jsonl` into a permanent, tiny per-hour aggregate (~168 floats/week) before it is discarded, so idle can eventually be *measured* rather than inferred from transcripts, and so week-over-week comparison has a source. → §IV.3
+- 💭 **T89** (deps: T88) **Ghost curve of the previous week** — overlay last week's burn-up faintly behind the current one, answering "is this week worse than the last?" without a second chart. → §IV.4
+- 💭 **T90** (deps: T87) **"When to stop, when to resume"** — turn the projection into one actionable sentence ("stop now and resume tomorrow at 09:00 and you close the week at ~92%") instead of only a warning. Needs T87's shape to be trustworthy first. → §IV.5
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

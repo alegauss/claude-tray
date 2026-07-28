@@ -12,6 +12,7 @@
 |---|---|
 | [§I](#i--house-constraints) | House constraints (binding, app-wide) |
 | [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature (kept: it is data, not design) |
+| [§IV](#iv--activity-aware-pacing-block-j) | Activity-aware pacing (Block J) |
 
 > Block I's design sections (§II) are gone: every one of them shipped, and `git log` plus
 > [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a **measurement** — the
@@ -91,3 +92,106 @@ deliberately — this file is published with the repo. The right-hand column is 
 | `settings.json` | 87 KB | settings bloat |
 | Base overhead (system prompt + tools + MCP) | ≈32k tokens, p25 30k / p75 34k | shown as its own gauge segment, never folded into a project's number |
 | Heaviest scannable eager load | ≈22k tokens (a 43 KB `AGENTS.md` + 20 KB index) | the hero number the gauge shows |
+
+---
+
+## §IV — Activity-aware pacing (Block J)
+
+### §IV.0 The problem, stated precisely
+
+The weekly projection is **not** blind to idle time. `UsageReport.Fill` derives it from the average
+pace since the window opened — `elapsed * (1 - util) / util` — and that average already has every
+idle hour so far diluted into it. Adding "average idle time" as a separate correction would
+double-count something already priced in.
+
+What the average cannot represent is **where** the idle sits. A straight line spends quota at 03:00
+Sunday at exactly the rate it spends it at 15:00 Tuesday, which produces two concrete errors:
+
+1. **Impossible landings.** The projection can place the exhaustion marker inside a stretch where the
+   user is reliably asleep — observed on a real chart at *Fri 03:59*. A limit cannot be reached while
+   nothing is running, so that timestamp is wrong by construction, not merely imprecise.
+2. **Asymmetric remainders.** The projection is only sound when the *remaining* window has the same
+   active/idle mix as the elapsed one. It does not, whenever the window ends on a partial day (it is
+   19:52 — roughly three active hours left today, not twenty-four), when a weekend or holiday falls in
+   the remainder, or when the window opened mid-night (the 02:00 reset boundary the API hands out).
+
+The fix is to project along a **shape**, not a slope.
+
+### §IV.1 The profile (T86)
+
+168 buckets, day-of-week × local hour. For each bucket, `p = ` the recency-weighted fraction of
+observed weeks in which that hour contained activity — a **weight in [0,1], not a boolean**, so a
+"usually quiet but sometimes worked" hour degrades smoothly instead of flipping the whole projection.
+
+**Source: the transcripts, not `usage-history.jsonl`.** The usage log is pruned at 8 days
+(`UsageHistory.RetentionDays`), so it structurally cannot see other weeks; `~/.claude/projects` keeps
+months, and `UsageReport.ScanTokens` already reads exactly the fields needed (timestamps — §I.1 is
+untouched, no content is read). Sweeping months of transcripts on every window open is not
+acceptable, so the grid is cached at `%LocalAppData%\ClaudeTray\activity-profile.json` and recomputed
+about once a day.
+
+Two guards against overfitting: exponential recency decay across weeks, and a blend toward a flat
+prior weighted by how many weeks were actually observed — a single holiday week must not convince the
+app the user never works on Wednesdays.
+
+### §IV.2 The staircase (T87)
+
+Calibrate against measured active time rather than wall-clock:
+
+```
+rate_per_active_hour = util / active_hours_measured_in_this_window
+projected(h)         = rate_per_active_hour × Σ p_h   over remaining hours
+```
+
+This degrades correctly: with a typical remainder it reproduces today's straight line, and it only
+diverges where the remainder's mix genuinely differs. The rendered projection becomes flat through
+projected-idle hours and sloped through active ones — the staircase is self-explanatory, which is why
+it carries the feature rather than the bands.
+
+**Colour discipline.** Red is already taken: `OutageBandBrush` means *no reading was logged* ("data
+unavailable since …"). Painting today's idle red would collide two opposite meanings — "we did not
+measure" versus "we measured, and it was zero". So: past idle gets **no band** (the curve is already
+visibly flat there), and future projected-idle gets a faint **amber** band matching the projection
+line.
+
+**Scope boundaries, deliberate:**
+
+- **Weekly window only.** A 5-hour window is a single sitting; an activity profile has nothing to say
+  about it.
+- **The grey even-pace line and the verdict chip do not change.** The clock reference is honest — quota
+  drains in wall-clock time whether or not anyone is typing. Making the *target* activity-aware would
+  make the chip lenient and desynchronise it from the tray icon, which shares the `Fill` criterion.
+  The activity model belongs to the projection alone.
+- **Below ~3 weeks of coverage, fall back** to the current straight line. A confident-looking staircase
+  built on one week is worse than an honest line.
+- **Hedge the wording.** "around", not a to-the-minute landing time — the model is a habit, not a
+  schedule. Five `lang/*.json` files, per the user-facing-surface gate.
+
+**Known limitation to state in the UI copy:** usage from another machine or from claude.ai counts
+against the same limit but leaves no local transcript, so locally-detected idle is not necessarily
+real idle.
+
+### §IV.3 Long-term hourly summary (T88)
+
+`UsageHistory.PruneIfStale` currently discards days older than 8 outright. Folding each expiring day
+into a permanent per-hour aggregate first (~168 floats per week — negligible next to the 230 KB/week
+raw log) would let idle be *measured* from real utilisation deltas instead of inferred from transcript
+timestamps, giving §IV.1 a second, independent source to validate against — and it is the storage
+T89 needs.
+
+### §IV.4 Ghost curve (T89)
+
+Draw last week's burn-up faintly behind the current one on the same axes. "Is this week worse than the
+last?" is a question the current chart cannot answer at all, and a ghost line answers it without a
+second chart, a second tab, or any new number.
+
+### §IV.5 When to stop, when to resume (T90)
+
+The window today reports a problem ("you run out 1d 22h before the reset"); it does not say what to do
+about it. With a trustworthy shape from T87, it can: *"stop now and resume tomorrow at 09:00 and you
+close the week at ~92%"*. Sequenced last on purpose — advice built on a shaky projection is worse than
+no advice, so this waits until T87 has proven itself.
+
+An activity-aware **tray notification** is explicitly *not* part of this. The nudge threshold is the
+wall-clock verdict and stays that way (§IV.2); a second, softer notification channel would need its
+own justification.
