@@ -1,11 +1,11 @@
-# Last task number — `T96` · next block letter — `K`
+# Last task number — `T101` · next block letter — `L`
 
-> **Single source of truth for the next free task number.** The next new task is `T97`; after
+> **Single source of truth for the next free task number.** The next new task is `T102`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `K`** (Block **J** = Activity-aware pacing — model *when* the user is actually
-> active from the transcripts and project the weekly quota along that shape instead of a uniform
-> slope, so the exhaustion marker stops landing at 4am; §IV, created 2026-07-28).
+> **Next block letter — `L`** (Block **K** = Live throughput — read the transcript tail instead of the
+> rate-limit API, turn it into a rolling tokens/s that decays, draw it as motion whose moving axis is
+> time, and attribute it per project; §V, created 2026-07-28).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -22,6 +22,10 @@
 - **T91–T96 are Block J's second pass**, added 2026-07-28 right after T86–T90 shipped: same theme, so
   they stay in J rather than opening K (Block I set the precedent — shipped T66–T84 alongside an
   active T85). They came out of building the first pass, not out of planning it.
+- Block **K** (T97–T101, created 2026-07-28) is a *new* block rather than a third Block J pass: J is
+  about the weekly **projection** (where the quota lands), K is about **instantaneous** throughput
+  (what is running now, and in which project) on a clock that is local rather than the API's. It opens
+  against the same Statistics window, so it carries no dependency on J's open tasks.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 

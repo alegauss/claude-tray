@@ -61,6 +61,28 @@
 - 📋 **T95** (deps: —) **Don't let a holiday teach the model** — a week off currently votes "these hours are idle" like any other week; only the flat prior softens it. Drop weeks whose total activity is a small fraction of the median week from the denominator, and say so in `--activity`. → §IV.11
 - 💭 **T96** (deps: —) **`--selftest` for the pacing math** — Block J added arithmetic with real edge cases (a flat profile must reproduce the straight line exactly, folding must stay idempotent, advice must never exceed its target, the ghost must stay hidden under its gates) and the repo has no test surface at all. A deterministic self-check over synthetic inputs, in-app, keeps the zero-dependency rule intact. → §IV.12
 
+## Block K — Live throughput ("what is burning right now")
+
+> The throughput row under both charts ([`WindowPace.TokensPerSecond`](UsageReport.cs)) is a **window
+> average**: non-cache-read tokens ÷ seconds since the window opened. On the weekly tab the denominator
+> reaches 604,800s, so a 200k-token burst moves the third decimal — the number is immobile by
+> construction, not by refresh rate. And it is recomputed only when the tray pushes a new
+> `PaceSnapshot` (default 300s, floor 30s, far longer while a window is maxed), which is the right
+> cadence for rate-limit headers and useless for a flow.
+>
+> A flow rate is the one number in this app that *should* move, and the data for it is already there
+> and already local: transcripts are append-only, and each `assistant` line carries `message.usage`
+> the moment a turn lands. This block reads that tail instead of the API, turns it into a rolling rate,
+> and draws it as motion where the moving axis **is** time — then attributes it per project, which is
+> the question someone running Claude Code across five repos actually has. Design:
+> [IMPROVEMENTS.md](IMPROVEMENTS.md) §V.
+
+- 📋 **T97** (deps: —) **Tail reader over the transcripts** — the engine the rest of the block needs: a `FileSystemWatcher` on `~/.claude/projects/**/*.jsonl` (the debounce pattern T82 already uses for `*.md`) plus a per-file byte offset, so an append costs only the bytes appended instead of the 93k-request sweep `ScanTokens` does per refresh. Reuses the existing usage parser; reads no content. → §V.1
+- 📋 **T98** (deps: T97) **A rolling rate, beside the window average — not instead of it** — tokens/s over a trailing ~60s with EWMA smoothing, so one turn doesn't spike it and a pause visibly decays it. The average answers "what did this week cost"; the rolling rate answers "what is happening now" — both stay, labelled so neither is read as quota. Headless `--live` prints it once a second. → §V.2
+- 📋 **T99** (deps: T98) **The throughput row moves** — replace the static stacked bar with a strip of the last ~3 minutes, one column per second, entering right and leaving left, keeping the input/output/cache-create split. The animation *is* the data: no spinner, no decorative pulse, and the strip goes flat and stops repainting when nothing is running. Off the render clock only while the window is visible. → §V.3
+- 📋 **T100** (deps: T98) **Which project is burning it** — the transcript path already encodes the project directory, so the live rate splits per project: "N sessions active now" plus the two or three spending most this minute, stacked in the strip. This is the payoff for the multi-repo case, where the useful question is not *how fast* but *where*. → §V.4
+- 💭 **T101** (deps: T99) **An opt-in live hint on the tray icon** — the tray is the surface always on screen, and "something is generating right now" is legible there. Deliberately an idea, not a design: an animated tray icon costs battery and attention, so it ships off by default or not at all. → §V.5
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

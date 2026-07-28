@@ -13,6 +13,7 @@
 | [§I](#i--house-constraints) | House constraints (binding, app-wide) |
 | [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature (kept: it is data, not design) |
 | [§IV](#iv--activity-aware-pacing-block-j) | Activity-aware pacing (Block J) |
+| [§V](#v--live-throughput-block-k) | Live throughput (Block K) |
 
 > Block I's design sections (§II) are gone: every one of them shipped, and `git log` plus
 > [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a **measurement** — the
@@ -216,3 +217,108 @@ A test project would mean a third-party test framework, which the non-goals rule
 single-self-contained-exe story is a feature. An in-app `--selftest` that builds synthetic profiles and
 windows, asserts these properties and exits non-zero on failure costs nothing at runtime, ships inside
 the same binary, and can run in CI as one line.
+
+---
+
+## §V — Live throughput (Block K)
+
+### §V.0 The problem, stated precisely
+
+Two independent reasons the throughput row cannot move, and confusing them leads to fixing the wrong
+one:
+
+1. **The metric is a lifetime average, not a rate.** `TokensPerSecond` divides the window's
+   non-cache-read tokens by `ElapsedSeconds`. On the weekly tab that denominator grows to 604,800, so
+   the value converges and stays there: a 200k-token burst shifts it by ~0.3 tok/s against a base of
+   tens. Refreshing that expression every second would produce a still number, animated. The same
+   applies to the per-type legend rates, which divide by the same elapsed.
+2. **The cadence belongs to the rate-limit API.** `Reload()` runs on `Refresh_Click` or on the tray's
+   `UpdateSnapshot` — `RefreshSeconds`, default 300, floored at 30 (`Settings.MinRefreshSeconds`), and
+   deliberately stretched to the next reset while a window is maxed (`DesiredPollMs`). That restraint
+   is correct and must not be touched to make a chart livelier.
+
+So the fix is a **second metric on a second clock**, not a faster refresh of the existing one.
+
+### §V.1 The data path: tail, don't sweep (T97)
+
+Transcripts are append-only and written as turns land, so the freshest usage signal in the system is
+local and needs no API call at all. The parser already exists — `UsageReport.TryParseSample` reads
+`type`, `timestamp` and `message.usage`, skips `<synthetic>`, and touches nothing else, which keeps
+§I.1 intact by construction.
+
+What is missing is a cheap way to notice an append. `ScanTokens` re-reads every `*.jsonl` touched
+inside the window on *every* refresh — for the weekly window that is most of the tree. A tail reader
+keeps `(path → byte offset, length)` and parses only the new bytes, driven by a `FileSystemWatcher`
+with the same debounce `ContextWindow` uses for `*.md` (T82).
+
+Two failure modes to design for rather than discover: a file that **shrank** (rotation, a truncated
+write) must reset its offset instead of seeking past the end, and a **partial last line** must be held
+back until its newline arrives, or a turn is silently dropped. The watcher is a hint, not a
+guarantee — a slow poll (a few seconds) as a floor keeps a missed event from freezing the display.
+
+This is a sibling of T92, not a duplicate: T92 caches *per-file hourly buckets* for the profile
+rebuild; T97 needs *byte-level* resumption to see a single turn within a second. They should share
+the file-identity key (path + size + mtime) and nothing else.
+
+### §V.2 A rolling rate that decays (T98)
+
+The live metric is tokens/s over a trailing ~60s, smoothed with an EWMA so a single 40k-token turn
+reads as a bump rather than a spike, and a pause visibly decays toward zero instead of holding the
+last value. Cache reads stay excluded for the same reason they already are: they dwarf real work and
+barely weigh on the limit.
+
+It sits **beside** the window average, never replacing it — the two answer different questions
+("what did this week cost" vs. "what is running now"), and a user who sees only the fast number loses
+the pacing story the window average carries. That makes labelling load-bearing: neither number is
+quota, and a big moving tok/s next to a burn-up chart will be read as quota unless the copy is
+explicit. A headless `--live` that prints the rate once a second makes the metric verifiable without
+opening a window, and gives the UI work something to check against.
+
+### §V.3 Motion that is data (T99)
+
+The static stacked bar becomes a strip of the last ~3 minutes: one column per second, columns entering
+at the right and leaving at the left, keeping the input/output/cache-create split. The reason this is
+worth an animation at all is that **the moving axis is time** — the motion carries information, which
+is the only kind of motion this app should add. A spinner or a breathing pulse would imply activity
+during idleness, which is a lie a monitoring tool cannot afford.
+
+Consequences of that principle, all of them cheap:
+
+- **Nothing running ⇒ nothing moves.** The strip flattens and repainting stops; no timer churn.
+- **Hidden ⇒ stopped.** The clock runs only while the window is visible, so a minimized Statistics
+  window costs what it costs today.
+- **The window average, the charts and the verdict chip are untouched.** This block adds a row; it does
+  not re-time the pace report.
+
+The method note needs one added sentence, and it is the same blind spot T87 already discloses: a rate
+built from local transcripts cannot see usage from another machine or from claude.ai, so **zero
+throughput is not proof of idleness**. T93 does not fix this one — the folded hourly store has no
+per-second resolution to lend.
+
+### §V.4 Which project is burning it (T100)
+
+For a single project the live rate is a curiosity. Across five repos it answers the real question:
+*which of these is eating the week?* The attribution is free — the transcript path already encodes the
+project directory, the same key `ContextScanner` groups by — so the strip stacks per project and the
+row can state "N sessions active now" plus the two or three heaviest this minute.
+
+Two judgement calls worth settling before implementing: a session counts as *active* on a trailing
+window (a turn in the last ~2 minutes), not on file presence, or every open terminal inflates the
+count; and the per-project palette must degrade to "others" past a handful of series rather than
+inventing colours, per the categorical-palette limit.
+
+### §V.5 A tray hint, deliberately unresolved (T101)
+
+The tray icon is the only always-visible surface, and "something is generating right now" is exactly
+the kind of ambient fact it could carry. It stays an *idea* rather than a design because the cost is
+real: an animating tray icon draws the eye continuously and wakes the render path on battery. If it
+ships, it ships **off by default**, and dropping it entirely is an acceptable outcome.
+
+### §V.6 What this block will not do
+
+- **No new notification channel.** Same ruling as §IV.6 — a live rate is a display, not an alarm, and
+  "you are burning fast right now" as a toast needs its own justification.
+- **No content, ever.** Tailing reads the same fields the sweep does (§I.1). Session *names*, prompts
+  and tool output stay unread, and "which project" means the `cwd`, not what is in it.
+- **No API cadence change.** If a task in this block starts arguing for a shorter `RefreshSeconds`,
+  it has drifted: the whole point is that the live signal is local.
