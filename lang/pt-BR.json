@@ -254,6 +254,8 @@
   "stats.proj.ok.left": "Você está no ritmo equilibrado — ainda acima do piso de {0}. No ritmo atual, a cota dura tranquilamente até o reset, em {1}.",
   "stats.proj.shapeEta": "No ritmo das horas em que você costuma trabalhar, a cota acaba por volta de {0} — cerca de {1} antes do reset (em aproximadamente {2}). Vale desacelerar para não ser bloqueado.",
   "stats.proj.shapeEta.left": "No ritmo das horas em que você costuma trabalhar, você fica sem cota por volta de {0} — cerca de {1} antes do reset (em aproximadamente {2}). Vale desacelerar para não ser bloqueado.",
+  "stats.proj.shapeResume": "Se parar agora e retomar por volta de {0}, você fecharia a semana em torno de {1}.",
+  "stats.proj.shapeResume.left": "Se parar agora e retomar por volta de {0}, você fecharia a semana com cerca de {1} ainda disponíveis.",
   "stats.proj.shapeOk": "No ritmo das horas em que você costuma trabalhar, você fecharia a semana em torno de {0}, com o reset em {1}.",
   "stats.proj.shapeOk.left": "No ritmo das horas em que você costuma trabalhar, você fecharia a semana com cerca de {0} ainda disponíveis, com o reset em {1}.",
 

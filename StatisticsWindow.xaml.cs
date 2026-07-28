@@ -418,11 +418,19 @@ internal partial class StatisticsWindow : Window
         if (w.Shape is { } shape)
         {
             double now = w.ResetUnix - w.SecondsToReset;
-            return shape.RunsOut
-                ? L.T(_remaining ? "stats.proj.shapeEta.left" : "stats.proj.shapeEta",
-                      LocalTime(shape.ExhaustUnix), Dur(w.ResetUnix - shape.ExhaustUnix), Dur(shape.ExhaustUnix - now))
-                : L.T(_remaining ? "stats.proj.shapeOk.left" : "stats.proj.shapeOk",
-                      Pct(Disp(shape.EndCum)), toReset);
+            if (!shape.RunsOut)
+                return L.T(_remaining ? "stats.proj.shapeOk.left" : "stats.proj.shapeOk",
+                           Pct(Disp(shape.EndCum)), toReset);
+
+            string warning = L.T(_remaining ? "stats.proj.shapeEta.left" : "stats.proj.shapeEta",
+                LocalTime(shape.ExhaustUnix), Dur(w.ResetUnix - shape.ExhaustUnix), Dur(shape.ExhaustUnix - now));
+
+            // The window has always reported the problem; this is the part that says what to do about
+            // it. Only when there is a real answer — no advice beats invented advice.
+            return shape.HasAdvice
+                ? warning + " " + L.T(_remaining ? "stats.proj.shapeResume.left" : "stats.proj.shapeResume",
+                                      LocalTime(shape.ResumeUnix), Pct(Disp(shape.ResumeEndCum)))
+                : warning;
         }
 
         if (_remaining)

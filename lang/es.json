@@ -254,6 +254,8 @@
   "stats.proj.ok.left": "Vas a ritmo equilibrado — aún por encima del mínimo de {0}. Al ritmo actual, la cuota dura tranquilamente hasta el reinicio, en {1}.",
   "stats.proj.shapeEta": "Al ritmo de las horas en las que sueles trabajar, la cuota se agota en torno a las {0} — unos {1} antes del reinicio (dentro de unos {2}). Conviene reducir el ritmo para no quedar bloqueado.",
   "stats.proj.shapeEta.left": "Al ritmo de las horas en las que sueles trabajar, te quedas sin cuota en torno a las {0} — unos {1} antes del reinicio (dentro de unos {2}). Conviene reducir el ritmo para no quedar bloqueado.",
+  "stats.proj.shapeResume": "Si paras ahora y lo retomas en torno a las {0}, cerrarías la semana en torno al {1}.",
+  "stats.proj.shapeResume.left": "Si paras ahora y lo retomas en torno a las {0}, cerrarías la semana con un {1} aún disponible.",
   "stats.proj.shapeOk": "Al ritmo de las horas en las que sueles trabajar, cerrarías la semana en torno al {0}, con el reinicio dentro de {1}.",
   "stats.proj.shapeOk.left": "Al ritmo de las horas en las que sueles trabajar, cerrarías la semana con un {0} aún disponible, con el reinicio dentro de {1}.",
 

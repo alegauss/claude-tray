@@ -67,7 +67,21 @@ internal sealed class ActivityShape
     /// false when it fell back to the profile's expectation for the elapsed span.</summary>
     public bool MeasuredCalibration;
 
+    /// <summary>Unix seconds of the earliest hour you could resume at and still finish the week under
+    /// the limit — 0 when there is nothing to advise. See <see cref="Advise"/>.</summary>
+    public double ResumeUnix;
+
+    /// <summary>Where the week would close if work stopped now and resumed at <see cref="ResumeUnix"/>.</summary>
+    public double ResumeEndCum;
+
+    /// <summary>There is a concrete "stop now, resume then" to offer.</summary>
+    public bool HasAdvice => ResumeUnix > 0;
+
     public bool RunsOut => ExhaustFraction <= 1;
+
+    /// <summary>Aim to close the week just under the limit rather than exactly at it — advice that
+    /// lands on 100.0% is advice to get blocked.</summary>
+    private const double AdviceTarget = 0.98;
 
     /// <summary>
     /// Build the staircase, or null when the shape shouldn't be trusted here — no window, nothing
@@ -146,7 +160,37 @@ internal sealed class ActivityShape
             .Where(b => b.f1 > b.f0 && (b.f1 - b.f0) * w.WindowSeconds >= MinBandHours * 3600)
             .ToList();
 
+        if (shape.RunsOut) shape.Advise(w, p, nowLocal, resetLocal);
+
         return shape;
+    }
+
+    /// <summary>
+    /// Turn "you run out 1d 6h before the reset" into something to do about it: the earliest hour work
+    /// could resume at and still close the week under the limit, assuming the same pace per active
+    /// hour once it does.
+    ///
+    /// Only whole hours the user is normally working are offered — advice to resume at 03:00 is not
+    /// advice — so the answer naturally lands on the start of a working stretch ("tomorrow at 09:00")
+    /// rather than on an arbitrary minute. Skipping a night costs nothing in the model, which is why
+    /// the resulting close is often comfortably under the target rather than exactly on it.
+    /// </summary>
+    private void Advise(WindowPace w, ActivityProfile p, DateTime nowLocal, DateTime resetLocal)
+    {
+        DateTime probe = nowLocal.Date.AddHours(nowLocal.Hour + 1);
+        for (int guard = 0; guard < 2 * ActivityProfile.Buckets && probe < resetLocal; guard++, probe = probe.AddHours(1))
+        {
+            if (p.At(probe) < IdleThreshold) continue;
+
+            double closes = w.Util + RatePerActiveHour * p.ExpectedActiveHours(probe, resetLocal);
+            if (closes > AdviceTarget) continue;
+
+            ResumeUnix = new DateTimeOffset(probe).ToUnixTimeSeconds();
+            ResumeEndCum = closes;
+            return;
+        }
+        // Nothing found: even resuming at the last working hour overshoots, so there is no honest
+        // "pause until" to give and the warning stands on its own.
     }
 
     private void AddBand(double f0, double f1, double windowSeconds)

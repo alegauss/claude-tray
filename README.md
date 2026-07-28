@@ -111,6 +111,13 @@ anyone is typing.
 `ClaudeTray.exe --activity` prints the measured week as a heatmap if you want to see the shape
 the projection is following.
 
+**It also tells you what to do about it.** When the shaped projection says you'll run out early,
+the sentence under the chart doesn't stop at the warning — it names the earliest hour you could
+stop and resume at and still finish the week under the limit: *"Stop now and pick it back up
+around Jul 30, 13:00, and you'd close the week at about 97%."* Only hours you normally work are
+offered, and if no resume time would actually save the week, no advice is given rather than a
+made-up one.
+
 **Last week, behind this week.** The weekly chart also draws the previous week's burn-up as a
 faint line on the same axes, so "is this week worse than the last?" is answerable at a glance
 instead of from memory. Hovering its end shows where last week finished and where it stood at

@@ -117,13 +117,8 @@ Sunday at exactly the rate it spends it at 15:00 Tuesday, which produces two con
 
 The fix is to project along a **shape**, not a slope.
 
-### §IV.5 When to stop, when to resume (T90)
+### §IV.6 Where Block J stopped
 
-The window today reports a problem ("you run out 1d 22h before the reset"); it does not say what to do
-about it. With a trustworthy shape from T87, it can: *"stop now and resume tomorrow at 09:00 and you
-close the week at ~92%"*. Sequenced last on purpose — advice built on a shaky projection is worse than
-no advice, so this waits until T87 has proven itself.
-
-An activity-aware **tray notification** is explicitly *not* part of this. The nudge threshold is the
-wall-clock verdict and stays that way (T87 settled this); a second, softer notification channel would need its
-own justification.
+An activity-aware **tray notification** is explicitly *not* part of this block. The nudge threshold is
+the wall-clock verdict and stays that way (T87 settled this); a second, softer notification channel
+would need its own justification.

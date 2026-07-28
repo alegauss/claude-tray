@@ -258,6 +258,8 @@
   "stats.proj.ok.left": "You're pacing evenly — still above the even-pace floor of {0}. At the current rate, the quota comfortably lasts until the reset, in {1}.",
   "stats.proj.shapeEta": "Paced to the hours you usually work, the quota runs out around {0} — roughly {1} before the reset (in about {2}). Worth easing off so you don't get blocked.",
   "stats.proj.shapeEta.left": "Paced to the hours you usually work, you're left with nothing around {0} — roughly {1} before the reset (in about {2}). Worth easing off so you don't get blocked.",
+  "stats.proj.shapeResume": "Stop now and pick it back up around {0}, and you'd close the week at about {1}.",
+  "stats.proj.shapeResume.left": "Stop now and pick it back up around {0}, and you'd close the week with about {1} still left.",
   "stats.proj.shapeOk": "Paced to the hours you usually work, you'd close the week at around {0}, with the reset in {1}.",
   "stats.proj.shapeOk.left": "Paced to the hours you usually work, you'd close the week with around {0} still left, with the reset in {1}.",
 

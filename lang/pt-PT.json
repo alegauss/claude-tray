@@ -255,6 +255,8 @@
   "stats.proj.ok.left": "Está no ritmo equilibrado — ainda acima do mínimo de {0}. Ao ritmo atual, a quota dura tranquilamente até à reposição, em {1}.",
   "stats.proj.shapeEta": "Ao ritmo das horas em que costuma trabalhar, a quota esgota-se por volta das {0} — cerca de {1} antes da reposição (dentro de cerca de {2}). Vale a pena abrandar para não ficar bloqueado.",
   "stats.proj.shapeEta.left": "Ao ritmo das horas em que costuma trabalhar, fica sem quota por volta das {0} — cerca de {1} antes da reposição (dentro de cerca de {2}). Vale a pena abrandar para não ficar bloqueado.",
+  "stats.proj.shapeResume": "Se parar agora e retomar por volta das {0}, fecharia a semana por volta de {1}.",
+  "stats.proj.shapeResume.left": "Se parar agora e retomar por volta das {0}, fecharia a semana com cerca de {1} ainda disponíveis.",
   "stats.proj.shapeOk": "Ao ritmo das horas em que costuma trabalhar, fecharia a semana por volta de {0}, com a reposição em {1}.",
   "stats.proj.shapeOk.left": "Ao ritmo das horas em que costuma trabalhar, fecharia a semana com cerca de {0} ainda disponíveis, com a reposição em {1}.",
 

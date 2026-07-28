@@ -43,11 +43,12 @@
 > 02:00. This block models **when** the user is actually active and projects along that shape instead.
 > Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §IV.
 >
-> **Shipped: T86–T89** — the profile (`ActivityProfile.cs`, `--activity`), the staircase projection
-> on the weekly chart, the permanent hourly aggregate behind it (`HourlyUsage.cs`) and last week's
-> ghost curve. See [CHANGELOG.md](CHANGELOG.md) Block J.
-
-- 💭 **T90** (deps: T87) **"When to stop, when to resume"** — turn the projection into one actionable sentence ("stop now and resume tomorrow at 09:00 and you close the week at ~92%") instead of only a warning. Needs T87's shape to be trustworthy first. → §IV.5
+> **Shipped: T86–T90.** The profile (`ActivityProfile.cs`, `--activity`), the staircase projection on
+> the weekly chart, the permanent hourly aggregate behind it (`HourlyUsage.cs`), last week's ghost
+> curve, and the "stop now, resume at …" advice. See [CHANGELOG.md](CHANGELOG.md) Block J.
+>
+> Headless: `--activity`, `--activity --measured`, `--activity --fold`; previews `--stats shape`,
+> `--stats shape ghost`.
 
 ## Non-goals (do NOT add as tasks)
 

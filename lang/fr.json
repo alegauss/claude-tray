@@ -254,6 +254,8 @@
   "stats.proj.ok.left": "Vous êtes à un rythme régulier — encore au-dessus du plancher de {0}. Au rythme actuel, le quota tient confortablement jusqu'à la réinitialisation, dans {1}.",
   "stats.proj.shapeEta": "Au rythme des heures où vous travaillez habituellement, le quota s'épuise vers {0} — environ {1} avant la réinitialisation (dans à peu près {2}). Mieux vaut lever le pied pour ne pas être bloqué.",
   "stats.proj.shapeEta.left": "Au rythme des heures où vous travaillez habituellement, il ne vous reste plus rien vers {0} — environ {1} avant la réinitialisation (dans à peu près {2}). Mieux vaut lever le pied pour ne pas être bloqué.",
+  "stats.proj.shapeResume": "Si vous vous arrêtez maintenant et reprenez vers {0}, vous termineriez la semaine autour de {1}.",
+  "stats.proj.shapeResume.left": "Si vous vous arrêtez maintenant et reprenez vers {0}, vous termineriez la semaine avec environ {1} encore disponible.",
   "stats.proj.shapeOk": "Au rythme des heures où vous travaillez habituellement, vous termineriez la semaine autour de {0}, la réinitialisation étant dans {1}.",
   "stats.proj.shapeOk.left": "Au rythme des heures où vous travaillez habituellement, vous termineriez la semaine avec environ {0} encore disponible, la réinitialisation étant dans {1}.",
 
