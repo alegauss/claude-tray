@@ -43,10 +43,8 @@
 > 02:00. This block models **when** the user is actually active and projects along that shape instead.
 > Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §IV.
 >
-> **Shipped: T86** — the profile itself (`ActivityProfile.cs`, `--activity`). See
-> [CHANGELOG.md](CHANGELOG.md) Block J.
-
-- 📋 **T87** (deps: T86) **Staircase projection on the weekly chart** — spend the remaining quota weighted by `p_h` instead of uniformly: flat through projected-idle hours, sloped through active ones, with faint amber bands behind the projected-idle stretches. Falls back to today's straight line below ~3 weeks of coverage. Red stays reserved for "no reading" (`OutageBandBrush`); the grey even-pace line and the verdict chip are deliberately untouched. → §IV.2
+> **Shipped: T86–T87** — the profile (`ActivityProfile.cs`, `--activity`) and the staircase
+> projection on the weekly chart. See [CHANGELOG.md](CHANGELOG.md) Block J.
 - 💭 **T88** (deps: —) **Long-term hourly usage summary** — fold each pruned day of `usage-history.jsonl` into a permanent, tiny per-hour aggregate (~168 floats/week) before it is discarded, so idle can eventually be *measured* rather than inferred from transcripts, and so week-over-week comparison has a source. → §IV.3
 - 💭 **T89** (deps: T88) **Ghost curve of the previous week** — overlay last week's burn-up faintly behind the current one, answering "is this week worse than the last?" without a second chart. → §IV.4
 - 💭 **T90** (deps: T87) **"When to stop, when to resume"** — turn the projection into one actionable sentence ("stop now and resume tomorrow at 09:00 and you close the week at ~92%") instead of only a warning. Needs T87's shape to be trustworthy first. → §IV.5

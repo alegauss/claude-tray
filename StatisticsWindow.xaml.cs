@@ -42,6 +42,11 @@ internal partial class StatisticsWindow : Window
     private static readonly Brush OutageBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xE3, 0x3B, 0x30)));
     private static readonly Brush OutageBandBrush = Freeze(new SolidColorBrush(Color.FromArgb(0x22, 0xE3, 0x3B, 0x30)));
 
+    // Projected-idle bands: the projection's own amber at band strength. Deliberately *not* red —
+    // red already means "no reading was logged", and "we measured, and it was zero" is the opposite
+    // claim. Past idle gets no band at all: the curve is already visibly flat there.
+    private static readonly Brush IdleBandBrush = Freeze(new SolidColorBrush(Color.FromArgb(0x1E, 0xE0, 0xA0, 0x30)));
+
     // The live rate-limit reading, refreshed in place by the tray on each poll (see UpdateSnapshot),
     // so the report tracks the same cadence configured in Settings without polling the API itself.
     private PaceSnapshot? _snapshot;
@@ -263,6 +268,16 @@ internal partial class StatisticsWindow : Window
         ApplyModeLabels();
         Populate(r.Session, ChipS, ChipTextS, UsedS, IdealS, ResetS, ProjectionS, ChartS, TpsHeadS, TpsBarS, TpsLegendS);
         Populate(r.Weekly, ChipW, ChipTextW, UsedW, IdealW, ResetW, ProjectionW, ChartW, TpsHeadW, TpsBarW, TpsLegendW);
+
+        // The weekly projection changes meaning when it follows the activity shape, so the method note
+        // has to say so — including the part that can't be measured locally: usage from another
+        // machine or from claude.ai spends the same quota while leaving no transcript here.
+        bool shaped = r.Weekly.Shape is not null;
+        MethodNote.Text = shaped
+            ? L.T("stats.methodNote") + " " + L.T("stats.methodNote.shape", $"{r.Weekly.Shape!.CoverageWeeks:0.#}")
+            : L.T("stats.methodNote");
+        LegendIdleW.Visibility = shaped && r.Weekly.Shape!.IdleBands.Count > 0
+            ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // The static captions/legend labels that change wording between "used" and "remaining" framing.
@@ -386,6 +401,19 @@ internal partial class StatisticsWindow : Window
             return L.T("stats.proj.noWindow");
 
         string toReset = Dur(w.SecondsToReset);
+
+        // With a shape to follow, the sentence follows it too — and hedges. The model is a habit, not
+        // a schedule, so it says "around", never a to-the-minute landing.
+        if (w.Shape is { } shape)
+        {
+            double now = w.ResetUnix - w.SecondsToReset;
+            return shape.RunsOut
+                ? L.T(_remaining ? "stats.proj.shapeEta.left" : "stats.proj.shapeEta",
+                      LocalTime(shape.ExhaustUnix), Dur(w.ResetUnix - shape.ExhaustUnix), Dur(shape.ExhaustUnix - now))
+                : L.T(_remaining ? "stats.proj.shapeOk.left" : "stats.proj.shapeOk",
+                      Pct(Disp(shape.EndCum)), toReset);
+        }
+
         if (_remaining)
         {
             return w.Verdict switch
@@ -528,8 +556,68 @@ internal partial class StatisticsWindow : Window
             c.Children.Add(new Polyline { Points = pts, Stroke = accent, StrokeThickness = 2.5 });
         }
 
+        // Projected-idle bands: the stretches ahead this machine is usually not working. Drawn under
+        // the projection so the flat steps have a visible reason, and only when the staircase is what
+        // is being drawn — a band without a staircase would explain nothing.
+        if (w.Shape is { } bands)
+            foreach (var (f0, f1) in bands.IdleBands)
+            {
+                double xa = X(f0), xb = X(f1);
+                var band = new System.Windows.Shapes.Rectangle
+                {
+                    Width = Math.Max(0, xb - xa), Height = ph, Fill = IdleBandBrush,
+                };
+                Canvas.SetLeft(band, xa);
+                Canvas.SetTop(band, top);
+                c.Children.Add(band);
+                band.ToolTip = L.T("stats.chart.idleBand",
+                    LocalTime(w.ResetUnix - w.WindowSeconds + f0 * w.WindowSeconds),
+                    LocalTime(w.ResetUnix - w.WindowSeconds + f1 * w.WindowSeconds));
+            }
+
+        // Projection, activity-aware when there is a trustworthy shape to follow: quota spent along
+        // the usual-hours curve (flat overnight, sloped through working hours) rather than uniformly.
+        if (w.Shape is { } shape && shape.Curve.Count >= 2)
+        {
+            var stair = new PointCollection(shape.Curve.Select(p => new Point(X(p.frac), Yc(p.cum))));
+            c.Children.Add(new Polyline
+            {
+                Points = stair, Stroke = ProjectionBrush, StrokeThickness = 2,
+                StrokeDashArray = new DoubleCollection { 5, 4 },
+            });
+
+            double endX = X(shape.RunsOut ? shape.ExhaustFraction : 1);
+            double endY = Yc(shape.RunsOut ? 1 : shape.EndCum);
+            string tip = shape.RunsOut
+                ? L.T(_remaining ? "stats.chart.projShapeHitZero" : "stats.chart.projShapeHit",
+                      LocalTime(shape.ExhaustUnix), Dur(shape.ExhaustUnix - (w.ResetUnix - w.WindowSeconds + ef * w.WindowSeconds)))
+                : L.T("stats.chart.projShapeReset", Pct(Disp(shape.EndCum)));
+
+            var landing = new Ellipse { Width = 7, Height = 7, Fill = ProjectionBrush };
+            Canvas.SetLeft(landing, endX - 3.5);
+            Canvas.SetTop(landing, endY - 3.5);
+            c.Children.Add(landing);
+
+            // The landing clock time, as with the straight projection — hedged elsewhere in words, but
+            // the marker itself still has to point somewhere.
+            if (shape.RunsOut)
+            {
+                string clock = ShortTime(shape.ExhaustUnix, w.WindowSeconds);
+                var cl = new TextBlock
+                {
+                    Text = clock, FontSize = 10, FontWeight = FontWeights.SemiBold,
+                    Foreground = ProjectionBrush,
+                };
+                double cw = MeasureText(clock, 10);
+                Canvas.SetLeft(cl, Math.Clamp(endX - cw / 2, left, X(1) - cw));
+                Canvas.SetTop(cl, _remaining ? endY - 16 : endY + 4);
+                c.Children.Add(cl);
+            }
+
+            AddHit(c, endX, endY, tip);
+        }
         // Projection: extend the average pace from the current point to 100% (or to the reset).
-        if (util > 0 && ef > 0)
+        else if (util > 0 && ef > 0)
         {
             var proj = new PointCollection { new Point(X(ef), Yc(util)) };
             double endX, endY;

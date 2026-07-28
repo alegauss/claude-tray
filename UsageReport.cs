@@ -62,6 +62,15 @@ internal sealed class WindowPace
     // start fraction also fixes the "unavailable since …" time. Empty when the readings are continuous.
     public List<(double f0, double cum0, double f1, double cum1)> Gaps = new();
 
+    // Distinct clock hours inside the elapsed window that contained at least one request. This is what
+    // the activity-aware projection calibrates against — quota per *active* hour, not per wall-clock
+    // hour — so a window that sat idle all morning isn't paced as if it hadn't.
+    public double MeasuredActiveHours;
+
+    // The activity-aware projection (T87), or null to keep drawing the straight average-pace line:
+    // weekly window only, and only when the profile has enough weeks behind it. See ActivityShape.
+    public ActivityShape? Shape;
+
     public double ElapsedFraction => WindowSeconds > 0 ? Math.Clamp(ElapsedSeconds / WindowSeconds, 0, 1) : 0;
 
     // At the average pace so far, utilization would reach 100% at this fraction of the window.
@@ -81,6 +90,10 @@ internal sealed class PaceReport
     public DateTime ComputedLocal;
     public WindowPace Session = new() { Label = "5-hour session", WindowSeconds = 5 * 3600 };
     public WindowPace Weekly = new() { Label = "Week (7 days)", WindowSeconds = 7 * 86400 };
+
+    /// <summary>The weekly activity shape the projection follows, when there is enough of one.</summary>
+    public ActivityProfile? Activity;
+
     public string? Error;
 }
 
@@ -125,6 +138,12 @@ internal static class UsageReport
                 FillCurve(r.Session, samples, hist, s => (s.Util5h, s.Reset5h), now);
                 FillCurve(r.Weekly, samples, hist, s => (s.Util7d, s.Reset7d), now);
             }
+
+            // Shape the weekly projection around when this machine is actually used. Cached daily and
+            // refreshed off-thread, so this costs a file read on all but the first call of the day.
+            // The 5-hour window is deliberately left alone: it is one sitting, not a habit.
+            r.Activity = ActivityProfile.Load(nowUtc);
+            r.Weekly.Shape = ActivityShape.Build(r.Weekly, r.Activity, now);
 
             return r;
         }
@@ -185,8 +204,12 @@ internal static class UsageReport
 
         var inWin = samples.Where(s => s.t >= start && s.t <= now).OrderBy(s => s.t).ToList();
         long total = 0;
+        // Hours that saw work, counted as distinct UTC hour slots: whole-hour offsets make that the
+        // same count as local slots, and the projection only needs how many, not which.
+        var activeHours = new HashSet<long>();
         foreach (var s in inWin)
         {
+            activeHours.Add((long)(s.t / 3600));
             total += s.bits.Total;
             w.InputTokens += s.bits.Input;
             w.OutputTokens += s.bits.Output;
@@ -195,6 +218,7 @@ internal static class UsageReport
         }
         w.TokensInWindow = total;
         w.RequestsInWindow = inWin.Count;
+        w.MeasuredActiveHours = activeHours.Count;
 
         // Preferred path: the real measured utilization over this window.
         var real = new List<(double frac, double cum)>();

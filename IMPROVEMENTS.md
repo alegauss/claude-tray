@@ -117,43 +117,6 @@ Sunday at exactly the rate it spends it at 15:00 Tuesday, which produces two con
 
 The fix is to project along a **shape**, not a slope.
 
-### §IV.2 The staircase (T87)
-
-Calibrate against measured active time rather than wall-clock:
-
-```
-rate_per_active_hour = util / active_hours_measured_in_this_window
-projected(h)         = rate_per_active_hour × Σ p_h   over remaining hours
-```
-
-This degrades correctly: with a typical remainder it reproduces today's straight line, and it only
-diverges where the remainder's mix genuinely differs. The rendered projection becomes flat through
-projected-idle hours and sloped through active ones — the staircase is self-explanatory, which is why
-it carries the feature rather than the bands.
-
-**Colour discipline.** Red is already taken: `OutageBandBrush` means *no reading was logged* ("data
-unavailable since …"). Painting today's idle red would collide two opposite meanings — "we did not
-measure" versus "we measured, and it was zero". So: past idle gets **no band** (the curve is already
-visibly flat there), and future projected-idle gets a faint **amber** band matching the projection
-line.
-
-**Scope boundaries, deliberate:**
-
-- **Weekly window only.** A 5-hour window is a single sitting; an activity profile has nothing to say
-  about it.
-- **The grey even-pace line and the verdict chip do not change.** The clock reference is honest — quota
-  drains in wall-clock time whether or not anyone is typing. Making the *target* activity-aware would
-  make the chip lenient and desynchronise it from the tray icon, which shares the `Fill` criterion.
-  The activity model belongs to the projection alone.
-- **Below ~3 weeks of coverage, fall back** to the current straight line. A confident-looking staircase
-  built on one week is worse than an honest line.
-- **Hedge the wording.** "around", not a to-the-minute landing time — the model is a habit, not a
-  schedule. Five `lang/*.json` files, per the user-facing-surface gate.
-
-**Known limitation to state in the UI copy:** usage from another machine or from claude.ai counts
-against the same limit but leaves no local transcript, so locally-detected idle is not necessarily
-real idle.
-
 ### §IV.3 Long-term hourly summary (T88)
 
 `UsageHistory.PruneIfStale` currently discards days older than 8 outright. Folding each expiring day
@@ -176,5 +139,5 @@ close the week at ~92%"*. Sequenced last on purpose — advice built on a shaky 
 no advice, so this waits until T87 has proven itself.
 
 An activity-aware **tray notification** is explicitly *not* part of this. The nudge threshold is the
-wall-clock verdict and stays that way (§IV.2); a second, softer notification channel would need its
+wall-clock verdict and stays that way (T87 settled this); a second, softer notification channel would need its
 own justification.

@@ -115,20 +115,39 @@ internal sealed class ActivityProfile
 
     // ---------------------------------------------------------------- loading
 
+    // Set while a background refresh is in flight, so a report refreshed every poll can't stack up
+    // scans of the same hundreds of megabytes.
+    private static int _refreshing;
+
     /// <summary>
-    /// The profile for now: the cached grid when it is less than <see cref="RefreshHours"/> old,
-    /// otherwise a fresh scan (which is then cached). Best-effort throughout — a failure yields an
-    /// empty, non-confident profile with <see cref="Error"/> set, never an exception.
+    /// The profile for now: the cached grid when there is one, recomputed in the background once it
+    /// passes <see cref="RefreshHours"/>. Only the very first call on a machine pays for the scan —
+    /// a day-old grid is still a good grid, and blocking a chart on a 15-second sweep to sharpen a
+    /// habit by one day is a bad trade. Best-effort throughout: a failure yields an empty,
+    /// non-confident profile with <see cref="Error"/> set, never an exception.
     /// </summary>
-    /// <param name="refresh">Force a rescan even if the cache is fresh.</param>
+    /// <param name="refresh">Force a synchronous rescan, ignoring the cache.</param>
     /// <param name="claudeRoot">Stand-in for <c>~/.claude</c> (fixtures). Never reads or writes the cache.</param>
     public static ActivityProfile Load(DateTime nowUtc, bool refresh = false, string? claudeRoot = null)
     {
         bool real = claudeRoot == null;
-        if (real && !refresh && ReadCache() is { } cached &&
-            (nowUtc - cached.ComputedUtc).TotalHours < RefreshHours)
+        if (real && !refresh && ReadCache() is { } cached)
         {
             cached.FromCache = true;
+            if ((nowUtc - cached.ComputedUtc).TotalHours >= RefreshHours &&
+                Interlocked.CompareExchange(ref _refreshing, 1, 0) == 0)
+            {
+                _ = Task.Run(() =>
+                {
+                    try
+                    {
+                        ActivityProfile next = Compute(DateTimeOffset.UtcNow.UtcDateTime, ProjectsDir(null));
+                        if (next.Error == null) WriteCache(next);
+                    }
+                    catch { /* the stale grid stays; another open will try again */ }
+                    finally { Interlocked.Exchange(ref _refreshing, 0); }
+                });
+            }
             return cached;
         }
 

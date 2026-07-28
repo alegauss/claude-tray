@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:ClaudeTray"
         x:ClassModifier="internal"
         Title="{local:Loc stats.title}"
-        Width="880" Height="784"
+        Width="880" Height="860"
         MinWidth="800" MinHeight="700"
         WindowStartupLocation="CenterScreen"
         ThemeMode="System"
@@ -140,7 +140,11 @@
                         Style="{StaticResource SegControl}" ItemContainerStyle="{StaticResource SegItem}">
                 <!-- ============ SESSION (5h) ============ -->
                 <TabItem Header="{local:Loc stats.tab.session}">
-                    <StackPanel Margin="4,20,4,4">
+                    <!-- Scrolls only when it has to: the panes are sized to fit, but a long projection
+                         sentence in a wordier language (or a short screen) used to be clipped outright
+                         with no way to read it. Auto keeps the scrollbar invisible in the normal case. -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="4,20,14,4">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -199,11 +203,13 @@
                         <TextBlock x:Name="ProjectionS" Margin="0,16,0,0" TextWrapping="Wrap" LineHeight="20"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
+                    </ScrollViewer>
                 </TabItem>
 
                 <!-- ============ WEEK (7d) ============ -->
                 <TabItem Header="{local:Loc stats.tab.week}">
-                    <StackPanel Margin="4,20,4,4">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="4,20,14,4">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -251,6 +257,13 @@
                             <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#E0A030" />
                             <TextBlock Text="{local:Loc stats.legend.projection}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <!-- Shown only when the projection follows the activity shape and there are
+                                 usually-idle stretches ahead to band (see Render). -->
+                            <StackPanel x:Name="LegendIdleW" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
+                                <Rectangle Width="16" Height="10" RadiusX="2" RadiusY="2" VerticalAlignment="Center" Fill="#3DE0A030" />
+                                <TextBlock Text="{local:Loc stats.legend.usualIdle}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
                         </StackPanel>
 
                         <!-- Throughput (tokens/sec, window average) split by token type -->
@@ -262,6 +275,7 @@
                         <TextBlock x:Name="ProjectionW" Margin="0,16,0,0" TextWrapping="Wrap" LineHeight="20"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
+                    </ScrollViewer>
                 </TabItem>
             </TabControl>
 

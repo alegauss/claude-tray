@@ -216,6 +216,18 @@ internal static class Program
                     : null);
                 previewApp.Run(win);
             }
+            else if (args.Length >= 2 && args[1].Equals("shape", StringComparison.OrdinalIgnoreCase))
+            {
+                // Preview the activity-aware weekly projection running out *before* the reset: the
+                // default sample lands comfortably below 100%, which draws the staircase but never its
+                // landing marker. The shape itself is real — it comes from this machine's own profile.
+                // An idle 5h session so the window opens straight on the weekly tab — the shaped
+                // projection is a weekly-only feature and shouldn't need a click to be looked at.
+                var heavy = new PaceSnapshot(
+                    Util5h: 0.0, Reset5h: now + 5 * 3600,
+                    Util7d: 0.74, Reset7d: now + 3 * 86400);    // 4d of 7d elapsed, 74% used → runs out early
+                previewApp.Run(new StatisticsWindow(heavy, remaining) { Topmost = true });
+            }
             else if (args.Length >= 2 && args[1].Equals("idle", StringComparison.OrdinalIgnoreCase))
             {
                 // Preview the "not using Claude" state: the 5h session is idle (0% used → flat chart),
@@ -242,9 +254,13 @@ internal static class Program
                 ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
             };
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            // A second argument of "shape" raises the weekly utilization until the activity-aware
+            // projection runs out before the reset, so the staircase's landing marker and the
+            // usually-idle bands are in the captured 7d tab (see `--stats shape`).
+            bool heavyWeek = args.Any(a => a.Equals("shape", StringComparison.OrdinalIgnoreCase));
             var sample = new PaceSnapshot(
                 Util5h: 0.72, Reset5h: now + 2 * 3600,
-                Util7d: 0.38, Reset7d: now + 3 * 86400);
+                Util7d: heavyWeek ? 0.74 : 0.38, Reset7d: now + 3 * 86400);
             var win = new StatisticsWindow(sample)
             {
                 WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,

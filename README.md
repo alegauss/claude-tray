@@ -91,6 +91,26 @@ How the verdict is computed depends on the window:
 The bar color and the tooltip's projected time follow whichever metric you have **Show on
 icon** set to (session 5h, week 7d, or extra). Resets are detected and clear the history.
 
+### The weekly chart is paced to your hours, not the clock
+
+In the **Statistics** window, the weekly projection doesn't spend quota uniformly across the
+days ahead — a straight line does that, and it can put "you run out here" at 03:59 on a Friday,
+a time nothing is running. Instead the app measures **when you are usually active** (day-of-week
+× hour, from the timestamps in your local transcripts) and spends the remaining quota along that
+shape: flat through the stretches you're normally idle — shaded faintly and labelled *usually
+idle* — and sloped through your working hours.
+
+It's a habit, not a schedule, so the wording hedges ("around 13:45"). It needs about three weeks
+of local transcripts; below that the chart falls back to the straight average-pace line rather
+than drawing a confident-looking staircase on thin data. And note that usage from another
+machine or from claude.ai counts against the same limit while leaving no transcript here, so an
+hour that looks idle locally may not have been. The even-pace line, the verdict chip and the tray
+icon are deliberately **not** activity-aware — quota drains in wall-clock time whether or not
+anyone is typing.
+
+`ClaudeTray.exe --activity` prints the measured week as a heatmap if you want to see the shape
+the projection is following.
+
 ## ✨ Reset notifications — color-coded, at a glance
 
 When a usage window hands your quota back, the app celebrates it with a **bespoke, on-brand
