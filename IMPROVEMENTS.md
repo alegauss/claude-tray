@@ -122,3 +122,97 @@ The fix is to project along a **shape**, not a slope.
 An activity-aware **tray notification** is explicitly *not* part of this block. The nudge threshold is
 the wall-clock verdict and stays that way (T87 settled this); a second, softer notification channel
 would need its own justification.
+
+### §IV.7 Keeping the profile warm (T91)
+
+`ActivityProfile.Load` is called from one place: `UsageReport.ComputePace`, which runs when the
+Statistics window is open. That has two consequences nobody would choose deliberately. A user who
+never opens the window never rebuilds the grid, so the projection they *do* see — through the tray
+icon's verdict, indirectly — is shaped by a profile that may be weeks stale. And the first open on a
+new install lands the full ~15s sweep in front of the first chart.
+
+The tray already solves this exact problem for context (T79: sample on launch, then every 6h, off the
+poll cadence because a warm scan is cheap and weekly drift doesn't need per-minute sampling). The same
+timer should own the profile. Nothing else changes: `Load` already returns a stale cache immediately
+and refreshes behind it, so the window keeps reading whatever is on disk.
+
+### §IV.8 Incremental transcript sweep (T92)
+
+The rebuild reads every `*.jsonl` under `~/.claude/projects` newer than the 12-week cutoff — measured
+at 15s over 93,856 requests on the dev machine — and almost all of that work is repeated: a transcript
+that hasn't been written since yesterday's sweep produces exactly the hourly counts it produced then.
+
+`ContextUsage` already has the pattern: a per-file cache keyed by path + size + mtime. Here the cached
+value is smaller still — the set of (day, hour) buckets that file touched. Only changed and new files
+get read, which turns the daily refresh into something that could run on launch without a thought
+(and makes T91 cheap enough to be uncontroversial).
+
+Worth keeping the cold path honest: a `--activity --refresh` must still be able to force the full
+sweep, or a cache bug becomes unfalsifiable.
+
+### §IV.9 Prefer the measured grid (T93)
+
+The transcript grid has a structural blind spot the UI currently has to apologise for: *usage from
+another machine or from claude.ai counts against the same limit but leaves no transcript here.* The
+folded aggregate does not have that blind spot — it is built from the rate-limit utilization itself,
+which counts every request against the limit whoever made it and wherever.
+
+So the measured grid is not merely a second opinion to validate against (its role in T88), it is the
+better source once there is enough of it. The transcript grid keeps two jobs: bootstrapping the first
+weeks, when the store has nothing, and covering hours the app wasn't running to observe.
+
+Blend rather than switch — a hard cutover at three weeks would visibly jump the projection on an
+arbitrary day. Weight per bucket by measured coverage, so hours the store knows well are taken from
+the store and hours it barely saw stay with the transcripts.
+
+When this ships, the method-note sentence about the local-transcript blind spot has to change with it
+— it stops being true to the degree the measured grid dominates, and a stale disclaimer is its own
+kind of wrong.
+
+### §IV.10 Intensity, not just presence (T94)
+
+`projected = util + rate × Σ p` treats every active hour as costing the same. It does not: a morning
+of agent work and an evening of one-line questions are both "active", and the model spends them
+identically. The error is bounded (the rate is calibrated on this window's own average) but it is
+systematic — a week whose remaining hours are the heavy kind is under-projected exactly when the
+warning matters most.
+
+The folded store already holds what is needed: mean spend per *active* hour per bucket. Expressed
+relative to the overall mean it becomes a unitless intensity `i_h ≈ 1`, and the projection becomes
+`Σ p_h · i_h`. Deliberately sequenced after T93: intensity is only meaningful once the measured grid
+is trusted, and stacking two model changes at once would make a regression impossible to attribute.
+
+Guard against overfitting the same way the profile does: clamp `i_h` to something like [0.5, 2] and
+shrink it toward 1 by observation count, so a single 3am incident doesn't create a "3am is 4× heavy"
+bucket.
+
+### §IV.11 Holidays shouldn't teach the model (T95)
+
+Every observed week votes with equal weight (times recency decay). A week on holiday therefore votes
+"these hours are idle" as confidently as a working week votes the opposite, and with a 12-week horizon
+two weeks off in the sample pull every bucket down by a sixth. The flat prior softens this but doesn't
+address it: the prior is about *thin* evidence, not *unrepresentative* evidence.
+
+A week whose total activity is far below the median week (say under a quarter of it) is not evidence
+about which hours are worked — it is evidence that the person was away. Dropping such weeks from both
+the numerator and the denominator leaves the shape untouched and the coverage count honestly reduced.
+`--activity` should print how many weeks were excluded, because silently discarding a sixth of the
+input is exactly the kind of thing that looks like a bug later.
+
+### §IV.12 A self-check for the pacing math (T96)
+
+Block J introduced arithmetic with genuine edge cases and the repo has no test surface at all — every
+verification in the block was a screenshot or a CLI read-out by a human. Some of the properties are
+cheap to assert and expensive to lose:
+
+- a *flat* profile must make the staircase reproduce the straight average-pace line exactly (this is
+  the whole "degrades correctly" claim, and it is one line of arithmetic away from being false)
+- folding must be idempotent, and folding the same day twice must not double its spend
+- the resume advice must never propose an hour whose projected close exceeds its own target
+- the ghost must stay hidden below its coverage and total gates
+- `ExpectedActiveHours` over a whole week must equal the sum of the grid
+
+A test project would mean a third-party test framework, which the non-goals rule out for a repo whose
+single-self-contained-exe story is a feature. An in-app `--selftest` that builds synthetic profiles and
+windows, asserts these properties and exits non-zero on failure costs nothing at runtime, ships inside
+the same binary, and can run in CI as one line.

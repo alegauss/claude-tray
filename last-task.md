@@ -1,6 +1,6 @@
-# Last task number — `T90` · next block letter — `K`
+# Last task number — `T96` · next block letter — `K`
 
-> **Single source of truth for the next free task number.** The next new task is `T91`; after
+> **Single source of truth for the next free task number.** The next new task is `T97`; after
 > assigning it, bump the number above and append a log line below.
 >
 > **Next block letter — `K`** (Block **J** = Activity-aware pacing — model *when* the user is actually
@@ -19,6 +19,9 @@
 - Block **I** is the first block numbered as it happens.
 - Block **J** opens against the Statistics window, not the Context Load Inspector — the two blocks are
   independent, so J's tasks carry no dependency on T85.
+- **T91–T96 are Block J's second pass**, added 2026-07-28 right after T86–T90 shipped: same theme, so
+  they stay in J rather than opening K (Block I set the precedent — shipped T66–T84 alongside an
+  active T85). They came out of building the first pass, not out of planning it.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 
