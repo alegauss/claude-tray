@@ -43,9 +43,10 @@
 > 02:00. This block models **when** the user is actually active and projects along that shape instead.
 > Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §IV.
 >
-> **Shipped: T86–T87** — the profile (`ActivityProfile.cs`, `--activity`) and the staircase
-> projection on the weekly chart. See [CHANGELOG.md](CHANGELOG.md) Block J.
-- 💭 **T88** (deps: —) **Long-term hourly usage summary** — fold each pruned day of `usage-history.jsonl` into a permanent, tiny per-hour aggregate (~168 floats/week) before it is discarded, so idle can eventually be *measured* rather than inferred from transcripts, and so week-over-week comparison has a source. → §IV.3
+> **Shipped: T86–T88** — the profile (`ActivityProfile.cs`, `--activity`), the staircase projection
+> on the weekly chart, and the permanent hourly aggregate behind it (`HourlyUsage.cs`). See
+> [CHANGELOG.md](CHANGELOG.md) Block J.
+
 - 💭 **T89** (deps: T88) **Ghost curve of the previous week** — overlay last week's burn-up faintly behind the current one, answering "is this week worse than the last?" without a second chart. → §IV.4
 - 💭 **T90** (deps: T87) **"When to stop, when to resume"** — turn the projection into one actionable sentence ("stop now and resume tomorrow at 09:00 and you close the week at ~92%") instead of only a warning. Needs T87's shape to be trustworthy first. → §IV.5
 

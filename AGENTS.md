@@ -44,6 +44,7 @@ usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don'
 | `ContextRules.cs` | The advisor over a `ContextScan`: grounded rules → `Finding` (severity + one sentence + the concrete fix). No new IO and never file contents; narrowed to what is objectively measurable so it doesn't cry wolf. |
 | `TokenEstimate.cs` | Chars→tokens estimation for markdown, classified per line (prose / code fence / table). Always rendered as an estimate ("≈4.9k"). |
 | `ActivityProfile.cs` | The weekly activity shape: 168 buckets (day-of-week × local hour) of `p(active)`, mined from transcript **timestamps only**, decayed per week and shrunk toward a flat prior. Cached daily in `%LocalAppData%\ClaudeTray`. The projection follows this instead of a uniform slope. |
+| `HourlyUsage.cs` | Permanent per-hour aggregate (spend + coverage per local day) folded out of `usage-history.jsonl` before its 8-day pruning discards it. Lets idle be *measured* instead of inferred, and is the store week-over-week comparison reads. |
 | `ActivityShape.cs` | The weekly projection spent along that shape: calibrated per *measured active hour*, flat through usually-idle stretches, sloped through working ones. Returns null (→ the old straight line) when the profile is thin or the window can't be calibrated. Weekly only. |
 | `IconRenderer.cs` | GDI+ icon (vector number + outline + fill bar + projection color) at the real size; also the app `.ico` and social image. |
 | `Updater.cs` | Checks GitHub Releases; downloads/runs the installer for in-app self-update. `CurrentVersion`. |
@@ -97,6 +98,8 @@ dotnet run -- --activity              # the weekly activity heatmap behind the p
 dotnet run -- --activity --numbers    # ...as raw per-bucket percentages
 dotnet run -- --activity --refresh    # ...forcing a rescan past the daily cache
 dotnet run -- --activity --root <dir> # ...against a stand-in for ~/.claude
+dotnet run -- --activity --measured   # ...plus the same week measured from the folded hourly store
+dotnet run -- --activity --fold       # fold every complete day of the raw log into that store now
 dotnet run -- --stats shape           # the Statistics window on the weekly tab, activity-aware
                                       #   projection running out before the reset (bands + landing)
 dotnet run -- --capture-stats docs\_preview\shape shape   # ...both tabs to PNG, off-screen

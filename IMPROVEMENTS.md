@@ -117,14 +117,6 @@ Sunday at exactly the rate it spends it at 15:00 Tuesday, which produces two con
 
 The fix is to project along a **shape**, not a slope.
 
-### §IV.3 Long-term hourly summary (T88)
-
-`UsageHistory.PruneIfStale` currently discards days older than 8 outright. Folding each expiring day
-into a permanent per-hour aggregate first (~168 floats per week — negligible next to the 230 KB/week
-raw log) would let idle be *measured* from real utilisation deltas instead of inferred from transcript
-timestamps, giving `ActivityProfile` a second, independent source to validate against — and it is the storage
-T89 needs.
-
 ### §IV.4 Ghost curve (T89)
 
 Draw last week's burn-up faintly behind the current one on the same axes. "Is this week worse than the

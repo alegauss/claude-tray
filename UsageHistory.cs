@@ -106,6 +106,16 @@ internal static class UsageHistory
         if (first == null || !TryGetT(first, out double oldest)) return;
         if (nowUnix - oldest <= TriggerSeconds) return;
 
+        // Nothing is thrown away before it has been counted: every complete day still in the log is
+        // folded into the permanent hourly aggregate first (HourlyUsage), which is what lets idle be
+        // measured rather than inferred once these lines are gone. Already-folded days are skipped
+        // there, so running this on the same lines twice is harmless.
+        var all = new List<UsageSample>();
+        foreach (string line in File.ReadLines(path))
+            if (line.Length > 0 && TryParse(line, out UsageSample s))
+                all.Add(s);
+        HourlyUsage.Fold(all, (long)nowUnix);
+
         double keepFrom = nowUnix - RetentionSeconds;
         var kept = new List<string>();
         foreach (string line in File.ReadLines(path))
