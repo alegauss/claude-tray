@@ -71,6 +71,11 @@ internal sealed class WindowPace
     // weekly window only, and only when the profile has enough weeks behind it. See ActivityShape.
     public ActivityShape? Shape;
 
+    // Last week's burn-up on the same axes (T89), or null when too little of it was observed to be
+    // worth drawing. Weekly window only — the question it answers ("is this week worse than the
+    // last?") isn't one a 5-hour sitting has.
+    public HourlyUsage.GhostWeek? Ghost;
+
     public double ElapsedFraction => WindowSeconds > 0 ? Math.Clamp(ElapsedSeconds / WindowSeconds, 0, 1) : 0;
 
     // At the average pace so far, utilization would reach 100% at this fraction of the window.
@@ -144,6 +149,13 @@ internal static class UsageReport
             // The 5-hour window is deliberately left alone: it is one sitting, not a habit.
             r.Activity = ActivityProfile.Load(nowUtc);
             r.Weekly.Shape = ActivityShape.Build(r.Weekly, r.Activity, now);
+
+            // Last week behind this week, from the folded hourly aggregate — the raw log can't reach
+            // back that far (8-day retention), which is exactly why T88 exists.
+            if (r.Weekly.HasWindow)
+                r.Weekly.Ghost = HourlyUsage.PreviousWeek(
+                    r.Weekly.ResetUnix - r.Weekly.WindowSeconds, r.Weekly.WindowSeconds,
+                    r.Weekly.ElapsedFraction);
 
             return r;
         }

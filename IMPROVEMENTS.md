@@ -117,12 +117,6 @@ Sunday at exactly the rate it spends it at 15:00 Tuesday, which produces two con
 
 The fix is to project along a **shape**, not a slope.
 
-### §IV.4 Ghost curve (T89)
-
-Draw last week's burn-up faintly behind the current one on the same axes. "Is this week worse than the
-last?" is a question the current chart cannot answer at all, and a ghost line answers it without a
-second chart, a second tab, or any new number.
-
 ### §IV.5 When to stop, when to resume (T90)
 
 The window today reports a problem ("you run out 1d 22h before the reset"); it does not say what to do

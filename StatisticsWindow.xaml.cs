@@ -235,6 +235,11 @@ internal partial class StatisticsWindow : Window
         }
     }
 
+    /// <summary>Preview seam: draw a synthetic previous-week ghost when the real one isn't there yet.
+    /// A real ghost needs two weeks of folded history (see <see cref="HourlyUsage"/>), so without this
+    /// the line could not be screenshotted until the machine had been running that long.</summary>
+    internal bool PreviewDemoGhost { get; init; }
+
     private void Render(PaceReport r)
     {
         ComputedText.Text = L.T("stats.updated", r.ComputedLocal.ToString("MMM d, HH:mm", DateFmt));
@@ -252,6 +257,11 @@ internal partial class StatisticsWindow : Window
 
         _session = r.Session;
         _weekly = r.Weekly;
+
+        if (PreviewDemoGhost && r.Weekly.Ghost is null && r.Weekly.HasWindow)
+            r.Weekly.Ghost = HourlyUsage.Demo(
+                DateTimeOffset.FromUnixTimeSeconds((long)(r.Weekly.ResetUnix - r.Weekly.WindowSeconds)).LocalDateTime,
+                r.Weekly.WindowSeconds, r.Weekly.ElapsedFraction, 0.86);
 
         // On the first render, open the weekly tab instead of the 5-hour one when the session is idle
         // (expired / not using Claude): the 5-hour chart is then flat at 100% and the weekly chart, with
@@ -278,6 +288,7 @@ internal partial class StatisticsWindow : Window
             : L.T("stats.methodNote");
         LegendIdleW.Visibility = shaped && r.Weekly.Shape!.IdleBands.Count > 0
             ? Visibility.Visible : Visibility.Collapsed;
+        LegendGhostW.Visibility = r.Weekly.Ghost is not null ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // The static captions/legend labels that change wording between "used" and "remaining" framing.
@@ -532,6 +543,20 @@ internal partial class StatisticsWindow : Window
                 Canvas.SetTop(dl, top + ph + 4);
                 c.Children.Add(dl);
             }
+        }
+
+        // Last week, faintly, behind everything else: same metric, same axes, same color as this
+        // week's curve at a third of the strength — so it reads as "this, previously" rather than as
+        // a new quantity. Drawn first so the live curve always wins where they overlap.
+        if (w.Ghost is { } ghost && ghost.Curve.Count >= 2)
+        {
+            var gpts = new PointCollection(ghost.Curve.Select(p => new Point(X(p.frac), Yc(p.cum))));
+            c.Children.Add(new Polyline
+            {
+                Points = gpts, Stroke = accent, StrokeThickness = 1.5, Opacity = 0.32,
+            });
+            AddHit(c, X(1), Yc(ghost.Total),
+                L.T("stats.chart.lastWeek", Pct(Disp(ghost.Total)), Pct(Disp(ghost.AtSameFraction))));
         }
 
         // Even-pace reference: straight line between empty (consumption 0) at the start and the limit

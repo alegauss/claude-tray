@@ -159,6 +159,96 @@ internal static class HourlyUsage
         return (p, Math.Min(oldest / 7.0, ActivityProfile.MaxWeeks), used);
     }
 
+    /// <summary>Last week's burn-up, ready to draw behind this week's.</summary>
+    /// <param name="Curve">(fraction of the window, cumulative utilization), hour by hour.</param>
+    /// <param name="Coverage">Share of that week's hours that had at least one reading.</param>
+    /// <param name="AtSameFraction">Where it stood at the same point in the window as now.</param>
+    internal sealed record GhostWeek(List<(double frac, double cum)> Curve, double Coverage,
+        double AtSameFraction, double Total);
+
+    /// <summary>Enough of the previous week must have been observed for its curve to mean anything;
+    /// below this the line would mostly be flat stretches the app simply wasn't there for.</summary>
+    public const double MinGhostCoverage = 0.5;
+
+    /// <summary>A week that barely moved is a flat line at zero — true, but not worth drawing.</summary>
+    public const double MinGhostTotal = 0.02;
+
+    /// <summary>
+    /// Rebuild the <em>previous</em> weekly window's burn-up from the folded aggregate: the seven days
+    /// immediately before <paramref name="windowStartUnix"/>, accumulated hour by hour and expressed
+    /// in the same (fraction, cumulative) space as <see cref="WindowPace.Curve"/> so the chart can
+    /// draw it with the same transform.
+    ///
+    /// Returns null when too little of that week was observed, or when it holds almost nothing — a
+    /// ghost that is really a record of the app being closed would read as a quiet week, which is the
+    /// one thing it must not do.
+    /// </summary>
+    public static GhostWeek? PreviousWeek(double windowStartUnix, double windowSeconds, double nowFraction)
+    {
+        try
+        {
+            DateTime from = Local(windowStartUnix - windowSeconds);
+            int hours = (int)Math.Round(windowSeconds / 3600.0);
+            if (hours is < 24 or > 24 * 14) return null;
+
+            Dictionary<int, HourlyDay> store = ReadAll();
+            if (store.Count == 0) return null;
+
+            var curve = new List<(double, double)> { (0, 0) };
+            double cum = 0, atSame = 0;
+            int covered = 0;
+
+            for (int i = 0; i < hours; i++)
+            {
+                DateTime at = from.AddHours(i);
+                if (store.TryGetValue(KeyOf(at), out HourlyDay day))
+                {
+                    if (day.Count[at.Hour] > 0) covered++;
+                    cum += day.Spend[at.Hour];
+                }
+                double frac = (i + 1) / (double)hours;
+                if (frac <= nowFraction) atSame = cum;
+                curve.Add((frac, Math.Min(1, cum)));
+            }
+
+            double coverage = covered / (double)hours;
+            if (coverage < MinGhostCoverage || cum < MinGhostTotal) return null;
+            return new GhostWeek(curve, coverage, atSame, Math.Min(1, cum));
+        }
+        catch { return null; }   // the ghost is decoration; never fail a report over it
+    }
+
+    /// <summary>
+    /// A synthetic previous week for previews: quota spent through working hours and flat overnight,
+    /// finishing a little under the current one. Used by the screenshot path only — a real ghost needs
+    /// two weeks of folded history, and a feature that cannot be looked at cannot be verified (same
+    /// reason <see cref="ContextHistory.Demo"/> exists).
+    /// </summary>
+    public static GhostWeek Demo(DateTime windowStartLocal, double windowSeconds, double nowFraction, double total)
+    {
+        int hours = (int)Math.Round(windowSeconds / 3600.0);
+        var weight = new double[hours];
+        double sum = 0;
+        for (int i = 0; i < hours; i++)
+        {
+            DateTime at = windowStartLocal.AddHours(i);
+            bool working = at.Hour is >= 9 and <= 23;
+            weight[i] = !working ? 0.02 : at.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday ? 0.35 : 1.0;
+            sum += weight[i];
+        }
+
+        var curve = new List<(double, double)> { (0, 0) };
+        double cum = 0, atSame = 0;
+        for (int i = 0; i < hours; i++)
+        {
+            cum += total * weight[i] / sum;
+            double frac = (i + 1) / (double)hours;
+            if (frac <= nowFraction) atSame = cum;
+            curve.Add((frac, cum));
+        }
+        return new GhostWeek(curve, 1, atSame, total);
+    }
+
     // ---------------------------------------------------------------- storage
 
     private static Dictionary<int, HourlyDay> ReadAll()

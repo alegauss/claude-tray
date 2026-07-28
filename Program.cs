@@ -226,7 +226,13 @@ internal static class Program
                 var heavy = new PaceSnapshot(
                     Util5h: 0.0, Reset5h: now + 5 * 3600,
                     Util7d: 0.74, Reset7d: now + 3 * 86400);    // 4d of 7d elapsed, 74% used → runs out early
-                previewApp.Run(new StatisticsWindow(heavy, remaining) { Topmost = true });
+                // "--stats shape ghost" also draws a synthetic previous week behind it: the real ghost
+                // needs two weeks of folded history, which a fresh machine hasn't got.
+                previewApp.Run(new StatisticsWindow(heavy, remaining)
+                {
+                    Topmost = true,
+                    PreviewDemoGhost = args.Any(a => a.Equals("ghost", StringComparison.OrdinalIgnoreCase)),
+                });
             }
             else if (args.Length >= 2 && args[1].Equals("idle", StringComparison.OrdinalIgnoreCase))
             {
@@ -263,6 +269,7 @@ internal static class Program
                 Util7d: heavyWeek ? 0.74 : 0.38, Reset7d: now + 3 * 86400);
             var win = new StatisticsWindow(sample)
             {
+                PreviewDemoGhost = args.Any(a => a.Equals("ghost", StringComparison.OrdinalIgnoreCase)),
                 WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
                 Left = -32000,
                 Top = -32000,

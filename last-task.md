@@ -52,3 +52,4 @@ here. This file is a terse index, not a memory.
 - **T86 SHIPPED** (Block J — ActivityProfile: a weekly activity shape from the transcripts) — 2026-07-28.
 - **T87 SHIPPED** (Block J — staircase projection on the weekly chart) — 2026-07-28.
 - **T88 SHIPPED** (Block J — permanent per-hour usage aggregate folded out of the pruned log) — 2026-07-28.
+- **T89 SHIPPED** (Block J — ghost curve of the previous week behind the weekly chart) — 2026-07-28.

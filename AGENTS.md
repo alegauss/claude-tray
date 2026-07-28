@@ -102,6 +102,7 @@ dotnet run -- --activity --measured   # ...plus the same week measured from the 
 dotnet run -- --activity --fold       # fold every complete day of the raw log into that store now
 dotnet run -- --stats shape           # the Statistics window on the weekly tab, activity-aware
                                       #   projection running out before the reset (bands + landing)
+dotnet run -- --stats shape ghost     # ...plus a synthetic previous-week ghost curve
 dotnet run -- --capture-stats docs\_preview\shape shape   # ...both tabs to PNG, off-screen
 
 dotnet run -- --context               # what every session costs before you type: per-project table

@@ -264,6 +264,13 @@
                                 <TextBlock Text="{local:Loc stats.legend.usualIdle}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
+                            <!-- Shown only when enough of last week was recorded to draw its ghost. -->
+                            <StackPanel x:Name="LegendGhostW" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
+                                <Rectangle Width="16" Height="2" VerticalAlignment="Center" Opacity="0.32"
+                                           Fill="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <TextBlock Text="{local:Loc stats.legend.lastWeek}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
                         </StackPanel>
 
                         <!-- Throughput (tokens/sec, window average) split by token type -->

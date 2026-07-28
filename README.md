@@ -111,6 +111,13 @@ anyone is typing.
 `ClaudeTray.exe --activity` prints the measured week as a heatmap if you want to see the shape
 the projection is following.
 
+**Last week, behind this week.** The weekly chart also draws the previous week's burn-up as a
+faint line on the same axes, so "is this week worse than the last?" is answerable at a glance
+instead of from memory. Hovering its end shows where last week finished and where it stood at
+this same point in the week. It appears once there are two weeks of history to draw it from, and
+stays hidden if too much of that week went unrecorded — a line drawn from hours the app wasn't
+running would look like a quiet week, which is exactly the wrong conclusion.
+
 ## ✨ Reset notifications — color-coded, at a glance
 
 When a usage window hands your quota back, the app celebrates it with a **bespoke, on-brand
