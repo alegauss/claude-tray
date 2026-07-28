@@ -43,6 +43,7 @@ usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don'
 | `ContextUsage.cs` | Mines the transcripts for `Skill`/agent invocations (names and counts only) so the window can say "used 45×" or "never". Per-file cache; runs outside `Scan` because it reads hundreds of MB. Memory recalls are deliberately not counted — see the type doc. |
 | `ContextRules.cs` | The advisor over a `ContextScan`: grounded rules → `Finding` (severity + one sentence + the concrete fix). No new IO and never file contents; narrowed to what is objectively measurable so it doesn't cry wolf. |
 | `TokenEstimate.cs` | Chars→tokens estimation for markdown, classified per line (prose / code fence / table). Always rendered as an estimate ("≈4.9k"). |
+| `ActivityProfile.cs` | The weekly activity shape: 168 buckets (day-of-week × local hour) of `p(active)`, mined from transcript **timestamps only**, decayed per week and shrunk toward a flat prior. Cached daily in `%LocalAppData%\ClaudeTray`. The projection follows this instead of a uniform slope. |
 | `IconRenderer.cs` | GDI+ icon (vector number + outline + fill bar + projection color) at the real size; also the app `.ico` and social image. |
 | `Updater.cs` | Checks GitHub Releases; downloads/runs the installer for in-app self-update. `CurrentVersion`. |
 | `Settings.cs` | `Settings` model (JSON in `%LocalAppData%\ClaudeTray`); clamps out-of-range values. |
@@ -90,6 +91,11 @@ dotnet run -- --settings              # open just the Settings window (preview)
 dotnet run -- --lang es --context --window   # any command, rendered in another language (i18n check)
 dotnet run -- --render <dir>          # dump tray-icon PNGs at 16/20/32 px
 dotnet run -- --insights              # print the 24h usage breakdown to the console
+
+dotnet run -- --activity              # the weekly activity heatmap behind the projection
+dotnet run -- --activity --numbers    # ...as raw per-bucket percentages
+dotnet run -- --activity --refresh    # ...forcing a rescan past the daily cache
+dotnet run -- --activity --root <dir> # ...against a stand-in for ~/.claude
 
 dotnet run -- --context               # what every session costs before you type: per-project table
 dotnet run -- --context <slug|name>   # one project, source by source (eager/lazy, bytes, ≈tokens)

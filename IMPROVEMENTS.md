@@ -117,23 +117,6 @@ Sunday at exactly the rate it spends it at 15:00 Tuesday, which produces two con
 
 The fix is to project along a **shape**, not a slope.
 
-### §IV.1 The profile (T86)
-
-168 buckets, day-of-week × local hour. For each bucket, `p = ` the recency-weighted fraction of
-observed weeks in which that hour contained activity — a **weight in [0,1], not a boolean**, so a
-"usually quiet but sometimes worked" hour degrades smoothly instead of flipping the whole projection.
-
-**Source: the transcripts, not `usage-history.jsonl`.** The usage log is pruned at 8 days
-(`UsageHistory.RetentionDays`), so it structurally cannot see other weeks; `~/.claude/projects` keeps
-months, and `UsageReport.ScanTokens` already reads exactly the fields needed (timestamps — §I.1 is
-untouched, no content is read). Sweeping months of transcripts on every window open is not
-acceptable, so the grid is cached at `%LocalAppData%\ClaudeTray\activity-profile.json` and recomputed
-about once a day.
-
-Two guards against overfitting: exponential recency decay across weeks, and a blend toward a flat
-prior weighted by how many weeks were actually observed — a single holiday week must not convince the
-app the user never works on Wednesdays.
-
 ### §IV.2 The staircase (T87)
 
 Calibrate against measured active time rather than wall-clock:
@@ -176,7 +159,7 @@ real idle.
 `UsageHistory.PruneIfStale` currently discards days older than 8 outright. Folding each expiring day
 into a permanent per-hour aggregate first (~168 floats per week — negligible next to the 230 KB/week
 raw log) would let idle be *measured* from real utilisation deltas instead of inferred from transcript
-timestamps, giving §IV.1 a second, independent source to validate against — and it is the storage
+timestamps, giving `ActivityProfile` a second, independent source to validate against — and it is the storage
 T89 needs.
 
 ### §IV.4 Ghost curve (T89)

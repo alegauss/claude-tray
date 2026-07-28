@@ -1,0 +1,335 @@
+using System.Text;
+using System.Text.Json;
+
+namespace ClaudeTray;
+
+/// <summary>
+/// A weekly <em>shape</em> of when this machine is actually used: 168 buckets (day-of-week × local
+/// hour), each holding <c>p(active)</c> — the recency-weighted fraction of observed weeks in which
+/// that hour contained at least one request.
+///
+/// It exists because the weekly projection currently extrapolates the average pace since the window
+/// opened, a straight line that spends quota at 03:00 Sunday exactly as fast as at 15:00 Tuesday.
+/// That line can land the "you run out here" marker in the middle of a stretch where nobody is
+/// working, and it misreads any window whose <em>remaining</em> active/idle mix differs from its
+/// elapsed one. Projecting along this shape instead is <c>T87</c>; this type only measures the shape.
+///
+/// <para><b>Source: the transcripts, not <see cref="UsageHistory"/>.</b> The usage log is pruned at 8
+/// days, so it structurally cannot see other weeks. <c>~/.claude/projects</c> keeps months. Only
+/// timestamps are read — the same privacy line <see cref="UsageReport"/> holds: never message
+/// content, and here not even token counts.</para>
+///
+/// <para>Two guards against overfitting, both in <see cref="Compute"/>: exponential decay across
+/// weeks, so a habit from two months ago cannot outvote last week; and a blend toward a flat prior
+/// weighted by how many weeks were actually observed, so one holiday week cannot convince the app
+/// that nobody works on Wednesdays.</para>
+///
+/// <para>A bucket is a probability, never a boolean. "Usually quiet but sometimes worked" has to
+/// degrade smoothly, or a single unusual evening flips a whole projection.</para>
+/// </summary>
+internal sealed class ActivityProfile
+{
+    /// <summary>7 days × 24 local hours.</summary>
+    public const int Buckets = 7 * 24;
+
+    /// <summary>How far back the scan looks. Beyond ~3 months a habit is a different job.</summary>
+    public const int MaxWeeks = 12;
+
+    /// <summary>Per-week decay: last week weighs 1, the week before 0.8, … (half-life ≈ 3 weeks).</summary>
+    public const double WeekDecay = 0.8;
+
+    /// <summary>Strength of the flat prior, expressed in equivalent weeks of evidence.</summary>
+    public const double PriorWeeks = 1.5;
+
+    /// <summary>Below this much coverage the shape is a guess; T87 falls back to the straight line.</summary>
+    public const double ConfidentWeeks = 3.0;
+
+    /// <summary>The cache is recomputed about once a day — a habit does not move faster than that.</summary>
+    public const double RefreshHours = 20;
+
+    private const int CacheVersion = 1;
+
+    /// <summary>Walk cap, mirroring <see cref="ContextScanner"/>: a pathological tree must not hang.</summary>
+    private const int MaxFiles = 20_000;
+
+    /// <summary>p(active) per bucket, indexed by <see cref="Index(DayOfWeek,int)"/>.</summary>
+    public double[] P = new double[Buckets];
+
+    /// <summary>Span of transcript coverage in weeks (capped at <see cref="MaxWeeks"/>).</summary>
+    public double CoverageWeeks;
+
+    /// <summary>Requests that fed the grid. Only their timestamps were read.</summary>
+    public long Samples;
+
+    /// <summary>When this grid was computed (not when it was loaded).</summary>
+    public DateTime ComputedUtc;
+
+    public bool FromCache;
+    public double ElapsedMs;
+    public string? Error;
+
+    /// <summary>Enough weeks behind the shape to project along it rather than along a slope.</summary>
+    public bool Confident => CoverageWeeks >= ConfidentWeeks;
+
+    /// <summary>Overall share of hours that are active — the flat prior the grid is blended toward.</summary>
+    public double Mean
+    {
+        get
+        {
+            double sum = 0;
+            foreach (double p in P) sum += p;
+            return sum / Buckets;
+        }
+    }
+
+    public static int Index(DayOfWeek day, int hour) => (int)day * 24 + hour;
+
+    public double At(DayOfWeek day, int hour) => P[Index(day, hour)];
+
+    public double At(DateTime local) => At(local.DayOfWeek, local.Hour);
+
+    /// <summary>
+    /// Expected active hours in a local time span: Σ p over the hours it covers, pro-rating the
+    /// partial hours at each end. This is the quantity the staircase projection spends quota against
+    /// — "three active hours left today", not "four hours left today".
+    ///
+    /// Walks wall-clock hours, so a DST day is 24 buckets long even though it is 23 or 25 real hours.
+    /// That is the intended reading: the grid is a habit expressed in clock time.
+    /// </summary>
+    public double ExpectedActiveHours(DateTime fromLocal, DateTime toLocal)
+    {
+        if (toLocal <= fromLocal) return 0;
+
+        double total = 0;
+        DateTime cursor = fromLocal;
+        // A week is 168 iterations; the cap only stops a caller passing an absurd span.
+        for (int guard = 0; guard < MaxWeeks * Buckets && cursor < toLocal; guard++)
+        {
+            DateTime nextHour = cursor.Date.AddHours(cursor.Hour + 1);
+            DateTime end = nextHour < toLocal ? nextHour : toLocal;
+            total += At(cursor) * (end - cursor).TotalHours;
+            cursor = end;
+        }
+        return total;
+    }
+
+    // ---------------------------------------------------------------- loading
+
+    /// <summary>
+    /// The profile for now: the cached grid when it is less than <see cref="RefreshHours"/> old,
+    /// otherwise a fresh scan (which is then cached). Best-effort throughout — a failure yields an
+    /// empty, non-confident profile with <see cref="Error"/> set, never an exception.
+    /// </summary>
+    /// <param name="refresh">Force a rescan even if the cache is fresh.</param>
+    /// <param name="claudeRoot">Stand-in for <c>~/.claude</c> (fixtures). Never reads or writes the cache.</param>
+    public static ActivityProfile Load(DateTime nowUtc, bool refresh = false, string? claudeRoot = null)
+    {
+        bool real = claudeRoot == null;
+        if (real && !refresh && ReadCache() is { } cached &&
+            (nowUtc - cached.ComputedUtc).TotalHours < RefreshHours)
+        {
+            cached.FromCache = true;
+            return cached;
+        }
+
+        ActivityProfile fresh = Compute(nowUtc, ProjectsDir(claudeRoot));
+        if (real && fresh.Error == null) WriteCache(fresh);
+        return fresh;
+    }
+
+    private static string ProjectsDir(string? claudeRoot) => Path.Combine(
+        claudeRoot ?? Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude"),
+        "projects");
+
+    public static string CachePath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "ClaudeTray", "activity-profile.json");
+
+    // ---------------------------------------------------------------- computing
+
+    /// <summary>
+    /// Build the grid from every request timestamp in the transcripts, newest 12 weeks only.
+    ///
+    /// Weeks are the rolling windows <c>[now − 7(w+1)d, now − 7w d)</c>. Each such window contains
+    /// exactly one occurrence of every (day, hour) bucket, whatever the time of day now happens to
+    /// be — which is why no partial-week correction is needed: week 0 is as complete as week 5.
+    /// </summary>
+    public static ActivityProfile Compute(DateTime nowUtc, string projectsDir)
+    {
+        var prof = new ActivityProfile { ComputedUtc = nowUtc };
+        long startedTicks = DateTime.UtcNow.Ticks;
+        try
+        {
+            if (!Directory.Exists(projectsDir))
+            {
+                prof.Error = "no transcripts directory";
+                return prof;
+            }
+
+            DateTime nowLocal = nowUtc.ToLocalTime();
+            DateTime cutoffUtc = nowUtc.AddDays(-7 * MaxWeeks);
+
+            // active[week][bucket] — "this hour saw at least one request that week". A count would let
+            // one frantic afternoon outvote five ordinary ones; presence is the honest signal.
+            var active = new bool[MaxWeeks, Buckets];
+            DateTime? earliestLocal = null;
+            long samples = 0;
+            int files = 0;
+
+            foreach (string file in Directory.EnumerateFiles(projectsDir, "*.jsonl", SearchOption.AllDirectories))
+            {
+                if (++files > MaxFiles) break;
+                // A transcript last written before the cutoff cannot hold an in-range timestamp.
+                try { if (File.GetLastWriteTimeUtc(file) < cutoffUtc) continue; } catch { continue; }
+
+                foreach (string line in ReadLinesSafe(file))
+                {
+                    if (!IsRequestLine(line)) continue;
+                    if (!TryReadTimestamp(line, out DateTime whenUtc)) continue;
+                    if (whenUtc > nowUtc || whenUtc < cutoffUtc) continue;
+
+                    DateTime local = whenUtc.ToLocalTime();
+                    if (earliestLocal == null || local < earliestLocal) earliestLocal = local;
+
+                    int week = (int)((nowLocal - local).TotalDays / 7);
+                    if (week < 0 || week >= MaxWeeks) continue;
+
+                    active[week, Index(local.DayOfWeek, local.Hour)] = true;
+                    samples++;
+                }
+            }
+
+            prof.Samples = samples;
+            double coverageDays = earliestLocal is { } first ? (nowLocal - first).TotalDays : 0;
+            prof.CoverageWeeks = Math.Min(coverageDays / 7.0, MaxWeeks);
+
+            // Whole weeks only vote; the oldest partial one would report every bucket it happens to
+            // miss as idle. With less than a week of data, week 0 votes alone.
+            int weeks = Math.Clamp((int)Math.Floor(coverageDays / 7.0), 1, MaxWeeks);
+            if (samples == 0) { prof.ElapsedMs = Elapsed(startedTicks); return prof; }
+
+            double weightSum = 0;
+            var raw = new double[Buckets];
+            for (int w = 0; w < weeks; w++)
+            {
+                double weight = Math.Pow(WeekDecay, w);
+                weightSum += weight;
+                for (int b = 0; b < Buckets; b++)
+                    if (active[w, b]) raw[b] += weight;
+            }
+            if (weightSum > 0)
+                for (int b = 0; b < Buckets; b++) raw[b] /= weightSum;
+
+            // Shrink toward the user's own overall active rate, hard when there is little evidence and
+            // barely at all once there are months of it. A flat prior rather than a zero prior: the
+            // question a thin grid should answer is "how busy is this person generally", not "are they
+            // asleep".
+            double prior = 0;
+            foreach (double r in raw) prior += r;
+            prior /= Buckets;
+
+            for (int b = 0; b < Buckets; b++)
+                prof.P[b] = (weeks * raw[b] + PriorWeeks * prior) / (weeks + PriorWeeks);
+
+            prof.ElapsedMs = Elapsed(startedTicks);
+            return prof;
+        }
+        catch (Exception e)
+        {
+            prof.Error = e.Message;
+            prof.ElapsedMs = Elapsed(startedTicks);
+            return prof;
+        }
+    }
+
+    private static double Elapsed(long startedTicks)
+        => (DateTime.UtcNow.Ticks - startedTicks) / (double)TimeSpan.TicksPerMillisecond;
+
+    private static IEnumerable<string> ReadLinesSafe(string file)
+    {
+        try { return File.ReadLines(file); }
+        catch { return Array.Empty<string>(); }
+    }
+
+    // Substring tests rather than JsonDocument.Parse: this walks months of transcripts — hundreds of
+    // megabytes — and parsing every line to reach one field costs seconds, for a grid whose buckets
+    // are an hour wide. `input_tokens` is what distinguishes a real request from a synthetic or
+    // tool-result line, and `<synthetic>` turns (interrupts, replays) are not user presence.
+    private static bool IsRequestLine(string line)
+        => line.Length > 0
+           && line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal)
+           && line.Contains("\"input_tokens\"", StringComparison.Ordinal)
+           && !line.Contains("\"<synthetic>\"", StringComparison.Ordinal);
+
+    private const string TimestampKey = "\"timestamp\":\"";
+
+    private static bool TryReadTimestamp(string line, out DateTime whenUtc)
+    {
+        whenUtc = default;
+        int at = line.IndexOf(TimestampKey, StringComparison.Ordinal);
+        if (at < 0) return false;
+        int from = at + TimestampKey.Length;
+        int end = line.IndexOf('"', from);
+        if (end <= from) return false;
+
+        return DateTime.TryParse(line.AsSpan(from, end - from), null,
+            System.Globalization.DateTimeStyles.AdjustToUniversal |
+            System.Globalization.DateTimeStyles.AssumeUniversal, out whenUtc);
+    }
+
+    // ---------------------------------------------------------------- cache
+
+    // ~1.5 KB of JSON: a version, when it was built, what it was built from, and 168 rounded floats.
+    // Rounded to three decimals because the third decimal of a habit is noise, and the file is read
+    // on a UI path.
+    private static void WriteCache(ActivityProfile p)
+    {
+        try
+        {
+            var sb = new StringBuilder(2048);
+            long computed = new DateTimeOffset(p.ComputedUtc, TimeSpan.Zero).ToUnixTimeSeconds();
+            sb.Append(FormattableString.Invariant(
+                $"{{\"v\":{CacheVersion},\"t\":{computed},\"weeks\":{p.CoverageWeeks:0.###},\"n\":{p.Samples},\"p\":["));
+            for (int b = 0; b < Buckets; b++)
+            {
+                if (b > 0) sb.Append(',');
+                sb.Append(FormattableString.Invariant($"{p.P[b]:0.###}"));
+            }
+            sb.Append("]}");
+
+            string path = CachePath;
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            File.WriteAllText(path, sb.ToString());
+        }
+        catch { /* the cache is an optimization; a failed write just means another scan tomorrow */ }
+    }
+
+    private static ActivityProfile? ReadCache()
+    {
+        try
+        {
+            string path = CachePath;
+            if (!File.Exists(path)) return null;
+
+            using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path));
+            JsonElement r = doc.RootElement;
+            if (!r.TryGetProperty("v", out JsonElement v) || v.GetInt32() != CacheVersion) return null;
+            if (!r.TryGetProperty("p", out JsonElement arr) || arr.ValueKind != JsonValueKind.Array ||
+                arr.GetArrayLength() != Buckets) return null;
+
+            var prof = new ActivityProfile
+            {
+                ComputedUtc = DateTimeOffset.FromUnixTimeSeconds(
+                    r.TryGetProperty("t", out JsonElement t) ? t.GetInt64() : 0).UtcDateTime,
+                CoverageWeeks = r.TryGetProperty("weeks", out JsonElement w) ? w.GetDouble() : 0,
+                Samples = r.TryGetProperty("n", out JsonElement n) ? n.GetInt64() : 0,
+            };
+            int i = 0;
+            foreach (JsonElement e in arr.EnumerateArray())
+                prof.P[i++] = Math.Clamp(e.GetDouble(), 0, 1);
+            return prof;
+        }
+        catch { return null; }   // a corrupt cache is one extra scan, not an error
+    }
+}

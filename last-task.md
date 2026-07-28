@@ -49,3 +49,4 @@ here. This file is a terse index, not a memory.
 - **T82 SHIPPED** (Block I — debounced live refresh over ~/.claude) — 2026-07-25.
 - **T83 SHIPPED** (Block I — --sample fixture tree; all 16 rules fire on it) — 2026-07-25.
 - **T84 SHIPPED** (Block I — README, site and llms.txt docs with fixture screenshots) — 2026-07-25.
+- **T86 SHIPPED** (Block J — ActivityProfile: a weekly activity shape from the transcripts) — 2026-07-28.

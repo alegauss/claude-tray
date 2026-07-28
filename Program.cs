@@ -85,6 +85,14 @@ internal static class Program
             return;
         }
 
+        // Headless view of the weekly activity shape behind the projection: 168 buckets of
+        // p(active), the coverage that backs them, and what they predict for the hours ahead.
+        if (args.Length >= 1 && args[0] == "--activity")
+        {
+            PrintActivity(args.Skip(1).ToArray());
+            return;
+        }
+
         // Headless view of the Context Load Inspector: what every session in a project costs before
         // the first prompt. `--context` lists projects; `--context <slug-or-name>` breaks one down
         // source by source; `--context --all` does that for every project; `--context --calibrate`
@@ -269,6 +277,95 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayContext());
     }
+
+    // Headless view of ActivityProfile: the 168-bucket week the projection will be shaped by (T87),
+    // printed as a shade grid so a wrong grid is visible at a glance rather than only as a wrong
+    // marker on a chart. Flags: `--refresh` to force a rescan past the daily cache, `--numbers` for
+    // raw percentages instead of shades, `--root <dir>` to read a stand-in for ~/.claude.
+    private static void PrintActivity(string[] flags)
+    {
+        // Block-drawing characters and "≈" render as replacement chars on cmd.exe's default codepage.
+        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+
+        int rootAt = Array.IndexOf(flags, "--root");
+        string? root = rootAt >= 0 && rootAt + 1 < flags.Length ? flags[rootAt + 1] : null;
+        bool numbers = flags.Contains("--numbers");
+
+        DateTime nowUtc = DateTimeOffset.UtcNow.UtcDateTime;
+        ActivityProfile prof = ActivityProfile.Load(nowUtc, flags.Contains("--refresh"), root);
+        if (prof.Error != null) { Console.WriteLine("error: " + prof.Error); return; }
+
+        string source = prof.FromCache
+            ? $"cached, built {prof.ComputedUtc.ToLocalTime():yyyy-MM-dd HH:mm}"
+            : $"fresh scan, {prof.ElapsedMs:0}ms";
+        Console.WriteLine($"Activity profile — {prof.CoverageWeeks:0.0} weeks of coverage, " +
+                          $"{prof.Samples:N0} requests ({source})");
+        if (root == null) Console.WriteLine("cache: " + ActivityProfile.CachePath);
+        Console.WriteLine(prof.Confident
+            ? $"confidence: usable — {prof.CoverageWeeks:0.0} weeks ≥ {ActivityProfile.ConfidentWeeks:0.0}, " +
+              "the projection may follow this shape"
+            : $"confidence: thin — {prof.CoverageWeeks:0.0} weeks < {ActivityProfile.ConfidentWeeks:0.0}, " +
+              "the projection stays a straight line");
+        Console.WriteLine();
+
+        if (prof.Samples == 0) { Console.WriteLine("no requests in the last 12 weeks — nothing to shape"); return; }
+
+        // Monday-first: a work week reads as one block instead of being split across the two ends.
+        DayOfWeek[] days = { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday,
+                             DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
+        // One character per hour in shade mode, so the week reads as a heatmap rather than as a
+        // sparse table; the hour scale then needs two header rows (tens over units).
+        int cell = numbers ? 4 : 1;
+        Console.Write("     ");
+        for (int h = 0; h < 24; h++) Console.Write((h >= 10 ? (h / 10).ToString() : " ").PadLeft(cell));
+        Console.WriteLine();
+        Console.Write("     ");
+        for (int h = 0; h < 24; h++) Console.Write((h % 10).ToString().PadLeft(cell));
+        Console.WriteLine("   active");
+
+        foreach (DayOfWeek d in days)
+        {
+            Console.Write($" {d.ToString()[..3]} ");
+            double dayHours = 0;
+            for (int h = 0; h < 24; h++)
+            {
+                double p = prof.At(d, h);
+                dayHours += p;
+                Console.Write((numbers ? $"{p * 100:0}" : Shade(p).ToString()).PadLeft(cell));
+            }
+            Console.WriteLine($"   {dayHours,5:0.0}h");
+        }
+
+        Console.WriteLine();
+        if (!numbers)
+            Console.WriteLine("legend: ' ' idle   · <10%   ░ <35%   ▒ <65%   ▓ <90%   █ ≥90%   (p = share of weeks active)");
+        Console.WriteLine($"mean {prof.Mean * 100:0}% of all hours active — {prof.Mean * 168:0.0}h in a typical week");
+
+        int best = 0;
+        for (int b = 1; b < ActivityProfile.Buckets; b++) if (prof.P[b] > prof.P[best]) best = b;
+        Console.WriteLine($"busiest bucket: {(DayOfWeek)(best / 24)} {best % 24:00}:00 ({prof.P[best] * 100:0}%)");
+
+        // The accessor T87 actually spends quota against, exercised on real spans so a bad grid shows
+        // up as a bad number here rather than as a wrong marker on the weekly chart.
+        DateTime nowLocal = nowUtc.ToLocalTime();
+        Console.WriteLine();
+        Console.WriteLine("expected active hours ahead:");
+        Console.WriteLine($"  rest of today  {prof.ExpectedActiveHours(nowLocal, nowLocal.Date.AddDays(1)),5:0.0}h");
+        Console.WriteLine($"  next 24h       {prof.ExpectedActiveHours(nowLocal, nowLocal.AddDays(1)),5:0.0}h");
+        Console.WriteLine($"  next 7 days    {prof.ExpectedActiveHours(nowLocal, nowLocal.AddDays(7)),5:0.0}h");
+    }
+
+    // Five steps plus blank: enough to see the shape of a week, few enough that a glance reads it.
+    private static char Shade(double p) => p switch
+    {
+        < 0.005 => ' ',
+        < 0.10 => '·',
+        < 0.35 => '░',
+        < 0.65 => '▒',
+        < 0.90 => '▓',
+        _ => '█',
+    };
 
     // Headless report for the context scanner — the CLI half of the Context Load Inspector, the same
     // role `--insights` plays for UsageInsights: the whole model is validated here before any XAML.

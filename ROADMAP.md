@@ -42,8 +42,10 @@
 > mix differs from its elapsed one — a partial day, an approaching weekend, a window that opened at
 > 02:00. This block models **when** the user is actually active and projects along that shape instead.
 > Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §IV.
+>
+> **Shipped: T86** — the profile itself (`ActivityProfile.cs`, `--activity`). See
+> [CHANGELOG.md](CHANGELOG.md) Block J.
 
-- 📋 **T86** (deps: —) **`ActivityProfile` — a weekly activity shape from the transcripts** — 168 buckets (day-of-week × local hour) holding `p(active)` over the last N weeks with recency decay, built from `~/.claude/projects` timestamps (`usage-history.jsonl` retains only 8 days, so it cannot see past weeks), cached in `%LocalAppData%\ClaudeTray\activity-profile.json` and recomputed ~daily. Headless `--activity` prints the grid. → §IV.1
 - 📋 **T87** (deps: T86) **Staircase projection on the weekly chart** — spend the remaining quota weighted by `p_h` instead of uniformly: flat through projected-idle hours, sloped through active ones, with faint amber bands behind the projected-idle stretches. Falls back to today's straight line below ~3 weeks of coverage. Red stays reserved for "no reading" (`OutageBandBrush`); the grey even-pace line and the verdict chip are deliberately untouched. → §IV.2
 - 💭 **T88** (deps: —) **Long-term hourly usage summary** — fold each pruned day of `usage-history.jsonl` into a permanent, tiny per-hour aggregate (~168 floats/week) before it is discarded, so idle can eventually be *measured* rather than inferred from transcripts, and so week-over-week comparison has a source. → §IV.3
 - 💭 **T89** (deps: T88) **Ghost curve of the previous week** — overlay last week's burn-up faintly behind the current one, answering "is this week worse than the last?" without a second chart. → §IV.4
