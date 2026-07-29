@@ -127,6 +127,11 @@ internal sealed class LiveRate
     /// <summary>Responses seen since construction.</summary>
     public long Turns { get { lock (_gate) return _turns; } }
 
+    /// <summary>The unix second the newest bucket represents — the instant every series returned from
+    /// here ends at. A consumer that keeps its own history uses it to tell "one second later" from "a gap"
+    /// (see <see cref="LiveChart"/>: a chart may append, but must not silently rewrite).</summary>
+    public long HeadSecond { get { lock (_gate) return _head; } }
+
     /// <summary>Nothing in the trailing window. The honest reading is "no local turn landed", not
     /// "the user is idle" — usage from another machine or from claude.ai leaves no transcript here.</summary>
     public bool Quiet { get { lock (_gate) return _window.Total == 0; } }

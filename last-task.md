@@ -1,6 +1,6 @@
-# Last task number — `T118` · next block letter — `N`
+# Last task number — `T119` · next block letter — `N`
 
-> **Single source of truth for the next free task number.** The next new task is `T119`; after
+> **Single source of truth for the next free task number.** The next new task is `T120`; after
 > assigning it, bump the number above and append a log line below.
 >
 > **Next block letter — `N`** (Block **M** = Explain on demand — the Statistics window's method note
@@ -90,3 +90,4 @@ here. This file is a terse index, not a memory.
 - **T106 DROPPED** (Block K — spreading a turn over a guessed duration; the rolling rate answers it) — 2026-07-29.
 - **T117 SHIPPED** (Block K — the chart's left edge stops oscillating: overscan, slide phase, smoothing warm-up) — 2026-07-29.
 - **T118 SHIPPED** (Block K — a poll-driven refresh no longer blanks the whole window) — 2026-07-29.
+- **T119 SHIPPED** (Block K — the chart appends instead of recomputing, so a late turn can't rewrite what was drawn) — 2026-07-29.

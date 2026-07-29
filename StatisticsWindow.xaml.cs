@@ -556,11 +556,14 @@ internal partial class StatisticsWindow : Window
         if (PanesBody.SelectedIndex != ThroughputTab) return;
         bool dark = IsDarkTheme();
 
+        // The second the series end at: what lets each chart append rather than re-import a recomputed
+        // past (T119). The fixture pins it, so its single render is a wholesale adopt.
+        long second = _live?.HeadSecond ?? 1;
         if (_lastProjects is { Length: > 0 } projects)
             _chartProjects.Render(projects.Select(p => p.RatePerSecond).ToArray(),
-                                  ProjectPalette(projects, dark), animate);
+                                  ProjectPalette(projects, dark), animate, second);
         if (_lastTypeRates is { Length: > 0 } types)
-            _chartTypes.Render(types, LiveChart.Colors(dark), animate);
+            _chartTypes.Render(types, LiveChart.Colors(dark), animate, second);
 
         BuildProjectLegend();
         BuildTypeLegend();

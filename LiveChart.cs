@@ -149,6 +149,11 @@ internal sealed class LiveChart
     private Path[] _over;        // and the dashed run marking where it left the top
     private string? _tipText;
 
+    // What has been drawn, and the second it ends at. The chart keeps its own copy of the series and only
+    // ever *appends* to it — see Render for why recomputing every second was visibly wrong (T119).
+    private double[][]? _hist;
+    private long _histSecond = long.MinValue;
+
     // Vertical scale, in tokens/second at the top of the plot. Rises immediately to fit a new peak and
     // decays slowly, so the chart re-scales visibly rather than jumping every second — and so a quiet
     // minute after a burst doesn't blow up the remaining noise to full height.
@@ -226,15 +231,51 @@ internal sealed class LiveChart
         foreach (Path p in _over) _canvas.Children.Add(p);
     }
 
-    /// <summary>Draw one second of history as one line per series, oldest sample first.
-    /// <paramref name="animate"/> slides the newest sample in; pass false for a static render (a resize,
-    /// or the off-screen snapshot path).</summary>
-    public void Render(double[][] series, Color[] colors, bool animate)
+    /// <summary>
+    /// Draw one second of history as one line per series, oldest sample first. <paramref name="animate"/>
+    /// slides the newest sample in; pass false for a static render (a resize, or the off-screen snapshot
+    /// path). <paramref name="second"/> is the unix second the series ends at — what tells an append from
+    /// a re-render or a gap.
+    /// </summary>
+    /// <remarks>
+    /// <b>Drawn is drawn (T119).</b> The series handed in is recomputed from the buckets every second, and
+    /// a turn is reported up to a few seconds after the second it is stamped with (the tail's watcher is
+    /// fast, its floor sweep is 3s) — so a late arrival lands in a bucket that is already *behind* the
+    /// head and the recomputation raises points that were on screen a moment ago. Watched live, the last
+    /// couple of seconds of the line kept being rebuilt into a different shape. This keeps its own history
+    /// and only appends the newest sample to it: a value takes whatever the rate was when its second was
+    /// drawn, and never changes afterwards. The full series is adopted wholesale only when there is
+    /// nothing to append to — first render, a changed series set, or a gap (a hidden window stops the
+    /// clock) — which is also what fills the chart with the three minutes that preceded it being opened.
+    /// <para>The cost is stated rather than hidden: tokens whose report arrives late are counted from the
+    /// moment the app learned about them, not moved backwards into a second that has already been drawn.
+    /// `--live` still measures the underlying instability (`worst redraw drift`), because
+    /// <see cref="LiveRate"/> stays a faithful recomputation — the freezing belongs to the picture.</para>
+    /// </remarks>
+    public void Render(double[][] series, Color[] colors, bool animate, long second)
     {
         SetSeries(colors);
 
         double w = _host.ActualWidth, h = _host.ActualHeight;
         if (w <= 0 || h <= 0 || series.Length == 0 || series[0].Length == 0) return;
+
+        int inLen = series[0].Length;
+        bool sameShape = _hist is not null && _hist.Length == series.Length && _hist[0].Length == inLen;
+        long step = second - _histSecond;
+        if (!sameShape || step < 0 || step > 1)
+        {
+            _hist = series.Select(s => (double[])s.Clone()).ToArray();
+            _histSecond = second;
+        }
+        else if (step == 1)
+        {
+            foreach (double[] s in _hist!) Array.Copy(s, 1, s, 0, inLen - 1);
+            for (int L = 0; L < _hist.Length; L++) _hist[L][inLen - 1] = series[L][inLen - 1];
+            _histSecond = second;
+        }
+        // step == 0 is a re-render of the same second (a resize, a tab switch): draw what is already
+        // there rather than taking the recomputation, or the resize would import the rewritten past.
+        series = _hist!;
 
         double gutter = w >= AxisMinWidth ? Gutter : 0;
         if (_root.ColumnDefinitions[1].Width.Value != gutter)
@@ -264,6 +305,8 @@ internal sealed class LiveChart
             foreach (Path p in _over) p.Data = null;
             _slide.BeginAnimation(TranslateTransform.XProperty, null);
             _slide.X = 0;
+            _hist = null;                            // nothing drawn, so nothing to preserve
+            _histSecond = long.MinValue;
             _scale = _ceiling = 0;
             _host.ToolTip = _tipText = null;
             LayoutAxis(pw, h, gutter);               // no data, no axis: a scale nothing is drawn against
