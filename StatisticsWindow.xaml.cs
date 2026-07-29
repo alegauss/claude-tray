@@ -228,7 +228,14 @@ internal partial class StatisticsWindow : Window
     {
         if (_snapshot is not { } snap) return;
         int gen = ++_generation;
-        ShowStatus(L.T("stats.computing"));
+        // Only take the screen away when there is nothing on it yet (T118). The tray pushes a fresh
+        // reading every poll — 5 minutes by default — and swapping the whole pane for a "computing…"
+        // line and back made the window blink on that cadence. On the Throughput tab it was worse than
+        // cosmetic: that tab does not depend on the API at all, so its live charts were being blanked and
+        // rebuilt for a recomputation of numbers that live on the other two tabs. Keeping the last good
+        // view up while the new one is computed is also the honest reading — nothing about it is stale
+        // until the replacement arrives, and the footer timestamp says when that was.
+        if (_session is null) ShowStatus(L.T("stats.computing"));
 
         DateTime nowUtc = DateTime.UtcNow;
         // Marshal the result back through the window's Dispatcher rather than a sync-context scheduler:

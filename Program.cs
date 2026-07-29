@@ -321,11 +321,18 @@ internal static class Program
                 ThemeMode = System.Windows.ThemeMode.Dark,
             };
             win.Show();
+            // A fourth argument of "refresh" feeds a fresh reading in — the exact call the tray's poll
+            // loop makes — and snapshots *while the recomputation is still in flight*. That is the window
+            // a blanked pane would appear in, so the captured PNGs are the check for T118: content, not a
+            // "computing…" line.
+            bool refresh = args.Any(a => a.Equals("refresh", StringComparison.OrdinalIgnoreCase));
+
             // Let the async pace computation finish and the charts render, then snapshot each tab.
             var settle = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
             settle.Tick += (_, _) =>
             {
                 settle.Stop();
+                if (refresh) win.UpdateSnapshot(sample);
                 try { win.SaveAllTabs(outBase); Console.WriteLine("wrote " + outBase + "-5h.png / -7d.png / -throughput.png"); }
                 finally { previewApp.Shutdown(); }
             };
