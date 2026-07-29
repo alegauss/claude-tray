@@ -196,7 +196,7 @@ internal sealed class ActivityProfile
             long samples = 0;
             int files = 0;
 
-            foreach (string file in Directory.EnumerateFiles(projectsDir, "*.jsonl", SearchOption.AllDirectories))
+            foreach (string file in SafeWalk.Paths(projectsDir, "*.jsonl"))
             {
                 if (++files > MaxFiles) break;
                 // A transcript last written before the cutoff cannot hold an in-range timestamp.

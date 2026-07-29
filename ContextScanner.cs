@@ -1215,7 +1215,10 @@ internal static class ContextScanner
     // ---------------------------------------------------------------- filesystem helpers
     // Every one of these swallows the access/IO errors that a walk over a developer's whole drive
     // will hit (permissions, junction loops, files vanishing mid-scan) — a scan must never fail
-    // wholesale because one directory was unreadable.
+    // wholesale because one directory was unreadable. Two rules make that actually true: results are
+    // materialized, because a try around a lazy enumerable catches nothing (the IO happens inside the
+    // caller's foreach), and anything recursive goes through SafeWalk, which scopes a failure to the
+    // subtree that caused it instead of aborting the sweep.
 
     private static string? ReadTextSafe(string path)
     {
@@ -1225,20 +1228,22 @@ internal static class ContextScanner
 
     private static IEnumerable<string> SafeEnumerateDirs(string dir)
     {
-        try { return Directory.EnumerateDirectories(dir); }
+        try { return Directory.GetDirectories(dir); }
         catch { return Array.Empty<string>(); }
     }
 
     private static IEnumerable<string> SafeDirs(string dir, string pattern, SearchOption option)
     {
-        try { return Directory.EnumerateDirectories(dir, pattern, option); }
+        if (option == SearchOption.AllDirectories) return SafeWalk.Dirs(dir, pattern);
+        try { return Directory.GetDirectories(dir, pattern); }
         catch { return Array.Empty<string>(); }
     }
 
     private static IEnumerable<FileInfo> SafeFiles(string dir, string pattern,
         SearchOption option = SearchOption.TopDirectoryOnly)
     {
-        try { return new DirectoryInfo(dir).EnumerateFiles(pattern, option); }
+        if (option == SearchOption.AllDirectories) return SafeWalk.Files(dir, pattern);
+        try { return new DirectoryInfo(dir).GetFiles(pattern); }
         catch { return Array.Empty<FileInfo>(); }
     }
 

@@ -316,7 +316,7 @@ internal static class UsageReport
         var samples = new List<(double, TokenBits)>();
         DateTime cutoffUtc = DateTimeOffset.FromUnixTimeSeconds((long)startUnix).UtcDateTime;
 
-        foreach (string file in Directory.EnumerateFiles(ProjectsDir, "*.jsonl", SearchOption.AllDirectories))
+        foreach (string file in SafeWalk.Paths(ProjectsDir, "*.jsonl"))
         {
             if (File.GetLastWriteTimeUtc(file) < cutoffUtc) continue;
 

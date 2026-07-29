@@ -142,8 +142,7 @@ internal static class ContextUsage
             List<FileInfo> files;
             try
             {
-                files = new DirectoryInfo(projects)
-                    .EnumerateFiles("*.jsonl", SearchOption.AllDirectories)
+                files = SafeWalk.Files(projects, "*.jsonl")
                     .Where(f => f.LastWriteTimeUtc >= cutoff)
                     .ToList();
             }

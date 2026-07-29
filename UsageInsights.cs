@@ -58,7 +58,7 @@ internal static class UsageInsights
             double total = 0, heavyCtx = 0, subagent = 0;
             int requests = 0;
 
-            foreach (string file in Directory.EnumerateFiles(ProjectsDir, "*.jsonl", SearchOption.AllDirectories))
+            foreach (string file in SafeWalk.Paths(ProjectsDir, "*.jsonl"))
             {
                 // Skip files untouched in the window — bounds the work to recent sessions.
                 if (File.GetLastWriteTimeUtc(file) < cutoff) continue;

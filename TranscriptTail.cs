@@ -241,14 +241,7 @@ internal sealed class TranscriptTail : IDisposable
         }
     }
 
-    private IEnumerable<FileInfo> Enumerate()
-    {
-        try
-        {
-            return new DirectoryInfo(_dir).EnumerateFiles("*.jsonl", SearchOption.AllDirectories);
-        }
-        catch { return Array.Empty<FileInfo>(); }
-    }
+    private IEnumerable<FileInfo> Enumerate() => SafeWalk.Files(_dir, "*.jsonl");
 
     private void ReadAppended(FileInfo fi, double floor, double ceiling, ref List<TailSample>? found)
     {

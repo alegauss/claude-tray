@@ -1,11 +1,10 @@
-# Last task number — `T108` · next block letter — `L`
+# Last task number — `T109` · next block letter — `M`
 
-> **Single source of truth for the next free task number.** The next new task is `T109`; after
+> **Single source of truth for the next free task number.** The next new task is `T110`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `L`** (Block **K** = Live throughput — read the transcript tail instead of the
-> rate-limit API, turn it into a rolling tokens/s that decays, draw it as motion whose moving axis is
-> time, and attribute it per project; §V, created 2026-07-28).
+> **Next block letter — `M`** (Block **L** = Scan resilience — no single unreadable directory under
+> `~/.claude` may fail a whole scan; created 2026-07-29 from a field report).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -27,6 +26,9 @@
   *building* the block — one latent bug it exposed elsewhere (T102), two costs it introduced, two
   readings it stops short of, one duplicated resolver. T96 was widened rather than duplicated: the
   missing test surface is one gap, not one per block.
+- Block **L** (T109, created 2026-07-29) opens on a **field report**, not on a plan: the failure came
+  in as a screenshot of the Statistics window. It is a block rather than a K task because the defect
+  is under every local scan, K's included, and nothing about it is specific to live throughput.
 - Block **K** (T97–T101, created 2026-07-28) is a *new* block rather than a third Block J pass: J is
   about the weekly **projection** (where the quota lands), K is about **instantaneous** throughput
   (what is running now, and in which project) on a clock that is local rather than the API's. It opens
@@ -71,3 +73,4 @@ here. This file is a terse index, not a memory.
 - **T99 SHIPPED** (Block K — the throughput row becomes a moving 3-minute strip) — 2026-07-28.
 - **T100 SHIPPED** (Block K — per-project attribution in the live strip) — 2026-07-28.
 - **T101 DROPPED** (Block K — tray-icon live hint; now a binding non-goal) — 2026-07-28.
+- **T109 SHIPPED** (Block L — SafeWalk: an unreadable directory can't fail a whole scan) — 2026-07-29.
