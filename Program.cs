@@ -85,6 +85,16 @@ internal static class Program
             return;
         }
 
+        // Headless view of the transcript tail (T97): every assistant turn as it lands, plus what the
+        // sweep cost. Exists so the engine behind the live rate can be verified without a window —
+        // run it, start a Claude Code turn in any project, and the turn should print within a second
+        // or two with only its own bytes read.
+        if (args.Length >= 1 && args[0] == "--tail")
+        {
+            PrintTail(args.Skip(1).ToArray());
+            return;
+        }
+
         // Headless view of the weekly activity shape behind the projection: 168 buckets of
         // p(active), the coverage that backs them, and what they predict for the hours ahead.
         if (args.Length >= 1 && args[0] == "--activity")
@@ -300,6 +310,54 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayContext());
     }
+
+    // Headless view of TranscriptTail: turns as they land, and the cost of noticing them. Flags:
+    // `--tail <seconds>` to bound the run (default 30), `--root <dir>` to tail a stand-in for
+    // ~/.claude/projects. The footer is the claim this task has to earn — bytes read should track the
+    // bytes appended, not the size of the tree.
+    private static void PrintTail(string[] flags)
+    {
+        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+
+        int rootAt = Array.IndexOf(flags, "--root");
+        string? root = rootAt >= 0 && rootAt + 1 < flags.Length ? flags[rootAt + 1] : null;
+
+        string? num = flags.FirstOrDefault(f => !f.StartsWith("--") && f != root);
+        double seconds = double.TryParse(num, out double s) && s > 0 ? s : 30;
+
+        using var tail = new TranscriptTail(root);
+        Console.WriteLine($"Tailing {tail.Root}");
+        Console.WriteLine($"for {seconds:0}s — start a turn in any project and it should appear here.");
+        Console.WriteLine();
+
+        tail.Appended += batch =>
+        {
+            foreach (TailSample smp in batch)
+            {
+                DateTime when = DateTimeOffset.FromUnixTimeSeconds((long)smp.Unix).LocalDateTime;
+                Console.WriteLine($"{when:HH:mm:ss}  {Trim(smp.Project, 34),-34}  " +
+                                  $"in {smp.Bits.Input,7:N0}  out {smp.Bits.Output,6:N0}  " +
+                                  $"create {smp.Bits.CacheCreate,7:N0}  read {smp.Bits.CacheRead,9:N0}");
+            }
+        };
+
+        tail.Start();
+        Thread.Sleep(TimeSpan.FromSeconds(seconds));
+
+        TailStats st = tail.Stats;
+        Console.WriteLine();
+        Console.WriteLine($"{st.Samples:N0} turns from {st.Tracked:N0} tracked files " +
+                          $"({st.Files:N0} seen per sweep)");
+        Console.WriteLine($"{st.Sweeps:N0} sweeps, last {st.LastSweepMs:0.0}ms, " +
+                          $"{st.BytesRead / 1024.0:N1} KB read total");
+        Console.WriteLine(st.Watching
+            ? "watcher: live — appends land within ~" + TranscriptTail.DebounceMs + "ms"
+            : $"watcher: off — falling back to the {TranscriptTail.SweepFloorMs}ms sweep floor");
+    }
+
+    private static string Trim(string s, int max)
+        => s.Length <= max ? s : "…" + s[^(max - 1)..];
 
     // Headless view of ActivityProfile: the 168-bucket week the projection will be shaped by (T87),
     // printed as a shade grid so a wrong grid is visible at a glance rather than only as a wrong

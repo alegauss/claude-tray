@@ -61,3 +61,4 @@ here. This file is a terse index, not a memory.
 - **T88 SHIPPED** (Block J — permanent per-hour usage aggregate folded out of the pruned log) — 2026-07-28.
 - **T89 SHIPPED** (Block J — ghost curve of the previous week behind the weekly chart) — 2026-07-28.
 - **T90 SHIPPED** (Block J — "stop now, resume at ..." advice on the weekly projection) — 2026-07-28.
+- **T97 SHIPPED** (Block K — TranscriptTail: byte-level tail over the transcripts) — 2026-07-28.

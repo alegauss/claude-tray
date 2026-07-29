@@ -239,33 +239,16 @@ one:
 
 So the fix is a **second metric on a second clock**, not a faster refresh of the existing one.
 
-### §V.1 The data path: tail, don't sweep (T97)
-
-Transcripts are append-only and written as turns land, so the freshest usage signal in the system is
-local and needs no API call at all. The parser already exists — `UsageReport.TryParseSample` reads
-`type`, `timestamp` and `message.usage`, skips `<synthetic>`, and touches nothing else, which keeps
-§I.1 intact by construction.
-
-What is missing is a cheap way to notice an append. `ScanTokens` re-reads every `*.jsonl` touched
-inside the window on *every* refresh — for the weekly window that is most of the tree. A tail reader
-keeps `(path → byte offset, length)` and parses only the new bytes, driven by a `FileSystemWatcher`
-with the same debounce `ContextWindow` uses for `*.md` (T82).
-
-Two failure modes to design for rather than discover: a file that **shrank** (rotation, a truncated
-write) must reset its offset instead of seeking past the end, and a **partial last line** must be held
-back until its newline arrives, or a turn is silently dropped. The watcher is a hint, not a
-guarantee — a slow poll (a few seconds) as a floor keeps a missed event from freezing the display.
-
-This is a sibling of T92, not a duplicate: T92 caches *per-file hourly buckets* for the profile
-rebuild; T97 needs *byte-level* resumption to see a single turn within a second. They should share
-the file-identity key (path + size + mtime) and nothing else.
-
 ### §V.2 A rolling rate that decays (T98)
 
 The live metric is tokens/s over a trailing ~60s, smoothed with an EWMA so a single 40k-token turn
 reads as a bump rather than a spike, and a pause visibly decays toward zero instead of holding the
 last value. Cache reads stay excluded for the same reason they already are: they dwarf real work and
 barely weigh on the limit.
+
+It reads `TranscriptTail`, so it inherits that engine's de-duplication and must not add its own: one
+API response is written as several `assistant` lines, one per content block, each repeating the same
+`usage`. Summing the feed is therefore correct; summing raw transcript lines is not.
 
 It sits **beside** the window average, never replacing it — the two answer different questions
 ("what did this week cost" vs. "what is running now"), and a user who sees only the fast number loses

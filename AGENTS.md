@@ -46,6 +46,7 @@ usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don'
 | `ActivityProfile.cs` | The weekly activity shape: 168 buckets (day-of-week × local hour) of `p(active)`, mined from transcript **timestamps only**, decayed per week and shrunk toward a flat prior. Cached daily in `%LocalAppData%\ClaudeTray`. The projection follows this instead of a uniform slope. |
 | `HourlyUsage.cs` | Permanent per-hour aggregate (spend + coverage per local day) folded out of `usage-history.jsonl` before its 8-day pruning discards it. Lets idle be *measured* instead of inferred, and is the store week-over-week comparison reads. |
 | `ActivityShape.cs` | The weekly projection spent along that shape: calibrated per *measured active hour*, flat through usually-idle stretches, sloped through working ones. Returns null (→ the old straight line) when the profile is thin or the window can't be calibrated. Weekly only. |
+| `TranscriptTail.cs` | Byte-level tail over `~/.claude/projects/**/*.jsonl`: watcher + 3s floor sweep, a per-file cursor that only advances past a newline, and de-duplication by `requestId`. Reports each assistant turn within ~250ms for the cost of the appended bytes. `--tail`. |
 | `IconRenderer.cs` | GDI+ icon (vector number + outline + fill bar + projection color) at the real size; also the app `.ico` and social image. |
 | `Updater.cs` | Checks GitHub Releases; downloads/runs the installer for in-app self-update. `CurrentVersion`. |
 | `Settings.cs` | `Settings` model (JSON in `%LocalAppData%\ClaudeTray`); clamps out-of-range values. |
@@ -165,6 +166,11 @@ They live at the repo root on purpose: `docs/` is the published GitHub Pages sit
   per iteration. See the `roadmap-docs` skill.
 - **Privacy**: only token counts, model ids, flags, tool/skill names and the session `cwd` are ever
   read from transcripts — never message content. Keep it that way.
+- **A transcript "turn" is a `requestId`, not a line.** Claude Code writes **one `assistant` line per
+  content block** of a single API response (thinking, then tool_use, …), and every one of those lines
+  repeats that response's `message.usage` verbatim. Summing per line double-counts, weighted toward
+  heavy tool use. De-duplicate on `requestId` (or `message.id`) — `TranscriptTail` does; the older
+  `UsageReport.ScanTokens` does not (its curve is rescaled to the live utilization, which hides it).
 - **Single instance** is enforced by a named mutex; a second launch exits silently.
 - The marketing page is `docs/index.html` (GitHub Pages, served from `/docs`).
 - **New user-visible strings go into all five `lang/*.json`**, not just `en`.

@@ -76,8 +76,10 @@
 > and draws it as motion where the moving axis **is** time — then attributes it per project, which is
 > the question someone running Claude Code across five repos actually has. Design:
 > [IMPROVEMENTS.md](IMPROVEMENTS.md) §V.
+>
+> **Shipped: T97.** The tail reader (`TranscriptTail.cs`, `--tail`) — see
+> [CHANGELOG.md](CHANGELOG.md) Block K.
 
-- 📋 **T97** (deps: —) **Tail reader over the transcripts** — the engine the rest of the block needs: a `FileSystemWatcher` on `~/.claude/projects/**/*.jsonl` (the debounce pattern T82 already uses for `*.md`) plus a per-file byte offset, so an append costs only the bytes appended instead of the 93k-request sweep `ScanTokens` does per refresh. Reuses the existing usage parser; reads no content. → §V.1
 - 📋 **T98** (deps: T97) **A rolling rate, beside the window average — not instead of it** — tokens/s over a trailing ~60s with EWMA smoothing, so one turn doesn't spike it and a pause visibly decays it. The average answers "what did this week cost"; the rolling rate answers "what is happening now" — both stay, labelled so neither is read as quota. Headless `--live` prints it once a second. → §V.2
 - 📋 **T99** (deps: T98) **The throughput row moves** — replace the static stacked bar with a strip of the last ~3 minutes, one column per second, entering right and leaving left, keeping the input/output/cache-create split. The animation *is* the data: no spinner, no decorative pulse, and the strip goes flat and stops repainting when nothing is running. Off the render clock only while the window is visible. → §V.3
 - 📋 **T100** (deps: T98) **Which project is burning it** — the transcript path already encodes the project directory, so the live rate splits per project: "N sessions active now" plus the two or three spending most this minute, stacked in the strip. This is the payoff for the multi-repo case, where the useful question is not *how fast* but *where*. → §V.4

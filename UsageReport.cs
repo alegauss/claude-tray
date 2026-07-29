@@ -336,9 +336,21 @@ internal static class UsageReport
         catch { return Array.Empty<string>(); }
     }
 
+    /// <summary>Parse one transcript line into (unix time, token breakdown), or fail. Reads
+    /// <c>type</c>, <c>timestamp</c>, <c>requestId</c>, <c>message.id</c>, <c>message.model</c> and
+    /// <c>message.usage</c> only — never content (§I.1) — which is why <see cref="TranscriptTail"/>
+    /// reuses it rather than writing a second parser with a second chance of reading too much.</summary>
     private static bool TryParseSample(string line, double startUnix, double nowUnix, out double t, out TokenBits bits)
+        => TryParseSample(line, startUnix, nowUnix, out t, out bits, out _);
+
+    /// <inheritdoc cref="TryParseSample(string,double,double,out double,out TokenBits)"/>
+    /// <param name="id">The response this line belongs to (<c>requestId</c>, falling back to
+    /// <c>message.id</c>). Claude Code writes <b>one line per content block</b>, each repeating the
+    /// same <c>usage</c>, so a caller that must not count a response twice keys on this.</param>
+    public static bool TryParseSample(string line, double startUnix, double nowUnix,
+        out double t, out TokenBits bits, out string? id)
     {
-        t = 0; bits = default;
+        t = 0; bits = default; id = null;
         try
         {
             using var doc = JsonDocument.Parse(line);
@@ -369,6 +381,10 @@ internal static class UsageReport
                 CacheCreate: (long)Num(usage, "cache_creation_input_tokens"),
                 CacheRead: (long)Num(usage, "cache_read_input_tokens"));
             if (b.Total <= 0) return false;
+
+            id = root.TryGetProperty("requestId", out var rid) && rid.GetString() is { Length: > 0 } r
+                ? r
+                : msg.TryGetProperty("id", out var mid) ? mid.GetString() : null;
 
             t = u; bits = b;
             return true;
