@@ -194,23 +194,16 @@
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
 
-                        <!-- Throughput. Two numbers on two clocks: the window average (still by
-                             construction — it divides by the whole elapsed window) and, under it, the
-                             live rate over the last 3 minutes. The strip's moving axis IS time, which
-                             is the only reason this app animates anything. -->
+                        <!-- Throughput. Two numbers on two clocks: this window's average (still by
+                             construction — it divides by the whole elapsed window) and, under it, one
+                             line of the live rate. The strip itself lives on the Throughput tab (T111):
+                             it is "now", identical on both pace tabs, so it was the same picture twice.
+                             The number stays here, because the pace report is where you'd miss it. -->
                         <TextBlock x:Name="TpsHeadS" Margin="0,18,0,0" FontSize="13"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock x:Name="LiveHeadS" Margin="0,6,0,0" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <!-- Taller than the 44px it shipped at: the axis marks its ceiling and its half
-                             (T110), and two 10px labels need the room to stay out of each other. -->
-                        <Border x:Name="LiveStripS" Height="56" Margin="0,6,0,0" CornerRadius="4" ClipToBounds="True"
-                                Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
-                        <!-- Describes the strip, so it sits directly under it. Only one coloured
-                             legend is ever on screen: when this one has swatches, the window-average
-                             row below drops its own (see PopulateThroughput). -->
-                        <StackPanel x:Name="LiveLegendS" Orientation="Horizontal" Margin="0,8,0,0" />
                         <StackPanel x:Name="TpsLegendS" Orientation="Horizontal" Margin="0,8,0,0" />
+                        <TextBlock x:Name="LiveHeadS" Margin="0,10,0,0" FontSize="13" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
                         <TextBlock x:Name="ProjectionS" Margin="0,16,0,0" TextWrapping="Wrap" LineHeight="20"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -285,20 +278,68 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <!-- Same pair as the 5h tab: the window average, then the live strip. The
-                             strip is "now", so it is identical on both tabs by design — only the
-                             average above it is window-scoped. -->
+                        <!-- Same pair as the 5h tab: this window's average, then the one-line live rate.
+                             The average is window-scoped (a week's denominator, so it barely moves);
+                             the strip it used to sit above is on the Throughput tab. -->
                         <TextBlock x:Name="TpsHeadW" Margin="0,18,0,0" FontSize="13"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <TextBlock x:Name="LiveHeadW" Margin="0,6,0,0" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <Border x:Name="LiveStripW" Height="56" Margin="0,6,0,0" CornerRadius="4" ClipToBounds="True"
-                                Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
-                        <StackPanel x:Name="LiveLegendW" Orientation="Horizontal" Margin="0,8,0,0" />
                         <StackPanel x:Name="TpsLegendW" Orientation="Horizontal" Margin="0,8,0,0" />
+                        <TextBlock x:Name="LiveHeadW" Margin="0,10,0,0" FontSize="13" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
                         <TextBlock x:Name="ProjectionW" Margin="0,16,0,0" TextWrapping="Wrap" LineHeight="20"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- ============ THROUGHPUT (now) ============
+                     The live strip's own tab (T111). It was duplicated under both charts because it is
+                     the one thing here that is *not* window-scoped — and squeezed into 56px, where a
+                     minute of ordinary work sits on the 1px floor next to a single large cache write.
+                     Given a tab it gets the height that makes a rate legible, and the two window
+                     averages come along for comparison: same tokens, slower clock. -->
+                <TabItem Header="{local:Loc stats.tab.throughput}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="4,20,14,4">
+                        <TextBlock Text="{local:Loc stats.throughput.hint}" FontSize="13" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                        <TextBlock x:Name="LiveHeadT" Margin="0,20,0,0" FontSize="13" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <Border x:Name="LiveStripT" Height="220" Margin="0,10,0,0" CornerRadius="6" ClipToBounds="True"
+                                Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                        <!-- The time axis, stated rather than implied: oldest second at the left, the
+                             one still filling at the right. -->
+                        <Grid Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{local:Loc stats.live.axisAge}" FontSize="10"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <TextBlock Grid.Column="1" Text="{local:Loc stats.live.axisNow}" FontSize="10"
+                                       Margin="0,0,44,0"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        </Grid>
+                        <StackPanel x:Name="LiveLegendT" Orientation="Horizontal" Margin="0,10,0,0" />
+
+                        <!-- The slow clock, both windows, for scale against the fast one above. These
+                             drop their swatches while the strip is stacked per project, so the same
+                             three hues never mean token types here and projects there. -->
+                        <TextBlock Text="{local:Loc stats.throughput.averages}" Margin="0,24,0,0"
+                                   FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="{local:Loc stats.tab.session}" Style="{StaticResource StatCaption}"
+                                   Margin="0,12,0,0" />
+                        <TextBlock x:Name="TpsHeadT5" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <StackPanel x:Name="TpsLegendT5" Orientation="Horizontal" Margin="0,6,0,0" />
+                        <TextBlock Text="{local:Loc stats.tab.week}" Style="{StaticResource StatCaption}"
+                                   Margin="0,16,0,0" />
+                        <TextBlock x:Name="TpsHeadT7" Margin="0,4,0,0" FontSize="13" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <StackPanel x:Name="TpsLegendT7" Orientation="Horizontal" Margin="0,6,0,0" />
                     </StackPanel>
                     </ScrollViewer>
                 </TabItem>

@@ -110,11 +110,18 @@ anyone is typing.
 
 ### Live throughput — what is burning right now
 
-Under each chart there are now **two numbers on two clocks**. The **window average** is the whole
+Under each chart there are **two numbers on two clocks**. The **window average** is the whole
 window's tokens divided by the time since it opened — on the weekly tab that denominator is a full
 week, so the number barely moves, and that is correct: it answers *what did this week cost*. Under
-it, **Now ≈ N tok/s** answers *what is happening this minute*, over a trailing 3-minute strip with
-one column per second, split input / output / cache-create.
+it, **Now ≈ N tok/s** answers *what is happening this minute*.
+
+The moving picture behind that number has its own tab, **Throughput**: a trailing 3-minute strip,
+one column per second, split input / output / cache-create — plus both window averages underneath it
+for scale. It lives there rather than under each chart because it is the one thing in this window
+that has *no* window scope: "now" is the same on the 5-hour and the weekly tab, so it used to be the
+same picture twice, at a third of the height.
+
+![Statistics — the Throughput tab](docs/statistics-throughput.png)
 
 The strip is scaled to **what's on screen**, and it says so: full height is the busiest second of
 those three minutes, rounded up to a round number and labelled on the right — `4k/s`, with half of it

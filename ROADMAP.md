@@ -89,11 +89,13 @@
 >
 > **T110 shipped** out of that pass's first half: the strip now draws — and scales to — the three
 > minutes it claims to show, with its ceiling ruled and labelled in tok/s. It took the *magnitude* half
-> of T104; the per-column hover is still open.
+> of T104; the per-column hover is still open. **T111** then moved the strip off both pace tabs onto a
+> **Throughput** tab of its own — it never had a window scope, so it was the same picture twice — where
+> it has the height a live rate needs.
 
 - 📋 **T102** (deps: —) **`ScanTokens` counts one API response several times** — Claude Code writes one `assistant` line per *content block*, each repeating that response's `usage`; T97 found this and de-duplicates on `requestId`, but the older sweep still sums per line. The weekly curve hides it (it is rescaled to the live utilization) yet the *shape* is skewed toward heavy tool use, and `MeasuredActiveHours` and `ActivityProfile` read the same samples. The parser already emits the id. → §V.7
 - 📋 **T103** (deps: T97) **The tail re-enumerates the whole tree every 3s** — 602 transcripts in 17ms today, metadata-only, but it is O(all history) and grows forever while the window is open. Enumerate only directories whose mtime moved, or fall back to watcher-reported paths once the tree passes a size. → §V.8
-- 📋 **T104** (deps: T99, T110) **The strip has no per-column reading** — T110 gave the row a magnitude (a labelled ceiling and its half, scaled to what is actually on screen), which leaves the one interaction a bar form should not ship without: hover a column for its second, its project and its tokens. No new row. → §V.9
+- 📋 **T104** (deps: T99, T110, T111) **The strip has no per-column reading** — T110 gave the row a magnitude (a labelled ceiling and its half, scaled to what is actually on screen) and T111 gave it a tab with real height, which leaves the one interaction a bar form should not ship without: hover a column for its second, its project and its tokens. → §V.9
 - 💭 **T105** (deps: T100) **One resolver for slug → project path** — T100 recovers a project's real folder by walking the `cwd` up to the ancestor whose encoding matches the slug; `ContextScanner.CwdFromTranscripts` answers the same question separately and less exactly. Two readers of the same lossy encoding is one too many. → §V.10
 - 💭 **T106** (deps: T98) **A turn's tokens land in the second it *finished*** — the transcript timestamp is the write time, so a 40s generation reads as one spike at the end rather than a flow across the 40s it occupied, which is what makes the strip lumpier than the work. The previous turn's timestamp bounds the duration; only worth doing if it can be done without inventing data. → §V.11
 - 💭 **T107** (deps: T98) **Say what the cache re-read is costing** — measured on real traffic: ~30,000 tok/s of cache read against ~150 tok/s of real work, a 200× ratio the app now computes and shows nobody. That number is what a large eager context costs *per turn*, which makes it the missing link between this block and the Context Load Inspector. → §V.12

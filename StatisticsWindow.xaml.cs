@@ -74,7 +74,9 @@ internal partial class StatisticsWindow : Window
     // window is closed; created on Loaded and torn down on Closed.
     private TranscriptTail? _tail;
     private LiveRate? _live;
-    private LiveStrip? _stripS, _stripW;
+    // One strip, on its own tab (T111). It used to be two — one under each chart — which drew the same
+    // "now" twice, because unlike everything else in this window the live row has no window scope.
+    private LiveStrip? _strip;
     private System.Windows.Threading.DispatcherTimer? _liveTimer;
     private TokenBits[]? _lastStrip;   // kept so a resize or a tab switch can repaint without a tick
     private ProjectSlice[]? _lastProjects;
@@ -97,9 +99,15 @@ internal partial class StatisticsWindow : Window
         // "hidden ⇒ stopped".
         IsVisibleChanged += (_, _) => SyncLiveClock();
         StateChanged += (_, _) => SyncLiveClock();
-        // Only the visible tab's strip is painted, so switching tabs has to repaint immediately
-        // rather than leaving the other one blank until the next second.
-        PanesBody.SelectionChanged += (_, e) => { if (e.OriginalSource == PanesBody) LiveTick(); };
+        // The strip is only painted while its tab is on screen, so arriving on that tab has to repaint
+        // immediately rather than leaving it blank until the next second. RenderLive as well as the
+        // tick, because the preview fixture short-circuits the tick and would otherwise show nothing.
+        PanesBody.SelectionChanged += (_, e) =>
+        {
+            if (e.OriginalSource != PanesBody) return;
+            LiveTick();
+            RenderLive(animate: false);
+        };
 
         try
         {
@@ -149,6 +157,7 @@ internal partial class StatisticsWindow : Window
             ApplyModeLabels();
             Populate(s, ChipS, ChipTextS, UsedS, IdealS, ResetS, ProjectionS, ChartS, TpsHeadS, TpsLegendS);
             Populate(w, ChipW, ChipTextW, UsedW, IdealW, ResetW, ProjectionW, ChartW, TpsHeadW, TpsLegendW);
+            PopulateThroughputTab();
         }
     }
 
@@ -191,11 +200,12 @@ internal partial class StatisticsWindow : Window
         return Freeze(new SolidColorBrush(Color.FromRgb(0x20, 0x20, 0x20)));
     }
 
-    /// <summary>Snapshot each tab in turn to <c>{basePath}-5h.png</c> / <c>{basePath}-7d.png</c>.
-    /// Selecting a tab realizes its chart (its <c>SizeChanged</c> draws it), so both render fully.</summary>
+    /// <summary>Snapshot each tab in turn to <c>{basePath}-5h.png</c> / <c>-7d.png</c> /
+    /// <c>-throughput.png</c>. Selecting a tab realizes its chart (its <c>SizeChanged</c> draws it), so
+    /// each one renders fully.</summary>
     internal void SaveAllTabs(string basePath)
     {
-        string[] suffixes = { "-5h.png", "-7d.png" };
+        string[] suffixes = { "-5h.png", "-7d.png", "-throughput.png" };
         for (int i = 0; i < PanesBody.Items.Count && i < suffixes.Length; i++)
         {
             PanesBody.SelectedIndex = i;
@@ -302,6 +312,7 @@ internal partial class StatisticsWindow : Window
         ApplyModeLabels();
         Populate(r.Session, ChipS, ChipTextS, UsedS, IdealS, ResetS, ProjectionS, ChartS, TpsHeadS, TpsLegendS);
         Populate(r.Weekly, ChipW, ChipTextW, UsedW, IdealW, ResetW, ProjectionW, ChartW, TpsHeadW, TpsLegendW);
+        PopulateThroughputTab();
 
         // The weekly projection changes meaning when it follows the activity shape, so the method note
         // has to say so — including the part that can't be measured locally: usage from another
@@ -362,7 +373,10 @@ internal partial class StatisticsWindow : Window
     // a rounded stacked bar here; that bar is now the live strip below (T99), which carries the same
     // split against a time axis instead of against nothing. The legend still direct-labels each type
     // with its own tokens/sec, so identity is never color-alone per the palette's relief rule.
-    private void PopulateThroughput(WindowPace w, TextBlock head, StackPanel legend)
+    /// <param name="besideStrip">True for the rows on the Throughput tab, which share a screen with the
+    /// strip and therefore have to give up their swatches while it is stacked per project. The rows on
+    /// the pace tabs never do: nothing coloured sits next to them any more (T111).</param>
+    private void PopulateThroughput(WindowPace w, TextBlock head, StackPanel legend, bool besideStrip = false)
     {
         legend.Children.Clear();
 
@@ -389,7 +403,7 @@ internal partial class StatisticsWindow : Window
         // Legend: colored swatch + type + its own rate, with the absolute total on hover. The swatches
         // are dropped while the strip above is stacked by *project*, because the same three hues would
         // then mean token types here and projects there — one coloured legend on screen at a time.
-        bool byProject = _lastProjects is { Length: > 1 };
+        bool byProject = besideStrip && _lastProjects is { Length: > 1 };
         if (byProject)
             legend.Children.Add(new TextBlock
             {
@@ -421,6 +435,15 @@ internal partial class StatisticsWindow : Window
         }
     }
 
+    // The Throughput tab's slow-clock half: the same window averages as the pace tabs, both at once, so
+    // the fast number above them has something to be compared against. Rebuilt when the strip flips
+    // between its by-project and by-type views, which is what decides their swatches.
+    private void PopulateThroughputTab()
+    {
+        if (_session is { } s) PopulateThroughput(s, TpsHeadT5, TpsLegendT5, besideStrip: true);
+        if (_weekly is { } w) PopulateThroughput(w, TpsHeadT7, TpsLegendT7, besideStrip: true);
+    }
+
     // ------------------------------------------------------------------ live throughput (T99)
 
     // The strip and the number above it are the only things in this window on a local clock. They are
@@ -428,16 +451,14 @@ internal partial class StatisticsWindow : Window
     // so a closed Statistics window tails nothing.
     private void StartLive()
     {
-        if (_stripS is not null) return;
+        if (_strip is not null) return;
         bool dark = IsDarkTheme();
-        _stripS = new LiveStrip(LiveStripS, dark, AxisTick, ScaleTip);
-        _stripW = new LiveStrip(LiveStripW, dark, AxisTick, ScaleTip);
+        _strip = new LiveStrip(LiveStripT, dark, AxisTick, ScaleTip);
 
         // The strip is drawn in device pixels against its host's width, so a resize (and the very
         // first layout pass, where the width is still zero) has to redraw it. Static, not animated:
         // a resize is not a second passing.
-        LiveStripS.SizeChanged += (_, _) => RenderLive(_stripS, LiveLegendS, animate: false);
-        LiveStripW.SizeChanged += (_, _) => RenderLive(_stripW, LiveLegendW, animate: false);
+        LiveStripT.SizeChanged += (_, _) => RenderLive(animate: false);
 
         if (PreviewDemoLive) { RenderDemoLive(); return; }
 
@@ -469,16 +490,14 @@ internal partial class StatisticsWindow : Window
         else if (!onScreen && _liveTimer.IsEnabled)
         {
             _liveTimer.Stop();
-            _stripS?.Stop();
-            _stripW?.Stop();
+            _strip?.Stop();
         }
     }
 
     private void StopLive(bool dispose)
     {
         _liveTimer?.Stop();
-        _stripS?.Stop();
-        _stripW?.Stop();
+        _strip?.Stop();
         if (!dispose) return;
         _liveTimer = null;
         try { _tail?.Dispose(); } catch { /* best-effort */ }
@@ -489,7 +508,7 @@ internal partial class StatisticsWindow : Window
     private void LiveTick()
     {
         if (PreviewDemoLive) return;   // the synthetic strip owns the row; a tab switch must not clear it
-        if (_live is null) { LiveHeadS.Text = LiveHeadW.Text = L.T("stats.live.off"); return; }
+        if (_live is null) { LiveHeadS.Text = LiveHeadW.Text = LiveHeadT.Text = L.T("stats.live.off"); return; }
 
         _live.Tick(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
@@ -497,16 +516,15 @@ internal partial class StatisticsWindow : Window
         _lastProjects = _live.Projects();
         int sessions = _live.ActiveSessions;
 
-        // The window-average legend below the strip shows swatches only while the strip is *not*
-        // stacked by project. That state is decided here, on the live clock, but the legend is built
-        // by Render() on the API clock — so a flip has to rebuild it, or the two legends end up
-        // showing the same three hues meaning different things.
+        // The window-average rows *on the Throughput tab* show swatches only while the strip above them
+        // is not stacked by project. That state is decided here, on the live clock, while those rows are
+        // built by Render() on the API clock — so a flip has to rebuild them, or the same three hues
+        // would mean token types in one legend and projects in the other.
         bool byProject = _lastProjects is { Length: > 1 };
         if (byProject != _lastByProject)
         {
             _lastByProject = byProject;
-            if (_session is { } sp) PopulateThroughput(sp, TpsHeadS, TpsLegendS);
-            if (_weekly is { } wp) PopulateThroughput(wp, TpsHeadW, TpsLegendW);
+            PopulateThroughputTab();
         }
 
         string head = _live.Quiet
@@ -514,14 +532,11 @@ internal partial class StatisticsWindow : Window
             : L.T("stats.live.head", Rate(_live.TokensPerSecond),
                   Big(_live.Window.Total - _live.Window.CacheRead)) +
               (sessions > 0 ? "  ·  " + L.T(sessions == 1 ? "stats.live.session1" : "stats.live.sessionN", sessions) : "");
-        LiveHeadS.Text = LiveHeadW.Text = head;
+        LiveHeadS.Text = LiveHeadW.Text = LiveHeadT.Text = head;
 
-        // Only the tab on screen is painted; the other one is re-rendered when it is selected.
-        bool weekly = PanesBody.SelectedIndex == 1;
-        RenderLive(weekly ? _stripW : _stripS, weekly ? LiveLegendW : LiveLegendS, animate: true);
-        // The legend on the hidden tab would otherwise go stale behind the user's back, and it is
-        // cheap text, unlike the geometry.
-        BuildLiveLegend(weekly ? LiveLegendS : LiveLegendW);
+        // The geometry is only worth building while its tab is on screen; the number above is on every
+        // tab, and is cheap text.
+        RenderLive(animate: true);
     }
 
     // The strip answers one of two questions, and which one depends on how many projects are running.
@@ -530,22 +545,27 @@ internal partial class StatisticsWindow : Window
     // flat colour would throw away the input/output/cache-create mix for no gain, so the by-type view
     // stays. The legend under the strip always names which view is on screen, so the switch can never
     // be silent.
-    private void RenderLive(LiveStrip? strip, StackPanel legend, bool animate)
+    private void RenderLive(bool animate)
     {
-        if (strip is null || _lastStrip is null) return;
+        if (_strip is null || _lastStrip is null) return;
+        // Off its tab there is nothing to draw into — and the geometry is the expensive part of this row.
+        if (PanesBody.SelectedIndex != ThroughputTab) return;
         bool dark = IsDarkTheme();
 
         if (_lastProjects is { Length: > 1 } projects)
         {
             Color[] palette = ProjectPalette(projects, dark);
-            strip.Render(projects.Select(p => p.PerSecond).ToArray(), palette, animate);
+            _strip.Render(projects.Select(p => p.PerSecond).ToArray(), palette, animate);
         }
         else
         {
-            strip.Render(_lastStrip, dark, animate);
+            _strip.Render(_lastStrip, dark, animate);
         }
-        BuildLiveLegend(legend);
+        BuildLiveLegend(LiveLegendT);
     }
+
+    /// <summary>Index of the Throughput tab in <c>PanesBody</c> — the only tab the strip is drawn on.</summary>
+    private const int ThroughputTab = 2;
 
     private static Color[] ProjectPalette(ProjectSlice[] projects, bool dark)
     {
@@ -638,10 +658,9 @@ internal partial class StatisticsWindow : Window
             .Append(new ProjectSlice("+3", "+3", others, Sum(others), 41, true))
             .ToArray();
 
-        LiveHeadS.Text = LiveHeadW.Text =
+        LiveHeadS.Text = LiveHeadW.Text = LiveHeadT.Text =
             L.T("stats.live.head", Rate(870), Big(52_000)) + "  ·  " + L.T("stats.live.sessionN", 5);
-        RenderLive(_stripS, LiveLegendS, animate: false);
-        RenderLive(_stripW, LiveLegendW, animate: false);
+        RenderLive(animate: false);
 
         static long Sum(long[] a) { long s = 0; foreach (long v in a) s += v; return s; }
     }

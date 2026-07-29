@@ -289,8 +289,9 @@ actually on screen — but the strip still answers only in shapes. Which second 
 project was it, how many tokens: none of the three is available anywhere, and **per-column hover** is
 the one interaction a bar form should never ship without.
 
-The constraint is that this must not add a row. The strip is already three lines deep in a pane that
-scrolls; the answer is a tooltip, not a legend entry.
+The constraint that used to bind here — *don't add a row* — was answered differently by T111: the
+strip has its own tab now, so there is room. The answer is still a tooltip rather than a legend entry;
+what changed is that a 220px plot makes a per-column hit target worth aiming at.
 
 ### §V.10 Two readers of one lossy encoding (T105)
 

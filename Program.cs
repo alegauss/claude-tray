@@ -314,7 +314,7 @@ internal static class Program
             settle.Tick += (_, _) =>
             {
                 settle.Stop();
-                try { win.SaveAllTabs(outBase); Console.WriteLine("wrote " + outBase + "-5h.png / -7d.png"); }
+                try { win.SaveAllTabs(outBase); Console.WriteLine("wrote " + outBase + "-5h.png / -7d.png / -throughput.png"); }
                 finally { previewApp.Shutdown(); }
             };
             settle.Start();

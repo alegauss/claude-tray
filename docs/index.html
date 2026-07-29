@@ -409,7 +409,7 @@
     <div class="sec-head reveal">
       <div class="eyebrow">Consumption pace</div>
       <h2>See your burn, not just a number</h2>
-      <p>The <b>Statistics</b> window draws each rate-limit window as a burn-up chart: your <b>real utilization</b> against the even-pace line, with a dashed projection of where your current pace lands. Two tabs — the <b>5-hour session</b> and the <b>7-day week</b> — each with its own verdict.</p>
+      <p>The <b>Statistics</b> window draws each rate-limit window as a burn-up chart: your <b>real utilization</b> against the even-pace line, with a dashed projection of where your current pace lands. Two tabs — the <b>5-hour session</b> and the <b>7-day week</b> — each with its own verdict, plus a third, <b>Throughput</b>, for what is running right now.</p>
     </div>
     <div class="notify-grid reveal">
       <figure class="shot-frame" style="margin:0">
@@ -422,6 +422,12 @@
         <img class="shot" src="statistics-7d.png" alt="Statistics — 7-day week burn-up chart with the projection stepping around the hours you usually work, flat through the shaded overnight stretches">
         <figcaption style="color:var(--muted-2);font-size:.86rem;text-align:center;margin-top:12px">
           <b style="color:var(--text)">Week (7 days)</b> — the projection steps around your usual hours: flat overnight, running out mid-afternoon.
+        </figcaption>
+      </figure>
+      <figure class="shot-frame" style="margin:0">
+        <img class="shot" src="statistics-throughput.png" alt="Statistics — the Throughput tab: a three-minute live strip stacked per project, its ceiling labelled in tokens per second, with both window averages below it">
+        <figcaption style="color:var(--muted-2);font-size:.86rem;text-align:center;margin-top:12px">
+          <b style="color:var(--text)">Throughput</b> — the last three minutes, one column per second, scaled to the busiest second and labelled in tok/s.
         </figcaption>
       </figure>
     </div>
