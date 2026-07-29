@@ -380,9 +380,16 @@ internal sealed class LiveRate
             if (_byProject.Count == 0) return Array.Empty<ProjectSlice>();
             seconds = Math.Clamp(seconds, 1, MaxRateHistory);
 
+            // On the chart while it has anything the chart could still draw — not merely while it has
+            // something in the last minute (T115). The trailing-window test looks equivalent and is not:
+            // a project that pauses for longer than the rate window vanished *entirely*, history and all,
+            // and its whole series came back the moment one turn landed. Watched over a few minutes, a
+            // paused repo therefore blinked in and out instead of decaying and ageing off the left edge.
+            // Ranking still uses the rate — who is busiest now is what decides who gets a slot.
             var ranked = _byProject
-                .Select(kv => (slug: kv.Key, ring: kv.Value, win: WindowSum(kv.Value), rate: WeightedRate(kv.Value)))
-                .Where(p => p.win > 0)
+                .Select(kv => (slug: kv.Key, ring: kv.Value, win: WindowSum(kv.Value),
+                               rate: WeightedRate(kv.Value), drawn: DrawnSum(kv.Value, seconds)))
+                .Where(p => p.drawn > 0)
                 .OrderByDescending(p => p.rate)
                 .ThenBy(p => p.slug, StringComparer.OrdinalIgnoreCase)   // stable when tied
                 .ToList();
@@ -448,6 +455,15 @@ internal sealed class LiveRate
     {
         long sum = 0;
         for (int i = 0; i < WindowSeconds; i++) sum += ring[Index(_head - i)];
+        return sum;
+    }
+
+    // Everything a chart of `seconds` seconds can still show of this project: the drawn span plus the
+    // kernel's reach behind its oldest point, since a bucket that old still moves that point.
+    private long DrawnSum(long[] ring, int seconds)
+    {
+        long sum = 0;
+        for (int i = 0; i < seconds + WindowSeconds && i < HistorySeconds; i++) sum += ring[Index(_head - i)];
         return sum;
     }
 

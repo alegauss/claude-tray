@@ -1,6 +1,6 @@
-# Last task number — `T114` · next block letter — `N`
+# Last task number — `T115` · next block letter — `N`
 
-> **Single source of truth for the next free task number.** The next new task is `T115`; after
+> **Single source of truth for the next free task number.** The next new task is `T116`; after
 > assigning it, bump the number above and append a log line below.
 >
 > **Next block letter — `N`** (Block **M** = Explain on demand — the Statistics window's method note
@@ -85,3 +85,4 @@ here. This file is a terse index, not a memory.
 - **T112 SHIPPED** (Block K — percentile ceiling and broken-bar marks for outlier seconds) — 2026-07-29.
 - **T113 SHIPPED** (Block M — the method note moves behind an info button and popup) — 2026-07-29.
 - **T114 SHIPPED** (Block K — the rolling rate as a per-second series, plus sticky project slots) — 2026-07-29.
+- **T115 SHIPPED** (Block K — a project's series stays on the chart until it ages out, not until it pauses) — 2026-07-29.

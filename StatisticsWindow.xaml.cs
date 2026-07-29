@@ -513,7 +513,9 @@ internal partial class StatisticsWindow : Window
         _live.Tick(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
         _lastStrip = _live.Strip();
-        _lastProjects = _live.Projects();
+        // The drawn span, so a project is on the chart exactly while the chart can show it — and keeps
+        // its slot through a pause instead of blinking out and back (T115).
+        _lastProjects = _live.Projects(LiveStrip.Seconds);
         int sessions = _live.ActiveSessions;
 
         string head = _live.Quiet
