@@ -409,12 +409,7 @@
     <div class="sec-head reveal">
       <div class="eyebrow">Consumption pace</div>
       <h2>See your burn, not just a number</h2>
-      <p>The <b>Statistics</b> window turns each rate-limit window into a burn-up chart: your <b>real measured utilization</b> over time against the even-pace line, plus a dashed projection of where your current pace lands. Two tabs — the <b>5-hour session</b> and the <b>7-day week</b> — each with its own verdict.</p>
-      <p>The weekly projection is <b>paced to the hours you actually work</b>, not to the clock. It stays flat through the nights and weekends ahead — shaded <i>usually idle</i> — and climbs through your working hours, so the “you run out here” marker lands at a plausible time instead of at 4 a.m. The shape comes from your own local transcripts and needs a few weeks of them; until then it falls back to the straight average-pace line.</p>
-      <p>And when it says you'll run out early, it says what to do about it — <i>“stop now and pick it back up around Thursday 13:00, and you'd close the week at about 97%”</i> — naming the earliest hour you normally work that would still save the week. If no such hour exists, it says nothing rather than inventing advice.</p>
-      <p>Behind it, <b>last week's burn-up</b> is drawn as a faint line on the same axes — so <i>“is this week worse than the last?”</i> is a glance, not a memory test. No second chart, no second tab, no extra number.</p>
-      <p>Under each chart, two numbers on two clocks. The <b>window average</b> tells you what the window has cost so far. Under it, <b>“Now ≈ 870 tok/s”</b> and a <b>live strip of the last three minutes</b> — one column per second, split input / output / cache-create — tell you what is running <i>this minute</i>. It scrolls because the axis it scrolls along is time: the motion is the data, not a spinner. Nothing generating means it goes flat and stops repainting, and it only runs while the window is on screen. Read straight from your local transcripts as they are written — no extra API calls, and the polling cadence is untouched. Both numbers are token <b>throughput, not quota</b>.</p>
-      <p>Running Claude Code in several repos at once? The strip stacks <b>per project</b>, and the row tells you how many sessions are active — because across five repos the useful question isn't <i>how fast</i> but <i>where</i>. The heaviest four are named with their own rates; the rest fold into one “others”. With a single project there is nothing to attribute, so the strip keeps the input / output / cache-create split instead.</p>
+      <p>The <b>Statistics</b> window draws each rate-limit window as a burn-up chart: your <b>real utilization</b> against the even-pace line, with a dashed projection of where your current pace lands. Two tabs — the <b>5-hour session</b> and the <b>7-day week</b> — each with its own verdict.</p>
     </div>
     <div class="notify-grid reveal">
       <figure class="shot-frame" style="margin:0">
@@ -426,12 +421,44 @@
       <figure class="shot-frame" style="margin:0">
         <img class="shot" src="statistics-7d.png" alt="Statistics — 7-day week burn-up chart with the projection stepping around the hours you usually work, flat through the shaded overnight stretches">
         <figcaption style="color:var(--muted-2);font-size:.86rem;text-align:center;margin-top:12px">
-          <b style="color:var(--text)">Week (7 days)</b> — the projection steps around your usual hours: flat overnight, running out mid-afternoon rather than at 4 a.m.
+          <b style="color:var(--text)">Week (7 days)</b> — the projection steps around your usual hours: flat overnight, running out mid-afternoon.
         </figcaption>
       </figure>
     </div>
-    <p style="text-align:center;color:var(--muted-2);font-size:.9rem;margin-top:26px">
-      The curve is your <b style="color:var(--text)">real utilization</b> logged over the window — not an estimate. Until enough readings exist, it falls back to a shape reconstructed from your local transcripts. <b style="color:var(--text)">Nothing leaves your machine.</b>
+    <div class="grid" style="margin-top:44px">
+      <div class="card feat reveal">
+        <div class="ico">🕘</div>
+        <h3>Paced to your hours</h3>
+        <p>The weekly projection follows the hours you <b>actually work</b> — flat through nights and weekends (shaded <i>usually idle</i>), climbing while you're at the keyboard. So “you run out here” lands mid-afternoon, not at 4 a.m. Needs a few weeks of history; until then it's the plain average-pace line.</p>
+      </div>
+      <div class="card feat reveal">
+        <div class="ico">💡</div>
+        <h3>And what to do about it</h3>
+        <p><i>“Stop now, pick it back up around Thursday 13:00, and you'd close the week at about 97%.”</i> The earliest hour you normally work that would still save the week — and if there isn't one, no advice rather than invented advice.</p>
+      </div>
+      <div class="card feat reveal">
+        <div class="ico">👻</div>
+        <h3>Last week, right behind it</h3>
+        <p>Last week's burn-up is a faint line on the <b>same axes</b>. <i>“Worse than last week?”</i> becomes a glance instead of a memory test — no second chart, no extra number.</p>
+      </div>
+      <div class="card feat reveal">
+        <div class="ico">⏱️</div>
+        <h3>Two numbers, two clocks</h3>
+        <p><b>Window average</b> — what the window has cost so far. <b>Now ≈ 870 tok/s</b> — what's running <i>this minute</i>. Both are token <b>throughput, not quota</b>.</p>
+      </div>
+      <div class="card feat reveal">
+        <div class="ico">📉</div>
+        <h3>Live 3-minute strip</h3>
+        <p>One column per second, split input / output / cache-create. It scrolls because the axis is <b>time</b> — the motion is the data, not a spinner. Idle goes flat, and it only repaints while the window is on screen.</p>
+      </div>
+      <div class="card feat reveal">
+        <div class="ico">🗂️</div>
+        <h3>Across several repos</h3>
+        <p>With more than one project running, the strip stacks <b>per project</b> and names the heaviest four with their own rates — because the useful question becomes <i>where</i>, not <i>how fast</i>.</p>
+      </div>
+    </div>
+    <p style="text-align:center;color:var(--muted-2);font-size:.9rem;margin-top:32px">
+      All of it comes from your <b style="color:var(--text)">real logged utilization</b> and your local transcripts as they're written — no extra API calls. <b style="color:var(--text)">Nothing leaves your machine.</b>
     </p>
   </div>
 </section>
