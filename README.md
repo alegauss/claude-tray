@@ -115,40 +115,45 @@ window's tokens divided by the time since it opened — on the weekly tab that d
 week, so the number barely moves, and that is correct: it answers *what did this week cost*. Under
 it, **Now ≈ N tok/s** answers *what is happening this minute*.
 
-The moving picture behind that number has its own tab, **Throughput**: a trailing 3-minute strip,
-one column per second, split input / output / cache-create — plus both window averages underneath it
-for scale. It lives there rather than under each chart because it is the one thing in this window
-that has *no* window scope: "now" is the same on the 5-hour and the weekly tab, so it used to be the
-same picture twice, at a third of the height.
+The moving picture behind that number has its own tab, **Throughput**: two charts of the last three
+minutes — one line per **project** above, one per **token type** below — plus both window averages
+underneath them for scale. It lives there rather than under each chart because it is the one thing in
+this window that has *no* window scope: "now" is the same on the 5-hour and the weekly tab, so it used
+to be the same picture twice, at a third of the height.
 
 ![Statistics — the Throughput tab](docs/statistics-throughput.png)
 
-The strip is scaled to **what's on screen**, and it says so: full height is a round number labelled on
-the right — `3k/s`, with half of it on the dashed line — so a column is a quantity you can read, not
-just a silhouette.
+What the lines plot is the **rolling rate** — the same trailing-60-second number printed above them,
+sampled once a second. That matters for a reason worth stating: a turn's tokens are recorded in the
+second it *finished*, so the raw per-second counts are events, and joining events with a line would
+draw a rate that never existed. A rolling rate is continuous — it slides down through a pause because
+the work really is ageing out of the window, and climbs again when new work lands — and its right-hand
+end is exactly the number above the chart.
 
-That ceiling is normally the busiest second visible, rounded up. But one turn writing a large cache
-block can land 240,000 tokens in a single second next to ordinary seconds of 2,000, and scaling to
-*that* puts a whole minute of real work on the bottom pixel. So when the peak runs away from the rest,
-the axis falls back to the **95th percentile** of the busy seconds and the few columns that run past
-the top are drawn **broken** — fill, gap, cap — never silently cut. Hover the strip and it tells you
-what full height means, how many columns were capped, and what the busiest second actually carried.
+Both charts are always drawn, and each project keeps its colour and its place in the legend for as long
+as it is on screen. Nothing switches views or changes hands while you're reading it, and a repo that
+goes quiet decays toward zero and ages off the left edge instead of vanishing.
 
-The strip scrolls because the axis it scrolls along **is time** — the motion is the data, not a
-spinner. When nothing is generating it goes flat and stops repainting, and it only runs at all while
-the window is actually on screen. It is read from your local transcripts as they are written, with
-no extra API calls: the rate-limit polling cadence is unchanged.
+Full height is a round number labelled on the right — `2k/s`, with half of it on the dashed line — so
+a line's height is a quantity you can read. It is normally the highest point on screen, rounded up; when
+one large cache write towers over everything else, the axis falls back to the **95th percentile** of the
+samples and the stretch above the ceiling is drawn **dashed along it**, never silently cut. Hover a chart
+and it tells you what full height means, how many samples ran past it, and what the real peak was.
+
+The charts scroll because the axis they scroll along **is time** — the motion is the data, not a
+spinner. When nothing is generating they go flat and stop repainting, and they only run at all while
+the window is actually on screen. Everything is read from your local transcripts as they are written,
+with no extra API calls: the rate-limit polling cadence is unchanged.
 
 Both numbers are **token throughput, not quota** — the rate limit is a separate weighting the app
-only learns from the API. And an empty strip means *no turn landed on this machine*, not that
+only learns from the API. And an empty chart means *no turn landed on this machine*, not that
 nothing is running: work on another machine or on claude.ai leaves no transcript here.
 
-If you run Claude Code in **more than one repo at once**, the strip stacks **per project** and the
-row says how many sessions are active — because across five repos the useful question isn't *how
-fast* but *where*. The heaviest four are named with their own rates; anything past that folds into a
-single grey "others". With only one project running there's nothing to attribute, so the strip keeps
-the input/output/cache-create split instead. A session counts as active when it has produced a turn
-in the last two minutes, not merely because a terminal is open.
+If you run Claude Code in **more than one repo at once**, that upper chart is the answer to the
+question you actually have — not *how fast* but *where*. The heaviest four repos get a line and a
+direct label with their own rate; anything past that folds into a single grey "others", and the row
+above says how many sessions are active (a session counts as active when it has produced a turn in the
+last two minutes, not merely because a terminal is open).
 
 `ClaudeTray.exe --activity` prints the measured week as a heatmap if you want to see the shape
 the projection is following.

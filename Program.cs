@@ -450,11 +450,11 @@ internal static class Program
         // The same kernel as a *series* (T114) — what the chart is drawn from. Printed as a sparkline
         // plus its own last value, because the one property that must hold is that the right-hand end
         // equals the rate reported above: same filter, evaluated at 180 instants instead of one.
-        double[] history = live.RateHistory(LiveStrip.Seconds);
+        double[] history = live.RateHistory(LiveChart.Seconds);
         Console.WriteLine();
         Console.WriteLine($"rolling rate, last {history.Length}s (one cell per {history.Length / 60}s):");
         Console.WriteLine("  " + Spark(history, 60) + $"   → {history[^1]:N0} tok/s at the right edge");
-        foreach (ProjectSlice p in live.Projects(LiveStrip.Seconds).Where(p => p.RatePerSecond.Length > 0))
+        foreach (ProjectSlice p in live.Projects(LiveChart.Seconds).Where(p => p.RatePerSecond.Length > 0))
             Console.WriteLine($"  [{(p.IsOthers ? "·" : p.Slot.ToString())}] {Trim(p.Display, 18),-18} " +
                               Spark(p.RatePerSecond, 60) + $"   → {p.RatePerSecond[^1]:N0} tok/s");
 

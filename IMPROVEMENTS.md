@@ -282,16 +282,17 @@ whose mtime moved (one stat per project rather than per transcript), or trust th
 paths once the tree passes some size, keeping the full sweep as an occasional reconciliation. Either
 way the floor sweep must stay whole often enough that a lost watcher cannot silently strand a file.
 
-### §V.9 A column with no reading (T104)
+### §V.9 A line with no reading (T104)
 
-A column's *height* now means something — T110 rules and labels the ceiling, and scales it to what is
-actually on screen — but the strip still answers only in shapes. Which second is that spike, which
-project was it, how many tokens: none of the three is available anywhere, and **per-column hover** is
-the one interaction a bar form should never ship without.
+Height means something now — T110 rules and labels the ceiling, T116 draws a rate you can follow — but
+the charts still answer only in shapes. Which second is that rise, which project, and how many tokens
+actually landed in it: none of the three is available anywhere, and **per-sample hover** is the one
+interaction a time-series should never ship without.
 
-The constraint that used to bind here — *don't add a row* — was answered differently by T111: the
-strip has its own tab now, so there is room. The answer is still a tooltip rather than a legend entry;
-what changed is that a 220px plot makes a per-column hit target worth aiming at.
+Two things make it more valuable than when it was first written. The chart has its own tab and 180px of
+plot, so a hit target is worth aiming at; and the line draws a *rolling* rate while `LiveRate` still
+keeps the raw per-second buckets beside it, so a hover can report both — "this second carried 12k
+tokens; the rate through it was 800/s" — which is exactly the distinction the rate view smooths over.
 
 ### §V.10 Two readers of one lossy encoding (T105)
 
@@ -303,19 +304,6 @@ to the ancestor whose encoding equals the slug — exact, because it verifies ra
 `ContextScanner` needs the same answer and gets it differently (`CwdFromTranscripts` takes the raw
 `cwd`, which is the working directory *of that turn* and moves with any `cd`). One of these is right.
 It should be the only one.
-
-### §V.11 Tokens land where the turn ended (T106)
-
-A turn's `usage` is attributed to the second its transcript line was written — the moment generation
-*finished*. A 40-second generation therefore appears as a single spike at the end rather than as flow
-across the 40 seconds it occupied, which is most of why the strip reads as sparse spikes on real
-traffic rather than as a rate.
-
-The honest objection is that the app does not know when a turn *started*, and inventing a duration
-would be inventing data. There is a bound available — the previous turn's timestamp in the same
-session — but it is an upper bound that includes the user's own thinking time, so spreading tokens
-across it would be wrong in the opposite direction. Explore only if a defensible duration exists;
-"looks smoother" is not one.
 
 ### §V.12 What the cache re-read costs (T107)
 

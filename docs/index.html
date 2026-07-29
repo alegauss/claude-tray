@@ -425,9 +425,9 @@
         </figcaption>
       </figure>
       <figure class="shot-frame" style="margin:0">
-        <img class="shot" src="statistics-throughput.png" alt="Statistics — the Throughput tab: a three-minute live strip stacked per project, its ceiling labelled in tokens per second, with both window averages below it">
+        <img class="shot" src="statistics-throughput.png" alt="Statistics — the Throughput tab: two three-minute line charts of the rolling rate, one line per project above and one per token type below, each ceiling labelled in tokens per second, with both window averages beneath them">
         <figcaption style="color:var(--muted-2);font-size:.86rem;text-align:center;margin-top:12px">
-          <b style="color:var(--text)">Throughput</b> — the last three minutes, one column per second, labelled in tok/s; the columns that run past the ceiling are capped, never silently cut.
+          <b style="color:var(--text)">Throughput</b> — the last three minutes of the rolling rate: one line per repo, one per token type, each ceiling labelled in tok/s.
         </figcaption>
       </figure>
     </div>
@@ -454,13 +454,13 @@
       </div>
       <div class="card feat reveal">
         <div class="ico">📉</div>
-        <h3>Live 3-minute strip</h3>
-        <p>One column per second, split input / output / cache-create, with the ceiling ruled and labelled in <b>tok/s</b> — the busiest second on screen, or the 95th percentile of them when one cache write would otherwise flatten the rest (those columns are <b>capped</b>, never silently cut). It scrolls because the axis is <b>time</b> — the motion is the data, not a spinner. Idle goes flat, and it only repaints while the window is on screen.</p>
+        <h3>Live 3-minute charts</h3>
+        <p>The <b>rolling rate</b> sampled once a second, with the ceiling ruled and labelled in <b>tok/s</b>. A line slides down through a pause because the work really is ageing out of the 60-second window, and climbs when new work lands — its right-hand end is the number printed above it. It scrolls because the axis is <b>time</b> — the motion is the data, not a spinner. Idle goes flat, and it only repaints while the window is on screen.</p>
       </div>
       <div class="card feat reveal">
         <div class="ico">🗂️</div>
         <h3>Across several repos</h3>
-        <p>With more than one project running, the strip stacks <b>per project</b> and names the heaviest four with their own rates — because the useful question becomes <i>where</i>, not <i>how fast</i>.</p>
+        <p>The upper chart is <b>one line per repo</b> — the heaviest four, direct-labelled with their own rates, the rest as one grey “others”. Each keeps its colour while it is on screen, so nothing changes hands mid-read; the lower chart splits the same rate by token type. Because the useful question becomes <i>where</i>, not <i>how fast</i>.</p>
       </div>
     </div>
     <p style="text-align:center;color:var(--muted-2);font-size:.9rem;margin-top:32px">

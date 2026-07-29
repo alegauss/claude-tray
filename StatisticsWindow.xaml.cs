@@ -74,11 +74,13 @@ internal partial class StatisticsWindow : Window
     // window is closed; created on Loaded and torn down on Closed.
     private TranscriptTail? _tail;
     private LiveRate? _live;
-    // One strip, on its own tab (T111). It used to be two — one under each chart — which drew the same
-    // "now" twice, because unlike everything else in this window the live row has no window scope.
-    private LiveStrip? _strip;
+    // Two charts of the same rate on one tab (T116): per project, and per token type. Both are always
+    // drawn — the single chart they replaced switched between the two views as soon as a second repo
+    // started generating, so its colours changed meaning while it was being read.
+    private LiveChart? _chartProjects, _chartTypes;
     private System.Windows.Threading.DispatcherTimer? _liveTimer;
-    private TokenBits[]? _lastStrip;   // kept so a resize or a tab switch can repaint without a tick
+    // Kept so a resize or a tab switch can repaint without waiting for the next tick.
+    private double[][]? _lastTypeRates;
     private ProjectSlice[]? _lastProjects;
 
     /// <summary>Dev/preview seam: feed the strip a deterministic synthetic minute instead of the real
@@ -392,7 +394,7 @@ internal partial class StatisticsWindow : Window
         if (!w.HasWindow || w.ElapsedSeconds <= 0 || sum <= 0) return;
 
         double elapsed = w.ElapsedSeconds;
-        Color[] palette = LiveStrip.Colors(IsDarkTheme());
+        Color[] palette = LiveChart.Colors(IsDarkTheme());
         var types = new (string label, long tokens, Color color)[]
         {
             (L.T("stats.tps.input"),  input,  palette[0]),
@@ -451,14 +453,16 @@ internal partial class StatisticsWindow : Window
     // so a closed Statistics window tails nothing.
     private void StartLive()
     {
-        if (_strip is not null) return;
+        if (_chartProjects is not null) return;
         bool dark = IsDarkTheme();
-        _strip = new LiveStrip(LiveStripT, dark, AxisTick, ScaleTip);
+        _chartProjects = new LiveChart(ChartProjects, dark, AxisTick, ScaleTip);
+        _chartTypes = new LiveChart(ChartTypes, dark, AxisTick, ScaleTip);
 
-        // The strip is drawn in device pixels against its host's width, so a resize (and the very
-        // first layout pass, where the width is still zero) has to redraw it. Static, not animated:
+        // The charts are drawn in device pixels against their host's width, so a resize (and the very
+        // first layout pass, where the width is still zero) has to redraw them. Static, not animated:
         // a resize is not a second passing.
-        LiveStripT.SizeChanged += (_, _) => RenderLive(animate: false);
+        ChartProjects.SizeChanged += (_, _) => RenderLive(animate: false);
+        ChartTypes.SizeChanged += (_, _) => RenderLive(animate: false);
 
         if (PreviewDemoLive) { RenderDemoLive(); return; }
 
@@ -490,14 +494,16 @@ internal partial class StatisticsWindow : Window
         else if (!onScreen && _liveTimer.IsEnabled)
         {
             _liveTimer.Stop();
-            _strip?.Stop();
+            _chartProjects?.Stop();
+            _chartTypes?.Stop();
         }
     }
 
     private void StopLive(bool dispose)
     {
         _liveTimer?.Stop();
-        _strip?.Stop();
+        _chartProjects?.Stop();
+        _chartTypes?.Stop();
         if (!dispose) return;
         _liveTimer = null;
         try { _tail?.Dispose(); } catch { /* best-effort */ }
@@ -512,10 +518,10 @@ internal partial class StatisticsWindow : Window
 
         _live.Tick(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
-        _lastStrip = _live.Strip();
+        _lastTypeRates = _live.TypeRates(LiveChart.Seconds);
         // The drawn span, so a project is on the chart exactly while the chart can show it — and keeps
         // its slot through a pause instead of blinking out and back (T115).
-        _lastProjects = _live.Projects(LiveStrip.Seconds);
+        _lastProjects = _live.Projects(LiveChart.Seconds);
         int sessions = _live.ActiveSessions;
 
         string head = _live.Quiet
@@ -538,21 +544,19 @@ internal partial class StatisticsWindow : Window
     // be silent.
     private void RenderLive(bool animate)
     {
-        if (_strip is null || _lastStrip is null) return;
+        if (_chartProjects is null || _chartTypes is null) return;
         // Off its tab there is nothing to draw into — and the geometry is the expensive part of this row.
         if (PanesBody.SelectedIndex != ThroughputTab) return;
         bool dark = IsDarkTheme();
 
-        if (_lastProjects is { Length: > 1 } projects)
-        {
-            Color[] palette = ProjectPalette(projects, dark);
-            _strip.Render(projects.Select(p => p.PerSecond).ToArray(), palette, animate);
-        }
-        else
-        {
-            _strip.Render(_lastStrip, dark, animate);
-        }
-        BuildLiveLegend(LiveLegendT);
+        if (_lastProjects is { Length: > 0 } projects)
+            _chartProjects.Render(projects.Select(p => p.RatePerSecond).ToArray(),
+                                  ProjectPalette(projects, dark), animate);
+        if (_lastTypeRates is { Length: > 0 } types)
+            _chartTypes.Render(types, LiveChart.Colors(dark), animate);
+
+        BuildProjectLegend();
+        BuildTypeLegend();
     }
 
     /// <summary>Index of the Throughput tab in <c>PanesBody</c> — the only tab the strip is drawn on.</summary>
@@ -560,59 +564,76 @@ internal partial class StatisticsWindow : Window
 
     private static Color[] ProjectPalette(ProjectSlice[] projects, bool dark)
     {
-        Color[] hues = LiveStrip.ProjectColors(dark);
+        Color[] hues = LiveChart.ProjectColors(dark);
         // Colour follows the project's *slot*, not its position in this array — the slot is sticky for as
         // long as the project is on screen (T114), so a hue never changes hands under the reader. The
         // residual is always the neutral; never a generated hue for a fifth series.
         return projects.Select(p => p.IsOthers
-                                    ? LiveStrip.Others(dark)
+                                    ? LiveChart.Others(dark)
                                     : hues[Math.Clamp(p.Slot, 0, hues.Length - 1)])
                        .ToArray();
     }
 
-    // Identity is never colour-alone: every series in the strip is direct-labelled here with its own
-    // rate. In the by-type view this row is empty and the window-average legend below keeps its
-    // swatches; in the by-project view it carries them and that one drops its own, so two legends can
-    // never show the same hues meaning different things.
-    private void BuildLiveLegend(StackPanel legend)
+    // Identity is never colour-alone: every line in either chart is direct-labelled here with its own
+    // rate. Order follows the sticky slot, so an entry doesn't move while it is being read (T114).
+    private void BuildProjectLegend()
     {
-        legend.Children.Clear();
-        if (_lastProjects is not { Length: > 1 } projects) return;
+        LegendProjects.Children.Clear();
+        if (_lastProjects is not { Length: > 0 } projects) return;
 
         bool dark = IsDarkTheme();
         Color[] palette = ProjectPalette(projects, dark);
         for (int i = 0; i < projects.Length; i++)
         {
             ProjectSlice p = projects[i];
-            var row = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 0, 18, 0) };
-            row.Children.Add(new System.Windows.Shapes.Rectangle
-            {
-                Width = 10, Height = 10, RadiusX = 3, RadiusY = 3,
-                VerticalAlignment = VerticalAlignment.Center,
-                Fill = Freeze(new SolidColorBrush(palette[i])),
-            });
-            row.Children.Add(new TextBlock
-            {
-                Text = L.T("stats.tps.legend",
-                           p.IsOthers ? L.T("stats.live.others", p.Slug.TrimStart('+')) : p.Display,
-                           Rate(p.TokensPerSecond)),
-                Margin = new Thickness(6, 0, 0, 0), FontSize = 12,
-                VerticalAlignment = VerticalAlignment.Center,
-                Foreground = (Brush)FindResource("TextFillColorSecondaryBrush"),
-                ToolTip = L.T("stats.live.projectTip", p.IsOthers ? L.T("stats.live.others", p.Slug.TrimStart('+')) : p.Slug,
-                              Big(p.WindowTokens)),
-            });
-            legend.Children.Add(row);
+            string name = p.IsOthers ? L.T("stats.live.others", p.Slug.TrimStart('+')) : p.Display;
+            LegendProjects.Children.Add(LegendEntry(palette[i], L.T("stats.tps.legend", name, Rate(p.TokensPerSecond)),
+                L.T("stats.live.projectTip", p.IsOthers ? name : p.Slug, Big(p.WindowTokens))));
         }
     }
 
-    // A reproducible minute of work for the screenshot: the real strip depends on whatever happens to
-    // be running, which cannot be captured twice the same way. Deterministic by construction — no
-    // randomness, just a shaped burst — so the published image is stable across runs.
+    // The second chart's legend: the same three token types the window average is split by, but at the
+    // live rate — the last point of each line, which is what the chart above ends on.
+    private void BuildTypeLegend()
+    {
+        LegendTypes.Children.Clear();
+        if (_lastTypeRates is not { Length: 3 } rates || rates[0].Length == 0) return;
+
+        Color[] palette = LiveChart.Colors(IsDarkTheme());
+        string[] labels = { L.T("stats.tps.input"), L.T("stats.tps.output"), L.T("stats.tps.cacheCreate") };
+        for (int i = 0; i < 3; i++)
+            LegendTypes.Children.Add(LegendEntry(palette[i],
+                L.T("stats.tps.legend", labels[i], Rate(rates[i][^1])), null));
+    }
+
+    // One swatch + label pair, shared by both legends so they cannot drift apart visually.
+    private StackPanel LegendEntry(Color color, string text, string? tip)
+    {
+        var row = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 0, 18, 0) };
+        row.Children.Add(new System.Windows.Shapes.Rectangle
+        {
+            Width = 10, Height = 10, RadiusX = 3, RadiusY = 3,
+            VerticalAlignment = VerticalAlignment.Center,
+            Fill = Freeze(new SolidColorBrush(color)),
+        });
+        row.Children.Add(new TextBlock
+        {
+            Text = text,
+            Margin = new Thickness(6, 0, 0, 0), FontSize = 12,
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = (Brush)FindResource("TextFillColorSecondaryBrush"),
+            ToolTip = tip,
+        });
+        return row;
+    }
+
+    // A reproducible three minutes for the screenshot: the real charts depend on whatever happens to be
+    // running, which cannot be captured twice the same way. Deterministic by construction — no
+    // randomness, just shaped bursts — so the published image is stable across runs.
     private void RenderDemoLive()
     {
-        // Four repos plus a residual, so the multi-project view — the one worth publishing — is what
-        // gets captured. Deterministic by construction: no randomness, just shaped bursts.
+        // Four repos plus a residual, so the per-project chart is drawn with the crossings that make the
+        // fixed slots worth having.
         (string slug, string name, int phase, double weight)[] demo =
         {
             ("d--Git-acme-web-console", "web-console", 0, 1.00),
@@ -621,45 +642,49 @@ internal partial class StatisticsWindow : Window
             ("d--Git-acme-infra",       "infra",       8, 0.21),
         };
 
-        var strip = new TokenBits[LiveStrip.Seconds];
-        var perProject = demo.Select(_ => new long[LiveStrip.Seconds]).ToArray();
-        var others = new long[LiveStrip.Seconds];
+        // Long enough for the kernel to be warm at the left edge: every drawn point needs the 60s of
+        // buckets behind it, so a fixture that started exactly at the left edge would ramp in from zero.
+        const int span = LiveChart.Seconds + LiveRate.WindowSeconds;
+        var perType = new long[3][];
+        for (int i = 0; i < 3; i++) perType[i] = new long[span];
+        var perProject = demo.Select(_ => new long[span]).ToArray();
+        var others = new long[span];
 
-        for (int i = 0; i < LiveStrip.Seconds; i++)
+        for (int i = 0; i < span; i++)
         {
-            int t = LiveStrip.Seconds - 1 - i;                 // seconds ago
-            bool burst = t is (< 22) or (> 40 and < 78) or (> 96 and < 128);
+            int t = span - 1 - i;                              // seconds ago
+            bool burst = t is (< 22) or (> 40 and < 78) or (> 96 and < 128) or (> 150 and < 205);
             if (!burst) continue;
-            double k = 1 - t / (double)LiveStrip.Seconds;      // newer bursts a little heavier
+            double k = 1 - t / (double)span;                   // newer bursts a little heavier
 
             for (int p = 0; p < demo.Length; p++)
             {
                 if ((i + demo[p].phase) % 3 != 0) continue;
-                long tokens = (long)((900 * k + 120 * (i % 5) + 1400 * k) * demo[p].weight);
-                perProject[p][i] += tokens;
-                strip[i] = new TokenBits(
-                    strip[i].Input + (long)(40 * k * demo[p].weight),
-                    strip[i].Output + (long)((900 * k + 120 * (i % 5)) * demo[p].weight),
-                    strip[i].CacheCreate + (long)((1400 * k + 300 * (i % 4)) * demo[p].weight),
-                    0);
+                perProject[p][i] += (long)((900 * k + 120 * (i % 5) + 1400 * k) * demo[p].weight);
+                perType[0][i] += (long)(40 * k * demo[p].weight);
+                perType[1][i] += (long)((900 * k + 120 * (i % 5)) * demo[p].weight);
+                perType[2][i] += (long)((1400 * k + 300 * (i % 4)) * demo[p].weight);
             }
             if (i % 7 == 0) others[i] = (long)(260 * k);
         }
 
-        // One deliberate outlier, because real traffic has one: a turn that writes a large cache block
-        // lands ~240k tokens in a single second next to ordinary seconds of ~2k. It is what the clipped
-        // ceiling (T112) exists for, and a fixture without it would publish a strip the app rarely draws.
-        int spike = LiveStrip.Seconds - 1 - 41;      // 41 seconds ago
-        strip[spike] = new TokenBits(strip[spike].Input + 7_600, strip[spike].Output + 1_400,
-                                    strip[spike].CacheCreate + 231_000, 0);
-        perProject[0][spike] += 240_000;
+        // One deliberate cache write, because real traffic has them: a turn that writes a large block
+        // lands tens of thousands of tokens in a single second. Sized to what it *becomes* — the kernel
+        // spreads it over the following minute, so a 240k second (which happens) draws a hump 25× the
+        // ordinary rate and flattens everything else in the fixture to a baseline. A moderate one shows
+        // the same shape and still leaves the four projects legible, which is what this image is for.
+        int spike = span - 1 - 41;                             // 41 seconds ago
+        perType[0][spike] += 2_400;
+        perType[1][spike] += 600;
+        perType[2][spike] += 44_000;
+        perProject[0][spike] += 47_000;
 
-        _lastStrip = strip;
+        _lastTypeRates = perType.Select(s => LiveRate.RateFrom(s, LiveChart.Seconds)).ToArray();
         _lastProjects = demo
             .Select((d, p) => new ProjectSlice(d.slug, d.name, perProject[p],
-                                               LiveRate.RateFrom(perProject[p], LiveStrip.Seconds),
+                                               LiveRate.RateFrom(perProject[p], LiveChart.Seconds),
                                                Sum(perProject[p]), 870 * d.weight, false, p))
-            .Append(new ProjectSlice("+3", "+3", others, LiveRate.RateFrom(others, LiveStrip.Seconds),
+            .Append(new ProjectSlice("+3", "+3", others, LiveRate.RateFrom(others, LiveChart.Seconds),
                                      Sum(others), 41, true, -1))
             .ToArray();
 

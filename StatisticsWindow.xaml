@@ -345,9 +345,15 @@
 
                         <TextBlock x:Name="LiveHeadT" Margin="0,16,0,0" FontSize="13" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <!-- 280px: the height the footer note gave back when it moved behind the ⓘ
-                             (T113). Pixels are what a rate this spiky actually needs. -->
-                        <Border x:Name="LiveStripT" Height="280" Margin="0,10,0,0" CornerRadius="6" ClipToBounds="True"
+
+                        <!-- Two charts of the same rate, one per decomposition, both always on screen
+                             (T116). The old single chart switched from per-type to per-project the
+                             moment a second repo started generating — the colours changed meaning
+                             under the reader, which is the one thing a live chart must never do. -->
+                        <TextBlock Text="{local:Loc stats.throughput.byProject}" Margin="0,16,0,0"
+                                   FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <Border x:Name="ChartProjects" Height="178" Margin="0,6,0,0" CornerRadius="6" ClipToBounds="True"
                                 Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
                         <!-- The time axis, stated rather than implied: oldest second at the left, the
                              one still filling at the right. -->
@@ -362,7 +368,25 @@
                                        Margin="0,0,44,0"
                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                         </Grid>
-                        <StackPanel x:Name="LiveLegendT" Orientation="Horizontal" Margin="0,10,0,0" />
+                        <StackPanel x:Name="LegendProjects" Orientation="Horizontal" Margin="0,8,0,0" />
+
+                        <TextBlock Text="{local:Loc stats.throughput.byType}" Margin="0,16,0,0"
+                                   FontSize="12" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <Border x:Name="ChartTypes" Height="118" Margin="0,6,0,0" CornerRadius="6" ClipToBounds="True"
+                                Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                        <Grid Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{local:Loc stats.live.axisAge}" FontSize="10"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <TextBlock Grid.Column="1" Text="{local:Loc stats.live.axisNow}" FontSize="10"
+                                       Margin="0,0,44,0"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        </Grid>
+                        <StackPanel x:Name="LegendTypes" Orientation="Horizontal" Margin="0,8,0,0" />
 
                         <!-- The slow clock, both windows, for scale against the fast one above. One line
                              each, window named inline: the per-type split of a *window* average belongs
