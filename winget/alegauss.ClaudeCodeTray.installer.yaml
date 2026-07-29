@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 PackageIdentifier: alegauss.ClaudeCodeTray
-PackageVersion: 1.5.1
+PackageVersion: 1.5.2
 InstallerType: inno
 Scope: user
 InstallModes:
@@ -11,12 +11,12 @@ UpgradeBehavior: install
 ReleaseDate: 2026-07-29
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/alegauss/claude-tray/releases/download/v1.5.1/ClaudeTray-Setup.exe
-    InstallerSha256: F55CCACE1D53AF04450001905F571561417F85B14BFFD7AE55A74C7A4C7EB041
+    InstallerUrl: https://github.com/alegauss/claude-tray/releases/download/v1.5.2/ClaudeTray-Setup.exe
+    InstallerSha256: 5D729D973ABE841194192949A66D9432A2F4505DE74A3FCD7F16F5DC7EBB3987
     AppsAndFeaturesEntries:
       - DisplayName: Claude Code Tray
         Publisher: Alexandre Oliveira
-        DisplayVersion: 1.5.1
+        DisplayVersion: 1.5.2
         ProductCode: '{8F3C2A14-7B6D-4E9A-9C21-CLAUDETRAY001}_is1'
         InstallerType: inno
 ManifestType: installer
