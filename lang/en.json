@@ -1,4 +1,4 @@
-{
+﻿{
   // English — the source language and the fallback for any key missing from a translation.
   // Product names (Claude, Claude Code, Claude Code Tray, Anthropic), CLI tokens (/login, claude),
   // model ids and raw API status words are intentionally NOT localized.
@@ -222,6 +222,7 @@
   "stats.legend.lastWeek": "last week",
   "stats.methodNote": "“Used” and the reset come live from Anthropic's rate limits; the curve is your real measured utilization over the window (until enough is logged, it's reconstructed from local transcripts). The projection assumes the current average pace.",
   "stats.methodNote.shape": "The weekly projection follows the hours you're usually active ({0} weeks of local transcripts), so it stays flat overnight instead of spending quota evenly around the clock — it's a habit, not a schedule. Usage from another machine or from claude.ai counts against the same limit but leaves no transcript here, so an hour that looks idle may not be.",
+  "stats.methodNote.live": "The live strip is the last 3 minutes of local transcript activity, one column per second; it is token throughput, not quota, and an empty strip only means no turn landed on this machine.",
   "stats.refresh": "Refresh",
   "stats.close": "Close",
   "stats.updated": "Updated {0}",
@@ -238,6 +239,9 @@
   "stats.verdict.noData": "No data",
 
   // Throughput
+  "stats.live.head": "Now ≈ {0} tok/s  ·  {1} tokens in the last 3 minutes (live, measured locally — throughput, not quota)",
+  "stats.live.quiet": "Nothing generating right now — no turn has landed locally in the last 3 minutes.",
+  "stats.live.off": "Live throughput unavailable — the transcript folder couldn't be watched.",
   "stats.tps.none": "No token activity logged for this window yet.",
   "stats.tps.head": "Throughput ≈ {0} tok/s  ·  {1} tokens (window average, cache reads excluded)",
   "stats.tps.input": "input",

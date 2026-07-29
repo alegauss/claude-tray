@@ -1,4 +1,4 @@
-{
+﻿{
   // Portuguese (Portugal). European Portuguese vocabulary (Definições, Guardar, transferir,
   // reposição, "a usar", iniciar sessão). Any key omitted here falls back to en.json.
 
@@ -219,6 +219,7 @@
   "stats.legend.lastWeek": "semana passada",
   "stats.methodNote": "“Utilizado” e a reposição vêm em direto dos limites de taxa da Anthropic; a curva é a sua utilização real medida ao longo da janela (até haver registo suficiente, é reconstruída a partir das transcrições locais). A projeção assume o ritmo médio atual.",
   "stats.methodNote.shape": "A projeção semanal segue as horas em que costuma estar ativo ({0} semanas de transcrições locais), pelo que fica plana de madrugada em vez de gastar a quota de modo uniforme — é um hábito, não um horário. Utilização noutra máquina ou no claude.ai conta para o mesmo limite mas não deixa transcrição aqui, por isso uma hora que parece inativa pode não o ser.",
+  "stats.methodNote.live": "A faixa em direto mostra os últimos 3 minutos de atividade nas transcrições locais, uma coluna por segundo; é débito de tokens, não quota, e uma faixa vazia significa apenas que nenhum turno chegou a esta máquina.",
   "stats.refresh": "Atualizar",
   "stats.close": "Fechar",
   "stats.updated": "Atualizado {0}",
@@ -235,6 +236,9 @@
   "stats.verdict.noData": "Sem dados",
 
   // Throughput
+  "stats.live.head": "Agora ≈ {0} tok/s  ·  {1} tokens nos últimos 3 minutos (em direto, medido localmente — débito, não quota)",
+  "stats.live.quiet": "Nada a ser gerado agora — nenhum turno chegou localmente nos últimos 3 minutos.",
+  "stats.live.off": "Débito em direto indisponível — não foi possível vigiar a pasta de transcrições.",
   "stats.tps.none": "Ainda não há atividade de tokens registada para esta janela.",
   "stats.tps.head": "Débito ≈ {0} tok/s  ·  {1} tokens (média da janela, leituras de cache excluídas)",
   "stats.tps.input": "entrada",

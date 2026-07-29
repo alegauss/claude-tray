@@ -1,4 +1,4 @@
-{
+﻿{
   // Spanish. Any key omitted here falls back to en.json.
 
   // ---- Tray menu ----
@@ -218,6 +218,7 @@
   "stats.legend.lastWeek": "semana pasada",
   "stats.methodNote": "«Usado» y el reinicio vienen en directo de los límites de tasa de Anthropic; la curva es tu utilización real medida a lo largo de la ventana (hasta que hay registro suficiente, se reconstruye a partir de las transcripciones locales). La proyección asume el ritmo medio actual.",
   "stats.methodNote.shape": "La proyección semanal sigue las horas en las que sueles estar activo ({0} semanas de transcripciones locales), así que se mantiene plana de madrugada en vez de gastar la cuota de forma uniforme — es un hábito, no un horario. El uso desde otra máquina o desde claude.ai cuenta para el mismo límite pero no deja transcripción aquí, así que una hora que parece inactiva puede no serlo.",
+  "stats.methodNote.live": "La franja en vivo muestra los últimos 3 minutos de actividad en las transcripciones locales, una columna por segundo; es rendimiento de tokens, no cuota, y una franja vacía solo significa que no llegó ningún turno a esta máquina.",
   "stats.refresh": "Actualizar",
   "stats.close": "Cerrar",
   "stats.updated": "Actualizado {0}",
@@ -234,6 +235,9 @@
   "stats.verdict.noData": "Sin datos",
 
   // Throughput
+  "stats.live.head": "Ahora ≈ {0} tok/s  ·  {1} tokens en los últimos 3 minutos (en vivo, medido localmente — rendimiento, no cuota)",
+  "stats.live.quiet": "No se está generando nada ahora — no ha llegado ningún turno localmente en los últimos 3 minutos.",
+  "stats.live.off": "Rendimiento en vivo no disponible — no se pudo vigilar la carpeta de transcripciones.",
   "stats.tps.none": "Aún no hay actividad de tokens registrada para esta ventana.",
   "stats.tps.head": "Rendimiento ≈ {0} tok/s  ·  {1} tokens (media de la ventana, lecturas de caché excluidas)",
   "stats.tps.input": "entrada",

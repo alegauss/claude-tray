@@ -1,4 +1,4 @@
-{
+﻿{
   // Portuguese (Brazil). Any key omitted here falls back to en.json.
 
   // ---- Tray menu ----
@@ -218,6 +218,7 @@
   "stats.legend.lastWeek": "semana passada",
   "stats.methodNote": "“Usado” e o reset vêm ao vivo dos limites de taxa da Anthropic; a curva é sua utilização real medida ao longo da janela (até haver registro suficiente, é reconstruída a partir das transcrições locais). A projeção assume o ritmo médio atual.",
   "stats.methodNote.shape": "A projeção semanal segue as horas em que você costuma estar ativo ({0} semanas de transcrições locais), então fica plana de madrugada em vez de gastar a cota de modo uniforme — é um hábito, não uma agenda. Uso em outra máquina ou no claude.ai conta para o mesmo limite mas não deixa transcrição aqui, então uma hora que parece ociosa pode não ser.",
+  "stats.methodNote.live": "A faixa ao vivo mostra os últimos 3 minutos de atividade nas transcrições locais, uma coluna por segundo; é vazão de tokens, não cota, e uma faixa vazia significa apenas que nenhum turno chegou nesta máquina.",
   "stats.refresh": "Atualizar",
   "stats.close": "Fechar",
   "stats.updated": "Atualizado {0}",
@@ -234,6 +235,9 @@
   "stats.verdict.noData": "Sem dados",
 
   // Throughput
+  "stats.live.head": "Agora ≈ {0} tok/s  ·  {1} tokens nos últimos 3 minutos (ao vivo, medido localmente — vazão, não cota)",
+  "stats.live.quiet": "Nada sendo gerado agora — nenhum turno chegou localmente nos últimos 3 minutos.",
+  "stats.live.off": "Vazão ao vivo indisponível — não foi possível observar a pasta de transcrições.",
   "stats.tps.none": "Ainda não há atividade de tokens registrada para esta janela.",
   "stats.tps.head": "Vazão ≈ {0} tok/s  ·  {1} tokens (média da janela, leituras de cache excluídas)",
   "stats.tps.input": "entrada",

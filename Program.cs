@@ -252,6 +252,17 @@ internal static class Program
                     PreviewDemoGhost = args.Any(a => a.Equals("ghost", StringComparison.OrdinalIgnoreCase)),
                 });
             }
+            // "--stats live" feeds the throughput strip a deterministic synthetic three minutes
+            // instead of the real tail: the live row depends on whatever happens to be generating,
+            // which cannot be screenshotted twice the same way.
+            else if (args.Length >= 2 && args[1].Equals("live", StringComparison.OrdinalIgnoreCase))
+            {
+                previewApp.Run(new StatisticsWindow(sample, remaining)
+                {
+                    Topmost = true,
+                    PreviewDemoLive = true,
+                });
+            }
             else if (args.Length >= 2 && args[1].Equals("idle", StringComparison.OrdinalIgnoreCase))
             {
                 // Preview the "not using Claude" state: the 5h session is idle (0% used → flat chart),
@@ -288,6 +299,8 @@ internal static class Program
             var win = new StatisticsWindow(sample)
             {
                 PreviewDemoGhost = args.Any(a => a.Equals("ghost", StringComparison.OrdinalIgnoreCase)),
+                // Deterministic live strip, so the captured PNG is stable across runs.
+                PreviewDemoLive = args.Any(a => a.Equals("live", StringComparison.OrdinalIgnoreCase)),
                 WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
                 Left = -32000,
                 Top = -32000,

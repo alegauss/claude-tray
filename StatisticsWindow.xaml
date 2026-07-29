@@ -4,8 +4,8 @@
         xmlns:local="clr-namespace:ClaudeTray"
         x:ClassModifier="internal"
         Title="{local:Loc stats.title}"
-        Width="880" Height="860"
-        MinWidth="800" MinHeight="700"
+        Width="880" Height="920"
+        MinWidth="800" MinHeight="740"
         WindowStartupLocation="CenterScreen"
         ThemeMode="System"
         FontFamily="Segoe UI Variable Text, Segoe UI">
@@ -194,10 +194,16 @@
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
 
-                        <!-- Throughput (tokens/sec, window average) split by token type -->
+                        <!-- Throughput. Two numbers on two clocks: the window average (still by
+                             construction — it divides by the whole elapsed window) and, under it, the
+                             live rate over the last 3 minutes. The strip's moving axis IS time, which
+                             is the only reason this app animates anything. -->
                         <TextBlock x:Name="TpsHeadS" Margin="0,18,0,0" FontSize="13"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <Border x:Name="TpsBarS" Height="14" Margin="0,8,0,0" CornerRadius="7" ClipToBounds="True" />
+                        <TextBlock x:Name="LiveHeadS" Margin="0,6,0,0" FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <Border x:Name="LiveStripS" Height="44" Margin="0,6,0,0" CornerRadius="4" ClipToBounds="True"
+                                Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
                         <StackPanel x:Name="TpsLegendS" Orientation="Horizontal" Margin="0,8,0,0" />
 
                         <TextBlock x:Name="ProjectionS" Margin="0,16,0,0" TextWrapping="Wrap" LineHeight="20"
@@ -273,10 +279,15 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <!-- Throughput (tokens/sec, window average) split by token type -->
+                        <!-- Same pair as the 5h tab: the window average, then the live strip. The
+                             strip is "now", so it is identical on both tabs by design — only the
+                             average above it is window-scoped. -->
                         <TextBlock x:Name="TpsHeadW" Margin="0,18,0,0" FontSize="13"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <Border x:Name="TpsBarW" Height="14" Margin="0,8,0,0" CornerRadius="7" ClipToBounds="True" />
+                        <TextBlock x:Name="LiveHeadW" Margin="0,6,0,0" FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <Border x:Name="LiveStripW" Height="44" Margin="0,6,0,0" CornerRadius="4" ClipToBounds="True"
+                                Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
                         <StackPanel x:Name="TpsLegendW" Orientation="Horizontal" Margin="0,8,0,0" />
 
                         <TextBlock x:Name="ProjectionW" Margin="0,16,0,0" TextWrapping="Wrap" LineHeight="20"

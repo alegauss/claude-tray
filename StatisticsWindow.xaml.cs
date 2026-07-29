@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -70,12 +70,34 @@ internal partial class StatisticsWindow : Window
     // from gaps in the logged readings themselves (WindowPace.Gaps), so they persist after recovery too.
     private string? _error;
 
+    // The live throughput row (T99). Owned by the window, so nothing tails the transcripts while the
+    // window is closed; created on Loaded and torn down on Closed.
+    private TranscriptTail? _tail;
+    private LiveRate? _live;
+    private LiveStrip? _stripS, _stripW;
+    private System.Windows.Threading.DispatcherTimer? _liveTimer;
+    private TokenBits[]? _lastStrip;   // kept so a resize or a tab switch can repaint without a tick
+
+    /// <summary>Dev/preview seam: feed the strip a deterministic synthetic minute instead of the real
+    /// tail, so the screenshot of a *moving* row is reproducible. See <c>--stats live</c>.</summary>
+    internal bool PreviewDemoLive { get; init; }
+
     public StatisticsWindow(PaceSnapshot? snapshot, bool showRemaining = false, string? error = null)
     {
         _snapshot = snapshot;
         _remaining = showRemaining;
         _error = error;
         InitializeComponent();
+
+        Loaded += (_, _) => StartLive();
+        Closed += (_, _) => StopLive(dispose: true);
+        // Minimizing leaves IsVisible true in WPF, so both signals are needed to honour
+        // "hidden ⇒ stopped".
+        IsVisibleChanged += (_, _) => SyncLiveClock();
+        StateChanged += (_, _) => SyncLiveClock();
+        // Only the visible tab's strip is painted, so switching tabs has to repaint immediately
+        // rather than leaving the other one blank until the next second.
+        PanesBody.SelectionChanged += (_, e) => { if (e.OriginalSource == PanesBody) LiveTick(); };
 
         try
         {
@@ -123,8 +145,8 @@ internal partial class StatisticsWindow : Window
         if (_session is { } s && _weekly is { } w)
         {
             ApplyModeLabels();
-            Populate(s, ChipS, ChipTextS, UsedS, IdealS, ResetS, ProjectionS, ChartS, TpsHeadS, TpsBarS, TpsLegendS);
-            Populate(w, ChipW, ChipTextW, UsedW, IdealW, ResetW, ProjectionW, ChartW, TpsHeadW, TpsBarW, TpsLegendW);
+            Populate(s, ChipS, ChipTextS, UsedS, IdealS, ResetS, ProjectionS, ChartS, TpsHeadS, TpsLegendS);
+            Populate(w, ChipW, ChipTextW, UsedW, IdealW, ResetW, ProjectionW, ChartW, TpsHeadW, TpsLegendW);
         }
     }
 
@@ -276,16 +298,19 @@ internal partial class StatisticsWindow : Window
         }
 
         ApplyModeLabels();
-        Populate(r.Session, ChipS, ChipTextS, UsedS, IdealS, ResetS, ProjectionS, ChartS, TpsHeadS, TpsBarS, TpsLegendS);
-        Populate(r.Weekly, ChipW, ChipTextW, UsedW, IdealW, ResetW, ProjectionW, ChartW, TpsHeadW, TpsBarW, TpsLegendW);
+        Populate(r.Session, ChipS, ChipTextS, UsedS, IdealS, ResetS, ProjectionS, ChartS, TpsHeadS, TpsLegendS);
+        Populate(r.Weekly, ChipW, ChipTextW, UsedW, IdealW, ResetW, ProjectionW, ChartW, TpsHeadW, TpsLegendW);
 
         // The weekly projection changes meaning when it follows the activity shape, so the method note
         // has to say so — including the part that can't be measured locally: usage from another
         // machine or from claude.ai spends the same quota while leaving no transcript here.
+        // The live strip has the same blind spot the shaped projection discloses, and it needs saying
+        // separately: a rate built from local transcripts cannot see another machine or claude.ai, so
+        // an empty strip is "no local turn landed", never proof that nothing is running.
         bool shaped = r.Weekly.Shape is not null;
-        MethodNote.Text = shaped
+        MethodNote.Text = (shaped
             ? L.T("stats.methodNote") + " " + L.T("stats.methodNote.shape", $"{r.Weekly.Shape!.CoverageWeeks:0.#}")
-            : L.T("stats.methodNote");
+            : L.T("stats.methodNote")) + " " + L.T("stats.methodNote.live");
         LegendIdleW.Visibility = shaped && r.Weekly.Shape!.IdleBands.Count > 0
             ? Visibility.Visible : Visibility.Collapsed;
         LegendGhostW.Visibility = r.Weekly.Ghost is not null ? Visibility.Visible : Visibility.Collapsed;
@@ -309,7 +334,7 @@ internal partial class StatisticsWindow : Window
 
     private void Populate(WindowPace w, Border chip, TextBlock chipText,
         TextBlock used, TextBlock ideal, TextBlock reset, TextBlock projection, Canvas chart,
-        TextBlock tpsHead, Border tpsBar, StackPanel tpsLegend)
+        TextBlock tpsHead, StackPanel tpsLegend)
     {
         used.Text = w.HasWindow ? Pct(Disp(w.Util)) : "—";
         ideal.Text = w.HasWindow ? Pct(Disp(w.IdealNow)) : "—";
@@ -327,16 +352,16 @@ internal partial class StatisticsWindow : Window
 
         projection.Text = ProjectionText(w);
         DrawChart(chart, w);
-        PopulateThroughput(w, tpsHead, tpsBar, tpsLegend);
+        PopulateThroughput(w, tpsHead, tpsLegend);
     }
 
     // Throughput breakdown: average tokens/second over the window, split into input / output /
-    // cache-creation (cache reads are excluded — see WindowPace.TokensPerSecond). A rounded stacked
-    // bar shows the mix; the legend direct-labels each type with its own tokens/sec (so identity is
-    // never color-alone, per the palette's relief rule).
-    private void PopulateThroughput(WindowPace w, TextBlock head, Border bar, StackPanel legend)
+    // cache-creation (cache reads are excluded — see WindowPace.TokensPerSecond). The mix used to be
+    // a rounded stacked bar here; that bar is now the live strip below (T99), which carries the same
+    // split against a time axis instead of against nothing. The legend still direct-labels each type
+    // with its own tokens/sec, so identity is never color-alone per the palette's relief rule.
+    private void PopulateThroughput(WindowPace w, TextBlock head, StackPanel legend)
     {
-        bar.Child = null;
         legend.Children.Clear();
 
         long input = w.InputTokens, output = w.OutputTokens, cache = w.CacheCreationTokens;
@@ -345,42 +370,19 @@ internal partial class StatisticsWindow : Window
         if (!w.HasWindow || w.ElapsedSeconds <= 0 || sum <= 0)
         {
             head.Text = L.T("stats.tps.none");
-            bar.Visibility = Visibility.Collapsed;
             return;
         }
-        bar.Visibility = Visibility.Visible;
 
         double elapsed = w.ElapsedSeconds;
         head.Text = L.T("stats.tps.head", Rate(w.TokensPerSecond), Big(sum));
 
-        bool dark = IsDarkTheme();
+        Color[] palette = LiveStrip.Colors(IsDarkTheme());
         var types = new (string label, long tokens, Color color)[]
         {
-            (L.T("stats.tps.input"),  input,  dark ? Color.FromRgb(0x39, 0x87, 0xE5) : Color.FromRgb(0x2A, 0x78, 0xD6)),
-            (L.T("stats.tps.output"), output, dark ? Color.FromRgb(0x19, 0x9E, 0x70) : Color.FromRgb(0x1B, 0xAF, 0x7A)),
-            (L.T("stats.tps.cacheCreate"), cache, dark ? Color.FromRgb(0x90, 0x85, 0xE9) : Color.FromRgb(0x4A, 0x3A, 0xA7)),
+            (L.T("stats.tps.input"),  input,  palette[0]),
+            (L.T("stats.tps.output"), output, palette[1]),
+            (L.T("stats.tps.cacheCreate"), cache, palette[2]),
         };
-
-        // Stacked bar: one star-weighted column per non-empty type, a 2px surface gap between them.
-        var grid = new Grid();
-        var gap = (Brush)FindResource("SolidBackgroundFillColorBaseBrush");
-        int col = 0;
-        var present = types.Where(t => t.tokens > 0).ToArray();
-        for (int i = 0; i < present.Length; i++)
-        {
-            if (i > 0)
-            {
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2) });
-                var spacer = new System.Windows.Controls.Border { Background = gap };
-                Grid.SetColumn(spacer, col++);
-                grid.Children.Add(spacer);
-            }
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(present[i].tokens, GridUnitType.Star) });
-            var seg = new System.Windows.Controls.Border { Background = Freeze(new SolidColorBrush(present[i].color)) };
-            Grid.SetColumn(seg, col++);
-            grid.Children.Add(seg);
-        }
-        bar.Child = grid;
 
         // Legend: colored swatch + type + its own rate, with the absolute total on hover.
         foreach (var t in types)
@@ -403,6 +405,116 @@ internal partial class StatisticsWindow : Window
             });
             legend.Children.Add(row);
         }
+    }
+
+    // ------------------------------------------------------------------ live throughput (T99)
+
+    // The strip and the number above it are the only things in this window on a local clock. They are
+    // built once the layout exists (the strip needs a real width) and are torn down with the window,
+    // so a closed Statistics window tails nothing.
+    private void StartLive()
+    {
+        if (_stripS is not null) return;
+        bool dark = IsDarkTheme();
+        _stripS = new LiveStrip(LiveStripS, dark);
+        _stripW = new LiveStrip(LiveStripW, dark);
+
+        // The strip is drawn in device pixels against its host's width, so a resize (and the very
+        // first layout pass, where the width is still zero) has to redraw it. Static, not animated:
+        // a resize is not a second passing.
+        LiveStripS.SizeChanged += (_, _) => { if (_lastStrip is { } s) _stripS?.Render(s, animate: false); };
+        LiveStripW.SizeChanged += (_, _) => { if (_lastStrip is { } s) _stripW?.Render(s, animate: false); };
+
+        if (PreviewDemoLive) { RenderDemoLive(); return; }
+
+        try
+        {
+            _tail = new TranscriptTail();
+            _live = new LiveRate(_tail);
+            _tail.Start();
+        }
+        catch { _tail = null; _live = null; }   // no tail is a supported state: the row stays quiet
+
+        _liveTimer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromSeconds(1),
+        };
+        _liveTimer.Tick += (_, _) => LiveTick();
+        SyncLiveClock();
+        LiveTick();
+    }
+
+    // "Hidden ⇒ stopped." A minimized or closed-but-not-disposed window must cost what it cost before
+    // this row existed. The tail keeps running (it is a few ms every 3s off-thread and it is what lets
+    // the strip have history the moment the window comes back); only the render clock stops.
+    private void SyncLiveClock()
+    {
+        if (_liveTimer is null) return;
+        bool onScreen = IsVisible && WindowState != WindowState.Minimized;
+        if (onScreen && !_liveTimer.IsEnabled) { _liveTimer.Start(); LiveTick(); }
+        else if (!onScreen && _liveTimer.IsEnabled)
+        {
+            _liveTimer.Stop();
+            _stripS?.Stop();
+            _stripW?.Stop();
+        }
+    }
+
+    private void StopLive(bool dispose)
+    {
+        _liveTimer?.Stop();
+        _stripS?.Stop();
+        _stripW?.Stop();
+        if (!dispose) return;
+        _liveTimer = null;
+        try { _tail?.Dispose(); } catch { /* best-effort */ }
+        _tail = null;
+        _live = null;
+    }
+
+    private void LiveTick()
+    {
+        if (PreviewDemoLive) return;   // the synthetic strip owns the row; a tab switch must not clear it
+        if (_live is null) { LiveHeadS.Text = LiveHeadW.Text = L.T("stats.live.off"); return; }
+
+        _live.Tick(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+
+        double rate = _live.TokensPerSecond;
+        string head = _live.Quiet
+            ? L.T("stats.live.quiet")
+            : L.T("stats.live.head", Rate(rate), Big(_live.Window.Total - _live.Window.CacheRead));
+        LiveHeadS.Text = LiveHeadW.Text = head;
+
+        // Only the tab on screen is painted; the other one is re-rendered when it is selected.
+        _lastStrip = _live.Strip();
+        bool weekly = PanesBody.SelectedIndex == 1;
+        (weekly ? _stripW : _stripS)?.Render(_lastStrip, animate: true);
+    }
+
+    // A reproducible minute of work for the screenshot: the real strip depends on whatever happens to
+    // be running, which cannot be captured twice the same way. Deterministic by construction — no
+    // randomness, just a shaped burst — so the published image is stable across runs.
+    private void RenderDemoLive()
+    {
+        var strip = new TokenBits[LiveStrip.Seconds];
+        for (int i = 0; i < strip.Length; i++)
+        {
+            // Three bursts of decreasing size with quiet gaps between them, plus a turn every few
+            // seconds inside a burst — the shape a real session actually has.
+            int t = LiveStrip.Seconds - 1 - i;                 // seconds ago
+            bool burst = t is (< 22) or (> 40 and < 78) or (> 96 and < 128);
+            if (!burst || i % 3 != 0) continue;
+            double k = 1 - t / (double)LiveStrip.Seconds;      // newer bursts a little heavier
+            strip[i] = new TokenBits(
+                Input: (long)(40 * k),
+                Output: (long)(900 * k + 120 * (i % 5)),
+                CacheCreate: (long)(1400 * k + 300 * (i % 4)),
+                CacheRead: 0);
+        }
+        _lastStrip = strip;
+        _stripS?.Render(strip, animate: false);
+        _stripW?.Render(strip, animate: false);
+        LiveHeadS.Text = LiveHeadW.Text = L.T("stats.live.head", Rate(870), Big(52_000));
     }
 
     // Plain-language read of the pace + projection for one window.

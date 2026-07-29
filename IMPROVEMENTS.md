@@ -239,27 +239,6 @@ one:
 
 So the fix is a **second metric on a second clock**, not a faster refresh of the existing one.
 
-### §V.3 Motion that is data (T99)
-
-The static stacked bar becomes a strip of the last ~3 minutes: one column per second, columns entering
-at the right and leaving at the left, keeping the input/output/cache-create split. The reason this is
-worth an animation at all is that **the moving axis is time** — the motion carries information, which
-is the only kind of motion this app should add. A spinner or a breathing pulse would imply activity
-during idleness, which is a lie a monitoring tool cannot afford.
-
-Consequences of that principle, all of them cheap:
-
-- **Nothing running ⇒ nothing moves.** The strip flattens and repainting stops; no timer churn.
-- **Hidden ⇒ stopped.** The clock runs only while the window is visible, so a minimized Statistics
-  window costs what it costs today.
-- **The window average, the charts and the verdict chip are untouched.** This block adds a row; it does
-  not re-time the pace report.
-
-The method note needs one added sentence, and it is the same blind spot T87 already discloses: a rate
-built from local transcripts cannot see usage from another machine or from claude.ai, so **zero
-throughput is not proof of idleness**. T93 does not fix this one — the folded hourly store has no
-per-second resolution to lend.
-
 ### §V.4 Which project is burning it (T100)
 
 For a single project the live rate is a curiosity. Across five repos it answers the real question:

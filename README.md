@@ -108,6 +108,23 @@ hour that looks idle locally may not have been. The even-pace line, the verdict 
 icon are deliberately **not** activity-aware — quota drains in wall-clock time whether or not
 anyone is typing.
 
+### Live throughput — what is burning right now
+
+Under each chart there are now **two numbers on two clocks**. The **window average** is the whole
+window's tokens divided by the time since it opened — on the weekly tab that denominator is a full
+week, so the number barely moves, and that is correct: it answers *what did this week cost*. Under
+it, **Now ≈ N tok/s** answers *what is happening this minute*, over a trailing 3-minute strip with
+one column per second, split input / output / cache-create.
+
+The strip scrolls because the axis it scrolls along **is time** — the motion is the data, not a
+spinner. When nothing is generating it goes flat and stops repainting, and it only runs at all while
+the window is actually on screen. It is read from your local transcripts as they are written, with
+no extra API calls: the rate-limit polling cadence is unchanged.
+
+Both numbers are **token throughput, not quota** — the rate limit is a separate weighting the app
+only learns from the API. And an empty strip means *no turn landed on this machine*, not that
+nothing is running: work on another machine or on claude.ai leaves no transcript here.
+
 `ClaudeTray.exe --activity` prints the measured week as a heatmap if you want to see the shape
 the projection is following.
 

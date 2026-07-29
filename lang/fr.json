@@ -1,4 +1,4 @@
-{
+﻿{
   // French. Any key omitted here falls back to en.json.
 
   // ---- Tray menu ----
@@ -218,6 +218,7 @@
   "stats.legend.lastWeek": "semaine dernière",
   "stats.methodNote": "« Utilisé » et la réinitialisation viennent en direct des limites de débit d'Anthropic ; la courbe est votre utilisation réelle mesurée sur la fenêtre (jusqu'à ce qu'assez de points soient enregistrés, elle est reconstruite depuis les transcriptions locales). La projection suppose le rythme moyen actuel.",
   "stats.methodNote.shape": "La projection hebdomadaire suit les heures où vous êtes habituellement actif ({0} semaines de transcriptions locales) : elle reste donc plate la nuit au lieu de dépenser le quota uniformément — c'est une habitude, pas un horaire. L'usage depuis une autre machine ou depuis claude.ai compte sur la même limite mais ne laisse aucune transcription ici, donc une heure qui semble inactive ne l'est pas forcément.",
+  "stats.methodNote.live": "La bande en direct montre les 3 dernières minutes d'activité dans les transcriptions locales, une colonne par seconde ; c'est un débit de tokens, pas un quota, et une bande vide signifie seulement qu'aucun tour n'a eu lieu sur cette machine.",
   "stats.refresh": "Actualiser",
   "stats.close": "Fermer",
   "stats.updated": "Mis à jour {0}",
@@ -234,6 +235,9 @@
   "stats.verdict.noData": "Aucune donnée",
 
   // Throughput
+  "stats.live.head": "Maintenant ≈ {0} tok/s  ·  {1} tokens sur les 3 dernières minutes (en direct, mesuré localement — débit, pas quota)",
+  "stats.live.quiet": "Rien ne se génère en ce moment — aucun tour reçu localement depuis 3 minutes.",
+  "stats.live.off": "Débit en direct indisponible — impossible de surveiller le dossier des transcriptions.",
   "stats.tps.none": "Aucune activité de tokens enregistrée pour cette fenêtre pour l'instant.",
   "stats.tps.head": "Débit ≈ {0} tok/s  ·  {1} tokens (moyenne de la fenêtre, lectures de cache exclues)",
   "stats.tps.input": "entrée",
