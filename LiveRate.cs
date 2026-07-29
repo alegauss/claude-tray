@@ -72,6 +72,18 @@ internal sealed class LiveRate
     /// <see cref="HistorySeconds"/> ring can answer for is that much newer than its far end.</summary>
     public const int MaxRateHistory = HistorySeconds - WindowSeconds;
 
+    /// <summary>
+    /// Seconds of series computed and smoothed <b>before</b> the first reported point, so the attack lag
+    /// is already warm when that point is reached (T117).
+    /// </summary>
+    /// <remarks>The kernel is boundary-independent — a point depends only on the 60s behind it — but the
+    /// EWMA carries state, and starting it at the oldest reported point made a given second's value
+    /// depend on <em>where the window began</em>. Drawn as a chart that scrolls, that is visible: the
+    /// left-hand end of the line kept settling toward its neighbours and re-adjusting as it moved
+    /// leftwards, because it was being recomputed with a colder filter each second. Three time constants
+    /// leaves ~5% of the starting error at the first reported point and none measurable after it.</remarks>
+    public const int SmoothWarmUp = (int)(3 * SmoothingTau);
+
     private readonly object _gate = new();
     private readonly TokenBits[] _ring = new TokenBits[HistorySeconds];
     // Per-project rings, sharing _head with the total. Only projects with something in the strip are
@@ -178,10 +190,11 @@ internal sealed class LiveRate
     /// its first bucket ramps in — which is what a feed that just started really looks like.</summary>
     public static double[] RateFrom(long[] perSecond, int seconds)
     {
-        var outp = new double[seconds];
-        for (int k = 0; k < seconds; k++)
+        int warm = Math.Clamp(perSecond.Length - WindowSeconds - seconds, 0, SmoothWarmUp);
+        var raw = new double[seconds + warm];
+        for (int k = 0; k < raw.Length; k++)
         {
-            int end = perSecond.Length - seconds + k;
+            int end = perSecond.Length - raw.Length + k;
             double weighted = 0;
             for (int i = 0; i < WindowSeconds; i++)
             {
@@ -189,24 +202,30 @@ internal sealed class LiveRate
                 if (idx < 0) break;
                 if (idx < perSecond.Length) weighted += perSecond[idx] * (1.0 - (double)i / WindowSeconds);
             }
-            outp[k] = weighted / (WindowSeconds / 2.0);
+            raw[k] = weighted / (WindowSeconds / 2.0);
         }
-        return Smooth(outp);
+        Smooth(raw);
+        return warm == 0 ? raw : raw[warm..];
     }
 
-    // The kernel, evaluated once per output second. Caller holds the lock.
+    // The kernel, evaluated once per output second, with SmoothWarmUp seconds computed ahead of the
+    // first reported one so the lag is warm by the time the series starts. Caller holds the lock.
     private double[] Series(int seconds, Func<long, long> bucketAt)
     {
-        var outp = new double[seconds];
-        for (int k = 0; k < seconds; k++)
+        // Whatever headroom the ring has left after the kernel's own reach: every point needs
+        // WindowSeconds of buckets behind it, and the oldest bucket must still be in the ring.
+        int warm = Math.Clamp(HistorySeconds - WindowSeconds + 1 - seconds, 0, SmoothWarmUp);
+        var raw = new double[seconds + warm];
+        for (int k = 0; k < raw.Length; k++)
         {
-            long t = _head - (seconds - 1 - k);
+            long t = _head - (raw.Length - 1 - k);
             double weighted = 0;
             for (int i = 0; i < WindowSeconds; i++)
                 weighted += bucketAt(t - i) * (1.0 - (double)i / WindowSeconds);
-            outp[k] = weighted / (WindowSeconds / 2.0);
+            raw[k] = weighted / (WindowSeconds / 2.0);
         }
-        return Smooth(outp);
+        Smooth(raw);
+        return warm == 0 ? raw : raw[warm..];
     }
 
     /// <summary>

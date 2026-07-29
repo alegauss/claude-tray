@@ -56,8 +56,25 @@ namespace ClaudeTray;
 /// </summary>
 internal sealed class LiveChart
 {
-    /// <summary>Seconds of history drawn — one sample each.</summary>
+    /// <summary>Seconds of history visible — one sample each. The scale and the axis are read from
+    /// exactly this many samples.</summary>
     public const int Seconds = 180;
+
+    /// <summary>
+    /// Extra samples fetched and drawn <b>past the left edge</b>, so the line's oldest vertex is always
+    /// outside the plot and therefore clipped (T117).
+    /// </summary>
+    /// <remarks>Without them the figure ended at the oldest visible sample — one sample-width inside the
+    /// plot — and the 1s slide moved that endpoint back and forth across a visible column every second,
+    /// which read as the start of the chart pulsing to a beat. The newest end never showed the artifact
+    /// because it starts off the right edge and slides in; the oldest end needs the same treatment on the
+    /// other side. Two, not one: at the moment the geometry is rebuilt the layer is offset by a full
+    /// sample-width, so one would only just reach the edge.</remarks>
+    public const int Overscan = 2;
+
+    /// <summary>Samples a caller should hand to <see cref="Render"/>: the visible span plus the
+    /// overscan. Bounded by <see cref="LiveRate.MaxRateHistory"/>.</summary>
+    public const int Samples = Seconds + Overscan;
 
     /// <summary>Width reserved at the right of the host for the axis labels. Inside the plate rather
     /// than beside it: the labels sit on the same surface the lines are drawn on, which costs no layout
@@ -261,8 +278,9 @@ internal sealed class LiveChart
         _ceiling = ceiling;
 
         double colW = pw / Seconds;
-        // One extra sample past the left edge, so the slide always has something to bring in.
-        int drawn = Math.Min(Seconds + 1, len);
+        // Everything the caller handed over, including the overscan past the left edge — see Overscan:
+        // an endpoint inside the plot is an endpoint the slide makes visibly oscillate.
+        int drawn = Math.Min(Samples, len);
         int clipped = 0;
 
         var geo = new StreamGeometry[_layers.Length];
@@ -316,10 +334,14 @@ internal sealed class LiveChart
 
         if (animate)
         {
-            // Linear, exactly one second: the slide has to match the clock it represents, or the
-            // motion stops being the data.
+            // Linear, and a hair longer than the second it represents. The slide has to match the clock
+            // or the motion stops being the data — but a slide that lands on exactly zero *waits* there
+            // for a rebuild delivered by a background-priority 1s timer, which never arrives exactly on
+            // time. Stalling and then jumping a whole sample-width is what makes the scroll read as a
+            // rhythmic hitch rather than as time passing; 5% of overshoot (0.2px of lag) covers the drift
+            // and the rebuild always interrupts a still-moving slide.
             _slide.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(colW, 0,
-                new Duration(TimeSpan.FromSeconds(1))) { EasingFunction = null });
+                new Duration(TimeSpan.FromSeconds(1.05))) { EasingFunction = null });
         }
         else
         {

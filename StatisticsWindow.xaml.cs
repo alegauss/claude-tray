@@ -518,10 +518,10 @@ internal partial class StatisticsWindow : Window
 
         _live.Tick(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
-        _lastTypeRates = _live.TypeRates(LiveChart.Seconds);
+        _lastTypeRates = _live.TypeRates(LiveChart.Samples);
         // The drawn span, so a project is on the chart exactly while the chart can show it — and keeps
         // its slot through a pause instead of blinking out and back (T115).
-        _lastProjects = _live.Projects(LiveChart.Seconds);
+        _lastProjects = _live.Projects(LiveChart.Samples);
         int sessions = _live.ActiveSessions;
 
         string head = _live.Quiet
@@ -642,9 +642,10 @@ internal partial class StatisticsWindow : Window
             ("d--Git-acme-infra",       "infra",       8, 0.21),
         };
 
-        // Long enough for the kernel to be warm at the left edge: every drawn point needs the 60s of
-        // buckets behind it, so a fixture that started exactly at the left edge would ramp in from zero.
-        const int span = LiveChart.Seconds + LiveRate.WindowSeconds;
+        // Long enough for both filters to be warm at the left edge: every drawn point needs the 60s of
+        // buckets behind it, and the attack lag needs its own run-up before the first drawn one (T117) —
+        // a fixture that started exactly at the left edge would ramp in from zero and then settle.
+        const int span = LiveChart.Samples + LiveRate.WindowSeconds + LiveRate.SmoothWarmUp;
         var perType = new long[3][];
         for (int i = 0; i < 3; i++) perType[i] = new long[span];
         var perProject = demo.Select(_ => new long[span]).ToArray();
@@ -679,12 +680,12 @@ internal partial class StatisticsWindow : Window
         perType[2][spike] += 44_000;
         perProject[0][spike] += 47_000;
 
-        _lastTypeRates = perType.Select(s => LiveRate.RateFrom(s, LiveChart.Seconds)).ToArray();
+        _lastTypeRates = perType.Select(s => LiveRate.RateFrom(s, LiveChart.Samples)).ToArray();
         _lastProjects = demo
             .Select((d, p) => new ProjectSlice(d.slug, d.name, perProject[p],
-                                               LiveRate.RateFrom(perProject[p], LiveChart.Seconds),
+                                               LiveRate.RateFrom(perProject[p], LiveChart.Samples),
                                                Sum(perProject[p]), 870 * d.weight, false, p))
-            .Append(new ProjectSlice("+3", "+3", others, LiveRate.RateFrom(others, LiveChart.Seconds),
+            .Append(new ProjectSlice("+3", "+3", others, LiveRate.RateFrom(others, LiveChart.Samples),
                                      Sum(others), 41, true, -1))
             .ToArray();
 

@@ -417,6 +417,9 @@ internal static class Program
         Console.WriteLine();
 
         double peak = 0;
+        double[]? prev = null;
+        long prevSec = 0;
+        double worstDrift = 0;
         for (int i = 0; i < (int)seconds; i++)
         {
             Thread.Sleep(1000);
@@ -426,6 +429,22 @@ internal static class Program
             double rate = live.TokensPerSecond;
             if (rate > peak) peak = rate;
             TokenBits w = live.Window;
+
+            // Does a second's *drawn* value stay put as it scrolls left (T117)? Compare this series
+            // against the previous one, shifted by however many seconds actually elapsed — a late tick
+            // shifts the series by two, and assuming one would report that jitter as drift. Every
+            // overlapping point must agree, or the chart is redrawing history it has already drawn.
+            double[] series = live.RateHistory(LiveChart.Samples);
+            long sec = (long)now;
+            int shift = prevSec > 0 ? (int)(sec - prevSec) : 0;
+            if (prev is not null && prev.Length == series.Length && shift >= 1 && shift <= 3)
+                for (int k = shift; k < series.Length; k++)
+                {
+                    double d = Math.Abs(series[k - shift] - prev[k]);
+                    if (d > worstDrift) worstDrift = d;
+                }
+            prev = series;
+            prevSec = sec;
 
             // Log-ish scale: real work spans three orders of magnitude between a one-line edit and a
             // long generation, and a linear bar spends its whole length on the top decade.
@@ -460,6 +479,8 @@ internal static class Program
 
         TailStats st = tail.Stats;
         Console.WriteLine();
+        Console.WriteLine($"worst redraw drift {worstDrift:N2} tok/s — a second's value must not change " +
+                          "after it is drawn (T117)");
         Console.WriteLine($"peak {peak:N0} tok/s over {seconds:0}s — {live.Turns:N0} turns, " +
                           $"{st.BytesRead / 1024.0:N1} KB read, {st.Sweeps:N0} sweeps");
         Console.WriteLine("The window average this sits beside is in --stats; it answers a different " +
