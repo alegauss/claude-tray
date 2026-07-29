@@ -218,6 +218,7 @@
   "stats.legend.projection": "projeção",
   "stats.legend.usualIdle": "normalmente inativo",
   "stats.legend.lastWeek": "semana passada",
+  "stats.methodTitle": "Como estes números são medidos",
   "stats.methodNote": "“Utilizado” e a reposição vêm em direto dos limites de taxa da Anthropic; a curva é a sua utilização real medida ao longo da janela (até haver registo suficiente, é reconstruída a partir das transcrições locais). A projeção assume o ritmo médio atual.",
   "stats.methodNote.shape": "A projeção semanal segue as horas em que costuma estar ativo ({0} semanas de transcrições locais), pelo que fica plana de madrugada em vez de gastar a quota de modo uniforme — é um hábito, não um horário. Utilização noutra máquina ou no claude.ai conta para o mesmo limite mas não deixa transcrição aqui, por isso uma hora que parece inativa pode não o ser.",
   "stats.methodNote.live": "A faixa em direto, no separador Débito, mostra os últimos 3 minutos de atividade nas transcrições locais, uma coluna por segundo, numa escala em que os segundos comuns continuam legíveis — uma coluna que passa do teto rotulado recebe uma marca a dizê-lo, e o pico real aparece ao passar o rato; é débito de tokens, não quota, e uma faixa vazia significa apenas que nenhum turno chegou a esta máquina.",

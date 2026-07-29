@@ -1,10 +1,10 @@
-# Last task number — `T112` · next block letter — `M`
+# Last task number — `T113` · next block letter — `N`
 
-> **Single source of truth for the next free task number.** The next new task is `T113`; after
+> **Single source of truth for the next free task number.** The next new task is `T114`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `M`** (Block **L** = Scan resilience — no single unreadable directory under
-> `~/.claude` may fail a whole scan; created 2026-07-29 from a field report).
+> **Next block letter — `N`** (Block **M** = Explain on demand — the Statistics window's method note
+> moves behind an ⓘ; created 2026-07-29 from a field report).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -36,6 +36,9 @@
 - **T110–T112** (2026-07-29) stay in Block **K** rather than opening M: all three are the live strip's
   own presentation — T110 its scale, T111 its own tab, T112 its handling of outliers. T110 took the
   magnitude half of K's own T104, which remains open for the per-column hover.
+- Block **M** (T113, created 2026-07-29) is a one-task block on the *window's* chrome rather than a
+  fourth Block K item: K is the live strip, and the method note it hid behind an ⓘ describes every
+  number in the window. Block L set the precedent that a block may hold a single task.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 
@@ -80,3 +83,4 @@ here. This file is a terse index, not a memory.
 - **T110 SHIPPED** (Block K — the strip draws, and scales to, the 3 minutes it shows) — 2026-07-29.
 - **T111 SHIPPED** (Block K — the live strip moves to a Throughput tab of its own) — 2026-07-29.
 - **T112 SHIPPED** (Block K — percentile ceiling and broken-bar marks for outlier seconds) — 2026-07-29.
+- **T113 SHIPPED** (Block M — the method note moves behind an info button and popup) — 2026-07-29.

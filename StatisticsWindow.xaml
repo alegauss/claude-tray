@@ -23,6 +23,42 @@
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
         </Style>
 
+        <!-- The "i" that opens the method popup: a 20px round glyph button, quiet until pointed at and
+             filled while its popup is open, so the toggle state is visible without a second control. -->
+        <Style x:Key="InfoDot" TargetType="ToggleButton">
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Dot" CornerRadius="10" Background="Transparent"
+                                BorderThickness="1"
+                                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Dot" Property="Background"
+                                        Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Dot" Property="Background"
+                                        Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Colored verdict pill; background + text are set in code from the pace verdict. -->
         <Style x:Key="VerdictChip" TargetType="Border">
             <Setter Property="CornerRadius" Value="12" />
@@ -309,7 +345,9 @@
 
                         <TextBlock x:Name="LiveHeadT" Margin="0,16,0,0" FontSize="13" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <Border x:Name="LiveStripT" Height="180" Margin="0,10,0,0" CornerRadius="6" ClipToBounds="True"
+                        <!-- 280px: the height the footer note gave back when it moved behind the ⓘ
+                             (T113). Pixels are what a rate this spiky actually needs. -->
+                        <Border x:Name="LiveStripT" Height="280" Margin="0,10,0,0" CornerRadius="6" ClipToBounds="True"
                                 Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
                         <!-- The time axis, stated rather than implied: oldest second at the left, the
                              one still filling at the right. -->
@@ -350,10 +388,6 @@
                 </TabItem>
             </TabControl>
 
-            <TextBlock x:Name="MethodNote" Grid.Row="1" Margin="4,14,4,4" TextWrapping="Wrap" FontSize="11"
-                       Visibility="Collapsed"
-                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                       Text="{local:Loc stats.methodNote}" />
         </Grid>
 
         <!-- ===== Footer ===== -->
@@ -362,9 +396,38 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" x:Name="ComputedText"
-                       VerticalAlignment="Center"
-                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+            <!-- "Updated …" and, beside it, the method behind every number in this window. It used to be
+                 six lines of 11px prose pinned under the panes, which is a lot of screen for something
+                 you read once — it is now on demand, same text, one click (T113). -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock x:Name="ComputedText"
+                           VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                <ToggleButton x:Name="MethodInfo" Margin="10,0,0,0" Visibility="Collapsed"
+                              Style="{StaticResource InfoDot}"
+                              ToolTip="{local:Loc stats.methodTitle}"
+                              Content="&#xE946;" />
+                <Popup IsOpen="{Binding IsChecked, ElementName=MethodInfo, Mode=TwoWay}"
+                       PlacementTarget="{Binding ElementName=MethodInfo}" Placement="Top"
+                       VerticalOffset="-8" HorizontalOffset="-8"
+                       StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                    <Border MaxWidth="560" CornerRadius="8" Padding="16,14" Margin="8"
+                            Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.35" Direction="270" />
+                        </Border.Effect>
+                        <StackPanel>
+                            <TextBlock Text="{local:Loc stats.methodTitle}" FontWeight="SemiBold" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock x:Name="MethodNote" Margin="0,8,0,0" TextWrapping="Wrap" FontSize="12"
+                                       LineHeight="18"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Text="{local:Loc stats.methodNote}" />
+                        </StackPanel>
+                    </Border>
+                </Popup>
+            </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <Button x:Name="RefreshButton" Content="{local:Loc stats.refresh}"
                         MinWidth="92" Padding="14,6" Margin="0,0,8,0"

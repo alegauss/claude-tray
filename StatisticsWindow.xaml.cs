@@ -85,6 +85,11 @@ internal partial class StatisticsWindow : Window
     /// tail, so the screenshot of a *moving* row is reproducible. See <c>--stats live</c>.</summary>
     internal bool PreviewDemoLive { get; init; }
 
+    /// <summary>Dev/preview seam: open the method popup on first render. It is a separate top-level
+    /// window, so the off-screen <c>RenderTargetBitmap</c> path cannot capture it — this is how it gets
+    /// looked at. See <c>--stats method</c>.</summary>
+    internal bool PreviewMethodOpen { get; init; }
+
     public StatisticsWindow(PaceSnapshot? snapshot, bool showRemaining = false, string? error = null)
     {
         _snapshot = snapshot;
@@ -250,7 +255,10 @@ internal partial class StatisticsWindow : Window
         StatusText.Text = message;
         StatusText.Visibility = Visibility.Visible;
         PanesBody.Visibility = Visibility.Collapsed;
-        MethodNote.Visibility = Visibility.Collapsed;
+        // No report, nothing to explain: the "i" goes with the panes it describes, and its popup is
+        // closed rather than left hanging over a status message.
+        MethodInfo.IsChecked = false;
+        MethodInfo.Visibility = Visibility.Collapsed;
         ErrorBanner.Visibility = Visibility.Collapsed;
     }
 
@@ -285,7 +293,8 @@ internal partial class StatisticsWindow : Window
 
         StatusText.Visibility = Visibility.Collapsed;
         PanesBody.Visibility = Visibility.Visible;
-        MethodNote.Visibility = Visibility.Visible;
+        MethodInfo.Visibility = Visibility.Visible;
+        if (PreviewMethodOpen) MethodInfo.IsChecked = true;
         ApplyErrorBanner();
 
         _session = r.Session;

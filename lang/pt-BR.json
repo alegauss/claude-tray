@@ -217,6 +217,7 @@
   "stats.legend.projection": "projeção",
   "stats.legend.usualIdle": "normalmente ocioso",
   "stats.legend.lastWeek": "semana passada",
+  "stats.methodTitle": "Como estes números são medidos",
   "stats.methodNote": "“Usado” e o reset vêm ao vivo dos limites de taxa da Anthropic; a curva é sua utilização real medida ao longo da janela (até haver registro suficiente, é reconstruída a partir das transcrições locais). A projeção assume o ritmo médio atual.",
   "stats.methodNote.shape": "A projeção semanal segue as horas em que você costuma estar ativo ({0} semanas de transcrições locais), então fica plana de madrugada em vez de gastar a cota de modo uniforme — é um hábito, não uma agenda. Uso em outra máquina ou no claude.ai conta para o mesmo limite mas não deixa transcrição aqui, então uma hora que parece ociosa pode não ser.",
   "stats.methodNote.live": "A faixa ao vivo, na aba Vazão, mostra os últimos 3 minutos de atividade nas transcrições locais, uma coluna por segundo, numa escala em que os segundos comuns continuam legíveis — uma coluna que passa do teto rotulado ganha uma marca dizendo isso, e o pico real aparece ao passar o mouse; é vazão de tokens, não cota, e uma faixa vazia significa apenas que nenhum turno chegou nesta máquina.",

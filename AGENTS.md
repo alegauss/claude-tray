@@ -107,7 +107,10 @@ dotnet run -- --activity --fold       # fold every complete day of the raw log i
 dotnet run -- --stats shape           # the Statistics window on the weekly tab, activity-aware
                                       #   projection running out before the reset (bands + landing)
 dotnet run -- --stats shape ghost     # ...plus a synthetic previous-week ghost curve
-dotnet run -- --capture-stats docs\_preview\shape shape   # ...both tabs to PNG, off-screen
+dotnet run -- --stats method          # ...with the "how these numbers are measured" popup already open
+                                      #   (it's a separate top-level window, so --capture-stats can't
+                                      #   see it — use scripts\Capture-Window.ps1 for this one)
+dotnet run -- --capture-stats docs\_preview\shape shape   # ...all three tabs to PNG, off-screen
 
 dotnet run -- --context               # what every session costs before you type: per-project table
 dotnet run -- --context <slug|name>   # one project, source by source (eager/lazy, bytes, ≈tokens)

@@ -221,6 +221,7 @@
   "stats.legend.projection": "projection",
   "stats.legend.usualIdle": "usually idle",
   "stats.legend.lastWeek": "last week",
+  "stats.methodTitle": "How these numbers are measured",
   "stats.methodNote": "“Used” and the reset come live from Anthropic's rate limits; the curve is your real measured utilization over the window (until enough is logged, it's reconstructed from local transcripts). The projection assumes the current average pace.",
   "stats.methodNote.shape": "The weekly projection follows the hours you're usually active ({0} weeks of local transcripts), so it stays flat overnight instead of spending quota evenly around the clock — it's a habit, not a schedule. Usage from another machine or from claude.ai counts against the same limit but leaves no transcript here, so an hour that looks idle may not be.",
   "stats.methodNote.live": "The live strip on the Throughput tab is the last 3 minutes of local transcript activity, one column per second, scaled so ordinary seconds stay readable — a column that runs past the labelled ceiling is capped to say so, and hovering the strip gives the real peak; it is token throughput, not quota, and an empty strip only means no turn landed on this machine.",

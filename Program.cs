@@ -263,6 +263,18 @@ internal static class Program
                     PreviewDemoLive = true,
                 });
             }
+            // "--stats method" opens the window with the method popup already up. It is its own
+            // top-level window, so --capture-stats (RenderTargetBitmap over the content) cannot see it;
+            // this is the path that gets it on screen for the capture script.
+            else if (args.Length >= 2 && args[1].Equals("method", StringComparison.OrdinalIgnoreCase))
+            {
+                previewApp.Run(new StatisticsWindow(sample, remaining)
+                {
+                    Topmost = true,
+                    PreviewDemoLive = true,
+                    PreviewMethodOpen = true,
+                });
+            }
             else if (args.Length >= 2 && args[1].Equals("idle", StringComparison.OrdinalIgnoreCase))
             {
                 // Preview the "not using Claude" state: the 5h session is idle (0% used → flat chart),
