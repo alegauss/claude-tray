@@ -238,12 +238,17 @@
   "stats.live.head": "Ahora ≈ {0} tok/s  ·  {1} tokens en los últimos 3 minutos (en vivo, medido localmente — rendimiento, no cuota)",
   "stats.live.quiet": "No se está generando nada ahora — no ha llegado ningún turno localmente en los últimos 3 minutos.",
   "stats.live.off": "Rendimiento en vivo no disponible — no se pudo vigilar la carpeta de transcripciones.",
+  "stats.live.session1": "1 sesión activa",
+  "stats.live.sessionN": "{0} sesiones activas",
+  "stats.live.others": "otros {0}",
+  "stats.live.projectTip": "{0} — {1} tokens en el último minuto",
   "stats.tps.none": "Aún no hay actividad de tokens registrada para esta ventana.",
   "stats.tps.head": "Rendimiento ≈ {0} tok/s  ·  {1} tokens (media de la ventana, lecturas de caché excluidas)",
   "stats.tps.input": "entrada",
   "stats.tps.output": "salida",
   "stats.tps.cacheCreate": "creación-caché",
   "stats.tps.legend": "{0}  {1}/s",
+  "stats.tps.windowAvg": "media de la ventana:",
   "stats.tps.tip": "{0}: {1} tokens ({2} del rendimiento)",
 
   // Projection text

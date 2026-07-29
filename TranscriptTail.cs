@@ -1,13 +1,19 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Text;
 
 namespace ClaudeTray;
 
-/// <summary>One assistant turn seen by the tail reader: when it landed, what it cost, and the
-/// <c>~/.claude/projects/&lt;slug&gt;</c> directory it landed in.</summary>
-/// <remarks>The slug is the encoded project directory name, not a resolved path — resolving it is
-/// <see cref="ContextScanner"/>'s job and only T100 needs it.</remarks>
-internal readonly record struct TailSample(double Unix, TokenBits Bits, string Project);
+/// <summary>One assistant turn seen by the tail reader: when it landed, what it cost, the
+/// <c>~/.claude/projects/&lt;slug&gt;</c> directory it landed in, and which session file carried it.</summary>
+/// <remarks><paramref name="Project"/> is the encoded slug — unique, and the right grouping key, since
+/// two worktrees of the same repo share a folder name but never a slug. <paramref name="Name"/> is
+/// that project's folder name resolved from the session's <c>cwd</c>, which is the only way to get it
+/// right: the slug encodes path separators and literal dashes identically, so
+/// <c>d--Git-acme-claude-tray</c> cannot be split back into "claude-tray" without guessing (and
+/// guessing turns <c>...-shio-2026-3</c> into "3"). <paramref name="Session"/> is the transcript's
+/// file name. All three are identifiers the path or the header already carries — no content.</remarks>
+internal readonly record struct TailSample(
+    double Unix, TokenBits Bits, string Project, string Session, string Name);
 
 /// <summary>What the last sweep cost, so "only the bytes appended" is a number and not a claim.</summary>
 internal readonly record struct TailStats(
@@ -82,6 +88,8 @@ internal sealed class TranscriptTail : IDisposable
     // thinking-plus-tool-use turn twice. Pruned to the freshness window, so it stays a few hundred
     // entries even on a busy machine.
     private readonly Dictionary<string, double> _seen = new(StringComparer.Ordinal);
+    // Slug → the project's real folder name, learned from any line's cwd. One entry per project.
+    private readonly Dictionary<string, string> _names = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _gate = new();
 
     private FileSystemWatcher? _watcher;
@@ -313,14 +321,22 @@ internal sealed class TranscriptTail : IDisposable
         lock (_gate) _bytesRead += read;
 
         string project = ProjectOf(fi);
+        string session = System.IO.Path.GetFileNameWithoutExtension(fi.Name);
         double skip = cur.SkipUpTo;
         cur.SkipUpTo = 0;
 
         foreach (string line in text.Split('\n'))
         {
             if (line.Length == 0) continue;
-            if (!UsageReport.TryParseSample(line, floor, ceiling, out double t, out TokenBits bits, out string? id))
+            if (!UsageReport.TryParseSample(line, floor, ceiling, out double t, out TokenBits bits,
+                                            out string? id, out string? cwd))
                 continue;
+            if (cwd is { Length: > 0 })
+                lock (_gate)
+                {
+                    if (!_names.ContainsKey(project) && ResolveName(project, cwd) is { Length: > 0 } n)
+                        _names[project] = n;
+                }
             if (t > cur.LastUnix) cur.LastUnix = t;
             if (t <= skip) continue;   // already reported before the file shrank
             if (id != null)
@@ -330,7 +346,9 @@ internal sealed class TranscriptTail : IDisposable
                     if (!_seen.TryAdd(id, t)) continue;   // another content block of the same response
                 }
             }
-            (found ??= new()).Add(new TailSample(t, bits, project));
+            string name;
+            lock (_gate) name = _names.TryGetValue(project, out string? n) ? n : SlugTail(project);
+            (found ??= new()).Add(new TailSample(t, bits, project, session, name));
         }
     }
 
@@ -338,6 +356,48 @@ internal sealed class TranscriptTail : IDisposable
     // by — so attribution is free and needs no content.
     private static string ProjectOf(FileInfo fi)
         => fi.Directory?.Name ?? "?";
+
+    /// <summary>
+    /// The project's folder name, resolved by matching the slug against the recorded <c>cwd</c>.
+    ///
+    /// <para>Naïvely taking <c>GetFileName(cwd)</c> is wrong, and wrong in a way that only shows up in
+    /// use: <c>cwd</c> is the working directory <em>of that turn</em>, so any <c>cd</c> inside the
+    /// session renames the project — a session that ran one command in <c>docs/_preview</c> started
+    /// reporting itself as "_preview". The slug, however, encodes the session's <b>root</b>, so
+    /// walking the cwd up its parents until one encodes to the slug recovers the root exactly.</para>
+    ///
+    /// <para>Claude Code builds a slug by replacing every non-alphanumeric character with <c>-</c>
+    /// (<c>d:\Git\acme\claude-tray</c> → <c>d--Git-acme-claude-tray</c>), which is lossy — the reason
+    /// the slug alone cannot be split back into a folder name — but perfectly fine to verify against.</para>
+    /// </summary>
+    private static string? ResolveName(string slug, string cwd)
+    {
+        try
+        {
+            var dir = new DirectoryInfo(cwd.TrimEnd('\\', '/'));
+            for (int up = 0; dir is not null && up < 24; up++, dir = dir.Parent)
+                if (string.Equals(Encode(dir.FullName), slug, StringComparison.OrdinalIgnoreCase))
+                    return dir.Name.Length > 0 ? dir.Name : dir.FullName;
+        }
+        catch { /* an unusable cwd just falls through to the slug */ }
+        return null;
+    }
+
+    private static string Encode(string path)
+    {
+        var sb = new StringBuilder(path.Length);
+        foreach (char c in path) sb.Append(char.IsAsciiLetterOrDigit(c) ? c : '-');
+        return sb.ToString();
+    }
+
+    // Last resort when no line in a transcript carried a usable cwd. Ambiguous by construction — the
+    // slug cannot distinguish a path separator from a dash in the folder name — so it is only ever
+    // used when the authoritative answer is missing.
+    private static string SlugTail(string slug)
+    {
+        int dash = slug.LastIndexOf('-');
+        return dash >= 0 && dash < slug.Length - 1 ? slug[(dash + 1)..] : slug;
+    }
 
     public void Dispose()
     {

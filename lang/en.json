@@ -242,12 +242,17 @@
   "stats.live.head": "Now ≈ {0} tok/s  ·  {1} tokens in the last 3 minutes (live, measured locally — throughput, not quota)",
   "stats.live.quiet": "Nothing generating right now — no turn has landed locally in the last 3 minutes.",
   "stats.live.off": "Live throughput unavailable — the transcript folder couldn't be watched.",
+  "stats.live.session1": "1 session active",
+  "stats.live.sessionN": "{0} sessions active",
+  "stats.live.others": "{0} others",
+  "stats.live.projectTip": "{0} — {1} tokens in the last minute",
   "stats.tps.none": "No token activity logged for this window yet.",
   "stats.tps.head": "Throughput ≈ {0} tok/s  ·  {1} tokens (window average, cache reads excluded)",
   "stats.tps.input": "input",
   "stats.tps.output": "output",
   "stats.tps.cacheCreate": "cache-create",
   "stats.tps.legend": "{0}  {1}/s",
+  "stats.tps.windowAvg": "window average:",
   "stats.tps.tip": "{0}: {1} tokens ({2} of throughput)",
 
   // Projection text

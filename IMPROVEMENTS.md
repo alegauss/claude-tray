@@ -239,18 +239,6 @@ one:
 
 So the fix is a **second metric on a second clock**, not a faster refresh of the existing one.
 
-### §V.4 Which project is burning it (T100)
-
-For a single project the live rate is a curiosity. Across five repos it answers the real question:
-*which of these is eating the week?* The attribution is free — the transcript path already encodes the
-project directory, the same key `ContextScanner` groups by — so the strip stacks per project and the
-row can state "N sessions active now" plus the two or three heaviest this minute.
-
-Two judgement calls worth settling before implementing: a session counts as *active* on a trailing
-window (a turn in the last ~2 minutes), not on file presence, or every open terminal inflates the
-count; and the per-project palette must degrade to "others" past a handful of series rather than
-inventing colours, per the categorical-palette limit.
-
 ### §V.5 A tray hint, deliberately unresolved (T101)
 
 The tray icon is the only always-visible surface, and "something is generating right now" is exactly

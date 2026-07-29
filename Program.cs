@@ -420,13 +420,16 @@ internal static class Program
             int cells = rate <= 0 ? 0 : (int)Math.Clamp(Math.Log10(rate + 1) / 4 * 24, 1, 24);
             string bar = new string('█', cells) + new string('·', 24 - cells);
 
-            string tail1 = live.Quiet
+            // Per-project attribution (T100), so "which repo is burning it" is verifiable without a
+            // window — and so the strip's stacking order can be checked against the ranking.
+            string where = live.Quiet
                 ? "quiet"
-                : $"in {w.Input,7:N0}  out {w.Output,7:N0}  create {w.CacheCreate,8:N0}" +
-                  $"   cache-read {live.CacheReadPerSecond,8:N0}/s";
+                : string.Join("  ", live.Projects().Select(p =>
+                      $"{(p.IsOthers ? p.Display : Trim(p.Display, 18))} {p.TokensPerSecond,6:N0}/s"));
 
             Console.WriteLine($"{DateTime.Now:HH:mm:ss}  {rate,8:N0} tok/s  {bar}  " +
-                              (raw ? $"[raw {live.Instant,8:N0}]  " : "") + tail1);
+                              (raw ? $"[raw {live.Instant,8:N0}]  " : "") +
+                              $"{live.ActiveSessions} act  {where}");
         }
 
         TailStats st = tail.Stats;

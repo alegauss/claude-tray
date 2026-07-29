@@ -77,6 +77,8 @@ internal partial class StatisticsWindow : Window
     private LiveStrip? _stripS, _stripW;
     private System.Windows.Threading.DispatcherTimer? _liveTimer;
     private TokenBits[]? _lastStrip;   // kept so a resize or a tab switch can repaint without a tick
+    private ProjectSlice[]? _lastProjects;
+    private bool _lastByProject;
 
     /// <summary>Dev/preview seam: feed the strip a deterministic synthetic minute instead of the real
     /// tail, so the screenshot of a *moving* row is reproducible. See <c>--stats live</c>.</summary>
@@ -384,21 +386,33 @@ internal partial class StatisticsWindow : Window
             (L.T("stats.tps.cacheCreate"), cache, palette[2]),
         };
 
-        // Legend: colored swatch + type + its own rate, with the absolute total on hover.
+        // Legend: colored swatch + type + its own rate, with the absolute total on hover. The swatches
+        // are dropped while the strip above is stacked by *project*, because the same three hues would
+        // then mean token types here and projects there — one coloured legend on screen at a time.
+        bool byProject = _lastProjects is { Length: > 1 };
+        if (byProject)
+            legend.Children.Add(new TextBlock
+            {
+                Text = L.T("stats.tps.windowAvg"), FontSize = 12,
+                Margin = new Thickness(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)FindResource("TextFillColorTertiaryBrush"),
+            });
+
         foreach (var t in types)
         {
             var row = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 0, 18, 0) };
-            row.Children.Add(new System.Windows.Shapes.Rectangle
-            {
-                Width = 10, Height = 10, RadiusX = 3, RadiusY = 3,
-                VerticalAlignment = VerticalAlignment.Center,
-                Fill = Freeze(new SolidColorBrush(t.color)),
-            });
+            if (!byProject)
+                row.Children.Add(new System.Windows.Shapes.Rectangle
+                {
+                    Width = 10, Height = 10, RadiusX = 3, RadiusY = 3,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Fill = Freeze(new SolidColorBrush(t.color)),
+                });
             double share = sum > 0 ? (double)t.tokens / sum : 0;
             row.Children.Add(new TextBlock
             {
                 Text = L.T("stats.tps.legend", t.label, Rate(t.tokens / elapsed)),
-                Margin = new Thickness(6, 0, 0, 0), FontSize = 12,
+                Margin = new Thickness(byProject ? 0 : 6, 0, 0, 0), FontSize = 12,
                 VerticalAlignment = VerticalAlignment.Center,
                 Foreground = (Brush)FindResource("TextFillColorSecondaryBrush"),
                 ToolTip = L.T("stats.tps.tip", t.label, Big(t.tokens), Pct(share)),
@@ -422,8 +436,8 @@ internal partial class StatisticsWindow : Window
         // The strip is drawn in device pixels against its host's width, so a resize (and the very
         // first layout pass, where the width is still zero) has to redraw it. Static, not animated:
         // a resize is not a second passing.
-        LiveStripS.SizeChanged += (_, _) => { if (_lastStrip is { } s) _stripS?.Render(s, animate: false); };
-        LiveStripW.SizeChanged += (_, _) => { if (_lastStrip is { } s) _stripW?.Render(s, animate: false); };
+        LiveStripS.SizeChanged += (_, _) => RenderLive(_stripS, LiveLegendS, animate: false);
+        LiveStripW.SizeChanged += (_, _) => RenderLive(_stripW, LiveLegendW, animate: false);
 
         if (PreviewDemoLive) { RenderDemoLive(); return; }
 
@@ -479,16 +493,103 @@ internal partial class StatisticsWindow : Window
 
         _live.Tick(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
-        double rate = _live.TokensPerSecond;
+        _lastStrip = _live.Strip();
+        _lastProjects = _live.Projects();
+        int sessions = _live.ActiveSessions;
+
+        // The window-average legend below the strip shows swatches only while the strip is *not*
+        // stacked by project. That state is decided here, on the live clock, but the legend is built
+        // by Render() on the API clock — so a flip has to rebuild it, or the two legends end up
+        // showing the same three hues meaning different things.
+        bool byProject = _lastProjects is { Length: > 1 };
+        if (byProject != _lastByProject)
+        {
+            _lastByProject = byProject;
+            if (_session is { } sp) PopulateThroughput(sp, TpsHeadS, TpsLegendS);
+            if (_weekly is { } wp) PopulateThroughput(wp, TpsHeadW, TpsLegendW);
+        }
+
         string head = _live.Quiet
             ? L.T("stats.live.quiet")
-            : L.T("stats.live.head", Rate(rate), Big(_live.Window.Total - _live.Window.CacheRead));
+            : L.T("stats.live.head", Rate(_live.TokensPerSecond),
+                  Big(_live.Window.Total - _live.Window.CacheRead)) +
+              (sessions > 0 ? "  ·  " + L.T(sessions == 1 ? "stats.live.session1" : "stats.live.sessionN", sessions) : "");
         LiveHeadS.Text = LiveHeadW.Text = head;
 
         // Only the tab on screen is painted; the other one is re-rendered when it is selected.
-        _lastStrip = _live.Strip();
         bool weekly = PanesBody.SelectedIndex == 1;
-        (weekly ? _stripW : _stripS)?.Render(_lastStrip, animate: true);
+        RenderLive(weekly ? _stripW : _stripS, weekly ? LiveLegendW : LiveLegendS, animate: true);
+        // The legend on the hidden tab would otherwise go stale behind the user's back, and it is
+        // cheap text, unlike the geometry.
+        BuildLiveLegend(weekly ? LiveLegendS : LiveLegendW);
+    }
+
+    // The strip answers one of two questions, and which one depends on how many projects are running.
+    // Across repos, "where is it going" dominates and the stack is per project — that is the whole
+    // point of T100. With a single project there is nothing to attribute, and folding the strip to one
+    // flat colour would throw away the input/output/cache-create mix for no gain, so the by-type view
+    // stays. The legend under the strip always names which view is on screen, so the switch can never
+    // be silent.
+    private void RenderLive(LiveStrip? strip, StackPanel legend, bool animate)
+    {
+        if (strip is null || _lastStrip is null) return;
+        bool dark = IsDarkTheme();
+
+        if (_lastProjects is { Length: > 1 } projects)
+        {
+            Color[] palette = ProjectPalette(projects, dark);
+            strip.Render(projects.Select(p => p.PerSecond).ToArray(), palette, animate);
+        }
+        else
+        {
+            strip.Render(_lastStrip, dark, animate);
+        }
+        BuildLiveLegend(legend);
+    }
+
+    private static Color[] ProjectPalette(ProjectSlice[] projects, bool dark)
+    {
+        Color[] hues = LiveStrip.ProjectColors(dark);
+        // Colour follows the entity's rank in a fixed order and the residual is always the neutral —
+        // never a generated hue for a fifth series.
+        return projects.Select((p, i) => p.IsOthers ? LiveStrip.Others(dark) : hues[Math.Min(i, hues.Length - 1)])
+                       .ToArray();
+    }
+
+    // Identity is never colour-alone: every series in the strip is direct-labelled here with its own
+    // rate. In the by-type view this row is empty and the window-average legend below keeps its
+    // swatches; in the by-project view it carries them and that one drops its own, so two legends can
+    // never show the same hues meaning different things.
+    private void BuildLiveLegend(StackPanel legend)
+    {
+        legend.Children.Clear();
+        if (_lastProjects is not { Length: > 1 } projects) return;
+
+        bool dark = IsDarkTheme();
+        Color[] palette = ProjectPalette(projects, dark);
+        for (int i = 0; i < projects.Length; i++)
+        {
+            ProjectSlice p = projects[i];
+            var row = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 0, 18, 0) };
+            row.Children.Add(new System.Windows.Shapes.Rectangle
+            {
+                Width = 10, Height = 10, RadiusX = 3, RadiusY = 3,
+                VerticalAlignment = VerticalAlignment.Center,
+                Fill = Freeze(new SolidColorBrush(palette[i])),
+            });
+            row.Children.Add(new TextBlock
+            {
+                Text = L.T("stats.tps.legend",
+                           p.IsOthers ? L.T("stats.live.others", p.Slug.TrimStart('+')) : p.Display,
+                           Rate(p.TokensPerSecond)),
+                Margin = new Thickness(6, 0, 0, 0), FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = (Brush)FindResource("TextFillColorSecondaryBrush"),
+                ToolTip = L.T("stats.live.projectTip", p.IsOthers ? L.T("stats.live.others", p.Slug.TrimStart('+')) : p.Slug,
+                              Big(p.WindowTokens)),
+            });
+            legend.Children.Add(row);
+        }
     }
 
     // A reproducible minute of work for the screenshot: the real strip depends on whatever happens to
@@ -496,25 +597,53 @@ internal partial class StatisticsWindow : Window
     // randomness, just a shaped burst — so the published image is stable across runs.
     private void RenderDemoLive()
     {
-        var strip = new TokenBits[LiveStrip.Seconds];
-        for (int i = 0; i < strip.Length; i++)
+        // Four repos plus a residual, so the multi-project view — the one worth publishing — is what
+        // gets captured. Deterministic by construction: no randomness, just shaped bursts.
+        (string slug, string name, int phase, double weight)[] demo =
         {
-            // Three bursts of decreasing size with quiet gaps between them, plus a turn every few
-            // seconds inside a burst — the shape a real session actually has.
+            ("d--Git-acme-web-console", "web-console", 0, 1.00),
+            ("d--Git-acme-billing-api", "billing-api", 5, 0.62),
+            ("c--Users-dev-notes",      "notes",       2, 0.34),
+            ("d--Git-acme-infra",       "infra",       8, 0.21),
+        };
+
+        var strip = new TokenBits[LiveStrip.Seconds];
+        var perProject = demo.Select(_ => new long[LiveStrip.Seconds]).ToArray();
+        var others = new long[LiveStrip.Seconds];
+
+        for (int i = 0; i < LiveStrip.Seconds; i++)
+        {
             int t = LiveStrip.Seconds - 1 - i;                 // seconds ago
             bool burst = t is (< 22) or (> 40 and < 78) or (> 96 and < 128);
-            if (!burst || i % 3 != 0) continue;
+            if (!burst) continue;
             double k = 1 - t / (double)LiveStrip.Seconds;      // newer bursts a little heavier
-            strip[i] = new TokenBits(
-                Input: (long)(40 * k),
-                Output: (long)(900 * k + 120 * (i % 5)),
-                CacheCreate: (long)(1400 * k + 300 * (i % 4)),
-                CacheRead: 0);
+
+            for (int p = 0; p < demo.Length; p++)
+            {
+                if ((i + demo[p].phase) % 3 != 0) continue;
+                long tokens = (long)((900 * k + 120 * (i % 5) + 1400 * k) * demo[p].weight);
+                perProject[p][i] += tokens;
+                strip[i] = new TokenBits(
+                    strip[i].Input + (long)(40 * k * demo[p].weight),
+                    strip[i].Output + (long)((900 * k + 120 * (i % 5)) * demo[p].weight),
+                    strip[i].CacheCreate + (long)((1400 * k + 300 * (i % 4)) * demo[p].weight),
+                    0);
+            }
+            if (i % 7 == 0) others[i] = (long)(260 * k);
         }
+
         _lastStrip = strip;
-        _stripS?.Render(strip, animate: false);
-        _stripW?.Render(strip, animate: false);
-        LiveHeadS.Text = LiveHeadW.Text = L.T("stats.live.head", Rate(870), Big(52_000));
+        _lastProjects = demo
+            .Select((d, p) => new ProjectSlice(d.slug, d.name, perProject[p], Sum(perProject[p]), 870 * d.weight, false))
+            .Append(new ProjectSlice("+3", "+3", others, Sum(others), 41, true))
+            .ToArray();
+
+        LiveHeadS.Text = LiveHeadW.Text =
+            L.T("stats.live.head", Rate(870), Big(52_000)) + "  ·  " + L.T("stats.live.sessionN", 5);
+        RenderLive(_stripS, LiveLegendS, animate: false);
+        RenderLive(_stripW, LiveLegendW, animate: false);
+
+        static long Sum(long[] a) { long s = 0; foreach (long v in a) s += v; return s; }
     }
 
     // Plain-language read of the pace + projection for one window.

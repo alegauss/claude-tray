@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace ClaudeTray;
 
@@ -341,16 +341,21 @@ internal static class UsageReport
     /// <c>message.usage</c> only — never content (§I.1) — which is why <see cref="TranscriptTail"/>
     /// reuses it rather than writing a second parser with a second chance of reading too much.</summary>
     private static bool TryParseSample(string line, double startUnix, double nowUnix, out double t, out TokenBits bits)
-        => TryParseSample(line, startUnix, nowUnix, out t, out bits, out _);
+        => TryParseSample(line, startUnix, nowUnix, out t, out bits, out _, out _);
 
     /// <inheritdoc cref="TryParseSample(string,double,double,out double,out TokenBits)"/>
     /// <param name="id">The response this line belongs to (<c>requestId</c>, falling back to
     /// <c>message.id</c>). Claude Code writes <b>one line per content block</b>, each repeating the
     /// same <c>usage</c>, so a caller that must not count a response twice keys on this.</param>
+    /// <param name="cwd">The session's working directory, when the line carries one. This is the only
+    /// way to name a project correctly: the <c>projects/&lt;slug&gt;</c> directory encodes path
+    /// separators and literal dashes identically, so <c>d--Git-acme-claude-tray</c> cannot be split
+    /// back into a folder name without guessing. Sanctioned by §I.1, and the same field
+    /// <see cref="ContextScanner"/> already resolves paths with.</param>
     public static bool TryParseSample(string line, double startUnix, double nowUnix,
-        out double t, out TokenBits bits, out string? id)
+        out double t, out TokenBits bits, out string? id, out string? cwd)
     {
-        t = 0; bits = default; id = null;
+        t = 0; bits = default; id = null; cwd = null;
         try
         {
             using var doc = JsonDocument.Parse(line);
@@ -385,6 +390,8 @@ internal static class UsageReport
             id = root.TryGetProperty("requestId", out var rid) && rid.GetString() is { Length: > 0 } r
                 ? r
                 : msg.TryGetProperty("id", out var mid) ? mid.GetString() : null;
+
+            if (root.TryGetProperty("cwd", out var cw) && cw.GetString() is { Length: > 0 } c) cwd = c;
 
             t = u; bits = b;
             return true;

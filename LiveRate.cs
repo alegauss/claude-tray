@@ -1,4 +1,13 @@
-namespace ClaudeTray;
+﻿namespace ClaudeTray;
+
+/// <summary>One project's share of the live rate: its per-second history over the strip, its total
+/// over the trailing window, and its rate. <paramref name="Slug"/> is the
+/// <c>~/.claude/projects/&lt;slug&gt;</c> directory name and the grouping key;
+/// <paramref name="Display"/> is the folder name resolved from the session's <c>cwd</c> — never the
+/// full path. <paramref name="IsOthers"/> marks the residual bucket that everything past the top few
+/// folds into.</summary>
+internal readonly record struct ProjectSlice(
+    string Slug, string Display, long[] PerSecond, long WindowTokens, double TokensPerSecond, bool IsOthers);
 
 /// <summary>
 /// The one number in this app that should move: tokens/second over a trailing minute, fed by
@@ -47,8 +56,22 @@ internal sealed class LiveRate
     /// within a turn or two, long enough to take the stair-steps off the box filter.</summary>
     public const double SmoothingTau = 8;
 
+    /// <summary>A session counts as active if a turn landed in this many seconds — presence of a file
+    /// is not activity, or every terminal left open all week would inflate the count.</summary>
+    public const double ActiveSeconds = 120;
+
+    /// <summary>Categorical series the strip will draw before folding the rest into "others". Four is
+    /// the palette's validated ceiling for a stack; a fifth invented hue is never the answer.</summary>
+    public const int MaxProjects = 4;
+
     private readonly object _gate = new();
     private readonly TokenBits[] _ring = new TokenBits[HistorySeconds];
+    // Per-project rings, sharing _head with the total. Only projects with something in the strip are
+    // kept, so this stays a handful of entries however long the window is open.
+    private readonly Dictionary<string, long[]> _byProject = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _projectNames = new(StringComparer.OrdinalIgnoreCase);
+    // Session id → when it last produced a turn. Pruned to ActiveSeconds on every tick.
+    private readonly Dictionary<string, double> _sessions = new(StringComparer.OrdinalIgnoreCase);
     private long _head;              // unix second the newest bucket represents
     private bool _started;
 
@@ -122,9 +145,23 @@ internal sealed class LiveRate
                 // Zero every second that went by, capped at the ring size: a caller that stopped
                 // ticking for an hour must come back to an empty strip, not to whatever it left.
                 long steps = Math.Min(sec - _head, HistorySeconds);
-                for (long s = _head + 1; s <= _head + steps; s++) _ring[Index(s)] = default;
+                for (long s = _head + 1; s <= _head + steps; s++)
+                {
+                    _ring[Index(s)] = default;
+                    foreach (long[] ring in _byProject.Values) ring[Index(s)] = 0;
+                }
                 _head = sec;
             }
+
+            // Drop projects that have nothing left in the strip, and sessions that have gone quiet.
+            // Both are bounded by activity rather than by uptime.
+            foreach (string slug in _byProject.Where(kv => Sum(kv.Value) == 0).Select(kv => kv.Key).ToList())
+            {
+                _byProject.Remove(slug);
+                _projectNames.Remove(slug);
+            }
+            foreach (string id in _sessions.Where(kv => nowUnix - kv.Value > ActiveSeconds).Select(kv => kv.Key).ToList())
+                _sessions.Remove(id);
 
             long input = 0, output = 0, create = 0, read = 0;
             double weighted = 0;
@@ -177,10 +214,103 @@ internal sealed class LiveRate
                     b.CacheCreate + s.Bits.CacheCreate,
                     b.CacheRead + s.Bits.CacheRead);
 
+                // Attribution is free: the transcript's path already names the project directory and
+                // the session file. Same non-cache-read definition as the headline rate.
+                if (s.Project.Length > 0)
+                {
+                    if (!_byProject.TryGetValue(s.Project, out long[]? ring))
+                        _byProject[s.Project] = ring = new long[HistorySeconds];
+                    ring[Index(sec)] += s.Bits.Input + s.Bits.Output + s.Bits.CacheCreate;
+                    if (s.Name.Length > 0) _projectNames[s.Project] = s.Name;
+                }
+                if (s.Session.Length > 0 && s.Unix > _sessions.GetValueOrDefault(s.Session))
+                    _sessions[s.Session] = s.Unix;
+
                 if (s.Unix > _newestSample) _newestSample = s.Unix;
                 _turns++;
             }
         }
+    }
+
+    /// <summary>Sessions that produced a turn in the last <see cref="ActiveSeconds"/>. A count, never
+    /// a list — the useful fact is "three things are running", and session ids are not for display.</summary>
+    public int ActiveSessions { get { lock (_gate) return _sessions.Count; } }
+
+    /// <summary>
+    /// The strip split by project, heaviest first, capped at <see cref="MaxProjects"/> with the rest
+    /// folded into a single "others" slice. For one project this is a curiosity; across five repos it
+    /// is the question actually being asked — <em>which of these is eating the week?</em>
+    /// </summary>
+    /// <remarks>Ordered by the trailing window's tokens, not by the strip total, so the ranking
+    /// answers "spending most right now" rather than "spent most three minutes ago".</remarks>
+    public ProjectSlice[] Projects()
+    {
+        lock (_gate)
+        {
+            if (_byProject.Count == 0) return Array.Empty<ProjectSlice>();
+
+            var ranked = _byProject
+                .Select(kv => (slug: kv.Key, ring: kv.Value, win: WindowSum(kv.Value), rate: WeightedRate(kv.Value)))
+                .Where(p => p.win > 0)
+                .OrderByDescending(p => p.rate)
+                .ThenBy(p => p.slug, StringComparer.OrdinalIgnoreCase)   // stable when tied
+                .ToList();
+            if (ranked.Count == 0) return Array.Empty<ProjectSlice>();
+
+            var slices = new List<ProjectSlice>();
+            foreach (var p in ranked.Take(MaxProjects))
+                slices.Add(new ProjectSlice(p.slug, _projectNames.GetValueOrDefault(p.slug, p.slug),
+                                            Unroll(p.ring), p.win, p.rate, false));
+
+            // Everything past the cap becomes one residual series. Never a generated hue.
+            var rest = ranked.Skip(MaxProjects).ToList();
+            if (rest.Count > 0)
+            {
+                var merged = new long[HistorySeconds];
+                long win = 0;
+                double rate = 0;
+                foreach (var p in rest)
+                {
+                    long[] u = Unroll(p.ring);
+                    for (int i = 0; i < merged.Length; i++) merged[i] += u[i];
+                    win += p.win;
+                    rate += p.rate;      // the kernel is linear, so the parts add up to the whole
+                }
+                slices.Add(new ProjectSlice($"+{rest.Count}", $"+{rest.Count}", merged, win, rate, true));
+            }
+            return slices.ToArray();
+        }
+    }
+
+    // The same age-weighted kernel the headline uses, so the per-project rates are comparable with it
+    // — and, because the kernel is linear, so that they sum to it.
+    private double WeightedRate(long[] ring)
+    {
+        double weighted = 0;
+        for (int i = 0; i < WindowSeconds; i++)
+            weighted += ring[Index(_head - i)] * (1.0 - (double)i / WindowSeconds);
+        return weighted / (WindowSeconds / 2.0);
+    }
+
+    private long[] Unroll(long[] ring)
+    {
+        var outp = new long[HistorySeconds];
+        for (int i = 0; i < HistorySeconds; i++) outp[i] = ring[Index(_head - (HistorySeconds - 1 - i))];
+        return outp;
+    }
+
+    private long WindowSum(long[] ring)
+    {
+        long sum = 0;
+        for (int i = 0; i < WindowSeconds; i++) sum += ring[Index(_head - i)];
+        return sum;
+    }
+
+    private static long Sum(long[] ring)
+    {
+        long s = 0;
+        foreach (long v in ring) s += v;
+        return s;
     }
 
     private static int Index(long sec)

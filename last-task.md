@@ -64,3 +64,4 @@ here. This file is a terse index, not a memory.
 - **T97 SHIPPED** (Block K — TranscriptTail: byte-level tail over the transcripts) — 2026-07-28.
 - **T98 SHIPPED** (Block K — LiveRate: age-weighted rolling tokens/s beside the window average) — 2026-07-28.
 - **T99 SHIPPED** (Block K — the throughput row becomes a moving 3-minute strip) — 2026-07-28.
+- **T100 SHIPPED** (Block K — per-project attribution in the live strip) — 2026-07-28.

@@ -125,6 +125,13 @@ Both numbers are **token throughput, not quota** — the rate limit is a separat
 only learns from the API. And an empty strip means *no turn landed on this machine*, not that
 nothing is running: work on another machine or on claude.ai leaves no transcript here.
 
+If you run Claude Code in **more than one repo at once**, the strip stacks **per project** and the
+row says how many sessions are active — because across five repos the useful question isn't *how
+fast* but *where*. The heaviest four are named with their own rates; anything past that folds into a
+single grey "others". With only one project running there's nothing to attribute, so the strip keeps
+the input/output/cache-create split instead. A session counts as active when it has produced a turn
+in the last two minutes, not merely because a terminal is open.
+
 `ClaudeTray.exe --activity` prints the measured week as a heatmap if you want to see the shape
 the projection is following.
 

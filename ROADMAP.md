@@ -77,11 +77,11 @@
 > the question someone running Claude Code across five repos actually has. Design:
 > [IMPROVEMENTS.md](IMPROVEMENTS.md) §V.
 >
-> **Shipped: T97–T99.** The tail reader (`TranscriptTail.cs`, `--tail`), the rolling rate
-> (`LiveRate.cs`, `--live`) and the moving strip under both charts (`LiveStrip.cs`, `--stats live`)
-> — see [CHANGELOG.md](CHANGELOG.md) Block K.
+> **Shipped: T97–T100.** The tail reader (`TranscriptTail.cs`, `--tail`), the rolling rate
+> (`LiveRate.cs`, `--live`), the moving strip under both charts (`LiveStrip.cs`, `--stats live`) and
+> its per-project attribution — see [CHANGELOG.md](CHANGELOG.md) Block K. Only T101 is left, and it
+> is an idea rather than a design.
 
-- 📋 **T100** (deps: T98) **Which project is burning it** — the transcript path already encodes the project directory, so the live rate splits per project: "N sessions active now" plus the two or three spending most this minute, stacked in the strip. This is the payoff for the multi-repo case, where the useful question is not *how fast* but *where*. → §V.4
 - 💭 **T101** (deps: T99) **An opt-in live hint on the tray icon** — the tray is the surface always on screen, and "something is generating right now" is legible there. Deliberately an idea, not a design: an animated tray icon costs battery and attention, so it ships off by default or not at all. → §V.5
 
 ## Non-goals (do NOT add as tasks)

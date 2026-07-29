@@ -48,7 +48,7 @@ usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don'
 | `ActivityShape.cs` | The weekly projection spent along that shape: calibrated per *measured active hour*, flat through usually-idle stretches, sloped through working ones. Returns null (→ the old straight line) when the profile is thin or the window can't be calibrated. Weekly only. |
 | `TranscriptTail.cs` | Byte-level tail over `~/.claude/projects/**/*.jsonl`: watcher + 3s floor sweep, a per-file cursor that only advances past a newline, and de-duplication by `requestId`. Reports each assistant turn within ~250ms for the cost of the appended bytes. `--tail`. |
 | `LiveRate.cs` | The rolling tokens/s over that tail: an age-weighted 60s window (triangular kernel, so a pause decays from the moment it starts) with attack-only smoothing. Caller-driven `Tick` — no timer, so a hidden window costs nothing. Sits beside `WindowPace.TokensPerSecond`; neither is quota. `--live`. |
-| `LiveStrip.cs` | Draws that rate as the last 3 minutes under both charts: one column per second, 1 Hz geometry rebuild + a 1s `TranslateTransform` slide that cancels the rebuild's jump. Flat and silent when nothing runs; stopped when the window is hidden or minimized. `--stats live` renders a deterministic synthetic strip for screenshots. |
+| `LiveStrip.cs` | Draws that rate as the last 3 minutes under both charts: one column per second, 1 Hz geometry rebuild + a 1s `TranslateTransform` slide that cancels the rebuild's jump. Stacks **per project** when ≥2 are generating (validated categorical palette + grey "others"), by token type when only one is. Flat and silent when nothing runs; stopped when the window is hidden or minimized. `--stats live` renders a deterministic synthetic strip for screenshots. |
 | `IconRenderer.cs` | GDI+ icon (vector number + outline + fill bar + projection color) at the real size; also the app `.ico` and social image. |
 | `Updater.cs` | Checks GitHub Releases; downloads/runs the installer for in-app self-update. `CurrentVersion`. |
 | `Settings.cs` | `Settings` model (JSON in `%LocalAppData%\ClaudeTray`); clamps out-of-range values. |
@@ -168,6 +168,11 @@ They live at the repo root on purpose: `docs/` is the published GitHub Pages sit
   per iteration. See the `roadmap-docs` skill.
 - **Privacy**: only token counts, model ids, flags, tool/skill names and the session `cwd` are ever
   read from transcripts — never message content. Keep it that way.
+- **A transcript's `cwd` is the working directory of *that turn*, not the project root.** A single
+  `cd` inside a session changes it, so naming a project `GetFileName(cwd)` renames it to whatever
+  subfolder a command last ran in. The `projects/<slug>` name encodes the root but is lossy (every
+  non-alphanumeric becomes `-`, so `…-shio-2026-3` cannot be split back into `2026.3`). Resolve by
+  walking the cwd up to the ancestor whose encoding equals the slug — `TranscriptTail.ResolveName`.
 - **A transcript "turn" is a `requestId`, not a line.** Claude Code writes **one `assistant` line per
   content block** of a single API response (thinking, then tool_use, …), and every one of those lines
   repeats that response's `message.usage` verbatim. Summing per line double-counts, weighted toward
