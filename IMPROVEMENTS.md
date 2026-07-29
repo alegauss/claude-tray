@@ -218,33 +218,31 @@ single-self-contained-exe story is a feature. An in-app `--selftest` that builds
 windows, asserts these properties and exits non-zero on failure costs nothing at runtime, ships inside
 the same binary, and can run in CI as one line.
 
+Block K doubled the surface this has to cover, and every one of these was checked by hand against a
+synthetic tree exactly once: the tail's cursor (a partial line is held until its newline, a shrunk
+file restarts without re-reporting, a primed offset skips to a character boundary) and the rate's
+kernel (sustained R reads as R, a single burst decays linearly to a true zero at exactly W, the
+smoothed value never exceeds the weighted one, a paused caller resumes with an empty strip, and the
+per-project rates sum to the headline because the kernel is linear). Those are properties, not
+observations — which is precisely what a self-check is for, and nothing currently stops an edit from
+breaking one silently.
+
 ---
 
 ## §V — Live throughput (Block K)
 
-### §V.0 The problem, stated precisely
+### §V.0 Where Block K stopped
 
-Two independent reasons the throughput row cannot move, and confusing them leads to fixing the wrong
-one:
+The block's premise held: the throughput row's window average is immobile *by construction* (it
+divides by the whole elapsed window), and the fix was a second metric on a second clock, read from
+the append-only transcripts rather than from a faster API poll. T97–T100 shipped that — tail, rate,
+strip, attribution — and the API cadence was never touched.
 
-1. **The metric is a lifetime average, not a rate.** `TokensPerSecond` divides the window's
-   non-cache-read tokens by `ElapsedSeconds`. On the weekly tab that denominator grows to 604,800, so
-   the value converges and stays there: a 200k-token burst shifts it by ~0.3 tok/s against a base of
-   tens. Refreshing that expression every second would produce a still number, animated. The same
-   applies to the per-type legend rates, which divide by the same elapsed.
-2. **The cadence belongs to the rate-limit API.** `Reload()` runs on `Refresh_Click` or on the tray's
-   `UpdateSnapshot` — `RefreshSeconds`, default 300, floored at 30 (`Settings.MinRefreshSeconds`), and
-   deliberately stretched to the next reset while a window is maxed (`DesiredPollMs`). That restraint
-   is correct and must not be touched to make a chart livelier.
-
-So the fix is a **second metric on a second clock**, not a faster refresh of the existing one.
-
-### §V.5 A tray hint, deliberately unresolved (T101)
-
-The tray icon is the only always-visible surface, and "something is generating right now" is exactly
-the kind of ambient fact it could carry. It stays an *idea* rather than a design because the cost is
-real: an animating tray icon draws the eye continuously and wakes the render path on battery. If it
-ships, it ships **off by default**, and dropping it entirely is an acceptable outcome.
+**T101 was dropped**, which §V.5 explicitly allowed. The reason turned out sharper than the original
+"costs battery and attention": T99 made the tail *window-owned*, so a closed Statistics window tails
+nothing and the whole feature is free when nobody is looking. A tray hint would require a tail
+running for the entire session to power it. That trade is not worth an ambient nicety, and the ruling
+now lives in the roadmap's Non-goals.
 
 ### §V.6 What this block will not do
 
@@ -254,3 +252,88 @@ ships, it ships **off by default**, and dropping it entirely is an acceptable ou
   and tool output stay unread, and "which project" means the `cwd`, not what is in it.
 - **No API cadence change.** If a task in this block starts arguing for a shorter `RefreshSeconds`,
   it has drifted: the whole point is that the live signal is local.
+- **No tray-icon animation** — T101, dropped. See §V.0 and the roadmap's Non-goals.
+
+### §V.7 One response, counted once, everywhere (T102)
+
+Claude Code writes **one `assistant` line per content block** of a single API response — a thinking
+block and a tool_use block are two lines — and every one of them repeats that response's
+`message.usage` verbatim, with the same `requestId`. `UsageReport.ScanTokens` sums per line, so it
+counts such a response twice.
+
+Why this has gone unnoticed: the burn-up curve built from those samples is **rescaled to the live
+utilization**, so the endpoint is right no matter how badly the samples are inflated. What is not
+protected is the *shape* — the inflation is not uniform, it tracks how many content blocks a response
+had, which tracks heavy tool use. The same samples also feed `WindowPace.MeasuredActiveHours` (the
+denominator T87 calibrates the projection against) and `ActivityProfile`.
+
+`TryParseSample` already emits the id for T97; this is a de-duplication set in the sweep, and a
+before/after on the same window to quantify what the shape was off by.
+
+### §V.8 The sweep is O(all history) (T103)
+
+`TranscriptTail` lists every `*.jsonl` under `~/.claude/projects` on each sweep and opens only the
+ones whose mtime is recent. Measured today: 602 files, 17ms, metadata-only. That is cheap, and it is
+also the wrong shape — the count only ever grows, and the sweep runs every 3s for as long as the
+window is open.
+
+Two candidate fixes, and the cheaper one should be measured first: enumerate only the *directories*
+whose mtime moved (one stat per project rather than per transcript), or trust the watcher's reported
+paths once the tree passes some size, keeping the full sweep as an occasional reconciliation. Either
+way the floor sweep must stay whole often enough that a lost watcher cannot silently strand a file.
+
+### §V.9 A shape with no magnitude (T104)
+
+The strip is 44px tall with no axis and an auto-scaling maximum, so a column's height means "tall
+relative to the last three minutes" and nothing else — 2k and 200k tokens can draw the same bar a
+minute apart. For a *flow* that is mostly fine, which is why it shipped that way, but it leaves the
+one interaction a bar form should never ship without: **per-column hover** giving the second, the
+project and the tokens.
+
+The constraint is that this must not add a row. The strip is already three lines deep in a pane that
+scrolls; the answer is a tooltip, not a legend entry and not an axis.
+
+### §V.10 Two readers of one lossy encoding (T105)
+
+A `projects/<slug>` name is the session's root path with every non-alphanumeric character replaced by
+`-`, which is lossy: `d--Git-acme-claude-tray` cannot be split back into a folder name, and
+`…-shio-2026-3` naïvely reads as "3". T100 recovers the real folder by walking the recorded `cwd` up
+to the ancestor whose encoding equals the slug — exact, because it verifies rather than guesses.
+
+`ContextScanner` needs the same answer and gets it differently (`CwdFromTranscripts` takes the raw
+`cwd`, which is the working directory *of that turn* and moves with any `cd`). One of these is right.
+It should be the only one.
+
+### §V.11 Tokens land where the turn ended (T106)
+
+A turn's `usage` is attributed to the second its transcript line was written — the moment generation
+*finished*. A 40-second generation therefore appears as a single spike at the end rather than as flow
+across the 40 seconds it occupied, which is most of why the strip reads as sparse spikes on real
+traffic rather than as a rate.
+
+The honest objection is that the app does not know when a turn *started*, and inventing a duration
+would be inventing data. There is a bound available — the previous turn's timestamp in the same
+session — but it is an upper bound that includes the user's own thinking time, so spreading tokens
+across it would be wrong in the opposite direction. Explore only if a defensible duration exists;
+"looks smoother" is not one.
+
+### §V.12 What the cache re-read costs (T107)
+
+`LiveRate` already separates cache reads from real work, and the measured ratio on ordinary traffic is
+startling: **~30,000 tok/s of cache read against ~150 tok/s of real work**. Excluding it from the
+headline is right — it barely weighs on the limit and would drown the signal — but the number itself
+is a finding the app currently computes and shows nobody.
+
+It is the per-turn price of a large eager context, which makes it the missing link to the Context Load
+Inspector: §III measures the context load once, statically, and this measures what re-reading it
+actually costs, live. The design question is where it belongs — a reading in the live row, or a
+finding in the Context window that cites it — and it should not become a fourth number nobody asked
+for.
+
+### §V.13 The screenshot fixture belongs with the fixtures (T108)
+
+`--stats live` renders a hand-shaped synthetic three minutes so the published screenshot is
+reproducible; the shaping lives inline in `StatisticsWindow.RenderDemoLive`. Two tasks now depend on
+it, and `ContextFixture` is where this repo already keeps deterministic stand-in data. Pure
+housekeeping — no behaviour change — and worth doing before a third caller appears.
+

@@ -59,7 +59,7 @@
 - 📋 **T93** (deps: T88) **Prefer the measured grid once there are ~3 weeks of it** — `HourlyUsage` sees *all* usage against the limit, including from another machine or claude.ai; the transcript grid structurally cannot, which is the limitation the method note has to disclaim today. Blend toward measured as its coverage grows, keeping the transcript grid to bootstrap the first weeks. → §IV.9
 - 📋 **T94** (deps: T93) **Intensity, not just presence** — every active hour is currently paced at the same rate, so a heavy Monday morning and a light Friday evening spend identically. Add a per-bucket intensity (mean spend per active hour, relative to the average) from the measured store and weight the projection by it. → §IV.10
 - 📋 **T95** (deps: —) **Don't let a holiday teach the model** — a week off currently votes "these hours are idle" like any other week; only the flat prior softens it. Drop weeks whose total activity is a small fraction of the median week from the denominator, and say so in `--activity`. → §IV.11
-- 💭 **T96** (deps: —) **`--selftest` for the pacing math** — Block J added arithmetic with real edge cases (a flat profile must reproduce the straight line exactly, folding must stay idempotent, advice must never exceed its target, the ghost must stay hidden under its gates) and the repo has no test surface at all. A deterministic self-check over synthetic inputs, in-app, keeps the zero-dependency rule intact. → §IV.12
+- 💭 **T96** (deps: —) **`--selftest` for the pacing *and* live math** — Block J added arithmetic with real edge cases (a flat profile must reproduce the straight line exactly, folding must stay idempotent, advice must never exceed its target, the ghost must stay hidden under its gates) and the repo has no test surface at all. **Block K doubled the surface**: the tail's cursor (a partial line waits for its newline, a shrunk file resets without re-reporting, a primed offset aligns) and the rate's kernel (sustained R reads as R, one burst decays linearly to a true zero at W, the smoothed value never exceeds the weighted one, per-project rates sum to the headline) are all verified only by hand against synthetic roots today. A deterministic self-check over synthetic inputs, in-app, keeps the zero-dependency rule intact. → §IV.12
 
 ## Block K — Live throughput ("what is burning right now")
 
@@ -79,10 +79,21 @@
 >
 > **Shipped: T97–T100.** The tail reader (`TranscriptTail.cs`, `--tail`), the rolling rate
 > (`LiveRate.cs`, `--live`), the moving strip under both charts (`LiveStrip.cs`, `--stats live`) and
-> its per-project attribution — see [CHANGELOG.md](CHANGELOG.md) Block K. Only T101 is left, and it
-> is an idea rather than a design.
+> its per-project attribution — see [CHANGELOG.md](CHANGELOG.md) Block K. **T101 was dropped**, which
+> §V.5 pre-authorised: see Non-goals.
+>
+> **Second pass (T102–T108).** Building the block turned up one latent correctness bug that predates
+> it (T102), two costs it introduced (T103, T108), two readings it stops just short of (T104, T107),
+> and one duplicated resolver (T105). Ordered by what a user would notice: T102 first — it is wrong
+> today, everywhere the transcripts are counted — then T104, then the rest.
 
-- 💭 **T101** (deps: T99) **An opt-in live hint on the tray icon** — the tray is the surface always on screen, and "something is generating right now" is legible there. Deliberately an idea, not a design: an animated tray icon costs battery and attention, so it ships off by default or not at all. → §V.5
+- 📋 **T102** (deps: —) **`ScanTokens` counts one API response several times** — Claude Code writes one `assistant` line per *content block*, each repeating that response's `usage`; T97 found this and de-duplicates on `requestId`, but the older sweep still sums per line. The weekly curve hides it (it is rescaled to the live utilization) yet the *shape* is skewed toward heavy tool use, and `MeasuredActiveHours` and `ActivityProfile` read the same samples. The parser already emits the id. → §V.7
+- 📋 **T103** (deps: T97) **The tail re-enumerates the whole tree every 3s** — 602 transcripts in 17ms today, metadata-only, but it is O(all history) and grows forever while the window is open. Enumerate only directories whose mtime moved, or fall back to watcher-reported paths once the tree passes a size. → §V.8
+- 📋 **T104** (deps: T99) **The strip is a shape with no magnitude** — 44px, no axis, no hover: nothing distinguishes a 2k column from a 200k one, and per-column tooltips are the one interaction a bar form should not ship without. Second, project, tokens — no new row. → §V.9
+- 💭 **T105** (deps: T100) **One resolver for slug → project path** — T100 recovers a project's real folder by walking the `cwd` up to the ancestor whose encoding matches the slug; `ContextScanner.CwdFromTranscripts` answers the same question separately and less exactly. Two readers of the same lossy encoding is one too many. → §V.10
+- 💭 **T106** (deps: T98) **A turn's tokens land in the second it *finished*** — the transcript timestamp is the write time, so a 40s generation reads as one spike at the end rather than a flow across the 40s it occupied, which is what makes the strip lumpier than the work. The previous turn's timestamp bounds the duration; only worth doing if it can be done without inventing data. → §V.11
+- 💭 **T107** (deps: T98) **Say what the cache re-read is costing** — measured on real traffic: ~30,000 tok/s of cache read against ~150 tok/s of real work, a 200× ratio the app now computes and shows nobody. That number is what a large eager context costs *per turn*, which makes it the missing link between this block and the Context Load Inspector. → §V.12
+- 💭 **T108** (deps: T99) **Move the `--stats live` fixture out of the code-behind** — the synthetic three minutes behind the published screenshot is hand-shaped inside `StatisticsWindow`, and two tasks now depend on it. It belongs beside `ContextFixture`. → §V.13
 
 ## Non-goals (do NOT add as tasks)
 
@@ -100,5 +111,10 @@ Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full 
 - **Don't swap the UI stack.** WinForms owns the tray icon, WPF owns windows, both on one STA thread.
   No imperative `Dock=Top` stacking; no hardcoded hex for theme-able surfaces.
 - **No second source of truth for the version** — `<Version>` in `ClaudeTray.csproj` only.
+- **No live hint on the tray icon** (settled by dropping T101). An animating icon draws the eye
+  continuously, and — decisively — it would need a transcript tail running for the whole session.
+  T99 deliberately made the tail *window-owned* so a closed Statistics window watches nothing;
+  a permanent tail to power an ambient nicety would undo the one property that keeps the feature
+  free when nobody is looking. §V.5 pre-authorised dropping it.
 - Pricing/distribution/positioning discussion goes in [STRATEGY.md](STRATEGY.md), never as a
   numbered task.

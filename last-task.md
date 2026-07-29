@@ -1,6 +1,6 @@
-# Last task number — `T101` · next block letter — `L`
+# Last task number — `T108` · next block letter — `L`
 
-> **Single source of truth for the next free task number.** The next new task is `T102`; after
+> **Single source of truth for the next free task number.** The next new task is `T109`; after
 > assigning it, bump the number above and append a log line below.
 >
 > **Next block letter — `L`** (Block **K** = Live throughput — read the transcript tail instead of the
@@ -22,6 +22,11 @@
 - **T91–T96 are Block J's second pass**, added 2026-07-28 right after T86–T90 shipped: same theme, so
   they stay in J rather than opening K (Block I set the precedent — shipped T66–T84 alongside an
   active T85). They came out of building the first pass, not out of planning it.
+- **T102–T108 are Block K's second pass**, added 2026-07-28 as T97–T100 closed: same theme, so they
+  stay in K rather than opening L (the precedent Block J set with T91–T96). They came out of
+  *building* the block — one latent bug it exposed elsewhere (T102), two costs it introduced, two
+  readings it stops short of, one duplicated resolver. T96 was widened rather than duplicated: the
+  missing test surface is one gap, not one per block.
 - Block **K** (T97–T101, created 2026-07-28) is a *new* block rather than a third Block J pass: J is
   about the weekly **projection** (where the quota lands), K is about **instantaneous** throughput
   (what is running now, and in which project) on a clock that is local rather than the API's. It opens
@@ -65,3 +70,4 @@ here. This file is a terse index, not a memory.
 - **T98 SHIPPED** (Block K — LiveRate: age-weighted rolling tokens/s beside the window average) — 2026-07-28.
 - **T99 SHIPPED** (Block K — the throughput row becomes a moving 3-minute strip) — 2026-07-28.
 - **T100 SHIPPED** (Block K — per-project attribution in the live strip) — 2026-07-28.
+- **T101 DROPPED** (Block K — tray-icon live hint; now a binding non-goal) — 2026-07-28.
