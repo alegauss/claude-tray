@@ -95,6 +95,14 @@ internal static class Program
             return;
         }
 
+        // The live rate itself (T98), printed once a second: the metric T99 will draw, verifiable
+        // without a window and against `--tail`'s raw turns.
+        if (args.Length >= 1 && args[0] == "--live")
+        {
+            PrintLive(args.Skip(1).ToArray());
+            return;
+        }
+
         // Headless view of the weekly activity shape behind the projection: 168 buckets of
         // p(active), the coverage that backs them, and what they predict for the hours ahead.
         if (args.Length >= 1 && args[0] == "--activity")
@@ -358,6 +366,63 @@ internal static class Program
 
     private static string Trim(string s, int max)
         => s.Length <= max ? s : "…" + s[^(max - 1)..];
+
+    // Headless view of LiveRate: one line a second, so the metric can be watched against real work
+    // and diffed against `--tail`'s raw turns. Flags: `--live <seconds>` to bound the run (default
+    // 90), `--root <dir>` for a stand-in tree, `--raw` to also print the unsmoothed box filter.
+    private static void PrintLive(string[] flags)
+    {
+        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
+        System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
+
+        int rootAt = Array.IndexOf(flags, "--root");
+        string? root = rootAt >= 0 && rootAt + 1 < flags.Length ? flags[rootAt + 1] : null;
+        bool raw = flags.Contains("--raw");
+
+        string? num = flags.FirstOrDefault(f => !f.StartsWith("--") && f != root);
+        double seconds = double.TryParse(num, out double s) && s > 0 ? s : 90;
+
+        using var tail = new TranscriptTail(root);
+        var live = new LiveRate(tail);
+        tail.Start();
+
+        Console.WriteLine($"Live throughput — {tail.Root}");
+        Console.WriteLine($"{LiveRate.WindowSeconds}s trailing window, cache reads excluded from the rate. " +
+                          "This is throughput, NOT quota.");
+        Console.WriteLine();
+
+        double peak = 0;
+        for (int i = 0; i < (int)seconds; i++)
+        {
+            Thread.Sleep(1000);
+            double now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            live.Tick(now);
+
+            double rate = live.TokensPerSecond;
+            if (rate > peak) peak = rate;
+            TokenBits w = live.Window;
+
+            // Log-ish scale: real work spans three orders of magnitude between a one-line edit and a
+            // long generation, and a linear bar spends its whole length on the top decade.
+            int cells = rate <= 0 ? 0 : (int)Math.Clamp(Math.Log10(rate + 1) / 4 * 24, 1, 24);
+            string bar = new string('█', cells) + new string('·', 24 - cells);
+
+            string tail1 = live.Quiet
+                ? "quiet"
+                : $"in {w.Input,7:N0}  out {w.Output,7:N0}  create {w.CacheCreate,8:N0}" +
+                  $"   cache-read {live.CacheReadPerSecond,8:N0}/s";
+
+            Console.WriteLine($"{DateTime.Now:HH:mm:ss}  {rate,8:N0} tok/s  {bar}  " +
+                              (raw ? $"[raw {live.Instant,8:N0}]  " : "") + tail1);
+        }
+
+        TailStats st = tail.Stats;
+        Console.WriteLine();
+        Console.WriteLine($"peak {peak:N0} tok/s over {seconds:0}s — {live.Turns:N0} turns, " +
+                          $"{st.BytesRead / 1024.0:N1} KB read, {st.Sweeps:N0} sweeps");
+        Console.WriteLine("The window average this sits beside is in --stats; it answers a different " +
+                          "question and both stay.");
+    }
 
     // Headless view of ActivityProfile: the 168-bucket week the projection will be shaped by (T87),
     // printed as a shade grid so a wrong grid is visible at a glance rather than only as a wrong

@@ -239,24 +239,6 @@ one:
 
 So the fix is a **second metric on a second clock**, not a faster refresh of the existing one.
 
-### §V.2 A rolling rate that decays (T98)
-
-The live metric is tokens/s over a trailing ~60s, smoothed with an EWMA so a single 40k-token turn
-reads as a bump rather than a spike, and a pause visibly decays toward zero instead of holding the
-last value. Cache reads stay excluded for the same reason they already are: they dwarf real work and
-barely weigh on the limit.
-
-It reads `TranscriptTail`, so it inherits that engine's de-duplication and must not add its own: one
-API response is written as several `assistant` lines, one per content block, each repeating the same
-`usage`. Summing the feed is therefore correct; summing raw transcript lines is not.
-
-It sits **beside** the window average, never replacing it — the two answer different questions
-("what did this week cost" vs. "what is running now"), and a user who sees only the fast number loses
-the pacing story the window average carries. That makes labelling load-bearing: neither number is
-quota, and a big moving tok/s next to a burn-up chart will be read as quota unless the copy is
-explicit. A headless `--live` that prints the rate once a second makes the metric verifiable without
-opening a window, and gives the UI work something to check against.
-
 ### §V.3 Motion that is data (T99)
 
 The static stacked bar becomes a strip of the last ~3 minutes: one column per second, columns entering
