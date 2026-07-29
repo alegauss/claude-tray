@@ -116,6 +116,11 @@ week, so the number barely moves, and that is correct: it answers *what did this
 it, **Now ≈ N tok/s** answers *what is happening this minute*, over a trailing 3-minute strip with
 one column per second, split input / output / cache-create.
 
+The strip is scaled to **what's on screen**, and it says so: full height is the busiest second of
+those three minutes, rounded up to a round number and labelled on the right — `4k/s`, with half of it
+on the dashed line — so a column is a quantity you can read, not just a silhouette. Hover it and it
+tells you what full height stands for.
+
 The strip scrolls because the axis it scrolls along **is time** — the motion is the data, not a
 spinner. When nothing is generating it goes flat and stops repainting, and it only runs at all while
 the window is actually on screen. It is read from your local transcripts as they are written, with

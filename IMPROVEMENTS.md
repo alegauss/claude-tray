@@ -282,16 +282,15 @@ whose mtime moved (one stat per project rather than per transcript), or trust th
 paths once the tree passes some size, keeping the full sweep as an occasional reconciliation. Either
 way the floor sweep must stay whole often enough that a lost watcher cannot silently strand a file.
 
-### §V.9 A shape with no magnitude (T104)
+### §V.9 A column with no reading (T104)
 
-The strip is 44px tall with no axis and an auto-scaling maximum, so a column's height means "tall
-relative to the last three minutes" and nothing else — 2k and 200k tokens can draw the same bar a
-minute apart. For a *flow* that is mostly fine, which is why it shipped that way, but it leaves the
-one interaction a bar form should never ship without: **per-column hover** giving the second, the
-project and the tokens.
+A column's *height* now means something — T110 rules and labels the ceiling, and scales it to what is
+actually on screen — but the strip still answers only in shapes. Which second is that spike, which
+project was it, how many tokens: none of the three is available anywhere, and **per-column hover** is
+the one interaction a bar form should never ship without.
 
 The constraint is that this must not add a row. The strip is already three lines deep in a pane that
-scrolls; the answer is a tooltip, not a legend entry and not an axis.
+scrolls; the answer is a tooltip, not a legend entry.
 
 ### §V.10 Two readers of one lossy encoding (T105)
 

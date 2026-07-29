@@ -430,8 +430,8 @@ internal partial class StatisticsWindow : Window
     {
         if (_stripS is not null) return;
         bool dark = IsDarkTheme();
-        _stripS = new LiveStrip(LiveStripS, dark);
-        _stripW = new LiveStrip(LiveStripW, dark);
+        _stripS = new LiveStrip(LiveStripS, dark, AxisTick, ScaleTip);
+        _stripW = new LiveStrip(LiveStripW, dark, AxisTick, ScaleTip);
 
         // The strip is drawn in device pixels against its host's width, so a resize (and the very
         // first layout pass, where the width is still zero) has to redraw it. Static, not animated:
@@ -1056,6 +1056,18 @@ internal partial class StatisticsWindow : Window
         tps >= 100 ? tps.ToString("#,##0", Fmt)
         : tps >= 10 ? tps.ToString("0.0", Fmt)
         : tps.ToString("0.00", Fmt);
+
+    // The live strip's axis (T110): a mark's value, and the hover that says what full height means.
+    // "20k/s" rather than Big()'s "20.0k" — a scale label is read at a glance, and a trailing .0 on a
+    // round ceiling is noise. Tokens in one second *are* tokens/second, so the unit is honest.
+    private static string AxisTick(double tokens) => L.T("stats.live.axis", Tick(tokens));
+
+    private static string ScaleTip(double ceiling) => L.T("stats.live.scaleTip", Tick(ceiling));
+
+    private static string Tick(double n) =>
+        n >= 1_000_000 ? (n / 1e6).ToString("0.##", Fmt) + "M"
+        : n >= 1_000 ? (n / 1e3).ToString("0.##", Fmt) + "k"
+        : n.ToString("0.##", Fmt);
 
     // Compact token count: 3.1M / 42k / 517.
     private static string Big(long n) =>

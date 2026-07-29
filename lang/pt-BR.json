@@ -242,6 +242,8 @@
   "stats.live.sessionN": "{0} sessões ativas",
   "stats.live.others": "outros {0}",
   "stats.live.projectTip": "{0} — {1} tokens no último minuto",
+  "stats.live.axis": "{0}/s",
+  "stats.live.scaleTip": "Altura total ≈ {0} tokens/s — o segundo mais intenso dos 3 minutos na tela, arredondado para cima. A linha tracejada é a metade disso. Leituras de cache ficam de fora, como no número acima.",
   "stats.tps.none": "Ainda não há atividade de tokens registrada para esta janela.",
   "stats.tps.head": "Vazão ≈ {0} tok/s  ·  {1} tokens (média da janela, leituras de cache excluídas)",
   "stats.tps.input": "entrada",

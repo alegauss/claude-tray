@@ -242,6 +242,8 @@
   "stats.live.sessionN": "{0} sessions actives",
   "stats.live.others": "{0} autres",
   "stats.live.projectTip": "{0} — {1} tokens sur la dernière minute",
+  "stats.live.axis": "{0}/s",
+  "stats.live.scaleTip": "Hauteur maximale ≈ {0} tokens/s — la seconde la plus chargée des 3 minutes affichées, arrondie au palier supérieur. La ligne pointillée en est la moitié. Les lectures de cache sont exclues, comme pour le nombre au-dessus.",
   "stats.tps.none": "Aucune activité de tokens enregistrée pour cette fenêtre pour l'instant.",
   "stats.tps.head": "Débit ≈ {0} tok/s  ·  {1} tokens (moyenne de la fenêtre, lectures de cache exclues)",
   "stats.tps.input": "entrée",

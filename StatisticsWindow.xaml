@@ -202,7 +202,9 @@
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <TextBlock x:Name="LiveHeadS" Margin="0,6,0,0" FontSize="13"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <Border x:Name="LiveStripS" Height="44" Margin="0,6,0,0" CornerRadius="4" ClipToBounds="True"
+                        <!-- Taller than the 44px it shipped at: the axis marks its ceiling and its half
+                             (T110), and two 10px labels need the room to stay out of each other. -->
+                        <Border x:Name="LiveStripS" Height="56" Margin="0,6,0,0" CornerRadius="4" ClipToBounds="True"
                                 Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
                         <!-- Describes the strip, so it sits directly under it. Only one coloured
                              legend is ever on screen: when this one has swatches, the window-average
@@ -290,7 +292,7 @@
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <TextBlock x:Name="LiveHeadW" Margin="0,6,0,0" FontSize="13"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <Border x:Name="LiveStripW" Height="44" Margin="0,6,0,0" CornerRadius="4" ClipToBounds="True"
+                        <Border x:Name="LiveStripW" Height="56" Margin="0,6,0,0" CornerRadius="4" ClipToBounds="True"
                                 Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
                         <StackPanel x:Name="LiveLegendW" Orientation="Horizontal" Margin="0,8,0,0" />
                         <StackPanel x:Name="TpsLegendW" Orientation="Horizontal" Margin="0,8,0,0" />
