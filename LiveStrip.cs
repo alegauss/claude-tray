@@ -41,6 +41,15 @@ namespace ClaudeTray;
 /// thing visible is what full height means; and full height is a round number, ruled across the plot
 /// and labelled in tok/s in a right-hand gutter, the way Task Manager labels its graphs. The ceiling
 /// still rises instantly and decays slowly, so it re-scales visibly rather than flapping.</para>
+///
+/// <para><b>One second must not flatten the minute (T112).</b> Real traffic has a dynamic range a
+/// linear axis cannot hold: a single turn that writes a large cache block lands ~240,000 tokens in one
+/// second next to ordinary seconds of ~2,000, so scaling to the peak puts the actual work on the 1px
+/// floor. The ceiling is therefore the <b>95th percentile of the busy seconds on screen</b> once the
+/// peak runs away from it (see <see cref="Ceiling"/>), and the columns that run past the top are drawn
+/// <b>broken</b> — filled to a gap, then a cap — rather than silently truncated. Clipping data is a
+/// thing a monitor may only do out loud: the mark says the column continues, the hover says how many
+/// did it and what the busiest second actually was.</para>
 /// </summary>
 internal sealed class LiveStrip
 {
@@ -69,6 +78,22 @@ internal sealed class LiveStrip
     /// without decoding it.</summary>
     private static readonly double[] NiceSteps = { 1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10 };
 
+    /// <summary>The quantile of the busy seconds the ceiling falls back to when the peak runs away from
+    /// it. Deliberately high: the axis should cut a handful of outliers, not a fifth of the data.</summary>
+    private const double Quantile = 0.95;
+
+    /// <summary>How far above that quantile the peak has to be before anything is clipped. Below it the
+    /// strip stays exactly as faithful as it was — nothing is cut to buy contrast that isn't needed.</summary>
+    private const double ClipRatio = 2.0;
+
+    /// <summary>Busy seconds needed before clipping is allowed at all. On a sparse strip the few bars
+    /// there are <em>are</em> the story, and cutting one of them costs more than it buys.</summary>
+    private const int ClipMinSamples = 12;
+
+    // The broken-bar mark: fill stops CapGap+CapHeight below the top, then a cap sits at the very top.
+    // The gap is what reads as "cut here"; the cap is what reads as "and it continues".
+    private const double CapGap = 2, CapHeight = 2;
+
     /// <summary>Categorical hues for the per-project stack (T100), in fixed order — slot 4 is the
     /// ceiling and a fifth series folds into <see cref="Others"/> rather than inventing a hue.
     /// Validated as a stack (adjacent pairs) against both themes' surfaces: worst CVD ΔE 9.1 light /
@@ -94,10 +119,12 @@ internal sealed class LiveStrip
     private readonly Canvas _gutter = new();
     private readonly TranslateTransform _slide = new();
     private readonly Func<double, string> _tick;
-    private readonly Func<double, string> _tip;
+    private readonly Func<double, int, double, string> _tip;
     private readonly Line[] _lines;
     private readonly TextBlock[] _labels;
+    private readonly Path _overflow = new();       // the caps on the columns that run past the top
     private Path[] _layers;
+    private string? _tipText;
 
     // Vertical scale, in tokens for a full-height column. Rises immediately to fit a new peak and
     // decays slowly, so the strip re-scales visibly rather than jumping every second — and so a
@@ -110,8 +137,9 @@ internal sealed class LiveStrip
 
     /// <param name="tick">Formats an axis value (tokens in one second) for the gutter — the caller owns
     /// the app's number formatting and its localized "/s".</param>
-    /// <param name="tip">Formats the hover text explaining what full height means, from the ceiling.</param>
-    public LiveStrip(Border host, bool dark, Func<double, string> tick, Func<double, string> tip)
+    /// <param name="tip">Formats the hover text explaining what full height means, from the ceiling, how
+    /// many columns run past it, and the busiest second actually seen.</param>
+    public LiveStrip(Border host, bool dark, Func<double, string> tick, Func<double, int, double, string> tip)
     {
         _host = host;
         _tick = tick;
@@ -160,6 +188,12 @@ internal sealed class LiveStrip
         _canvas.Children.Clear();
         _layers = colors.Select(c => new Path { Fill = Freeze(new SolidColorBrush(c)) }).ToArray();
         foreach (Path p in _layers) _canvas.Children.Add(p);
+        // Last, so a cap is never buried under a series. Achromatic on purpose: the whole *stack*
+        // overflowed, and painting the mark in one series' hue would blame that series for it. The
+        // *primary* ink rather than a softer grey, so it can never be mistaken for the grey "others"
+        // series it may sit directly above.
+        _overflow.SetResourceReference(Shape.FillProperty, "TextFillColorPrimaryBrush");
+        _canvas.Children.Add(_overflow);
     }
 
     /// <summary>The three token types, in stacking order (bottom first). Same hues as the legend, so
@@ -204,11 +238,13 @@ internal sealed class LiveStrip
         int len = series[0].Length;
         int visible = Math.Min(Seconds, len);
         long peak = 0;
+        var busy = new List<long>(visible);            // the non-zero seconds, for the quantile below
         for (int k = 0; k < visible; k++)
         {
             long v = 0;
             foreach (long[] s in series) v += s[len - 1 - k];
             if (v > peak) peak = v;
+            if (v > 0) busy.Add(v);
         }
 
         if (peak <= 0)
@@ -220,20 +256,21 @@ internal sealed class LiveStrip
             _slide.BeginAnimation(TranslateTransform.XProperty, null);
             _slide.X = 0;
             _scale = _ceiling = 0;
-            _host.ToolTip = null;
+            _overflow.Data = null;
+            _host.ToolTip = _tipText = null;
             LayoutAxis(pw, h, gutter);               // no data, no axis: a scale nothing is drawn against
             _flat = true;
             return;
         }
         _flat = false;
 
-        _scale = peak > _scale ? peak : Math.Max(peak, _scale * 0.94);
+        // What full height is measured against. The peak while the range is one a linear axis can hold;
+        // the 95th percentile of the busy seconds once it isn't, because one 240k-token cache write
+        // should not push a minute of real work onto the 1px floor.
+        double basis = Basis(busy, peak);
+        _scale = basis > _scale ? basis : Math.Max(basis, _scale * 0.94);
         double ceiling = NiceCeiling(_scale);
-        if (ceiling != _ceiling)
-        {
-            _ceiling = ceiling;
-            _host.ToolTip = _tip(ceiling);           // only on a change: a live tooltip must not flicker
-        }
+        _ceiling = ceiling;
 
         double colW = pw / Seconds;
         double barW = Math.Max(0.5, colW - (colW > 2.5 ? Gap : 0));
@@ -243,6 +280,9 @@ internal sealed class LiveStrip
         var geo = new StreamGeometry[_layers.Length];
         var ctx = new StreamGeometryContext[_layers.Length];
         for (int i = 0; i < geo.Length; i++) { geo[i] = new StreamGeometry(); ctx[i] = geo[i].Open(); }
+        var capGeo = new StreamGeometry();
+        StreamGeometryContext capCtx = capGeo.Open();
+        int clipped = 0;
 
         for (int k = 0; k < drawn; k++)
         {
@@ -250,11 +290,21 @@ internal sealed class LiveStrip
             double x = pw - (k + 1) * colW;
             double y = h;                            // stack upward from the baseline
             bool first = true;
+
+            // A column taller than the ceiling is drawn broken: filled to a gap below the top, then a
+            // cap at the top. Truncating from the top of the stack keeps every segment at true scale —
+            // the alternative (squashing the whole column to fit) would misreport all of them.
+            long total = 0;
+            foreach (long[] s in series) total += s[i];
+            bool over = total > ceiling;
+            if (over && k < visible) clipped++;
+            double limit = over ? h - (CapGap + CapHeight) : h;
+
             for (int L = 0; L < series.Length; L++)
             {
                 long v = series[L][i];
                 if (v <= 0) continue;
-                double seg = v / _ceiling * h;
+                double seg = v / ceiling * h;
                 // A non-zero second must be visible: a single small turn is information, and rounding
                 // it to nothing would say "idle" when something did happen.
                 if (seg < 1) seg = 1;
@@ -262,10 +312,15 @@ internal sealed class LiveStrip
                 // only where there is room for it, since eating a 2px segment to draw its gap would
                 // delete the data it separates.
                 if (!first && seg >= 3) { y -= 1; seg -= 1; }
+                double room = limit - (h - y);
+                if (room <= 0) break;
+                if (seg > room) seg = room;
                 Rect(ctx[L], x, y - seg, barW, seg);
                 y -= seg;
                 first = false;
             }
+
+            if (over) Rect(capCtx, x, 0, barW, CapHeight);
         }
 
         for (int i = 0; i < geo.Length; i++)
@@ -274,6 +329,14 @@ internal sealed class LiveStrip
             geo[i].Freeze();
             _layers[i].Data = geo[i];
         }
+        capCtx.Close();
+        capGeo.Freeze();
+        _overflow.Data = clipped > 0 ? capGeo : null;
+
+        // Rebuilt only when the *text* changes: the peak moves every second, but its compact form
+        // ("240k/s") does not, and a tooltip reassigned under the pointer flickers.
+        string tip = _tip(ceiling, clipped, peak);
+        if (tip != _tipText) _host.ToolTip = _tipText = tip;
 
         LayoutAxis(pw, h, gutter);
 
@@ -313,6 +376,24 @@ internal sealed class LiveStrip
             Canvas.SetLeft(_labels[i], 5);
             Canvas.SetTop(_labels[i], Math.Clamp(y - 7, 0, Math.Max(0, h - 14)));
         }
+    }
+
+    /// <summary>
+    /// What the ceiling is measured against: the peak, or the <see cref="Quantile"/> of the busy seconds
+    /// once the peak is more than <see cref="ClipRatio"/>× above it.
+    /// </summary>
+    /// <remarks>Three guards, each paying for the honesty this costs. Clipping needs
+    /// <see cref="ClipMinSamples"/> busy seconds, so a sparse strip never loses one of the few bars it
+    /// has. It needs the peak to be a genuine outlier, so ordinary traffic keeps a fully faithful axis
+    /// rather than one cut to buy contrast it doesn't need. And the quantile is taken over the *busy*
+    /// seconds only — including the idle ones would drag it to zero and clip the whole strip.</remarks>
+    private static double Basis(List<long> busy, long peak)
+    {
+        if (busy.Count < ClipMinSamples) return peak;
+        busy.Sort();
+        int idx = Math.Clamp((int)Math.Ceiling(Quantile * busy.Count) - 1, 0, busy.Count - 1);
+        double q = busy[idx];
+        return q > 0 && peak > q * ClipRatio ? q : peak;
     }
 
     /// <summary>The next readable step at or above <paramref name="peak"/> — what full height means.

@@ -1,6 +1,6 @@
-# Last task number — `T111` · next block letter — `M`
+# Last task number — `T112` · next block letter — `M`
 
-> **Single source of truth for the next free task number.** The next new task is `T112`; after
+> **Single source of truth for the next free task number.** The next new task is `T113`; after
 > assigning it, bump the number above and append a log line below.
 >
 > **Next block letter — `M`** (Block **L** = Scan resilience — no single unreadable directory under
@@ -33,9 +33,9 @@
   about the weekly **projection** (where the quota lands), K is about **instantaneous** throughput
   (what is running now, and in which project) on a clock that is local rather than the API's. It opens
   against the same Statistics window, so it carries no dependency on J's open tasks.
-- **T110–T111** (2026-07-29) stay in Block **K** rather than opening M: both are the live strip's own
-  presentation — T110 its scale, T111 its own tab. T110 took the magnitude half of K's own T104, which
-  remains open for the per-column hover.
+- **T110–T112** (2026-07-29) stay in Block **K** rather than opening M: all three are the live strip's
+  own presentation — T110 its scale, T111 its own tab, T112 its handling of outliers. T110 took the
+  magnitude half of K's own T104, which remains open for the per-column hover.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 
@@ -79,3 +79,4 @@ here. This file is a terse index, not a memory.
 - **T109 SHIPPED** (Block L — SafeWalk: an unreadable directory can't fail a whole scan) — 2026-07-29.
 - **T110 SHIPPED** (Block K — the strip draws, and scales to, the 3 minutes it shows) — 2026-07-29.
 - **T111 SHIPPED** (Block K — the live strip moves to a Throughput tab of its own) — 2026-07-29.
+- **T112 SHIPPED** (Block K — percentile ceiling and broken-bar marks for outlier seconds) — 2026-07-29.

@@ -91,7 +91,8 @@
 > minutes it claims to show, with its ceiling ruled and labelled in tok/s. It took the *magnitude* half
 > of T104; the per-column hover is still open. **T111** then moved the strip off both pace tabs onto a
 > **Throughput** tab of its own — it never had a window scope, so it was the same picture twice — where
-> it has the height a live rate needs.
+> it has the height a live rate needs, and **T112** gave it a percentile ceiling with broken-bar marks,
+> because neither height nor a label saves a minute of 2k-token seconds drawn next to a 240k one.
 
 - 📋 **T102** (deps: —) **`ScanTokens` counts one API response several times** — Claude Code writes one `assistant` line per *content block*, each repeating that response's `usage`; T97 found this and de-duplicates on `requestId`, but the older sweep still sums per line. The weekly curve hides it (it is rescaled to the live utilization) yet the *shape* is skewed toward heavy tool use, and `MeasuredActiveHours` and `ActivityProfile` read the same samples. The parser already emits the id. → §V.7
 - 📋 **T103** (deps: T97) **The tail re-enumerates the whole tree every 3s** — 602 transcripts in 17ms today, metadata-only, but it is O(all history) and grows forever while the window is open. Enumerate only directories whose mtime moved, or fall back to watcher-reported paths once the tree passes a size. → §V.8

@@ -80,7 +80,6 @@ internal partial class StatisticsWindow : Window
     private System.Windows.Threading.DispatcherTimer? _liveTimer;
     private TokenBits[]? _lastStrip;   // kept so a resize or a tab switch can repaint without a tick
     private ProjectSlice[]? _lastProjects;
-    private bool _lastByProject;
 
     /// <summary>Dev/preview seam: feed the strip a deterministic synthetic minute instead of the real
     /// tail, so the screenshot of a *moving* row is reproducible. See <c>--stats live</c>.</summary>
@@ -373,25 +372,17 @@ internal partial class StatisticsWindow : Window
     // a rounded stacked bar here; that bar is now the live strip below (T99), which carries the same
     // split against a time axis instead of against nothing. The legend still direct-labels each type
     // with its own tokens/sec, so identity is never color-alone per the palette's relief rule.
-    /// <param name="besideStrip">True for the rows on the Throughput tab, which share a screen with the
-    /// strip and therefore have to give up their swatches while it is stacked per project. The rows on
-    /// the pace tabs never do: nothing coloured sits next to them any more (T111).</param>
-    private void PopulateThroughput(WindowPace w, TextBlock head, StackPanel legend, bool besideStrip = false)
+    private void PopulateThroughput(WindowPace w, TextBlock head, StackPanel legend)
     {
         legend.Children.Clear();
 
         long input = w.InputTokens, output = w.OutputTokens, cache = w.CacheCreationTokens;
         long sum = input + output + cache;
 
-        if (!w.HasWindow || w.ElapsedSeconds <= 0 || sum <= 0)
-        {
-            head.Text = L.T("stats.tps.none");
-            return;
-        }
+        head.Text = ThroughputHead(w);
+        if (!w.HasWindow || w.ElapsedSeconds <= 0 || sum <= 0) return;
 
         double elapsed = w.ElapsedSeconds;
-        head.Text = L.T("stats.tps.head", Rate(w.TokensPerSecond), Big(sum));
-
         Color[] palette = LiveStrip.Colors(IsDarkTheme());
         var types = new (string label, long tokens, Color color)[]
         {
@@ -401,32 +392,22 @@ internal partial class StatisticsWindow : Window
         };
 
         // Legend: colored swatch + type + its own rate, with the absolute total on hover. The swatches
-        // are dropped while the strip above is stacked by *project*, because the same three hues would
-        // then mean token types here and projects there — one coloured legend on screen at a time.
-        bool byProject = besideStrip && _lastProjects is { Length: > 1 };
-        if (byProject)
-            legend.Children.Add(new TextBlock
-            {
-                Text = L.T("stats.tps.windowAvg"), FontSize = 12,
-                Margin = new Thickness(0, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center,
-                Foreground = (Brush)FindResource("TextFillColorTertiaryBrush"),
-            });
-
+        // are unconditional again since T111 — the per-project strip that used to sit next to this row,
+        // and would have made the same three hues mean two different things, is on its own tab now.
         foreach (var t in types)
         {
             var row = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 0, 18, 0) };
-            if (!byProject)
-                row.Children.Add(new System.Windows.Shapes.Rectangle
-                {
-                    Width = 10, Height = 10, RadiusX = 3, RadiusY = 3,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Fill = Freeze(new SolidColorBrush(t.color)),
-                });
+            row.Children.Add(new System.Windows.Shapes.Rectangle
+            {
+                Width = 10, Height = 10, RadiusX = 3, RadiusY = 3,
+                VerticalAlignment = VerticalAlignment.Center,
+                Fill = Freeze(new SolidColorBrush(t.color)),
+            });
             double share = sum > 0 ? (double)t.tokens / sum : 0;
             row.Children.Add(new TextBlock
             {
                 Text = L.T("stats.tps.legend", t.label, Rate(t.tokens / elapsed)),
-                Margin = new Thickness(byProject ? 0 : 6, 0, 0, 0), FontSize = 12,
+                Margin = new Thickness(6, 0, 0, 0), FontSize = 12,
                 VerticalAlignment = VerticalAlignment.Center,
                 Foreground = (Brush)FindResource("TextFillColorSecondaryBrush"),
                 ToolTip = L.T("stats.tps.tip", t.label, Big(t.tokens), Pct(share)),
@@ -435,13 +416,23 @@ internal partial class StatisticsWindow : Window
         }
     }
 
-    // The Throughput tab's slow-clock half: the same window averages as the pace tabs, both at once, so
-    // the fast number above them has something to be compared against. Rebuilt when the strip flips
-    // between its by-project and by-type views, which is what decides their swatches.
+    // "N tok/s over M tokens" for one window — the headline of the row above, without its legend.
+    private static string ThroughputHead(WindowPace w)
+    {
+        long sum = w.InputTokens + w.OutputTokens + w.CacheCreationTokens;
+        return !w.HasWindow || w.ElapsedSeconds <= 0 || sum <= 0
+            ? L.T("stats.tps.none")
+            : L.T("stats.tps.head", Rate(w.TokensPerSecond), Big(sum));
+    }
+
+    // The Throughput tab's slow half: both window averages, one line each, so the live number above them
+    // has something to be read against. One line and no legend on purpose — the per-type split of a
+    // *window* average belongs on that window's own tab, and repeating it here is what made this pane
+    // scroll and clip its last row.
     private void PopulateThroughputTab()
     {
-        if (_session is { } s) PopulateThroughput(s, TpsHeadT5, TpsLegendT5, besideStrip: true);
-        if (_weekly is { } w) PopulateThroughput(w, TpsHeadT7, TpsLegendT7, besideStrip: true);
+        if (_session is { } s) TpsHeadT5.Text = ThroughputHead(s);
+        if (_weekly is { } w) TpsHeadT7.Text = ThroughputHead(w);
     }
 
     // ------------------------------------------------------------------ live throughput (T99)
@@ -515,17 +506,6 @@ internal partial class StatisticsWindow : Window
         _lastStrip = _live.Strip();
         _lastProjects = _live.Projects();
         int sessions = _live.ActiveSessions;
-
-        // The window-average rows *on the Throughput tab* show swatches only while the strip above them
-        // is not stacked by project. That state is decided here, on the live clock, while those rows are
-        // built by Render() on the API clock — so a flip has to rebuild them, or the same three hues
-        // would mean token types in one legend and projects in the other.
-        bool byProject = _lastProjects is { Length: > 1 };
-        if (byProject != _lastByProject)
-        {
-            _lastByProject = byProject;
-            PopulateThroughputTab();
-        }
 
         string head = _live.Quiet
             ? L.T("stats.live.quiet")
@@ -651,6 +631,14 @@ internal partial class StatisticsWindow : Window
             }
             if (i % 7 == 0) others[i] = (long)(260 * k);
         }
+
+        // One deliberate outlier, because real traffic has one: a turn that writes a large cache block
+        // lands ~240k tokens in a single second next to ordinary seconds of ~2k. It is what the clipped
+        // ceiling (T112) exists for, and a fixture without it would publish a strip the app rarely draws.
+        int spike = LiveStrip.Seconds - 1 - 41;      // 41 seconds ago
+        strip[spike] = new TokenBits(strip[spike].Input + 7_600, strip[spike].Output + 1_400,
+                                    strip[spike].CacheCreate + 231_000, 0);
+        perProject[0][spike] += 240_000;
 
         _lastStrip = strip;
         _lastProjects = demo
@@ -1081,7 +1069,14 @@ internal partial class StatisticsWindow : Window
     // round ceiling is noise. Tokens in one second *are* tokens/second, so the unit is honest.
     private static string AxisTick(double tokens) => L.T("stats.live.axis", Tick(tokens));
 
-    private static string ScaleTip(double ceiling) => L.T("stats.live.scaleTip", Tick(ceiling));
+    // What full height means. When columns run past it (T112) the hover has to say so out loud: how
+    // many were cut, and what the busiest second actually was — a clipped chart that doesn't admit it
+    // is the one thing worse than a flattened one.
+    private static string ScaleTip(double ceiling, int clipped, double peak) =>
+        clipped <= 0
+            ? L.T("stats.live.scaleTip", Tick(ceiling))
+            : L.T(clipped == 1 ? "stats.live.scaleTipClipped1" : "stats.live.scaleTipClippedN",
+                  Tick(ceiling), clipped, Tick(peak));
 
     private static string Tick(double n) =>
         n >= 1_000_000 ? (n / 1e6).ToString("0.##", Fmt) + "M"

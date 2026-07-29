@@ -427,7 +427,7 @@
       <figure class="shot-frame" style="margin:0">
         <img class="shot" src="statistics-throughput.png" alt="Statistics — the Throughput tab: a three-minute live strip stacked per project, its ceiling labelled in tokens per second, with both window averages below it">
         <figcaption style="color:var(--muted-2);font-size:.86rem;text-align:center;margin-top:12px">
-          <b style="color:var(--text)">Throughput</b> — the last three minutes, one column per second, scaled to the busiest second and labelled in tok/s.
+          <b style="color:var(--text)">Throughput</b> — the last three minutes, one column per second, labelled in tok/s; the columns that run past the ceiling are capped, never silently cut.
         </figcaption>
       </figure>
     </div>
@@ -455,7 +455,7 @@
       <div class="card feat reveal">
         <div class="ico">📉</div>
         <h3>Live 3-minute strip</h3>
-        <p>One column per second, split input / output / cache-create, scaled to the busiest second on screen with that ceiling ruled and labelled in <b>tok/s</b>. It scrolls because the axis is <b>time</b> — the motion is the data, not a spinner. Idle goes flat, and it only repaints while the window is on screen.</p>
+        <p>One column per second, split input / output / cache-create, with the ceiling ruled and labelled in <b>tok/s</b> — the busiest second on screen, or the 95th percentile of them when one cache write would otherwise flatten the rest (those columns are <b>capped</b>, never silently cut). It scrolls because the axis is <b>time</b> — the motion is the data, not a spinner. Idle goes flat, and it only repaints while the window is on screen.</p>
       </div>
       <div class="card feat reveal">
         <div class="ico">🗂️</div>

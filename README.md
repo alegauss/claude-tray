@@ -123,10 +123,16 @@ same picture twice, at a third of the height.
 
 ![Statistics — the Throughput tab](docs/statistics-throughput.png)
 
-The strip is scaled to **what's on screen**, and it says so: full height is the busiest second of
-those three minutes, rounded up to a round number and labelled on the right — `4k/s`, with half of it
-on the dashed line — so a column is a quantity you can read, not just a silhouette. Hover it and it
-tells you what full height stands for.
+The strip is scaled to **what's on screen**, and it says so: full height is a round number labelled on
+the right — `3k/s`, with half of it on the dashed line — so a column is a quantity you can read, not
+just a silhouette.
+
+That ceiling is normally the busiest second visible, rounded up. But one turn writing a large cache
+block can land 240,000 tokens in a single second next to ordinary seconds of 2,000, and scaling to
+*that* puts a whole minute of real work on the bottom pixel. So when the peak runs away from the rest,
+the axis falls back to the **95th percentile** of the busy seconds and the few columns that run past
+the top are drawn **broken** — fill, gap, cap — never silently cut. Hover the strip and it tells you
+what full height means, how many columns were capped, and what the busiest second actually carried.
 
 The strip scrolls because the axis it scrolls along **is time** — the motion is the data, not a
 spinner. When nothing is generating it goes flat and stops repainting, and it only runs at all while
