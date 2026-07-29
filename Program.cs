@@ -434,15 +434,29 @@ internal static class Program
 
             // Per-project attribution (T100), so "which repo is burning it" is verifiable without a
             // window — and so the strip's stacking order can be checked against the ranking.
+            // Per-project attribution with its *slot* (T114): the number in brackets is the fixed
+            // colour/order the chart will draw that project at, and it must not move while the project
+            // is on screen — printing it is how that gets checked without a window.
             string where = live.Quiet
                 ? "quiet"
                 : string.Join("  ", live.Projects().Select(p =>
-                      $"{(p.IsOthers ? p.Display : Trim(p.Display, 18))} {p.TokensPerSecond,6:N0}/s"));
+                      $"[{(p.IsOthers ? "·" : p.Slot.ToString())}] {(p.IsOthers ? p.Display : Trim(p.Display, 18))} {p.TokensPerSecond,6:N0}/s"));
 
             Console.WriteLine($"{DateTime.Now:HH:mm:ss}  {rate,8:N0} tok/s  {bar}  " +
                               (raw ? $"[raw {live.Instant,8:N0}]  " : "") +
                               $"{live.ActiveSessions} act  {where}");
         }
+
+        // The same kernel as a *series* (T114) — what the chart is drawn from. Printed as a sparkline
+        // plus its own last value, because the one property that must hold is that the right-hand end
+        // equals the rate reported above: same filter, evaluated at 180 instants instead of one.
+        double[] history = live.RateHistory(LiveStrip.Seconds);
+        Console.WriteLine();
+        Console.WriteLine($"rolling rate, last {history.Length}s (one cell per {history.Length / 60}s):");
+        Console.WriteLine("  " + Spark(history, 60) + $"   → {history[^1]:N0} tok/s at the right edge");
+        foreach (ProjectSlice p in live.Projects(LiveStrip.Seconds).Where(p => p.RatePerSecond.Length > 0))
+            Console.WriteLine($"  [{(p.IsOthers ? "·" : p.Slot.ToString())}] {Trim(p.Display, 18),-18} " +
+                              Spark(p.RatePerSecond, 60) + $"   → {p.RatePerSecond[^1]:N0} tok/s");
 
         TailStats st = tail.Stats;
         Console.WriteLine();
@@ -450,6 +464,26 @@ internal static class Program
                           $"{st.BytesRead / 1024.0:N1} KB read, {st.Sweeps:N0} sweeps");
         Console.WriteLine("The window average this sits beside is in --stats; it answers a different " +
                           "question and both stay.");
+    }
+
+    // A series as one line of block characters, averaged down to `cells` columns and scaled to its own
+    // peak. Enough to see the shape — whether the rate decays through a pause and rises again — which is
+    // the whole claim T114 makes; the exact values are the numbers beside it.
+    private static string Spark(double[] series, int cells)
+    {
+        const string ramp = " ▁▂▃▄▅▆▇█";
+        double peak = series.Length == 0 ? 0 : series.Max();
+        if (peak <= 0) return new string(' ', cells);
+        var sb = new System.Text.StringBuilder(cells);
+        for (int c = 0; c < cells; c++)
+        {
+            int from = c * series.Length / cells, to = Math.Max(from + 1, (c + 1) * series.Length / cells);
+            double mean = 0;
+            for (int i = from; i < to && i < series.Length; i++) mean += series[i];
+            mean /= to - from;
+            sb.Append(ramp[Math.Clamp((int)Math.Round(mean / peak * (ramp.Length - 1)), 0, ramp.Length - 1)]);
+        }
+        return sb.ToString();
     }
 
     // Headless view of ActivityProfile: the 168-bucket week the projection will be shaped by (T87),

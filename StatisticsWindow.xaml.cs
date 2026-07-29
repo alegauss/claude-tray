@@ -559,9 +559,12 @@ internal partial class StatisticsWindow : Window
     private static Color[] ProjectPalette(ProjectSlice[] projects, bool dark)
     {
         Color[] hues = LiveStrip.ProjectColors(dark);
-        // Colour follows the entity's rank in a fixed order and the residual is always the neutral —
-        // never a generated hue for a fifth series.
-        return projects.Select((p, i) => p.IsOthers ? LiveStrip.Others(dark) : hues[Math.Min(i, hues.Length - 1)])
+        // Colour follows the project's *slot*, not its position in this array — the slot is sticky for as
+        // long as the project is on screen (T114), so a hue never changes hands under the reader. The
+        // residual is always the neutral; never a generated hue for a fifth series.
+        return projects.Select(p => p.IsOthers
+                                    ? LiveStrip.Others(dark)
+                                    : hues[Math.Clamp(p.Slot, 0, hues.Length - 1)])
                        .ToArray();
     }
 
@@ -651,8 +654,11 @@ internal partial class StatisticsWindow : Window
 
         _lastStrip = strip;
         _lastProjects = demo
-            .Select((d, p) => new ProjectSlice(d.slug, d.name, perProject[p], Sum(perProject[p]), 870 * d.weight, false))
-            .Append(new ProjectSlice("+3", "+3", others, Sum(others), 41, true))
+            .Select((d, p) => new ProjectSlice(d.slug, d.name, perProject[p],
+                                               LiveRate.RateFrom(perProject[p], LiveStrip.Seconds),
+                                               Sum(perProject[p]), 870 * d.weight, false, p))
+            .Append(new ProjectSlice("+3", "+3", others, LiveRate.RateFrom(others, LiveStrip.Seconds),
+                                     Sum(others), 41, true, -1))
             .ToArray();
 
         LiveHeadS.Text = LiveHeadW.Text = LiveHeadT.Text =

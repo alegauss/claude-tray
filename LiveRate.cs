@@ -1,13 +1,16 @@
 ﻿namespace ClaudeTray;
 
-/// <summary>One project's share of the live rate: its per-second history over the strip, its total
-/// over the trailing window, and its rate. <paramref name="Slug"/> is the
-/// <c>~/.claude/projects/&lt;slug&gt;</c> directory name and the grouping key;
-/// <paramref name="Display"/> is the folder name resolved from the session's <c>cwd</c> — never the
+/// <summary>One project's share of the live rate: its per-second history over the strip, the same
+/// history as a <b>rolling rate</b>, its total over the trailing window, and its rate right now.
+/// <paramref name="Slug"/> is the <c>~/.claude/projects/&lt;slug&gt;</c> directory name and the grouping
+/// key; <paramref name="Display"/> is the folder name resolved from the session's <c>cwd</c> — never the
 /// full path. <paramref name="IsOthers"/> marks the residual bucket that everything past the top few
-/// folds into.</summary>
+/// folds into, and <paramref name="Slot"/> is its <b>stable</b> position: assigned on first appearance
+/// and held until the project leaves the window, so neither its colour nor its place in the legend
+/// moves while it is on screen (residual slices carry −1).</summary>
 internal readonly record struct ProjectSlice(
-    string Slug, string Display, long[] PerSecond, long WindowTokens, double TokensPerSecond, bool IsOthers);
+    string Slug, string Display, long[] PerSecond, double[] RatePerSecond,
+    long WindowTokens, double TokensPerSecond, bool IsOthers, int Slot);
 
 /// <summary>
 /// The one number in this app that should move: tokens/second over a trailing minute, fed by
@@ -60,9 +63,14 @@ internal sealed class LiveRate
     /// is not activity, or every terminal left open all week would inflate the count.</summary>
     public const double ActiveSeconds = 120;
 
-    /// <summary>Categorical series the strip will draw before folding the rest into "others". Four is
-    /// the palette's validated ceiling for a stack; a fifth invented hue is never the answer.</summary>
+    /// <summary>Categorical series the chart will draw before folding the rest into "others". Four is
+    /// the palette's validated ceiling; a fifth invented hue is never the answer.</summary>
     public const int MaxProjects = 4;
+
+    /// <summary>Seconds of rolling-rate history that can be reported: every point needs the
+    /// <see cref="WindowSeconds"/> of buckets behind it, so the oldest point a
+    /// <see cref="HistorySeconds"/> ring can answer for is that much newer than its far end.</summary>
+    public const int MaxRateHistory = HistorySeconds - WindowSeconds;
 
     private readonly object _gate = new();
     private readonly TokenBits[] _ring = new TokenBits[HistorySeconds];
@@ -70,6 +78,10 @@ internal sealed class LiveRate
     // kept, so this stays a handful of entries however long the window is open.
     private readonly Dictionary<string, long[]> _byProject = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _projectNames = new(StringComparer.OrdinalIgnoreCase);
+    // Slug → its fixed slot (colour + legend position) for as long as it has anything in the window.
+    // A chart of lines needs this: with the slot recomputed from the current ranking, a project's line
+    // would change colour mid-flight every time the heaviest repo changed, which is unreadable.
+    private readonly Dictionary<string, int> _slots = new(StringComparer.OrdinalIgnoreCase);
     // Session id → when it last produced a turn. Pruned to ActiveSeconds on every tick.
     private readonly Dictionary<string, double> _sessions = new(StringComparer.OrdinalIgnoreCase);
     private long _head;              // unix second the newest bucket represents
@@ -113,8 +125,114 @@ internal sealed class LiveRate
         get { lock (_gate) return _newestSample > 0 ? Math.Max(0, _lastTick - _newestSample) : double.PositiveInfinity; }
     }
 
-    /// <summary>Per-second history, oldest first, exactly <see cref="HistorySeconds"/> long — the
-    /// series T99 draws. The last entry is the current second and is still filling.</summary>
+    /// <summary>
+    /// The headline rate <em>as a series</em>: for each of the last <paramref name="seconds"/> seconds,
+    /// the age-weighted rate as it stood at that second, oldest first. Split by token type, in the
+    /// stacking order input / output / cache-create; cache reads stay out, as in the headline.
+    /// </summary>
+    /// <remarks>
+    /// This is the same kernel <see cref="TokensPerSecond"/> reports, evaluated at 180 different
+    /// instants instead of one — which is the whole point of T114. The last point therefore <b>is</b>
+    /// the number shown above the chart (before its attack smoothing), so a line drawn from this can
+    /// never contradict it, and because the kernel is linear the type series and the per-project series
+    /// both sum to it.
+    ///
+    /// <para>It is also what makes a <em>line</em> honest here. The raw per-second buckets are events —
+    /// a turn's whole usage lands in the second it finished (see §V.11) — so joining them with a line
+    /// would draw a continuous rate that never existed. A trailing rate is continuous by construction:
+    /// it decays through a pause because the work really is ageing out of the window, and rises when
+    /// new work lands.</para>
+    /// </remarks>
+    public double[][] TypeRates(int seconds)
+    {
+        lock (_gate)
+        {
+            seconds = Math.Clamp(seconds, 1, MaxRateHistory);
+            return new[]
+            {
+                Series(seconds, s => _ring[Index(s)].Input),
+                Series(seconds, s => _ring[Index(s)].Output),
+                Series(seconds, s => _ring[Index(s)].CacheCreate),
+            };
+        }
+    }
+
+    /// <summary>The same series, not split — total non-cache-read tokens/second per second.</summary>
+    public double[] RateHistory(int seconds)
+    {
+        lock (_gate)
+        {
+            seconds = Math.Clamp(seconds, 1, MaxRateHistory);
+            return Series(seconds, s =>
+            {
+                TokenBits b = _ring[Index(s)];
+                return b.Input + b.Output + b.CacheCreate;
+            });
+        }
+    }
+
+    /// <summary>The same kernel over a plain oldest-first array of per-second tokens, returning the last
+    /// <paramref name="seconds"/> points. The seam the <c>--stats live</c> fixture draws through, so a
+    /// published chart is shaped by the real filter rather than by a hand-drawn curve. Points whose
+    /// window would reach past the start of the array see only what is there, so a series that begins at
+    /// its first bucket ramps in — which is what a feed that just started really looks like.</summary>
+    public static double[] RateFrom(long[] perSecond, int seconds)
+    {
+        var outp = new double[seconds];
+        for (int k = 0; k < seconds; k++)
+        {
+            int end = perSecond.Length - seconds + k;
+            double weighted = 0;
+            for (int i = 0; i < WindowSeconds; i++)
+            {
+                int idx = end - i;
+                if (idx < 0) break;
+                if (idx < perSecond.Length) weighted += perSecond[idx] * (1.0 - (double)i / WindowSeconds);
+            }
+            outp[k] = weighted / (WindowSeconds / 2.0);
+        }
+        return Smooth(outp);
+    }
+
+    // The kernel, evaluated once per output second. Caller holds the lock.
+    private double[] Series(int seconds, Func<long, long> bucketAt)
+    {
+        var outp = new double[seconds];
+        for (int k = 0; k < seconds; k++)
+        {
+            long t = _head - (seconds - 1 - k);
+            double weighted = 0;
+            for (int i = 0; i < WindowSeconds; i++)
+                weighted += bucketAt(t - i) * (1.0 - (double)i / WindowSeconds);
+            outp[k] = weighted / (WindowSeconds / 2.0);
+        }
+        return Smooth(outp);
+    }
+
+    /// <summary>
+    /// The headline's attack-only lag, applied along a series: rises are eased in over
+    /// <see cref="SmoothingTau"/>, falls follow the window exactly.
+    /// </summary>
+    /// <remarks>Without this the right-hand end of a drawn line would sit visibly above the number
+    /// printed over it during any rise — same data, one of them filtered — and of two numbers that
+    /// disagree on screen, both lose. Smoothing the parts and smoothing the whole are not quite the same
+    /// operation (the attack-only branch is per series), so per-project lines no longer sum to the total
+    /// *during* an attack; they are drawn as separate lines rather than stacked, so nothing in the chart
+    /// asks them to.</remarks>
+    private static double[] Smooth(double[] series)
+    {
+        double k = 1 - Math.Exp(-1.0 / SmoothingTau);       // one second per step
+        double smoothed = series.Length > 0 ? series[0] : 0;
+        for (int i = 0; i < series.Length; i++)
+        {
+            smoothed = series[i] <= smoothed ? series[i] : smoothed + k * (series[i] - smoothed);
+            series[i] = smoothed;
+        }
+        return series;
+    }
+
+    /// <summary>Per-second history, oldest first, exactly <see cref="HistorySeconds"/> long — the raw
+    /// buckets, in tokens. The last entry is the current second and is still filling.</summary>
     public TokenBits[] Strip()
     {
         lock (_gate)
@@ -159,6 +277,7 @@ internal sealed class LiveRate
             {
                 _byProject.Remove(slug);
                 _projectNames.Remove(slug);
+                _slots.Remove(slug);            // the slot is free again only once the line is gone
             }
             foreach (string id in _sessions.Where(kv => nowUnix - kv.Value > ActiveSeconds).Select(kv => kv.Key).ToList())
                 _sessions.Remove(id);
@@ -237,17 +356,29 @@ internal sealed class LiveRate
     public int ActiveSessions { get { lock (_gate) return _sessions.Count; } }
 
     /// <summary>
-    /// The strip split by project, heaviest first, capped at <see cref="MaxProjects"/> with the rest
-    /// folded into a single "others" slice. For one project this is a curiosity; across five repos it
-    /// is the question actually being asked — <em>which of these is eating the week?</em>
+    /// The history split by project, in <b>slot order</b>, capped at <see cref="MaxProjects"/> with the
+    /// rest folded into a single "others" slice. For one project this is a curiosity; across five repos
+    /// it is the question actually being asked — <em>which of these is eating the week?</em>
     /// </summary>
-    /// <remarks>Ordered by the trailing window's tokens, not by the strip total, so the ranking
-    /// answers "spending most right now" rather than "spent most three minutes ago".</remarks>
-    public ProjectSlice[] Projects()
+    /// <remarks>
+    /// <para>Each project carries both readings: <c>PerSecond</c>, the raw tokens that landed in each
+    /// second, and <c>RatePerSecond</c>, the same history through the headline's kernel — the series a
+    /// line is drawn from.</para>
+    /// <para><b>Slots are sticky (T114).</b> A project claims the lowest free slot the first time it is
+    /// ranked and keeps it until it has nothing left in the window; the slices come back ordered by slot
+    /// rather than by rate. Ranking by rate is right for a snapshot and wrong for a chart: it would swap
+    /// two lines' colours mid-flight whenever the busier repo changed, which is exactly the moment the
+    /// chart is being read. Who *fills* the four slots is still decided by rate, so a newcomer that
+    /// arrives while all four are taken folds into the residual until one frees.</para>
+    /// <para><paramref name="seconds"/> bounds the rate series (clamped to
+    /// <see cref="MaxRateHistory"/>); the raw <c>PerSecond</c> array is always the full ring.</para>
+    /// </remarks>
+    public ProjectSlice[] Projects(int seconds = MaxRateHistory)
     {
         lock (_gate)
         {
             if (_byProject.Count == 0) return Array.Empty<ProjectSlice>();
+            seconds = Math.Clamp(seconds, 1, MaxRateHistory);
 
             var ranked = _byProject
                 .Select(kv => (slug: kv.Key, ring: kv.Value, win: WindowSum(kv.Value), rate: WeightedRate(kv.Value)))
@@ -257,26 +388,40 @@ internal sealed class LiveRate
                 .ToList();
             if (ranked.Count == 0) return Array.Empty<ProjectSlice>();
 
-            var slices = new List<ProjectSlice>();
-            foreach (var p in ranked.Take(MaxProjects))
-                slices.Add(new ProjectSlice(p.slug, _projectNames.GetValueOrDefault(p.slug, p.slug),
-                                            Unroll(p.ring), p.win, p.rate, false));
+            // Hand out slots by rate, but only ones nobody holds — and only to projects that don't
+            // already have one, so an existing line never moves.
+            foreach (var p in ranked)
+            {
+                if (_slots.ContainsKey(p.slug)) continue;
+                for (int slot = 0; slot < MaxProjects; slot++)
+                    if (!_slots.ContainsValue(slot)) { _slots[p.slug] = slot; break; }
+            }
 
-            // Everything past the cap becomes one residual series. Never a generated hue.
-            var rest = ranked.Skip(MaxProjects).ToList();
+            var slices = new List<ProjectSlice>();
+            foreach (var p in ranked.Where(p => _slots.ContainsKey(p.slug)).OrderBy(p => _slots[p.slug]))
+                slices.Add(new ProjectSlice(p.slug, _projectNames.GetValueOrDefault(p.slug, p.slug),
+                                            Unroll(p.ring), Series(seconds, s => p.ring[Index(s)]),
+                                            p.win, p.rate, false, _slots[p.slug]));
+
+            // Everything without a slot becomes one residual series. Never a generated hue.
+            var rest = ranked.Where(p => !_slots.ContainsKey(p.slug)).ToList();
             if (rest.Count > 0)
             {
                 var merged = new long[HistorySeconds];
+                var mergedRate = new double[seconds];
                 long win = 0;
                 double rate = 0;
                 foreach (var p in rest)
                 {
                     long[] u = Unroll(p.ring);
                     for (int i = 0; i < merged.Length; i++) merged[i] += u[i];
+                    double[] r = Series(seconds, s => p.ring[Index(s)]);
+                    for (int i = 0; i < mergedRate.Length; i++) mergedRate[i] += r[i];
                     win += p.win;
                     rate += p.rate;      // the kernel is linear, so the parts add up to the whole
                 }
-                slices.Add(new ProjectSlice($"+{rest.Count}", $"+{rest.Count}", merged, win, rate, true));
+                slices.Add(new ProjectSlice($"+{rest.Count}", $"+{rest.Count}", merged, mergedRate,
+                                            win, rate, true, -1));
             }
             return slices.ToArray();
         }
