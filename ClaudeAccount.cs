@@ -65,6 +65,39 @@ internal sealed class ClaudeInfo
     /// <summary>Whether anything at all identified a signed-in account. False → the page shows a
     /// "not signed in / API key" hint instead of a card full of dashes.</summary>
     public bool HasAccount => Plan != null || HolderEmail != null || SubscriptionType != null;
+
+    // ---- Which credentials the sessions in this profile actually use (T124) ----
+    /// <summary>How Claude Code authenticates in this profile.</summary>
+    public AuthMethod Auth = AuthMethod.None;
+    /// <summary>Where that came from, named not valued — an env var's name, a settings file, or the
+    /// CLI's own answer. A key's *value* is never read, kept or shown.</summary>
+    public string? AuthSource;
+    /// <summary>True when <see cref="Auth"/> was confirmed by <c>claude auth status</c> rather than
+    /// inferred from files and the environment.</summary>
+    public bool AuthConfirmed;
+
+    /// <summary>
+    /// Whether work done in this profile draws on the Claude subscription the tray measures. False for
+    /// an API key, Bedrock or Vertex: that usage bills elsewhere and never touches the 5h/7d windows, so
+    /// the tray's percentage does not describe what Claude Code is spending here.
+    /// </summary>
+    public bool CountsAgainstSubscription => Auth == AuthMethod.Subscription;
+}
+
+/// <summary>How a profile authenticates. Precedence is Claude Code's, measured: a completed OAuth login
+/// in the config dir wins; without one, an environment key takes over.</summary>
+internal enum AuthMethod
+{
+    /// <summary>Nothing to authenticate with — the profile has never been signed into.</summary>
+    None,
+    /// <summary>A claude.ai OAuth login: the subscription the tray's percentages are about.</summary>
+    Subscription,
+    /// <summary>An API key (env var, settings <c>env</c> block, or <c>apiKeyHelper</c>) — billed per use.</summary>
+    ApiKey,
+    /// <summary>Amazon Bedrock.</summary>
+    Bedrock,
+    /// <summary>Google Vertex AI.</summary>
+    Vertex,
 }
 
 /// <summary>
@@ -122,6 +155,7 @@ internal static class ClaudeAccount
         // is the fallback for a config that has no oauthAccount block yet.
         info.Plan ??= FriendlyPlan(info.SubscriptionType);
         info.Label = DeriveLabel(info);
+        ResolveAuth(info);
         return info;
     }
 
@@ -141,9 +175,22 @@ internal static class ClaudeAccount
         if (SamePath(configDir, HomeConfigDir)) yield return Path.Combine(Home, ".claude.json");
     }
 
+    /// <summary>
+    /// Fill <paramref name="info"/> from the profile's settings file. Both candidate paths are tried and
+    /// **the one that actually names an account wins**, rather than simply the first that parses. That
+    /// matters for the home profile: the authoritative file is <c>~/.claude.json</c>, but a
+    /// <c>~/.claude/.claude.json</c> can also exist (anything that ran with
+    /// <c>CLAUDE_CONFIG_DIR=~/.claude</c> creates one) and it is typically a near-empty stub. Taking the
+    /// first readable file made that stub shadow the real config — the page then showed a coarse
+    /// "Claude Team" from the credentials file with no holder, org or dates.
+    /// </summary>
     private static void ReadConfig(ClaudeInfo info)
     {
-        foreach (string path in ConfigPaths(info.ConfigDir))
+        List<string> paths = ConfigPaths(info.ConfigDir).ToList();
+        // Prefer a file that carries oauthAccount; fall back to the first that parses at all.
+        string? best = paths.FirstOrDefault(HasAccountBlock) ?? paths.FirstOrDefault(File.Exists);
+        if (best is null) return;
+        foreach (string path in new[] { best })
         {
             JsonDocument? doc = TryParse(path);
             if (doc is null) continue;
@@ -181,6 +228,17 @@ internal static class ClaudeAccount
         }
     }
 
+    private static bool HasAccountBlock(string path)
+    {
+        JsonDocument? doc = TryParse(path);
+        if (doc is null) return false;
+        using (doc)
+            return doc.RootElement.ValueKind == JsonValueKind.Object
+                   && doc.RootElement.TryGetProperty("oauthAccount", out JsonElement a)
+                   && a.ValueKind == JsonValueKind.Object
+                   && a.EnumerateObject().Any();
+    }
+
     // ---- .credentials.json -------------------------------------------------------------------
 
     private static void ReadCredentials(ClaudeInfo info)
@@ -201,6 +259,149 @@ internal static class ClaudeAccount
             if (oauth.TryGetProperty("scopes", out JsonElement scopes)
                 && scopes.ValueKind == JsonValueKind.Array)
                 info.ScopeCount = scopes.GetArrayLength();
+        }
+    }
+
+    // ---- Which credentials a profile actually uses (T124) ------------------------------------
+
+    /// <summary>
+    /// Work out how Claude Code would authenticate in a profile, from files and the environment only —
+    /// no process spawn, so it costs nothing to show on every render. Precedence follows what Claude
+    /// Code actually does (measured against a fresh config dir on a machine with a machine-level
+    /// <c>ANTHROPIC_API_KEY</c>): a completed OAuth login in the config dir wins, and without one an
+    /// environment key takes over. <see cref="QueryAuthStatusAsync"/> is the authoritative confirmation.
+    ///
+    /// <para>Only the *presence* of a key is ever read. No value is parsed, stored, logged or shown —
+    /// including from a settings file, where a key would be sitting in plain text.</para>
+    /// </summary>
+    private static void ResolveAuth(ClaudeInfo info)
+    {
+        if (info.HasCredentialsFile)
+        {
+            info.Auth = AuthMethod.Subscription;
+            info.AuthSource = "credentials.json";
+            return;
+        }
+
+        // A third-party provider is chosen by env/settings and replaces Anthropic's own auth entirely.
+        if (Flag(info, "CLAUDE_CODE_USE_BEDROCK", out string? src)) { info.Auth = AuthMethod.Bedrock; info.AuthSource = src; return; }
+        if (Flag(info, "CLAUDE_CODE_USE_VERTEX", out src)) { info.Auth = AuthMethod.Vertex; info.AuthSource = src; return; }
+
+        foreach (string name in new[] { "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN" })
+            if (Flag(info, name, out src)) { info.Auth = AuthMethod.ApiKey; info.AuthSource = src; return; }
+
+        // apiKeyHelper is a settings-level way to supply a key without an env var.
+        if (SettingsHas(info.ConfigDir, "apiKeyHelper")) { info.Auth = AuthMethod.ApiKey; info.AuthSource = "apiKeyHelper"; return; }
+
+        info.Auth = AuthMethod.None;
+        info.AuthSource = null;
+    }
+
+    /// <summary>Is this variable set for Claude Code in this profile — in the process environment (which
+    /// already merges machine, user and process scopes) or in the profile's <c>settings.json</c>
+    /// <c>env</c> block? Returns the *name* of where it came from, never a value.</summary>
+    private static bool Flag(ClaudeInfo info, string variable, out string? source)
+    {
+        if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(variable)))
+        {
+            source = variable;
+            return true;
+        }
+        if (SettingsEnvHas(info.ConfigDir, variable))
+        {
+            source = $"settings.json · {variable}";
+            return true;
+        }
+        source = null;
+        return false;
+    }
+
+    private static bool SettingsEnvHas(string configDir, string key)
+    {
+        JsonDocument? doc = TryParse(Path.Combine(configDir, "settings.json"));
+        if (doc is null) return false;
+        using (doc)
+            return doc.RootElement.ValueKind == JsonValueKind.Object
+                   && doc.RootElement.TryGetProperty("env", out JsonElement env)
+                   && env.ValueKind == JsonValueKind.Object
+                   && env.TryGetProperty(key, out JsonElement v)
+                   && v.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined)
+                   && (v.ValueKind != JsonValueKind.String || v.GetString() is { Length: > 0 });
+    }
+
+    private static bool SettingsHas(string configDir, string key)
+    {
+        JsonDocument? doc = TryParse(Path.Combine(configDir, "settings.json"));
+        if (doc is null) return false;
+        using (doc)
+            return doc.RootElement.ValueKind == JsonValueKind.Object
+                   && doc.RootElement.TryGetProperty(key, out JsonElement v)
+                   && v.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined);
+    }
+
+    /// <summary>
+    /// The CLI's own answer for a profile: <c>claude auth status --json</c> with that profile's
+    /// <c>CLAUDE_CONFIG_DIR</c>. This is the authoritative reading — it resolves precedence the way the
+    /// tool itself does, and it answers for setups no file read can see. It costs a Node start
+    /// (seconds), so it belongs to an explicit "check" rather than to rendering a page.
+    ///
+    /// <para>The response carries no secret: <c>loggedIn</c>, <c>authMethod</c>, <c>apiProvider</c>,
+    /// <c>apiKeySource</c> (a name, not a key), the account's org and subscription type.</para>
+    /// </summary>
+    public static async Task<(AuthMethod Auth, string? Source, string? Error)> QueryAuthStatusAsync(string configDir)
+    {
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                // Through cmd.exe so PATHEXT and the installer's shim resolve `claude` the same way a
+                // terminal would, whatever the install method.
+                FileName = "cmd.exe",
+                Arguments = "/c claude auth status --json",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            // Only override the config dir for a *non-default* profile. Setting it to the default dir
+            // makes Claude Code write a second, near-empty `<dir>/.claude.json` there (observed), which
+            // is litter this app has no business creating in somebody's config. Asking about the default
+            // profile with no override is also what a bare `claude` does, so it is the truer question.
+            if (!SamePath(configDir, HomeConfigDir) && !SamePath(configDir, ConfigDir))
+                psi.Environment["CLAUDE_CONFIG_DIR"] = configDir;
+
+            using System.Diagnostics.Process? proc = System.Diagnostics.Process.Start(psi);
+            if (proc is null) return (AuthMethod.None, null, "could not start claude");
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            string json = await proc.StandardOutput.ReadToEndAsync(cts.Token).ConfigureAwait(false);
+            await proc.WaitForExitAsync(cts.Token).ConfigureAwait(false);
+
+            using JsonDocument doc = JsonDocument.Parse(json);
+            JsonElement root = doc.RootElement;
+            bool loggedIn = root.TryGetProperty("loggedIn", out JsonElement li) && li.ValueKind == JsonValueKind.True;
+            string? method = Str(root, "authMethod");
+            string? provider = Str(root, "apiProvider");
+            string? keySource = Str(root, "apiKeySource");
+
+            AuthMethod auth = (method, provider) switch
+            {
+                (not null, _) when method!.Contains("claude.ai", StringComparison.OrdinalIgnoreCase) => AuthMethod.Subscription,
+                (not null, _) when method!.Contains("api_key", StringComparison.OrdinalIgnoreCase)
+                                   || method!.Contains("token", StringComparison.OrdinalIgnoreCase) => AuthMethod.ApiKey,
+                (_, not null) when provider!.Contains("bedrock", StringComparison.OrdinalIgnoreCase) => AuthMethod.Bedrock,
+                (_, not null) when provider!.Contains("vertex", StringComparison.OrdinalIgnoreCase) => AuthMethod.Vertex,
+                _ => loggedIn ? AuthMethod.ApiKey : AuthMethod.None,
+            };
+            // `apiKeySource` is reported even when the method in use is claude.ai (it names a key that
+            // merely *exists* in the environment), so it is only the source when a key is what is
+            // actually authenticating. Otherwise the method itself is the honest source.
+            return (auth, auth == AuthMethod.ApiKey ? keySource ?? method : method ?? provider, null);
+        }
+        catch (Exception e)
+        {
+            // A missing CLI, a timeout, a non-JSON answer: the inferred reading stands and says so.
+            return (AuthMethod.None, null, e is OperationCanceledException ? "timeout" : e.Message);
         }
     }
 

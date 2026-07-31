@@ -312,6 +312,12 @@ and what this machine is.
   set through a settings file, and anything following the `~/.claude-*` naming convention — and, when
   there is more than one, offers a picker that re-reads the whole page from that profile's own files.
   One account reached through two paths is listed once. With a single profile the picker stays hidden.
+- **Authentication** — which credentials sessions in this profile actually use, and whether that draws
+  on your subscription at all. `CLAUDE_CONFIG_DIR` separates folders but **not** environment auth: with
+  an `ANTHROPIC_API_KEY` set, a folder you've never signed into runs on that key, bills per use, and
+  never touches the 5-hour or weekly windows — so the plan, the percentages and the tray icon aren't
+  describing it. The page says so in as many words, and **Check** asks Claude Code itself
+  (`claude auth status`) for the authoritative answer. Only the *presence* of a key is ever read.
 - **Plan** — the rate-limit tier the API reports for the account, named the way you'd say it
   (*Claude Max 5x*), with the raw tier, seat and billing type underneath. A tier the app doesn't
   recognize is shown verbatim rather than hidden.

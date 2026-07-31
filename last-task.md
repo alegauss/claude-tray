@@ -105,3 +105,4 @@ here. This file is a terse index, not a memory.
 - **T120 SHIPPED** (Block N — System information page over the local Claude Code account) — 2026-07-31.
 - **T122 SHIPPED** (Block O — a profile is a config dir; discovery and the picker) — 2026-07-31.
 - **T123 SHIPPED** (Block O — the profile list editor and the per-profile Open Claude Code submenu) — 2026-07-31.
+- **T124 SHIPPED** (Block O — per-profile auth reading, and the "not your subscription" warning) — 2026-07-31.

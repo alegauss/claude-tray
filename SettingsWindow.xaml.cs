@@ -349,6 +349,68 @@ internal partial class SettingsWindow : Window
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
 
+    /// <summary>
+    /// Render the window's content to a PNG at 1.5×, off-screen, without depending on it being visible
+    /// or foreground — the same deterministic path <c>StatisticsWindow.SaveSnapshot</c> takes, and for
+    /// the same reason: the screen-copy capture script grabs whatever pixels are *on screen* in the
+    /// window's rectangle, so any app that steals focus or sits on top ends up in the file. Behind
+    /// <c>--capture-settings</c>.
+    /// </summary>
+    /// <param name="scrollBy">Device-independent pixels to scroll the visible page's ScrollViewer down
+    /// first, so a section below the fold can be captured without resizing the window.</param>
+    internal void SaveSnapshot(string path, double scrollBy = 0)
+    {
+        UpdateLayout();
+        if (scrollBy > 0 && VisiblePageScroller() is { } sv)
+        {
+            sv.ScrollToVerticalOffset(scrollBy);
+            UpdateLayout();
+        }
+        Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
+
+        var target = (FrameworkElement)Content;
+        // The window's Mica backdrop isn't part of the visual tree, so paint an opaque themed surface
+        // behind the content for the snapshot, then put it back.
+        System.Windows.Media.Brush? prev = (target as System.Windows.Controls.Panel)?.Background;
+        if (target is System.Windows.Controls.Panel panel)
+        {
+            panel.Background = TryFindResource("SolidBackgroundFillColorBaseBrush") as System.Windows.Media.Brush
+                               ?? new System.Windows.Media.SolidColorBrush(
+                                   System.Windows.Media.Color.FromRgb(0x20, 0x20, 0x20));
+            panel.UpdateLayout();
+        }
+
+        const double scale = 1.5;
+        var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(
+            (int)(target.ActualWidth * scale), (int)(target.ActualHeight * scale),
+            96 * scale, 96 * scale, System.Windows.Media.PixelFormats.Pbgra32);
+        rtb.Render(target);
+
+        if (target is System.Windows.Controls.Panel p2) p2.Background = prev;
+
+        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
+        using System.IO.FileStream fs = System.IO.File.Create(path);
+        encoder.Save(fs);
+    }
+
+    /// <summary>The ScrollViewer of whichever page is currently shown, so a capture can scroll it.</summary>
+    private System.Windows.Controls.ScrollViewer? VisiblePageScroller()
+    {
+        foreach (System.Windows.Controls.Grid pane in
+                 new[] { GeneralPane, DisplayPane, ClaudeCodePane, NotificationsPane, SystemPane, AboutPane })
+            if (pane.Visibility == Visibility.Visible)
+                return pane.Children.OfType<System.Windows.Controls.ScrollViewer>().FirstOrDefault();
+        return null;
+    }
+
+    /// <summary>Preview-only: pick a profile by index in the System page's picker, so a capture can show
+    /// a profile other than the first.</summary>
+    internal void SelectProfileForPreview(int index)
+    {
+        if (index >= 0 && index < SysProfileCombo.Items.Count) SysProfileCombo.SelectedIndex = index;
+    }
+
     // ================= Profiles (Claude Code page) =================
     // A profile is a config dir. The editor here changes only the tray's *own* record of which dirs to
     // offer, what to call them and where each opens — it never writes into a config dir, and Remove
@@ -604,6 +666,23 @@ internal partial class SettingsWindow : Window
             c.OrgRole is { } role ? ClaudeAccount.Pretty(role) : null);
         SysOrgSub.Visibility = Shown(SysOrgSub.Text);
 
+        // Which credentials this profile's sessions actually use — and, when they are not the
+        // subscription, the plain statement that the tray's percentage is not about them.
+        SysAuth.Text = AuthName(c.Auth);
+        SysAuthSource.Text = Join(
+            c.AuthSource,
+            c.AuthConfirmed ? L.T("settings.sys.authConfirmed") : L.T("settings.sys.authInferred"));
+        SysAuthSource.Visibility = Shown(SysAuthSource.Text);
+        SysAuthCheck.IsEnabled = true;
+
+        bool offSubscription = c.Auth != AuthMethod.Subscription && c.Auth != AuthMethod.None;
+        SysAuthWarnCard.Visibility = offSubscription ? Visibility.Visible : Visibility.Collapsed;
+        if (offSubscription)
+        {
+            SysAuthWarnTitle.Text = L.T("settings.sys.authWarnTitle", AuthName(c.Auth));
+            SysAuthWarnBody.Text = L.T("settings.sys.authWarnBody");
+        }
+
         SysExtra.Text = c.ExtraUsage switch
         {
             true => L.T("settings.sys.enabled"),
@@ -691,6 +770,40 @@ internal partial class SettingsWindow : Window
         prefix.Length > 0 && path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
             ? with + path[prefix.Length..]
             : path;
+
+    private static string AuthName(AuthMethod auth) => L.T(auth switch
+    {
+        AuthMethod.Subscription => "settings.sys.authSubscription",
+        AuthMethod.ApiKey => "settings.sys.authApiKey",
+        AuthMethod.Bedrock => "settings.sys.authBedrock",
+        AuthMethod.Vertex => "settings.sys.authVertex",
+        _ => "settings.sys.authNone",
+    });
+
+    // Ask the CLI itself: `claude auth status --json` under this profile's config dir. It is the
+    // authoritative answer (it resolves precedence the way Claude Code does, and covers setups no file
+    // read can see) but it costs a Node start, so it runs only when asked — and off the UI thread.
+    private async void SysAuthCheck_Click(object sender, RoutedEventArgs e)
+    {
+        ClaudeInfo c = _profiles[Math.Clamp(_profile, 0, _profiles.Count - 1)];
+        SysAuthCheck.IsEnabled = false;
+        SysAuthSource.Text = L.T("settings.sys.authChecking");
+        SysAuthSource.Visibility = Visibility.Visible;
+
+        (AuthMethod auth, string? source, string? error) = await ClaudeAccount.QueryAuthStatusAsync(c.ConfigDir);
+
+        if (error is not null)
+        {
+            // The inferred reading stands; say that the check itself failed rather than overwriting it.
+            SysAuthSource.Text = Join(c.AuthSource, L.T("settings.sys.authCheckFailed", error));
+            SysAuthCheck.IsEnabled = true;
+            return;
+        }
+        c.Auth = auth;
+        c.AuthSource = source;
+        c.AuthConfirmed = true;
+        RenderSystemInfo();
+    }
 
     private void SysReveal_Click(object sender, RoutedEventArgs e)
     {

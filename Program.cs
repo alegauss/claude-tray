@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 
@@ -299,6 +299,45 @@ internal static class Program
             return;
         }
 
+        // Dev/preview helper: render the Settings window off-screen to a PNG via RenderTargetBitmap.
+        // Args: --capture-settings <out.png> [page] [scroll=<dip>] [profile=<index>]. Preferred over the
+        // screen-copy script (scripts\Capture-Window.ps1): that one copies the pixels *on screen* inside
+        // the window's rectangle, so anything that steals focus or sits on top lands in the file.
+        if (args.Length >= 2 && args[0] == "--capture-settings")
+        {
+            string outPath = System.IO.Path.GetFullPath(args[1]);
+            string? page = args.Length >= 3 && !args[2].Contains('=') ? args[2] : null;
+            double scroll = ArgValue(args, "scroll") is { } s && double.TryParse(s, out double d) ? d : 0;
+            int profile = ArgValue(args, "profile") is { } pi && int.TryParse(pi, out int n) ? n : -1;
+
+            var previewApp = new System.Windows.Application
+            {
+                ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
+            };
+            var win = new SettingsWindow(Settings.Load(), _ => { }, page)
+            {
+                WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
+                Left = -32000,
+                Top = -32000,
+                // Off-screen there is no system backdrop to follow, so pin the theme or the snapshot
+                // renders dark text on an unpainted surface.
+                ThemeMode = System.Windows.ThemeMode.Dark,
+            };
+            win.Show();
+            if (profile >= 0) win.SelectProfileForPreview(profile);
+
+            var settle = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            settle.Tick += (_, _) =>
+            {
+                settle.Stop();
+                try { win.SaveSnapshot(outPath, scroll); Console.WriteLine("wrote " + outPath); }
+                finally { previewApp.Shutdown(); }
+            };
+            settle.Start();
+            previewApp.Run();
+            return;
+        }
+
         // Dev/preview helper: render the Statistics window off-screen to PNGs (one per tab) via
         // RenderTargetBitmap, without needing it foreground — the screen-copy capture can't see a
         // window another app covers. Args: [outBase] (default docs\_preview\stats → -5h.png/-7d.png).
@@ -359,6 +398,10 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         Application.Run(new TrayContext());
     }
+
+    /// <summary>Value of a <c>name=value</c> dev-flag argument, or null.</summary>
+    private static string? ArgValue(string[] args, string name) =>
+        args.FirstOrDefault(a => a.StartsWith(name + "=", StringComparison.OrdinalIgnoreCase))?[(name.Length + 1)..];
 
     // Headless view of TranscriptTail: turns as they land, and the cost of noticing them. Flags:
     // `--tail <seconds>` to bound the run (default 30), `--root <dir>` to tail a stand-in for
@@ -1116,8 +1159,13 @@ internal static class Program
     // `--profiles [dir...]`: the config dirs ClaudeAccount.Discover finds, in order, with what each
     // one identifies. Read-only, like the page it backs. The account uuid is truncated — it is the
     // dedupe key, and printing it whole serves nobody.
-    private static void PrintProfiles(string[] registered)
+    private static void PrintProfiles(string[] args)
     {
+        // `--check` also asks the CLI itself (`claude auth status --json`) per profile — the same
+        // authoritative confirmation the page's Check button runs, and the only way to exercise it
+        // without clicking.
+        bool check = args.Any(a => a is "--check");
+        string[] registered = args.Where(a => !a.StartsWith("--")).ToArray();
         List<ClaudeInfo> profiles = ClaudeAccount.Discover(registered);
         Console.WriteLine($"Claude Code profiles: {profiles.Count}"
                           + (registered.Length > 0 ? $" ({registered.Length} registered dir(s) passed in)" : ""));
@@ -1130,6 +1178,19 @@ internal static class Program
             Console.WriteLine($"    account  {(p.AccountUuid is { Length: > 8 } u ? u[..8] + "…" : p.AccountUuid ?? "-")}"
                               + $"   org {p.OrgName ?? "-"}   signed in {(p.TokenExpires is { } e ? e.ToString("g") : "-")}");
             Console.WriteLine($"    projects {p.ProjectCount}   cli {p.CliVersion ?? "-"}   install {p.InstallMethod ?? "-"}");
+            Console.WriteLine($"    auth     {p.Auth}{(p.AuthSource is { } s ? $" (from {s})" : "")}"
+                              + (p.CountsAgainstSubscription
+                                  ? "   counts against the subscription"
+                                  : "   !! does NOT count against the subscription the tray measures"));
+            if (check)
+            {
+                (AuthMethod auth, string? source, string? error) =
+                    ClaudeAccount.QueryAuthStatusAsync(p.ConfigDir).GetAwaiter().GetResult();
+                Console.WriteLine(error is null
+                    ? $"    confirmed {auth}{(source is { } cs ? $" (from {cs})" : "")}"
+                      + (auth == p.Auth ? "   — matches the local reading" : "   — DIFFERS from the local reading")
+                    : $"    confirmed -   (claude auth status failed: {error})");
+            }
             // Exactly what the tray submenu would do for this profile — same helpers the click uses.
             string workDir = TrayContext.WorkDirFor(p, Settings.Load().ClaudeCodeDirectory);
             Console.WriteLine($"    menu     \"{(p.HasCredentialsFile ? p.Label : L.T("menu.profileNoLogin", p.Label))}\""

@@ -132,11 +132,11 @@
 > supported seam for the parts that do need a write — the same "hand the edit to Claude Code" that T77
 > settled for memory. Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §VII.
 >
-> **Shipped: T122, T123** — the profile model and discovery (`ClaudeAccount.Discover`, `--profiles`) with
+> **Shipped: T122, T123, T124** — the profile model and discovery (`ClaudeAccount.Discover`, `--profiles`) with
 > the picker on the System information page, then the list editor on the Claude Code page and the
-> per-profile `Open Claude Code` submenu. See [CHANGELOG.md](CHANGELOG.md) Block O.
+> per-profile `Open Claude Code` submenu, then the per-profile auth reading with the
+> off-the-subscription warning. See [CHANGELOG.md](CHANGELOG.md) Block O.
 
-- 📋 **T124** (deps: T120) **Say which auth the sessions are actually using** — found while testing profile isolation and **wrong today, independent of profiles**: `CLAUDE_CONFIG_DIR` isolates files but *not* environment auth. With a machine-level `ANTHROPIC_API_KEY`, a config dir without a completed OAuth login reports `authMethod: api_key` — that work bills to the Console and never touches the subscription's 5h/7d windows, while the tray keeps reading the OAuth token and reporting a near-idle subscription. Surface `authMethod` per profile (from `claude auth status --json`, which also answers where a file read cannot: API key, Bedrock, Vertex) and say plainly when the number does not describe what Claude Code is spending. → §VII.3
 - 📋 **T125** (deps: T122, T124) **Monitor every profile, not just the first** — one heartbeat per profile per interval (the Settings cost estimate must multiply and say so, since each call spends *that* account's quota), and every local store keyed by `accountUuid`: `usage-history.jsonl`, `HourlyUsage`, `ContextHistory` and the nudge ledger are single-series today, so profile B's usage would otherwise contaminate profile A's projection and its week-over-week comparison. The icon shows one chosen profile; the tooltip and Statistics carry the rest, and a per-profile auth failure must name the profile instead of a generic "not authenticated". This is the block's real work — the UI is the easy half. → §VII.4
 - 💭 **T126** (deps: T125) **The icon follows the profile you're working in** — `TranscriptTail` already watches transcripts byte-for-byte; with N profiles it can see *which* config dir just had a turn land and point the icon at that one, so nobody clicks "switch" at all. Manual override stays. Open question is the icon itself: at 16px there is no room for a label (the number fills it), so the profile has to read from the tooltip and menu, with at most a small per-profile colour dot — and only if it survives being looked at next to the projection colour, which already means something. → §VII.5
 

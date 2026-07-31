@@ -638,6 +638,35 @@
                                        Text="{local:Loc settings.sys.noAccount}" />
                         </Border>
 
+                        <!-- Shown when this profile's sessions do NOT draw on the subscription (an API
+                             key, Bedrock, Vertex): the tray's percentage then describes a quota nothing
+                             is spending. Accent-bordered because it contradicts the number beside it. -->
+                        <Border x:Name="SysAuthWarnCard" Visibility="Collapsed"
+                                CornerRadius="8" Padding="16,13" Margin="0,0,0,10"
+                                Background="{DynamicResource CardBackgroundFillColorSecondaryBrush}"
+                                BorderThickness="1"
+                                BorderBrush="{DynamicResource AccentFillColorDefaultBrush}">
+                            <!-- Grid, not a horizontal StackPanel: a StackPanel measures children with
+                                 infinite width, so wrapping text would be clipped at the card's edge
+                                 instead of wrapping to it. -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="⚠" FontSize="18"
+                                           VerticalAlignment="Top" Margin="0,0,12,0"
+                                           Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock x:Name="SysAuthWarnTitle" FontWeight="SemiBold" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <TextBlock x:Name="SysAuthWarnBody" Margin="0,4,0,0" TextWrapping="Wrap"
+                                               FontSize="12" LineHeight="17"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
                         <Border x:Name="SysAccountCard" Style="{StaticResource GroupCard}">
                             <StackPanel>
                                 <local:SettingsRow Header="{local:Loc settings.sys.plan}"
@@ -645,6 +674,24 @@
                                     <StackPanel>
                                         <TextBlock x:Name="SysPlan" Style="{StaticResource ValueText}" />
                                         <TextBlock x:Name="SysPlanTier" Style="{StaticResource ValueSubText}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <!-- Which credentials the sessions in this profile actually use. Inferred
+                                     from files + environment on render; [Check] asks the CLI itself. -->
+                                <local:SettingsRow Header="{local:Loc settings.sys.auth}"
+                                                   Description="{local:Loc settings.sys.authDesc}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock x:Name="SysAuth" Style="{StaticResource ValueText}" />
+                                            <TextBlock x:Name="SysAuthSource" Style="{StaticResource ValueSubText}" />
+                                        </StackPanel>
+                                        <Button x:Name="SysAuthCheck" MinWidth="86" Padding="12,5"
+                                                Margin="14,0,0,0" VerticalAlignment="Center"
+                                                Click="SysAuthCheck_Click"
+                                                Content="{local:Loc settings.sys.authCheck}" />
                                     </StackPanel>
                                 </local:SettingsRow>
 

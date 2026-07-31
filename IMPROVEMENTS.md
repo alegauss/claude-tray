@@ -382,26 +382,6 @@ And "switching" splits into three axes that cost wildly different amounts:
 The third is a hard no rather than a "later", which is why it sits in Non-goals: nothing about a GUI
 changes a live process's environment.
 
-### §VII.3 Environment auth defeats profile isolation (T124)
-
-Found while verifying the profile model, and **wrong in the shipped app today, with or without profiles**:
-`CLAUDE_CONFIG_DIR` isolates *files*, not *authentication*. On a machine with a machine-level
-`ANTHROPIC_API_KEY`, a config dir with no completed OAuth login answers
-`{"loggedIn":true,"authMethod":"api_key","apiKeySource":"ANTHROPIC_API_KEY"}`. Precedence, measured: a
-completed claude.ai login in the config dir wins; without one, the environment key takes over.
-
-The consequence is a silent misreport. Work done under an API key bills to the Console and never
-touches the subscription's 5h/7d windows — while the tray keeps reading the OAuth token from
-`.credentials.json` and drawing a near-idle subscription. The icon can honestly say 5% while somebody
-works all day.
-
-So the reading the page owes the user is **which auth each profile is actually on**, plus a plain
-sentence when it is `api_key`: those sessions do not draw on the subscription, so the number beside it
-does not describe what Claude Code is spending. `claude auth status --json` is the right source, because
-it also answers for API-key, Bedrock and Vertex setups where there is no `oauthAccount` to read. It
-costs a process spawn, so it belongs to an explicit refresh rather than to every page render — §VI's
-reason for not shelling out to `claude --version` still holds.
-
 ### §VII.4 Per-profile monitoring is a store problem (T125)
 
 The UI half is easy; the arithmetic half is not. Every local store assumes a single series:
