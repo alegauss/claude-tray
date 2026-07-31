@@ -38,8 +38,8 @@
   magnitude half of K's own T104, which remains open for the per-column hover.
 - Block **N** (T120–T121, created 2026-07-31) opens on a **user question** rather than a plan — "can
   the About page show the plan, the holder and the config directory?" — and became its own page
-  instead of an About addition: About is the project's identity, this is the *machine's*. T121 stays
-  open because the page cannot be screenshotted from a real account (see IMPROVEMENTS §VI.1).
+  instead of an About addition: About is the project's identity, this is the *machine's*. Closed by
+  T121, the fixture account that made the page publishable.
 - Block **O** (T122–T127, created 2026-07-31; **T127 split out of T125** while building it —
   its design already ordered "keying first, polling second", and the two halves verify
   independently, so the keying shipped alone rather than as half a large commit) is a *new* block rather than a Block N second pass: N is
@@ -171,3 +171,4 @@ here. This file is a terse index, not a memory.
 - **T132 SHIPPED** (Block P — `Program.cs` splits into `Main`, `src/Cli/*` and `Tray/TrayContext.cs`) — 2026-07-31.
 - **T133 SHIPPED** (Block P — the two big code-behinds split into `partial` files per surface) — 2026-07-31.
 - **T134 SHIPPED** (Block P — `SettingsWindow`'s code-behind splits one file per page; markup untouched) — 2026-07-31.
+- **T121 SHIPPED** (Block N — a fixture account, so the System information page can be screenshotted) — 2026-07-31.

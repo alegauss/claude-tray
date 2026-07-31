@@ -43,10 +43,15 @@ internal partial class SettingsWindow : Window
 
     /// <summary>One discovery sweep per window (or per profile-list edit), shared by the editor here and
     /// the System information picker — both used to run their own, which doubled the disk work of
-    /// opening Settings for no benefit.</summary>
-    private List<ClaudeInfo> DiscoverProfiles() => _discovered ??= ClaudeAccount.Discover(_settings.Profiles);
+    /// opening Settings for no benefit. A preview asked for the account fixture (T121) gets it here, so
+    /// no page has to know whether it is looking at this machine.</summary>
+    private List<ClaudeInfo> DiscoverProfiles() =>
+        _sampleProfiles ?? (_discovered ??= ClaudeAccount.Discover(_settings.Profiles));
 
     private List<ClaudeInfo>? _discovered;
+
+    /// <summary>The synthetic profiles behind <c>--settings --sample</c>, or null on a real machine.</summary>
+    private readonly List<ClaudeInfo>? _sampleProfiles;
 
     private void InvalidateProfiles() => _discovered = null;
 

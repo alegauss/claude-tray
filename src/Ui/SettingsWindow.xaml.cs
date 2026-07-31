@@ -21,9 +21,17 @@ internal partial class SettingsWindow : Window
     private static double MinMinutes => Settings.MinRefreshSeconds / 60.0;
     private static double MaxMinutes => Settings.MaxRefreshSeconds / 60.0;
 
-    public SettingsWindow(Settings current, Action<Settings> onSave, string? initialPage = null)
+    /// <param name="sampleProfiles">Preview-only (T121): render the profile picker, the Claude Code page
+    /// and the System information page over the synthetic <see cref="AccountFixture"/> accounts instead
+    /// of this machine's, so the page can be screenshotted for the README and the site.</param>
+    /// <param name="revealIdentity">Preview-only: open with the holder and the paths already revealed.
+    /// Safe to publish only together with <paramref name="sampleProfiles"/>.</param>
+    public SettingsWindow(Settings current, Action<Settings> onSave, string? initialPage = null,
+                          List<ClaudeInfo>? sampleProfiles = null, bool revealIdentity = false)
     {
         _onSave = onSave;
+        _sampleProfiles = sampleProfiles;
+        _revealIdentity = revealIdentity;
         // Edit a copy so closing without saving leaves the caller's instance untouched. The copy is a
         // total one (Settings.Clone, a JSON round-trip) rather than a hand-written field list, because
         // ApplySettings writes the whole model back: a field missing from the list would start at its

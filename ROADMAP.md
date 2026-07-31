@@ -103,16 +103,6 @@
 - 💭 **T107** (deps: T98) **Say what the cache re-read is costing** — measured on real traffic: ~30,000 tok/s of cache read against ~150 tok/s of real work, a 200× ratio the app now computes and shows nobody. That number is what a large eager context costs *per turn*, which makes it the missing link between this block and the Context Load Inspector. → §V.12
 - 💭 **T108** (deps: T99) **Move the `--stats live` fixture out of the code-behind** — the synthetic three minutes behind the published screenshot is hand-shaped inside `StatisticsWindow`, and two tasks now depend on it. It belongs beside `ContextFixture`. → §V.13
 
-## Block N — System information ("which plan am I actually on?")
-
-> The account facts a Claude Code user has to `cat ~/.claude.json | jq` for — the plan behind the
-> rate limit, who the login belongs to, where the config lives, which CLI is installed — are all
-> already on disk, and the tray already reads that directory for everything else. **T120 shipped**
-> the Settings page over them (`ClaudeAccount.cs`, `--settings System`): see
-> [CHANGELOG.md](CHANGELOG.md) Block N. What it stops short of is a *publishable* picture of itself.
-
-- 📋 **T121** (deps: T120) **A fixture account so the page can be screenshotted** — every other window has a published shot; this one has none, because the only account on a real machine is the developer's, and masking hides the name and the email but not the organization or its mail domain. `ContextFixture` already builds a throwaway `~/.claude` for exactly this reason; the same idea needs a synthetic `.claude.json`/`.credentials.json` pair (a Max 20x personal account and a Team seat, so both the with-org and no-org layouts render) behind a `--settings System --sample`, and then the README and the site block get their image. → §VI.1
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

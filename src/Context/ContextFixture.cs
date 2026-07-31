@@ -29,29 +29,9 @@ internal static class ContextFixture
 
     private static string ReposRoot => Path.Combine(Base, "repos");
 
-    /// <summary>
-    /// Prefer a location whose path does not contain the user's name, because fixture screenshots get
-    /// published — the whole point of the fixture is that nothing identifying ends up in an image.
-    /// Falls back to the temp directory when the public folder isn't writable.
-    /// </summary>
-    private static string Base
-    {
-        get
-        {
-            string? shared = Environment.GetEnvironmentVariable("PUBLIC");
-            if (shared is { Length: > 0 } && Directory.Exists(shared))
-            {
-                string candidate = Path.Combine(shared, "ClaudeTray-sample");
-                try
-                {
-                    Directory.CreateDirectory(candidate);
-                    return candidate;
-                }
-                catch { /* not writable — fall through */ }
-            }
-            return Path.Combine(Path.GetTempPath(), "ClaudeTray-sample");
-        }
-    }
+    /// <summary>Somewhere the user's name isn't in the path, because fixture screenshots get published —
+    /// see <see cref="SampleRoot"/>, which <see cref="AccountFixture"/> asks the same question of.</summary>
+    private static string Base => SampleRoot.For("ClaudeTray-sample");
 
     /// <summary>Create the fixture and return the root to scan. Throws only if the temp dir is unusable.</summary>
     public static string Build(DateTime nowUtc)

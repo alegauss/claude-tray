@@ -246,7 +246,8 @@ internal static class Program
             ApplicationConfiguration.Initialize();
             _ = new System.Windows.Application { ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown };
             WpfInputBridge.Install();
-            var trayHosted = new SettingsWindow(Settings.Load(), _ => { }, args.Length >= 2 ? args[1] : null);
+            var trayHosted = new SettingsWindow(Settings.Load(), _ => { }, PageArg(args),
+                SampleProfiles(args), args.Contains("--reveal"));
             trayHosted.Show();
             trayHosted.Activate();
             Application.Run();
@@ -256,10 +257,13 @@ internal static class Program
         // Dev/preview helper: open just the Settings window, standalone, so the UI can be launched
         // and screenshotted deterministically without going through the tray menu. Note the pump: this
         // is a WPF Application.Run, so it cannot see a WinForms-hosting input bug — `--settings-tray`.
+        // `--sample` renders it over the synthetic accounts instead of this machine's, and `--reveal`
+        // opens with the holder unmasked — the pair behind the published System information shot (T121).
         if (args.Length >= 1 && args[0] == "--settings")
         {
             var previewApp = new System.Windows.Application();
-            var win = new SettingsWindow(Settings.Load(), _ => { }, args.Length >= 2 ? args[1] : null);
+            var win = new SettingsWindow(Settings.Load(), _ => { }, PageArg(args),
+                SampleProfiles(args), args.Contains("--reveal"));
             previewApp.Run(win);
             return;
         }
@@ -372,7 +376,7 @@ internal static class Program
         if (args.Length >= 2 && args[0] == "--capture-settings")
         {
             string outPath = System.IO.Path.GetFullPath(args[1]);
-            string? page = args.Length >= 3 && !args[2].Contains('=') ? args[2] : null;
+            string? page = PageArg(args.Skip(1).ToArray());
             double scroll = ArgValue(args, "scroll") is { } s && double.TryParse(s, out double d) ? d : 0;
             int profile = ArgValue(args, "profile") is { } pi && int.TryParse(pi, out int n) ? n : -1;
 
@@ -380,7 +384,8 @@ internal static class Program
             {
                 ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
             };
-            var win = new SettingsWindow(Settings.Load(), _ => { }, page)
+            var win = new SettingsWindow(Settings.Load(), _ => { }, page,
+                SampleProfiles(args), args.Contains("--reveal"))
             {
                 WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
                 Left = -32000,
@@ -475,6 +480,29 @@ internal static class Program
     /// <summary>Value of a <c>name=value</c> dev-flag argument, or null.</summary>
     private static string? ArgValue(string[] args, string name) =>
         args.FirstOrDefault(a => a.StartsWith(name + "=", StringComparison.OrdinalIgnoreCase))?[(name.Length + 1)..];
+
+    /// <summary>Which Settings page a preview asked for: the first bare word after the command itself,
+    /// so the <c>--</c> flags and the <c>name=value</c> ones can be given in any order without one of
+    /// them being read as a page name.</summary>
+    private static string? PageArg(string[] args) =>
+        args.Skip(1).FirstOrDefault(a => !a.StartsWith("--") && !a.Contains('='));
+
+    /// <summary>
+    /// The account fixture behind <c>--sample</c> (T121): two synthetic profiles — a personal Max 20x
+    /// and a Team seat — read through the real <see cref="ClaudeAccount"/> path, so the System
+    /// information page can be screenshotted without a real login on screen. Null without the flag,
+    /// which is every non-preview run.
+    /// </summary>
+    private static List<ClaudeInfo>? SampleProfiles(string[] args)
+    {
+        if (!args.Contains("--sample")) return null;
+        try { return AccountFixture.Build(DateTimeOffset.UtcNow.UtcDateTime); }
+        catch (Exception e)
+        {
+            Console.WriteLine("error building the sample account fixture: " + e.Message);
+            return null;
+        }
+    }
 
 
 

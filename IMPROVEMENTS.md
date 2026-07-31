@@ -328,25 +328,3 @@ reproducible; the shaping lives inline in `StatisticsWindow.RenderDemoLive`. Two
 it, and `ContextFixture` is where this repo already keeps deterministic stand-in data. Pure
 housekeeping — no behaviour change — and worth doing before a third caller appears.
 
-
----
-
-## §VI — System information (Block N)
-
-### §VI.1 A fixture account, so the page can be published (T121)
-
-Every other window in this repo has a screenshot in the README and on the site. The System
-information page cannot have one from a real machine: masking the holder hides the name and the local
-part of the email, but the **organization name and the mail domain are the reading itself** — that is
-the point of the row — and on this developer's machine the organization is a client. The same reason
-`ContextFixture` exists (real project names are client names) applies one directory up.
-
-What is needed is a synthetic `.claude.json` / `.credentials.json` pair behind `--settings System
---sample`, built the way `ContextFixture` builds its tree: written to a throwaway directory, never
-near the real one, and pointed at through the same `CLAUDE_CONFIG_DIR`-style seam `ClaudeAccount`
-already resolves. Two accounts are worth fixing, because they are the two layouts the page renders —
-a **personal Max 20x** login (no organization: the row collapses) and a **Team seat** (organization
-plus role). A third case, no OAuth account at all, needs no fixture: an empty directory produces it.
-
-Only then do the README section and the site block get their image; until they do, both describe the
-page in words, which is why T120 shipped without a shot.

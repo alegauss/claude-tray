@@ -54,6 +54,19 @@ window's rectangle to a PNG, and kills the process.
 
 4. **Iterate**: edit the XAML, rebuild, recapture, re-read — until it's right. Only then report done.
 
+## A published shot of System information must use the fixture
+
+`--settings System` renders **this machine's** login. Masking hides the holder's name and the local
+part of the address, but the organization and its mail domain *are* the reading — so any screenshot of
+that page destined for the README or `docs/` is taken over `AccountFixture` instead:
+
+```
+ClaudeTray.exe --capture-settings docs\system.png System --sample [--reveal] [profile=1] --lang en
+```
+
+`--sample` swaps in two synthetic profiles (a personal Max 20x and a Team seat, `profile=1`), and
+`--reveal` opens with the holder unmasked — safe only together with `--sample`.
+
 ## A screenshot cannot see a keyboard bug
 
 `--settings` runs a **WPF** `Application.Run`; the tray runs a **WinForms** pump and only shows the WPF

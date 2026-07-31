@@ -369,6 +369,10 @@ for your default profile and for `~/.claude`, where that command would be the wr
 hand: which plan this login is on, who it belongs to, where Claude Code keeps its configuration,
 and what this machine is.
 
+<div align="center">
+<img src="docs/system.png" alt="Settings → System information: the profile picker, the plan, which credentials the profile uses, and a masked account holder" width="88%">
+</div>
+
 - **Profile** — Claude Code keeps one account per **configuration folder**, so several logins on one
   machine means several folders (`CLAUDE_CONFIG_DIR`). The tray finds them all — the default one, any
   set through a settings file, and anything following the `~/.claude-*` naming convention — and, when
@@ -397,6 +401,14 @@ and what this machine is.
   .NET runtime and the architecture — the lines a bug report asks for.
 - **Copy for a bug report** — the whole page as plain text, exactly as displayed: a masked holder
   stays masked in the clipboard too.
+
+<div align="center">
+<img src="docs/system-account.png" alt="The Claude account card with the holder revealed: plan and seat, credentials in use, name and email, organization and role, extra usage" width="88%">
+</div>
+
+> Both shots are of a **sample account** — a fictional Team seat the app builds on demand, which is how
+> this page gets published at all: masking hides a name and the local part of an address, but an
+> organization and its mail domain *are* the reading. The second one is the same page after **Show**.
 
 Every reading comes from what Claude Code already keeps on your disk (`.claude.json`,
 `.claude/.credentials.json`): no API call, nothing written, no transcript touched — and no secret
