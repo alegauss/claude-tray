@@ -1,10 +1,10 @@
-# Last task number — `T128` · next block letter — `P`
+# Last task number — `T134` · next block letter — `Q`
 
-> **Single source of truth for the next free task number.** The next new task is `T129`; after
+> **Single source of truth for the next free task number.** The next new task is `T135`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `P`** (Block **O** = Profiles — several Claude Code logins on one machine,
-> switched by launching with a different `CLAUDE_CONFIG_DIR`; created 2026-07-31).
+> **Next block letter — `Q`** (Block **P** = Project layout — the flat root becomes `src/` + `build/`,
+> and the four oversized files split; created 2026-07-31).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -52,6 +52,14 @@
 - Block **M** (T113, created 2026-07-29) is a one-task block on the *window's* chrome rather than a
   fourth Block K item: K is the live strip, and the method note it hid behind an ⓘ describes every
   number in the window. Block L set the precedent that a block may hold a single task.
+- Block **P** (T129–T134, created 2026-07-31) is the first block about the **repo** rather than the app:
+  57 entries in a flat root, and four files past the point where one file is one idea. It carries no
+  dependency on any earlier block and every task in it is rename + reference fix with **zero behaviour
+  change** — a Block P commit that alters what the app does is a mistake. T129–T131 move files
+  (sources / windows / release scripts, split by *failure mode*: compiler, generated XAML URIs, CI),
+  T132–T134 split the oversized ones. §VIII.0 lists the four things that must not move; `lang/` is the
+  sharp one — its resource names are path-derived, so moving it breaks localization at runtime with a
+  green build.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 

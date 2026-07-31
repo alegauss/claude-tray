@@ -395,3 +395,152 @@ per-profile colour dot — and that dot has to survive being looked at beside th
 already carries meaning. Nothing here gets promised before it has been rendered and screenshotted. It is
 not the animated tray hint T101 was dropped for: a static per-profile mark needs no permanent tail
 (T125's polling already knows the profiles) and does not animate.
+
+---
+
+## §VIII — Project layout (Block P)
+
+### §VIII.0 The problem, and the four things that must not move
+
+The repo root holds **57 entries**: 33 `.cs`, 4 `.xaml`, the icon, the manifest, the csproj, the
+installer script, five release scripts, and ten markdown/config files. A flat listing that size carries
+no information — it does not say which files draw the tray, which are windows, which read `~/.claude`,
+which talk to the API. The only map is the file-map table in `AGENTS.md`, and a hand-maintained table
+is a weaker guarantee than a directory that is correct by construction.
+
+The target:
+
+```
+src/Context/    ContextScanner ContextUsage ContextRules ContextReport ContextPrompt
+                ContextHistory ContextNudges ContextFixture TokenEstimate
+src/Usage/      ApiClient UsageReport UsageHistory HourlyUsage BurnTracker
+                LiveRate LiveChart UsageInsights ActivityProfile ActivityShape TranscriptTail
+src/Profiles/   ClaudeAccount ProfileStore Settings
+src/Core/       Localization SafeWalk
+src/Tray/       Program TrayContext IconRenderer Updater
+src/Cli/        the headless printers (T132)
+src/Ui/         SettingsWindow StatisticsWindow ContextWindow ToastWindow (+ SettingsRow)
+build/          installer.iss build*.cmd update-release.* update-winget.ps1 winget/
+```
+
+Root keeps exactly what has to be there or is read by a human first: `ClaudeTray.csproj`,
+`app.manifest`, `ClaudeTray.ico`, `lang/`, `docs/`, `scripts/`, `.github/`, `README`, `AGENTS`,
+`LICENSE` and the five roadmap docs.
+
+Four decisions are **binding for the whole block**, because each one is a way the restructure could
+quietly cost more than it returns:
+
+1. **The namespace stays flat `ClaudeTray`** — no folder-derived namespaces. Folder namespaces would
+   add a `using` to most of the 33 files and churn every cross-type reference, turning a set of pure
+   renames into a diff nobody can review. The folders exist for the person running `ls`; the compiler
+   does not need to agree with them. (`LiveRate.cs` is the one file without the file-scoped namespace
+   declaration — worth normalising while it moves.)
+2. **`lang/` never moves.** The embedded resource name is derived from the path: `lang\en.json` becomes
+   `ClaudeTray.lang.en.json`, which is exactly the string `Localization.cs` matches at startup. Under
+   `src/lang/` every resource is silently renamed and `L` finds nothing — a runtime failure a green
+   build does not catch, in the one subsystem every string in the app goes through.
+3. **The five roadmap docs stay at the root**, per the `roadmap-docs` skill: `docs/` is the published
+   GitHub Pages site, not a place for internal engineering docs.
+4. **The csproj stays at the root and should need no edit.** The SDK globs `**/*.cs` and `**/*.xaml`,
+   so new folders are picked up for free. If a move turns out to require a csproj change, that is the
+   signal the move is wrong (case 2 above is exactly this) — not an invitation to hand-write
+   `<Compile Include>` items.
+
+And one rule about scope: **every Block P task is rename + reference fix, with zero behaviour change.**
+The value of this block is that its diffs are boring and its risk is a build error rather than a bug.
+A file that gets "improved while it was open" destroys that property — the improvement becomes a task in
+whichever block owns that subsystem.
+
+### §VIII.1 The non-UI sources move (T129)
+
+28 files, five folders, one commit: splitting the mechanical move by family would leave the repo
+half-migrated between commits for no gain in safety, since the namespace is flat and the compiler is
+the gate either way. The grouping follows the seams the code already has — `Context*` is one subsystem
+with one entry point, the usage/pacing family is another, `ClaudeAccount`/`ProfileStore`/`Settings` are
+the profile model Block O built, and `Localization`/`SafeWalk` are the two helpers with no subsystem of
+their own.
+
+`AGENTS.md`'s file map is part of this task, not a follow-up: it gets grouped by folder, and it gains
+the one rule that keeps the root from filling up again — **a new file goes in the folder of the
+subsystem it belongs to; the root is for the project, not for code.**
+
+The gate is a build plus the headless smoke set (`--context`, `--activity`, `--profiles`, `--tail`),
+because those paths touch every moved family and cost seconds.
+
+### §VIII.2 The windows move (T130)
+
+Separate from T129 because the failure mode is different. A `.xaml` compiled as a `Page` gets a
+generated `InitializeComponent` whose `Uri` is **derived from the file's path**, so moving markup
+rewrites generated code — and anything that had hardcoded a `pack://application:,,,/…` path to a window
+or a resource dictionary would break in a way the build does not necessarily catch. Measured before
+planning this: the repo hardcodes **no** `pack://` URI and has no `ResourceDictionary Source=` in any
+window, so the generated code absorbs the move on its own.
+
+That is a prediction, not a proof, so the gate is not a green build: it is a `preview-ui` screenshot of
+all four windows (Settings across its pages, Statistics, Context, Toast), per the AGENTS visual
+verification loop.
+
+### §VIII.3 The build and release scripts move (T131)
+
+Seven root entries exist to *ship* the app, not to build it in a dev loop, and they are the ones a
+reader of the root never wants: `installer.iss`, `build.cmd`, `build-installer.cmd`,
+`update-release.cmd`, `update-release.ps1`, `update-winget.ps1`, `winget/`.
+
+Three things hold references that must move with them:
+
+- `installer.iss` resolves `bin\Release\…\publish`, `SetupIconFile=ClaudeTray.ico` and `OutputDir=dist`
+  against **its own** directory — all three become `..\`-relative.
+- `.github/workflows/build.yml` runs `ISCC.exe installer.iss` and `./update-winget.ps1` from the repo
+  root. CI is the only consumer that cannot be fixed by reading an error message locally, so it is the
+  part to change first and watch.
+- `README.md` (build/release section) and `STRATEGY.md` §III quote the paths, and README is a
+  user-facing surface: somebody building from source follows those lines literally.
+
+The `.cmd` files already resolve their siblings through `%~dp0`, so they keep working once they move
+together — that is why they move as one group rather than one at a time. `scripts/` is deliberately
+left alone: it holds the screenshot/capture helpers, which are a dev tool, not the release path.
+
+### §VIII.4 `Program.cs` is two programs (T132)
+
+2,524 lines and 130 KB in one file, and the split is already visible in the structure: `Main` dispatches
+on `args`, then ~1,000 lines of **headless printers** (`PrintContext`, `PrintActivity`,
+`PrintMeasuredActivity`, `PrintGrid`, `PrintLive`, `PrintTail`, `PrintProfiles`, `PrintFindings`,
+`PrintPrompt`, `PrintUsage`, `PrintCalibration`, `WriteContextReport`, plus `SimulateReset`,
+`CaptureToast`, `RenderTest`, `MakeIcon`) run and exit, and ~1,080 lines of `TrayContext` — menu, poll
+timer, settings apply, tooltip, icon render — are the actual resident app. The two share almost
+nothing but the process.
+
+So: `Tray/Program.cs` keeps `Main`, the dispatch table and `ArgValue`; `src/Cli/` gets one file per flag
+family (context, activity, live/tail, profiles, fixtures/captures) with the small formatting helpers
+(`Kb`, `Clip`, `Spark`, `Shade`, `Mode`, `StateWord`) beside their users; `Tray/TrayContext.cs` gets the
+resident app. Moved verbatim — this task must not "clean up" a printer on the way past (§VIII.0).
+
+A pleasant side effect worth stating because it is the actual argument: the headless CLI is where every
+new subsystem gets its first entry point, and it is currently the part of the codebase hardest to open.
+
+### §VIII.5 One window, several surfaces, one file (T133)
+
+`ContextWindow.xaml.cs` is 1,369 lines and **7 types**; `StatisticsWindow.xaml.cs` is 1,269 lines and
+carries the session tab, the week tab, the throughput tab, the activity shape, the method popup and now
+the profile selector. Both grew a tab at a time, and each tab's handlers, formatting and state are
+interleaved with the others' — the file is where a change to the throughput chart has to be found among
+the projection code.
+
+`partial class` files per surface (`StatisticsWindow.Throughput.cs`, `StatisticsWindow.Week.cs`, …) keep
+one class and one XAML while giving each surface a file; the helper types that are not the window move
+out to their own files under the folder that owns them (a chart model belongs with `Usage/`, not with a
+window). No XAML changes, so the screenshot gate is a regression check rather than a review.
+
+### §VIII.6 Six settings pages in one markup file (T134)
+
+`SettingsWindow.xaml` is 1,019 lines: ~170 lines of shared styles (the settings-row pattern, the
+read-only value pair) followed by six visibility-toggled page `Grid`s. It is the file most likely to be
+edited by whoever adds a setting, and finding a page in it means scrolling past five others.
+
+Marked as an idea rather than designed, because the obvious move has a real cost. A `UserControl` per
+page separates the pages but puts each one's styles *out of scope* unless they are hoisted into a shared
+`ResourceDictionary` — which is a second file to keep in sync and a level of indirection the current
+single file does not have. The alternatives worth weighing before touching it: a `ResourceDictionary` per
+page with the pages staying in one window; or leaving the markup alone and only splitting the
+**code-behind** (T133's approach), which addresses most of the same pain with none of the styling risk.
+Whichever wins, the six pages each need a screenshot afterwards, in at least one non-English language.
