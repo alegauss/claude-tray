@@ -1274,12 +1274,17 @@ internal static class Program
             string workDir = TrayContext.WorkDirFor(p, Settings.Load().ClaudeCodeDirectory);
             Console.WriteLine($"    menu     \"{(p.HasCredentialsFile ? p.Label : L.T("menu.profileNoLogin", p.Label))}\""
                               + $" -> {TrayContext.LaunchCommandFor(p)}");
-            // Whether the launch overrides the config dir at all: for the profile a bare `claude`
-            // already uses, setting it would run the session against a near-empty state file (T136).
+            // What the launch does to the config dir — the three cases, because "nothing" and "remove
+            // the inherited one" look identical from the outside and mean opposite things (T144).
             Console.WriteLine("             "
-                              + (ClaudeAccount.NeedsConfigDirOverride(p.ConfigDir)
-                                  ? $"CLAUDE_CONFIG_DIR={p.ConfigDir}"
-                                  : "no CLAUDE_CONFIG_DIR — this is the dir a bare `claude` uses")
+                              + ClaudeAccount.ActionFor(p.ConfigDir) switch
+                              {
+                                  ClaudeAccount.ConfigDirAction.Set => $"CLAUDE_CONFIG_DIR={p.ConfigDir}",
+                                  ClaudeAccount.ConfigDirAction.Unset =>
+                                      "CLAUDE_CONFIG_DIR removed — inherited "
+                                      + $"{Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR")} would select another profile",
+                                  _ => "no CLAUDE_CONFIG_DIR — this is the dir a bare `claude` already uses",
+                              }
                               + $"   cwd {workDir}"
                               + (Directory.Exists(workDir) ? "" : "  (missing — OS default applies)"));
             Console.WriteLine();
@@ -2741,16 +2746,16 @@ internal sealed class TrayContext : ApplicationContext
                 FileName = "cmd.exe",
                 Arguments = command,
             };
-            // Only a *non-default* profile needs the override, and setting it for the default one is
-            // actively harmful: Claude Code then runs against a near-empty `~/.claude/.claude.json`
-            // instead of the real `~/.claude.json`, so that session has none of the user's project
-            // history — and the stub it leaves behind goes on to misdescribe the profile to this app
-            // (T136). ClaudeAccount owns the decision, shared with the auth check.
-            if (profile is not null && ClaudeAccount.NeedsConfigDirOverride(profile.ConfigDir))
-                // ProcessStartInfo.Environment is only honoured with UseShellExecute = false; cmd.exe
-                // still gets its own console window either way.
-                psi.Environment["CLAUDE_CONFIG_DIR"] = profile.ConfigDir;
-            else
+            // Set it, remove it, or leave it — decided against what this child would inherit, not
+            // against `~/.claude`. Setting it *to* `~/.claude` is actively harmful (T136), so selecting
+            // that profile means removing an inherited variable, which is exactly the case a
+            // machine- or user-wide CLAUDE_CONFIG_DIR creates (T144). ClaudeAccount owns the decision,
+            // shared with the auth check and `--profiles`.
+            //
+            // ProcessStartInfo.Environment is only honoured with UseShellExecute = false, which
+            // ApplyConfigDir sets when it has anything to do; cmd.exe gets its own console either way.
+            if (profile is null || ClaudeAccount.ApplyConfigDir(psi, profile.ConfigDir)
+                    == ClaudeAccount.ConfigDirAction.Inherit)
                 psi.UseShellExecute = true;
 
             string dir = WorkDirFor(profile, _settings.ClaudeCodeDirectory);

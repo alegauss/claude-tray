@@ -1,10 +1,10 @@
-# Last task number — `T143` · next block letter — `T`
+# Last task number — `T147` · next block letter — `U`
 
-> **Single source of truth for the next free task number.** The next new task is `T144`; after
+> **Single source of truth for the next free task number.** The next new task is `T148`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `T`** (Block **S** = Settings round-trip — the field-by-field model copy
-> that silently resets whatever it forgets; created 2026-07-31).
+> **Next block letter — `U`** (Block **T** = One profile, the whole environment — the tray writes the
+> user-scope `CLAUDE_CONFIG_DIR` itself, reversing T143; created 2026-07-31).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -160,3 +160,4 @@ here. This file is a terse index, not a memory.
 - **T143 SHIPPED** (Block R — a copyable `setx` command, never run by the tray itself) — 2026-07-31.
 - **T141 SHIPPED** (Block S — the Settings copy is total by construction, so no field is reset on Save) — 2026-07-31.
 - **T142 SHIPPED** (Block Q — `Check-Interaction.ps1`: the keyboard and the tray menu, driven and asserted) — 2026-07-31.
+- **T144 SHIPPED** (Block T — the launch's config-dir decision is made against what the child inherits) — 2026-07-31.

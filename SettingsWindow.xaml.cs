@@ -474,10 +474,15 @@ internal partial class SettingsWindow : Window
             ProfileStatusText.Visibility = Shown(ProfileStatusText.Text);
 
             // T143: only offered for a non-default profile — see the row's comment in the XAML for why
-            // the default one must not get this command at all, not merely a discouraged one.
+            // the default one must not get this command at all, not merely a discouraged one. T144 adds
+            // the second half of that reason: `~/.claude` is never selectable by *setting* the variable,
+            // whichever profile happens to be the default, so the setx form would be a footgun there
+            // even when the dir is not the current default.
+            bool offerTerminalDefault = p is { IsDefault: false }
+                && !ClaudeAccount.SamePath(p.ConfigDir, ClaudeAccount.HomeConfigDir);
             ProfileTerminalRow.Visibility = ProfileTerminalDivider.Visibility =
-                p is { IsDefault: false } ? Visibility.Visible : Visibility.Collapsed;
-            if (p is { IsDefault: false })
+                offerTerminalDefault ? Visibility.Visible : Visibility.Collapsed;
+            if (offerTerminalDefault && p is not null)
             {
                 ProfileTerminalCommand.Text = $"setx CLAUDE_CONFIG_DIR \"{p.ConfigDir}\"";
                 ProfileTerminalHint.Text = "";

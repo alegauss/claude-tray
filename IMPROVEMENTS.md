@@ -499,3 +499,83 @@ single file does not have. The alternatives worth weighing before touching it: a
 page with the pages staying in one window; or leaving the markup alone and only splitting the
 **code-behind** (T133's approach), which addresses most of the same pain with none of the styling risk.
 Whichever wins, the six pages each need a screenshot afterwards, in at least one non-English language.
+
+---
+
+## §XI — One profile, the whole environment (Block T)
+
+The tray has always selected a profile the only way a *reader* can: by handing
+`CLAUDE_CONFIG_DIR` to the process it starts. That reaches exactly the sessions it starts. A user who
+opens VS Code from the Start menu gets whatever the **user/machine** environment says, which the tray
+does not write — so "I switched to Pessoal" was true of the tray's own terminal and false of
+everything else on the machine.
+
+T143 weighed writing that variable and refused, for two reasons that are still true: it reaches every
+Claude Code session, including ones started by other tools, CI shims or an IDE; and it keeps applying
+after the tray is uninstalled. What changed is not the analysis but the requirement — the reach *is*
+the feature. So the block takes the mechanism T143 described and makes the app perform it, and pays
+off the objection instead of dismissing it: **what the tray sets, the tray removes.**
+
+Three alternatives were weighed and dropped before settling on the variable:
+
+- **`env.CLAUDE_CONFIG_DIR` in `~/.claude/settings.json`.** Claude Code honours it (this app already
+  reads it), but writing it means editing a file inside `~/.claude` — §I.4, with no exception, and the
+  "not a config manager" non-goal.
+- **A `claude.cmd` shim on `PATH`** that exports the variable and execs the real CLI. Reaches *less*
+  than the variable (only what resolves `claude` through `PATH`), shadows another tool's executable,
+  and is a far more invasive thing to install than a value.
+- **Per-workspace `terminal.integrated.env.windows`.** Genuinely better for "this repo uses that
+  account", and worth mentioning to a user who wants that — but it is editor-specific and does not
+  answer "in the whole environment".
+
+### §XI.1 The toggle, and what "synced" means (T145)
+
+Off by default: an update must never silently rewrite somebody's environment.
+
+While on, the variable follows the **pinned choice**, not the icon. T139 shipped the distinction the
+moment it mattered — a manual pick pins the profile until the user resumes following, because on a
+machine where a profile is more or less continuously active, auto-follow undid a deliberate choice
+within seconds. That is exactly the shape needed here: a manual pick is a decision, auto-follow is an
+observation, and only the decision may touch the environment.
+
+Mechanics that the task must not skip:
+
+- **User scope**, not machine — the tray is not elevated, and a user-scope value wins over a
+  machine-scope one for that user's processes anyway.
+- **The three-way from T144**, not a plain set: choosing the `~/.claude` profile means *deleting* the
+  value, or Claude Code reads the wrong `.claude.json`.
+- **Broadcast `WM_SETTINGCHANGE`** ("Environment"), or Explorer keeps a stale block and nothing
+  launched from the Start menu sees the change until sign-out. This is the difference between the
+  feature working and the feature working tomorrow.
+- **Say what it cannot do.** An already-running VS Code keeps the value it started with. The existing
+  non-goal — no switching the account of a *running* session — is untouched, and the UI has to state
+  it rather than let the user infer otherwise.
+- **Restore on the way out.** Turning the toggle off, or resuming auto-follow, puts back whatever was
+  there before the tray started managing it (remembered in the tray's own settings, the one file it
+  does own).
+
+### §XI.2 The submenu that stops earning its level (T146)
+
+`Open Claude Code` became a submenu in T123 because a launch was the only moment the tray could
+choose a profile. With a global variable that reason is gone: both entries would start Claude Code in
+the same profile, and the menu level asks a question the user has already answered elsewhere.
+
+It collapses to a plain command **while the toggle is on**, and is left exactly as it is while off —
+this is a consequence of the new mode, not a removal of a feature from anyone who did not opt in. The
+one behaviour that must survive either way is T137's: a profile with no credentials on disk reads
+"— entrar" and runs `claude auth login`, which is the only action that helps there.
+
+### §XI.3 The icon that does not say whose number it is (T147)
+
+Reported from use, and independent of the toggle: nothing on the icon distinguishes the profiles. The
+number is usage, the fill is usage, the colour is the *projection* verdict — all three are identical
+whichever profile the icon follows, and only the tooltip names it. With the profile global, "which one
+am I in?" stops being a detail and becomes the question a glance should answer.
+
+The constraints are what make this a designed task rather than an obvious one: the icon is drawn by
+GDI+ at the real tray size (`SM_CXSMICON`, typically 16 px), where a second glyph competes with the
+number for the only legible area; and colour already means projection, so a per-profile colour would
+overload the one channel the app has for "you are about to run out". Candidates worth weighing before
+building: a one-character initial in a corner, a thin per-profile accent along an edge that the
+projection colour never uses, or a shape change to the outline. Whatever wins has to be legible at
+16 px on both light and dark taskbars, and must not read as a warning.

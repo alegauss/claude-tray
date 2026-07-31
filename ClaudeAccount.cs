@@ -412,8 +412,7 @@ internal static class ClaudeAccount
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
-            if (NeedsConfigDirOverride(configDir))
-                psi.Environment["CLAUDE_CONFIG_DIR"] = configDir;
+            ApplyConfigDir(psi, configDir);
 
             using System.Diagnostics.Process? proc = System.Diagnostics.Process.Start(psi);
             if (proc is null) return (AuthMethod.None, null, "could not start claude");
@@ -696,20 +695,52 @@ internal static class ClaudeAccount
         catch { return ""; }
     }
 
+    /// <summary>What a child process has to be told about <c>CLAUDE_CONFIG_DIR</c> to run as a given
+    /// profile: nothing, set it, or <b>remove</b> it.</summary>
+    public enum ConfigDirAction
+    {
+        /// <summary>The environment the child inherits already selects this profile.</summary>
+        Inherit,
+        /// <summary>Set the variable to the profile's dir.</summary>
+        Set,
+        /// <summary>Remove the inherited variable, so Claude Code falls back to its own default.</summary>
+        Unset,
+    }
+
     /// <summary>
-    /// Whether running Claude Code for <paramref name="configDir"/> needs <c>CLAUDE_CONFIG_DIR</c> set
-    /// at all — false for the dir a bare <c>claude</c> already uses.
+    /// How to run Claude Code as <paramref name="configDir"/>, decided against <b>what the child will
+    /// actually inherit</b> rather than against <c>~/.claude</c>.
     ///
-    /// <para>Setting it to the default dir is not a harmless no-op: Claude Code then writes a second,
-    /// near-empty <c>&lt;dir&gt;\.claude.json</c> beside the real <c>~/.claude.json</c> (measured), so the
-    /// session runs against a state file with none of the user's project history — and the stub goes on
-    /// to describe that profile to this app worse than the real file does (T136). Both the launch path
-    /// and <see cref="QueryAuthStatusAsync"/> ask through here, so they cannot drift.</para>
+    /// <para><c>~/.claude</c> can never be selected by *setting* the variable: pointing
+    /// <c>CLAUDE_CONFIG_DIR</c> at it makes Claude Code use <c>~/.claude/.claude.json</c> instead of the
+    /// real <c>~/.claude.json</c> (measured, T136), so the session runs with none of the user's project
+    /// history and leaves a stub that then misdescribes the profile to this app. The way to select it is
+    /// to **remove** the variable — which matters the moment anything sets one machine- or user-wide,
+    /// because until then the home profile needed no action and the two cases were indistinguishable.</para>
+    ///
+    /// <para>The launch path, <see cref="QueryAuthStatusAsync"/> and <c>--profiles</c> all ask through
+    /// here, so they cannot drift (the property T136 established).</para>
     /// </summary>
-    public static bool NeedsConfigDirOverride(string configDir) =>
-        configDir is { Length: > 0 }
-        && !SamePath(configDir, HomeConfigDir)
-        && !SamePath(configDir, ConfigDir);
+    public static ConfigDirAction ActionFor(string configDir)
+    {
+        if (configDir is not { Length: > 0 }) return ConfigDirAction.Inherit;
+        if (SamePath(configDir, HomeConfigDir))
+            // Only worth removing if something would otherwise be inherited.
+            return EnvConfigDir is null ? ConfigDirAction.Inherit : ConfigDirAction.Unset;
+        return SamePath(configDir, ConfigDir) ? ConfigDirAction.Inherit : ConfigDirAction.Set;
+    }
+
+    /// <summary>Apply <see cref="ActionFor"/> to a child process's environment. Touching
+    /// <c>ProcessStartInfo.Environment</c> at all requires <c>UseShellExecute = false</c>; the caller
+    /// keeps the shell path when nothing has to change.</summary>
+    public static ConfigDirAction ApplyConfigDir(System.Diagnostics.ProcessStartInfo psi, string configDir)
+    {
+        ConfigDirAction action = ActionFor(configDir);
+        if (action == ConfigDirAction.Set) psi.Environment["CLAUDE_CONFIG_DIR"] = configDir;
+        else if (action == ConfigDirAction.Unset) psi.Environment.Remove("CLAUDE_CONFIG_DIR");
+        if (action != ConfigDirAction.Inherit) psi.UseShellExecute = false;
+        return action;
+    }
 
     /// <summary>Whether two config dirs are the same folder, spelled either way (a trailing slash, a
     /// relative form, <c>%USERPROFILE%</c>). The one comparison anything asking "is this the monitored
