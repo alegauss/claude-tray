@@ -150,6 +150,15 @@ internal sealed class Settings
     /// </summary>
     public string MonitoredConfigDir { get; set; } = "";
 
+    /// <summary>
+    /// Let the icon follow whichever profile a turn just landed in, instead of the one chosen by hand
+    /// (T126). Off by default: an icon that moves on its own is only welcome once you have asked for it,
+    /// and on a one-profile machine it would have nothing to do. Choosing a profile in the Profile
+    /// submenu still wins until the next turn lands somewhere else, so this never takes the choice away
+    /// — see <see cref="ProfileActivity.Pick"/>.
+    /// </summary>
+    public bool FollowActiveProfile { get; set; } = false;
+
     /// <summary>Where the app keeps its own state — <c>%LocalAppData%\ClaudeTray</c>: this file, the
     /// caches, the usage/context history and the reset log. Public so the System information page can
     /// show (and open) it without a second copy of the path.</summary>

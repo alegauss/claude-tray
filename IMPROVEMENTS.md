@@ -15,7 +15,7 @@
 | [§IV](#iv--activity-aware-pacing-block-j) | Activity-aware pacing (Block J) |
 | [§V](#v--live-throughput-block-k) | Live throughput (Block K) |
 | [§VI](#vi--system-information-block-n) | System information (Block N) |
-| [§VII](#vii--profiles-block-o) | Profiles — several Claude Code logins on one machine (Block O) |
+| [§VIII](#viii--project-layout-block-p) | Project layout — the flat root becomes `src/` + `build/` (Block P) |
 
 > Block I's design sections (§II) are gone: every one of them shipped, and `git log` plus
 > [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a **measurement** — the
@@ -352,57 +352,11 @@ page in words, which is why T120 shipped without a shot.
 
 ---
 
-## §VII — Profiles (Block O)
-
-### §VII.0 What is actually on disk, and what "switching" can mean
-
-Claude Code is **single-account per config dir**. `.claude.json` carries exactly one `oauthAccount`,
-`.credentials.json` exactly one `claudeAiOauth`, and `/login` overwrites rather than appends. There is
-no list of subscriptions to enumerate, so "several accounts on one Windows" can only mean one of three
-things, and they are not equally real:
-
-1. **Several config dirs** (`CLAUDE_CONFIG_DIR`) — the supported pattern, and the one this block
-   models. Each dir is its own credentials, account, projects, transcripts, settings, MCP servers,
-   permissions and plugins.
-2. **Several Windows user accounts** — a different `%USERPROFILE%`, unreadable across users by ACL.
-   Out of scope deliberately: the app must not go looking inside another user's profile.
-3. **Traces of a previous account in the same dir** — `clientDataCacheSlots` retains slots carrying an
-   `org` value (two distinct ones observed on the development machine), and `.claude.json.backup` may
-   hold an older `oauthAccount`. Both are undocumented internals with opaque keys, and neither yields a
-   plan or an address for the other account. **Not a basis for anything.**
-
-And "switching" splits into three axes that cost wildly different amounts:
-
-| Axis | Feasible | Cost |
-|---|---|---|
-| Which profile the tray **monitors** | yes | pure read (plus T125's store keying) |
-| Which profile a **new** session opens in | yes | one env var on the launch path the tray already has |
-| The account of an **already running** session | **no** | the environment is fixed at process creation |
-
-The third is a hard no rather than a "later", which is why it sits in Non-goals: nothing about a GUI
-changes a live process's environment.
-
-### §VII.5 Auto-follow, and the 16px problem (T126)
-
-`TranscriptTail` reports each turn within ~250ms of it landing. With N profiles it also knows *which*
-config dir the turn landed in, so the icon can follow the profile actually being worked in and nobody
-clicks "switch" at all. A manual override stays, because a following icon that guesses wrong is worse
-than a static one.
-
-The unsolved part is the icon. At the real tray size the number already fills the glyph, so there is no
-room for a label: the profile has to read from the tooltip and the menu, with at most a small
-per-profile colour dot — and that dot has to survive being looked at beside the projection colour, which
-already carries meaning. Nothing here gets promised before it has been rendered and screenshotted. It is
-not the animated tray hint T101 was dropped for: a static per-profile mark needs no permanent tail
-(T125's polling already knows the profiles) and does not animate.
-
----
-
 ## §VIII — Project layout (Block P)
 
 ### §VIII.0 The problem, and the four things that must not move
 
-The repo root holds **57 entries**: 33 `.cs`, 4 `.xaml`, the icon, the manifest, the csproj, the
+The repo root holds **58 entries**: 34 `.cs`, 4 `.xaml`, the icon, the manifest, the csproj, the
 installer script, five release scripts, and ten markdown/config files. A flat listing that size carries
 no information — it does not say which files draw the tray, which are windows, which read `~/.claude`,
 which talk to the API. The only map is the file-map table in `AGENTS.md`, and a hand-maintained table
@@ -415,7 +369,7 @@ src/Context/    ContextScanner ContextUsage ContextRules ContextReport ContextPr
                 ContextHistory ContextNudges ContextFixture TokenEstimate
 src/Usage/      ApiClient UsageReport UsageHistory HourlyUsage BurnTracker
                 LiveRate LiveChart UsageInsights ActivityProfile ActivityShape TranscriptTail
-src/Profiles/   ClaudeAccount ProfileStore Settings
+src/Profiles/   ClaudeAccount ProfileStore ProfileActivity Settings
 src/Core/       Localization SafeWalk
 src/Tray/       Program TrayContext IconRenderer Updater
 src/Cli/        the headless printers (T132)
@@ -431,7 +385,7 @@ Four decisions are **binding for the whole block**, because each one is a way th
 quietly cost more than it returns:
 
 1. **The namespace stays flat `ClaudeTray`** — no folder-derived namespaces. Folder namespaces would
-   add a `using` to most of the 33 files and churn every cross-type reference, turning a set of pure
+   add a `using` to most of the 34 files and churn every cross-type reference, turning a set of pure
    renames into a diff nobody can review. The folders exist for the person running `ls`; the compiler
    does not need to agree with them. (`LiveRate.cs` is the one file without the file-scoped namespace
    declaration — worth normalising while it moves.)
@@ -453,11 +407,11 @@ whichever block owns that subsystem.
 
 ### §VIII.1 The non-UI sources move (T129)
 
-28 files, five folders, one commit: splitting the mechanical move by family would leave the repo
+29 files, five folders, one commit: splitting the mechanical move by family would leave the repo
 half-migrated between commits for no gain in safety, since the namespace is flat and the compiler is
 the gate either way. The grouping follows the seams the code already has — `Context*` is one subsystem
-with one entry point, the usage/pacing family is another, `ClaudeAccount`/`ProfileStore`/`Settings` are
-the profile model Block O built, and `Localization`/`SafeWalk` are the two helpers with no subsystem of
+with one entry point, the usage/pacing family is another, `ClaudeAccount`/`ProfileStore`/`ProfileActivity`/`Settings`
+are the profile model Block O built, and `Localization`/`SafeWalk` are the two helpers with no subsystem of
 their own.
 
 `AGENTS.md`'s file map is part of this task, not a follow-up: it gets grouped by folder, and it gains

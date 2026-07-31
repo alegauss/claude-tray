@@ -312,6 +312,14 @@ line, rather than a generic prompt that would send you to re-login on the wrong 
 names the monitored profile: Windows caps a tray tooltip at 127 characters, which is why the numbers live
 in the menu.)
 
+**Or let the icon keep up by itself.** Turn on **Follow the active profile** — in the Profile submenu, or
+in **Settings → Claude Code → Profiles** — and the icon moves to whichever profile Claude Code last worked
+in, so switching accounts needs no click at all. It is read from **transcript timestamps only**, on the
+same refresh you already pay for: no transcript is opened, nothing runs between refreshes, and a profile
+with no subscription quota to read is never followed into. The submenu shows how long ago each profile was
+active. **Choosing a profile by hand still wins** — it holds until a turn actually lands somewhere else —
+because an icon that overrules you is worse than one that never moves. Off by default.
+
 Switching *which account a session uses* happens when Claude Code launches: the tray passes
 `CLAUDE_CONFIG_DIR` and gets out of the way. It never writes to a configuration folder and never moves credentials between them — Claude Code
 rewrites its own credentials file on every token refresh, so shuffling those files around is how you

@@ -481,6 +481,16 @@
                                         <TextBlock x:Name="ProfileStatusText" Style="{StaticResource ValueSubText}" />
                                     </StackPanel>
                                 </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <!-- Auto-follow (T126). Hidden on a one-profile machine, where there is
+                                     nothing for the icon to follow to. -->
+                                <local:SettingsRow x:Name="FollowActiveRow"
+                                                   Header="{local:Loc settings.cc.followActive}"
+                                                   Description="{local:Loc settings.cc.followActiveDesc}">
+                                    <ToggleButton x:Name="FollowActiveCheck" Style="{StaticResource ToggleSwitch}" />
+                                </local:SettingsRow>
                             </StackPanel>
                         </Border>
 

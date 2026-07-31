@@ -113,44 +113,10 @@
 
 - 📋 **T121** (deps: T120) **A fixture account so the page can be screenshotted** — every other window has a published shot; this one has none, because the only account on a real machine is the developer's, and masking hides the name and the email but not the organization or its mail domain. `ContextFixture` already builds a throwaway `~/.claude` for exactly this reason; the same idea needs a synthetic `.claude.json`/`.credentials.json` pair (a Max 20x personal account and a Team seat, so both the with-org and no-org layouts render) behind a `--settings System --sample`, and then the README and the site block get their image. → §VI.1
 
-## Block O — Profiles ("personal, work, empresa2 — one tray, several logins")
-
-> Claude Code is **one account per config dir**: `.claude.json` holds a single `oauthAccount` and
-> `.credentials.json` a single `claudeAiOauth`, and `/login` overwrites rather than accumulates. So
-> "several subscriptions on one Windows" means several **config dirs** (`CLAUDE_CONFIG_DIR`), and the
-> unit this block models is a **profile** — `{Label, ConfigDir, WorkDir}` — never an "account" the tray
-> pretends to own. Today the tray sees exactly one: it polls `~/.claude/.credentials.json` and every
-> local reader is scoped to `~/.claude`, so a second profile's usage appears **nowhere**, silently.
->
-> Three things "switching" could mean, and only two are possible: which profile the tray **monitors**
-> (pure read), which profile a **new** session opens in (one env var on the launch path the tray
-> already has), and the account of an **already running** session — which no GUI can change, because
-> the environment is fixed at process creation. See Non-goals.
->
-> The block's whole safety argument is that it **writes nothing into a config dir**: measured, the CLI
-> creates a missing `CLAUDE_CONFIG_DIR` itself, and `claude auth login|logout|status --json` is the
-> supported seam for the parts that do need a write — the same "hand the edit to Claude Code" that T77
-> settled for memory. Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §VII.
->
-> **Shipped: T122–T125, T127, T128** — the profile model and discovery (`ClaudeAccount.Discover`, `--profiles`) with
-> the picker on the System information page, then the list editor on the Claude Code page and the
-> per-profile `Open Claude Code` submenu, then the per-profile auth reading with the
-> off-the-subscription warning, then per-profile data isolation with its migration, and the
-> per-profile polling with the Profile submenu, and the Statistics window reporting on a
-> chosen profile (which also removed the machine-wide transcript path T127 had left behind).
-> See [CHANGELOG.md](CHANGELOG.md) Block O.
->
-> **T125 was split while building it.** Its design section ordered the work "keying first,
-> polling second", and the two halves are independently valuable and independently
-> verifiable: the keying shipped as T125, and the fan-out — N heartbeats, which profile the
-> icon follows, the others in the tooltip — shipped as **T127**. Nothing was dropped.
-
-- 💭 **T126** (deps: T127) **The icon follows the profile you're working in** — `TranscriptTail` already watches transcripts byte-for-byte; with N profiles it can see *which* config dir just had a turn land and point the icon at that one, so nobody clicks "switch" at all. Manual override stays. Open question is the icon itself: at 16px there is no room for a label (the number fills it), so the profile has to read from the tooltip and menu, with at most a small per-profile colour dot — and only if it survives being looked at next to the projection colour, which already means something. → §VII.5
-
 ## Block P — Project layout ("`ls` should describe the app")
 
-> Every source file in this project is in the **repo root**: 33 `.cs`, 4 `.xaml`, the installer script,
-> five release scripts, and the ~10 markdown/config files, in one flat listing of 57 entries. Nothing
+> Every source file in this project is in the **repo root**: 34 `.cs`, 4 `.xaml`, the installer script,
+> five release scripts, and the ~10 markdown/config files, in one flat listing of 58 entries. Nothing
 > about that listing says which files are the tray, which are the windows, which read `~/.claude` and
 > which talk to the API — `AGENTS.md`'s file map is the only map, and a table maintained by hand is a
 > poor substitute for a directory that is right by construction. Four files have also grown past the
@@ -163,7 +129,7 @@
 > (the flat namespace, `lang/`, the root docs, the csproj) are in
 > [IMPROVEMENTS.md](IMPROVEMENTS.md) §VIII.0.
 
-- 📋 **T129** (deps: —) **The 28 non-UI sources move into `src/`** — `Context/` (9: scanner, usage, rules, report, prompt, history, nudges, fixture, token estimate), `Usage/` (11: API client, reports, histories, burn, live rate/chart, insights, activity), `Profiles/` (3: account, store, settings), `Core/` (2: localization, safe walk), `Tray/` (3: program, icon renderer, updater). Pure `git mv`: the namespace stays flat, so no `.cs` file's *contents* change — only `AGENTS.md`'s file map, which gains the folder grouping and a "where does a new file go" rule so the root can't re-accrete. Gate: `dotnet build` plus the headless smoke set (`--context`, `--activity`, `--profiles`, `--tail`). → §VIII.1
+- 📋 **T129** (deps: —) **The 29 non-UI sources move into `src/`** — `Context/` (9: scanner, usage, rules, report, prompt, history, nudges, fixture, token estimate), `Usage/` (11: API client, reports, histories, burn, live rate/chart, insights, activity), `Profiles/` (4: account, store, activity, settings), `Core/` (2: localization, safe walk), `Tray/` (3: program, icon renderer, updater). Pure `git mv`: the namespace stays flat, so no `.cs` file's *contents* change — only `AGENTS.md`'s file map, which gains the folder grouping and a "where does a new file go" rule so the root can't re-accrete. Gate: `dotnet build` plus the headless smoke set (`--context`, `--activity`, `--profiles`, `--tail`). → §VIII.1
 - 📋 **T130** (deps: T129) **The four windows move into `src/Ui/`** — the 4 `.xaml` + their code-behind + `SettingsRow.cs`. Riskier than T129 because a WPF `Page`'s generated resource URI is derived from its path; no `pack://` URI is hardcoded anywhere in the repo (checked), so the generated `InitializeComponent` should absorb the move, but the gate is a `preview-ui` screenshot of all four windows, not a green build. → §VIII.2
 - 📋 **T131** (deps: —) **Build, installer and winget manifests move into `build/`** — `build.cmd`, `build-installer.cmd`, `update-release.cmd/.ps1`, `update-winget.ps1`, `installer.iss`, `winget/`. The `.cmd`s are already self-relative (`%~dp0`), but `installer.iss` resolves `bin\…`, `ClaudeTray.ico` and `OutputDir=dist` against its own directory, and `.github/workflows/build.yml` invokes `ISCC.exe installer.iss` and `./update-winget.ps1` from the repo root — so CI moves with them, and README (build/release section) plus STRATEGY §III cite the paths. Independent of T129/T130: no C# is touched. → §VIII.3
 - 📋 **T132** (deps: T129) **`Program.cs` splits three ways** — 2.5k lines / 130 KB holding two unrelated programs. `Main` and the arg dispatch stay in `Tray/Program.cs`; the ~1,000 lines of headless printers (`--context`/`--activity`/`--live`/`--tail`/`--profiles`, the markdown report writer, the fixture/capture/render entry points) become `src/Cli/*.cs`, one file per flag family; the ~1,080-line `TrayContext` (menu, timers, poll, tooltip, icon render) becomes `Tray/TrayContext.cs`. Mechanical — moved verbatim, not rewritten. → §VIII.4

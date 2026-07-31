@@ -1215,7 +1215,8 @@ internal static class Program
                               + (Directory.Exists(workDir) ? "" : "  (missing — OS default applies)"));
             Console.WriteLine();
         }
-        ClaudeInfo? monitored = ClaudeAccount.PickMonitored(profiles, Settings.Load().MonitoredConfigDir);
+        Settings settings = Settings.Load();
+        ClaudeInfo? monitored = ClaudeAccount.PickMonitored(profiles, settings.MonitoredConfigDir);
         int polled = profiles.Count(p => p.CountsAgainstSubscription);
         Console.WriteLine(profiles.Count == 1
             ? "Only one profile — the Settings picker stays hidden, Open Claude Code stays a plain command,"
@@ -1225,6 +1226,34 @@ internal static class Program
         Console.WriteLine($"polled every interval: {polled} of {profiles.Count}"
                           + (polled < profiles.Count
                               ? "  (a profile off the subscription has no quota window to read)" : ""));
+
+        // Auto-follow (T126): when each profile last had a turn, and where the icon would move to. The
+        // probe reads transcript *timestamps* only, so this also states its cost.
+        Console.WriteLine();
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        List<ProfileActivity.Reading> readings = ProfileActivity.Read(profiles);
+        sw.Stop();
+        long nowUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        Console.WriteLine($"auto-follow: {(settings.FollowActiveProfile ? "on" : "off")}"
+                          + $"   window {ProfileActivity.FollowWindowSeconds / 60:0}min"
+                          + $"   probe {sw.Elapsed.TotalMilliseconds:0.0}ms for {profiles.Count} profile(s)");
+        foreach (ProfileActivity.Reading r in readings)
+        {
+            string age = r.LastTurnUnix <= 0
+                ? "never"
+                : $"{(nowUnix - r.LastTurnUnix) / 60.0:0.0} min ago";
+            Console.WriteLine($"  {r.Profile.Label,-24} last turn {age,-16}"
+                              + (!r.Followable
+                                  ? "not followable (no subscription quota to read, or no credentials)"
+                                  : ProfileActivity.Live(r, nowUnix) ? "candidate"
+                                  : r.LastTurnUnix <= 0 ? "followable, but never used"
+                                  : "followable, but no turn inside the window"));
+        }
+        ClaudeInfo? active = ProfileActivity.Pick(readings, nowUnix, 0);
+        Console.WriteLine(active is null
+            ? "would follow: nobody — no recent turn in a followable profile, so the icon stays put."
+            : $"would follow: {active.Label}  ({active.ConfigDir})"
+              + (settings.FollowActiveProfile ? "" : "  — if auto-follow were on"));
     }
 
     // Dev/preview helper: same sample data as SimulateReset, but instead of leaving the toast on
@@ -1735,6 +1764,7 @@ internal sealed class TrayContext : ApplicationContext
     // Persist the edited settings and apply the new values immediately.
     private void ApplySettings(Settings updated)
     {
+        string monitoredBefore = _settings.MonitoredConfigDir;
         _settings.RefreshSeconds = updated.RefreshSeconds;
         _settings.ShowPercentage = updated.ShowPercentage;
         _settings.ShowRemaining = updated.ShowRemaining;
@@ -1756,6 +1786,12 @@ internal sealed class TrayContext : ApplicationContext
         // than waiting for a restart.
         _settings.Profiles = updated.Profiles;
         _settings.MonitoredConfigDir = updated.MonitoredConfigDir;
+        // A profile picked on the page is a choice by hand, exactly like the submenu's: it holds until a
+        // turn lands elsewhere, rather than being overruled by the next probe (T126).
+        if (!ClaudeAccount.SamePath(updated.MonitoredConfigDir, monitoredBefore))
+            _followFloorUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        _settings.FollowActiveProfile = updated.FollowActiveProfile;
+        if (!_settings.FollowActiveProfile) _lastTurn.Clear();
         RefreshWatched();          // the list (and so the icon's profile) may have changed
         RefreshProfileMenu();
         if (_profileMenu is not null) _profileMenu.Visible = _watched.Count > 1;
@@ -1888,6 +1924,46 @@ internal sealed class TrayContext : ApplicationContext
     /// <summary>The "Profile" submenu, hidden while there is only one profile to speak of.</summary>
     private ToolStripMenuItem? _profileMenu;
 
+    // ---- Following the profile being worked in (T126) ----
+
+    /// <summary>When each profile's newest turn landed (unix seconds), from the last probe. Empty while
+    /// auto-follow is off: nothing is scanned then, so there is nothing to report.</summary>
+    private readonly Dictionary<string, double> _lastTurn = new();
+
+    /// <summary>The moment the user last chose a profile by hand. Auto-follow only overrules a choice
+    /// once a turn lands in another profile *after* it — see <see cref="ProfileActivity.Pick"/>.</summary>
+    private double _followFloorUnix;
+
+    /// <summary>
+    /// Point the icon at whichever profile just had a turn, when the user has asked for that. Called at
+    /// the top of a poll, before the fetch, so the reading that follows already belongs to the profile
+    /// the icon ends up on — the alternative shows one profile's percentage under another's name for a
+    /// whole interval.
+    ///
+    /// <para>The probe reads transcript timestamps only, on a background thread, and only when there is
+    /// more than one profile to choose between (see <see cref="ProfileActivity"/> for why it is a
+    /// per-poll probe and not a permanent tail).</para>
+    /// </summary>
+    private async Task FollowActiveProfileAsync()
+    {
+        if (!_settings.FollowActiveProfile || _watched.Count < 2) return;
+
+        List<ClaudeInfo> probed = _watched;
+        List<ProfileActivity.Reading> readings = await Task.Run(() => ProfileActivity.Read(probed));
+        // The watch list can be rebuilt while the probe runs (a saved settings page, a removed profile),
+        // and readings about a list that no longer exists must not decide anything.
+        if (!ReferenceEquals(probed, _watched)) return;
+
+        _lastTurn.Clear();
+        foreach (ProfileActivity.Reading r in readings)
+            _lastTurn[ProfileStore.KeyFor(r.Profile)] = r.LastTurnUnix;
+
+        double now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        if (ProfileActivity.Pick(readings, now, _followFloorUnix) is { } active
+            && ProfileStore.KeyFor(active) != ProfileStore.KeyFor(_watched[0]))
+            AdoptMonitored(active, automatic: true);
+    }
+
     /// <summary>
     /// Fill the Profile submenu: one checkable entry per profile, its own reading beside it, and its own
     /// failure named rather than a generic "not authenticated" that would send somebody to re-login on
@@ -1916,7 +1992,7 @@ internal sealed class TrayContext : ApplicationContext
                     _ => $"{Labels[_metric]} {PctShown(d.Metric(_metric))}",
                 };
 
-            var item = new ToolStripMenuItem($"{p.Label} — {reading}")
+            var item = new ToolStripMenuItem($"{p.Label} — {reading}{ActiveSuffix(p)}")
             {
                 Checked = monitored,
                 ToolTipText = p.ConfigDir,
@@ -1925,20 +2001,71 @@ internal sealed class TrayContext : ApplicationContext
             item.Click += (_, _) => SetMonitoredProfile(captured);
             _profileMenu.DropDownItems.Add(item);
         }
+
+        // The toggle lives where the switching does. Checked, the icon moves on its own to whichever
+        // profile just had a turn (T126); unchecked, it stays wherever it was last put by hand.
+        _profileMenu.DropDownItems.Add(new ToolStripSeparator());
+        var follow = new ToolStripMenuItem(L.T("menu.profileFollow"))
+        {
+            Checked = _settings.FollowActiveProfile,
+            ToolTipText = L.T("menu.profileFollowTip"),
+        };
+        follow.Click += (_, _) => SetFollowActiveProfile(!_settings.FollowActiveProfile);
+        _profileMenu.DropDownItems.Add(follow);
     }
 
-    /// <summary>Point the icon at another profile: save the choice, re-adopt its stores and token, and
-    /// poll it right away so the icon isn't showing the previous account's number.</summary>
+    /// <summary>How long ago this profile's last turn landed, when auto-follow is what put the icon
+    /// where it is. Read from the last probe's cache, so opening the menu scans nothing.</summary>
+    private string ActiveSuffix(ClaudeInfo p)
+    {
+        if (!_settings.FollowActiveProfile) return "";
+        if (!_lastTurn.TryGetValue(ProfileStore.KeyFor(p), out double last) || last <= 0) return "";
+        double age = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - last;
+        return "  · " + (age < 60 ? L.T("menu.profileActiveNow") : L.T("menu.profileActive", FmtCountdown(age)));
+    }
+
+    /// <summary>Turn auto-follow on or off from the menu, and act on it at once: enabling it should move
+    /// the icon now if another profile is the live one, not at the next poll.</summary>
+    private void SetFollowActiveProfile(bool on)
+    {
+        _settings.FollowActiveProfile = on;
+        SaveSettingsQuietly();
+        if (!on) _lastTurn.Clear();      // stale ages must not outlive the feature that fills them
+        else _ = RefreshAsync();         // which begins by asking where the last turn landed
+    }
+
+    /// <summary>Point the icon at another profile *because the user said so*: the choice is saved, and
+    /// stamped as the moment auto-follow must not overrule (T126). Polls right away so the icon isn't
+    /// left showing the previous account's number.</summary>
     private void SetMonitoredProfile(ClaudeInfo profile)
     {
         if (_watched.Count > 0 && ProfileStore.KeyFor(_watched[0]) == ProfileStore.KeyFor(profile)) return;
 
+        _followFloorUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        AdoptMonitored(profile, automatic: false);
+        _ = RefreshAsync();
+    }
+
+    /// <summary>
+    /// Make <paramref name="profile"/> the one the icon shows: remember it, re-key the stores, take its
+    /// token, and drop the previous account's numbers so none of them can be drawn as this one's.
+    ///
+    /// <para>An automatic switch takes the same path but must not interrupt: a settings file that cannot
+    /// be written is worth a modal dialog when the user just clicked, and worth nothing at all when the
+    /// tray moved the icon by itself.</para>
+    /// </summary>
+    private void AdoptMonitored(ClaudeInfo profile, bool automatic)
+    {
         _settings.MonitoredConfigDir = profile.ConfigDir;
-        try { _settings.Save(); }
-        catch (Exception ex)
+        if (automatic) SaveSettingsQuietly();
+        else
         {
-            MessageBox.Show(L.T("dialog.saveFailed", ex.Message),
-                L.T("dialog.appName"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            try { _settings.Save(); }
+            catch (Exception ex)
+            {
+                MessageBox.Show(L.T("dialog.saveFailed", ex.Message),
+                    L.T("dialog.appName"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
         }
         // The icon must not keep drawing the old account's percentage while the new one is fetched.
         _data = null;
@@ -1946,7 +2073,11 @@ internal sealed class TrayContext : ApplicationContext
         _burn.Clear();
         RefreshWatched();
         Render();
-        _ = RefreshAsync();
+    }
+
+    private void SaveSettingsQuietly()
+    {
+        try { _settings.Save(); } catch { /* nothing the user asked for is waiting on this */ }
     }
 
     private static string AuthLabel(AuthMethod auth) => L.T(auth switch
@@ -1982,6 +2113,9 @@ internal sealed class TrayContext : ApplicationContext
 
     private async Task RefreshAsync()
     {
+        // Which profile the icon is about is decided before the number it shows is fetched (T126).
+        await FollowActiveProfileAsync();
+
         UsageData fresh = await _api.FetchAsync();
         bool ok = fresh.Error == null;
         bool transientHiccup = !ok && fresh.Transient && !fresh.Unauthorized;

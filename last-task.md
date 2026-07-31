@@ -48,7 +48,8 @@
   the reader it parameterizes. **T124 is a defect that predates the block** (an environment
   `ANTHROPIC_API_KEY` makes Claude Code bill the Console while the tray reports an idle subscription),
   found while testing whether `CLAUDE_CONFIG_DIR` isolates auth — it does not — and it is ordered before
-  the multi-profile polling because it is wrong today, for everyone with that variable set.
+  the multi-profile polling because it is wrong today, for everyone with that variable set. **Closed with
+  T126** (2026-07-31), so the block is out of `ROADMAP.md` — see [CHANGELOG.md](CHANGELOG.md) Block O.
 - Block **M** (T113, created 2026-07-29) is a one-task block on the *window's* chrome rather than a
   fourth Block K item: K is the live strip, and the method note it hid behind an ⓘ describes every
   number in the window. Block L set the precedent that a block may hold a single task.
@@ -119,3 +120,4 @@ here. This file is a terse index, not a memory.
 - **T125 SHIPPED** (Block O — every per-profile store keyed by profile, with the one-time migration) — 2026-07-31.
 - **T127 SHIPPED** (Block O — a heartbeat per profile, the Profile submenu, and the icon's chosen profile) — 2026-07-31.
 - **T128 SHIPPED** (Block O — Statistics reports on a chosen profile, transcripts included) — 2026-07-31.
+- **T126 SHIPPED** (Block O — the icon follows the profile a turn just landed in) — 2026-07-31.

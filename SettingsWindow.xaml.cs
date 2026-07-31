@@ -40,6 +40,11 @@ internal partial class SettingsWindow : Window
             AutoOpenOnUnauthenticated = current.AutoOpenOnUnauthenticated,
             AuthRetrySeconds = current.AuthRetrySeconds,
             Language = current.Language,
+            // Carried through even though no control on the page edits it: ApplySettings copies the
+            // whole model back, so a field missing here is a field silently reset on Save — which is
+            // what sent the icon back to the default profile after any visit to Settings.
+            MonitoredConfigDir = current.MonitoredConfigDir,
+            FollowActiveProfile = current.FollowActiveProfile,
             // Deep-copied like every other field: the profile editor mutates these in place, and
             // cancelling must leave the caller's list untouched.
             Profiles = current.Profiles.Select(p => new ClaudeProfile
@@ -78,6 +83,7 @@ internal partial class SettingsWindow : Window
             ? Settings.DefaultDirectory
             : _settings.ClaudeCodeDirectory;
         AutoOpenCheck.IsChecked = _settings.AutoOpenOnUnauthenticated;
+        FollowActiveCheck.IsChecked = _settings.FollowActiveProfile;
         ShowPctCheck.IsChecked = _settings.ShowPercentage;
         ShowRemainingCheck.IsChecked = _settings.ShowRemaining;
         FlashCheck.IsChecked = _settings.FlashNearLimit;
@@ -332,6 +338,7 @@ internal partial class SettingsWindow : Window
         _settings.SessionResetMinPercent = (int)Math.Round(SessionMinSlider.Value);
         _settings.ClaudeCodeDirectory = DirectoryBox.Text.Trim();
         _settings.AutoOpenOnUnauthenticated = AutoOpenCheck.IsChecked == true;
+        _settings.FollowActiveProfile = FollowActiveCheck.IsChecked == true;
         _settings.AuthRetrySeconds = (int)Math.Round(RetrySlider.Value);
         _settings.Language = (LanguageCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string
                              ?? Settings.DefaultLanguage;
@@ -454,6 +461,10 @@ internal partial class SettingsWindow : Window
                     index = i;
         if (_ccProfiles.Count > 0) ProfileCombo.SelectedIndex = index;
         _fillingProfile = false;
+
+        // With one profile there is nowhere for the icon to follow to, so the toggle would be a switch
+        // that does nothing. It reappears the moment a second profile is added (T126).
+        FollowActiveRow.Visibility = _ccProfiles.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
 
         FillProfileFields();
     }

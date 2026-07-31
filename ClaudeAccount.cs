@@ -613,7 +613,10 @@ internal static class ClaudeAccount
         catch { return ""; }
     }
 
-    private static bool SamePath(string a, string b) =>
+    /// <summary>Whether two config dirs are the same folder, spelled either way (a trailing slash, a
+    /// relative form, <c>%USERPROFILE%</c>). The one comparison anything asking "is this the monitored
+    /// profile?" should use, so a settings file written by hand can't split one profile into two.</summary>
+    public static bool SamePath(string a, string b) =>
         Normalize(a).Equals(Normalize(b), StringComparison.OrdinalIgnoreCase);
 
     // ---- CLI version -------------------------------------------------------------------------

@@ -151,10 +151,7 @@ internal static class ProfileStore
 /// </summary>
 internal readonly record struct ProfileRef(string Key, string ConfigDir)
 {
-    /// <summary>That profile's transcripts.</summary>
-    public string ProjectsDir => Path.Combine(
-        ConfigDir.Length > 0
-            ? ConfigDir
-            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude"),
-        "projects");
+    /// <summary>That profile's transcripts. One resolver, shared with the auto-follow probe that reads
+    /// the same directory's timestamps (T126).</summary>
+    public string ProjectsDir => ProfileActivity.ProjectsDir(ConfigDir);
 }
