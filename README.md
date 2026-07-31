@@ -344,6 +344,11 @@ the variable's live value beside the switch. Programs already running keep the p
 with. Off by default, and reversible by design: turning it off, or clicking **Resume following**, puts
 the variable back exactly as it was — the tray does not leave behind a setting it no longer manages.
 
+With it on, **Open Claude Code** goes back to being a single command: the profile is already chosen for
+the whole machine, so every entry of the submenu would open the same one. It still says **— sign in** and
+takes you to the login when that profile has no credentials stored yet. Turn the switch off and the
+per-profile submenu comes back exactly as it was.
+
 Prefer to do it yourself? The **Terminal default** row still shows the exact
 `setx CLAUDE_CONFIG_DIR "<dir>"` command with a **Copy** button, and the tray only copies it. (Hidden
 for your default profile and for `~/.claude`, where that command would be the wrong thing to run.)
@@ -537,7 +542,7 @@ installs pick it up automatically (see [Updates](#updates)).
   which one the icon is following; click another to switch the icon to it
 - **Open Claude Code ▸ &lt;profile&gt;** — with more than one profile registered, this becomes a submenu:
   each entry launches Claude Code with that profile's configuration folder and its own working
-  directory (see below)
+  directory (see below). It stays a single command when the chosen profile is the whole machine's
 - **Settings…** — refresh interval, display options, **Start with Windows** (autostart), profiles, and
   **System information** (your plan, this Claude Code install and this machine — see below)
 - **Quit**

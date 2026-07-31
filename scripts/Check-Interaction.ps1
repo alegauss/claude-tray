@@ -398,8 +398,15 @@ function Expand-Item($menu, $label) {
 <# What the app itself says the menu should contain, so the check has something to be wrong about. #>
 function Expected-ProfileEntries {
     $out = & $Exe "--lang" $Lang "--profiles" 2>&1 | Out-String
-    if ($out -match 'submenu with (\d+) entries') { return [int]$Matches[1] }
-    return 0   # one profile: "Open Claude Code" stays a plain command
+    if ($out -match 'submenu with (\d+) entries') {
+        return [pscustomobject]@{ Count = [int]$Matches[1]; Why = "several profiles" }
+    }
+    # "Open Claude Code" stays a plain command for two different reasons - there is only one profile,
+    # or one profile is the whole environment's and the submenu collapsed back (T146). The app names
+    # which, so a pass can say the true one instead of guessing.
+    $why = if ($out -match 'the picked profile is the environment') { "the picked profile is the environment's (T146)" }
+           else { "only one profile" }
+    return [pscustomobject]@{ Count = 0; Why = $why }
 }
 
 function Invoke-MenuCase {
@@ -443,11 +450,14 @@ function Invoke-MenuCase {
         Pass "the menu opened with $($labels.Count) entries"
         foreach ($l in $labels) { Info "- $l" }
 
-        $expected = Expected-ProfileEntries
+        $expect = Expected-ProfileEntries
         $subLabel = Label 'menu.openClaude'
-        if ($expected -lt 2) {
-            if ($labels -contains $subLabel) {
-                Pass "one profile: '$subLabel' stays a plain command, as designed"
+        if ($expect.Count -lt 2) {
+            # Prefix, not equality: the collapsed command carries T137's "- sign in" marking when the
+            # profile it aims at has no credentials on disk, and that is still the same entry.
+            $plain = @($labels | Where-Object { $_ -like "$subLabel*" })
+            if ($plain.Count -gt 0) {
+                Pass "$($expect.Why): '$($plain[0])' stays a plain command, as designed"
             } else {
                 Fail "'$subLabel' is missing from the menu"
             }
@@ -455,10 +465,10 @@ function Invoke-MenuCase {
         else {
             $subs = Expand-Item $menu $subLabel
             if (-not $subs) {
-                Fail "'$subLabel' did not expand - expected $expected profile entries, read none"
+                Fail "'$subLabel' did not expand - expected $($expect.Count) profile entries, read none"
             }
-            elseif ($subs.Count -lt $expected) {
-                Fail "'$subLabel' listed $($subs.Count) profile entries, expected $expected"
+            elseif ($subs.Count -lt $expect.Count) {
+                Fail "'$subLabel' listed $($subs.Count) profile entries, expected $($expect.Count)"
             }
             else {
                 Pass "'$subLabel' lists $($subs.Count) profile entries"

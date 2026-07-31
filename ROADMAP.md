@@ -154,11 +154,10 @@
 > continuously on a machine where a profile is more or less always active — which is the observation
 > that produced T139 in the first place. Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XI.
 >
-> **T144 and T145 shipped**: the prerequisite (a launch decides against what the child inherits, and
-> `~/.claude` is selected by *removing* the variable) and the toggle itself. See
-> [CHANGELOG.md](CHANGELOG.md).
+> **T144, T145 and T146 shipped**: the prerequisite (a launch decides against what the child inherits,
+> and `~/.claude` is selected by *removing* the variable), the toggle itself, and the submenu
+> collapsing back to one command while the toggle is on. See [CHANGELOG.md](CHANGELOG.md).
 
-- 📋 **T146** (deps: T145) **With the toggle on, "Open Claude Code" is one command again** — the per-profile submenu (T123) exists because a launch is the only place the tray can select a profile; once the variable is global, both entries would do the same thing and the submenu is a menu level asking a question the user already answered. It collapses back to a plain command while the toggle is on, and stays exactly as it is while off. The one thing that must not be lost is T137's "— entrar" affordance for a profile with no credentials on disk. → §XI.2
 - 📋 **T147** (deps: —) **The icon says whose number it is** — with the profile global, "which profile am I in?" becomes the question the tray exists to answer at a glance, and today nothing on the icon answers it: the number, the fill and the projection colour are identical for both profiles, and only the tooltip names one. A static mark (the profile's initial, or a per-profile accent) has to survive 16 px and must not collide with the existing colour language, where colour means *projection*, not identity. Not a live hint — the T101 non-goal is about animation and a permanent transcript tail, neither of which this needs. → §XI.3
 
 - 📋 **T148** (deps: —) **The Profile submenu cannot be opened from the keyboard** — found while driving T145's verification: every other submenu expands with Right, and this one closes the menu instead. Its items are built in `DropDownOpening`, so until it has been opened once `DropDownItems` is empty, WinForms reports no dropdown (no `ExpandCollapse` pattern, no arrow) and treats Right as "activate a plain command". A mouse hover works, which is why it was never noticed. The fix is to populate it before the menu is shown rather than on the way in — the menu already re-reads the profiles on every open (T137), so the data is there. Also unblocks the harness: `Check-Interaction.ps1` can only expand submenus that are non-empty at menu-open time. → §XI.4

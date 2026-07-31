@@ -528,17 +528,6 @@ Three alternatives were weighed and dropped before settling on the variable:
   account", and worth mentioning to a user who wants that — but it is editor-specific and does not
   answer "in the whole environment".
 
-### §XI.2 The submenu that stops earning its level (T146)
-
-`Open Claude Code` became a submenu in T123 because a launch was the only moment the tray could
-choose a profile. With a global variable that reason is gone: both entries would start Claude Code in
-the same profile, and the menu level asks a question the user has already answered elsewhere.
-
-It collapses to a plain command **while the toggle is on**, and is left exactly as it is while off —
-this is a consequence of the new mode, not a removal of a feature from anyone who did not opt in. The
-one behaviour that must survive either way is T137's: a profile with no credentials on disk reads
-"— entrar" and runs `claude auth login`, which is the only action that helps there.
-
 ### §XI.3 The icon that does not say whose number it is (T147)
 
 Reported from use, and independent of the toggle: nothing on the icon distinguishes the profiles. The

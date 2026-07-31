@@ -1295,7 +1295,10 @@ internal static class Program
         Console.WriteLine(profiles.Count == 1
             ? "Only one profile — the Settings picker stays hidden, Open Claude Code stays a plain command,"
               + " and the Profile submenu is hidden."
-            : $"Open Claude Code becomes a submenu with {profiles.Count} entries; the Profile submenu is shown.");
+            : TrayContext.LaunchIsSubmenu(settings, profiles.Count)
+                ? $"Open Claude Code becomes a submenu with {profiles.Count} entries; the Profile submenu is shown."
+                : "Open Claude Code stays a plain command — the picked profile is the environment's, so every"
+                  + " entry would open the same session (T146); the Profile submenu is shown.");
         Console.WriteLine($"icon follows: {monitored?.Label ?? "-"}  ({monitored?.ConfigDir ?? "-"})");
         Console.WriteLine($"polled every interval: {polled} of {profiles.Count}"
                           + (polled < profiles.Count
@@ -1696,9 +1699,10 @@ internal sealed class TrayContext : ApplicationContext
 
         // Launches the Claude Code CLI so it can refresh the OAuth token in
         // ~/.claude/.credentials.json — the recovery path when a poll hits HTTP 401. With more than one
-        // profile on the machine it becomes a submenu, one item per profile (T123).
+        // profile on the machine it becomes a submenu, one item per profile (T123) — unless the
+        // environment already carries the profile, which collapses it back to a command (T146).
         _openClaudeItem = new ToolStripMenuItem(L.T("menu.openClaude"));
-        _openClaudeItem.Click += (_, _) => OpenClaudeCode();
+        _openClaudeItem.Click += (_, _) => OpenClaudeCode(profile: _openClaudeProfile);
         RefreshProfileMenu();
         menu.Items.Add(_openClaudeItem);
 
@@ -2704,12 +2708,33 @@ internal sealed class TrayContext : ApplicationContext
     /// profile list is edited in Settings — without rebuilding the whole menu.</summary>
     private ToolStripMenuItem? _openClaudeItem;
 
+    /// <summary>The profile the collapsed command launches (T146), or null when it inherits. Held as a
+    /// field because the click handler is wired once, in <see cref="BuildMenu"/>, while the profile it
+    /// aims at is decided on every menu open.</summary>
+    private ClaudeInfo? _openClaudeProfile;
+
+    /// <summary>
+    /// Whether "Open Claude Code" is the per-profile submenu of T123, or the plain command it collapses
+    /// back to. The submenu exists because a launch used to be the only moment the tray could choose a
+    /// profile; with the whole environment on one profile (T145) every entry would start the same
+    /// session, so the level asks a question the user has already answered. Asked here by the tray and
+    /// by <c>--profiles</c>, so the two cannot disagree about what the menu looks like.
+    /// </summary>
+    internal static bool LaunchIsSubmenu(Settings settings, int profileCount) =>
+        profileCount > 1 && !settings.SyncEnvironmentProfile;
+
     /// <summary>
     /// Rebuild the per-profile submenu under "Open Claude Code". One profile (the normal case) leaves
     /// the item as a plain command; several turn it into a submenu, each entry launching Claude Code
     /// with that profile's <c>CLAUDE_CONFIG_DIR</c> and its own working directory. A profile with no
     /// credentials file on disk gets marked, and its entry runs <c>claude auth login</c> instead —
     /// which is the only action that would help there.
+    ///
+    /// <para>While the environment carries the profile (T146) there is no submenu, but that last
+    /// behaviour still has to hold: the collapsed command aims at the profile the user actually chose,
+    /// so it carries the same "— sign in" marking and runs the same login when that profile has no
+    /// credentials on disk. It is aimed explicitly rather than left to inherit because the tray's own
+    /// environment block was built at launch and does not see a variable written since.</para>
     /// </summary>
     private void RefreshProfileMenu()
     {
@@ -2719,7 +2744,21 @@ internal sealed class TrayContext : ApplicationContext
         // The list RefreshWatched just discovered, rather than a second sweep of its own: one menu open
         // is one discovery, and the two menus can't disagree about who needs a sign-in (T137).
         List<ClaudeInfo> profiles = _watched;
-        if (profiles.Count < 2) return;
+        if (!LaunchIsSubmenu(_settings, profiles.Count))
+        {
+            // Null while auto-follow is the thing driving: nothing has been chosen, the tray owns no
+            // variable, and inheriting is the honest launch.
+            _openClaudeProfile = profiles.Count > 1 ? DeliberateProfile() : null;
+            _openClaudeItem.Text = _openClaudeProfile is { HasCredentialsFile: false }
+                ? L.T("menu.profileNoLogin", L.T("menu.openClaude"))
+                : L.T("menu.openClaude");
+            _openClaudeItem.ToolTipText = _openClaudeProfile?.ConfigDir;
+            return;
+        }
+
+        _openClaudeProfile = null;
+        _openClaudeItem.Text = L.T("menu.openClaude");
+        _openClaudeItem.ToolTipText = null;
 
         foreach (ClaudeInfo profile in profiles)
         {
