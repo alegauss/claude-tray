@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Windows.Interop;
 using Microsoft.Win32;
 
 namespace ClaudeTray;
@@ -26,6 +27,43 @@ internal static class StartupManager
         if (enabled) key.SetValue(ValueName, $"\"{ExePath}\"");
         else key.DeleteValue(ValueName, throwOnMissingValue: false);
     }
+}
+
+/// <summary>
+/// Gives the WPF windows the message pre-processing pass WPF's own pump performs, which the WinForms
+/// pump this app runs on does not.
+///
+/// <para>The tray is a WinForms app (<c>Application.Run(new TrayContext())</c>) that shows WPF windows,
+/// and WPF keyboard input does not arrive through <c>WndProc</c> alone: <c>HwndSource</c> subscribes to
+/// <see cref="ComponentDispatcher"/> and expects the pump to offer every thread message to it *before*
+/// <c>TranslateMessage</c>. WPF's own <c>Dispatcher.PushFrame</c> loop does exactly that; WinForms'
+/// loop knows nothing about it. The result is a window that looks and clicks correctly — mouse input
+/// *is* WndProc-driven — while every key press is dropped: no typing in a text box, no Tab, no Esc.
+/// It went unseen because the `--settings` preview runs under a WPF pump, where input works.</para>
+///
+/// <para>Forwarding through a WinForms <see cref="IMessageFilter"/> reproduces WPF's loop exactly,
+/// including the "handled means don't translate/dispatch" contract: a message WPF consumed must not go
+/// on to <c>TranslateMessage</c>, or a keystroke would be delivered twice. Messages belonging to
+/// non-WPF windows (the tray icon, its context menu) are offered to no subscriber and pass straight
+/// through, so this costs one delegate call per message and changes nothing about WinForms.</para>
+/// </summary>
+internal sealed class WpfInputBridge : IMessageFilter
+{
+    public bool PreFilterMessage(ref Message m)
+    {
+        var msg = new MSG
+        {
+            hwnd = m.HWnd,
+            message = m.Msg,
+            wParam = m.WParam,
+            lParam = m.LParam,
+        };
+        return ComponentDispatcher.RaiseThreadMessage(ref msg);
+    }
+
+    /// <summary>Install the bridge on this thread's WinForms pump. Idempotent enough to call from every
+    /// entry point that pumps with WinForms while showing WPF windows.</summary>
+    public static void Install() => Application.AddMessageFilter(new WpfInputBridge());
 }
 
 internal static class Program
@@ -199,8 +237,27 @@ internal static class Program
             return;
         }
 
+        // Dev helper: the Settings window hosted **exactly as the tray hosts it** — a WPF Application
+        // object that is never Run, under the WinForms message pump — with the `--settings` preview's
+        // convenience of not needing the tray menu. This is not a duplicate of `--settings`: that one
+        // runs a WPF pump, which is a *different* input environment, and the difference is precisely how
+        // "no keyboard input in any window" (T135) survived every preview and screenshot of the UI. Use
+        // this one to verify anything keyboard: typing, Tab, Esc, shortcuts.
+        if (args.Length >= 1 && args[0] == "--settings-tray")
+        {
+            ApplicationConfiguration.Initialize();
+            _ = new System.Windows.Application { ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown };
+            WpfInputBridge.Install();
+            var trayHosted = new SettingsWindow(Settings.Load(), _ => { }, args.Length >= 2 ? args[1] : null);
+            trayHosted.Show();
+            trayHosted.Activate();
+            Application.Run();
+            return;
+        }
+
         // Dev/preview helper: open just the Settings window, standalone, so the UI can be launched
-        // and screenshotted deterministically without going through the tray menu.
+        // and screenshotted deterministically without going through the tray menu. Note the pump: this
+        // is a WPF Application.Run, so it cannot see a WinForms-hosting input bug — `--settings-tray`.
         if (args.Length >= 1 && args[0] == "--settings")
         {
             var previewApp = new System.Windows.Application();
@@ -412,6 +469,8 @@ internal static class Program
 
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         ApplicationConfiguration.Initialize();
+        // Without this the WPF windows this app opens receive no keyboard input at all (T135).
+        WpfInputBridge.Install();
         Application.Run(new TrayContext());
     }
 

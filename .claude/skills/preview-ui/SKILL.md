@@ -54,6 +54,30 @@ window's rectangle to a PNG, and kills the process.
 
 4. **Iterate**: edit the XAML, rebuild, recapture, re-read — until it's right. Only then report done.
 
+## A screenshot cannot see a keyboard bug
+
+`--settings` runs a **WPF** `Application.Run`; the tray runs a **WinForms** pump and only shows the WPF
+window. Those are different *input* environments, and the difference is not academic: the windows had
+**no keyboard input at all** under the tray (T135) — no typing, no Tab, no Esc — while every preview and
+every screenshot looked perfect, because mouse input is `WndProc`-driven and works either way.
+
+So this loop proves *layout*, never *input*. For anything that involves typing, Tab, Esc or a shortcut:
+
+```
+dotnet run -- --settings-tray ClaudeCode     # the window hosted the way the tray hosts it
+```
+
+and drive it with UI Automation rather than by eye — find the control by `AutomationId`, `SetFocus()`,
+`SendKeys`, then read the value back, so the check is a pass/fail and not an impression:
+
+```powershell
+Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Windows.Forms
+# ...find $win by ProcessId, then:
+$box = $win.FindFirst('Descendants', <AutomationIdProperty = 'ProfileNameBox'>)
+$box.SetFocus(); [System.Windows.Forms.SendKeys]::SendWait('Trabalho')
+$box.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value   # read it back
+```
+
 ## Notes
 
 - The screenshot copies from the screen, so keep the window unobscured during capture; the script

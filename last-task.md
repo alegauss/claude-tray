@@ -1,10 +1,10 @@
-# Last task number — `T134` · next block letter — `Q`
+# Last task number — `T135` · next block letter — `R`
 
-> **Single source of truth for the next free task number.** The next new task is `T135`; after
+> **Single source of truth for the next free task number.** The next new task is `T136`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `Q`** (Block **P** = Project layout — the flat root becomes `src/` + `build/`,
-> and the four oversized files split; created 2026-07-31).
+> **Next block letter — `R`** (Block **Q** = the WPF windows had no keyboard input at all under the
+> tray's WinForms pump; created 2026-07-31).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -61,6 +61,14 @@
   T132–T134 split the oversized ones. §VIII.0 lists the four things that must not move; `lang/` is the
   sharp one — its resource names are path-derived, so moving it breaks localization at runtime with a
   green build.
+- Block **Q** (T135, created 2026-07-31) opens on a **field report**, like Block L: *"I can't type
+  anything in this field"* — and the field was not the bug. Under the tray's WinForms message pump the
+  WPF windows never received **any** keyboard input, in every window, since the first one shipped. It is
+  its own block rather than a Block O task because it belongs to the app's **hosting**, not to profiles;
+  T123's Name box is merely the first control anyone had a reason to type into. The trap it leaves
+  behind is in [AGENTS.md](AGENTS.md): `--settings` runs a **WPF** pump and cannot see it, which is why
+  every preview and screenshot of the UI looked correct — `--settings-tray` is the one that reproduces
+  the tray.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 
@@ -121,3 +129,4 @@ here. This file is a terse index, not a memory.
 - **T127 SHIPPED** (Block O — a heartbeat per profile, the Profile submenu, and the icon's chosen profile) — 2026-07-31.
 - **T128 SHIPPED** (Block O — Statistics reports on a chosen profile, transcripts included) — 2026-07-31.
 - **T126 SHIPPED** (Block O — the icon follows the profile a turn just landed in) — 2026-07-31.
+- **T135 SHIPPED** (Block Q — the WPF windows get keyboard input under the WinForms pump) — 2026-07-31.

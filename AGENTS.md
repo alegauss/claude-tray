@@ -26,6 +26,13 @@ thread: `Application.Run(new TrayContext())` (WinForms) pumps messages for both.
 Fluent theme + pack-URI resources resolve. (Enabling `UseWPF` drops `System.IO` from implicit
 usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don't remove that.)
 
+**`WpfInputBridge` is load-bearing, not plumbing (T135).** A WinForms pump gives WPF windows mouse
+input (that is `WndProc`) but **no keyboard input at all** — WPF's `HwndSource` expects the pump to
+offer every thread message to `ComponentDispatcher` before `TranslateMessage`, which WPF's own
+`Dispatcher.PushFrame` loop does and WinForms' loop does not. Without the bridge (an `IMessageFilter`
+installed in `Main`) nothing typed, tabbed or Esc'd reaches any window. Any new entry point that pumps
+with WinForms while showing a WPF window must call `WpfInputBridge.Install()`.
+
 ## File map
 
 | File | Responsibility |
@@ -75,6 +82,13 @@ usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don'
    add `x:ClassModifier="internal"` to the XAML root and `internal partial class` in code-behind.
 5. **Verify by looking, every time.** See the workflow below. Do not report a UI change as done
    without a screenshot.
+6. **A screenshot cannot see a keyboard bug, and `--settings` cannot either.** The preview flags run a
+   **WPF** `Application.Run`; the tray runs a **WinForms** pump, and the two are different *input*
+   environments — that difference is how "no keyboard input in any window" (T135) survived every
+   preview, capture and screenshot this repo has ever taken. Anything that involves typing, Tab, Esc or
+   a shortcut must be verified under **`--settings-tray`**, which hosts the window the way the tray
+   does. UI Automation drives it headlessly: find the control by `AutomationId`, `SetFocus()`,
+   `SendKeys`, then read the value back.
 
 ## Visual verification workflow (the predictability loop)
 
@@ -96,8 +110,10 @@ dotnet build -c Debug                 # fast compile check
 dotnet run -c Release                 # build + run the tray app
 dotnet publish -c Release             # single self-contained .exe -> bin\Release\net10.0-windows\win-x64\publish\
 
-dotnet run -- --settings              # open just the Settings window (preview)
+dotnet run -- --settings              # open just the Settings window (preview; WPF pump)
 dotnet run -- --settings System       # ...opened on the System information page (any page name works)
+dotnet run -- --settings-tray [page]  # ...hosted the way the TRAY hosts it (WinForms pump). The only
+                                      # preview that can see a keyboard bug — see UI convention 6.
 dotnet run -- --profiles              # every Claude Code profile (config dir) discovery finds, in order
 dotnet run -- --profiles <dir> [dir]  # ...plus dirs treated as explicitly registered (the Settings list)
 dotnet run -- --profiles --check      # ...also asking `claude auth status --json` per profile
