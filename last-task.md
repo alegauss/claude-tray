@@ -1,11 +1,10 @@
-# Last task number — `T121` · next block letter — `O`
+# Last task number — `T126` · next block letter — `P`
 
-> **Single source of truth for the next free task number.** The next new task is `T122`; after
+> **Single source of truth for the next free task number.** The next new task is `T127`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `O`** (Block **N** = System information — the Settings page over the local
-> Claude Code account/install facts; created 2026-07-31 from a user question, "can About show the
-> plan, the holder and the config directory?").
+> **Next block letter — `P`** (Block **O** = Profiles — several Claude Code logins on one machine,
+> switched by launching with a different `CLAUDE_CONFIG_DIR`; created 2026-07-31).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -41,6 +40,13 @@
   the About page show the plan, the holder and the config directory?" — and became its own page
   instead of an About addition: About is the project's identity, this is the *machine's*. T121 stays
   open because the page cannot be screenshotted from a real account (see IMPROVEMENTS §VI.1).
+- Block **O** (T122–T126, created 2026-07-31) is a *new* block rather than a Block N second pass: N is
+  one read-only page about **this** machine's single login, O is a **model** — several config dirs, the
+  launch path, the stores keyed per account. It carries a dependency on T120 because `ClaudeAccount` is
+  the reader it parameterizes. **T124 is a defect that predates the block** (an environment
+  `ANTHROPIC_API_KEY` makes Claude Code bill the Console while the tray reports an idle subscription),
+  found while testing whether `CLAUDE_CONFIG_DIR` isolates auth — it does not — and it is ordered before
+  the multi-profile polling because it is wrong today, for everyone with that variable set.
 - Block **M** (T113, created 2026-07-29) is a one-task block on the *window's* chrome rather than a
   fourth Block K item: K is the live strip, and the method note it hid behind an ⓘ describes every
   number in the window. Block L set the precedent that a block may hold a single task.

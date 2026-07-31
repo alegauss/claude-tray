@@ -113,6 +113,31 @@
 
 - 📋 **T121** (deps: T120) **A fixture account so the page can be screenshotted** — every other window has a published shot; this one has none, because the only account on a real machine is the developer's, and masking hides the name and the email but not the organization or its mail domain. `ContextFixture` already builds a throwaway `~/.claude` for exactly this reason; the same idea needs a synthetic `.claude.json`/`.credentials.json` pair (a Max 20x personal account and a Team seat, so both the with-org and no-org layouts render) behind a `--settings System --sample`, and then the README and the site block get their image. → §VI.1
 
+## Block O — Profiles ("personal, work, empresa2 — one tray, several logins")
+
+> Claude Code is **one account per config dir**: `.claude.json` holds a single `oauthAccount` and
+> `.credentials.json` a single `claudeAiOauth`, and `/login` overwrites rather than accumulates. So
+> "several subscriptions on one Windows" means several **config dirs** (`CLAUDE_CONFIG_DIR`), and the
+> unit this block models is a **profile** — `{Label, ConfigDir, WorkDir}` — never an "account" the tray
+> pretends to own. Today the tray sees exactly one: it polls `~/.claude/.credentials.json` and every
+> local reader is scoped to `~/.claude`, so a second profile's usage appears **nowhere**, silently.
+>
+> Three things "switching" could mean, and only two are possible: which profile the tray **monitors**
+> (pure read), which profile a **new** session opens in (one env var on the launch path the tray
+> already has), and the account of an **already running** session — which no GUI can change, because
+> the environment is fixed at process creation. See Non-goals.
+>
+> The block's whole safety argument is that it **writes nothing into a config dir**: measured, the CLI
+> creates a missing `CLAUDE_CONFIG_DIR` itself, and `claude auth login|logout|status --json` is the
+> supported seam for the parts that do need a write — the same "hand the edit to Claude Code" that T77
+> settled for memory. Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §VII.
+
+- 📋 **T122** (deps: T120) **A profile model, and finding the profiles** — `ClaudeAccount.ConfigDir` is a static property today; parameterize the reader by directory and return a list. Discovery, in order, with no guessing: the default `~/.claude`, an inherited `CLAUDE_CONFIG_DIR`, `env.CLAUDE_CONFIG_DIR` in `~/.claude/settings.json` and in each project's `.claude/settings*.json` (files `ContextScanner` already reads), the `~/.claude-*` convention, and the user's own list. Identity is the `accountUuid`, not the path — two dirs can hold the same account. The System information page grows a card per profile when there is more than one, and is untouched when there is one. → §VII.1
+- 📋 **T123** (deps: T122) **The list editor, and launching into a profile** — three operations (add / rename / remove-from-list) over the tray's *own* `settings.json`, with **no credential field of any kind**: `--email` is prefill read back from `oauthAccount.emailAddress`, and a new profile passes nothing and lets the browser flow ask. Remove never deletes the folder (it holds transcripts, memory and settings). Then the tray menu's `Open Claude Code` becomes a dynamic submenu — one item per profile, launching with that profile's `CLAUDE_CONFIG_DIR` **and** its own `WorkDir`, so one click can't open the work account inside a personal repo — plus a "Sign in…" action per profile via `claude auth login`. **This is where switching actually lands**, and it changes no polling. → §VII.2
+- 📋 **T124** (deps: T120) **Say which auth the sessions are actually using** — found while testing profile isolation and **wrong today, independent of profiles**: `CLAUDE_CONFIG_DIR` isolates files but *not* environment auth. With a machine-level `ANTHROPIC_API_KEY`, a config dir without a completed OAuth login reports `authMethod: api_key` — that work bills to the Console and never touches the subscription's 5h/7d windows, while the tray keeps reading the OAuth token and reporting a near-idle subscription. Surface `authMethod` per profile (from `claude auth status --json`, which also answers where a file read cannot: API key, Bedrock, Vertex) and say plainly when the number does not describe what Claude Code is spending. → §VII.3
+- 📋 **T125** (deps: T122, T124) **Monitor every profile, not just the first** — one heartbeat per profile per interval (the Settings cost estimate must multiply and say so, since each call spends *that* account's quota), and every local store keyed by `accountUuid`: `usage-history.jsonl`, `HourlyUsage`, `ContextHistory` and the nudge ledger are single-series today, so profile B's usage would otherwise contaminate profile A's projection and its week-over-week comparison. The icon shows one chosen profile; the tooltip and Statistics carry the rest, and a per-profile auth failure must name the profile instead of a generic "not authenticated". This is the block's real work — the UI is the easy half. → §VII.4
+- 💭 **T126** (deps: T125) **The icon follows the profile you're working in** — `TranscriptTail` already watches transcripts byte-for-byte; with N profiles it can see *which* config dir just had a turn land and point the icon at that one, so nobody clicks "switch" at all. Manual override stays. Open question is the icon itself: at 16px there is no room for a label (the number fills it), so the profile has to read from the tooltip and menu, with at most a small per-profile colour dot — and only if it survives being looked at next to the projection colour, which already means something. → §VII.5
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
@@ -126,6 +151,19 @@ Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full 
   instruction files are *measured*, never edited — measure, advise, hand the edit to Claude. **T77
   settled this: no write path at all.** The archive-with-undo was considered and dropped in favour of
   a generated cleanup prompt (see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I.4).
+- **Never swap, copy or move a credential or config file to switch accounts.** Block O switches
+  profiles by launching Claude Code with a different `CLAUDE_CONFIG_DIR`; the file-juggling
+  alternative races Claude Code's own refresher (measured: an 8h access token, a 5-day refresh token,
+  `.credentials.json` rewritten on refresh, and `.claude.json` rewritten constantly), splits identity
+  across two files, and would make the tray the thing that broke somebody's login. §I.4 has no
+  exception, and credential material is the last place to invent one.
+- **No switching the account of a running session.** The environment is fixed when the process
+  starts; a profile change applies to the *next* session. The UI says so rather than implying
+  otherwise.
+- **Profiles are contexts, not quota pools.** No string anywhere may suggest changing accounts
+  because one hit its limit. Monitoring two subscriptions with each one's own token is reading what
+  you own; nudging somebody to hop when a window maxes out is limit circumvention wearing a
+  convenience costume, and it would contradict the README's own terms section.
 - **Don't swap the UI stack.** WinForms owns the tray icon, WPF owns windows, both on one STA thread.
   No imperative `Dock=Top` stacking; no hardcoded hex for theme-able surfaces.
 - **No second source of truth for the version** — `<Version>` in `ClaudeTray.csproj` only.

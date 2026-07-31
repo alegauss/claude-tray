@@ -15,6 +15,7 @@
 | [§IV](#iv--activity-aware-pacing-block-j) | Activity-aware pacing (Block J) |
 | [§V](#v--live-throughput-block-k) | Live throughput (Block K) |
 | [§VI](#vi--system-information-block-n) | System information (Block N) |
+| [§VII](#vii--profiles-block-o) | Profiles — several Claude Code logins on one machine (Block O) |
 
 > Block I's design sections (§II) are gone: every one of them shipped, and `git log` plus
 > [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a **measurement** — the
@@ -348,3 +349,126 @@ plus role). A third case, no OAuth account at all, needs no fixture: an empty di
 
 Only then do the README section and the site block get their image; until they do, both describe the
 page in words, which is why T120 shipped without a shot.
+
+---
+
+## §VII — Profiles (Block O)
+
+### §VII.0 What is actually on disk, and what "switching" can mean
+
+Claude Code is **single-account per config dir**. `.claude.json` carries exactly one `oauthAccount`,
+`.credentials.json` exactly one `claudeAiOauth`, and `/login` overwrites rather than appends. There is
+no list of subscriptions to enumerate, so "several accounts on one Windows" can only mean one of three
+things, and they are not equally real:
+
+1. **Several config dirs** (`CLAUDE_CONFIG_DIR`) — the supported pattern, and the one this block
+   models. Each dir is its own credentials, account, projects, transcripts, settings, MCP servers,
+   permissions and plugins.
+2. **Several Windows user accounts** — a different `%USERPROFILE%`, unreadable across users by ACL.
+   Out of scope deliberately: the app must not go looking inside another user's profile.
+3. **Traces of a previous account in the same dir** — `clientDataCacheSlots` retains slots carrying an
+   `org` value (two distinct ones observed on the development machine), and `.claude.json.backup` may
+   hold an older `oauthAccount`. Both are undocumented internals with opaque keys, and neither yields a
+   plan or an address for the other account. **Not a basis for anything.**
+
+And "switching" splits into three axes that cost wildly different amounts:
+
+| Axis | Feasible | Cost |
+|---|---|---|
+| Which profile the tray **monitors** | yes | pure read (plus T125's store keying) |
+| Which profile a **new** session opens in | yes | one env var on the launch path the tray already has |
+| The account of an **already running** session | **no** | the environment is fixed at process creation |
+
+The third is a hard no rather than a "later", which is why it sits in Non-goals: nothing about a GUI
+changes a live process's environment.
+
+### §VII.1 Discovery, and what identity means (T122)
+
+`ClaudeAccount` already reads a config dir — `ConfigDir` is just a static property resolving
+`CLAUDE_CONFIG_DIR` or `~/.claude`. Parameterizing the reader by directory is most of T122.
+
+Discovery must never guess: a false positive shows somebody the wrong plan. The ordered sources are the
+default dir, an inherited `CLAUDE_CONFIG_DIR`, `env.CLAUDE_CONFIG_DIR` inside `~/.claude/settings.json`
+and each project's `.claude/settings.json` / `settings.local.json` (files `ContextScanner` already
+opens, so this source is free), the `~/.claude-*` naming convention, and the user's own registered
+list. A directory counts as a profile when it holds `.credentials.json`, or a `.claude.json` with an
+`oauthAccount`, or when the user registered it explicitly — that last clause is what covers a profile
+which exists but has never been logged into.
+
+**Identity is the `accountUuid`, not the path.** Two dirs can hold the same account (a copied config, a
+junction) and the page must not list it twice. The label is derived rather than demanded:
+`organizationName` when present, else "Personal" for an account without one, else the folder name — a
+discovered profile then needs no typing at all.
+
+### §VII.2 The list editor, and why there is no credential CRUD (T123)
+
+The instinct is that switching accounts needs the tray to store account data. It does not. A profile is
+`{Label, ConfigDir, WorkDir}` and **nothing else** — no address, no token, no password:
+
+- for a profile that has a login, the address is already on disk and is read back purely to prefill
+  `claude auth login --email` so nobody retypes it;
+- for a new profile the tray passes nothing and the browser flow asks. It cannot validate an address it
+  invented, so it must not collect one.
+
+Which reduces the "CRUD" to add / rename / remove-from-list over the tray's *own* settings file.
+**Remove must never delete the directory** — a config dir holds transcripts, memories and settings, and
+deleting those is not a tray's business. Nor does add need to create anything: verified by pointing
+`CLAUDE_CONFIG_DIR` at a non-existent path and running a read-only `claude auth status --json`, the
+**CLI creates the directory itself** (`.claude.json` plus `backups/`). The write path therefore stays at
+exactly zero.
+
+`WorkDir` per profile matters more than it looks. The tray has a single global working directory today,
+so without it "Open Claude Code > empresa2" would open the company account inside a personal repo.
+Pairing each account with its folder is what makes one click correct.
+
+One cost to state honestly in the UI: a fresh profile starts **empty** — no user `CLAUDE.md`, no
+`settings.json`, no skills, plugins or project history. That is real isolation, which is the feature,
+but it surprises. Say what is missing and offer to open both folders; never copy files on the user's
+behalf.
+
+### §VII.3 Environment auth defeats profile isolation (T124)
+
+Found while verifying §VII.2, and **wrong in the shipped app today, with or without profiles**:
+`CLAUDE_CONFIG_DIR` isolates *files*, not *authentication*. On a machine with a machine-level
+`ANTHROPIC_API_KEY`, a config dir with no completed OAuth login answers
+`{"loggedIn":true,"authMethod":"api_key","apiKeySource":"ANTHROPIC_API_KEY"}`. Precedence, measured: a
+completed claude.ai login in the config dir wins; without one, the environment key takes over.
+
+The consequence is a silent misreport. Work done under an API key bills to the Console and never
+touches the subscription's 5h/7d windows — while the tray keeps reading the OAuth token from
+`.credentials.json` and drawing a near-idle subscription. The icon can honestly say 5% while somebody
+works all day.
+
+So the reading the page owes the user is **which auth each profile is actually on**, plus a plain
+sentence when it is `api_key`: those sessions do not draw on the subscription, so the number beside it
+does not describe what Claude Code is spending. `claude auth status --json` is the right source, because
+it also answers for API-key, Bedrock and Vertex setups where there is no `oauthAccount` to read. It
+costs a process spawn, so it belongs to an explicit refresh rather than to every page render — §VI's
+reason for not shelling out to `claude --version` still holds.
+
+### §VII.4 Per-profile monitoring is a store problem (T125)
+
+The UI half is easy; the arithmetic half is not. Every local store assumes a single series:
+`usage-history.jsonl`, the folded `HourlyUsage` aggregate, `ContextHistory` and the nudge ledger. Fed
+two profiles unkeyed, profile B's usage contaminates profile A's projection, its activity shape and its
+week-over-week comparison — quietly, and in a way that reads as a bad projection rather than as a bug.
+Keying everything by `accountUuid` comes first; polling second.
+
+Polling N profiles is N heartbeats per interval, each spending a sliver of *that* account's quota, so
+the Settings cost estimate has to multiply and say so. Each profile also has its own token with its own
+expiry, so "not authenticated" must name the profile — a generic warning sends somebody to re-login on
+the wrong account.
+
+### §VII.5 Auto-follow, and the 16px problem (T126)
+
+`TranscriptTail` reports each turn within ~250ms of it landing. With N profiles it also knows *which*
+config dir the turn landed in, so the icon can follow the profile actually being worked in and nobody
+clicks "switch" at all. A manual override stays, because a following icon that guesses wrong is worse
+than a static one.
+
+The unsolved part is the icon. At the real tray size the number already fills the glyph, so there is no
+room for a label: the profile has to read from the tooltip and the menu, with at most a small
+per-profile colour dot — and that dot has to survive being looked at beside the projection colour, which
+already carries meaning. Nothing here gets promised before it has been rendered and screenshotted. It is
+not the animated tray hint T101 was dropped for: a static per-profile mark needs no permanent tail
+(T125's polling already knows the profiles) and does not animate.
