@@ -485,7 +485,7 @@ internal static class ClaudeAccount
     {
         List<ClaudeProfile> list = profiles?.Where(p => !string.IsNullOrWhiteSpace(p.ConfigDir)).ToList()
                                   ?? new List<ClaudeProfile>();
-        List<ClaudeInfo> found = Discover(list.Select(p => p.ConfigDir));
+        List<ClaudeInfo> found = DiscoverCore(list.Select(p => p.ConfigDir));
 
         foreach (ClaudeInfo info in found)
         {
@@ -496,6 +496,9 @@ internal static class ClaudeAccount
             // A name the user typed wins over the derived one — that is what renaming means.
             if (!string.IsNullOrWhiteSpace(reg.Label)) info.Label = reg.Label.Trim();
         }
+        // Dedupe only after the typed-name overrides above — a collision either of them could
+        // introduce or resolve must be judged on the final label, not the derived one.
+        DedupeLabels(found);
         return found;
     }
 
@@ -514,6 +517,16 @@ internal static class ClaudeAccount
     }
 
     public static List<ClaudeInfo> Discover(IEnumerable<string>? registered = null)
+    {
+        List<ClaudeInfo> found = DiscoverCore(registered);
+        DedupeLabels(found);
+        return found;
+    }
+
+    /// <summary>The actual sweep, without the label dedupe — <see cref="Discover(IEnumerable{ClaudeProfile}?)"/>
+    /// needs to apply typed-name overrides before that step, so it calls this instead of the public
+    /// overload above.</summary>
+    private static List<ClaudeInfo> DiscoverCore(IEnumerable<string>? registered)
     {
         var regs = new List<string>();
         foreach (string r in registered ?? Enumerable.Empty<string>())
@@ -638,10 +651,35 @@ internal static class ClaudeAccount
     /// one, "Personal" for an account without one, and the folder name when nothing identifies it.</summary>
     private static string DeriveLabel(ClaudeInfo info)
     {
-        if (info.OrgName is { Length: > 0 } org) return org;
+        if (info.OrgName is { Length: > 0 } org && !IsPersonalOrgName(org)) return org;
         if (info.HasAccount) return L.T("settings.sys.profilePersonal");
         string name = Path.GetFileName(info.ConfigDir.TrimEnd('\\', '/'));
         return name.Length > 0 ? name : info.ConfigDir;
+    }
+
+    /// <summary>Anthropic names a personal account's organization "&lt;email&gt;'s Organization" — shown
+    /// verbatim, that puts a real address in the tray menu, the tooltip and every screenshot of them,
+    /// which is the opposite of what §I.1 promises. Treated as no organization, falling through to
+    /// "Personal" like an account that never had one.</summary>
+    private static bool IsPersonalOrgName(string org) =>
+        org.EndsWith("'s Organization", StringComparison.Ordinal)
+        && org[..^"'s Organization".Length].Contains('@');
+
+    /// <summary>Two profiles can end up with the same label — two derived "Personal"s, or a typed name
+    /// reused — which is exactly what made the T136 incident unreadable (both profiles read "Pessoal").
+    /// A collision gets the config dir's leaf folder name appended, for display only: the stored label,
+    /// typed or derived, is never rewritten.</summary>
+    private static void DedupeLabels(List<ClaudeInfo> found)
+    {
+        foreach (IGrouping<string, ClaudeInfo> group in found.GroupBy(p => p.Label, StringComparer.Ordinal))
+        {
+            if (group.Count() < 2) continue;
+            foreach (ClaudeInfo info in group)
+            {
+                string leaf = Path.GetFileName(info.ConfigDir.TrimEnd('\\', '/'));
+                if (leaf.Length > 0) info.Label = $"{info.Label} ({leaf})";
+            }
+        }
     }
 
     /// <summary>Expand <c>%VARS%</c> and a leading <c>~</c> in a path read from a settings file.</summary>

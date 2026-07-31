@@ -162,11 +162,14 @@
 > profile / Active / Use for icon), and the System information picker and the Claude Code editor combo
 > are reworded to say what they actually do (Viewing / Editing). See [CHANGELOG.md](CHANGELOG.md) Block R.
 >
-> The two below are what the same session surfaced and did not fix. They share one theme: the model is
-> right, and the **controls and names** around it are not.
+> **T140 shipped**: an organization name matching Anthropic's personal-default pattern (`*'s
+> Organization`) no longer reaches the label, and any two profiles that still collide (typed or
+> derived) get the config dir's leaf name appended for display. See [CHANGELOG.md](CHANGELOG.md) Block R.
+>
+> What is left shares the block's theme: the model is right, and the **controls and names** around it
+> are not.
 
 - 💭 **T139** (deps: T126) **A manual pick should pin, not merely delay** — T126 made a hand-picked profile hold until a turn lands elsewhere, which is right on a machine where attention moves between profiles and wrong on one where a profile is *continuously* active: observed live, a pick was undone within seconds because an assistant session kept writing turns in the work profile. The user's click is the strongest signal the app gets, and undoing it should also take a click. → §X.2
-- 📋 **T140** (deps: T122) **A label must not be an email address, and two profiles must not share a name** — Anthropic names a personal organization `<address>'s Organization`, so the derived label puts a real email in the tray menu, the tooltip and every screenshot of them, which is the opposite of what §I.1 promises about what reaches the screen. And two profiles can still end up with the same label, which is exactly what made the T136 incident unreadable — the user could not tell which "Pessoal" was which. → §X.3
 - 💭 **T143** (deps: T123) **"Make this profile the default for terminals I open myself"** — the tray passes `CLAUDE_CONFIG_DIR` to the session it launches and deliberately nothing else, which the reporter diagnosed exactly: *"the variable isn't persisting globally, only in the session"*. Setting it at user level would make **every** Claude Code session on the machine use that profile, including ones the tray never sees, so it is a different promise from anything the app makes today and needs design before it is offered — the cheap alternative being a copyable `setx` line the user runs themselves, with the tray explaining the consequence rather than owning it. → §X.4
 
 ## Block S — Settings round-trip ("a field missing from the copy is a field reset")

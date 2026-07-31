@@ -569,26 +569,6 @@ Three candidates, with the trade to settle:
 (3) is the recommendation. Whatever is chosen has to be legible *in the submenu itself*, because that is
 where the user is standing when they wonder why the icon moved.
 
-### §X.3 A label is not an address, and two profiles cannot share a name (T140)
-
-Two separate defects in one derivation. `ClaudeAccount` derives a profile's label as: organization name,
-else "Personal", else the folder name.
-
-**The address.** Anthropic names a personal organization `<email address>'s Organization`. So for any
-personal account the derived label *is* an email address, and it goes into the tray menu, the tooltip and
-therefore into every screenshot of them — observed on the reporter's machine as a menu entry ending in
-`'s Organization` with a real address in front of it. Nothing asked the app to show an address, and §I.1
-is explicit about what reaches the screen. The rule: an organization name matching the personal-default
-pattern (`*'s Organization`) is treated as **no organization**, falling through to the next derivation —
-which is the folder name, and a folder name is something the user chose.
-
-**The collision.** Two profiles can carry the same label — one derived, one typed, or two derived. That
-is what made T136 unreadable: both profiles read "Pessoal" and no part of the menu distinguished them.
-The rule: labels are made unique for *display* by appending the config dir's leaf name to the duplicates
-(`Pessoal (.claude)` / `Pessoal (.claude-pessoal)`), never by rewriting what the user typed and never by
-inventing a name they did not choose. The stored `ClaudeProfile.Label` is untouched; this is a rendering
-concern, and the config dir is already the tooltip on every entry.
-
 ### §X.4 Machine-wide `CLAUDE_CONFIG_DIR` (T143)
 
 Diagnosed correctly by the reporter: the variable is set on the process the tray launches and nowhere

@@ -152,3 +152,4 @@ here. This file is a terse index, not a memory.
 - **T136 SHIPPED** (Block R — the default profile stops being described by a stub the tray created) — 2026-07-31.
 - **T137 SHIPPED** (Block R — the menu re-reads the profiles when it opens, so a fresh login shows) — 2026-07-31.
 - **T138 SHIPPED** (Block R — the Claude Code page gets a real "drives the icon" control) — 2026-07-31.
+- **T140 SHIPPED** (Block R — no email in a label, and no two profiles sharing one) — 2026-07-31.
