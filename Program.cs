@@ -1130,10 +1130,17 @@ internal static class Program
             Console.WriteLine($"    account  {(p.AccountUuid is { Length: > 8 } u ? u[..8] + "…" : p.AccountUuid ?? "-")}"
                               + $"   org {p.OrgName ?? "-"}   signed in {(p.TokenExpires is { } e ? e.ToString("g") : "-")}");
             Console.WriteLine($"    projects {p.ProjectCount}   cli {p.CliVersion ?? "-"}   install {p.InstallMethod ?? "-"}");
+            // Exactly what the tray submenu would do for this profile — same helpers the click uses.
+            string workDir = TrayContext.WorkDirFor(p, Settings.Load().ClaudeCodeDirectory);
+            Console.WriteLine($"    menu     \"{(p.HasCredentialsFile ? p.Label : L.T("menu.profileNoLogin", p.Label))}\""
+                              + $" -> {TrayContext.LaunchCommandFor(p)}");
+            Console.WriteLine($"             CLAUDE_CONFIG_DIR={p.ConfigDir}   cwd {workDir}"
+                              + (Directory.Exists(workDir) ? "" : "  (missing — OS default applies)"));
             Console.WriteLine();
         }
-        if (profiles.Count == 1)
-            Console.WriteLine("Only one profile — the Settings picker stays hidden.");
+        Console.WriteLine(profiles.Count == 1
+            ? "Only one profile — the Settings picker stays hidden and Open Claude Code stays a plain command."
+            : $"Open Claude Code becomes a submenu with {profiles.Count} entries.");
     }
 
     // Dev/preview helper: same sample data as SimulateReset, but instead of leaving the toast on
@@ -1487,10 +1494,12 @@ internal sealed class TrayContext : ApplicationContext
         menu.Items.Add(refresh);
 
         // Launches the Claude Code CLI so it can refresh the OAuth token in
-        // ~/.claude/.credentials.json — the recovery path when a poll hits HTTP 401.
-        var openClaude = new ToolStripMenuItem(L.T("menu.openClaude"));
-        openClaude.Click += (_, _) => OpenClaudeCode();
-        menu.Items.Add(openClaude);
+        // ~/.claude/.credentials.json — the recovery path when a poll hits HTTP 401. With more than one
+        // profile on the machine it becomes a submenu, one item per profile (T123).
+        _openClaudeItem = new ToolStripMenuItem(L.T("menu.openClaude"));
+        _openClaudeItem.Click += (_, _) => OpenClaudeCode();
+        RefreshProfileMenu();
+        menu.Items.Add(_openClaudeItem);
 
         // Hidden until a newer release is found; then shows "Update to vX.Y.Z".
         _updateItem = new ToolStripMenuItem(L.T("menu.updateAvailable")) { Visible = false, Font = new Font(menu.Font, FontStyle.Bold) };
@@ -1645,6 +1654,10 @@ internal sealed class TrayContext : ApplicationContext
         _settings.ClaudeCodeDirectory = updated.ClaudeCodeDirectory;
         _settings.AutoOpenOnUnauthenticated = updated.AutoOpenOnUnauthenticated;
         _settings.AuthRetrySeconds = updated.AuthRetrySeconds;
+        // The profile list drives the "Open Claude Code" submenu, so it is rebuilt right here rather
+        // than waiting for a restart.
+        _settings.Profiles = updated.Profiles;
+        RefreshProfileMenu();
 
         // A language change only takes effect after a restart (localized strings resolve when a window
         // is parsed), so note whether the *active* language would change before saving the new value.
@@ -2154,10 +2167,79 @@ internal sealed class TrayContext : ApplicationContext
 
     private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max];
 
+    // ---- Profiles in the tray menu (T123) ----
+
+    /// <summary>The "Open Claude Code" item, kept so its profile submenu can be rebuilt when the
+    /// profile list is edited in Settings — without rebuilding the whole menu.</summary>
+    private ToolStripMenuItem? _openClaudeItem;
+
+    /// <summary>
+    /// Rebuild the per-profile submenu under "Open Claude Code". One profile (the normal case) leaves
+    /// the item as a plain command; several turn it into a submenu, each entry launching Claude Code
+    /// with that profile's <c>CLAUDE_CONFIG_DIR</c> and its own working directory. A profile with no
+    /// credentials file on disk gets marked, and its entry runs <c>claude auth login</c> instead —
+    /// which is the only action that would help there.
+    /// </summary>
+    private void RefreshProfileMenu()
+    {
+        if (_openClaudeItem is null) return;
+        _openClaudeItem.DropDownItems.Clear();
+
+        List<ClaudeInfo> profiles;
+        try { profiles = ClaudeAccount.Discover(_settings.Profiles); }
+        catch { return; }   // discovery is best-effort; the plain command still works
+        if (profiles.Count < 2) return;
+
+        foreach (ClaudeInfo profile in profiles)
+        {
+            bool needsLogin = !profile.HasCredentialsFile;
+            var item = new ToolStripMenuItem(needsLogin
+                ? L.T("menu.profileNoLogin", profile.Label)
+                : profile.Label)
+            {
+                ToolTipText = profile.ConfigDir,
+            };
+            ClaudeInfo captured = profile;
+            item.Click += (_, _) => OpenClaudeCode(profile: captured);
+            _openClaudeItem.DropDownItems.Add(item);
+        }
+    }
+
+    /// <summary>
+    /// What launching a profile actually runs. A profile with no credentials file has nothing to
+    /// refresh, so <c>claude auth login</c> is the only action that helps — with <c>--email</c>
+    /// prefilled when the config still names the account whose login lapsed, which is the one case
+    /// where the tray knows the address without ever having asked for it. Everything else launches
+    /// <c>claude</c>, which refreshes its own token.
+    /// </summary>
+    internal static string LaunchCommandFor(ClaudeInfo? profile) =>
+        profile is { HasCredentialsFile: false }
+            ? "claude auth login" + (SafeEmail(profile.HolderEmail) is { } mail ? $" --email {mail}" : "")
+            : "claude";
+
+    // The address is read off disk and ends up on a cmd.exe command line, so it is only passed when it
+    // is unambiguously an address — no quoting, no shell metacharacters, nothing cmd would interpret.
+    // A rejected address just means the login page asks for it, which costs the user one field.
+    private static string? SafeEmail(string? email)
+    {
+        if (email is not { Length: > 3 } e || e.Length > 254) return null;
+        foreach (char c in e)
+            if (!char.IsAsciiLetterOrDigit(c) && c is not ('@' or '.' or '_' or '-' or '+')) return null;
+        return e.Count(c => c == '@') == 1 && !e.StartsWith('@') && !e.EndsWith('@') ? e : null;
+    }
+
+    /// <summary>The directory a profile opens in: its own when set, else the global setting. This is
+    /// what stops a work account from opening inside a personal repo.</summary>
+    internal static string WorkDirFor(ClaudeInfo? profile, string fallback) =>
+        profile is { WorkDir.Length: > 0 } ? profile.WorkDir : fallback;
+
     // Open the Claude Code CLI in a terminal. Starting it makes Claude Code validate and refresh
     // the OAuth token, which clears an expired-token (401) state for the next poll. `claude` is on
     // PATH for anyone who uses Claude Code, so the shell resolves it regardless of install method.
-    private void OpenClaudeCode(bool forReauth = false)
+    //
+    // With a profile, the launch carries that profile's CLAUDE_CONFIG_DIR — which is the whole
+    // switching mechanism: nothing is written, and Claude Code owns everything inside that dir.
+    private void OpenClaudeCode(bool forReauth = false, ClaudeInfo? profile = null)
     {
         try
         {
@@ -2165,20 +2247,25 @@ internal sealed class TrayContext : ApplicationContext
             // NeedsFullLogin): with one, just launching `claude` silently refreshes the access token;
             // without one, only a full /login re-authenticates (there's no CLI flag to force it), so we
             // print a hint to type /login above the prompt before launching claude in the same window.
+            string launch = LaunchCommandFor(profile);
             string command = !forReauth
-                ? "/k claude"
+                ? $"/k {launch}"
                 : _data is { NeedsFullLogin: true }
-                    ? $"/k echo {L.T("cli.loginHint")} & claude"
-                    : $"/k echo {L.T("cli.refreshHint")} & claude";
+                    ? $"/k echo {L.T("cli.loginHint")} & {launch}"
+                    : $"/k echo {L.T("cli.refreshHint")} & {launch}";
             var psi = new ProcessStartInfo
             {
                 FileName = "cmd.exe",
                 Arguments = command,
-                UseShellExecute = true,
             };
-            // Open in the configured working directory when set and still present; otherwise let
-            // the OS default apply (the user's home directory).
-            string dir = _settings.ClaudeCodeDirectory;
+            if (profile is { ConfigDir.Length: > 0 })
+                // ProcessStartInfo.Environment is only honoured with UseShellExecute = false; cmd.exe
+                // still gets its own console window either way.
+                psi.Environment["CLAUDE_CONFIG_DIR"] = profile.ConfigDir;
+            else
+                psi.UseShellExecute = true;
+
+            string dir = WorkDirFor(profile, _settings.ClaudeCodeDirectory);
             if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
                 psi.WorkingDirectory = dir;
             Process.Start(psi);

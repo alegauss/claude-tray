@@ -132,6 +132,17 @@ internal sealed class Settings
     /// <summary>While signed out, how often to re-poll the usage API (seconds) until auth returns.</summary>
     public int AuthRetrySeconds { get; set; } = DefaultAuthRetrySeconds;
 
+    /// <summary>
+    /// The Claude Code profiles the user registered — the tray's *own* record of which config dirs to
+    /// offer, what to call them and where each one opens. Discovery finds unregistered profiles on its
+    /// own (see <see cref="ClaudeAccount.Discover"/>); this list is what adds one that has never been
+    /// logged into, and what remembers a chosen name or working directory.
+    /// </summary>
+    public List<ClaudeProfile> Profiles { get; set; } = new();
+
+    /// <summary>An upper bound so a corrupt settings file can't make the tray menu unusable.</summary>
+    public const int MaxProfiles = 20;
+
     /// <summary>Where the app keeps its own state — <c>%LocalAppData%\ClaudeTray</c>: this file, the
     /// caches, the usage/context history and the reset log. Public so the System information page can
     /// show (and open) it without a second copy of the path.</summary>
@@ -176,5 +187,52 @@ internal sealed class Settings
             Metric = DefaultMetric;
         if (!L.IsValidPreference(Language))
             Language = DefaultLanguage;
+        ClampProfiles();
     }
+
+    // A profile is only meaningful with a config dir, so an entry without one is dropped rather than
+    // shown as a nameless menu item. Labels/dirs are trimmed, duplicates by dir are collapsed, and the
+    // list is capped. Nothing here touches disk — an entry whose folder is gone stays, because it may
+    // be on a drive that is merely unplugged.
+    private void ClampProfiles()
+    {
+        Profiles ??= new();
+        var clean = new List<ClaudeProfile>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (ClaudeProfile p in Profiles)
+        {
+            if (p is null) continue;
+            p.ConfigDir = (p.ConfigDir ?? "").Trim();
+            p.Label = (p.Label ?? "").Trim();
+            p.WorkDir = (p.WorkDir ?? "").Trim();
+            if (p.ConfigDir.Length == 0 || !seen.Add(p.ConfigDir)) continue;
+            clean.Add(p);
+            if (clean.Count >= MaxProfiles) break;
+        }
+        Profiles = clean;
+    }
+}
+
+/// <summary>
+/// One registered Claude Code profile: a config dir, what to call it, and where it opens.
+///
+/// <para>Deliberately holds **no** account data — no address, no token, no plan. Those are read back
+/// from the profile's own files on demand (<see cref="ClaudeAccount"/>), so the tray never becomes a
+/// second store of somebody's credentials, and a <c>/login</c> that changes the account inside a dir
+/// needs no update here.</para>
+/// </summary>
+internal sealed class ClaudeProfile
+{
+    /// <summary>Display name for the picker and the tray submenu. Empty means "use the derived one"
+    /// (the organization, else Personal, else the folder name).</summary>
+    public string Label { get; set; } = "";
+
+    /// <summary>The config dir — the profile's identity as far as Claude Code is concerned; passed as
+    /// <c>CLAUDE_CONFIG_DIR</c> when launching.</summary>
+    public string ConfigDir { get; set; } = "";
+
+    /// <summary>Working directory Claude Code opens in for this profile. Empty falls back to the
+    /// global <see cref="Settings.ClaudeCodeDirectory"/> — which is what keeps a work account from
+    /// opening inside a personal repo.</summary>
+    public string WorkDir { get; set; } = "";
 }

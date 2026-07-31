@@ -382,35 +382,9 @@ And "switching" splits into three axes that cost wildly different amounts:
 The third is a hard no rather than a "later", which is why it sits in Non-goals: nothing about a GUI
 changes a live process's environment.
 
-### §VII.2 The list editor, and why there is no credential CRUD (T123)
-
-The instinct is that switching accounts needs the tray to store account data. It does not. A profile is
-`{Label, ConfigDir, WorkDir}` and **nothing else** — no address, no token, no password:
-
-- for a profile that has a login, the address is already on disk and is read back purely to prefill
-  `claude auth login --email` so nobody retypes it;
-- for a new profile the tray passes nothing and the browser flow asks. It cannot validate an address it
-  invented, so it must not collect one.
-
-Which reduces the "CRUD" to add / rename / remove-from-list over the tray's *own* settings file.
-**Remove must never delete the directory** — a config dir holds transcripts, memories and settings, and
-deleting those is not a tray's business. Nor does add need to create anything: verified by pointing
-`CLAUDE_CONFIG_DIR` at a non-existent path and running a read-only `claude auth status --json`, the
-**CLI creates the directory itself** (`.claude.json` plus `backups/`). The write path therefore stays at
-exactly zero.
-
-`WorkDir` per profile matters more than it looks. The tray has a single global working directory today,
-so without it "Open Claude Code > empresa2" would open the company account inside a personal repo.
-Pairing each account with its folder is what makes one click correct.
-
-One cost to state honestly in the UI: a fresh profile starts **empty** — no user `CLAUDE.md`, no
-`settings.json`, no skills, plugins or project history. That is real isolation, which is the feature,
-but it surprises. Say what is missing and offer to open both folders; never copy files on the user's
-behalf.
-
 ### §VII.3 Environment auth defeats profile isolation (T124)
 
-Found while verifying §VII.2, and **wrong in the shipped app today, with or without profiles**:
+Found while verifying the profile model, and **wrong in the shipped app today, with or without profiles**:
 `CLAUDE_CONFIG_DIR` isolates *files*, not *authentication*. On a machine with a machine-level
 `ANTHROPIC_API_KEY`, a config dir with no completed OAuth login answers
 `{"loggedIn":true,"authMethod":"api_key","apiKeySource":"ANTHROPIC_API_KEY"}`. Precedence, measured: a

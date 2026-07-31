@@ -276,6 +276,31 @@ Only **sizes, names, timestamps and token estimates** are ever read — never fi
 nothing leaves your machine. Token counts are estimates and always carry a visible `≈`; there is no
 tokenizer bundled, by design.
 
+## Profiles — work and personal, one tray
+
+Claude Code keeps **one account per configuration folder**: `.claude.json` holds a single account and
+`/login` replaces it. So running a work login and a personal one on the same Windows means two folders
+(`CLAUDE_CONFIG_DIR`), each with its own credentials, projects, memory, settings and MCP servers.
+
+**Settings → Claude Code → Profiles** manages that list, and the tray's **Open Claude Code** turns into
+a submenu — one entry per profile:
+
+- **Add** — pick (or create) a folder. Nothing is written into it: Claude Code creates its own files
+  there, and the sign-in happens in Claude Code. A profile with no login yet is marked in the menu, and
+  its entry runs `claude auth login` (with your address prefilled if the folder already knows it).
+- **Name** — free text, only for the menu. Left empty it uses the organization, else the folder name.
+- **Working directory** — per profile, so one click can't open your work account inside a personal repo.
+- **Remove** — from the tray's list only. **The folder, its login, its transcripts and its memory are
+  never touched**, and if it's still discoverable it comes back as a found profile.
+
+Switching happens *when Claude Code launches*: the tray passes `CLAUDE_CONFIG_DIR` and gets out of the
+way. It never writes to a configuration folder and never moves credentials between them — Claude Code
+rewrites its own credentials file on every token refresh, so shuffling those files around is how you
+lose a login. A running session keeps the profile it started with; a change applies to the next one.
+
+> A fresh profile starts genuinely empty — no user `CLAUDE.md`, settings, skills, plugins or project
+> history. That isolation is the point, but it does mean the second profile won't inherit your setup.
+
 ## System information — your plan, your install, this machine
 
 **Settings → System information** answers the questions you would otherwise dig out of JSON by
@@ -452,7 +477,10 @@ installs pick it up automatically (see [Updates](#updates)).
   OAuth token; the recovery path when the icon shows a *not authenticated* (HTTP 401) state
 - **Update to vX.Y.Z** — appears only when a newer GitHub release exists; click to download and
   install it (see below)
-- **Settings…** — refresh interval, display options, **Start with Windows** (autostart), and
+- **Open Claude Code ▸ &lt;profile&gt;** — with more than one profile registered, this becomes a submenu:
+  each entry launches Claude Code with that profile's configuration folder and its own working
+  directory (see below)
+- **Settings…** — refresh interval, display options, **Start with Windows** (autostart), profiles, and
   **System information** (your plan, this Claude Code install and this machine — see below)
 - **Quit**
 

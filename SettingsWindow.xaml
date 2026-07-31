@@ -421,6 +421,72 @@
                                 </local:SettingsRow>
                             </StackPanel>
                         </Border>
+
+                        <!-- ===== Profiles =====
+                             A profile is a Claude Code configuration folder (CLAUDE_CONFIG_DIR): its own
+                             login, projects, memory and settings. The editor lives here, on the page
+                             about launching Claude Code, because that is what a profile decides — and
+                             because this page has the Save button. Nothing here writes into a config
+                             dir; the tray only remembers which ones to offer, and launches into them. -->
+                        <TextBlock Text="{local:Loc settings.cc.profiles}" Style="{StaticResource SectionHeader}" />
+                        <Border Style="{StaticResource GroupCard}" Margin="0,0,0,4">
+                            <StackPanel>
+                                <local:SettingsRow Header="{local:Loc settings.cc.profile}"
+                                                   Description="{local:Loc settings.cc.profileDesc}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ComboBox x:Name="ProfileCombo" MinWidth="170" VerticalAlignment="Center"
+                                                  SelectionChanged="Profile_Changed" />
+                                        <Button x:Name="ProfileAddButton" Content="{local:Loc settings.cc.profileAdd}"
+                                                MinWidth="92" Padding="14,5" Margin="8,0,0,0"
+                                                Click="ProfileAdd_Click" />
+                                        <Button x:Name="ProfileRemoveButton" Content="{local:Loc settings.cc.profileRemove}"
+                                                MinWidth="92" Padding="14,5" Margin="8,0,0,0"
+                                                Click="ProfileRemove_Click" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <!-- Renaming is just editing this box: no dialog, and Save persists it
+                                     with everything else on the page. -->
+                                <local:SettingsRow x:Name="ProfileNameRow"
+                                                   Header="{local:Loc settings.cc.profileName}"
+                                                   Description="{local:Loc settings.cc.profileNameDesc}">
+                                    <TextBox x:Name="ProfileNameBox" Width="200"
+                                             VerticalContentAlignment="Center" Padding="8,5"
+                                             TextChanged="ProfileName_Changed" />
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow x:Name="ProfileWorkDirRow"
+                                                   Header="{local:Loc settings.cc.profileWorkDir}"
+                                                   Description="{local:Loc settings.cc.profileWorkDirDesc}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBox x:Name="ProfileWorkDirBox" Width="200"
+                                                 VerticalContentAlignment="Center" Padding="8,5"
+                                                 TextChanged="ProfileWorkDir_Changed" />
+                                        <Button x:Name="ProfileWorkDirBrowse" Content="{local:Loc settings.cc.browse}"
+                                                MinWidth="92" Padding="14,5" Margin="8,0,0,0"
+                                                Click="ProfileWorkDirBrowse_Click" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="{local:Loc settings.cc.profileConfigDir}"
+                                                   Description="{local:Loc settings.cc.profileConfigDirDesc}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="ProfileConfigDirText" Style="{StaticResource ValueText}" />
+                                        <TextBlock x:Name="ProfileStatusText" Style="{StaticResource ValueSubText}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Margin="2,10,2,4" TextWrapping="Wrap" FontSize="12"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                   Text="{local:Loc settings.cc.profileNote}" />
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

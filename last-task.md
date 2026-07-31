@@ -104,3 +104,4 @@ here. This file is a terse index, not a memory.
 - **T119 SHIPPED** (Block K — the chart appends instead of recomputing, so a late turn can't rewrite what was drawn) — 2026-07-29.
 - **T120 SHIPPED** (Block N — System information page over the local Claude Code account) — 2026-07-31.
 - **T122 SHIPPED** (Block O — a profile is a config dir; discovery and the picker) — 2026-07-31.
+- **T123 SHIPPED** (Block O — the profile list editor and the per-profile Open Claude Code submenu) — 2026-07-31.

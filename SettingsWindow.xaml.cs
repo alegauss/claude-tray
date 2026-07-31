@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 
 namespace ClaudeTray;
 
@@ -40,6 +40,14 @@ internal partial class SettingsWindow : Window
             AutoOpenOnUnauthenticated = current.AutoOpenOnUnauthenticated,
             AuthRetrySeconds = current.AuthRetrySeconds,
             Language = current.Language,
+            // Deep-copied like every other field: the profile editor mutates these in place, and
+            // cancelling must leave the caller's list untouched.
+            Profiles = current.Profiles.Select(p => new ClaudeProfile
+            {
+                Label = p.Label,
+                ConfigDir = p.ConfigDir,
+                WorkDir = p.WorkDir,
+            }).ToList(),
         };
 
         InitializeComponent();
@@ -106,6 +114,7 @@ internal partial class SettingsWindow : Window
             new Uri(Environment.ProcessPath ?? System.Windows.Forms.Application.ExecutablePath)); }
         catch { /* fall back to the default window icon */ }
 
+        LoadProfiles();
         LoadSystemInfo();
 
         SelectPage(initialPage switch
@@ -340,6 +349,172 @@ internal partial class SettingsWindow : Window
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
 
+    // ================= Profiles (Claude Code page) =================
+    // A profile is a config dir. The editor here changes only the tray's *own* record of which dirs to
+    // offer, what to call them and where each opens — it never writes into a config dir, and Remove
+    // never deletes a folder (it holds transcripts, memory and settings).
+
+    /// <summary>Discovered + registered profiles, as the editor's combo shows them.</summary>
+    private List<ClaudeInfo> _ccProfiles = new();
+
+    /// <summary>Set while the boxes are being filled, so a programmatic change isn't read back as
+    /// the user typing.</summary>
+    private bool _fillingProfile;
+
+    /// <summary>One discovery sweep per window (or per profile-list edit), shared by the editor here and
+    /// the System information picker — both used to run their own, which doubled the disk work of
+    /// opening Settings for no benefit.</summary>
+    private List<ClaudeInfo> DiscoverProfiles() => _discovered ??= ClaudeAccount.Discover(_settings.Profiles);
+    private List<ClaudeInfo>? _discovered;
+    private void InvalidateProfiles() => _discovered = null;
+
+    private void LoadProfiles(string? selectDir = null)
+    {
+        _ccProfiles = DiscoverProfiles();
+
+        _fillingProfile = true;
+        ProfileCombo.Items.Clear();
+        foreach (ClaudeInfo p in _ccProfiles)
+            ProfileCombo.Items.Add(new System.Windows.Controls.ComboBoxItem
+            {
+                Content = p.IsDefault ? L.T("settings.sys.profileDefault", p.Label) : p.Label,
+            });
+        int index = 0;
+        if (selectDir is { Length: > 0 })
+            for (int i = 0; i < _ccProfiles.Count; i++)
+                if (string.Equals(_ccProfiles[i].ConfigDir, selectDir, StringComparison.OrdinalIgnoreCase))
+                    index = i;
+        if (_ccProfiles.Count > 0) ProfileCombo.SelectedIndex = index;
+        _fillingProfile = false;
+
+        FillProfileFields();
+    }
+
+    private ClaudeInfo? SelectedProfile =>
+        ProfileCombo.SelectedIndex >= 0 && ProfileCombo.SelectedIndex < _ccProfiles.Count
+            ? _ccProfiles[ProfileCombo.SelectedIndex]
+            : null;
+
+    private void FillProfileFields()
+    {
+        _fillingProfile = true;
+        try
+        {
+            ClaudeInfo? p = SelectedProfile;
+            bool any = p is not null;
+            ProfileNameRow.IsEnabled = ProfileWorkDirRow.IsEnabled = any;
+            // Only a registered entry can be dropped from the list; a discovered one has nothing to drop.
+            ProfileRemoveButton.IsEnabled = p is { IsRegistered: true };
+
+            ProfileNameBox.Text = p?.Label ?? "";
+            ProfileWorkDirBox.Text = p is { WorkDir.Length: > 0 } ? p.WorkDir : "";
+            ProfileConfigDirText.Text = p?.ConfigDir ?? Dash;
+            ProfileStatusText.Text = p is null ? "" : Join(
+                p.Plan ?? L.T("settings.cc.profileNoLogin"),
+                L.T(p.IsRegistered ? "settings.cc.profileRegistered" : "settings.cc.profileDiscovered"));
+            ProfileStatusText.Visibility = Shown(ProfileStatusText.Text);
+        }
+        finally { _fillingProfile = false; }
+    }
+
+    private void Profile_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_fillingProfile) return;
+        FillProfileFields();
+    }
+
+    /// <summary>The registered entry for a profile, created on first edit — typing a name into a
+    /// discovered profile is what registers it, since a name only persists if the tray remembers it.</summary>
+    private ClaudeProfile Register(ClaudeInfo info)
+    {
+        ClaudeProfile? existing = _settings.Profiles.FirstOrDefault(
+            p => string.Equals(p.ConfigDir, info.ConfigDir, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null) return existing;
+
+        var added = new ClaudeProfile { ConfigDir = info.ConfigDir };
+        _settings.Profiles.Add(added);
+        info.IsRegistered = true;
+        ProfileRemoveButton.IsEnabled = true;
+        ProfileStatusText.Text = Join(info.Plan ?? L.T("settings.cc.profileNoLogin"),
+                                      L.T("settings.cc.profileRegistered"));
+        return added;
+    }
+
+    private void ProfileName_Changed(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        if (_fillingProfile || SelectedProfile is not { } p) return;
+        Register(p).Label = ProfileNameBox.Text.Trim();
+        p.Label = ProfileNameBox.Text.Trim();
+    }
+
+    private void ProfileWorkDir_Changed(object sender, System.Windows.Controls.TextChangedEventArgs e)
+    {
+        if (_fillingProfile || SelectedProfile is not { } p) return;
+        Register(p).WorkDir = ProfileWorkDirBox.Text.Trim();
+        p.WorkDir = ProfileWorkDirBox.Text.Trim();
+    }
+
+    private void ProfileWorkDirBrowse_Click(object sender, RoutedEventArgs e)
+    {
+        if (PickFolder(L.T("settings.cc.profileWorkDirTitle"), ProfileWorkDirBox.Text) is { } dir)
+            ProfileWorkDirBox.Text = dir;
+    }
+
+    // Add a profile: pick (or create) a folder. Nothing is written into it — Claude Code creates its
+    // own files there on first launch, and the login happens in Claude Code, not here.
+    private void ProfileAdd_Click(object sender, RoutedEventArgs e)
+    {
+        if (_settings.Profiles.Count >= Settings.MaxProfiles)
+        {
+            System.Windows.MessageBox.Show(L.T("settings.cc.profileMax", Settings.MaxProfiles),
+                L.T("dialog.appName"), MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        // Suggest the convention, so a profile added here is also found by discovery on another machine.
+        string suggested = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ClaudeAccount.ConventionPrefix.TrimEnd('-'));
+        if (PickFolder(L.T("settings.cc.profileAddTitle"), suggested, newFolder: true) is not { } dir) return;
+
+        if (_settings.Profiles.Any(p => string.Equals(p.ConfigDir, dir, StringComparison.OrdinalIgnoreCase)))
+        {
+            LoadProfiles(dir);   // already registered — just select it
+            return;
+        }
+        _settings.Profiles.Add(new ClaudeProfile { ConfigDir = dir });
+        InvalidateProfiles();
+        LoadProfiles(dir);
+        LoadSystemInfo();        // the System page's picker reads the same list
+    }
+
+    // Remove from the tray's list only. The folder, its login and its transcripts stay exactly where
+    // they are — and if discovery can still see it, it reappears as a discovered (unnamed) profile.
+    private void ProfileRemove_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedProfile is not { IsRegistered: true } p) return;
+        if (System.Windows.MessageBox.Show(L.T("settings.cc.profileRemoveConfirm", p.Label, p.ConfigDir),
+                L.T("dialog.appName"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
+
+        _settings.Profiles.RemoveAll(
+            r => string.Equals(r.ConfigDir, p.ConfigDir, StringComparison.OrdinalIgnoreCase));
+        InvalidateProfiles();
+        LoadProfiles();
+        LoadSystemInfo();
+    }
+
+    // The familiar Windows folder picker, shared by both directory fields on this page.
+    private static string? PickFolder(string title, string? current, bool newFolder = false)
+    {
+        using var dlg = new System.Windows.Forms.FolderBrowserDialog
+        {
+            Description = title,
+            UseDescriptionForTitle = true,
+            ShowNewFolderButton = newFolder,
+        };
+        if (current is { Length: > 0 } && System.IO.Directory.Exists(current)) dlg.SelectedPath = current;
+        return dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK ? dlg.SelectedPath : null;
+    }
+
     // ================= System information page =================
     // Read-only: one pass over what Claude Code already keeps on disk (ClaudeAccount) plus this
     // process's own environment. No API call, nothing written, and no transcript touched.
@@ -362,12 +537,13 @@ internal partial class SettingsWindow : Window
 
     private void LoadSystemInfo()
     {
-        _profiles = ClaudeAccount.Discover();
+        _profiles = DiscoverProfiles();
         if (_profiles.Count == 0) _profiles.Add(ClaudeAccount.Read());
 
         // The picker only earns its space when there is a choice to make.
         bool several = _profiles.Count > 1;
         SysProfileCard.Visibility = several ? Visibility.Visible : Visibility.Collapsed;
+        SysProfileCombo.Items.Clear();   // this runs again whenever the profile list is edited
         if (several)
         {
             SysProfileCount.Text = L.T("settings.sys.profileCount", _profiles.Count);

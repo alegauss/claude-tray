@@ -22,6 +22,12 @@ internal sealed class ClaudeInfo
     /// <summary>True for the config dir Claude Code would use with no override — i.e. the profile a
     /// bare <c>claude</c> in a fresh shell lands in.</summary>
     public bool IsDefault;
+    /// <summary>True when this dir is in the user's registered list, rather than merely discovered.
+    /// Only a registered profile can be renamed or removed from the list.</summary>
+    public bool IsRegistered;
+    /// <summary>Working directory this profile opens in, from the tray's own settings ("" = the global
+    /// default). Not read from Claude Code — the tray owns it.</summary>
+    public string WorkDir = "";
 
     // ---- Account (from .claude.json → oauthAccount, and .credentials.json) ----
     /// <summary>Plan as a person says it, e.g. "Claude Max 5x". Null when nothing identifies it.</summary>
@@ -42,6 +48,10 @@ internal sealed class ClaudeInfo
     public DateTime? FirstToken;       // claudeCodeFirstTokenDate — "using Claude Code since"
     public DateTime? TokenExpires;     // the OAuth access token's own expiry
     public int ScopeCount;
+    /// <summary>Whether this profile has an OAuth block in <c>.credentials.json</c> at all. False means
+    /// "never signed in here" — the case where launching needs <c>claude auth login</c> rather than a
+    /// bare <c>claude</c>. An *expired* token is not this: Claude Code refreshes that itself.</summary>
+    public bool HasCredentialsFile;
 
     // ---- Installation ----
     public string ConfigDir = "";
@@ -182,6 +192,7 @@ internal static class ClaudeAccount
             if (!doc.RootElement.TryGetProperty("claudeAiOauth", out JsonElement oauth)
                 || oauth.ValueKind != JsonValueKind.Object) return;
 
+            info.HasCredentialsFile = true;
             info.SubscriptionType = Str(oauth, "subscriptionType");
             if (oauth.TryGetProperty("expiresAt", out JsonElement exp)
                 && exp.ValueKind == JsonValueKind.Number
@@ -219,6 +230,29 @@ internal static class ClaudeAccount
     /// and then by <see cref="ClaudeInfo.AccountUuid"/>, so one account reached through two paths is
     /// listed once — under the first path, which is why the default is enumerated first.</para>
     /// </summary>
+    /// <summary>
+    /// Discovery over the tray's own registered list: the same sweep, with each entry's chosen label
+    /// and working directory applied on top of what the files say. A registered dir is always listed —
+    /// including one that has never been logged into, which is the whole point of registering it.
+    /// </summary>
+    public static List<ClaudeInfo> Discover(IEnumerable<ClaudeProfile>? profiles)
+    {
+        List<ClaudeProfile> list = profiles?.Where(p => !string.IsNullOrWhiteSpace(p.ConfigDir)).ToList()
+                                  ?? new List<ClaudeProfile>();
+        List<ClaudeInfo> found = Discover(list.Select(p => p.ConfigDir));
+
+        foreach (ClaudeInfo info in found)
+        {
+            ClaudeProfile? reg = list.FirstOrDefault(p => SamePath(p.ConfigDir, info.ConfigDir));
+            if (reg is null) continue;
+            info.IsRegistered = true;
+            info.WorkDir = reg.WorkDir;
+            // A name the user typed wins over the derived one — that is what renaming means.
+            if (!string.IsNullOrWhiteSpace(reg.Label)) info.Label = reg.Label.Trim();
+        }
+        return found;
+    }
+
     public static List<ClaudeInfo> Discover(IEnumerable<string>? registered = null)
     {
         var regs = new List<string>();
