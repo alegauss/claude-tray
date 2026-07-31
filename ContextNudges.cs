@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace ClaudeTray;
 
@@ -15,38 +15,39 @@ internal static class ContextNudges
 {
     private const int CooldownDays = 7;
 
-    private static string FilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClaudeTray", "context-nudges.json");
+    /// <summary>Per profile (T125): a nudge is about one profile's context, and its once-a-week
+    /// rate limit should not be spent by another profile's growth.</summary>
+    private static string FilePath(string profileKey) =>
+        ProfileStore.PathFor(profileKey, "context-nudges.json");
 
     /// <summary>Whether this project may be nudged about now.</summary>
-    public static bool ShouldNotify(string slug, DateTime nowUtc)
+    public static bool ShouldNotify(string profileKey, string slug, DateTime nowUtc)
     {
-        Dictionary<string, long> seen = Load();
+        Dictionary<string, long> seen = Load(profileKey);
         if (!seen.TryGetValue(slug, out long last)) return true;
         long now = new DateTimeOffset(nowUtc, TimeSpan.Zero).ToUnixTimeSeconds();
         return now - last >= CooldownDays * 86400L;
     }
 
     /// <summary>Record that it was nudged, so the cooldown starts.</summary>
-    public static void Mark(string slug, DateTime nowUtc)
+    public static void Mark(string profileKey, string slug, DateTime nowUtc)
     {
         try
         {
-            Dictionary<string, long> seen = Load();
+            Dictionary<string, long> seen = Load(profileKey);
             seen[slug] = new DateTimeOffset(nowUtc, TimeSpan.Zero).ToUnixTimeSeconds();
-            Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-            File.WriteAllText(FilePath, JsonSerializer.Serialize(seen));
+            Directory.CreateDirectory(Path.GetDirectoryName(FilePath(profileKey))!);
+            File.WriteAllText(FilePath(profileKey), JsonSerializer.Serialize(seen));
         }
         catch { /* worst case the nudge repeats next week rather than never */ }
     }
 
-    private static Dictionary<string, long> Load()
+    private static Dictionary<string, long> Load(string profileKey)
     {
         try
         {
-            return File.Exists(FilePath)
-                ? JsonSerializer.Deserialize<Dictionary<string, long>>(File.ReadAllText(FilePath))
+            return File.Exists(FilePath(profileKey))
+                ? JsonSerializer.Deserialize<Dictionary<string, long>>(File.ReadAllText(FilePath(profileKey)))
                   ?? new Dictionary<string, long>()
                 : new Dictionary<string, long>();
         }

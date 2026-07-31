@@ -53,6 +53,13 @@ internal static class Program
         // resolve strings at parse time): honor the saved Settings preference, falling back to the OS.
         L.Apply(langOverride ?? Settings.Load().Language);
 
+        // Adopt the profile whose numbers this process reads and writes, before any store is touched —
+        // every one of them is keyed by it now (T125). The default config dir is the profile a bare
+        // `claude` uses, which is the single series every installation has today; the first call also
+        // migrates the pre-profile flat files into it. Choosing another profile to monitor, and polling
+        // more than one, is T127.
+        ProfileStore.SetMonitored(ClaudeAccount.Read());
+
         if (args.Length >= 1 && args[0] == "--render")
         {
             RenderTest(args.Length >= 2 ? args[1] : ".");
@@ -222,7 +229,7 @@ internal static class Program
             // back to the "connect" hint only when there's genuinely no history yet.
             if (args.Length >= 2 && args[1].Equals("history", StringComparison.OrdinalIgnoreCase))
             {
-                PaceSnapshot? fromDisk = UsageHistory.Latest() is { } h
+                PaceSnapshot? fromDisk = UsageHistory.Latest(ProfileStore.Monitored) is { } h
                     ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d)
                     : null;
                 previewApp.Run(new StatisticsWindow(fromDisk, remaining) { Topmost = true });
@@ -587,10 +594,10 @@ internal static class Program
         // week; folding is idempotent per day, so this can be run at will.
         if (flags.Contains("--fold"))
         {
-            List<UsageSample> raw = UsageHistory.Load(0);
-            int before = HourlyUsage.Load().Count;
-            HourlyUsage.Fold(raw, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-            int after = HourlyUsage.Load().Count;
+            List<UsageSample> raw = UsageHistory.Load(ProfileStore.Monitored, 0);
+            int before = HourlyUsage.Load(ProfileStore.Monitored).Count;
+            HourlyUsage.Fold(ProfileStore.Monitored, raw, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            int after = HourlyUsage.Load(ProfileStore.Monitored).Count;
             Console.WriteLine($"folded {raw.Count:N0} readings — {after} days in the store (+{after - before})");
             Console.WriteLine();
         }
@@ -603,7 +610,7 @@ internal static class Program
             : $"fresh scan, {prof.ElapsedMs:0}ms";
         Console.WriteLine($"Activity profile — {prof.CoverageWeeks:0.0} weeks of coverage, " +
                           $"{prof.Samples:N0} requests ({source})");
-        if (root == null) Console.WriteLine("cache: " + ActivityProfile.CachePath);
+        if (root == null) Console.WriteLine("cache: " + ActivityProfile.CachePath(ProfileStore.Monitored));
         Console.WriteLine(prof.Confident
             ? $"confidence: usable — {prof.CoverageWeeks:0.0} weeks ≥ {ActivityProfile.ConfidentWeeks:0.0}, " +
               "the projection may follow this shape"
@@ -639,9 +646,9 @@ internal static class Program
     private static void PrintMeasuredActivity(ActivityProfile prof, DateTime nowLocal, bool numbers)
     {
         Console.WriteLine();
-        var (measured, weeks, days) = HourlyUsage.MeasuredProfile(nowLocal);
+        var (measured, weeks, days) = HourlyUsage.MeasuredProfile(ProfileStore.Monitored, nowLocal);
         Console.WriteLine($"Measured profile — {days} folded days, {weeks:0.0} weeks");
-        Console.WriteLine("store: " + HourlyUsage.FilePath);
+        Console.WriteLine("store: " + HourlyUsage.FilePath(ProfileStore.Monitored));
 
         if (days == 0)
         {
@@ -1469,16 +1476,16 @@ internal sealed class TrayContext : ApplicationContext
                 ContextScan scan = ContextScanner.Scan(now);
                 if (scan.Error != null) return ((ContextProject, int)?)null;
 
-                ContextHistory.Record(scan, now);
+                ContextHistory.Record(ProfileStore.Monitored, scan, now);
                 if (!_settings.NotifyOnContextGrowth) return null;
 
                 foreach (ContextProject p in scan.Projects)
                 {
                     int eager = scan.EstimatedSessionZero(p);
                     if (eager < _settings.ContextNudgeTokens) continue;
-                    if (!ContextNudges.ShouldNotify(p.Slug, now)) continue;
+                    if (!ContextNudges.ShouldNotify(ProfileStore.Monitored, p.Slug, now)) continue;
 
-                    ContextNudges.Mark(p.Slug, now);
+                    ContextNudges.Mark(ProfileStore.Monitored, p.Slug, now);
                     return (p, eager);   // one nudge per pass, never a burst of them
                 }
                 return null;
@@ -1684,7 +1691,7 @@ internal sealed class TrayContext : ApplicationContext
             return new PaceSnapshot(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d);
         if (_lastGoodSnapshot is { } s)
             return s;
-        return UsageHistory.Latest() is { } h
+        return UsageHistory.Latest(ProfileStore.Monitored) is { } h
             ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d)
             : null;
     }
@@ -1845,7 +1852,7 @@ internal sealed class TrayContext : ApplicationContext
 
             // Log the live reading so the Statistics charts can draw the real utilization curve over
             // time, rather than inferring the burn shape from transcript token counts.
-            UsageHistory.Append(now, fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d);
+            UsageHistory.Append(ProfileStore.Monitored, now, fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d);
 
             foreach (string key in Metrics)
             {

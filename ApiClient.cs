@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -45,9 +45,15 @@ internal sealed class UsageData
 /// </summary>
 internal sealed class ApiClient
 {
-    private static readonly string CredsPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        ".claude", ".credentials.json");
+    /// <summary>
+    /// The profile this client reads its token from — a Claude Code config dir. Defaults to the one
+    /// this process would use, which is the only one before T127 polls several; a rate limit belongs to
+    /// an account, so reading two accounts' usage means two clients, each with its own token.
+    /// </summary>
+    private readonly string _credsPath;
+
+    public ApiClient(string? configDir = null) =>
+        _credsPath = Path.Combine(configDir ?? ClaudeAccount.ConfigDir, ".credentials.json");
 
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
 
@@ -149,12 +155,12 @@ internal sealed class ApiClient
     /// is on disk (which decides silent-refresh vs. full browser login on a 401).</summary>
     private readonly record struct Creds(string AccessToken, bool HasRefreshToken);
 
-    private static Creds ReadCredentials()
+    private Creds ReadCredentials()
     {
-        if (!File.Exists(CredsPath))
+        if (!File.Exists(_credsPath))
             throw new NotAuthenticatedException(SignInHint);
 
-        using var doc = JsonDocument.Parse(File.ReadAllText(CredsPath));
+        using var doc = JsonDocument.Parse(File.ReadAllText(_credsPath));
         if (doc.RootElement.TryGetProperty("claudeAiOauth", out var oauth)
             && oauth.TryGetProperty("accessToken", out var tok)
             && tok.GetString() is { Length: > 0 } token)

@@ -136,7 +136,7 @@ internal static class UsageReport
             if (!double.IsPositiveInfinity(earliest))
             {
                 // Real measured utilizations (preferred), plus token samples as the shaping fallback.
-                List<UsageSample> hist = UsageHistory.Load(earliest);
+                List<UsageSample> hist = UsageHistory.Load(ProfileStore.Monitored, earliest);
                 List<(double t, TokenBits bits)> samples =
                     Directory.Exists(ProjectsDir) ? ScanTokens(earliest, now) : new();
 
@@ -153,7 +153,7 @@ internal static class UsageReport
             // Last week behind this week, from the folded hourly aggregate — the raw log can't reach
             // back that far (8-day retention), which is exactly why T88 exists.
             if (r.Weekly.HasWindow)
-                r.Weekly.Ghost = HourlyUsage.PreviousWeek(
+                r.Weekly.Ghost = HourlyUsage.PreviousWeek(ProfileStore.Monitored, 
                     r.Weekly.ResetUnix - r.Weekly.WindowSeconds, r.Weekly.WindowSeconds,
                     r.Weekly.ElapsedFraction);
 

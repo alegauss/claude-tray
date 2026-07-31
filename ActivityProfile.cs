@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 
 namespace ClaudeTray;
@@ -131,7 +131,7 @@ internal sealed class ActivityProfile
     public static ActivityProfile Load(DateTime nowUtc, bool refresh = false, string? claudeRoot = null)
     {
         bool real = claudeRoot == null;
-        if (real && !refresh && ReadCache() is { } cached)
+        if (real && !refresh && ReadCache(ProfileStore.Monitored) is { } cached)
         {
             cached.FromCache = true;
             if ((nowUtc - cached.ComputedUtc).TotalHours >= RefreshHours &&
@@ -142,7 +142,7 @@ internal sealed class ActivityProfile
                     try
                     {
                         ActivityProfile next = Compute(DateTimeOffset.UtcNow.UtcDateTime, ProjectsDir(null));
-                        if (next.Error == null) WriteCache(next);
+                        if (next.Error == null) WriteCache(ProfileStore.Monitored, next);
                     }
                     catch { /* the stale grid stays; another open will try again */ }
                     finally { Interlocked.Exchange(ref _refreshing, 0); }
@@ -152,7 +152,7 @@ internal sealed class ActivityProfile
         }
 
         ActivityProfile fresh = Compute(nowUtc, ProjectsDir(claudeRoot));
-        if (real && fresh.Error == null) WriteCache(fresh);
+        if (real && fresh.Error == null) WriteCache(ProfileStore.Monitored, fresh);
         return fresh;
     }
 
@@ -161,9 +161,10 @@ internal sealed class ActivityProfile
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude"),
         "projects");
 
-    public static string CachePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClaudeTray", "activity-profile.json");
+    /// <summary>Per profile (T125): the grid is mined from a config dir's transcripts, so it describes
+    /// that profile's week and nobody else's.</summary>
+    public static string CachePath(string profileKey) =>
+        ProfileStore.PathFor(profileKey, "activity-profile.json");
 
     // ---------------------------------------------------------------- computing
 
@@ -302,7 +303,7 @@ internal sealed class ActivityProfile
     // ~1.5 KB of JSON: a version, when it was built, what it was built from, and 168 rounded floats.
     // Rounded to three decimals because the third decimal of a habit is noise, and the file is read
     // on a UI path.
-    private static void WriteCache(ActivityProfile p)
+    private static void WriteCache(string profileKey, ActivityProfile p)
     {
         try
         {
@@ -317,18 +318,18 @@ internal sealed class ActivityProfile
             }
             sb.Append("]}");
 
-            string path = CachePath;
+            string path = CachePath(profileKey);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllText(path, sb.ToString());
         }
         catch { /* the cache is an optimization; a failed write just means another scan tomorrow */ }
     }
 
-    private static ActivityProfile? ReadCache()
+    private static ActivityProfile? ReadCache(string profileKey)
     {
         try
         {
-            string path = CachePath;
+            string path = CachePath(profileKey);
             if (!File.Exists(path)) return null;
 
             using JsonDocument doc = JsonDocument.Parse(File.ReadAllText(path));

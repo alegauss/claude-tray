@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace ClaudeTray;
 
@@ -25,21 +25,23 @@ internal static class UsageHistory
     private const double RetentionSeconds = RetentionDays * 86400.0;
     private const double TriggerSeconds = TriggerDays * 86400.0;
 
-    private static string FilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClaudeTray", "usage-history.jsonl");
+    /// <summary>One series per profile (T125): quota readings from two accounts in one file would be
+    /// summed into a single burn projection, which is arithmetic over usage that was never one account's.
+    /// The key comes from <see cref="ProfileStore"/>.</summary>
+    private static string FilePath(string profileKey) =>
+        ProfileStore.PathFor(profileKey, "usage-history.jsonl");
 
     /// <summary>Append one reading. Best-effort; prunes stale lines lazily.</summary>
-    public static void Append(long nowUnix, double util5h, double reset5h, double util7d, double reset7d)
+    public static void Append(string profileKey, long nowUnix, double util5h, double reset5h, double util7d, double reset7d)
     {
         try
         {
-            string path = FilePath;
+            string path = FilePath(profileKey);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             string line = FormattableString.Invariant(
                 $"{{\"t\":{nowUnix},\"u5\":{util5h:0.####},\"r5\":{(long)reset5h},\"u7\":{util7d:0.####},\"r7\":{(long)reset7d}}}");
             File.AppendAllText(path, line + Environment.NewLine);
-            PruneIfStale(path, nowUnix);
+            PruneIfStale(profileKey, path, nowUnix);
         }
         catch { /* logging is best-effort */ }
     }
@@ -47,12 +49,12 @@ internal static class UsageHistory
     /// <summary>The most recent logged reading, or null when the log is empty/unreadable. Lets the
     /// Statistics window reconstruct a snapshot and draw its charts from local history when there's no
     /// live reading (signed out / expired token at launch), instead of a blank "connect" hint.</summary>
-    public static UsageSample? Latest()
+    public static UsageSample? Latest(string profileKey)
     {
         UsageSample? latest = null;
         try
         {
-            string path = FilePath;
+            string path = FilePath(profileKey);
             if (!File.Exists(path)) return null;
 
             foreach (string line in File.ReadLines(path))
@@ -71,12 +73,12 @@ internal static class UsageHistory
 
     /// <summary>Read every logged sample at or after <paramref name="sinceUnix"/>, oldest first.
     /// Read-only — never rewrites, so it can run off-thread while the poll appends.</summary>
-    public static List<UsageSample> Load(double sinceUnix)
+    public static List<UsageSample> Load(string profileKey, double sinceUnix)
     {
         var list = new List<UsageSample>();
         try
         {
-            string path = FilePath;
+            string path = FilePath(profileKey);
             if (!File.Exists(path)) return list;
 
             foreach (string line in File.ReadLines(path))
@@ -94,7 +96,7 @@ internal static class UsageHistory
 
     // Drop lines older than the retention window, but only once the oldest line is comfortably stale,
     // so at a steady state this rewrites at most about once a day rather than on every poll.
-    private static void PruneIfStale(string path, double nowUnix)
+    private static void PruneIfStale(string profileKey, string path, double nowUnix)
     {
         string? first = null;
         foreach (string line in File.ReadLines(path))
@@ -114,7 +116,7 @@ internal static class UsageHistory
         foreach (string line in File.ReadLines(path))
             if (line.Length > 0 && TryParse(line, out UsageSample s))
                 all.Add(s);
-        HourlyUsage.Fold(all, (long)nowUnix);
+        HourlyUsage.Fold(profileKey, all, (long)nowUnix);
 
         double keepFrom = nowUnix - RetentionSeconds;
         var kept = new List<string>();

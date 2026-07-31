@@ -382,18 +382,23 @@ And "switching" splits into three axes that cost wildly different amounts:
 The third is a hard no rather than a "later", which is why it sits in Non-goals: nothing about a GUI
 changes a live process's environment.
 
-### §VII.4 Per-profile monitoring is a store problem (T125)
+### §VII.4 The fan-out: polling every profile (T127)
 
-The UI half is easy; the arithmetic half is not. Every local store assumes a single series:
-`usage-history.jsonl`, the folded `HourlyUsage` aggregate, `ContextHistory` and the nudge ledger. Fed
-two profiles unkeyed, profile B's usage contaminates profile A's projection, its activity shape and its
-week-over-week comparison — quietly, and in a way that reads as a bad projection rather than as a bug.
-Keying everything by `accountUuid` comes first; polling second.
+The store half of this shipped as T125 — every series the tray derives from a profile is keyed by that
+profile, so the arithmetic can no longer mix two accounts. What is left is the fan-out, and its costs
+are all in the open:
 
-Polling N profiles is N heartbeats per interval, each spending a sliver of *that* account's quota, so
-the Settings cost estimate has to multiply and say so. Each profile also has its own token with its own
-expiry, so "not authenticated" must name the profile — a generic warning sends somebody to re-login on
-the wrong account.
+**N heartbeats.** One poll per profile per interval, each spending a sliver of *that* account's quota
+with *that* account's token. The Settings cost estimate is currently written for one; it has to multiply
+and say so, or the app would be quietly spending more than the number it shows.
+
+**The icon is one number.** It cannot be two, so one profile is the one it follows — a choice, with the
+default profile as the default. Everything else belongs in the tooltip and the Statistics window, where
+there is room to name which account each reading is about. A percentage without an owner is a lie once
+there are two owners.
+
+**Failures are per profile.** A generic "not authenticated" would send somebody to re-login on the
+wrong account. Each profile's auth state is its own, and the message has to name it.
 
 ### §VII.5 Auto-follow, and the 16px problem (T126)
 

@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 
 namespace ClaudeTray;
@@ -45,9 +45,10 @@ internal static class HourlyUsage
     /// week's quota is a couple of real requests — below it, a stray keepalive shouldn't count.</summary>
     public const double ActiveSpendThreshold = 0.001;
 
-    public static string FilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClaudeTray", "usage-hourly.jsonl");
+    /// <summary>Per profile (T125) — see <see cref="ProfileStore"/>. This store is permanent, so a
+    /// second account folded into it would skew the measured week for good.</summary>
+    public static string FilePath(string profileKey) =>
+        ProfileStore.PathFor(profileKey, "usage-hourly.jsonl");
 
     // ---------------------------------------------------------------- folding
 
@@ -57,14 +58,14 @@ internal static class HourlyUsage
     /// no reading is discarded without being counted first. Today is deliberately left alone: it is
     /// still being written, and a half-day folded now could never be completed.
     /// </summary>
-    public static void Fold(List<UsageSample> samples, long nowUnix)
+    public static void Fold(string profileKey, List<UsageSample> samples, long nowUnix)
     {
         try
         {
             if (samples.Count < 2) return;
 
             int today = KeyOf(Local(nowUnix));
-            Dictionary<int, HourlyDay> existing = ReadAll();
+            Dictionary<int, HourlyDay> existing = ReadAll(profileKey);
             var built = new Dictionary<int, HourlyDay>();
 
             samples.Sort((a, b) => a.T.CompareTo(b.T));
@@ -93,7 +94,7 @@ internal static class HourlyUsage
             if (built.Count == 0) return;
 
             foreach (HourlyDay d in built.Values) existing[d.Key] = d;
-            WriteAll(existing, nowUnix);
+            WriteAll(profileKey, existing, nowUnix);
         }
         catch { /* the aggregate is best-effort; the next prune will try again */ }
     }
@@ -101,10 +102,10 @@ internal static class HourlyUsage
     // ---------------------------------------------------------------- reading
 
     /// <summary>Every folded day at or after <paramref name="fromKey"/> (<c>yyyyMMdd</c>), oldest first.</summary>
-    public static List<HourlyDay> Load(int fromKey = 0)
+    public static List<HourlyDay> Load(string profileKey, int fromKey = 0)
     {
         var list = new List<HourlyDay>();
-        foreach (HourlyDay d in ReadAll().Values)
+        foreach (HourlyDay d in ReadAll(profileKey).Values)
             if (d.Key >= fromKey) list.Add(d);
         list.Sort((a, b) => a.Key.CompareTo(b.Key));
         return list;
@@ -120,13 +121,13 @@ internal static class HourlyUsage
     /// entirely, so days the app was closed dilute nothing.
     /// </summary>
     /// <returns>The grid, the number of weeks it draws on, and how many folded days were used.</returns>
-    public static (double[] P, double Weeks, int Days) MeasuredProfile(DateTime nowLocal)
+    public static (double[] P, double Weeks, int Days) MeasuredProfile(string profileKey, DateTime nowLocal)
     {
         var p = new double[ActivityProfile.Buckets];
         var active = new double[ActivityProfile.Buckets];
         var observed = new double[ActivityProfile.Buckets];
 
-        List<HourlyDay> days = Load();
+        List<HourlyDay> days = Load(profileKey);
         if (days.Count == 0) return (p, 0, 0);
 
         int used = 0;
@@ -183,7 +184,7 @@ internal static class HourlyUsage
     /// ghost that is really a record of the app being closed would read as a quiet week, which is the
     /// one thing it must not do.
     /// </summary>
-    public static GhostWeek? PreviousWeek(double windowStartUnix, double windowSeconds, double nowFraction)
+    public static GhostWeek? PreviousWeek(string profileKey, double windowStartUnix, double windowSeconds, double nowFraction)
     {
         try
         {
@@ -191,7 +192,7 @@ internal static class HourlyUsage
             int hours = (int)Math.Round(windowSeconds / 3600.0);
             if (hours is < 24 or > 24 * 14) return null;
 
-            Dictionary<int, HourlyDay> store = ReadAll();
+            Dictionary<int, HourlyDay> store = ReadAll(profileKey);
             if (store.Count == 0) return null;
 
             var curve = new List<(double, double)> { (0, 0) };
@@ -251,12 +252,12 @@ internal static class HourlyUsage
 
     // ---------------------------------------------------------------- storage
 
-    private static Dictionary<int, HourlyDay> ReadAll()
+    private static Dictionary<int, HourlyDay> ReadAll(string profileKey)
     {
         var map = new Dictionary<int, HourlyDay>();
         try
         {
-            string path = FilePath;
+            string path = FilePath(profileKey);
             if (!File.Exists(path)) return map;
 
             foreach (string line in File.ReadLines(path))
@@ -298,7 +299,7 @@ internal static class HourlyUsage
     // Rewritten whole rather than appended: folding can add several days at once (a machine that was
     // off for a week), the file is a few hundred lines, and one atomic replace is easier to reason
     // about than an append plus a separate prune.
-    private static void WriteAll(Dictionary<int, HourlyDay> days, long nowUnix)
+    private static void WriteAll(string profileKey, Dictionary<int, HourlyDay> days, long nowUnix)
     {
         int cutoff = KeyOf(Local(nowUnix).AddDays(-RetentionDays));
         var keys = new List<int>(days.Keys);
@@ -324,7 +325,7 @@ internal static class HourlyUsage
             sb.AppendLine("]}");
         }
 
-        string path = FilePath;
+        string path = FilePath(profileKey);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         string tmp = path + ".tmp";
         File.WriteAllText(tmp, sb.ToString());

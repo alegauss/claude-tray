@@ -1,6 +1,6 @@
-# Last task number — `T126` · next block letter — `P`
+# Last task number — `T127` · next block letter — `P`
 
-> **Single source of truth for the next free task number.** The next new task is `T127`; after
+> **Single source of truth for the next free task number.** The next new task is `T128`; after
 > assigning it, bump the number above and append a log line below.
 >
 > **Next block letter — `P`** (Block **O** = Profiles — several Claude Code logins on one machine,
@@ -40,7 +40,9 @@
   the About page show the plan, the holder and the config directory?" — and became its own page
   instead of an About addition: About is the project's identity, this is the *machine's*. T121 stays
   open because the page cannot be screenshotted from a real account (see IMPROVEMENTS §VI.1).
-- Block **O** (T122–T126, created 2026-07-31) is a *new* block rather than a Block N second pass: N is
+- Block **O** (T122–T127, created 2026-07-31; **T127 split out of T125** while building it —
+  its design already ordered "keying first, polling second", and the two halves verify
+  independently, so the keying shipped alone rather than as half a large commit) is a *new* block rather than a Block N second pass: N is
   one read-only page about **this** machine's single login, O is a **model** — several config dirs, the
   launch path, the stores keyed per account. It carries a dependency on T120 because `ClaudeAccount` is
   the reader it parameterizes. **T124 is a defect that predates the block** (an environment
@@ -106,3 +108,4 @@ here. This file is a terse index, not a memory.
 - **T122 SHIPPED** (Block O — a profile is a config dir; discovery and the picker) — 2026-07-31.
 - **T123 SHIPPED** (Block O — the profile list editor and the per-profile Open Claude Code submenu) — 2026-07-31.
 - **T124 SHIPPED** (Block O — per-profile auth reading, and the "not your subscription" warning) — 2026-07-31.
+- **T125 SHIPPED** (Block O — every per-profile store keyed by profile, with the one-time migration) — 2026-07-31.

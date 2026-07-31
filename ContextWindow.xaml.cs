@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
@@ -233,7 +233,7 @@ internal partial class ContextWindow : Window
         _findings = ContextRules.Evaluate(scan, DateTimeOffset.UtcNow.UtcDateTime, _evidence);
         // One line per project per day, and only when the number moved - see ContextHistory. Skipped
         // for a fixture scan: sample projects have no business in the real drift history.
-        if (ScanRoot is null) ContextHistory.Record(scan, DateTimeOffset.UtcNow.UtcDateTime);
+        if (ScanRoot is null) ContextHistory.Record(ProfileStore.Monitored, scan, DateTimeOffset.UtcNow.UtcDateTime);
 
         StatusText.Visibility = Visibility.Collapsed;
         MasterPane.Visibility = Visibility.Visible;
@@ -862,7 +862,7 @@ internal partial class ContextWindow : Window
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         ContextTrend? trend = PreviewDemoHistory
             ? ContextHistory.Demo(row.Estimated, row.Project!.Bytes, now)
-            : ContextHistory.Trend(row.Slug, DateTimeOffset.UtcNow.UtcDateTime);
+            : ContextHistory.Trend(ProfileStore.Monitored, row.Slug, DateTimeOffset.UtcNow.UtcDateTime);
 
         DriftSpark.Children.Clear();
         if (trend is null || !trend.CanDraw)

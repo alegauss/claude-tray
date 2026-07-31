@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace ClaudeTray;
 
@@ -43,20 +43,21 @@ internal static class ContextHistory
     /// <summary>How far back the sparkline reaches.</summary>
     public const int SparkDays = 60;
 
-    private static string FilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClaudeTray", "context-history.jsonl");
+    /// <summary>Per profile (T125): the same repo opened under two profiles loads different user
+    /// instructions, settings and skills, so its eager context is a different number in each.</summary>
+    private static string FilePath(string profileKey) =>
+        ProfileStore.PathFor(profileKey, "context-history.jsonl");
 
     /// <summary>
     /// Record every project's eager context, skipping the ones already recorded today at the same
     /// value. Best-effort: a failure here must never disturb a scan.
     /// </summary>
-    public static void Record(ContextScan scan, DateTime nowUtc)
+    public static void Record(string profileKey, ContextScan scan, DateTime nowUtc)
     {
         try
         {
             long now = new DateTimeOffset(nowUtc, TimeSpan.Zero).ToUnixTimeSeconds();
-            Dictionary<string, ContextSample> latest = LatestPerSlug();
+            Dictionary<string, ContextSample> latest = LatestPerSlug(profileKey);
             var lines = new List<string>();
 
             foreach (ContextProject p in scan.Projects)
@@ -76,7 +77,7 @@ internal static class ContextHistory
             }
 
             if (lines.Count == 0) return;
-            string path = FilePath;
+            string path = FilePath(profileKey);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.AppendAllLines(path, lines);
             PruneIfStale(path, now);
@@ -85,7 +86,7 @@ internal static class ContextHistory
     }
 
     /// <summary>The drift for one project, or null when nothing has been recorded for it yet.</summary>
-    public static ContextTrend? Trend(string slug, DateTime nowUtc)
+    public static ContextTrend? Trend(string profileKey, string slug, DateTime nowUtc)
     {
         try
         {
@@ -93,7 +94,7 @@ internal static class ContextHistory
             long from = now - SparkDays * 86400L;
 
             var points = new List<ContextSample>();
-            foreach ((string s, ContextSample sample) in Read())
+            foreach ((string s, ContextSample sample) in Read(profileKey))
                 if (sample.T >= from && string.Equals(s, slug, StringComparison.OrdinalIgnoreCase))
                     points.Add(sample);
             if (points.Count == 0) return null;
@@ -148,9 +149,9 @@ internal static class ContextHistory
     // Slug and sample are yielded together rather than paired through a side table keyed by the
     // sample: two worktree siblings can legitimately record the same tokens and bytes in the same
     // second, and a value-keyed map would silently merge them.
-    private static IEnumerable<(string Slug, ContextSample Sample)> Read()
+    private static IEnumerable<(string Slug, ContextSample Sample)> Read(string profileKey)
     {
-        string path = FilePath;
+        string path = FilePath(profileKey);
         if (!File.Exists(path)) yield break;
 
         foreach (string line in File.ReadLines(path))
@@ -175,12 +176,12 @@ internal static class ContextHistory
         }
     }
 
-    private static Dictionary<string, ContextSample> LatestPerSlug()
+    private static Dictionary<string, ContextSample> LatestPerSlug(string profileKey)
     {
         var latest = new Dictionary<string, ContextSample>(StringComparer.OrdinalIgnoreCase);
         try
         {
-            foreach ((string slug, ContextSample s) in Read())
+            foreach ((string slug, ContextSample s) in Read(profileKey))
                 if (!latest.TryGetValue(slug, out ContextSample prev) || s.T >= prev.T)
                     latest[slug] = s;
         }
