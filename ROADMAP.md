@@ -136,19 +136,6 @@
 - 📋 **T133** (deps: T130) **The two big code-behinds split per surface** — `ContextWindow.xaml.cs` (1,369 lines, 7 types) and `StatisticsWindow.xaml.cs` (1,269 lines: session tab, week tab, throughput tab, activity shape, method popup, profile selector) each carry several independent surfaces plus their helper types in one file. `partial class` per tab, helper types to their own files, no XAML change. → §VIII.5
 - 💭 **T134** (deps: T130) **`SettingsWindow.xaml`: six pages in one file** — 1,019 lines holding General, Display, Claude Code, Notifications, System information and About, over ~170 lines of shared row/value styles they all consume. Needs design before it is worth doing: a `UserControl` per page reads better but separates the styles from their users, and the UI conventions (all layout in XAML, nothing hardcoded that a theme owns) must survive it. → §VIII.6
 
-## Block Q — Keyboard input in the windows ("a screenshot cannot see it")
-
-> **T135 shipped** the fix: under the tray's WinForms pump the WPF windows received *no* keyboard input
-> at all — no typing, no Tab, no Esc — since the first window shipped, because WPF expects the pump to
-> offer messages to `ComponentDispatcher` before `TranslateMessage` and the WinForms loop does not.
-> See [CHANGELOG.md](CHANGELOG.md) Block Q.
->
-> What is left is the reason it survived for months: **every check this repo has is a screenshot**, and
-> the `--settings` preview runs a WPF pump, so it was structurally incapable of reproducing the tray's
-> input environment. `--settings-tray` now exists; nothing yet *runs* against it.
-
-- 📋 **T142** (deps: T135) **An interaction harness, not a scratch script** — the checks that caught T135 and verified T137 were ad-hoc UI-Automation scripts in a scratch directory: focus a control by `AutomationId`, `SendKeys`, read the value back; open the tray menu and read the per-profile entries. They belong in `scripts\Check-Interaction.ps1`, because keyboard and menu behaviour are the two things no capture can see. Three traps are already known and must be encoded: the notification-area icon may sit in the overflow flyout and has **no clickable point** (use its bounding rectangle), a collapsed WPF pane is **absent from the UIA tree** (navigate first, and the sidebar items are `Border`s with no automation peer — match the `TextBlock` inside), and a right-click on the icon does not always produce the menu, so it must retry **and fail loudly**: the first version of that script reported a pass having read zero menu entries, which is worse than no test at all. → §IX.1
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

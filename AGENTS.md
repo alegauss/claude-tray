@@ -87,8 +87,8 @@ with WinForms while showing a WPF window must call `WpfInputBridge.Install()`.
    environments — that difference is how "no keyboard input in any window" (T135) survived every
    preview, capture and screenshot this repo has ever taken. Anything that involves typing, Tab, Esc or
    a shortcut must be verified under **`--settings-tray`**, which hosts the window the way the tray
-   does. UI Automation drives it headlessly: find the control by `AutomationId`, `SetFocus()`,
-   `SendKeys`, then read the value back.
+   does — and the way to do that is **`scripts\Check-Interaction.ps1`**, not a scratch script. See the
+   interaction loop below.
 
 ## Visual verification workflow (the predictability loop)
 
@@ -102,6 +102,31 @@ powershell -ExecutionPolicy Bypass -File scripts\Capture-Window.ps1   # -> docs\
 Then Read `docs\_preview\settings.png` and judge it. `--settings` opens the window standalone so no
 tray-menu clicking is needed; the capture script is per-monitor-DPI-aware (required at 150–200%).
 `docs\_preview\` is git-ignored.
+
+## Interaction verification (the loop a capture cannot close)
+
+A picture proves layout. It cannot prove a key press arrives — that is how T135 survived every
+screenshot this repo ever took. `scripts\Check-Interaction.ps1` drives the real UI through UI
+Automation and asserts a pass/fail (exit 0 only if every check passed):
+
+```
+powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1                    # both cases
+powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Keyboard     # typing/Tab/arrows
+powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Menu         # the tray menu
+powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Menu -UseRunning
+powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Lang pt-BR        # any shipped language
+```
+
+- **Keyboard** launches `--settings-tray` (the WinForms pump), navigates by clicking the sidebar, types
+  into a `TextBox` and reads it back through `ValuePattern`, Tabs out, and drives a `Slider` with an
+  arrow key. Run it after anything that touches input, focus or hosting.
+- **Menu** launches the tray, opens the notification icon's menu and reads its entries, then expands
+  *Open Claude Code* and reads the per-profile ones. It **refuses** to run while another tray is alive
+  (the single-instance mutex would make its own launch exit silently, and it would then read the other
+  tray's menu and call that a pass) — quit that tray, or pass `-UseRunning` to drive it deliberately.
+- **Reading nothing is a FAIL, never a pass.** The script's header documents the three UIA traps
+  (no clickable point / overflow flyout, collapsed panes absent from the tree, the menu not always
+  opening) — read it before writing any new check by hand.
 
 ## Build / run / dev helpers
 

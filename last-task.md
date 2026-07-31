@@ -159,3 +159,4 @@ here. This file is a terse index, not a memory.
 - **T139 SHIPPED** (Block R — a manual profile pick pins the icon until "Resume following") — 2026-07-31.
 - **T143 SHIPPED** (Block R — a copyable `setx` command, never run by the tray itself) — 2026-07-31.
 - **T141 SHIPPED** (Block S — the Settings copy is total by construction, so no field is reset on Save) — 2026-07-31.
+- **T142 SHIPPED** (Block Q — `Check-Interaction.ps1`: the keyboard and the tray menu, driven and asserted) — 2026-07-31.

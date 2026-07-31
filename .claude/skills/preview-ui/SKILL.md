@@ -61,21 +61,24 @@ window. Those are different *input* environments, and the difference is not acad
 **no keyboard input at all** under the tray (T135) — no typing, no Tab, no Esc — while every preview and
 every screenshot looked perfect, because mouse input is `WndProc`-driven and works either way.
 
-So this loop proves *layout*, never *input*. For anything that involves typing, Tab, Esc or a shortcut:
+So this loop proves *layout*, never *input*. For anything that involves typing, Tab or a shortcut, run
+the interaction harness — it hosts the window under `--settings-tray` (the tray's own pump) and drives
+it with UI Automation, so the result is a pass/fail rather than an impression:
+
+```
+dotnet build -c Debug
+powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Keyboard
+```
+
+It navigates by clicking the sidebar, types into a `TextBox` and reads the value back through
+`ValuePattern`, Tabs out of it, and drives a `Slider` with an arrow key. `-Case Menu` does the same
+for the tray menu's entries. Add new checks **to that script**, not to a scratch one — its header
+documents the UIA traps (no clickable point on the tray icon, collapsed WPF panes missing from the
+tree, the menu not always opening) that otherwise get rediscovered every time. To see the window by
+hand instead:
 
 ```
 dotnet run -- --settings-tray ClaudeCode     # the window hosted the way the tray hosts it
-```
-
-and drive it with UI Automation rather than by eye — find the control by `AutomationId`, `SetFocus()`,
-`SendKeys`, then read the value back, so the check is a pass/fail and not an impression:
-
-```powershell
-Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Windows.Forms
-# ...find $win by ProcessId, then:
-$box = $win.FindFirst('Descendants', <AutomationIdProperty = 'ProfileNameBox'>)
-$box.SetFocus(); [System.Windows.Forms.SendKeys]::SendWait('Trabalho')
-$box.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value   # read it back
 ```
 
 ## Notes
