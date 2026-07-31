@@ -1867,6 +1867,12 @@ internal sealed class TrayContext : ApplicationContext
         // the menu changed while the window sat open must not be undone by the buffer's older snapshot.
         Settings applied = updated.Clone();
         applied.Metric = _settings.Metric;
+        // Same exception, same reason (T141): these two are the tray's bookkeeping for the environment
+        // variable it owns, with no control on the page. If the window sat open while a menu pick took
+        // the variable over, the buffer's older snapshot would say "not owned" — and the tray would
+        // then never put back what it replaced.
+        applied.EnvironmentProfileOwned = _settings.EnvironmentProfileOwned;
+        applied.EnvironmentProfileRestore = _settings.EnvironmentProfileRestore;
         _settings = applied;
 
         // What is left are the genuine side effects — the things a copy cannot do on its own.
@@ -1881,6 +1887,9 @@ internal sealed class TrayContext : ApplicationContext
             _followFloorUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             _profilePinned = true;
         }
+        // The page can change the standing choice *and* the toggle in one Save, so the environment is
+        // reconciled once, from both: switching the toggle off restores the old value here (T145).
+        SyncEnvironmentToPin(DeliberateProfile());
         if (!_settings.FollowActiveProfile) _lastTurn.Clear();
         // The profile list drives the "Open Claude Code" submenu, so it is rebuilt right here rather
         // than waiting for a restart.
@@ -2142,7 +2151,40 @@ internal sealed class TrayContext : ApplicationContext
     private void UnpinProfile()
     {
         _profilePinned = false;
+        // Releasing the pin is the user saying "stop choosing for me", so the machine-wide variable
+        // the pin wrote goes back to what it was (T145). Auto-follow never writes one.
+        SyncEnvironmentToPin(null);
         _ = RefreshAsync();
+    }
+
+    /// <summary>
+    /// The profile the user has actually *chosen*, as opposed to the one auto-follow happens to be
+    /// showing: the monitored profile while it is pinned, or whenever auto-follow is off at all —
+    /// with nothing moving the icon by itself, the monitored profile is the standing choice. Null
+    /// while auto-follow is the thing driving, which is the case that must never write (T145).
+    /// </summary>
+    private ClaudeInfo? DeliberateProfile() =>
+        _profilePinned || !_settings.FollowActiveProfile
+            ? ClaudeAccount.PickMonitored(_watched, _settings.MonitoredConfigDir)
+            : null;
+
+    /// <summary>
+    /// Keep the user-scope <c>CLAUDE_CONFIG_DIR</c> in step with the **pinned** profile (T145).
+    /// <paramref name="pinned"/> is the profile just chosen by hand, or null when the pin was released.
+    ///
+    /// <para>Called from every place a pin is taken or released and from nowhere else — auto-follow
+    /// moves the icon by observation, and an observation must not rewrite a machine-wide setting.
+    /// Silent on failure by design: this runs off a menu click that has already done its real job
+    /// (the icon moved), and a modal about an environment variable would be the wrong thing to
+    /// interrupt it with — <c>--profiles</c> and the Settings row both show the live value.</para>
+    /// </summary>
+    private void SyncEnvironmentToPin(ClaudeInfo? pinned)
+    {
+        if (!_settings.SyncEnvironmentProfile && !_settings.EnvironmentProfileOwned) return;
+        bool ok = _settings.SyncEnvironmentProfile && pinned is not null
+            ? EnvironmentProfile.Adopt(_settings, pinned.ConfigDir)
+            : EnvironmentProfile.Restore(_settings);
+        if (ok) SaveSettingsQuietly();   // the restore value is bookkeeping the next launch must have
     }
 
     /// <summary>Turn auto-follow on or off from the menu, and act on it at once: enabling it should move
@@ -2164,6 +2206,7 @@ internal sealed class TrayContext : ApplicationContext
         _followFloorUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         _profilePinned = true;
         AdoptMonitored(profile, automatic: false);
+        SyncEnvironmentToPin(profile);
         _ = RefreshAsync();
     }
 

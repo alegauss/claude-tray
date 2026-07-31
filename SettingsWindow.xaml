@@ -534,6 +534,25 @@
                                                    Description="{local:Loc settings.cc.followActiveDesc}">
                                     <ToggleButton x:Name="FollowActiveCheck" Style="{StaticResource ToggleSwitch}" />
                                 </local:SettingsRow>
+
+                                <Border x:Name="EnvSyncDivider" Style="{StaticResource RowDivider}" />
+
+                                <!-- T145: the one setting that writes outside this app's own file — the
+                                     user-scope CLAUDE_CONFIG_DIR, so a hand-picked profile reaches
+                                     sessions the tray never launches. Off by default, and the value
+                                     under it is the live reading, so the row always shows what the
+                                     environment actually says rather than what the toggle intends. -->
+                                <local:SettingsRow x:Name="EnvSyncRow"
+                                                   Header="{local:Loc settings.cc.envSync}"
+                                                   Description="{local:Loc settings.cc.envSyncDesc}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="EnvSyncValue" VerticalAlignment="Center"
+                                                   Margin="0,0,14,0" MaxWidth="260"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        <ToggleButton x:Name="EnvSyncCheck" Style="{StaticResource ToggleSwitch}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
                             </StackPanel>
                         </Border>
 

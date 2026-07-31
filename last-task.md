@@ -1,6 +1,6 @@
-# Last task number — `T147` · next block letter — `U`
+# Last task number — `T148` · next block letter — `U`
 
-> **Single source of truth for the next free task number.** The next new task is `T148`; after
+> **Single source of truth for the next free task number.** The next new task is `T149`; after
 > assigning it, bump the number above and append a log line below.
 >
 > **Next block letter — `U`** (Block **T** = One profile, the whole environment — the tray writes the
@@ -161,3 +161,4 @@ here. This file is a terse index, not a memory.
 - **T141 SHIPPED** (Block S — the Settings copy is total by construction, so no field is reset on Save) — 2026-07-31.
 - **T142 SHIPPED** (Block Q — `Check-Interaction.ps1`: the keyboard and the tray menu, driven and asserted) — 2026-07-31.
 - **T144 SHIPPED** (Block T — the launch's config-dir decision is made against what the child inherits) — 2026-07-31.
+- **T145 SHIPPED** (Block T — the tray writes the user-scope `CLAUDE_CONFIG_DIR` for a pinned profile) — 2026-07-31.

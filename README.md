@@ -329,17 +329,24 @@ Switching *which account a session uses* happens when Claude Code launches: the 
 `CLAUDE_CONFIG_DIR` and gets out of the way. It never writes to a configuration folder and never moves credentials between them — Claude Code
 rewrites its own credentials file on every token refresh, so shuffling those files around is how you
 lose a login. A running session keeps the profile it started with; a change applies to the next one.
-That variable is passed **to the session it launches**, and deliberately not set machine-wide: a
-terminal you open yourself still gets your default profile. For your **default** profile the tray
-passes nothing at all — it is already the folder a bare `claude` uses, and setting the variable to it
-would start the session against a second, empty state file instead of your own project history.
+That variable is passed **to the session it launches**. Which profile that selects is worked out
+against what the session would otherwise inherit: for the folder a bare `claude` already uses the tray
+passes nothing — and if something on your machine points `CLAUDE_CONFIG_DIR` elsewhere, it **clears**
+the variable for that session instead, because pointing it *at* `~/.claude` would start Claude Code
+against a second, empty state file instead of your own project history.
 
-Want a non-default profile to be *your* terminal's default too? **Settings → Claude Code → Profiles**
-has a **Terminal default** row with the exact `setx CLAUDE_CONFIG_DIR "<dir>"` command and a **Copy**
-button. The tray copies it — it never runs it: that command changes every Claude Code session on the
-machine, including ones the tray never sees, until you run it again for another profile, so it stays
-something you choose to do rather than something the app does to your environment. (Hidden for the
-default profile, for the same reason the tray itself passes nothing for it.)
+**Want the profile you pick to be the whole machine's?** Turn on **Use the chosen profile everywhere in
+Windows** in **Settings → Claude Code → Profiles**. Then picking a profile by hand writes
+`CLAUDE_CONFIG_DIR` into your Windows user environment, so a terminal you open yourself, an editor
+started from the Start menu and anything else use that profile too — not only the sessions the tray
+launches. It follows the profile you **choose**, never the one auto-follow drifts to, and the row shows
+the variable's live value beside the switch. Programs already running keep the profile they started
+with. Off by default, and reversible by design: turning it off, or clicking **Resume following**, puts
+the variable back exactly as it was — the tray does not leave behind a setting it no longer manages.
+
+Prefer to do it yourself? The **Terminal default** row still shows the exact
+`setx CLAUDE_CONFIG_DIR "<dir>"` command with a **Copy** button, and the tray only copies it. (Hidden
+for your default profile and for `~/.claude`, where that command would be the wrong thing to run.)
 
 > A fresh profile starts genuinely empty — no user `CLAUDE.md`, settings, skills, plugins or project
 > history. That isolation is the point, but it does mean the second profile won't inherit your setup.

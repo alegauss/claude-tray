@@ -528,32 +528,6 @@ Three alternatives were weighed and dropped before settling on the variable:
   account", and worth mentioning to a user who wants that — but it is editor-specific and does not
   answer "in the whole environment".
 
-### §XI.1 The toggle, and what "synced" means (T145)
-
-Off by default: an update must never silently rewrite somebody's environment.
-
-While on, the variable follows the **pinned choice**, not the icon. T139 shipped the distinction the
-moment it mattered — a manual pick pins the profile until the user resumes following, because on a
-machine where a profile is more or less continuously active, auto-follow undid a deliberate choice
-within seconds. That is exactly the shape needed here: a manual pick is a decision, auto-follow is an
-observation, and only the decision may touch the environment.
-
-Mechanics that the task must not skip:
-
-- **User scope**, not machine — the tray is not elevated, and a user-scope value wins over a
-  machine-scope one for that user's processes anyway.
-- **The three-way from T144**, not a plain set: choosing the `~/.claude` profile means *deleting* the
-  value, or Claude Code reads the wrong `.claude.json`.
-- **Broadcast `WM_SETTINGCHANGE`** ("Environment"), or Explorer keeps a stale block and nothing
-  launched from the Start menu sees the change until sign-out. This is the difference between the
-  feature working and the feature working tomorrow.
-- **Say what it cannot do.** An already-running VS Code keeps the value it started with. The existing
-  non-goal — no switching the account of a *running* session — is untouched, and the UI has to state
-  it rather than let the user infer otherwise.
-- **Restore on the way out.** Turning the toggle off, or resuming auto-follow, puts back whatever was
-  there before the tray started managing it (remembered in the tray's own settings, the one file it
-  does own).
-
 ### §XI.2 The submenu that stops earning its level (T146)
 
 `Open Claude Code` became a submenu in T123 because a launch was the only moment the tray could
@@ -579,3 +553,20 @@ overload the one channel the app has for "you are about to run out". Candidates 
 building: a one-character initial in a corner, a thin per-profile accent along an edge that the
 projection colour never uses, or a shape change to the outline. Whatever wins has to be legible at
 16 px on both light and dark taskbars, and must not read as a warning.
+
+### §XI.4 The Profile submenu is mouse-only (T148)
+
+Found while driving T145's verification through the tray's real menu: `Perfil` expands on hover and
+**closes the menu** when a keyboard user presses Right, while every other submenu expands normally.
+
+The cause is the population point. `_profileMenu` fills its items in `DropDownOpening`, so before the
+first open `DropDownItems` is empty — and an empty `ToolStripMenuItem` is not a submenu to WinForms:
+it exposes no `ExpandCollapse` pattern, draws no arrow, and Right is handled as "activate a plain
+command", which dismisses the menu. Hover works because the mouse path opens the dropdown (raising
+`DropDownOpening`, which fills it) before anything asks whether it has items.
+
+Populating it while the menu is being built rather than on the way in fixes both readings at once —
+the keyboard one, and the automation one: a submenu that is empty at menu-open time cannot be expanded
+by `Check-Interaction.ps1` either, which is why T142's menu case covers `Open Claude Code` and not this
+one. The data is already at hand: the menu re-reads every profile on each open (T137), so filling the
+submenu from that same sweep costs nothing extra.

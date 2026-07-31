@@ -159,6 +159,27 @@ internal sealed class Settings
     /// </summary>
     public bool FollowActiveProfile { get; set; } = false;
 
+    /// <summary>
+    /// Write the **user-scope** <c>CLAUDE_CONFIG_DIR</c> when a profile is picked by hand, so the choice
+    /// reaches every Claude Code session on the machine — a terminal opened by hand, an editor started
+    /// from the Start menu — and not only the one the tray launches (T145, reversing T143).
+    ///
+    /// <para>Off by default: an update must never silently rewrite somebody's environment. And it
+    /// follows the <b>pin</b>, not the icon — auto-follow moves the icon by observation, which must not
+    /// rewrite a machine-wide setting; a manual pick is a decision, and only a decision writes.</para>
+    /// </summary>
+    public bool SyncEnvironmentProfile { get; set; } = false;
+
+    /// <summary>Whether the tray currently owns the user-scope <c>CLAUDE_CONFIG_DIR</c>. Distinguishes
+    /// "not managing it" from "managing it, and there was nothing there before" — which
+    /// <see cref="EnvironmentProfileRestore"/> alone cannot, since both are null.</summary>
+    public bool EnvironmentProfileOwned { get; set; } = false;
+
+    /// <summary>What the user-scope <c>CLAUDE_CONFIG_DIR</c> said before the tray first took it over,
+    /// so switching the feature off puts it back instead of abandoning a value the app no longer
+    /// manages. Null means there was none.</summary>
+    public string? EnvironmentProfileRestore { get; set; }
+
     /// <summary>Where the app keeps its own state — <c>%LocalAppData%\ClaudeTray</c>: this file, the
     /// caches, the usage/context history and the reset log. Public so the System information page can
     /// show (and open) it without a second copy of the path.</summary>

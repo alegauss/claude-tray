@@ -62,6 +62,7 @@ internal partial class SettingsWindow : Window
             : _settings.ClaudeCodeDirectory;
         AutoOpenCheck.IsChecked = _settings.AutoOpenOnUnauthenticated;
         FollowActiveCheck.IsChecked = _settings.FollowActiveProfile;
+        EnvSyncCheck.IsChecked = _settings.SyncEnvironmentProfile;
         ShowPctCheck.IsChecked = _settings.ShowPercentage;
         ShowRemainingCheck.IsChecked = _settings.ShowRemaining;
         FlashCheck.IsChecked = _settings.FlashNearLimit;
@@ -317,6 +318,7 @@ internal partial class SettingsWindow : Window
         _settings.ClaudeCodeDirectory = DirectoryBox.Text.Trim();
         _settings.AutoOpenOnUnauthenticated = AutoOpenCheck.IsChecked == true;
         _settings.FollowActiveProfile = FollowActiveCheck.IsChecked == true;
+        _settings.SyncEnvironmentProfile = EnvSyncCheck.IsChecked == true;
         _settings.AuthRetrySeconds = (int)Math.Round(RetrySlider.Value);
         _settings.Language = (LanguageCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag as string
                              ?? Settings.DefaultLanguage;
@@ -445,6 +447,14 @@ internal partial class SettingsWindow : Window
         FollowActiveRow.Visibility = _ccProfiles.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
         ProfileIconRow.Visibility = ProfileIconDivider.Visibility =
             _ccProfiles.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        // Same rule (T145): with one profile there is nothing to point the environment at.
+        EnvSyncRow.Visibility = EnvSyncDivider.Visibility =
+            _ccProfiles.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        // The live reading, not the intent — so the row still tells the truth when something else on
+        // the machine set the variable, or when the tray's own write failed.
+        EnvSyncValue.Text = EnvironmentProfile.Current() is { Length: > 0 } v
+            ? v
+            : L.T("settings.cc.envSyncNone");
 
         FillProfileFields();
     }
