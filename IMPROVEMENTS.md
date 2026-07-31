@@ -16,6 +16,9 @@
 | [§V](#v--live-throughput-block-k) | Live throughput (Block K) |
 | [§VI](#vi--system-information-block-n) | System information (Block N) |
 | [§VIII](#viii--project-layout-block-p) | Project layout — the flat root becomes `src/` + `build/` (Block P) |
+| [§IX](#ix--interaction-verification-block-q) | Interaction verification — what a screenshot cannot see (Block Q) |
+| [§X](#x--profiles-second-pass-block-r) | Profiles, second pass — the controls and the names (Block R) |
+| [§XI](#xi--settings-round-trip-block-s) | Settings round-trip — a field missing from the copy is a field reset (Block S) |
 
 > Block I's design sections (§II) are gone: every one of them shipped, and `git log` plus
 > [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a **measurement** — the
@@ -498,3 +501,161 @@ single file does not have. The alternatives worth weighing before touching it: a
 page with the pages staying in one window; or leaving the markup alone and only splitting the
 **code-behind** (T133's approach), which addresses most of the same pain with none of the styling risk.
 Whichever wins, the six pages each need a screenshot afterwards, in at least one non-English language.
+
+---
+
+## §IX — Interaction verification (Block Q)
+
+### §IX.1 A harness for what a capture cannot see (T142)
+
+Every verification loop this repo has is a **picture**: `Capture-Window.ps1`, `--capture-settings`,
+`--capture-stats`, the `preview-ui` skill. Pictures prove layout. They cannot prove that a key press
+arrives, and T135 is what that gap costs: the WPF windows accepted no keyboard input at all — no typing,
+no Tab, no Esc — from the day the first one shipped, while every screenshot ever taken of them looked
+perfect, because mouse input travels a different path (`WndProc`) than keyboard input
+(`ComponentDispatcher` pre-processing, which only WPF's own pump performs). `--settings-tray` closed the
+*reproduction* gap. Nothing yet closes the *checking* one.
+
+What the harness has to cover, both driven through UI Automation:
+
+1. **Typing reaches a WPF control under the tray's hosting.** Launch `--settings-tray`, find the control
+   by `AutomationId`, `SetFocus`, `SendKeys`, read the value back through `ValuePattern`. A pass/fail,
+   not an impression. The same shape covers Tab and Esc.
+2. **The tray menu tells the truth when it opens.** Launch the real tray, right-click the notification
+   icon, expand `Open Claude Code`, read the entries. This is what verified T137 (a profile's
+   credentials moved away reads "— entrar"; restored, the next open reads the plain label).
+
+Three traps, all met while writing those checks by hand, and all of them the reason this belongs in a
+committed script rather than being rediscovered:
+
+- The notification-area icon may be inside the **overflow flyout** (open it first) and it has **no
+  clickable point** — `GetClickablePoint()` throws `NoClickablePointException`; use
+  `Current.BoundingRectangle` and synthesise the click.
+- A **collapsed WPF pane is not in the UIA tree at all**, so a control on a page that is not showing
+  simply cannot be found — navigate first. The sidebar items are bare `Border`s with no automation peer,
+  so match the `TextBlock` inside them and disambiguate by x-position (the page title carries the same
+  words).
+- A right-click on the tray icon does **not** always produce the menu. The script must retry, and it
+  must **fail loudly when it read nothing**: the first version of this check reported a pass after
+  reading zero menu entries — a false green, which is strictly worse than having no check.
+
+Deliverable: `scripts\Check-Interaction.ps1`, documented in `AGENTS.md` beside the capture loop, with
+the keyboard case and the menu case runnable separately.
+
+---
+
+## §X — Profiles, second pass (Block R)
+
+### §X.1 Three controls name a profile; one switches it (T138)
+
+`MonitoredConfigDir` decides which profile the icon and tooltip describe, and exactly one thing writes
+it: `TrayContext.SetMonitoredProfile`, reached from the tray's **Profile** submenu. Meanwhile two
+controls in Settings are labelled with the word "profile":
+
+| Control | What it does | What it looks like |
+|---|---|---|
+| Tray → **Profile** → an entry | switches which profile the icon follows | a switch (correct) |
+| Settings → System information → **Perfil** | re-reads *that page* from the chosen profile's files | a switch |
+| Settings → Claude Code → **Perfil** | selects which profile the fields below edit | a switch |
+
+Reported as *"I selected Pessoal, but I'm still using .claude"* — which is not a misreading, it is the
+only reading. Two of the three controls answer a question the user was not asking.
+
+The Claude Code page is where the fix belongs: it already owns the profile list, and it has the **Save**
+button. The System information page must stay read-only — that is its whole identity (§VI), and giving it
+a write would also give it a Save it deliberately hides. So: a per-profile "the icon follows this one"
+affordance on the Claude Code page (radio-style, since exactly one can be true), the System page's picker
+reworded to say it is a *view*, and the editor combo reworded to say it selects what you are editing.
+Whatever ships must keep the tray submenu working — it is the fast path, and it is the one users find.
+
+### §X.2 A manual pick should pin, not merely delay (T139)
+
+T126's rule is that a hand-picked profile holds until a turn lands in a *different* profile after the
+click. The reasoning was sound — auto-follow should resume when you genuinely move — but it assumes
+attention moves *between* profiles. On a machine where one profile is more or less continuously active
+the rule inverts: observed live, a pick was undone within seconds, because an assistant session kept
+writing turns into the work profile the whole time. From the outside it looks exactly like the setting
+being ignored.
+
+Three candidates, with the trade to settle:
+
+1. **A pick turns auto-follow off.** Honest and visible (the toggle reflects reality), but it silently
+   changes a setting the user did not touch.
+2. **A pick pins for a quiet period** — auto-follow resumes only after the pinned profile has been idle
+   for N minutes. No setting changes, but the behaviour is now governed by a second invisible timer, and
+   "why did it move?" gets harder to answer, not easier.
+3. **A pick pins until unpinned.** The strongest signal the app receives is a click, and undoing it is
+   then also a click. Costs a visible pin state in the submenu (a mark on the pinned entry plus an
+   "unpin / follow again" item) so the state is never mysterious.
+
+(3) is the recommendation. Whatever is chosen has to be legible *in the submenu itself*, because that is
+where the user is standing when they wonder why the icon moved.
+
+### §X.3 A label is not an address, and two profiles cannot share a name (T140)
+
+Two separate defects in one derivation. `ClaudeAccount` derives a profile's label as: organization name,
+else "Personal", else the folder name.
+
+**The address.** Anthropic names a personal organization `<email address>'s Organization`. So for any
+personal account the derived label *is* an email address, and it goes into the tray menu, the tooltip and
+therefore into every screenshot of them — observed on the reporter's machine as a menu entry ending in
+`'s Organization` with a real address in front of it. Nothing asked the app to show an address, and §I.1
+is explicit about what reaches the screen. The rule: an organization name matching the personal-default
+pattern (`*'s Organization`) is treated as **no organization**, falling through to the next derivation —
+which is the folder name, and a folder name is something the user chose.
+
+**The collision.** Two profiles can carry the same label — one derived, one typed, or two derived. That
+is what made T136 unreadable: both profiles read "Pessoal" and no part of the menu distinguished them.
+The rule: labels are made unique for *display* by appending the config dir's leaf name to the duplicates
+(`Pessoal (.claude)` / `Pessoal (.claude-pessoal)`), never by rewriting what the user typed and never by
+inventing a name they did not choose. The stored `ClaudeProfile.Label` is untouched; this is a rendering
+concern, and the config dir is already the tooltip on every entry.
+
+### §X.4 Machine-wide `CLAUDE_CONFIG_DIR` (T143)
+
+Diagnosed correctly by the reporter: the variable is set on the process the tray launches and nowhere
+else, so a terminal they open themselves still gets the default profile. That is deliberate — the three
+axes Block O settled — and the app has never claimed to own the user's environment.
+
+Making a profile the default for *self-opened* terminals means a user-level environment variable, and
+that is a promise the app does not currently make: it would apply to **every** Claude Code session on the
+machine, including ones started by other tools, CI shims, or an IDE, none of which the tray knows about,
+and it would keep applying after the tray is uninstalled. Not a non-goal — it does not write a config
+dir and does not touch credentials — but not a one-liner either.
+
+The cheap option to weigh first: the app *tells* the user the exact command
+(`setx CLAUDE_CONFIG_DIR "<dir>"`), with the consequence stated in one sentence, and lets them run it.
+That keeps the tray a reader, which is the property the whole profile model was built on, and it is
+strictly more honest than a toggle whose effect outlives the app.
+
+---
+
+## §XI — Settings round-trip (Block S)
+
+### §XI.1 The copy must be total (T141)
+
+`SettingsWindow`'s constructor copies the live `Settings` into an edit buffer **field by field** so that
+Cancel leaves the caller's instance untouched, and `ApplySettings` then copies the buffer back into the
+live model, also field by field. The consequence is not obvious from either side and is severe: a field
+missing from the constructor list starts at its **default**, gets written back on Save, and silently
+destroys whatever the user had.
+
+Two instances found, both by accident:
+
+- `MonitoredConfigDir` — fixed in T126. Symptom: any visit to Settings sent the tray icon back to the
+  default profile, however carefully the user had chosen another one.
+- `NotifyOnContextGrowth` and `ContextNudgeTokens` — **still live**. The context-growth toggle always
+  opens *off* no matter what is on disk, and saving the page turns it off.
+
+The fix is not to add the missing two lines. It is to make the copy total by construction: a
+`Settings.Clone()` that round-trips through the same `System.Text.Json` serializer that already writes
+the file (zero new dependencies, and any property that persists is therefore copied), with `ApplySettings`
+assigning from the returned model instead of enumerating fields — keeping the handful of genuine
+side-effect cases (the flash frame, the poll cadence, the profile list rebuild) as explicit follow-up
+calls rather than as the reason the copy exists.
+
+One field needs care: `Metric` belongs to the tray (the icon's chosen window), not to any control on the
+page, so a total copy must carry it through untouched rather than let a freshly-defaulted buffer win —
+which is exactly the class of bug this task exists to end. The `AGENTS.md` warning T126 had to add
+("every field must also be copied in `SettingsWindow`'s constructor") is a hand-maintained rule standing
+in for a structural fix; when this ships, that note goes.

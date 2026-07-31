@@ -1,10 +1,10 @@
-# Last task number — `T137` · next block letter — `S`
+# Last task number — `T143` · next block letter — `T`
 
-> **Single source of truth for the next free task number.** The next new task is `T138`; after
+> **Single source of truth for the next free task number.** The next new task is `T144`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `S`** (Block **R** = Profiles, second pass — the defects a real second
-> login exposed; created 2026-07-31).
+> **Next block letter — `T`** (Block **S** = Settings round-trip — the field-by-field model copy
+> that silently resets whatever it forgets; created 2026-07-31).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -68,13 +68,26 @@
   T123's Name box is merely the first control anyone had a reason to type into. The trap it leaves
   behind is in [AGENTS.md](AGENTS.md): `--settings` runs a **WPF** pump and cannot see it, which is why
   every preview and screenshot of the UI looked correct — `--settings-tray` is the one that reproduces
-  the tray.
+  the tray. **T142 is Q's second pass** (added 2026-07-31): the reproduction flag exists, but nothing yet
+  *runs* against it, and the checks that found and verified T135/T137 live in a scratch directory.
 - Block **R** (T136, created 2026-07-31) is a **second pass over Block O**, opened by a field report
   from the first real use of a second login: *"I registered the profile, clicked sign in, logged in, and
   it still said sign in"* — plus two profiles showing the same name. It is a new block rather than more
   Block O tasks because O is shipped and pruned, and because these are defects found by *using* the
   feature, not gaps in its design. T136 is the one that damaged state: the tray created the stub config
   that then misdescribed the user's own default profile; T137 is the one that made the user click twice.
+  **T138–T140 and T143 were added the same day, from the same session.** They share a theme the two
+  shipped tasks did not: the profile *model* is right and the **controls and names** around it are not —
+  three controls that read as a profile switch when one is, a manual pick that a continuously-active
+  profile undoes in seconds, a derived label that is somebody's email address, and (T143, an idea) the
+  machine-wide variable the reporter correctly noticed the tray never sets.
+- Block **S** (T141, created 2026-07-31) is a one-task block on the **Settings model round-trip**, not a
+  Block R item: it is not about profiles at all. `SettingsWindow` copies the model field by field and
+  `ApplySettings` copies it back, so any field missing from that list is silently reset on Save —
+  `MonitoredConfigDir` was (fixed in T126, which is how the class was found) and the context-growth pair
+  still is. Block L set the precedent that a block may hold a single task; the reason this is a *block*
+  rather than a stray fix is that the task is to make the copy total by construction, which retires a
+  hand-maintained `AGENTS.md` rule.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 

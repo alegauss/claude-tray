@@ -136,6 +136,40 @@
 - 📋 **T133** (deps: T130) **The two big code-behinds split per surface** — `ContextWindow.xaml.cs` (1,369 lines, 7 types) and `StatisticsWindow.xaml.cs` (1,269 lines: session tab, week tab, throughput tab, activity shape, method popup, profile selector) each carry several independent surfaces plus their helper types in one file. `partial class` per tab, helper types to their own files, no XAML change. → §VIII.5
 - 💭 **T134** (deps: T130) **`SettingsWindow.xaml`: six pages in one file** — 1,019 lines holding General, Display, Claude Code, Notifications, System information and About, over ~170 lines of shared row/value styles they all consume. Needs design before it is worth doing: a `UserControl` per page reads better but separates the styles from their users, and the UI conventions (all layout in XAML, nothing hardcoded that a theme owns) must survive it. → §VIII.6
 
+## Block Q — Keyboard input in the windows ("a screenshot cannot see it")
+
+> **T135 shipped** the fix: under the tray's WinForms pump the WPF windows received *no* keyboard input
+> at all — no typing, no Tab, no Esc — since the first window shipped, because WPF expects the pump to
+> offer messages to `ComponentDispatcher` before `TranslateMessage` and the WinForms loop does not.
+> See [CHANGELOG.md](CHANGELOG.md) Block Q.
+>
+> What is left is the reason it survived for months: **every check this repo has is a screenshot**, and
+> the `--settings` preview runs a WPF pump, so it was structurally incapable of reproducing the tray's
+> input environment. `--settings-tray` now exists; nothing yet *runs* against it.
+
+- 📋 **T142** (deps: T135) **An interaction harness, not a scratch script** — the checks that caught T135 and verified T137 were ad-hoc UI-Automation scripts in a scratch directory: focus a control by `AutomationId`, `SendKeys`, read the value back; open the tray menu and read the per-profile entries. They belong in `scripts\Check-Interaction.ps1`, because keyboard and menu behaviour are the two things no capture can see. Three traps are already known and must be encoded: the notification-area icon may sit in the overflow flyout and has **no clickable point** (use its bounding rectangle), a collapsed WPF pane is **absent from the UIA tree** (navigate first, and the sidebar items are `Border`s with no automation peer — match the `TextBlock` inside), and a right-click on the icon does not always produce the menu, so it must retry **and fail loudly**: the first version of that script reported a pass having read zero menu entries, which is worse than no test at all. → §IX.1
+
+## Block R — Profiles, second pass ("what a real second login exposed")
+
+> The first genuine use of a second subscription found four things in one sitting, two of them already
+> fixed: **T136** (the tray created a stub `~/.claude/.claude.json` by overriding `CLAUDE_CONFIG_DIR`
+> for the *default* profile, then read that stub in preference to the real config — so a Max 5x / VILT
+> Group / 39-project profile was reported as "Claude Team", no org, 0 projects, and its derived label
+> collapsed onto the other profile's) and **T137** (the menu kept offering a sign-in to a profile that
+> had just signed in, because discovery only ran at startup). See [CHANGELOG.md](CHANGELOG.md) Block R.
+>
+> The three below are what the same session surfaced and did not fix. They share one theme: the model is
+> right, and the **controls and names** around it are not.
+
+- 📋 **T138** (deps: T122, T127) **Two pickers that look like a switch and aren't** — three controls name a profile and exactly one changes which profile the icon follows (the tray's **Profile** submenu, the only writer of `MonitoredConfigDir`). The System information picker re-renders that page; the Claude Code page's combo picks which profile you are *editing*. Reported as "I selected Pessoal but I'm still using .claude" — a correct reading of what the UI appears to offer. The Claude Code page is where this belongs (it has the Save button, and the System page is read-only by design — §VI), so it needs a real "this profile drives the icon" control, and the other two need wording that says what they actually do. → §X.1
+- 💭 **T139** (deps: T126) **A manual pick should pin, not merely delay** — T126 made a hand-picked profile hold until a turn lands elsewhere, which is right on a machine where attention moves between profiles and wrong on one where a profile is *continuously* active: observed live, a pick was undone within seconds because an assistant session kept writing turns in the work profile. The user's click is the strongest signal the app gets, and undoing it should also take a click. → §X.2
+- 📋 **T140** (deps: T122) **A label must not be an email address, and two profiles must not share a name** — Anthropic names a personal organization `<address>'s Organization`, so the derived label puts a real email in the tray menu, the tooltip and every screenshot of them, which is the opposite of what §I.1 promises about what reaches the screen. And two profiles can still end up with the same label, which is exactly what made the T136 incident unreadable — the user could not tell which "Pessoal" was which. → §X.3
+- 💭 **T143** (deps: T123) **"Make this profile the default for terminals I open myself"** — the tray passes `CLAUDE_CONFIG_DIR` to the session it launches and deliberately nothing else, which the reporter diagnosed exactly: *"the variable isn't persisting globally, only in the session"*. Setting it at user level would make **every** Claude Code session on the machine use that profile, including ones the tray never sees, so it is a different promise from anything the app makes today and needs design before it is offered — the cheap alternative being a copyable `setx` line the user runs themselves, with the tray explaining the consequence rather than owning it. → §X.4
+
+## Block S — Settings round-trip ("a field missing from the copy is a field reset")
+
+- 📋 **T141** (deps: —) **The Settings copy must be total, not a hand-written field list** — `SettingsWindow` copies the model field by field into an edit buffer and `ApplySettings` copies the whole model back, so a field absent from that constructor list is **silently reset to its default on Save**. Two found so far: `MonitoredConfigDir` (fixed in T126 — any visit to Settings sent the icon back to the default profile) and `NotifyOnContextGrowth` + `ContextNudgeTokens`, still live: the context-growth toggle always opens *off*, and saving turns it off. Adding the missing lines is not the fix — the copy has to be total by construction (a `Clone()` through the same `System.Text.Json` that already writes the file, so no field can be forgotten), which also retires the hand-maintained warning T126 had to add to `AGENTS.md`. → §XI.1
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
