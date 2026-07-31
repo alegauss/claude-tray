@@ -10,15 +10,16 @@
 # efetivamente gerado e sao preenchidos por update-winget.ps1 na hora do release
 # (build-installer.cmd -> update-winget.ps1).
 #
-# Uso:  update-release.cmd 1.4.1
-#       powershell -File update-release.ps1 -Version 1.4.1
+# Uso:  build\update-release.cmd 1.4.1
+#       powershell -File build\update-release.ps1 -Version 1.4.1
 # =============================================================================
 param(
     [Parameter(Mandatory = $true)]
     [string]$Version
 )
 $ErrorActionPreference = 'Stop'
-$root = $PSScriptRoot
+# Este script vive em build\ junto de winget\; o csproj esta na pasta acima.
+$root = Split-Path $PSScriptRoot -Parent
 
 # --- Valida o formato x.y.z --------------------------------------------------
 if ($Version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') {
@@ -43,7 +44,7 @@ Write-Utf8 $csprojPath $csproj
 Write-Host "ClaudeTray.csproj: $old -> $Version"
 
 # --- 2) Manifestos winget (campos de versao) --------------------------------
-$dir = Join-Path $root 'winget'
+$dir = Join-Path $PSScriptRoot 'winget'
 foreach ($file in Get-ChildItem -Path $dir -Filter '*.yaml') {
     $path = $file.FullName
     $c = Read-Utf8 $path

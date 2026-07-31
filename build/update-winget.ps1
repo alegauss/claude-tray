@@ -7,10 +7,10 @@
 #   PackageVersion, InstallerUrl, DisplayVersion, ReleaseNotesUrl,
 #   InstallerSha256 (hash do instalador) e ReleaseDate (data de hoje).
 #
-# Uso local:  build-installer.cmd   (gera dist\ClaudeTray-Setup.exe)
-#             powershell -File update-winget.ps1
+# Uso local:  build\build-installer.cmd   (gera dist\ClaudeTray-Setup.exe)
+#             powershell -File build\update-winget.ps1
 #
-# Uso no CI:  powershell -File update-winget.ps1 -Version 1.3.14 -Sha <SHA256>
+# Uso no CI:  powershell -File build\update-winget.ps1 -Version 1.3.14 -Sha <SHA256>
 #   -Version  sobrepoe a versao lida do csproj (default: <Version> do csproj)
 #   -Sha      sobrepoe o hash (default: SHA256 de dist\ClaudeTray-Setup.exe)
 #   -Date     sobrepoe a data    (default: hoje, yyyy-MM-dd)
@@ -21,7 +21,8 @@ param(
     [string]$Date
 )
 $ErrorActionPreference = 'Stop'
-$root = $PSScriptRoot
+# Este script vive em build\ junto de winget\; o csproj e dist\ estao na pasta acima.
+$root = Split-Path $PSScriptRoot -Parent
 
 # --- 1) Versao: -Version, senao <Version> do ClaudeTray.csproj ---------------
 if (-not $Version) {
@@ -37,7 +38,7 @@ $version = $Version
 if (-not $Sha) {
     $setup = Join-Path $root 'dist\ClaudeTray-Setup.exe'
     if (-not (Test-Path $setup)) {
-        throw "Instalador nao encontrado: $setup`nRode build-installer.cmd primeiro (ou passe -Sha)."
+        throw "Instalador nao encontrado: $setup`nRode build\build-installer.cmd primeiro (ou passe -Sha)."
     }
     $Sha = (Get-FileHash $setup -Algorithm SHA256).Hash.ToUpperInvariant()
 }
@@ -58,7 +59,7 @@ $utf8 = New-Object System.Text.UTF8Encoding($false)
 function Read-Utf8([string]$path)  { [System.IO.File]::ReadAllText($path, $utf8) }
 function Write-Utf8([string]$path, [string]$text) { [System.IO.File]::WriteAllText($path, $text, $utf8) }
 
-$dir = Join-Path $root 'winget'
+$dir = Join-Path $PSScriptRoot 'winget'
 
 foreach ($file in Get-ChildItem -Path $dir -Filter '*.yaml') {
     $path = $file.FullName

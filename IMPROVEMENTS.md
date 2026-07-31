@@ -419,26 +419,6 @@ That is a prediction, not a proof, so the gate is not a green build: it is a `pr
 all four windows (Settings across its pages, Statistics, Context, Toast), per the AGENTS visual
 verification loop.
 
-### §VIII.3 The build and release scripts move (T131)
-
-Seven root entries exist to *ship* the app, not to build it in a dev loop, and they are the ones a
-reader of the root never wants: `installer.iss`, `build.cmd`, `build-installer.cmd`,
-`update-release.cmd`, `update-release.ps1`, `update-winget.ps1`, `winget/`.
-
-Three things hold references that must move with them:
-
-- `installer.iss` resolves `bin\Release\…\publish`, `SetupIconFile=ClaudeTray.ico` and `OutputDir=dist`
-  against **its own** directory — all three become `..\`-relative.
-- `.github/workflows/build.yml` runs `ISCC.exe installer.iss` and `./update-winget.ps1` from the repo
-  root. CI is the only consumer that cannot be fixed by reading an error message locally, so it is the
-  part to change first and watch.
-- `README.md` (build/release section) and `STRATEGY.md` §III quote the paths, and README is a
-  user-facing surface: somebody building from source follows those lines literally.
-
-The `.cmd` files already resolve their siblings through `%~dp0`, so they keep working once they move
-together — that is why they move as one group rather than one at a time. `scripts/` is deliberately
-left alone: it holds the screenshot/capture helpers, which are a dev tool, not the release path.
-
 ### §VIII.4 `Program.cs` is two programs (T132)
 
 2,524 lines and 130 KB in one file, and the split is already visible in the structure: `Main` dispatches

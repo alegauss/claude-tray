@@ -28,14 +28,14 @@ premise and the reason the stack is what it is — see [AGENTS.md](AGENTS.md) fo
 
 ## §III — Licence and openness
 
-**Apache-2.0.** Source-available and buildable from source (`build.cmd`, `build-installer.cmd`
-documented in the README). No paid tier, no license keys, no accounts.
+**Apache-2.0.** Source-available and buildable from source (`build\build.cmd`,
+`build\build-installer.cmd`, documented in the README). No paid tier, no license keys, no accounts.
 
 ## §IV — Distribution
 
 Two channels, both in place:
 
-1. **winget** — `winget install alegauss.ClaudeCodeTray`. Manifests live in `winget/` (with an en-US
+1. **winget** — `winget install alegauss.ClaudeCodeTray`. Manifests live in `build/winget/` (with an en-US
    and a pt-BR locale) and are updated automatically by CI on release.
 2. **GitHub Releases** — `ClaudeTray-Setup.exe`, an Inno Setup **per-user** install (no admin).
    Installed copies then **self-update** from Releases via `Updater`.

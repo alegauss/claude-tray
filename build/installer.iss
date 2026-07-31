@@ -1,13 +1,15 @@
 ; Inno Setup script for Claude Code Tray
-; Build:
+; Build (from the repo root):
 ;   1) dotnet publish -c Release
-;   2) "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+;   2) "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\installer.iss
 ; Output: dist\ClaudeTray-Setup.exe
+; Every relative path below is resolved against THIS file's directory (build\), so the
+; three that point at the repo root are "..\"-relative — see IMPROVEMENTS §VIII.3.
 
 #define MyAppName "Claude Code Tray"
 #define MyAppPublisher "Alexandre Oliveira"
 #define MyAppExeName "ClaudeTray.exe"
-#define MyPublishDir "bin\Release\net10.0-windows\win-x64\publish"
+#define MyPublishDir "..\bin\Release\net10.0-windows\win-x64\publish"
 ; Version is read straight from the published .exe (set by <Version> in ClaudeTray.csproj),
 ; so there is no separate version to bump here. Requires the publish step to have run first.
 #define MyAppVersion GetStringFileInfo(MyPublishDir + "\" + MyAppExeName, PRODUCT_VERSION)
@@ -23,8 +25,8 @@ DefaultDirName={localappdata}\ClaudeTray
 DisableProgramGroupPage=yes
 DefaultGroupName={#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
-SetupIconFile=ClaudeTray.ico
-OutputDir=dist
+SetupIconFile=..\ClaudeTray.ico
+OutputDir=..\dist
 OutputBaseFilename=ClaudeTray-Setup
 Compression=lzma2
 SolidCompression=yes

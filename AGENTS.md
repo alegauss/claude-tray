@@ -236,9 +236,13 @@ dotnet run -- --social docs\social-preview.png  # regenerate the social card
 
 Version lives in **one place**: `<Version>` in `ClaudeTray.csproj`. Everything derives from it.
 
+Everything that exists to *ship* the app lives in `build\` (T131) — the installer script, the four
+build/release scripts and the winget manifests. Each resolves the repo root itself, so it can be run
+from anywhere; `scripts\` is a different thing (the screenshot/capture dev tools) and stays put.
+
 ```
 # bump <Version>, then:
-build-installer.cmd                   # publish + build dist\ClaudeTray-Setup.exe
+build\build-installer.cmd             # publish + build dist\ClaudeTray-Setup.exe
 ```
 
 Then create a GitHub release tagged `vX.Y.Z` and attach `ClaudeTray-Setup.exe`. Installed copies

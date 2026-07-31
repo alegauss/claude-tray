@@ -166,3 +166,4 @@ here. This file is a terse index, not a memory.
 - **T147 SHIPPED** (Block T — a per-profile accent band on the tray icon says whose number it is) — 2026-07-31.
 - **T148 SHIPPED** (Block T — the Profile submenu is populated at menu-open, so Right expands it) — 2026-07-31.
 - **T129 SHIPPED** (Block P — the 30 non-UI sources move into `src/`, five folders) — 2026-07-31.
+- **T131 SHIPPED** (Block P — installer, build/release scripts and winget manifests move into `build/`) — 2026-07-31.

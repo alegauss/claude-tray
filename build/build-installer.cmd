@@ -7,7 +7,8 @@ REM Saida: dist\ClaudeTray-Setup.exe
 REM ==========================================================================
 setlocal
 
-cd /d "%~dp0"
+REM Este script vive em build\; tudo o que ele gera (bin\, dist\) fica na pasta acima.
+cd /d "%~dp0.."
 
 REM --- 1) Build / publish -------------------------------------------------
 call "%~dp0build.cmd"

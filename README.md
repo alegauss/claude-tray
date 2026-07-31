@@ -511,14 +511,18 @@ Three ways, from simplest to most complete:
 
 Requires [Inno Setup 6](https://jrsoftware.org/isdl.php).
 
+From the repo root:
+
 ```
 dotnet publish -c Release
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\installer.iss
 ```
 
 Produces `dist\ClaudeTray-Setup.exe` — a per-user install (no admin) at
 `%LocalAppData%\ClaudeTray`, with a Start Menu shortcut, an autostart option and an
-uninstaller. The script is [installer.iss](installer.iss).
+uninstaller. The script is [build/installer.iss](build/installer.iss); everything that
+exists to *ship* the app (the build and release scripts, the winget manifests) lives in
+[build/](build/), and each script can be run from anywhere — it resolves the repo root itself.
 
 ### Releasing a new version
 
@@ -528,7 +532,7 @@ release:
 
 ```
 # 1) bump <Version> in ClaudeTray.csproj, then:
-build-installer.cmd                       # publish + build dist\ClaudeTray-Setup.exe
+build\build-installer.cmd                 # publish + build dist\ClaudeTray-Setup.exe
 ```
 
 Then create a GitHub release tagged `vX.Y.Z` and attach `ClaudeTray-Setup.exe`. Existing

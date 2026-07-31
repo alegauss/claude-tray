@@ -10,16 +10,17 @@ REM      que grava InstallerSha256 e ReleaseDate).
 REM   3) [opcional] Se o 2o parametro for "upload": commita o bump, cria e
 REM      envia a tag vX.Y.Z e cria a release no GitHub com o instalador anexado.
 REM
-REM Uso:  update-release 1.4.1
-REM       update-release 1.4.2 upload
+REM Uso (de qualquer pasta):  build\update-release 1.4.1
+REM                           build\update-release 1.4.2 upload
 REM ==========================================================================
 setlocal
 
-cd /d "%~dp0"
+REM Este script vive em build\; o commit, a tag e o instalador sao da pasta acima.
+cd /d "%~dp0.."
 
 if "%~1"=="" (
     echo *** ERRO: informe a nova versao. ***
-    echo Uso: update-release 1.4.1 [upload]
+    echo Uso: build\update-release 1.4.1 [upload]
     exit /b 1
 )
 
@@ -73,7 +74,7 @@ if errorlevel 1 (
 )
 
 REM Cria a release no GitHub com o instalador anexado (notas auto-geradas).
-gh release create "v%~1" "%~dp0dist\ClaudeTray-Setup.exe" --title "v%~1" --generate-notes
+gh release create "v%~1" "%~dp0..\dist\ClaudeTray-Setup.exe" --title "v%~1" --generate-notes
 if errorlevel 1 (
     echo *** ERRO: falha ao criar a release no GitHub. ***
     exit /b 1
