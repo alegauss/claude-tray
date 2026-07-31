@@ -176,19 +176,28 @@ internal static class ClaudeAccount
     }
 
     /// <summary>
-    /// Fill <paramref name="info"/> from the profile's settings file. Both candidate paths are tried and
-    /// **the one that actually names an account wins**, rather than simply the first that parses. That
-    /// matters for the home profile: the authoritative file is <c>~/.claude.json</c>, but a
-    /// <c>~/.claude/.claude.json</c> can also exist (anything that ran with
-    /// <c>CLAUDE_CONFIG_DIR=~/.claude</c> creates one) and it is typically a near-empty stub. Taking the
-    /// first readable file made that stub shadow the real config — the page then showed a coarse
-    /// "Claude Team" from the credentials file with no holder, org or dates.
+    /// Fill <paramref name="info"/> from the profile's settings file — the **best** of the candidate
+    /// paths rather than the first that parses, or the first that names an account.
+    ///
+    /// <para>For the home profile the authoritative file is <c>~/.claude.json</c>, but
+    /// <c>~/.claude/.claude.json</c> can also exist — anything that ran with
+    /// <c>CLAUDE_CONFIG_DIR=~/.claude</c> creates one, and this app used to do that itself (T136). It
+    /// starts as a near-empty stub, which is why "prefer whichever names an account" was enough at
+    /// first; then Claude Code fills in an <c>oauthAccount</c> on it, both candidates qualify, and the
+    /// stub — first in candidate order, and carrying no <c>userRateLimitTier</c>, no organization and no
+    /// projects — silently replaced the real reading. Observed live: a Max 5x / VILT Group / 39-project
+    /// profile became "Claude Team", no org, 0 projects, and its derived label collapsed to "Personal",
+    /// colliding with the second profile's.</para>
+    ///
+    /// <para>So candidates are **scored** on how much of the identity they actually carry. One rule
+    /// overrides the score: a file naming a *different* account than the first candidate never wins,
+    /// because the first candidate is the one that sits beside the <c>.credentials.json</c> this profile
+    /// is polled with — if someone logged a second account into <c>~/.claude</c>, that login is what the
+    /// dir *is*, and <c>~/.claude.json</c> is then the stale one.</para>
     /// </summary>
     private static void ReadConfig(ClaudeInfo info)
     {
-        List<string> paths = ConfigPaths(info.ConfigDir).ToList();
-        // Prefer a file that carries oauthAccount; fall back to the first that parses at all.
-        string? best = paths.FirstOrDefault(HasAccountBlock) ?? paths.FirstOrDefault(File.Exists);
+        string? best = PickConfigFile(ConfigPaths(info.ConfigDir).ToList());
         if (best is null) return;
         foreach (string path in new[] { best })
         {
@@ -228,15 +237,55 @@ internal static class ClaudeAccount
         }
     }
 
-    private static bool HasAccountBlock(string path)
+    /// <summary>
+    /// Which candidate file describes this config dir best (see <see cref="ReadConfig"/> for why the
+    /// first one is not the answer). Highest score wins, ties keep the earlier — and therefore
+    /// closer-to-the-credentials — candidate; a candidate naming another account is skipped outright.
+    /// </summary>
+    private static string? PickConfigFile(List<string> paths)
+    {
+        string? bestPath = null, firstAccount = null;
+        int bestScore = -1;
+        foreach (string path in paths)
+        {
+            (int score, string? account) = ScoreConfig(path);
+            if (score < 0) continue;                       // missing or unparseable
+            firstAccount ??= account;
+            // A different login is a different profile, not a better description of this one.
+            if (account is { Length: > 0 } && firstAccount is { Length: > 0 }
+                && !account.Equals(firstAccount, StringComparison.OrdinalIgnoreCase)) continue;
+            if (score > bestScore) { bestScore = score; bestPath = path; }
+        }
+        return bestPath;
+    }
+
+    /// <summary>
+    /// How much of a profile's identity a config file carries, and which account it names.
+    /// <c>-1</c> means the file is missing or unreadable. The weights say what the UI would otherwise
+    /// lose: an account block at all, then the rate-limit tier the plan is read from, then the
+    /// organization the label is derived from, then any project history.
+    /// </summary>
+    private static (int Score, string? Account) ScoreConfig(string path)
     {
         JsonDocument? doc = TryParse(path);
-        if (doc is null) return false;
+        if (doc is null) return (-1, null);
         using (doc)
-            return doc.RootElement.ValueKind == JsonValueKind.Object
-                   && doc.RootElement.TryGetProperty("oauthAccount", out JsonElement a)
-                   && a.ValueKind == JsonValueKind.Object
-                   && a.EnumerateObject().Any();
+        {
+            JsonElement root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object) return (-1, null);
+            if (!root.TryGetProperty("oauthAccount", out JsonElement a)
+                || a.ValueKind != JsonValueKind.Object
+                || !a.EnumerateObject().Any())
+                return (0, null);                          // parses, but says nothing about who this is
+
+            int score = 8;
+            if (Str(a, "userRateLimitTier") is { Length: > 0 }) score += 4;
+            if (Str(a, "organizationName") is { Length: > 0 }) score += 2;
+            if (root.TryGetProperty("projects", out JsonElement projects)
+                && projects.ValueKind == JsonValueKind.Object
+                && projects.EnumerateObject().Any()) score += 1;
+            return (score, Str(a, "accountUuid"));
+        }
     }
 
     // ---- .credentials.json -------------------------------------------------------------------
@@ -363,11 +412,7 @@ internal static class ClaudeAccount
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
-            // Only override the config dir for a *non-default* profile. Setting it to the default dir
-            // makes Claude Code write a second, near-empty `<dir>/.claude.json` there (observed), which
-            // is litter this app has no business creating in somebody's config. Asking about the default
-            // profile with no override is also what a bare `claude` does, so it is the truer question.
-            if (!SamePath(configDir, HomeConfigDir) && !SamePath(configDir, ConfigDir))
+            if (NeedsConfigDirOverride(configDir))
                 psi.Environment["CLAUDE_CONFIG_DIR"] = configDir;
 
             using System.Diagnostics.Process? proc = System.Diagnostics.Process.Start(psi);
@@ -612,6 +657,21 @@ internal static class ClaudeAccount
         try { return Path.GetFullPath(Expand(dir)).TrimEnd('\\', '/'); }
         catch { return ""; }
     }
+
+    /// <summary>
+    /// Whether running Claude Code for <paramref name="configDir"/> needs <c>CLAUDE_CONFIG_DIR</c> set
+    /// at all — false for the dir a bare <c>claude</c> already uses.
+    ///
+    /// <para>Setting it to the default dir is not a harmless no-op: Claude Code then writes a second,
+    /// near-empty <c>&lt;dir&gt;\.claude.json</c> beside the real <c>~/.claude.json</c> (measured), so the
+    /// session runs against a state file with none of the user's project history — and the stub goes on
+    /// to describe that profile to this app worse than the real file does (T136). Both the launch path
+    /// and <see cref="QueryAuthStatusAsync"/> ask through here, so they cannot drift.</para>
+    /// </summary>
+    public static bool NeedsConfigDirOverride(string configDir) =>
+        configDir is { Length: > 0 }
+        && !SamePath(configDir, HomeConfigDir)
+        && !SamePath(configDir, ConfigDir);
 
     /// <summary>Whether two config dirs are the same folder, spelled either way (a trailing slash, a
     /// relative form, <c>%USERPROFILE%</c>). The one comparison anything asking "is this the monitored

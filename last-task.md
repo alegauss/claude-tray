@@ -1,10 +1,10 @@
-# Last task number — `T135` · next block letter — `R`
+# Last task number — `T136` · next block letter — `S`
 
-> **Single source of truth for the next free task number.** The next new task is `T136`; after
+> **Single source of truth for the next free task number.** The next new task is `T137`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `R`** (Block **Q** = the WPF windows had no keyboard input at all under the
-> tray's WinForms pump; created 2026-07-31).
+> **Next block letter — `S`** (Block **R** = Profiles, second pass — the defects a real second
+> login exposed; created 2026-07-31).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -69,6 +69,12 @@
   behind is in [AGENTS.md](AGENTS.md): `--settings` runs a **WPF** pump and cannot see it, which is why
   every preview and screenshot of the UI looked correct — `--settings-tray` is the one that reproduces
   the tray.
+- Block **R** (T136, created 2026-07-31) is a **second pass over Block O**, opened by a field report
+  from the first real use of a second login: *"I registered the profile, clicked sign in, logged in, and
+  it still said sign in"* — plus two profiles showing the same name. It is a new block rather than more
+  Block O tasks because O is shipped and pruned, and because these are defects found by *using* the
+  feature, not gaps in its design. T136 is the one that damaged state: the tray created the stub config
+  that then misdescribed the user's own default profile.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 
@@ -130,3 +136,4 @@ here. This file is a terse index, not a memory.
 - **T128 SHIPPED** (Block O — Statistics reports on a chosen profile, transcripts included) — 2026-07-31.
 - **T126 SHIPPED** (Block O — the icon follows the profile a turn just landed in) — 2026-07-31.
 - **T135 SHIPPED** (Block Q — the WPF windows get keyboard input under the WinForms pump) — 2026-07-31.
+- **T136 SHIPPED** (Block R — the default profile stops being described by a stub the tray created) — 2026-07-31.

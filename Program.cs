@@ -1270,7 +1270,13 @@ internal static class Program
             string workDir = TrayContext.WorkDirFor(p, Settings.Load().ClaudeCodeDirectory);
             Console.WriteLine($"    menu     \"{(p.HasCredentialsFile ? p.Label : L.T("menu.profileNoLogin", p.Label))}\""
                               + $" -> {TrayContext.LaunchCommandFor(p)}");
-            Console.WriteLine($"             CLAUDE_CONFIG_DIR={p.ConfigDir}   cwd {workDir}"
+            // Whether the launch overrides the config dir at all: for the profile a bare `claude`
+            // already uses, setting it would run the session against a near-empty state file (T136).
+            Console.WriteLine("             "
+                              + (ClaudeAccount.NeedsConfigDirOverride(p.ConfigDir)
+                                  ? $"CLAUDE_CONFIG_DIR={p.ConfigDir}"
+                                  : "no CLAUDE_CONFIG_DIR — this is the dir a bare `claude` uses")
+                              + $"   cwd {workDir}"
                               + (Directory.Exists(workDir) ? "" : "  (missing — OS default applies)"));
             Console.WriteLine();
         }
@@ -2684,7 +2690,12 @@ internal sealed class TrayContext : ApplicationContext
                 FileName = "cmd.exe",
                 Arguments = command,
             };
-            if (profile is { ConfigDir.Length: > 0 })
+            // Only a *non-default* profile needs the override, and setting it for the default one is
+            // actively harmful: Claude Code then runs against a near-empty `~/.claude/.claude.json`
+            // instead of the real `~/.claude.json`, so that session has none of the user's project
+            // history — and the stub it leaves behind goes on to misdescribe the profile to this app
+            // (T136). ClaudeAccount owns the decision, shared with the auth check.
+            if (profile is not null && ClaudeAccount.NeedsConfigDirOverride(profile.ConfigDir))
                 // ProcessStartInfo.Environment is only honoured with UseShellExecute = false; cmd.exe
                 // still gets its own console window either way.
                 psi.Environment["CLAUDE_CONFIG_DIR"] = profile.ConfigDir;

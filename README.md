@@ -324,6 +324,10 @@ Switching *which account a session uses* happens when Claude Code launches: the 
 `CLAUDE_CONFIG_DIR` and gets out of the way. It never writes to a configuration folder and never moves credentials between them — Claude Code
 rewrites its own credentials file on every token refresh, so shuffling those files around is how you
 lose a login. A running session keeps the profile it started with; a change applies to the next one.
+That variable is passed **to the session it launches**, and deliberately not set machine-wide: a
+terminal you open yourself still gets your default profile. For your **default** profile the tray
+passes nothing at all — it is already the folder a bare `claude` uses, and setting the variable to it
+would start the session against a second, empty state file instead of your own project history.
 
 > A fresh profile starts genuinely empty — no user `CLAUDE.md`, settings, skills, plugins or project
 > history. That isolation is the point, but it does mean the second profile won't inherit your setup.
