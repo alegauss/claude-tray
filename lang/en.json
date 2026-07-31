@@ -10,6 +10,10 @@
   "menu.metric.5h": "Session 5h",
   "menu.metric.7d": "Week 7d",
   "menu.metric.extra": "Extra",
+  "menu.profiles": "Profile",
+  "menu.profileNotSubscription": "{0} — no quota to read",
+  "menu.profileNeedsAuth": "sign-in needed",
+  "menu.profileError": "unavailable",
   "menu.insights": "Usage insights (24h)",
   "menu.statistics": "Statistics",
   "menu.context": "Context…",
@@ -39,6 +43,7 @@
   "tip.notSignedIn": "Claude Code — not signed in\nOpen Claude Code and run /login to sign in",
   "tip.willAppear": "Once you start using Claude, your usage will appear here",
   "tip.apiError": "Claude Code — API error\n{0}",
+  "tip.profile": "Profile: {0}",
   "tip.session": "Session 5h",
   "tip.week": "Week 7d",
   "tip.extra": "Extra",
@@ -144,6 +149,7 @@
   "settings.sec.many": "{0} seconds",
   "settings.cost.lead": "Each refresh is one 1-token Haiku call (“heartbeat”) sent with your Claude Code login — it uses a sliver of your usage, not a separate bill.\n",
   "settings.cost.stats": "At this interval: ≈ {0} calls/h · ~{1} tokens/h (~{2}/day · ≈ ${3}/mo if billed as pay-as-you-go API).",
+  "settings.cost.profiles": "Multiplied by the {0} profiles being polled — each call spends a sliver of that account's own usage.",
 
   // Display page
   "settings.display.title": "Display",

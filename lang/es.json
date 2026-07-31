@@ -6,6 +6,10 @@
   "menu.metric.5h": "Sesión 5 h",
   "menu.metric.7d": "Semana 7 d",
   "menu.metric.extra": "Extra",
+  "menu.profiles": "Perfil",
+  "menu.profileNotSubscription": "{0} — sin cuota que leer",
+  "menu.profileNeedsAuth": "falta iniciar sesión",
+  "menu.profileError": "no disponible",
   "menu.insights": "Análisis de uso (24 h)",
   "menu.statistics": "Estadísticas",
   "menu.context": "Contexto…",
@@ -35,6 +39,7 @@
   "tip.notSignedIn": "Claude Code — sin sesión iniciada\nAbre Claude Code y ejecuta /login para iniciar sesión",
   "tip.willAppear": "En cuanto empieces a usar Claude, tu uso aparecerá aquí",
   "tip.apiError": "Claude Code — error de API\n{0}",
+  "tip.profile": "Perfil: {0}",
   "tip.session": "Sesión 5 h",
   "tip.week": "Semana 7 d",
   "tip.extra": "Extra",
@@ -140,6 +145,7 @@
   "settings.sec.many": "{0} segundos",
   "settings.cost.lead": "Cada actualización es una llamada Haiku de 1 token («heartbeat») enviada con tu inicio de sesión de Claude Code — usa una fracción de tu uso, no un cobro aparte.\n",
   "settings.cost.stats": "En este intervalo: ≈ {0} llamadas/h · ~{1} tokens/h (~{2}/día · ≈ {3} US$/mes si se cobrara como API de pago por uso).",
+  "settings.cost.profiles": "Multiplicado por los {0} perfiles consultados — cada llamada gasta una fracción del uso de esa cuenta.",
 
   // Display page
   "settings.display.title": "Visualización",

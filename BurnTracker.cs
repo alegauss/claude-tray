@@ -39,6 +39,14 @@ internal sealed class BurnTracker
 
     private readonly Dictionary<string, Series> _series = new();
 
+    /// <summary>
+    /// Forget every sample. Needed when the tray switches which profile the icon follows (T127): the
+    /// slope is fitted over a series of utilization readings, and readings from two different accounts
+    /// in one series would produce a projection about neither — including a phantom "reset" the moment
+    /// the number jumps from one account's usage to the other's.
+    /// </summary>
+    public void Clear() => _series.Clear();
+
     /// <summary>How a detected downward change is classified: a full reset on its deadline
     /// (<see cref="Scheduled"/>) or earlier than due (<see cref="Unexpected"/>), or a partial
     /// mid-window drop where usage was credited back without resetting (<see cref="Credit"/>).</summary>

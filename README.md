@@ -293,8 +293,21 @@ a submenu — one entry per profile:
 - **Remove** — from the tray's list only. **The folder, its login, its transcripts and its memory are
   never touched**, and if it's still discoverable it comes back as a found profile.
 
-Switching happens *when Claude Code launches*: the tray passes `CLAUDE_CONFIG_DIR` and gets out of the
-way. It never writes to a configuration folder and never moves credentials between them — Claude Code
+**Every registered profile is polled**, each with its own login, and each keeps its own usage history —
+so a profile you are not currently watching still builds the history it needs if you switch to it. A
+profile that isn't on the subscription (an API key, Bedrock, Vertex) is **not** polled: there is no quota
+window to read, and calling it would spend money to learn nothing. Because each poll spends a sliver of
+*that* account's usage, the cost estimate under **Settings → General → Interval** multiplies by the
+number of profiles being polled and says so.
+
+The tray icon is one number, so one profile owns it — the **Profile** submenu says which, shows the
+others' readings beside them, and switches with a click. A profile that needs a sign-in says so on its own
+line, rather than a generic prompt that would send you to re-login on the wrong account. (The tooltip only
+names the monitored profile: Windows caps a tray tooltip at 127 characters, which is why the numbers live
+in the menu.)
+
+Switching *which account a session uses* happens when Claude Code launches: the tray passes
+`CLAUDE_CONFIG_DIR` and gets out of the way. It never writes to a configuration folder and never moves credentials between them — Claude Code
 rewrites its own credentials file on every token refresh, so shuffling those files around is how you
 lose a login. A running session keeps the profile it started with; a change applies to the next one.
 
@@ -483,6 +496,8 @@ installs pick it up automatically (see [Updates](#updates)).
   OAuth token; the recovery path when the icon shows a *not authenticated* (HTTP 401) state
 - **Update to vX.Y.Z** — appears only when a newer GitHub release exists; click to download and
   install it (see below)
+- **Profile ▸ &lt;name&gt;** — with more than one profile, this submenu shows each one's current usage and
+  which one the icon is following; click another to switch the icon to it
 - **Open Claude Code ▸ &lt;profile&gt;** — with more than one profile registered, this becomes a submenu:
   each entry launches Claude Code with that profile's configuration folder and its own working
   directory (see below)

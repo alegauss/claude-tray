@@ -292,7 +292,12 @@ internal partial class SettingsWindow : Window
     {
         if (CostEstimate is null) return;
 
-        double callsPerHour = 60.0 / minutes;
+        // One heartbeat per *polled* profile per interval (T127), so the figures multiply — and say so.
+        // Only profiles on the subscription are polled: an API key has no quota window to read, and
+        // polling it would spend money to learn nothing.
+        int polled = Math.Max(1, DiscoverProfiles().Count(p => p.CountsAgainstSubscription));
+
+        double callsPerHour = 60.0 / minutes * polled;
         double tokensPerCall = InputTokensPerCall + OutputTokensPerCall;
         double tokensPerHour = callsPerHour * tokensPerCall;
         double tokensPerDay = tokensPerHour * 24.0;
@@ -308,7 +313,8 @@ internal partial class SettingsWindow : Window
             tokensPerDay.ToString("#,0", inv),
             costPerMonth.ToString("0.00", inv));
 
-        CostEstimate.Text = L.T("settings.cost.lead") + stats;
+        CostEstimate.Text = L.T("settings.cost.lead") + stats
+                            + (polled > 1 ? "\n" + L.T("settings.cost.profiles", polled) : "");
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)

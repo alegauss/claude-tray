@@ -132,18 +132,19 @@
 > supported seam for the parts that do need a write — the same "hand the edit to Claude Code" that T77
 > settled for memory. Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §VII.
 >
-> **Shipped: T122–T125** — the profile model and discovery (`ClaudeAccount.Discover`, `--profiles`) with
+> **Shipped: T122–T125, T127** — the profile model and discovery (`ClaudeAccount.Discover`, `--profiles`) with
 > the picker on the System information page, then the list editor on the Claude Code page and the
 > per-profile `Open Claude Code` submenu, then the per-profile auth reading with the
-> off-the-subscription warning, then per-profile data isolation with its migration.
+> off-the-subscription warning, then per-profile data isolation with its migration, and the
+> per-profile polling with the Profile submenu.
 > See [CHANGELOG.md](CHANGELOG.md) Block O.
 >
 > **T125 was split while building it.** Its design section ordered the work "keying first,
 > polling second", and the two halves are independently valuable and independently
 > verifiable: the keying shipped as T125, and the fan-out — N heartbeats, which profile the
-> icon follows, the others in the tooltip — is **T127**. Nothing was dropped.
+> icon follows, the others in the tooltip — shipped as **T127**. Nothing was dropped.
 
-- 📋 **T127** (deps: T125) **Poll every profile, not just the monitored one** — the stores are keyed now, so this is the fan-out: one heartbeat per profile per interval (the Settings cost estimate must multiply and say so, since each call spends *that* account's quota), a chosen profile for the icon (it is one number and cannot be two), the others in the tooltip and Statistics, and a per-profile auth failure that **names the profile** instead of a generic "not authenticated" that would send somebody to re-login on the wrong account. `ApiClient` already takes a config dir. → §VII.4
+- 📋 **T128** (deps: T127) **Statistics for a profile other than the monitored one** — T127 gave every profile a poll, its own stored series and a reading in the Profile submenu, but the Statistics window is still built around one `PaceSnapshot`: charts, projection, activity shape and throughput all describe the monitored profile. The data for the others is already on disk (their `usage-history.jsonl`, keyed per profile since T125), so this is a profile selector in the window plus recomputing from that profile's stores — and the Throughput tab needs its *own* config dir for the transcript tail, which currently reads only `~/.claude/projects`. → §VII.6
 - 💭 **T126** (deps: T127) **The icon follows the profile you're working in** — `TranscriptTail` already watches transcripts byte-for-byte; with N profiles it can see *which* config dir just had a turn land and point the icon at that one, so nobody clicks "switch" at all. Manual override stays. Open question is the icon itself: at 16px there is no room for a label (the number fills it), so the profile has to read from the tooltip and menu, with at most a small per-profile colour dot — and only if it survives being looked at next to the projection colour, which already means something. → §VII.5
 
 ## Non-goals (do NOT add as tasks)

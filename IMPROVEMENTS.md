@@ -382,24 +382,6 @@ And "switching" splits into three axes that cost wildly different amounts:
 The third is a hard no rather than a "later", which is why it sits in Non-goals: nothing about a GUI
 changes a live process's environment.
 
-### §VII.4 The fan-out: polling every profile (T127)
-
-The store half of this shipped as T125 — every series the tray derives from a profile is keyed by that
-profile, so the arithmetic can no longer mix two accounts. What is left is the fan-out, and its costs
-are all in the open:
-
-**N heartbeats.** One poll per profile per interval, each spending a sliver of *that* account's quota
-with *that* account's token. The Settings cost estimate is currently written for one; it has to multiply
-and say so, or the app would be quietly spending more than the number it shows.
-
-**The icon is one number.** It cannot be two, so one profile is the one it follows — a choice, with the
-default profile as the default. Everything else belongs in the tooltip and the Statistics window, where
-there is room to name which account each reading is about. A percentage without an owner is a lie once
-there are two owners.
-
-**Failures are per profile.** A generic "not authenticated" would send somebody to re-login on the
-wrong account. Each profile's auth state is its own, and the message has to name it.
-
 ### §VII.5 Auto-follow, and the 16px problem (T126)
 
 `TranscriptTail` reports each turn within ~250ms of it landing. With N profiles it also knows *which*
@@ -413,3 +395,24 @@ per-profile colour dot — and that dot has to survive being looked at beside th
 already carries meaning. Nothing here gets promised before it has been rendered and screenshotted. It is
 not the animated tray hint T101 was dropped for: a static per-profile mark needs no permanent tail
 (T125's polling already knows the profiles) and does not animate.
+
+### §VII.6 Statistics is still single-profile (T128)
+
+T127 polls every profile and stores each one's readings separately, and the Profile submenu reads them.
+The Statistics window did not move: it is built around one `PaceSnapshot` handed in by the tray, and
+everything in it — the two burn-up charts, the projection, the activity shape, the week-over-week ghost,
+the throughput tab — describes that one profile.
+
+Most of what a second profile's view needs already exists. Its readings are on disk under its own key
+(T125), so the pace and the charts are a recompute rather than new data, and `ActivityShape` /
+`HourlyUsage` already take a profile key.
+
+The exception is the **Throughput** tab, and it is worth naming before somebody assumes it comes free:
+`TranscriptTail` reads `~/.claude/projects`, i.e. the *default* config dir's transcripts. A profile is a
+different config dir with different transcripts, so the live rate for another profile means pointing the
+tail at that dir — the constructor already takes one for fixtures, which is the seam.
+
+Open question worth settling in the design, not in code: whether the window gains a profile selector, or
+whether the tray opens one window per profile. A selector keeps one window and one set of charts to
+learn; separate windows let two accounts be watched side by side, which is the whole reason somebody
+registered two profiles.

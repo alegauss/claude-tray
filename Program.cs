@@ -1206,9 +1206,16 @@ internal static class Program
                               + (Directory.Exists(workDir) ? "" : "  (missing — OS default applies)"));
             Console.WriteLine();
         }
+        ClaudeInfo? monitored = ClaudeAccount.PickMonitored(profiles, Settings.Load().MonitoredConfigDir);
+        int polled = profiles.Count(p => p.CountsAgainstSubscription);
         Console.WriteLine(profiles.Count == 1
-            ? "Only one profile — the Settings picker stays hidden and Open Claude Code stays a plain command."
-            : $"Open Claude Code becomes a submenu with {profiles.Count} entries.");
+            ? "Only one profile — the Settings picker stays hidden, Open Claude Code stays a plain command,"
+              + " and the Profile submenu is hidden."
+            : $"Open Claude Code becomes a submenu with {profiles.Count} entries; the Profile submenu is shown.");
+        Console.WriteLine($"icon follows: {monitored?.Label ?? "-"}  ({monitored?.ConfigDir ?? "-"})");
+        Console.WriteLine($"polled every interval: {polled} of {profiles.Count}"
+                          + (polled < profiles.Count
+                              ? "  (a profile off the subscription has no quota window to read)" : ""));
     }
 
     // Dev/preview helper: same sample data as SimulateReset, but instead of leaving the toast on
@@ -1386,7 +1393,8 @@ internal sealed class TrayContext : ApplicationContext
     };
 
     private readonly NotifyIcon _tray;
-    private readonly ApiClient _api = new();
+    // Rebuilt by RefreshWatched: it reads the *monitored* profile's token (T127).
+    private ApiClient _api = new();
     private readonly BurnTracker _burn = new();
     private readonly Updater _updater = new();
     private readonly Settings _settings = Settings.Load();
@@ -1429,6 +1437,7 @@ internal sealed class TrayContext : ApplicationContext
     public TrayContext()
     {
         _metric = _settings.Metric; // restore the last-selected window (BuildMenu reads it)
+        RefreshWatched();           // which profiles to poll, and which one the icon follows (T127)
         _tray = new NotifyIcon
         {
             Visible = true,
@@ -1540,6 +1549,15 @@ internal sealed class TrayContext : ApplicationContext
             showOn.DropDownItems.Add(item);
         }
         menu.Items.Add(showOn);
+
+        // With more than one profile, the icon's number needs an owner: this submenu names it, shows
+        // every profile's reading beside it, and switches which one the icon follows. It lives here
+        // rather than in the tooltip because the tooltip is capped at 127 characters and already
+        // compacts its projection line to fit (see BuildTooltip).
+        _profileMenu = new ToolStripMenuItem(L.T("menu.profiles")) { Visible = false };
+        _profileMenu.DropDownOpening += (_, _) => PopulateProfileMenu();
+        _profileMenu.Visible = _watched.Count > 1;
+        menu.Items.Add(_profileMenu);
 
         var insights = new ToolStripMenuItem(L.T("menu.insights"));
         insights.DropDownOpening += (_, _) => PopulateInsights(insights);
@@ -1725,7 +1743,10 @@ internal sealed class TrayContext : ApplicationContext
         // The profile list drives the "Open Claude Code" submenu, so it is rebuilt right here rather
         // than waiting for a restart.
         _settings.Profiles = updated.Profiles;
+        _settings.MonitoredConfigDir = updated.MonitoredConfigDir;
+        RefreshWatched();          // the list (and so the icon's profile) may have changed
         RefreshProfileMenu();
+        if (_profileMenu is not null) _profileMenu.Visible = _watched.Count > 1;
 
         // A language change only takes effect after a restart (localized strings resolve when a window
         // is parsed), so note whether the *active* language would change before saving the new value.
@@ -1822,6 +1843,131 @@ internal sealed class TrayContext : ApplicationContext
         RecomputeInsights();
     }
 
+    // ---- The other profiles (T127) ----
+
+    /// <summary>
+    /// The profiles this tray watches, monitored one first. Rebuilt when the profile list changes, so a
+    /// poll never re-runs discovery.
+    /// </summary>
+    private List<ClaudeInfo> _watched = new();
+
+    /// <summary>Latest reading per profile key for the profiles the icon is *not* showing — what the
+    /// Profile submenu reads. The monitored profile keeps using <see cref="_data"/>, unchanged.</summary>
+    private readonly Dictionary<string, UsageData> _otherData = new();
+
+    /// <summary>Rebuild the watch list and adopt the monitored profile. The monitored one is the user's
+    /// choice when it is still on the machine, else the default profile.</summary>
+    private void RefreshWatched()
+    {
+        try { _watched = ClaudeAccount.Discover(_settings.Profiles); }
+        catch { _watched = new List<ClaudeInfo>(); }
+        if (_watched.Count == 0) _watched.Add(ClaudeAccount.Read());
+
+        ClaudeInfo monitored = ClaudeAccount.PickMonitored(_watched, _settings.MonitoredConfigDir) ?? _watched[0];
+
+        // Monitored first: it drives the icon, so it is the one poll that must not wait on the others.
+        _watched.Remove(monitored);
+        _watched.Insert(0, monitored);
+        ProfileStore.SetMonitored(monitored);
+        _api = new ApiClient(monitored.ConfigDir);
+        _otherData.Clear();
+    }
+
+    /// <summary>The "Profile" submenu, hidden while there is only one profile to speak of.</summary>
+    private ToolStripMenuItem? _profileMenu;
+
+    /// <summary>
+    /// Fill the Profile submenu: one checkable entry per profile, its own reading beside it, and its own
+    /// failure named rather than a generic "not authenticated" that would send somebody to re-login on
+    /// the wrong account. Built on open so the numbers are the latest poll's.
+    /// </summary>
+    private void PopulateProfileMenu()
+    {
+        if (_profileMenu is null) return;
+        _profileMenu.DropDownItems.Clear();
+
+        for (int i = 0; i < _watched.Count; i++)
+        {
+            ClaudeInfo p = _watched[i];
+            bool monitored = i == 0;
+            UsageData? d = monitored ? _data : _otherData.GetValueOrDefault(ProfileStore.KeyFor(p));
+
+            string reading = !p.CountsAgainstSubscription
+                // An API-key/Bedrock/Vertex profile has no quota window to read (T124), and polling it
+                // would spend money to learn nothing. Say which, rather than showing a blank.
+                ? L.T("menu.profileNotSubscription", AuthLabel(p.Auth))
+                : d switch
+                {
+                    null => L.T("insights.loading"),
+                    { Unauthorized: true } => L.T("menu.profileNeedsAuth"),
+                    { Error: not null } => L.T("menu.profileError"),
+                    _ => $"{Labels[_metric]} {PctShown(d.Metric(_metric))}",
+                };
+
+            var item = new ToolStripMenuItem($"{p.Label} — {reading}")
+            {
+                Checked = monitored,
+                ToolTipText = p.ConfigDir,
+            };
+            ClaudeInfo captured = p;
+            item.Click += (_, _) => SetMonitoredProfile(captured);
+            _profileMenu.DropDownItems.Add(item);
+        }
+    }
+
+    /// <summary>Point the icon at another profile: save the choice, re-adopt its stores and token, and
+    /// poll it right away so the icon isn't showing the previous account's number.</summary>
+    private void SetMonitoredProfile(ClaudeInfo profile)
+    {
+        if (_watched.Count > 0 && ProfileStore.KeyFor(_watched[0]) == ProfileStore.KeyFor(profile)) return;
+
+        _settings.MonitoredConfigDir = profile.ConfigDir;
+        try { _settings.Save(); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(L.T("dialog.saveFailed", ex.Message),
+                L.T("dialog.appName"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+        // The icon must not keep drawing the old account's percentage while the new one is fetched.
+        _data = null;
+        _lastGoodSnapshot = null;
+        _burn.Clear();
+        RefreshWatched();
+        Render();
+        _ = RefreshAsync();
+    }
+
+    private static string AuthLabel(AuthMethod auth) => L.T(auth switch
+    {
+        AuthMethod.ApiKey => "settings.sys.authApiKey",
+        AuthMethod.Bedrock => "settings.sys.authBedrock",
+        AuthMethod.Vertex => "settings.sys.authVertex",
+        AuthMethod.Subscription => "settings.sys.authSubscription",
+        _ => "settings.sys.authNone",
+    });
+
+    /// <summary>Poll the profiles the icon is not showing. Each spends a sliver of *its own* account's
+    /// quota, which is why the Settings cost estimate multiplies by the number of profiles.</summary>
+    private async Task RefreshOthersAsync()
+    {
+        if (_watched.Count < 2) return;
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        foreach (ClaudeInfo profile in _watched.Skip(1))
+        {
+            // A profile that isn't on the subscription has no quota window to read: an API key bills
+            // per use, so polling it would spend money to learn nothing about a limit.
+            if (!profile.CountsAgainstSubscription) continue;
+
+            UsageData d = await new ApiClient(profile.ConfigDir).FetchAsync();
+            string key = ProfileStore.KeyFor(profile);
+            _otherData[key] = d;
+            // Its own series, so its history is ready if the icon ever follows it (T125).
+            if (d.Error == null)
+                UsageHistory.Append(key, now, d.Session5h, d.Reset5h, d.Week7d, d.Reset7d);
+        }
+    }
+
     private async Task RefreshAsync()
     {
         UsageData fresh = await _api.FetchAsync();
@@ -1883,6 +2029,10 @@ internal sealed class TrayContext : ApplicationContext
         _statsWindow?.UpdateSnapshot(CurrentSnapshot(), CurrentError());
         RecomputeInsights();
         AdjustForAuthState();
+
+        // The other profiles last, and awaited rather than fired and forgotten: they must never delay
+        // the icon, and a slow second account must not overlap the next poll of the first.
+        await RefreshOthersAsync();
     }
 
     // While signed out, re-poll on the (faster) retry cadence so a fresh token is noticed quickly,
@@ -2160,11 +2310,14 @@ internal sealed class TrayContext : ApplicationContext
         // In "remaining" mode the two bounded windows show the complement and read "… left".
         // Extra is overage (no cap to have quota "left" from), so it always shows the amount used.
         string leftSuffix = _settings.ShowRemaining ? L.T("tip.leftSuffix") : "";
-        var lines = new List<string>
-        {
-            $"{L.T("tip.session")}{leftSuffix}: {PctShown(_data.Session5h)}  ⟳ {r5}",
-            $"{L.T("tip.week")}{leftSuffix}: {PctShown(_data.Week7d)}  ⟳ {r7}",
-        };
+        var lines = new List<string>();
+        // With more than one profile, a percentage without an owner is a lie. The label goes first and
+        // stays: the 127-char budget below drops the verbose projection form before this, which is the
+        // right trade — knowing *whose* quota this is matters more than a wordier projection sentence.
+        if (_watched.Count > 1 && _watched[0].Label is { Length: > 0 } label)
+            lines.Add(L.T("tip.profile", label));
+        lines.Add($"{L.T("tip.session")}{leftSuffix}: {PctShown(_data.Session5h)}  ⟳ {r5}");
+        lines.Add($"{L.T("tip.week")}{leftSuffix}: {PctShown(_data.Week7d)}  ⟳ {r7}");
         if (_data.Extra > 0.001)
         {
             string re = _data.ResetExtra > 0 ? FmtDays(_data.ResetExtra - now) : "--";

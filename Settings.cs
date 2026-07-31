@@ -143,6 +143,13 @@ internal sealed class Settings
     /// <summary>An upper bound so a corrupt settings file can't make the tray menu unusable.</summary>
     public const int MaxProfiles = 20;
 
+    /// <summary>
+    /// Config dir of the profile the **tray icon** shows (T127). The icon is one number and cannot be
+    /// two, so one profile owns it; the rest are read in the Profile submenu. Empty — the default —
+    /// means the profile a bare <c>claude</c> would use, which is the only one most machines have.
+    /// </summary>
+    public string MonitoredConfigDir { get; set; } = "";
+
     /// <summary>Where the app keeps its own state — <c>%LocalAppData%\ClaudeTray</c>: this file, the
     /// caches, the usage/context history and the reset log. Public so the System information page can
     /// show (and open) it without a second copy of the path.</summary>

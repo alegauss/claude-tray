@@ -6,6 +6,10 @@
   "menu.metric.5h": "Session 5 h",
   "menu.metric.7d": "Semaine 7 j",
   "menu.metric.extra": "Extra",
+  "menu.profiles": "Profil",
+  "menu.profileNotSubscription": "{0} — aucun quota à lire",
+  "menu.profileNeedsAuth": "connexion requise",
+  "menu.profileError": "indisponible",
   "menu.insights": "Analyse d'utilisation (24 h)",
   "menu.statistics": "Statistiques",
   "menu.context": "Contexte…",
@@ -35,6 +39,7 @@
   "tip.notSignedIn": "Claude Code — non connecté\nOuvrez Claude Code et lancez /login pour vous connecter",
   "tip.willAppear": "Dès que vous utiliserez Claude, votre consommation apparaîtra ici",
   "tip.apiError": "Claude Code — erreur d'API\n{0}",
+  "tip.profile": "Profil : {0}",
   "tip.session": "Session 5 h",
   "tip.week": "Semaine 7 j",
   "tip.extra": "Extra",
@@ -140,6 +145,7 @@
   "settings.sec.many": "{0} secondes",
   "settings.cost.lead": "Chaque actualisation est un appel Haiku d'un token (« heartbeat ») envoyé avec votre connexion Claude Code — il consomme une infime part de votre utilisation, pas une facture à part.\n",
   "settings.cost.stats": "À cet intervalle : ≈ {0} appels/h · ~{1} tokens/h (~{2}/jour · ≈ {3} $ US/mois si facturé comme une API à l'usage).",
+  "settings.cost.profiles": "Multiplié par les {0} profils interrogés — chaque appel consomme une infime part de l'utilisation du compte concerné.",
 
   // Display page
   "settings.display.title": "Affichage",

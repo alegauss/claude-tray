@@ -454,6 +454,20 @@ internal static class ClaudeAccount
         return found;
     }
 
+    /// <summary>
+    /// Which profile the tray icon follows: the user's choice while that config dir is still on the
+    /// machine, else the default profile, else the first found. One implementation, so the tray and
+    /// <c>--profiles</c> can never disagree about whose number is on the icon.
+    /// </summary>
+    public static ClaudeInfo? PickMonitored(List<ClaudeInfo> profiles, string? monitoredConfigDir)
+    {
+        if (profiles.Count == 0) return null;
+        if (!string.IsNullOrWhiteSpace(monitoredConfigDir))
+            foreach (ClaudeInfo p in profiles)
+                if (SamePath(p.ConfigDir, monitoredConfigDir)) return p;
+        return profiles.FirstOrDefault(p => p.IsDefault) ?? profiles[0];
+    }
+
     public static List<ClaudeInfo> Discover(IEnumerable<string>? registered = null)
     {
         var regs = new List<string>();

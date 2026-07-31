@@ -1,6 +1,6 @@
-# Last task number — `T127` · next block letter — `P`
+# Last task number — `T128` · next block letter — `P`
 
-> **Single source of truth for the next free task number.** The next new task is `T128`; after
+> **Single source of truth for the next free task number.** The next new task is `T129`; after
 > assigning it, bump the number above and append a log line below.
 >
 > **Next block letter — `P`** (Block **O** = Profiles — several Claude Code logins on one machine,
@@ -109,3 +109,4 @@ here. This file is a terse index, not a memory.
 - **T123 SHIPPED** (Block O — the profile list editor and the per-profile Open Claude Code submenu) — 2026-07-31.
 - **T124 SHIPPED** (Block O — per-profile auth reading, and the "not your subscription" warning) — 2026-07-31.
 - **T125 SHIPPED** (Block O — every per-profile store keyed by profile, with the one-time migration) — 2026-07-31.
+- **T127 SHIPPED** (Block O — a heartbeat per profile, the Profile submenu, and the icon's chosen profile) — 2026-07-31.
