@@ -406,24 +406,6 @@ The value of this block is that its diffs are boring and its risk is a build err
 A file that gets "improved while it was open" destroys that property — the improvement becomes a task in
 whichever block owns that subsystem.
 
-### §VIII.4 `Program.cs` is two programs (T132)
-
-2,524 lines and 130 KB in one file, and the split is already visible in the structure: `Main` dispatches
-on `args`, then ~1,000 lines of **headless printers** (`PrintContext`, `PrintActivity`,
-`PrintMeasuredActivity`, `PrintGrid`, `PrintLive`, `PrintTail`, `PrintProfiles`, `PrintFindings`,
-`PrintPrompt`, `PrintUsage`, `PrintCalibration`, `WriteContextReport`, plus `SimulateReset`,
-`CaptureToast`, `RenderTest`, `MakeIcon`) run and exit, and ~1,080 lines of `TrayContext` — menu, poll
-timer, settings apply, tooltip, icon render — are the actual resident app. The two share almost
-nothing but the process.
-
-So: `Tray/Program.cs` keeps `Main`, the dispatch table and `ArgValue`; `src/Cli/` gets one file per flag
-family (context, activity, live/tail, profiles, fixtures/captures) with the small formatting helpers
-(`Kb`, `Clip`, `Spark`, `Shade`, `Mode`, `StateWord`) beside their users; `Tray/TrayContext.cs` gets the
-resident app. Moved verbatim — this task must not "clean up" a printer on the way past (§VIII.0).
-
-A pleasant side effect worth stating because it is the actual argument: the headless CLI is where every
-new subsystem gets its first entry point, and it is currently the part of the codebase hardest to open.
-
 ### §VIII.5 One window, several surfaces, one file (T133)
 
 `ContextWindow.xaml.cs` is 1,369 lines and **7 types**; `StatisticsWindow.xaml.cs` is 1,269 lines and

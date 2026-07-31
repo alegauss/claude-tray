@@ -572,14 +572,17 @@ build the installer, and attach `ClaudeTray-Setup.exe` to a GitHub release tagge
 ## Structure
 
 The sources live under `src/`, one folder per subsystem — `src/Tray/` (the resident app),
-`src/Usage/` (quota, spend, live throughput), `src/Context/` (the Context Load Inspector),
+`src/Cli/` (the headless developer flags), `src/Usage/` (quota, spend, live throughput),
+`src/Context/` (the Context Load Inspector),
 `src/Profiles/` (accounts and settings), `src/Core/` (localization and the safe directory walk) and
 `src/Ui/` (the four windows, as `.xaml`/`.xaml.cs` pairs). The namespace is flat (`ClaudeTray`), so
 the folders are for reading, not for the compiler.
 
 | File | Responsibility |
 |---|---|
-| `src/Tray/Program.cs` | entry point, `ApplicationContext`, tray icon, menu, poll/flash timers |
+| `src/Tray/Program.cs` | entry point: `Main` and the arg dispatch |
+| `src/Tray/TrayContext.cs` | the resident app — `ApplicationContext`, tray icon, menu, poll/flash timers |
+| `src/Cli/` | the headless printers behind the developer flags, one file per flag family |
 | `src/Usage/ApiClient.cs` | reads credentials, calls the API, parses the rate-limit headers |
 | `src/Usage/BurnTracker.cs` | tracks utilization history, estimates the burn rate, projects exhaustion |
 | `src/Usage/UsageInsights.cs` | aggregates the last 24h of session transcripts into a cost-weighted breakdown |

@@ -1,0 +1,1406 @@
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
+namespace ClaudeTray;
+
+internal sealed class TrayContext : ApplicationContext
+{
+    private static readonly string[] Metrics = { "5h", "7d", "extra" };
+    private static readonly Dictionary<string, string> Labels = new()
+    {
+        ["5h"] = L.T("menu.metric.5h"), ["7d"] = L.T("menu.metric.7d"), ["extra"] = L.T("menu.metric.extra"),
+    };
+
+    private readonly NotifyIcon _tray;
+    // Rebuilt by RefreshWatched: it reads the *monitored* profile's token (T127).
+    private ApiClient _api = new();
+    private readonly BurnTracker _burn = new();
+    private readonly Updater _updater = new();
+    // Not readonly: ApplySettings replaces the whole instance with a total copy of the edited one
+    // (T141) instead of assigning field by field. The tray is the only holder of this reference — it is
+    // handed to SettingsWindow, which clones it — so a swap can't leave anyone reading a stale model.
+    private Settings _settings = Settings.Load();
+    private volatile InsightsData? _insights;
+    private readonly System.Windows.Forms.Timer _poll = new(); // interval set from settings
+    private readonly System.Windows.Forms.Timer _flash = new() { Interval = 500 };
+    private readonly System.Windows.Forms.Timer _updateCheck = new() { Interval = 21_600_000 }; // 6 h
+    // Context is a weekly-scale phenomenon, so it is sampled four times a day rather than per poll.
+    // This also keeps the drift history (ContextHistory) accumulating without the window being opened.
+    private readonly System.Windows.Forms.Timer _contextCheck = new() { Interval = 21_600_000 }; // 6 h
+    private readonly List<ToolStripMenuItem> _metricItems = new();
+    private ToolStripMenuItem _updateItem = null!;
+
+    private UsageData? _data;
+    private DateTime? _lastRefresh;
+    // The last successful live reading, kept so the Statistics window can still draw its charts from
+    // local data (usage-history + transcripts) during an API outage. The chart marks the unavailable
+    // stretch itself, from the gap in the logged readings (see UsageReport.WindowPace.Gaps).
+    private PaceSnapshot? _lastGoodSnapshot;
+    private UpdateInfo? _update;
+    private string _metric;
+    private bool _flashOn;
+    private bool _updating;
+    private bool _autoOpenedForAuth; // guards auto-open so we launch once per signed-out spell
+    private int _consecutiveErrors;  // transient failures since the last good poll
+    private IntPtr _iconHandle = IntPtr.Zero;
+
+    private const int ErrorTolerance = 2; // transient blips to ride out before showing an error
+
+    // At/above this utilization (0–1) a window is treated as maxed out — usage is blocked until it
+    // resets, so the poll loop idles to the reset instead of hammering the API. Matches the 0.995
+    // "at limit" threshold used elsewhere (the projection/ExhaustSeconds logic).
+    private const double AtLimitThreshold = 0.995;
+    private const int LimitResetBufferSeconds = 20; // wait past the predicted reset before double-checking
+    private const int LimitDoubleCheckSeconds = 30; // retry cadence once a reset is due but not yet observed
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool DestroyIcon(IntPtr handle);
+
+    public TrayContext()
+    {
+        _metric = _settings.Metric; // restore the last-selected window (BuildMenu reads it)
+        RefreshWatched();           // which profiles to poll, and which one the icon follows (T127)
+        _tray = new NotifyIcon
+        {
+            Visible = true,
+            Text = L.T("tip.connecting"),
+            ContextMenuStrip = BuildMenu(),
+        };
+        Render(); // initial "connecting" icon
+
+        // A left-click on the tray icon opens the Statistics window (the pace report). MouseClick with
+        // a left-button filter keeps the right-click context menu untouched.
+        _tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) OpenStatistics(); };
+
+        _poll.Interval = _settings.RefreshSeconds * 1000;
+        _poll.Tick += async (_, _) => await RefreshAsync();
+        _poll.Start();
+        _flash.Tick += (_, _) => { if (_settings.FlashNearLimit && CurrentPct() >= Settings.FlashWarnThreshold) { _flashOn = !_flashOn; Render(); } };
+        _flash.Start();
+        _updateCheck.Tick += async (_, _) => await CheckForUpdateAsync();
+        _updateCheck.Start();
+        _contextCheck.Tick += (_, _) => ScanContextInBackground();
+        _contextCheck.Start();
+
+        _tray.BalloonTipClicked += (_, _) => { if (_update != null) _ = ApplyUpdateAsync(); };
+
+        _ = RefreshAsync(); // fire first fetch immediately
+        _ = CheckForUpdateAsync(); // look for a newer release on launch
+        RecomputeInsights(); // build the 24h usage breakdown in the background
+        ScanContextInBackground(); // record context drift, and nudge if the user asked to be nudged
+    }
+
+    /// <summary>
+    /// Scan the context sources off the UI thread, record the drift sample, and — only if the user
+    /// opted in — nudge once when a project crosses their threshold. The scan is cached on a
+    /// path+size+mtime fingerprint, so a warm pass is ~100ms of stats and nothing else.
+    /// </summary>
+    private async void ScanContextInBackground()
+    {
+        // The scan runs on the pool; the toast has to be created back on the STA thread that owns the
+        // message pump, which is what awaiting here buys us (the same shape as RefreshAsync).
+        (ContextProject project, int eager)? nudge = await Task.Run(() =>
+        {
+            try
+            {
+                DateTime now = DateTimeOffset.UtcNow.UtcDateTime;
+                ContextScan scan = ContextScanner.Scan(now);
+                if (scan.Error != null) return ((ContextProject, int)?)null;
+
+                ContextHistory.Record(ProfileStore.Monitored, scan, now);
+                if (!_settings.NotifyOnContextGrowth) return null;
+
+                foreach (ContextProject p in scan.Projects)
+                {
+                    int eager = scan.EstimatedSessionZero(p);
+                    if (eager < _settings.ContextNudgeTokens) continue;
+                    if (!ContextNudges.ShouldNotify(ProfileStore.Monitored, p.Slug, now)) continue;
+
+                    ContextNudges.Mark(ProfileStore.Monitored, p.Slug, now);
+                    return (p, eager);   // one nudge per pass, never a burst of them
+                }
+                return null;
+            }
+            catch { return null; }   // a background nudge is never worth disturbing the app over
+        });
+
+        if (nudge is { } n) NudgeContext(n.project, n.eager);
+    }
+
+    // The nudge itself, in the existing toast style: same card, same bar, ochre instead of festive,
+    // and no confetti (see ToastWindow.OnLoaded).
+    private void NudgeContext(ContextProject project, int eager)
+    {
+        int window = ContextScanner.ContextWindowFor(project.Observed?.Model);
+        double share = Math.Clamp((double)eager / window, 0, 1);
+        double cost = eager * UsageInsights.Price(project.Observed?.Model ?? "").cw / 1_000_000.0;
+
+        string title = L.T("toast.context.title");
+        string subtitle = L.T("toast.context.subtitle", project.ShortPath);
+        string caption = L.T("toast.context.caption",
+            TokenEstimate.Format(eager), cost.ToString("0.000", L.Culture));
+        try
+        {
+            EnsureWpfApp();
+            new ToastWindow("📇", title, subtitle, share, share, caption,
+                L.T("toast.context.quotaLabel"), ToastWindow.ToastTheme.Context).Show();
+        }
+        catch
+        {
+            _tray.BalloonTipTitle = title;
+            _tray.BalloonTipText = $"{subtitle} — {caption}";
+            _tray.BalloonTipIcon = ToolTipIcon.Info;
+            _tray.ShowBalloonTip(10_000);
+        }
+    }
+
+    // Scan local transcripts off the UI thread; the submenu reads the cached result.
+    private void RecomputeInsights()
+        => _ = Task.Run(() => _insights = UsageInsights.Compute(DateTimeOffset.UtcNow.UtcDateTime));
+
+    private ContextMenuStrip BuildMenu()
+    {
+        var menu = new ContextMenuStrip();
+
+        var showOn = new ToolStripMenuItem(L.T("menu.showOnIcon"));
+        foreach (string key in Metrics)
+        {
+            var item = new ToolStripMenuItem(Labels[key]) { Tag = key, Checked = key == _metric };
+            item.Click += (_, _) => SetMetric((string)item.Tag!);
+            _metricItems.Add(item);
+            showOn.DropDownItems.Add(item);
+        }
+        menu.Items.Add(showOn);
+
+        // With more than one profile, the icon's number needs an owner: this submenu names it, shows
+        // every profile's reading beside it, and switches which one the icon follows. It lives here
+        // rather than in the tooltip because the tooltip is capped at 127 characters and already
+        // compacts its projection line to fit (see BuildTooltip).
+        _profileMenu = new ToolStripMenuItem(L.T("menu.profiles")) { Visible = false };
+        _profileMenu.Visible = _watched.Count > 1;
+        menu.Items.Add(_profileMenu);
+        // Filled here and on every menu open, NOT in DropDownOpening (T148): an empty
+        // ToolStripMenuItem is not a submenu to WinForms — it exposes no ExpandCollapse pattern and
+        // draws no arrow, so Right is handled as "activate a plain command" and dismisses the whole
+        // menu. Hovering worked because the mouse path opens the dropdown before anything asks whether
+        // it has items, which is why this was mouse-only without ever looking broken.
+        PopulateProfileMenu();
+
+        var insights = new ToolStripMenuItem(L.T("menu.insights"));
+        insights.DropDownOpening += (_, _) => PopulateInsights(insights);
+        insights.DropDownItems.Add(new ToolStripMenuItem(L.T("insights.loading")) { Enabled = false });
+        menu.Items.Add(insights);
+
+        // Opens the pacing report: 5h-session and 7d-week usage vs. the clock, with a projection.
+        var stats = new ToolStripMenuItem(L.T("menu.statistics"));
+        stats.Click += (_, _) => OpenStatistics();
+        menu.Items.Add(stats);
+
+        // Opens the Context Load window: what every session in a project costs before the first
+        // prompt — the instruction chain, the memory index and the skill/agent index.
+        var context = new ToolStripMenuItem(L.T("menu.context"));
+        context.Click += (_, _) => OpenContext();
+        menu.Items.Add(context);
+
+        var refresh = new ToolStripMenuItem(L.T("menu.refreshNow"));
+        refresh.Click += async (_, _) => await RefreshAsync();
+        menu.Items.Add(refresh);
+
+        // Launches the Claude Code CLI so it can refresh the OAuth token in
+        // ~/.claude/.credentials.json — the recovery path when a poll hits HTTP 401. With more than one
+        // profile on the machine it becomes a submenu, one item per profile (T123) — unless the
+        // environment already carries the profile, which collapses it back to a command (T146).
+        _openClaudeItem = new ToolStripMenuItem(L.T("menu.openClaude"));
+        _openClaudeItem.Click += (_, _) => OpenClaudeCode(profile: _openClaudeProfile);
+        RefreshProfileMenu();
+        menu.Items.Add(_openClaudeItem);
+
+        // Hidden until a newer release is found; then shows "Update to vX.Y.Z".
+        _updateItem = new ToolStripMenuItem(L.T("menu.updateAvailable")) { Visible = false, Font = new Font(menu.Font, FontStyle.Bold) };
+        _updateItem.Click += (_, _) => { if (!_updating) _ = ApplyUpdateAsync(); };
+        menu.Items.Add(_updateItem);
+
+        var settings = new ToolStripMenuItem(L.T("menu.settings"));
+        settings.Click += (_, _) => OpenSettings();
+        menu.Items.Add(settings);
+
+        menu.Items.Add(new ToolStripSeparator());
+
+        var quit = new ToolStripMenuItem(L.T("menu.quit"));
+        quit.Click += (_, _) => ExitApp();
+        menu.Items.Add(quit);
+
+        // Re-read the profiles every time the menu opens (T137). Discovery used to run only at startup
+        // and on a settings save, which made the menu lie about the thing it is most often opened for:
+        // sign in to a profile through its own entry, and the entry still said "sign in" — clicking it
+        // again just launched a second login. A menu open is a user action, and the sweep is bounded
+        // (a few JSON files: 5–6ms with two profiles, printed by `--profiles`), so paying it here is
+        // cheaper than being wrong — and it costs nothing at all while the menu is closed.
+        menu.Opening += (_, _) =>
+        {
+            RefreshWatched();
+            RefreshProfileMenu();
+            // Before the menu is shown rather than on the way into the dropdown, so the submenu is a
+            // real submenu by the time WinForms decides what Right does (T148). The readings it draws
+            // are the poll's, and this runs immediately before display, so nothing is staler for it.
+            PopulateProfileMenu();
+            if (_profileMenu is not null) _profileMenu.Visible = _watched.Count > 1;
+        };
+
+        return menu;
+    }
+
+    private void SetMetric(string key)
+    {
+        _metric = key;
+        foreach (var it in _metricItems)
+            it.Checked = (string)it.Tag! == key;
+        _settings.Metric = key;
+        try { _settings.Save(); } catch { /* non-fatal: selection still applies this session */ }
+        Render();
+    }
+
+    // The settings and statistics windows are shown non-modally; keep references so we reuse an open
+    // one instead of stacking duplicates.
+    private SettingsWindow? _settingsWindow;
+    private StatisticsWindow? _statsWindow;
+    private ContextWindow? _contextWindow;
+
+    // A WPF Application must exist before any WPF window (Settings, the reset toast) is shown on this
+    // thread, for the Fluent theme and pack-URI resources to resolve. Hosted as a single instance for
+    // the process lifetime but never Run() — the WinForms message loop (Application.Run(TrayContext))
+    // already pumps messages for both UI stacks on this thread.
+    private static System.Windows.Application? _wpfApp;
+
+    private void EnsureWpfApp()
+    {
+        if (_wpfApp is null && System.Windows.Application.Current is null)
+            _wpfApp = new System.Windows.Application
+            {
+                ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
+            };
+    }
+
+    // Open the settings window (non-modal); on Save it calls ApplySettings to persist and apply.
+    private void OpenSettings()
+    {
+        if (_settingsWindow is not null)
+        {
+            if (_settingsWindow.WindowState == System.Windows.WindowState.Minimized)
+                _settingsWindow.WindowState = System.Windows.WindowState.Normal;
+            _settingsWindow.Activate();
+            return;
+        }
+
+        EnsureWpfApp();
+
+        _settingsWindow = new SettingsWindow(_settings, ApplySettings);
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
+    }
+
+    // Open the Statistics window (non-modal) with the current live usage as its snapshot, so the pace
+    // report reflects the same numbers the icon does. Reuses an already-open window.
+    private void OpenStatistics()
+    {
+        if (_statsWindow is not null)
+        {
+            if (_statsWindow.WindowState == System.Windows.WindowState.Minimized)
+                _statsWindow.WindowState = System.Windows.WindowState.Normal;
+            _statsWindow.Activate();
+            return;
+        }
+
+        EnsureWpfApp();
+
+        // Only pass a snapshot when we have a good reading; otherwise the window shows a "connect" hint,
+        // or — on a live API error like a 403 — the API's own message so it isn't a blank page.
+        _statsWindow = new StatisticsWindow(CurrentSnapshot(), _settings.ShowRemaining, CurrentError());
+        _statsWindow.Closed += (_, _) => _statsWindow = null;
+        // Offer the picker when there is more than one profile (T128). Monitored first, which is the one
+        // the window opens on and the only one a pushed reading may be applied to.
+        _statsWindow.SetProfiles(_watched);
+        _statsWindow.Show();
+        _statsWindow.Activate();
+    }
+
+    // Open the Context Load window (non-modal): the per-project eager/lazy breakdown of everything
+    // Claude Code loads before the first prompt. It scans on open, on its own background thread, so
+    // there is nothing to hand it here. Reuses an already-open window.
+    private void OpenContext()
+    {
+        if (_contextWindow is not null)
+        {
+            if (_contextWindow.WindowState == System.Windows.WindowState.Minimized)
+                _contextWindow.WindowState = System.Windows.WindowState.Normal;
+            _contextWindow.Activate();
+            return;
+        }
+
+        EnsureWpfApp();
+
+        _contextWindow = new ContextWindow();
+        _contextWindow.Closed += (_, _) => _contextWindow = null;
+        _contextWindow.Show();
+        _contextWindow.Activate();
+    }
+
+    // The reading the Statistics window charts from: the live one when healthy, otherwise the last good
+    // reading this session (so the charts stay populated from local data during an API outage), and
+    // failing that the last reading persisted on disk — so a signed-out / expired-token launch still
+    // draws the charts from yesterday's history instead of a blank "connect" hint. Null only when we've
+    // genuinely never logged a reading (first run), which keeps that hint for a true cold start.
+    private PaceSnapshot? CurrentSnapshot()
+    {
+        if (_data is { Error: null } d)
+            return new PaceSnapshot(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d);
+        if (_lastGoodSnapshot is { } s)
+            return s;
+        return UsageHistory.Latest(ProfileStore.Monitored) is { } h
+            ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d)
+            : null;
+    }
+
+    // The live API error to surface in the Statistics window, if any. A signed-out (401) state is left
+    // to the window's own "connect" hint; only a real API error (e.g. a 403 payment-past-due) is passed
+    // through so the window shows the reason instead of appearing blank.
+    private string? CurrentError()
+        => _data is { Error: { } e, Unauthorized: false } ? e : null;
+
+    // Persist the edited settings and apply the new values immediately.
+    private void ApplySettings(Settings updated)
+    {
+        // Read what the swap below will overwrite, while it is still the live model: the icon's profile
+        // (to notice a change), and — because a language change only takes effect after a restart, since
+        // localized strings resolve when a window is parsed — whether the *active* language would move.
+        string monitoredBefore = _settings.MonitoredConfigDir;
+        bool languageChanged = L.Resolve(updated.Language) != L.Current;
+
+        // Take the edited model whole rather than field by field: the window handed back a total copy
+        // of what it was given, so anything it doesn't edit is already the live value, and no field can
+        // be forgotten here and silently reset (T141). `Metric` is the one exception — it is the tray's
+        // alone (the icon's chosen window, set from the menu) and has no control on the page, so a value
+        // the menu changed while the window sat open must not be undone by the buffer's older snapshot.
+        Settings applied = updated.Clone();
+        applied.Metric = _settings.Metric;
+        // Same exception, same reason (T141): these two are the tray's bookkeeping for the environment
+        // variable it owns, with no control on the page. If the window sat open while a menu pick took
+        // the variable over, the buffer's older snapshot would say "not owned" — and the tray would
+        // then never put back what it replaced.
+        applied.EnvironmentProfileOwned = _settings.EnvironmentProfileOwned;
+        applied.EnvironmentProfileRestore = _settings.EnvironmentProfileRestore;
+        _settings = applied;
+
+        // What is left are the genuine side effects — the things a copy cannot do on its own.
+
+        // Clear any in-progress flash frame so turning the setting off calms the icon on the next
+        // Render() below, rather than leaving it stuck on the deep-slate half of the blink.
+        if (!_settings.FlashNearLimit) _flashOn = false;
+        // A profile picked on the page is a choice by hand, exactly like the submenu's: it pins the
+        // icon there rather than being overruled by the next probe (T126, pin behavior T139).
+        if (!ClaudeAccount.SamePath(_settings.MonitoredConfigDir, monitoredBefore))
+        {
+            _followFloorUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            _profilePinned = true;
+        }
+        // The page can change the standing choice *and* the toggle in one Save, so the environment is
+        // reconciled once, from both: switching the toggle off restores the old value here (T145).
+        SyncEnvironmentToPin(DeliberateProfile());
+        if (!_settings.FollowActiveProfile) _lastTurn.Clear();
+        // The profile list drives the "Open Claude Code" submenu, so it is rebuilt right here rather
+        // than waiting for a restart.
+        RefreshWatched();          // the list (and so the icon's profile) may have changed
+        RefreshProfileMenu();
+        PopulateProfileMenu();     // a profile added or removed here changes the submenu's contents too
+        if (_profileMenu is not null) _profileMenu.Visible = _watched.Count > 1;
+
+        try { _settings.Save(); }
+        catch (Exception ex)
+        {
+            MessageBox.Show(L.T("dialog.saveFailed", ex.Message),
+                L.T("dialog.appName"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+
+        // Re-arm the poll cadence for the current auth state (handles a changed interval, retry
+        // cadence, or a freshly enabled auto-open) and reflect a show-percentage change.
+        AdjustForAuthState();
+        Render();
+
+        // If the Statistics window is open, flip its used/remaining framing to match right away.
+        _statsWindow?.SetShowRemaining(_settings.ShowRemaining);
+
+        // Offer to restart so the new language applies immediately; the saved preference is read back
+        // on the next launch either way.
+        if (languageChanged && MessageBox.Show(L.T("dialog.restartForLanguage"), L.T("dialog.appName"),
+                MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            RestartApp();
+    }
+
+    // Relaunch the app to pick up a setting that only applies at startup (the UI language). Spawns a
+    // detached shell that waits a beat for this instance to exit — releasing the single-instance mutex —
+    // then starts a fresh copy, and quits immediately.
+    private void RestartApp()
+    {
+        try
+        {
+            string? exe = Environment.ProcessPath;
+            if (exe is { Length: > 0 })
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    // `ping -n 2` (~1s) delays reliably even with no console — unlike `timeout`, which
+                    // aborts when stdin is redirected. `start ""` launches the new copy detached so cmd
+                    // exits right after instead of lingering for the whole session.
+                    Arguments = $"/c ping -n 2 127.0.0.1 >nul & start \"\" \"{exe}\"",
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+                });
+        }
+        catch { /* if the relaunch can't be scheduled, the user reopens it manually */ }
+        ExitApp();
+    }
+
+    // Fill the "Usage insights" submenu from the cached scan; trigger a refresh for next time.
+    private void PopulateInsights(ToolStripMenuItem parent)
+    {
+        parent.DropDownItems.Clear();
+        InsightsData? d = _insights;
+
+        if (d == null)
+        {
+            parent.DropDownItems.Add(new ToolStripMenuItem(L.T("insights.computing")) { Enabled = false });
+        }
+        else if (d.Error != null)
+        {
+            parent.DropDownItems.Add(new ToolStripMenuItem(L.T("insights.unavailable", d.Error)) { Enabled = false });
+        }
+        else if (d.Requests == 0)
+        {
+            parent.DropDownItems.Add(new ToolStripMenuItem(L.T("insights.none")) { Enabled = false });
+        }
+        else
+        {
+            void Line(string text) => parent.DropDownItems.Add(new ToolStripMenuItem(text) { Enabled = false });
+
+            Line(L.T("insights.summary", d.Requests, d.Sessions));
+            Line(L.T("insights.subagents", Pct(d.SubagentPct)));
+            Line(L.T("insights.heavyContext", Pct(d.HeavyContextPct)));
+            if (d.ByModel.Count > 0)
+            {
+                parent.DropDownItems.Add(new ToolStripSeparator());
+                Line(L.T("insights.byModel"));
+                foreach (var (model, pct) in d.ByModel.Take(5))
+                    Line($"   {model}: {Pct(pct)}");
+            }
+        }
+
+        parent.DropDownItems.Add(new ToolStripSeparator());
+        var refresh = new ToolStripMenuItem(L.T("insights.recompute"));
+        refresh.Click += (_, _) => RecomputeInsights();
+        parent.DropDownItems.Add(refresh);
+
+        // Keep the cache reasonably fresh for the next open.
+        RecomputeInsights();
+    }
+
+    // ---- The other profiles (T127) ----
+
+    /// <summary>
+    /// The profiles this tray watches, monitored one first. Rebuilt when the profile list changes, so a
+    /// poll never re-runs discovery.
+    /// </summary>
+    private List<ClaudeInfo> _watched = new();
+
+    /// <summary>Latest reading per profile key for the profiles the icon is *not* showing — what the
+    /// Profile submenu reads. The monitored profile keeps using <see cref="_data"/>, unchanged.</summary>
+    private readonly Dictionary<string, UsageData> _otherData = new();
+
+    /// <summary>Rebuild the watch list and adopt the monitored profile. The monitored one is the user's
+    /// choice when it is still on the machine, else the default profile.</summary>
+    private void RefreshWatched()
+    {
+        string before = _watched.Count > 0 ? ProfileStore.KeyFor(_watched[0]) : "";
+
+        try { _watched = ClaudeAccount.Discover(_settings.Profiles); }
+        catch { _watched = new List<ClaudeInfo>(); }
+        if (_watched.Count == 0) _watched.Add(ClaudeAccount.Read());
+
+        ClaudeInfo monitored = ClaudeAccount.PickMonitored(_watched, _settings.MonitoredConfigDir) ?? _watched[0];
+
+        // Monitored first: it drives the icon, so it is the one poll that must not wait on the others.
+        _watched.Remove(monitored);
+        _watched.Insert(0, monitored);
+        ProfileStore.SetMonitored(monitored);
+        _api = new ApiClient(monitored.ConfigDir);
+        // Only when the icon changed hands: the cache is keyed per profile, so a plain re-discovery
+        // (every menu open since T137) must not throw away readings the submenu would then show as "…".
+        if (ProfileStore.KeyFor(_watched[0]) != before) _otherData.Clear();
+    }
+
+    /// <summary>The "Profile" submenu, hidden while there is only one profile to speak of.</summary>
+    private ToolStripMenuItem? _profileMenu;
+
+    // ---- Following the profile being worked in (T126) ----
+
+    /// <summary>When each profile's newest turn landed (unix seconds), from the last probe. Empty while
+    /// auto-follow is off: nothing is scanned then, so there is nothing to report.</summary>
+    private readonly Dictionary<string, double> _lastTurn = new();
+
+    /// <summary>The moment the user last chose a profile by hand. Auto-follow only overrules a choice
+    /// once a turn lands in another profile *after* it — see <see cref="ProfileActivity.Pick"/>.</summary>
+    private double _followFloorUnix;
+
+    /// <summary>
+    /// Set the moment the user picks a profile by hand, and cleared only by "Resume following" (T139).
+    /// The floor above used to be the whole story — a choice held until the *next* turn landed
+    /// elsewhere — which reads as broken on a machine where one profile is continuously active: a turn
+    /// can land seconds after the click and immediately overrule it. The click is the strongest signal
+    /// the app gets, so undoing it now also takes a click.
+    /// </summary>
+    private bool _profilePinned;
+
+    /// <summary>
+    /// Point the icon at whichever profile just had a turn, when the user has asked for that. Called at
+    /// the top of a poll, before the fetch, so the reading that follows already belongs to the profile
+    /// the icon ends up on — the alternative shows one profile's percentage under another's name for a
+    /// whole interval.
+    ///
+    /// <para>The probe reads transcript timestamps only, on a background thread, and only when there is
+    /// more than one profile to choose between (see <see cref="ProfileActivity"/> for why it is a
+    /// per-poll probe and not a permanent tail).</para>
+    /// </summary>
+    private async Task FollowActiveProfileAsync()
+    {
+        if (!_settings.FollowActiveProfile || _watched.Count < 2) return;
+
+        List<ClaudeInfo> probed = _watched;
+        List<ProfileActivity.Reading> readings = await Task.Run(() => ProfileActivity.Read(probed));
+        // The watch list can be rebuilt while the probe runs (a saved settings page, a removed profile),
+        // and readings about a list that no longer exists must not decide anything.
+        if (!ReferenceEquals(probed, _watched)) return;
+
+        _lastTurn.Clear();
+        foreach (ProfileActivity.Reading r in readings)
+            _lastTurn[ProfileStore.KeyFor(r.Profile)] = r.LastTurnUnix;
+
+        double now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        if (!_profilePinned
+            && ProfileActivity.Pick(readings, now, _followFloorUnix) is { } active
+            && ProfileStore.KeyFor(active) != ProfileStore.KeyFor(_watched[0]))
+            AdoptMonitored(active, automatic: true);
+    }
+
+    /// <summary>
+    /// Fill the Profile submenu: one checkable entry per profile, its own reading beside it, and its own
+    /// failure named rather than a generic "not authenticated" that would send somebody to re-login on
+    /// the wrong account. Built on open so the numbers are the latest poll's.
+    /// </summary>
+    private void PopulateProfileMenu()
+    {
+        if (_profileMenu is null) return;
+        _profileMenu.DropDownItems.Clear();
+
+        for (int i = 0; i < _watched.Count; i++)
+        {
+            ClaudeInfo p = _watched[i];
+            bool monitored = i == 0;
+            UsageData? d = monitored ? _data : _otherData.GetValueOrDefault(ProfileStore.KeyFor(p));
+
+            string reading = !p.CountsAgainstSubscription
+                // An API-key/Bedrock/Vertex profile has no quota window to read (T124), and polling it
+                // would spend money to learn nothing. Say which, rather than showing a blank.
+                ? L.T("menu.profileNotSubscription", AuthLabel(p.Auth))
+                : d switch
+                {
+                    null => L.T("insights.loading"),
+                    { Unauthorized: true } => L.T("menu.profileNeedsAuth"),
+                    { Error: not null } => L.T("menu.profileError"),
+                    _ => $"{Labels[_metric]} {PctShown(d.Metric(_metric))}",
+                };
+
+            string suffix = monitored && _profilePinned && _settings.FollowActiveProfile
+                ? "  · " + L.T("menu.profilePinned")
+                : ActiveSuffix(p);
+            var item = new ToolStripMenuItem($"{p.Label} — {reading}{suffix}")
+            {
+                Checked = monitored,
+                ToolTipText = p.ConfigDir,
+            };
+            ClaudeInfo captured = p;
+            item.Click += (_, _) => SetMonitoredProfile(captured);
+            _profileMenu.DropDownItems.Add(item);
+        }
+
+        // The toggle lives where the switching does. Checked, the icon moves on its own to whichever
+        // profile just had a turn (T126); unchecked, it stays wherever it was last put by hand.
+        _profileMenu.DropDownItems.Add(new ToolStripSeparator());
+        var follow = new ToolStripMenuItem(L.T("menu.profileFollow"))
+        {
+            Checked = _settings.FollowActiveProfile,
+            ToolTipText = L.T("menu.profileFollowTip"),
+        };
+        follow.Click += (_, _) => SetFollowActiveProfile(!_settings.FollowActiveProfile);
+        _profileMenu.DropDownItems.Add(follow);
+
+        // Only reachable once a pick has actually pinned the icon (T139) — otherwise there is nothing
+        // to resume, and the item would just be a confusing no-op sitting under the toggle.
+        if (_profilePinned && _settings.FollowActiveProfile)
+        {
+            var unpin = new ToolStripMenuItem(L.T("menu.profileUnpin")) { ToolTipText = L.T("menu.profileUnpinTip") };
+            unpin.Click += (_, _) => UnpinProfile();
+            _profileMenu.DropDownItems.Add(unpin);
+        }
+    }
+
+    /// <summary>How long ago this profile's last turn landed, when auto-follow is what put the icon
+    /// where it is. Read from the last probe's cache, so opening the menu scans nothing.</summary>
+    private string ActiveSuffix(ClaudeInfo p)
+    {
+        if (!_settings.FollowActiveProfile) return "";
+        if (!_lastTurn.TryGetValue(ProfileStore.KeyFor(p), out double last) || last <= 0) return "";
+        double age = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - last;
+        return "  · " + (age < 60 ? L.T("menu.profileActiveNow") : L.T("menu.profileActive", FmtCountdown(age)));
+    }
+
+    /// <summary>Undo a manual pick's pin (T139): auto-follow resumes deciding on the very next poll,
+    /// rather than waiting for one to happen on its own.</summary>
+    private void UnpinProfile()
+    {
+        _profilePinned = false;
+        // Releasing the pin is the user saying "stop choosing for me", so the machine-wide variable
+        // the pin wrote goes back to what it was (T145). Auto-follow never writes one.
+        SyncEnvironmentToPin(null);
+        _ = RefreshAsync();
+    }
+
+    /// <summary>
+    /// The profile the user has actually *chosen*, as opposed to the one auto-follow happens to be
+    /// showing: the monitored profile while it is pinned, or whenever auto-follow is off at all —
+    /// with nothing moving the icon by itself, the monitored profile is the standing choice. Null
+    /// while auto-follow is the thing driving, which is the case that must never write (T145).
+    /// </summary>
+    private ClaudeInfo? DeliberateProfile() =>
+        _profilePinned || !_settings.FollowActiveProfile
+            ? ClaudeAccount.PickMonitored(_watched, _settings.MonitoredConfigDir)
+            : null;
+
+    /// <summary>
+    /// Keep the user-scope <c>CLAUDE_CONFIG_DIR</c> in step with the **pinned** profile (T145).
+    /// <paramref name="pinned"/> is the profile just chosen by hand, or null when the pin was released.
+    ///
+    /// <para>Called from every place a pin is taken or released and from nowhere else — auto-follow
+    /// moves the icon by observation, and an observation must not rewrite a machine-wide setting.
+    /// Silent on failure by design: this runs off a menu click that has already done its real job
+    /// (the icon moved), and a modal about an environment variable would be the wrong thing to
+    /// interrupt it with — <c>--profiles</c> and the Settings row both show the live value.</para>
+    /// </summary>
+    private void SyncEnvironmentToPin(ClaudeInfo? pinned)
+    {
+        if (!_settings.SyncEnvironmentProfile && !_settings.EnvironmentProfileOwned) return;
+        bool ok = _settings.SyncEnvironmentProfile && pinned is not null
+            ? EnvironmentProfile.Adopt(_settings, pinned.ConfigDir)
+            : EnvironmentProfile.Restore(_settings);
+        if (ok) SaveSettingsQuietly();   // the restore value is bookkeeping the next launch must have
+    }
+
+    /// <summary>Turn auto-follow on or off from the menu, and act on it at once: enabling it should move
+    /// the icon now if another profile is the live one, not at the next poll.</summary>
+    private void SetFollowActiveProfile(bool on)
+    {
+        _settings.FollowActiveProfile = on;
+        SaveSettingsQuietly();
+        if (!on) _lastTurn.Clear();      // stale ages must not outlive the feature that fills them
+        else _ = RefreshAsync();         // which begins by asking where the last turn landed
+    }
+
+    /// <summary>Point the icon at another profile *because the user said so*: the choice is saved and
+    /// pins the icon there — auto-follow will not move it again until "Resume following" (T139).</summary>
+    private void SetMonitoredProfile(ClaudeInfo profile)
+    {
+        if (_watched.Count > 0 && ProfileStore.KeyFor(_watched[0]) == ProfileStore.KeyFor(profile)) return;
+
+        _followFloorUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        _profilePinned = true;
+        AdoptMonitored(profile, automatic: false);
+        SyncEnvironmentToPin(profile);
+        _ = RefreshAsync();
+    }
+
+    /// <summary>
+    /// Make <paramref name="profile"/> the one the icon shows: remember it, re-key the stores, take its
+    /// token, and drop the previous account's numbers so none of them can be drawn as this one's.
+    ///
+    /// <para>An automatic switch takes the same path but must not interrupt: a settings file that cannot
+    /// be written is worth a modal dialog when the user just clicked, and worth nothing at all when the
+    /// tray moved the icon by itself.</para>
+    /// </summary>
+    private void AdoptMonitored(ClaudeInfo profile, bool automatic)
+    {
+        _settings.MonitoredConfigDir = profile.ConfigDir;
+        if (automatic) SaveSettingsQuietly();
+        else
+        {
+            try { _settings.Save(); }
+            catch (Exception ex)
+            {
+                MessageBox.Show(L.T("dialog.saveFailed", ex.Message),
+                    L.T("dialog.appName"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+        // The icon must not keep drawing the old account's percentage while the new one is fetched.
+        _data = null;
+        _lastGoodSnapshot = null;
+        _burn.Clear();
+        RefreshWatched();
+        Render();
+    }
+
+    private void SaveSettingsQuietly()
+    {
+        try { _settings.Save(); } catch { /* nothing the user asked for is waiting on this */ }
+    }
+
+    private static string AuthLabel(AuthMethod auth) => L.T(auth switch
+    {
+        AuthMethod.ApiKey => "settings.sys.authApiKey",
+        AuthMethod.Bedrock => "settings.sys.authBedrock",
+        AuthMethod.Vertex => "settings.sys.authVertex",
+        AuthMethod.Subscription => "settings.sys.authSubscription",
+        _ => "settings.sys.authNone",
+    });
+
+    /// <summary>Poll the profiles the icon is not showing. Each spends a sliver of *its own* account's
+    /// quota, which is why the Settings cost estimate multiplies by the number of profiles.</summary>
+    private async Task RefreshOthersAsync()
+    {
+        if (_watched.Count < 2) return;
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+        foreach (ClaudeInfo profile in _watched.Skip(1))
+        {
+            // A profile that isn't on the subscription has no quota window to read: an API key bills
+            // per use, so polling it would spend money to learn nothing about a limit.
+            if (!profile.CountsAgainstSubscription) continue;
+
+            UsageData d = await new ApiClient(profile.ConfigDir).FetchAsync();
+            string key = ProfileStore.KeyFor(profile);
+            _otherData[key] = d;
+            // Its own series, so its history is ready if the icon ever follows it (T125).
+            if (d.Error == null)
+                UsageHistory.Append(key, now, d.Session5h, d.Reset5h, d.Week7d, d.Reset7d);
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        // Which profile the icon is about is decided before the number it shows is fetched (T126).
+        await FollowActiveProfileAsync();
+
+        UsageData fresh = await _api.FetchAsync();
+        bool ok = fresh.Error == null;
+        bool transientHiccup = !ok && fresh.Transient && !fresh.Unauthorized;
+        _consecutiveErrors = transientHiccup ? _consecutiveErrors + 1 : 0;
+
+        // A single timeout or network blip shouldn't flip the icon to a scary red error: keep the
+        // last good reading (or the "connecting…" state) on screen and quietly retry on the next
+        // poll. Only surface the error once it persists across a few polls.
+        bool keepLastGood = transientHiccup
+                            && _consecutiveErrors < ErrorTolerance
+                            && _data is null or { Error: null };
+        if (!keepLastGood)
+        {
+            _data = fresh;
+            _lastRefresh = DateTime.Now;
+        }
+
+        if (ok)
+        {
+            long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+            // Remember this good reading so the Statistics window can keep drawing its charts from
+            // local data during a later API outage, and mark when it was taken (the outage gap starts
+            // here).
+            _lastGoodSnapshot = new PaceSnapshot(fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d);
+
+            // Log the live reading so the Statistics charts can draw the real utilization curve over
+            // time, rather than inferring the burn shape from transcript token counts.
+            UsageHistory.Append(ProfileStore.Monitored, now, fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d);
+
+            foreach (string key in Metrics)
+            {
+                BurnTracker.ResetEvent? ev = _burn.Record(key, fresh.Metric(key), fresh.ResetOf(key), now);
+                if (ev is not { } reset) continue;
+
+                // Each window decides by its own opt-in. Weekly: the routine on-time reset uses the
+                // quiet "scheduled" toggle, while the anomalous events (an early reset or a mid-window
+                // credit) ride the "unexpected" toggle. Session (5h): a single toggle for any reset.
+                // "extra" is overage, not a scheduled window — never notified.
+                // The routine resets (weekly Scheduled, 5h session) also honor a minimum-usage floor:
+                // a reset from a barely-touched window isn't worth a ping. PrevUtil is a 0–1 fraction.
+                bool wanted = key switch
+                {
+                    "7d" => reset.Kind == BurnTracker.ResetKind.Scheduled
+                        ? _settings.NotifyOnScheduledReset && reset.PrevUtil * 100 > _settings.ScheduledResetMinPercent
+                        : _settings.NotifyOnUnexpectedReset,
+                    "5h" => _settings.NotifyOnSessionReset && reset.PrevUtil * 100 > _settings.SessionResetMinPercent,
+                    _ => false,
+                };
+                if (wanted) NotifyReset(key, reset, now);
+            }
+        }
+        _flashOn = false;
+        Render();
+        // Push the fresh reading into an open Statistics window so it auto-refreshes on the same
+        // cadence as the icon, rather than staying frozen until the user clicks Refresh.
+        _statsWindow?.UpdateSnapshot(CurrentSnapshot(), CurrentError());
+        RecomputeInsights();
+        AdjustForAuthState();
+
+        // The other profiles last, and awaited rather than fired and forgotten: they must never delay
+        // the icon, and a slow second account must not overlap the next poll of the first.
+        await RefreshOthersAsync();
+    }
+
+    // While signed out, re-poll on the (faster) retry cadence so a fresh token is noticed quickly,
+    // and — if enabled — launch Claude Code once to prompt re-auth. As soon as a poll succeeds,
+    // restore the normal cadence and re-arm the one-shot auto-open for the next signed-out spell.
+    private void AdjustForAuthState()
+    {
+        bool unauthorized = _data is { Unauthorized: true };
+
+        int desiredMs = DesiredPollMs();
+        if (_poll.Interval != desiredMs)
+        {
+            _poll.Stop();
+            _poll.Interval = desiredMs;
+            _poll.Start();
+        }
+
+        if (!unauthorized)
+        {
+            _autoOpenedForAuth = false;
+        }
+        else if (_settings.AutoOpenOnUnauthenticated && !_autoOpenedForAuth)
+        {
+            _autoOpenedForAuth = true;
+            OpenClaudeCode(forReauth: true);
+        }
+    }
+
+    // The poll cadence for the current state. Auth-retry while signed out; the normal interval when
+    // consuming; and — once a window is maxed out — a long idle until just past the known reset. When
+    // a limit is hit, usage is blocked and consumption is frozen until that window resets, so polling
+    // on the normal cadence just burns API calls to read the same 100%. Instead we sleep until the
+    // reset is due and poll once to confirm it landed (see BlockedUntilUnix / the double-check floor).
+    private int DesiredPollMs()
+    {
+        if (_data is { Unauthorized: true })
+            return _settings.AuthRetrySeconds * 1000;
+
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        double blockedUntil = BlockedUntilUnix(now);
+        if (blockedUntil > 0)
+        {
+            // Idle until just past the predicted reset, then double-check. If we're already past it but
+            // still reading at-limit (clock skew or a late server-side reset), fall to the short
+            // double-check cadence so we catch the drop promptly rather than waiting a whole window.
+            double waitMs = (blockedUntil - now + LimitResetBufferSeconds) * 1000;
+            double floorMs = LimitDoubleCheckSeconds * 1000;
+            return (int)Math.Min(Math.Max(waitMs, floorMs), int.MaxValue);
+        }
+
+        return _settings.RefreshSeconds * 1000;
+    }
+
+    // The next reset boundary to wake for while a window is maxed out: the soonest future reset among
+    // the windows currently at their limit. Waking at the earliest (not the latest) means each window's
+    // reset is polled as it happens — logged and, if enabled, notified — and if another window is still
+    // maxed the next DesiredPollMs simply re-idles to its reset. 0 when nothing is blocked.
+    private double BlockedUntilUnix(long now)
+    {
+        if (_data is not { Error: null } d) return 0;
+        double soonest = double.PositiveInfinity;
+        bool atLimit = false;
+        if (d.Session5h >= AtLimitThreshold) { atLimit = true; if (d.Reset5h > now) soonest = Math.Min(soonest, d.Reset5h); }
+        if (d.Week7d >= AtLimitThreshold) { atLimit = true; if (d.Reset7d > now) soonest = Math.Min(soonest, d.Reset7d); }
+        if (!atLimit) return 0;
+        // At limit but no known future reset (0 / stale header): keep checking on the short cadence
+        // rather than idling forever.
+        return double.IsPositiveInfinity(soonest) ? now : soonest;
+    }
+
+    // Ask GitHub for the latest release; if newer, surface it in the menu and notify once.
+    private async Task CheckForUpdateAsync()
+    {
+        if (_updating) return;
+        UpdateInfo? info = await _updater.CheckAsync();
+        if (info == null || (_update != null && info.Version <= _update.Version)) return;
+
+        _update = info;
+        _updateItem.Text = L.T("menu.updateTo", info.Tag);
+        _updateItem.Visible = true;
+
+        _tray.BalloonTipTitle = L.T("update.title");
+        _tray.BalloonTipText = L.T("update.body", info.Version, Updater.CurrentVersion);
+        _tray.ShowBalloonTip(10_000);
+    }
+
+    // Download the installer and hand off to it; the app exits so its .exe can be replaced.
+    private async Task ApplyUpdateAsync()
+    {
+        if (_updating || _update is not { } info) return;
+        _updating = true;
+        _updateItem.Text = L.T("menu.downloading", info.Tag);
+        _updateItem.Enabled = false;
+
+        try
+        {
+            string setup = await _updater.DownloadAsync(info);
+            Updater.RunInstaller(setup);
+            ExitApp(); // release the single-instance mutex and unlock the .exe for the installer
+        }
+        catch (Exception ex)
+        {
+            _updating = false;
+            _updateItem.Text = L.T("menu.updateTo", info.Tag);
+            _updateItem.Enabled = true;
+            MessageBox.Show(L.T("dialog.downloadFailed", ex.Message),
+                L.T("dialog.appName"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    // A usage window fell — a full reset (early or on schedule) or a partial mid-window credit.
+    // Show the matching toast and append a timestamped line to a local log so the event can be
+    // reported later with concrete before/after numbers. `key` is the window ("5h" or "7d").
+    private void NotifyReset(string key, BurnTracker.ResetEvent ev, long now)
+    {
+        LogResetEvent(key, ev, now);
+        var (emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme) = ResetToastContent(key, ev, now, _settings.ShowRemaining);
+        try
+        {
+            EnsureWpfApp();
+            new ToastWindow(emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme).Show();
+        }
+        catch
+        {
+            // If the custom toast can't be shown, fall back to the plain system balloon so the
+            // event is never silently dropped.
+            _tray.BalloonTipTitle = $"{emoji} {title}";
+            _tray.BalloonTipText = $"{subtitle} — {caption}";
+            _tray.BalloonTipIcon = ToolTipIcon.Info;
+            _tray.ShowBalloonTip(10_000);
+        }
+    }
+
+    // The toast's display strings per window + kind, shared by the live notifier and the
+    // --simulate-reset dev preview so the wording can never drift. All are framed as good news (quota
+    // back); the early reset gets the loud "Surprise!", the routine one a calm "New week!"/"Fresh
+    // session!", a partial credit a "Bonus!". Returns the before/after usage fractions too, so the
+    // toast bar lands on the real new level, plus the quota-bar label for the window.
+    internal static (string emoji, string title, string subtitle, double fromUsage, double toUsage,
+        string caption, string quotaLabel, ToastWindow.ToastTheme theme)
+        ResetToastContent(string key, BurnTracker.ResetEvent ev, long now, bool showRemaining = false)
+    {
+        bool weekly = key == "7d";
+        string quotaLabel = L.T(weekly ? "toast.quotaLeft.weekly" : "toast.quotaLeft.session");
+        string limitNoun = L.T(weekly ? "toast.limitNoun.weekly" : "toast.limitNoun.session");
+        string scopeWord = L.T(weekly ? "toast.scope.weekly" : "toast.scope.session");
+        string freshSuffix = L.T(weekly ? "toast.freshSuffix.weekly" : "toast.freshSuffix.session");
+        string resetTitle = L.T(weekly ? "toast.resetTitle.weekly" : "toast.resetTitle.session");
+        int fromPct = (int)Math.Round(Math.Clamp(ev.PrevUtil, 0, 1) * 100);
+        int toPct = (int)Math.Round(Math.Clamp(ev.NewUtil, 0, 1) * 100);
+        // In "remaining" mode the captions read in quota-left terms (the bar/number already do):
+        // "Was 79% used" → "Had 21% left", "Usage dropped 91% → 50%" → "Quota left rose 9% → 50%".
+        int fromLeftPct = 100 - fromPct;
+        int toLeftPct = 100 - toPct;
+        string ahead = ev.PrevReset > now ? L.T("toast.aheadDays", FmtDays(ev.PrevReset - now)) : L.T("toast.ahead");
+        string earlyCaption = showRemaining ? L.T("toast.caption.earlyLeft", fromLeftPct, ahead) : L.T("toast.caption.earlyUsed", fromPct, ahead);
+        string creditCaption = showRemaining ? L.T("toast.caption.creditLeft", fromLeftPct, toLeftPct) : L.T("toast.caption.creditUsed", fromPct, toPct);
+        string routineCaption = showRemaining ? L.T("toast.caption.routineLeft", fromLeftPct, freshSuffix) : L.T("toast.caption.routineUsed", fromPct, freshSuffix);
+
+        // Color theme: a session event is always blue; otherwise the weekly kind picks the color
+        // (early reset = clay/Surprise, credit = violet/Bonus, routine = teal/Weekly).
+        ToastWindow.ToastTheme theme = !weekly
+            ? ToastWindow.ToastTheme.Session
+            : ev.Kind switch
+            {
+                BurnTracker.ResetKind.Unexpected => ToastWindow.ToastTheme.Surprise,
+                BurnTracker.ResetKind.Credit => ToastWindow.ToastTheme.Bonus,
+                _ => ToastWindow.ToastTheme.Weekly,
+            };
+
+        return ev.Kind switch
+        {
+            BurnTracker.ResetKind.Unexpected => ("🎉", L.T("toast.title.surprise"), L.T("toast.sub.early", limitNoun),
+                ev.PrevUtil, ev.NewUtil, earlyCaption, quotaLabel, theme),
+            BurnTracker.ResetKind.Credit => ("🎉", L.T("toast.title.bonus"), L.T("toast.sub.credit", scopeWord),
+                ev.PrevUtil, ev.NewUtil, creditCaption, quotaLabel, theme),
+            _ => ("✨", resetTitle, L.T("toast.sub.routine", limitNoun),
+                ev.PrevUtil, ev.NewUtil, routineCaption, quotaLabel, theme),
+        };
+    }
+
+    // Best-effort append to %LocalAppData%\ClaudeTray\reset-events.log; never let it disrupt a poll.
+    private static void LogResetEvent(string key, BurnTracker.ResetEvent ev, long now)
+    {
+        try
+        {
+            string dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClaudeTray");
+            Directory.CreateDirectory(dir);
+            static string Iso(double unix) => DateTimeOffset.FromUnixTimeSeconds((long)unix).UtcDateTime.ToString("o");
+            string line = System.FormattableString.Invariant(
+                $"{Iso(now)}\t{key} {ev.Kind.ToString().ToLowerInvariant()} {(int)Math.Round(ev.PrevUtil * 100)}%->{(int)Math.Round(ev.NewUtil * 100)}%\tprevReset={Iso(ev.PrevReset)}\tnewReset={Iso(ev.NewReset)}");
+            File.AppendAllText(Path.Combine(dir, "reset-events.log"), line + Environment.NewLine);
+        }
+        catch { /* logging is best-effort */ }
+    }
+
+    private double CurrentPct()
+        => _data != null && _data.Error == null ? Math.Min(1.0, _data.Metric(_metric)) : 0.0;
+
+    // Projection for the currently displayed metric (session vs. week vs. extra).
+    private (Projection verdict, double eta) CurrentProjection()
+    {
+        if (_data is not { Error: null }) return (Projection.Unknown, 0);
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        // Both bounded windows use the proportional "pace line" for their verdict, matching the
+        // Statistics chart's projection (average pace since the window started) so the tray and the
+        // chart never disagree. "extra" is uncapped overage with no fixed window, so it keeps the
+        // regression-based verdict (windowSeconds = 0).
+        double window = _metric switch
+        {
+            "5h" => 5.0 * 3600,
+            "7d" => 7.0 * 24 * 3600,
+            _ => 0,
+        };
+        var (verdict, eta, _) = _burn.Project(_metric, _data.Metric(_metric), _data.ResetOf(_metric), now, window);
+        return (verdict, eta);
+    }
+
+    /// <summary>
+    /// Which accent band the icon wears (T147), or -1 for none. Only meaningful with more than one
+    /// profile — the same gate the Profile submenu uses, since with one profile there is no "whose
+    /// number is this?" to answer and an unexplained stripe would be noise.
+    ///
+    /// <para>The slot is the profile's position in the watch list ordered by <b>key</b>, not the list's
+    /// own order: <c>_watched[0]</c> is whichever profile the icon currently follows, so indexing that
+    /// directly would give every profile the same accent the moment it took the icon over — the exact
+    /// opposite of an identity. Two profiles therefore always differ; adding a third can re-deal the
+    /// hues, which is the cost of not tying identity to a hash that could collide.</para>
+    /// </summary>
+    private int AccentSlot() =>
+        AccentSlotFor(_watched, ClaudeAccount.PickMonitored(_watched, _settings.MonitoredConfigDir));
+
+    /// <summary>The accent slot itself, asked by the icon and by <c>--profiles</c> — so what the tray
+    /// draws and what the CLI reports cannot disagree about whose band is whose.</summary>
+    internal static int AccentSlotFor(List<ClaudeInfo> profiles, ClaudeInfo? profile)
+    {
+        if (profiles.Count < 2 || profile is null) return -1;
+        List<string> ordered = profiles.Select(ProfileStore.KeyFor)
+            .OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList();
+        int slot = ordered.IndexOf(ProfileStore.KeyFor(profile));
+        return slot < 0 ? -1 : slot;
+    }
+
+    private void Render()
+    {
+        IconRenderer.State state =
+            _data == null ? IconRenderer.State.Connecting :
+            _data.Error != null ? IconRenderer.State.Error :
+            IconRenderer.State.Ok;
+
+        bool flash = _settings.FlashNearLimit && CurrentPct() >= Settings.FlashWarnThreshold && _flashOn;
+        int size = Math.Max(16, SystemInformation.SmallIconSize.Width);
+
+        Projection verdict = CurrentProjection().verdict;
+
+        // Before we're connected to Claude Code — either still connecting (no data yet) or signed out
+        // on a 401 (expired token) — show the Claude Code Tray logo rather than a gray "0" or a play
+        // triangle. On a live API error (e.g. an HTTP 403) show the same logo but with a red error dot
+        // in the corner, instead of an amber tile with a misleading usage number. Once a poll succeeds
+        // the usage icon takes over.
+        bool apiError = state == IconRenderer.State.Error && _data is not { Unauthorized: true };
+        using Bitmap bmp =
+            _data is { Unauthorized: true } || state == IconRenderer.State.Connecting || apiError
+                ? IconRenderer.RenderLogo(size, apiError)
+                : IconRenderer.Render(CurrentPct(), state, flash, size, verdict, _settings.ShowPercentage,
+                    _settings.ShowRemaining, AccentSlot());
+        SetTrayIcon(bmp);
+        _tray.Text = Truncate(BuildTooltip(), 127);
+    }
+
+    private void SetTrayIcon(Bitmap bmp)
+    {
+        IntPtr newHandle = bmp.GetHicon();
+        Icon? old = _tray.Icon;
+        IntPtr oldHandle = _iconHandle;
+
+        _tray.Icon = Icon.FromHandle(newHandle);
+        _iconHandle = newHandle;
+
+        old?.Dispose();
+        if (oldHandle != IntPtr.Zero) DestroyIcon(oldHandle);
+    }
+
+    private string BuildTooltip()
+    {
+        if (_data == null) return L.T("tip.connecting");
+        if (_data.Error != null)
+        {
+            if (_data.Unauthorized)
+                return _data.NeedsFullLogin
+                    ? L.T("tip.notSignedIn")
+                    : L.T("tip.willAppear");
+            return L.T("tip.apiError", _data.Error);
+        }
+
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        string r5 = _data.Reset5h > 0 ? FmtCountdown(_data.Reset5h - now) : "--";
+        string r7 = _data.Reset7d > 0 ? FmtDays(_data.Reset7d - now) : "--";
+
+        // In "remaining" mode the two bounded windows show the complement and read "… left".
+        // Extra is overage (no cap to have quota "left" from), so it always shows the amount used.
+        string leftSuffix = _settings.ShowRemaining ? L.T("tip.leftSuffix") : "";
+        var lines = new List<string>();
+        // With more than one profile, a percentage without an owner is a lie. The label goes first and
+        // stays: the 127-char budget below drops the verbose projection form before this, which is the
+        // right trade — knowing *whose* quota this is matters more than a wordier projection sentence.
+        if (_watched.Count > 1 && _watched[0].Label is { Length: > 0 } label)
+            lines.Add(L.T("tip.profile", label));
+        lines.Add($"{L.T("tip.session")}{leftSuffix}: {PctShown(_data.Session5h)}  ⟳ {r5}");
+        lines.Add($"{L.T("tip.week")}{leftSuffix}: {PctShown(_data.Week7d)}  ⟳ {r7}");
+        if (_data.Extra > 0.001)
+        {
+            string re = _data.ResetExtra > 0 ? FmtDays(_data.ResetExtra - now) : "--";
+            lines.Add($"{L.T("tip.extra")}: {Pct(_data.Extra)}  ⟳ {re}");
+        }
+
+        var (verdict, eta) = CurrentProjection();
+        string scope = Labels[_metric]; // make clear which window the projection is about
+        bool hasEta = eta > 0 && !double.IsInfinity(eta);
+        // The projection is about reaching the limit: "100%" used == "0% left" remaining.
+        string limit = _settings.ShowRemaining ? L.T("tip.limitLeft") : L.T("tip.limitUsed");
+        // The same target as a *future event*. In "remaining" mode "0% left" mirrors the current
+        // saldo lines above ("Session 5h left: 97%"), so it reads as a present value; the plain-
+        // language "runs out" marks it as something that happens later. Used mode keeps the "100%"
+        // percentage it always showed, which reads naturally as a ceiling you climb toward.
+        string hits = _settings.ShowRemaining ? L.T("tip.hitsLeft") : L.T("tip.hitsUsed");
+        // Each projection verdict has a full form and a compact fallback for when the tooltip is
+        // tight (see the 127-char cap note below). null => no projection line at all.
+        (string full, string compact)? projection = CurrentPct() >= 0.995
+            // Already maxed: state it plainly rather than "projecting" a limit you've reached.
+            ? (L.T("tip.atLimitFull", scope, limit), L.T("tip.atLimitCompact", limit))
+            : verdict switch
+            {
+                Projection.Danger => hasEta
+                    ? (L.T("tip.dangerEtaFull", scope, hits, FmtDays(eta)), L.T("tip.dangerEtaCompact", hits, FmtDays(eta)))
+                    : (L.T("tip.dangerPaceFull", scope), L.T("tip.dangerPaceCompact")),
+                Projection.Ok => double.IsInfinity(eta)
+                    ? (L.T("tip.okTrackFull", scope), L.T("tip.okTrackCompact"))
+                    : (L.T("tip.okEtaFull", scope, hits, FmtDays(eta)), L.T("tip.okEtaCompact", hits, FmtDays(eta))),
+                _ => null,
+            };
+
+        string updated = _lastRefresh is { } t ? $"  ⟳ {t:HH:mm:ss}" : "";
+        string statusLine = L.T("tip.status", _data.Status, updated);
+
+        // The Windows tray tooltip is capped at 127 chars (NOTIFYICONDATA.szTip). The refresh
+        // time sits on the last line, so a blind end-truncation would chop it mid-value. Keep the
+        // status/time line intact and fit the projection in: full form if it fits, else compact.
+        int used = lines.Sum(l => l.Length + 1) + statusLine.Length;
+        if (projection is { } p)
+        {
+            if (used + p.full.Length + 1 <= 127) lines.Add(p.full);
+            else if (used + p.compact.Length + 1 <= 127) lines.Add(p.compact);
+        }
+        lines.Add(statusLine);
+        return string.Join("\n", lines);
+    }
+
+    private static string Pct(double v) => $"{(int)Math.Round(Math.Min(v, 1.0) * 100)}%";
+
+    // A window's percentage as displayed: the used fraction, or its complement in "remaining" mode.
+    private string PctShown(double used)
+        => Pct(_settings.ShowRemaining ? Math.Clamp(1.0 - used, 0.0, 1.0) : used);
+
+    private static string FmtCountdown(double s)
+    {
+        if (s <= 0) return L.T("dur.now");
+        int h = (int)(s / 3600), m = (int)(s % 3600 / 60);
+        return h > 0 ? $"{h}h {m:00}m" : $"{m}m";
+    }
+
+    private static string FmtDays(double s)
+    {
+        if (s <= 0) return L.T("dur.now");
+        int d = (int)(s / 86400), h = (int)(s % 86400 / 3600);
+        return d > 0 ? $"{d}d {h}h" : FmtCountdown(s);
+    }
+
+    private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max];
+
+    // ---- Profiles in the tray menu (T123) ----
+
+    /// <summary>The "Open Claude Code" item, kept so its profile submenu can be rebuilt when the
+    /// profile list is edited in Settings — without rebuilding the whole menu.</summary>
+    private ToolStripMenuItem? _openClaudeItem;
+
+    /// <summary>The profile the collapsed command launches (T146), or null when it inherits. Held as a
+    /// field because the click handler is wired once, in <see cref="BuildMenu"/>, while the profile it
+    /// aims at is decided on every menu open.</summary>
+    private ClaudeInfo? _openClaudeProfile;
+
+    /// <summary>
+    /// Whether "Open Claude Code" is the per-profile submenu of T123, or the plain command it collapses
+    /// back to. The submenu exists because a launch used to be the only moment the tray could choose a
+    /// profile; with the whole environment on one profile (T145) every entry would start the same
+    /// session, so the level asks a question the user has already answered. Asked here by the tray and
+    /// by <c>--profiles</c>, so the two cannot disagree about what the menu looks like.
+    /// </summary>
+    internal static bool LaunchIsSubmenu(Settings settings, int profileCount) =>
+        profileCount > 1 && !settings.SyncEnvironmentProfile;
+
+    /// <summary>
+    /// Rebuild the per-profile submenu under "Open Claude Code". One profile (the normal case) leaves
+    /// the item as a plain command; several turn it into a submenu, each entry launching Claude Code
+    /// with that profile's <c>CLAUDE_CONFIG_DIR</c> and its own working directory. A profile with no
+    /// credentials file on disk gets marked, and its entry runs <c>claude auth login</c> instead —
+    /// which is the only action that would help there.
+    ///
+    /// <para>While the environment carries the profile (T146) there is no submenu, but that last
+    /// behaviour still has to hold: the collapsed command aims at the profile the user actually chose,
+    /// so it carries the same "— sign in" marking and runs the same login when that profile has no
+    /// credentials on disk. It is aimed explicitly rather than left to inherit because the tray's own
+    /// environment block was built at launch and does not see a variable written since.</para>
+    /// </summary>
+    private void RefreshProfileMenu()
+    {
+        if (_openClaudeItem is null) return;
+        _openClaudeItem.DropDownItems.Clear();
+
+        // The list RefreshWatched just discovered, rather than a second sweep of its own: one menu open
+        // is one discovery, and the two menus can't disagree about who needs a sign-in (T137).
+        List<ClaudeInfo> profiles = _watched;
+        if (!LaunchIsSubmenu(_settings, profiles.Count))
+        {
+            // Null while auto-follow is the thing driving: nothing has been chosen, the tray owns no
+            // variable, and inheriting is the honest launch.
+            _openClaudeProfile = profiles.Count > 1 ? DeliberateProfile() : null;
+            _openClaudeItem.Text = _openClaudeProfile is { HasCredentialsFile: false }
+                ? L.T("menu.profileNoLogin", L.T("menu.openClaude"))
+                : L.T("menu.openClaude");
+            _openClaudeItem.ToolTipText = _openClaudeProfile?.ConfigDir;
+            return;
+        }
+
+        _openClaudeProfile = null;
+        _openClaudeItem.Text = L.T("menu.openClaude");
+        _openClaudeItem.ToolTipText = null;
+
+        foreach (ClaudeInfo profile in profiles)
+        {
+            bool needsLogin = !profile.HasCredentialsFile;
+            var item = new ToolStripMenuItem(needsLogin
+                ? L.T("menu.profileNoLogin", profile.Label)
+                : profile.Label)
+            {
+                ToolTipText = profile.ConfigDir,
+            };
+            ClaudeInfo captured = profile;
+            item.Click += (_, _) => OpenClaudeCode(profile: captured);
+            _openClaudeItem.DropDownItems.Add(item);
+        }
+    }
+
+    /// <summary>
+    /// What launching a profile actually runs. A profile with no credentials file has nothing to
+    /// refresh, so <c>claude auth login</c> is the only action that helps — with <c>--email</c>
+    /// prefilled when the config still names the account whose login lapsed, which is the one case
+    /// where the tray knows the address without ever having asked for it. Everything else launches
+    /// <c>claude</c>, which refreshes its own token.
+    /// </summary>
+    internal static string LaunchCommandFor(ClaudeInfo? profile) =>
+        profile is { HasCredentialsFile: false }
+            ? "claude auth login" + (SafeEmail(profile.HolderEmail) is { } mail ? $" --email {mail}" : "")
+            : "claude";
+
+    // The address is read off disk and ends up on a cmd.exe command line, so it is only passed when it
+    // is unambiguously an address — no quoting, no shell metacharacters, nothing cmd would interpret.
+    // A rejected address just means the login page asks for it, which costs the user one field.
+    private static string? SafeEmail(string? email)
+    {
+        if (email is not { Length: > 3 } e || e.Length > 254) return null;
+        foreach (char c in e)
+            if (!char.IsAsciiLetterOrDigit(c) && c is not ('@' or '.' or '_' or '-' or '+')) return null;
+        return e.Count(c => c == '@') == 1 && !e.StartsWith('@') && !e.EndsWith('@') ? e : null;
+    }
+
+    /// <summary>The directory a profile opens in: its own when set, else the global setting. This is
+    /// what stops a work account from opening inside a personal repo.</summary>
+    internal static string WorkDirFor(ClaudeInfo? profile, string fallback) =>
+        profile is { WorkDir.Length: > 0 } ? profile.WorkDir : fallback;
+
+    // Open the Claude Code CLI in a terminal. Starting it makes Claude Code validate and refresh
+    // the OAuth token, which clears an expired-token (401) state for the next poll. `claude` is on
+    // PATH for anyone who uses Claude Code, so the shell resolves it regardless of install method.
+    //
+    // With a profile, the launch carries that profile's CLAUDE_CONFIG_DIR — which is the whole
+    // switching mechanism: nothing is written, and Claude Code owns everything inside that dir.
+    private void OpenClaudeCode(bool forReauth = false, ClaudeInfo? profile = null)
+    {
+        try
+        {
+            // Two re-auth paths, decided by whether a refresh token is on disk (ApiClient sets
+            // NeedsFullLogin): with one, just launching `claude` silently refreshes the access token;
+            // without one, only a full /login re-authenticates (there's no CLI flag to force it), so we
+            // print a hint to type /login above the prompt before launching claude in the same window.
+            string launch = LaunchCommandFor(profile);
+            string command = !forReauth
+                ? $"/k {launch}"
+                : _data is { NeedsFullLogin: true }
+                    ? $"/k echo {L.T("cli.loginHint")} & {launch}"
+                    : $"/k echo {L.T("cli.refreshHint")} & {launch}";
+            var psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = command,
+            };
+            // Set it, remove it, or leave it — decided against what this child would inherit, not
+            // against `~/.claude`. Setting it *to* `~/.claude` is actively harmful (T136), so selecting
+            // that profile means removing an inherited variable, which is exactly the case a
+            // machine- or user-wide CLAUDE_CONFIG_DIR creates (T144). ClaudeAccount owns the decision,
+            // shared with the auth check and `--profiles`.
+            //
+            // ProcessStartInfo.Environment is only honoured with UseShellExecute = false, which
+            // ApplyConfigDir sets when it has anything to do; cmd.exe gets its own console either way.
+            if (profile is null || ClaudeAccount.ApplyConfigDir(psi, profile.ConfigDir)
+                    == ClaudeAccount.ConfigDirAction.Inherit)
+                psi.UseShellExecute = true;
+
+            string dir = WorkDirFor(profile, _settings.ClaudeCodeDirectory);
+            if (!string.IsNullOrWhiteSpace(dir) && Directory.Exists(dir))
+                psi.WorkingDirectory = dir;
+            Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(
+                L.T("dialog.launchFailed", ex.Message),
+                L.T("dialog.appName"), MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+    }
+
+    private void ExitApp()
+    {
+        _poll.Stop();
+        _flash.Stop();
+        _updateCheck.Stop();
+        _tray.Visible = false;
+        if (_iconHandle != IntPtr.Zero) DestroyIcon(_iconHandle);
+        _tray.Dispose();
+        ExitThread();
+    }
+}

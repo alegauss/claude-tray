@@ -35,7 +35,7 @@ with WinForms while showing a WPF window must call `WpfInputBridge.Install()`.
 
 ## File map
 
-The sources live under `src/`, one folder per subsystem (T129–T130) — the folder is the map, this table
+The sources live under `src/`, one folder per subsystem (T129–T132) — the folder is the map, this table
 is the detail. **Where does a new file go?** In the folder of the subsystem it belongs to; **the repo root
 is for the project, not for code** (csproj, manifest, icon, `lang/`, `docs/`, the roadmap docs). Two
 things are deliberate and must not be "fixed": the namespace stays **flat `ClaudeTray`** — folders are
@@ -48,9 +48,20 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 
 | File | Responsibility |
 |---|---|
-| `src/Tray/Program.cs` | Entry point, CLI flags, `TrayContext` (tray icon, menu, poll/flash timers), `OpenSettings`. |
+| `src/Tray/Program.cs` | `Main` and nothing else: the arg dispatch that routes every flag, `ArgValue`, plus `StartupManager` (the HKCU Run entry) and `WpfInputBridge` (see above). |
+| `src/Tray/TrayContext.cs` | The resident app: tray icon, menu, poll/flash/update/context timers, `ApplySettings`, tooltip, icon render, the watched-profile list and `OpenSettings`/`OpenStatistics`/`OpenContext`. |
 | `src/Tray/IconRenderer.cs` | GDI+ icon (vector number + outline + fill bar + projection color) at the real size; also the app `.ico` and social image. |
 | `src/Tray/Updater.cs` | Checks GitHub Releases; downloads/runs the installer for in-app self-update. `CurrentVersion`. |
+
+**`src/Cli/` — the headless printers** (one file per flag family; `Main` dispatches, these run and exit)
+
+| File | Responsibility |
+|---|---|
+| `src/Cli/ContextCli.cs` | `--context` and `--context-report`: the scan printed as a report (projects, sources, findings, cleanup prompt, skill/agent usage, calibration) and the same scan written as markdown. |
+| `src/Cli/ActivityCli.cs` | `--activity`: the weekly activity profile as a 24×7 shaded grid, plus the measured-hours variant. |
+| `src/Cli/LiveCli.cs` | `--tail` and `--live`: each assistant turn as it lands, and the rolling tok/s with its per-project sparklines. |
+| `src/Cli/ProfilesCli.cs` | `--profiles [--check]`: every profile on the machine, its auth, its config-dir action and its icon accent band. |
+| `src/Cli/PreviewCli.cs` | The deterministic previews behind the published images: `--simulate-reset`, `--capture-toast`, `--render` (icon contact sheet), `--makeicon`, and the gap-demo report `--stats gapdemo` feeds. |
 
 **`src/Usage/` — quota, spend and live throughput**
 
