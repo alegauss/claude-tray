@@ -110,7 +110,12 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 | `src/Core/Localization.cs` | The dependency-free `L` / `{local:Loc key}` layer over the embedded `lang\<code>.json` files: language picked from Settings, else the OS UI language, English as the fallback for a missing key. |
 | `src/Core/SafeWalk.cs` | The recursive `~/.claude` walk every scan goes through: per directory, so an unreadable one (untrusted junction, denied ACL, folder deleted mid-sweep) skips its subtree instead of aborting the sweep. Materializes each directory's entries — a `try` around a lazy `Enumerate*` catches nothing — and resolves a reparse point to its target before opening it. |
 
-**`src/Ui/` — the windows** (the 4 `.xaml`/`.xaml.cs` pairs + `SettingsRow.cs`). A `Page`'s generated
+**`src/Ui/` — the windows** (the 4 `.xaml`/`.xaml.cs` pairs + `SettingsRow.cs`). A window with several
+independent surfaces is **one class in several files** (T133): `StatisticsWindow.{Throughput,Chart,
+Profiles,Format}.cs` and `ContextWindow.Gauge.cs` are `partial class` files, and the Context window's
+view models are their own types beside it (`ProjectRow.cs`, `SourceRows.cs`, `RowStyle.cs`,
+`ContextText.cs`) — a new surface gets a new `partial` file, not another 300 lines in the code-behind.
+A `Page`'s generated
 `InitializeComponent` builds its `Uri` from the file's **path**, so markup can be moved freely only
 while nothing hardcodes a `pack://application:,,,/…` URI — the repo hardcodes none, and adding one
 would tie a window to its folder.

@@ -123,16 +123,14 @@
 > 30 non-UI sources into `src/{Context,Usage,Profiles,Core,Tray}/`, T130 the four windows into
 > `src/Ui/` and T131 the seven shipping entries into `build/`; see [CHANGELOG.md](CHANGELOG.md)
 > Block P. **T132** then split the biggest file: `Program.cs` is `Main` and the arg dispatch, the
-> headless printers are `src/Cli/*.cs` and the resident app is `Tray/TrayContext.cs`. What is left is
-> the two big code-behinds (~1.3k each) and `SettingsWindow.xaml`'s six pages.
->
-> What remains of the block splits those (T133–T134).
+> headless printers are `src/Cli/*.cs` and the resident app is `Tray/TrayContext.cs`, and **T133** gave
+> each window surface its own `partial` file. What is left is `SettingsWindow.xaml`'s six pages — the
+> one piece of the block that still needs design before it is worth doing.
 > Every task is **rename + reference fix, zero behaviour change** — a Block P commit that alters what
 > the app does is a mistake, not a bonus. The layout and the four things that must *not* move
 > (the flat namespace, `lang/`, the root docs, the csproj) are in
 > [IMPROVEMENTS.md](IMPROVEMENTS.md) §VIII.0.
 
-- 📋 **T133** (deps: T130) **The two big code-behinds split per surface** — `ContextWindow.xaml.cs` (1,369 lines, 7 types) and `StatisticsWindow.xaml.cs` (1,269 lines: session tab, week tab, throughput tab, activity shape, method popup, profile selector) each carry several independent surfaces plus their helper types in one file. `partial class` per tab, helper types to their own files, no XAML change. → §VIII.5
 - 💭 **T134** (deps: T130) **`SettingsWindow.xaml`: six pages in one file** — 1,019 lines holding General, Display, Claude Code, Notifications, System information and About, over ~170 lines of shared row/value styles they all consume. Needs design before it is worth doing: a `UserControl` per page reads better but separates the styles from their users, and the UI conventions (all layout in XAML, nothing hardcoded that a theme owns) must survive it. → §VIII.6
 
 ## Non-goals (do NOT add as tasks)

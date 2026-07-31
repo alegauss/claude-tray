@@ -406,19 +406,6 @@ The value of this block is that its diffs are boring and its risk is a build err
 A file that gets "improved while it was open" destroys that property — the improvement becomes a task in
 whichever block owns that subsystem.
 
-### §VIII.5 One window, several surfaces, one file (T133)
-
-`ContextWindow.xaml.cs` is 1,369 lines and **7 types**; `StatisticsWindow.xaml.cs` is 1,269 lines and
-carries the session tab, the week tab, the throughput tab, the activity shape, the method popup and now
-the profile selector. Both grew a tab at a time, and each tab's handlers, formatting and state are
-interleaved with the others' — the file is where a change to the throughput chart has to be found among
-the projection code.
-
-`partial class` files per surface (`StatisticsWindow.Throughput.cs`, `StatisticsWindow.Week.cs`, …) keep
-one class and one XAML while giving each surface a file; the helper types that are not the window move
-out to their own files under the folder that owns them (a chart model belongs with `Usage/`, not with a
-window). No XAML changes, so the screenshot gate is a regression check rather than a review.
-
 ### §VIII.6 Six settings pages in one markup file (T134)
 
 `SettingsWindow.xaml` is 1,019 lines: ~170 lines of shared styles (the settings-row pattern, the

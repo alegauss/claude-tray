@@ -169,3 +169,4 @@ here. This file is a terse index, not a memory.
 - **T131 SHIPPED** (Block P — installer, build/release scripts and winget manifests move into `build/`) — 2026-07-31.
 - **T130 SHIPPED** (Block P — the four windows and `SettingsRow` move into `src/Ui/`) — 2026-07-31.
 - **T132 SHIPPED** (Block P — `Program.cs` splits into `Main`, `src/Cli/*` and `Tray/TrayContext.cs`) — 2026-07-31.
+- **T133 SHIPPED** (Block P — the two big code-behinds split into `partial` files per surface) — 2026-07-31.
