@@ -567,15 +567,21 @@ build the installer, and attach `ClaudeTray-Setup.exe` to a GitHub release tagge
 
 ## Structure
 
+The sources live under `src/`, one folder per subsystem — `src/Tray/` (the resident app),
+`src/Usage/` (quota, spend, live throughput), `src/Context/` (the Context Load Inspector),
+`src/Profiles/` (accounts and settings) and `src/Core/` (localization and the safe directory walk).
+The windows are the `.xaml`/`.xaml.cs` pairs in the repo root. The namespace is flat (`ClaudeTray`),
+so the folders are for reading, not for the compiler.
+
 | File | Responsibility |
 |---|---|
-| `Program.cs` | entry point, `ApplicationContext`, tray icon, menu, poll/flash timers |
-| `ApiClient.cs` | reads credentials, calls the API, parses the rate-limit headers |
-| `BurnTracker.cs` | tracks utilization history, estimates the burn rate, projects exhaustion |
-| `UsageInsights.cs` | aggregates the last 24h of session transcripts into a cost-weighted breakdown |
-| `ClaudeAccount.cs` | reads the local Claude Code config for the plan, holder, org and install shown on the System information page, and discovers every profile (config dir) on the machine (read-only, no secrets) |
-| `IconRenderer.cs` | draws the icon with GDI+ (vector + outline + projection dot) at the actual size |
-| `Updater.cs` | checks GitHub Releases and downloads/runs the installer for in-app self-update |
+| `src/Tray/Program.cs` | entry point, `ApplicationContext`, tray icon, menu, poll/flash timers |
+| `src/Usage/ApiClient.cs` | reads credentials, calls the API, parses the rate-limit headers |
+| `src/Usage/BurnTracker.cs` | tracks utilization history, estimates the burn rate, projects exhaustion |
+| `src/Usage/UsageInsights.cs` | aggregates the last 24h of session transcripts into a cost-weighted breakdown |
+| `src/Profiles/ClaudeAccount.cs` | reads the local Claude Code config for the plan, holder, org and install shown on the System information page, and discovers every profile (config dir) on the machine (read-only, no secrets) |
+| `src/Tray/IconRenderer.cs` | draws the icon with GDI+ (vector + outline + projection dot) at the actual size |
+| `src/Tray/Updater.cs` | checks GitHub Releases and downloads/runs the installer for in-app self-update |
 
 > Dev tips: `dotnet run -- --render <dir>` dumps sample PNGs at 16/20/32 px for visual
 > inspection; `dotnet run -- --insights` prints the 24h usage breakdown to the console;

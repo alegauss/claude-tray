@@ -406,22 +406,6 @@ The value of this block is that its diffs are boring and its risk is a build err
 A file that gets "improved while it was open" destroys that property — the improvement becomes a task in
 whichever block owns that subsystem.
 
-### §VIII.1 The non-UI sources move (T129)
-
-29 files, five folders, one commit: splitting the mechanical move by family would leave the repo
-half-migrated between commits for no gain in safety, since the namespace is flat and the compiler is
-the gate either way. The grouping follows the seams the code already has — `Context*` is one subsystem
-with one entry point, the usage/pacing family is another, `ClaudeAccount`/`ProfileStore`/`ProfileActivity`/`Settings`
-are the profile model Block O built, and `Localization`/`SafeWalk` are the two helpers with no subsystem of
-their own.
-
-`AGENTS.md`'s file map is part of this task, not a follow-up: it gets grouped by folder, and it gains
-the one rule that keeps the root from filling up again — **a new file goes in the folder of the
-subsystem it belongs to; the root is for the project, not for code.**
-
-The gate is a build plus the headless smoke set (`--context`, `--activity`, `--profiles`, `--tail`),
-because those paths touch every moved family and cost seconds.
-
 ### §VIII.2 The windows move (T130)
 
 Separate from T129 because the failure mode is different. A `.xaml` compiled as a `Page` gets a
