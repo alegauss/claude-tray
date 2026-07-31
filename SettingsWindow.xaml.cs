@@ -495,6 +495,16 @@ internal partial class SettingsWindow : Window
                 L.T(p.IsRegistered ? "settings.cc.profileRegistered" : "settings.cc.profileDiscovered"));
             ProfileStatusText.Visibility = Shown(ProfileStatusText.Text);
 
+            // T143: only offered for a non-default profile — see the row's comment in the XAML for why
+            // the default one must not get this command at all, not merely a discouraged one.
+            ProfileTerminalRow.Visibility = ProfileTerminalDivider.Visibility =
+                p is { IsDefault: false } ? Visibility.Visible : Visibility.Collapsed;
+            if (p is { IsDefault: false })
+            {
+                ProfileTerminalCommand.Text = $"setx CLAUDE_CONFIG_DIR \"{p.ConfigDir}\"";
+                ProfileTerminalHint.Text = "";
+            }
+
             // The one control that actually changes which profile the icon follows (T138) — distinct
             // from this very combo, which only picks which profile's fields are on screen right now.
             bool isIconProfile = p is not null && ClaudeAccount.PickMonitored(_ccProfiles, _settings.MonitoredConfigDir)
@@ -512,6 +522,22 @@ internal partial class SettingsWindow : Window
         if (SelectedProfile is not { } p) return;
         _settings.MonitoredConfigDir = p.ConfigDir;
         FillProfileFields();
+    }
+
+    // Copies the command; never runs it. The tray stays a reader of CLAUDE_CONFIG_DIR, never a writer
+    // of it at the user-environment level — see the row's comment in the XAML (T143).
+    private void ProfileTerminalCopy_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Windows.Clipboard.SetText(ProfileTerminalCommand.Text);
+            ProfileTerminalHint.Text = L.T("settings.sys.copied");
+        }
+        catch (Exception ex)
+        {
+            // The clipboard can be locked by another process; say so instead of failing silently.
+            ProfileTerminalHint.Text = ex.Message;
+        }
     }
 
     private void Profile_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)

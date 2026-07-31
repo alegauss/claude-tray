@@ -149,32 +149,6 @@
 
 - 📋 **T142** (deps: T135) **An interaction harness, not a scratch script** — the checks that caught T135 and verified T137 were ad-hoc UI-Automation scripts in a scratch directory: focus a control by `AutomationId`, `SendKeys`, read the value back; open the tray menu and read the per-profile entries. They belong in `scripts\Check-Interaction.ps1`, because keyboard and menu behaviour are the two things no capture can see. Three traps are already known and must be encoded: the notification-area icon may sit in the overflow flyout and has **no clickable point** (use its bounding rectangle), a collapsed WPF pane is **absent from the UIA tree** (navigate first, and the sidebar items are `Border`s with no automation peer — match the `TextBlock` inside), and a right-click on the icon does not always produce the menu, so it must retry **and fail loudly**: the first version of that script reported a pass having read zero menu entries, which is worse than no test at all. → §IX.1
 
-## Block R — Profiles, second pass ("what a real second login exposed")
-
-> The first genuine use of a second subscription found four things in one sitting, two of them already
-> fixed: **T136** (the tray created a stub `~/.claude/.claude.json` by overriding `CLAUDE_CONFIG_DIR`
-> for the *default* profile, then read that stub in preference to the real config — so a Max 5x / VILT
-> Group / 39-project profile was reported as "Claude Team", no org, 0 projects, and its derived label
-> collapsed onto the other profile's) and **T137** (the menu kept offering a sign-in to a profile that
-> had just signed in, because discovery only ran at startup). See [CHANGELOG.md](CHANGELOG.md) Block R.
->
-> **T138 shipped**: the Claude Code page now has a real "this profile drives the icon" control (Icon
-> profile / Active / Use for icon), and the System information picker and the Claude Code editor combo
-> are reworded to say what they actually do (Viewing / Editing). See [CHANGELOG.md](CHANGELOG.md) Block R.
->
-> **T140 shipped**: an organization name matching Anthropic's personal-default pattern (`*'s
-> Organization`) no longer reaches the label, and any two profiles that still collide (typed or
-> derived) get the config dir's leaf name appended for display. See [CHANGELOG.md](CHANGELOG.md) Block R.
->
-> **T139 shipped**: a hand-picked profile now pins the icon there until "Resume following" is clicked
-> in the Profile submenu, instead of holding only until the next turn lands elsewhere — which on a
-> continuously-active profile could be seconds later. See [CHANGELOG.md](CHANGELOG.md) Block R.
->
-> What is left shares the block's theme: the model is right, and the **controls and names** around it
-> are not.
-
-- 💭 **T143** (deps: T123) **"Make this profile the default for terminals I open myself"** — the tray passes `CLAUDE_CONFIG_DIR` to the session it launches and deliberately nothing else, which the reporter diagnosed exactly: *"the variable isn't persisting globally, only in the session"*. Setting it at user level would make **every** Claude Code session on the machine use that profile, including ones the tray never sees, so it is a different promise from anything the app makes today and needs design before it is offered — the cheap alternative being a copyable `setx` line the user runs themselves, with the tray explaining the consequence rather than owning it. → §X.4
-
 ## Block S — Settings round-trip ("a field missing from the copy is a field reset")
 
 - 📋 **T141** (deps: —) **The Settings copy must be total, not a hand-written field list** — `SettingsWindow` copies the model field by field into an edit buffer and `ApplySettings` copies the whole model back, so a field absent from that constructor list is **silently reset to its default on Save**. Two found so far: `MonitoredConfigDir` (fixed in T126 — any visit to Settings sent the icon back to the default profile) and `NotifyOnContextGrowth` + `ContextNudgeTokens`, still live: the context-growth toggle always opens *off*, and saving turns it off. Adding the missing lines is not the fix — the copy has to be total by construction (a `Clone()` through the same `System.Text.Json` that already writes the file, so no field can be forgotten), which also retires the hand-maintained warning T126 had to add to `AGENTS.md`. → §XI.1

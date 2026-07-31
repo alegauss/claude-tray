@@ -80,7 +80,9 @@
   shipped tasks did not: the profile *model* is right and the **controls and names** around it are not —
   three controls that read as a profile switch when one is, a manual pick that a continuously-active
   profile undoes in seconds, a derived label that is somebody's email address, and (T143, an idea) the
-  machine-wide variable the reporter correctly noticed the tray never sets.
+  machine-wide variable the reporter correctly noticed the tray never sets. **Closed with T143**
+  (2026-07-31): all six tasks shipped, so the block is out of `ROADMAP.md` — see
+  [CHANGELOG.md](CHANGELOG.md) Block R.
 - Block **S** (T141, created 2026-07-31) is a one-task block on the **Settings model round-trip**, not a
   Block R item: it is not about profiles at all. `SettingsWindow` copies the model field by field and
   `ApplySettings` copies it back, so any field missing from that list is silently reset on Save —
@@ -154,3 +156,4 @@ here. This file is a terse index, not a memory.
 - **T138 SHIPPED** (Block R — the Claude Code page gets a real "drives the icon" control) — 2026-07-31.
 - **T140 SHIPPED** (Block R — no email in a label, and no two profiles sharing one) — 2026-07-31.
 - **T139 SHIPPED** (Block R — a manual profile pick pins the icon until "Resume following") — 2026-07-31.
+- **T143 SHIPPED** (Block R — a copyable `setx` command, never run by the tray itself) — 2026-07-31.

@@ -17,7 +17,6 @@
 | [§VI](#vi--system-information-block-n) | System information (Block N) |
 | [§VIII](#viii--project-layout-block-p) | Project layout — the flat root becomes `src/` + `build/` (Block P) |
 | [§IX](#ix--interaction-verification-block-q) | Interaction verification — what a screenshot cannot see (Block Q) |
-| [§X](#x--profiles-second-pass-block-r) | Profiles, second pass — the controls and the names (Block R) |
 | [§XI](#xi--settings-round-trip-block-s) | Settings round-trip — a field missing from the copy is a field reset (Block S) |
 
 > Block I's design sections (§II) are gone: every one of them shipped, and `git log` plus
@@ -541,27 +540,6 @@ committed script rather than being rediscovered:
 
 Deliverable: `scripts\Check-Interaction.ps1`, documented in `AGENTS.md` beside the capture loop, with
 the keyboard case and the menu case runnable separately.
-
----
-
-## §X — Profiles, second pass (Block R)
-
-### §X.4 Machine-wide `CLAUDE_CONFIG_DIR` (T143)
-
-Diagnosed correctly by the reporter: the variable is set on the process the tray launches and nowhere
-else, so a terminal they open themselves still gets the default profile. That is deliberate — the three
-axes Block O settled — and the app has never claimed to own the user's environment.
-
-Making a profile the default for *self-opened* terminals means a user-level environment variable, and
-that is a promise the app does not currently make: it would apply to **every** Claude Code session on the
-machine, including ones started by other tools, CI shims, or an IDE, none of which the tray knows about,
-and it would keep applying after the tray is uninstalled. Not a non-goal — it does not write a config
-dir and does not touch credentials — but not a one-liner either.
-
-The cheap option to weigh first: the app *tells* the user the exact command
-(`setx CLAUDE_CONFIG_DIR "<dir>"`), with the consequence stated in one sentence, and lets them run it.
-That keeps the tray a reader, which is the property the whole profile model was built on, and it is
-strictly more honest than a toggle whose effect outlives the app.
 
 ---
 

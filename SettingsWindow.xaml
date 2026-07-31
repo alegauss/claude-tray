@@ -482,6 +482,34 @@
                                     </StackPanel>
                                 </local:SettingsRow>
 
+                                <Border x:Name="ProfileTerminalDivider" Style="{StaticResource RowDivider}" />
+
+                                <!-- T143: the cheap option IMPROVEMENTS.md §X.4 settled on — a copyable
+                                     command the user runs themselves, not a toggle the app owns. Setting
+                                     CLAUDE_CONFIG_DIR at the user-environment level would reach every
+                                     Claude Code session on the machine, including ones the tray never
+                                     launches and never sees, so the tray only shows the command and
+                                     states the consequence — it never runs it. Hidden for the default
+                                     profile: that folder is already what a bare `claude` uses, and T136
+                                     found that pointing CLAUDE_CONFIG_DIR *at* it makes Claude Code read
+                                     the wrong .claude.json. -->
+                                <local:SettingsRow x:Name="ProfileTerminalRow"
+                                                   Header="{local:Loc settings.cc.profileTerminal}"
+                                                   Description="{local:Loc settings.cc.profileTerminalDesc}">
+                                    <StackPanel MaxWidth="290">
+                                        <TextBlock x:Name="ProfileTerminalCommand" Style="{StaticResource ValueText}"
+                                                   FontFamily="Consolas" FontSize="12.5" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                            <TextBlock x:Name="ProfileTerminalHint" VerticalAlignment="Center"
+                                                       Margin="0,0,12,0" FontSize="11"
+                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                            <Button x:Name="ProfileTerminalCopyButton" MinWidth="90" Padding="14,5"
+                                                    Content="{local:Loc settings.cc.profileTerminalCopy}"
+                                                    Click="ProfileTerminalCopy_Click" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </local:SettingsRow>
+
                                 <Border x:Name="ProfileIconDivider" Style="{StaticResource RowDivider}" />
 
                                 <!-- The one real switch (T138): which profile the tray icon and tooltip

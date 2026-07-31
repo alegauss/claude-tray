@@ -334,6 +334,13 @@ terminal you open yourself still gets your default profile. For your **default**
 passes nothing at all — it is already the folder a bare `claude` uses, and setting the variable to it
 would start the session against a second, empty state file instead of your own project history.
 
+Want a non-default profile to be *your* terminal's default too? **Settings → Claude Code → Profiles**
+has a **Terminal default** row with the exact `setx CLAUDE_CONFIG_DIR "<dir>"` command and a **Copy**
+button. The tray copies it — it never runs it: that command changes every Claude Code session on the
+machine, including ones the tray never sees, until you run it again for another profile, so it stays
+something you choose to do rather than something the app does to your environment. (Hidden for the
+default profile, for the same reason the tray itself passes nothing for it.)
+
 > A fresh profile starts genuinely empty — no user `CLAUDE.md`, settings, skills, plugins or project
 > history. That isolation is the point, but it does mean the second profile won't inherit your setup.
 
