@@ -306,8 +306,11 @@ They live at the repo root on purpose: `docs/` is the published GitHub Pages sit
 - **A transcript "turn" is a `requestId`, not a line.** Claude Code writes **one `assistant` line per
   content block** of a single API response (thinking, then tool_use, …), and every one of those lines
   repeats that response's `message.usage` verbatim. Summing per line double-counts, weighted toward
-  heavy tool use. De-duplicate on `requestId` (or `message.id`) — `TranscriptTail` does; the older
-  `UsageReport.ScanTokens` does not (its curve is rescaled to the live utilization, which hides it).
+  heavy tool use — measured on a real week here: **41% of the lines are repeats, 1.63× the tokens**.
+  De-duplicate on `requestId` (or `message.id`), with the set **global rather than per file** so a
+  forked session's inherited copies drop too — `TranscriptTail`, `UsageReport.ScanTokens` and
+  `UsageInsights` all do (T102). The exception is `ActivityProfile`: its grid records *presence* per
+  hour, so a repeated line sets a bit that is already set, and it deliberately never parses the JSON.
 - **Single instance** is enforced by a named mutex; a second launch exits silently.
 - The marketing page is `docs/index.html` (GitHub Pages, served from `/docs`).
 - **New user-visible strings go into all five `lang/*.json`**, not just `en`.

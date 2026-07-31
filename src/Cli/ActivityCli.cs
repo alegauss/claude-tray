@@ -40,7 +40,7 @@ internal static class ActivityCli
             ? $"cached, built {prof.ComputedUtc.ToLocalTime():yyyy-MM-dd HH:mm}"
             : $"fresh scan, {prof.ElapsedMs:0}ms";
         Console.WriteLine($"Activity profile — {prof.CoverageWeeks:0.0} weeks of coverage, " +
-                          $"{prof.Samples:N0} requests ({source})");
+                          $"{prof.Samples:N0} assistant lines ({source})");
         if (root == null) Console.WriteLine("cache: " + ActivityProfile.CachePath(ProfileStore.Monitored));
         Console.WriteLine(prof.Confident
             ? $"confidence: usable — {prof.CoverageWeeks:0.0} weeks ≥ {ActivityProfile.ConfidentWeeks:0.0}, " +
@@ -49,7 +49,7 @@ internal static class ActivityCli
               "the projection stays a straight line");
         Console.WriteLine();
 
-        if (prof.Samples == 0) { Console.WriteLine("no requests in the last 12 weeks — nothing to shape"); return; }
+        if (prof.Samples == 0) { Console.WriteLine("no activity in the last 12 weeks — nothing to shape"); return; }
 
         PrintGrid(prof.P, numbers);
         Console.WriteLine($"mean {prof.Mean * 100:0}% of all hours active — {prof.Mean * 168:0.0}h in a typical week");

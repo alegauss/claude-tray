@@ -281,6 +281,10 @@ internal sealed class ActivityProfile
     // megabytes — and parsing every line to reach one field costs seconds, for a grid whose buckets
     // are an hour wide. `input_tokens` is what distinguishes a real request from a synthetic or
     // tool-result line, and `<synthetic>` turns (interrupts, replays) are not user presence.
+    //
+    // This is the one reader that does NOT need T102's de-duplication: the grid records *presence*
+    // ("this hour saw work"), so the extra lines one response writes set a bit that is already set.
+    // Only `Samples` counts them, which is why it is reported as lines and not as requests.
     private static bool IsRequestLine(string line)
         => line.Length > 0
            && line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal)

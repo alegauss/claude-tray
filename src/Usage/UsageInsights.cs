@@ -55,6 +55,11 @@ internal static class UsageInsights
             DateTime cutoff = nowUtc.AddHours(-24);
             var byModel = new Dictionary<string, double>();
             var sessions = new HashSet<string>();
+            // One response, one record (T102): Claude Code writes one `assistant` line per content
+            // block and repeats the same `usage` on each, so a per-line sum charges a turn once per
+            // block — which inflates the request count and skews every share below toward the turns
+            // that used the most tools.
+            var seen = new HashSet<string>(StringComparer.Ordinal);
             double total = 0, heavyCtx = 0, subagent = 0;
             int requests = 0;
 
@@ -67,8 +72,10 @@ internal static class UsageInsights
                 {
                     if (line.Length == 0) continue;
                     if (!TryParseRecord(line, cutoff, out string model, out bool sidechain,
-                                        out double cost, out double context, out string session))
+                                        out double cost, out double context, out string session,
+                                        out string id))
                         continue;
+                    if (id.Length > 0 && !seen.Add(id)) continue;
 
                     total += cost;
                     requests++;
@@ -110,11 +117,14 @@ internal static class UsageInsights
         catch { return Array.Empty<string>(); }
     }
 
-    /// <summary>Parse one transcript line; true only for in-window assistant records with usage.</summary>
+    /// <summary>Parse one transcript line; true only for in-window assistant records with usage.
+    /// <paramref name="id"/> is the response the line belongs to (<c>requestId</c>, falling back to
+    /// <c>message.id</c>), empty when the line carries neither — the key that tells a second content
+    /// block of one response apart from a second response.</summary>
     private static bool TryParseRecord(string line, DateTime cutoff, out string model,
-        out bool sidechain, out double cost, out double context, out string session)
+        out bool sidechain, out double cost, out double context, out string session, out string id)
     {
-        model = ""; sidechain = false; cost = 0; context = 0; session = "";
+        model = ""; sidechain = false; cost = 0; context = 0; session = ""; id = "";
         try
         {
             using var doc = JsonDocument.Parse(line);
@@ -142,6 +152,9 @@ internal static class UsageInsights
             sidechain = root.TryGetProperty("isSidechain", out var sc) &&
                         sc.ValueKind == JsonValueKind.True;
             session = root.TryGetProperty("sessionId", out var sid) ? sid.GetString() ?? "" : "";
+            id = root.TryGetProperty("requestId", out var rid) && rid.GetString() is { Length: > 0 } r
+                ? r
+                : msg.TryGetProperty("id", out var mid) ? mid.GetString() ?? "" : "";
 
             double inp = Num(u, "input_tokens");
             double outp = Num(u, "output_tokens");

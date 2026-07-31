@@ -257,22 +257,6 @@ now lives in the roadmap's Non-goals.
   it has drifted: the whole point is that the live signal is local.
 - **No tray-icon animation** — T101, dropped. See §V.0 and the roadmap's Non-goals.
 
-### §V.7 One response, counted once, everywhere (T102)
-
-Claude Code writes **one `assistant` line per content block** of a single API response — a thinking
-block and a tool_use block are two lines — and every one of them repeats that response's
-`message.usage` verbatim, with the same `requestId`. `UsageReport.ScanTokens` sums per line, so it
-counts such a response twice.
-
-Why this has gone unnoticed: the burn-up curve built from those samples is **rescaled to the live
-utilization**, so the endpoint is right no matter how badly the samples are inflated. What is not
-protected is the *shape* — the inflation is not uniform, it tracks how many content blocks a response
-had, which tracks heavy tool use. The same samples also feed `WindowPace.MeasuredActiveHours` (the
-denominator T87 calibrates the projection against) and `ActivityProfile`.
-
-`TryParseSample` already emits the id for T97; this is a de-duplication set in the sweep, and a
-before/after on the same window to quantify what the shape was off by.
-
 ### §V.8 The sweep is O(all history) (T103)
 
 `TranscriptTail` lists every `*.jsonl` under `~/.claude/projects` on each sweep and opens only the

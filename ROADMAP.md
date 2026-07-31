@@ -83,9 +83,9 @@
 > §V.5 pre-authorised: see Non-goals.
 >
 > **Second pass (T102–T108).** Building the block turned up one latent correctness bug that predates
-> it (T102), two costs it introduced (T103, T108), two readings it stops just short of (T104, T107),
-> and one duplicated resolver (T105). Ordered by what a user would notice: T102 first — it is wrong
-> today, everywhere the transcripts are counted — then T104, then the rest.
+> it (T102, **shipped** — 41% of the assistant lines were repeats of a response already counted), two
+> costs it introduced (T103, T108), two readings it stops just short of (T104, T107), and one
+> duplicated resolver (T105). What is left is ordered by what a user would notice: T104 first.
 >
 > **Shipped since, from watching the real thing: T110–T112, T114–T116.** The strip got a labelled
 > ceiling scaled to what is on screen (T110), its own **Throughput** tab (T111) and percentile clipping
@@ -96,7 +96,6 @@
 > end-of-turn attribution it was about without inventing a duration. What is left of T104 is the
 > per-sample hover.
 
-- 📋 **T102** (deps: —) **`ScanTokens` counts one API response several times** — Claude Code writes one `assistant` line per *content block*, each repeating that response's `usage`; T97 found this and de-duplicates on `requestId`, but the older sweep still sums per line. The weekly curve hides it (it is rescaled to the live utilization) yet the *shape* is skewed toward heavy tool use, and `MeasuredActiveHours` and `ActivityProfile` read the same samples. The parser already emits the id. → §V.7
 - 📋 **T103** (deps: T97) **The tail re-enumerates the whole tree every 3s** — 602 transcripts in 17ms today, metadata-only, but it is O(all history) and grows forever while the window is open. Enumerate only directories whose mtime moved, or fall back to watcher-reported paths once the tree passes a size. → §V.8
 - 📋 **T104** (deps: T99, T110, T111, T116) **The charts have no per-sample reading** — T110 gave the row a magnitude, T111 a tab with real height and T116 lines you can follow, which leaves the one interaction a time-series should not ship without: hover a point for its second, its project and the tokens that actually landed in it (the raw buckets are still there, beside the rate the line draws). → §V.9
 - 💭 **T105** (deps: T100) **One resolver for slug → project path** — T100 recovers a project's real folder by walking the `cwd` up to the ancestor whose encoding matches the slug; `ContextScanner.CwdFromTranscripts` answers the same question separately and less exactly. Two readers of the same lossy encoding is one too many. → §V.10

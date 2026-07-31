@@ -311,11 +311,20 @@ internal static class UsageReport
         return gaps;
     }
 
-    // Collect (unixTime, token breakdown) for every in-window assistant request with usage, from one
+    // Collect (unixTime, token breakdown) for every in-window API *response* with usage, from one
     // profile's transcripts (T128 — before that this always read the default config dir's).
+    //
+    // One response, one sample (T102). Claude Code writes one `assistant` line per content block and
+    // every one of them repeats that response's `usage` verbatim under the same id, so summing per
+    // line counts a response once per block — measured on a real week: 41% of the lines are repeats,
+    // 1.63x the tokens. Nothing protected the numbers downstream except the curve's rescaling to the
+    // live utilization, which fixes the endpoint and not the *shape*: the inflation tracks how many
+    // blocks a turn had, so heavy tool use read as heavy spend. The set is global, not per file, which
+    // also drops the copies a forked or resumed session carries over from its parent transcript.
     private static List<(double t, TokenBits bits)> ScanTokens(string projectsDir, double startUnix, double nowUnix)
     {
         var samples = new List<(double, TokenBits)>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         DateTime cutoffUtc = DateTimeOffset.FromUnixTimeSeconds((long)startUnix).UtcDateTime;
 
         foreach (string file in SafeWalk.Paths(projectsDir, "*.jsonl"))
@@ -325,8 +334,13 @@ internal static class UsageReport
             foreach (string line in ReadLinesSafe(file))
             {
                 if (line.Length == 0) continue;
-                if (TryParseSample(line, startUnix, nowUnix, out double t, out TokenBits bits))
-                    samples.Add((t, bits));
+                if (!TryParseSample(line, startUnix, nowUnix, out double t, out TokenBits bits,
+                                    out string? id, out _))
+                    continue;
+                // A line with no id at all can't be told apart from a legitimate second response, and
+                // counting it once too often is the lesser error than dropping real spend.
+                if (id != null && !seen.Add(id)) continue;
+                samples.Add((t, bits));
             }
         }
         return samples;
@@ -342,10 +356,6 @@ internal static class UsageReport
     /// <c>type</c>, <c>timestamp</c>, <c>requestId</c>, <c>message.id</c>, <c>message.model</c> and
     /// <c>message.usage</c> only — never content (§I.1) — which is why <see cref="TranscriptTail"/>
     /// reuses it rather than writing a second parser with a second chance of reading too much.</summary>
-    private static bool TryParseSample(string line, double startUnix, double nowUnix, out double t, out TokenBits bits)
-        => TryParseSample(line, startUnix, nowUnix, out t, out bits, out _, out _);
-
-    /// <inheritdoc cref="TryParseSample(string,double,double,out double,out TokenBits)"/>
     /// <param name="id">The response this line belongs to (<c>requestId</c>, falling back to
     /// <c>message.id</c>). Claude Code writes <b>one line per content block</b>, each repeating the
     /// same <c>usage</c>, so a caller that must not count a response twice keys on this.</param>

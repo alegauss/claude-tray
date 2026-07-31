@@ -172,3 +172,4 @@ here. This file is a terse index, not a memory.
 - **T133 SHIPPED** (Block P — the two big code-behinds split into `partial` files per surface) — 2026-07-31.
 - **T134 SHIPPED** (Block P — `SettingsWindow`'s code-behind splits one file per page; markup untouched) — 2026-07-31.
 - **T121 SHIPPED** (Block N — a fixture account, so the System information page can be screenshotted) — 2026-07-31.
+- **T102 SHIPPED** (Block K — one API response counted once in every local scan) — 2026-07-31.
