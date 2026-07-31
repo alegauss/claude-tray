@@ -528,21 +528,6 @@ Three alternatives were weighed and dropped before settling on the variable:
   account", and worth mentioning to a user who wants that — but it is editor-specific and does not
   answer "in the whole environment".
 
-### §XI.3 The icon that does not say whose number it is (T147)
-
-Reported from use, and independent of the toggle: nothing on the icon distinguishes the profiles. The
-number is usage, the fill is usage, the colour is the *projection* verdict — all three are identical
-whichever profile the icon follows, and only the tooltip names it. With the profile global, "which one
-am I in?" stops being a detail and becomes the question a glance should answer.
-
-The constraints are what make this a designed task rather than an obvious one: the icon is drawn by
-GDI+ at the real tray size (`SM_CXSMICON`, typically 16 px), where a second glyph competes with the
-number for the only legible area; and colour already means projection, so a per-profile colour would
-overload the one channel the app has for "you are about to run out". Candidates worth weighing before
-building: a one-character initial in a corner, a thin per-profile accent along an edge that the
-projection colour never uses, or a shape change to the outline. Whatever wins has to be legible at
-16 px on both light and dark taskbars, and must not read as a warning.
-
 ### §XI.4 The Profile submenu is mouse-only (T148)
 
 Found while driving T145's verification through the tray's real menu: `Perfil` expands on hover and

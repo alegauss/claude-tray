@@ -1287,6 +1287,12 @@ internal static class Program
                               }
                               + $"   cwd {workDir}"
                               + (Directory.Exists(workDir) ? "" : "  (missing — OS default applies)"));
+            // The identity band the icon wears while this profile owns it (T147) — printed so the
+            // mapping can be checked without driving the taskbar.
+            int slot = TrayContext.AccentSlotFor(profiles, p);
+            Console.WriteLine("             " + (slot < 0
+                ? "no accent band — only one profile, so there is no \"whose number is this?\" to answer"
+                : $"accent band {IconRenderer.AccentName(slot)}"));
             Console.WriteLine();
         }
         Settings settings = Settings.Load();
@@ -1412,6 +1418,16 @@ internal static class Program
                 using (var bmp = IconRenderer.Render(pct, st, fl, size, verdict))
                     bmp.Save(Path.Combine(dir, $"icon_{(int)(pct * 100)}_{size}.png"));
 
+        // The same cases carrying each profile accent (T147), plus a contact sheet magnified 8x with
+        // the real 16px pixels preserved — the band has to be judged at tray size, and a 16px PNG
+        // viewed at 16px cannot be judged at all.
+        foreach (int size in new[] { 16, 20, 32 })
+            foreach (var (pct, st, fl, verdict) in cases)
+                for (int accent = 0; accent < IconRenderer.AccentCount; accent++)
+                    using (var bmp = IconRenderer.Render(pct, st, fl, size, verdict, accent: accent))
+                        bmp.Save(Path.Combine(dir, $"accent{accent}_{(int)(pct * 100)}_{size}.png"));
+        SaveMarkSheet(Path.Combine(dir, "mark_sheet.png"), cases);
+
         // Logo, plain and with the API-error badge (the 403 state), at real + large sizes.
         foreach (int size in new[] { 16, 20, 32, 128 })
         {
@@ -1421,6 +1437,43 @@ internal static class Program
                 err.Save(Path.Combine(dir, $"logo_error_{size}.png"));
         }
         Console.WriteLine("rendered to " + Path.GetFullPath(dir));
+    }
+
+    /// <summary>
+    /// A contact sheet for the profile accent: every case unmarked and then once per accent, drawn at
+    /// the real 16px and blown up 8x with nearest-neighbour so the actual tray pixels are what gets
+    /// judged. Two backdrops, because the band has to survive a light and a dark taskbar and the tile
+    /// is the same on both.
+    /// </summary>
+    private static void SaveMarkSheet(string path, (double pct, IconRenderer.State st, bool fl, Projection verdict)[] cases)
+    {
+        const int px = 16, zoom = 8, gap = 8;
+        int[] marks = new[] { -1 }.Concat(Enumerable.Range(0, IconRenderer.AccentCount)).ToArray();
+        int cell = px * zoom + gap;
+        int w = gap + cases.Length * marks.Length * cell;
+        int h = gap + 2 * cell;
+
+        using var sheet = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using var g = Graphics.FromImage(sheet);
+        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
+
+        for (int row = 0; row < 2; row++)
+        {
+            using (var bg = new SolidBrush(row == 0 ? Color.FromArgb(32, 32, 32) : Color.FromArgb(240, 240, 240)))
+                g.FillRectangle(bg, 0, gap / 2 + row * cell, w, cell);
+
+            int col = 0;
+            foreach (var (pct, st, fl, verdict) in cases)
+                foreach (int mark in marks)
+                {
+                    using var bmp = IconRenderer.Render(pct, st, fl, px, verdict, accent: mark);
+                    g.DrawImage(bmp, gap + col * cell, gap + row * cell, px * zoom, px * zoom);
+                    col++;
+                }
+        }
+        sheet.Save(path);
+        Console.WriteLine("mark sheet: " + Path.GetFullPath(path));
     }
 
     // Dev helper: a hand-built pacing report with a data gap in the session curve, so the "unavailable"
@@ -2566,6 +2619,31 @@ internal sealed class TrayContext : ApplicationContext
         return (verdict, eta);
     }
 
+    /// <summary>
+    /// Which accent band the icon wears (T147), or -1 for none. Only meaningful with more than one
+    /// profile — the same gate the Profile submenu uses, since with one profile there is no "whose
+    /// number is this?" to answer and an unexplained stripe would be noise.
+    ///
+    /// <para>The slot is the profile's position in the watch list ordered by <b>key</b>, not the list's
+    /// own order: <c>_watched[0]</c> is whichever profile the icon currently follows, so indexing that
+    /// directly would give every profile the same accent the moment it took the icon over — the exact
+    /// opposite of an identity. Two profiles therefore always differ; adding a third can re-deal the
+    /// hues, which is the cost of not tying identity to a hash that could collide.</para>
+    /// </summary>
+    private int AccentSlot() =>
+        AccentSlotFor(_watched, ClaudeAccount.PickMonitored(_watched, _settings.MonitoredConfigDir));
+
+    /// <summary>The accent slot itself, asked by the icon and by <c>--profiles</c> — so what the tray
+    /// draws and what the CLI reports cannot disagree about whose band is whose.</summary>
+    internal static int AccentSlotFor(List<ClaudeInfo> profiles, ClaudeInfo? profile)
+    {
+        if (profiles.Count < 2 || profile is null) return -1;
+        List<string> ordered = profiles.Select(ProfileStore.KeyFor)
+            .OrderBy(k => k, StringComparer.OrdinalIgnoreCase).ToList();
+        int slot = ordered.IndexOf(ProfileStore.KeyFor(profile));
+        return slot < 0 ? -1 : slot;
+    }
+
     private void Render()
     {
         IconRenderer.State state =
@@ -2587,7 +2665,8 @@ internal sealed class TrayContext : ApplicationContext
         using Bitmap bmp =
             _data is { Unauthorized: true } || state == IconRenderer.State.Connecting || apiError
                 ? IconRenderer.RenderLogo(size, apiError)
-                : IconRenderer.Render(CurrentPct(), state, flash, size, verdict, _settings.ShowPercentage, _settings.ShowRemaining);
+                : IconRenderer.Render(CurrentPct(), state, flash, size, verdict, _settings.ShowPercentage,
+                    _settings.ShowRemaining, AccentSlot());
         SetTrayIcon(bmp);
         _tray.Text = Truncate(BuildTooltip(), 127);
     }

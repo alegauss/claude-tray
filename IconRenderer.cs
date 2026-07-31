@@ -33,6 +33,30 @@ internal static class IconRenderer
     private static readonly Color BarOrange   = Color.FromArgb(255, 150, 20); // early-warning orange
     private static readonly Color BarDanger   = Color.FromArgb(255, 35, 30);  // vivid, alarming red
 
+    // Per-profile accent (T147), used only for the top-edge identity band. Chosen to be disjoint from
+    // every color that already carries meaning here — the green/orange/red of the projection, the cyan
+    // of "no projection yet", the amber of an API error and the slate of the tile itself — so the band
+    // can never be read as a verdict or a warning. Violets and pinks are what is left, and they hold
+    // their hue against both a light and a dark taskbar. More profiles than entries cycle: past three
+    // the hues would stop being tellable apart anyway, and the tooltip names the profile regardless.
+    private static readonly Color[] Accents =
+    {
+        Color.FromArgb(167, 110, 255),   // violet
+        Color.FromArgb(255,  92, 188),   // pink
+        Color.FromArgb(120, 140, 255),   // periwinkle
+    };
+
+    /// <summary>How many distinct profile accents there are, before they cycle.</summary>
+    public static int AccentCount => Accents.Length;
+
+    /// <summary>The accent's name, for <c>--profiles</c> to say which band a profile wears.</summary>
+    public static string AccentName(int accent) => accent < 0 ? "-" : (accent % Accents.Length) switch
+    {
+        0 => "violet",
+        1 => "pink",
+        _ => "periwinkle",
+    };
+
     // 3D bevel edges (top-left highlight, bottom-right shadow)
     private static readonly Color BevelLight = Color.FromArgb(150, 255, 255, 255);
     private static readonly Color BevelDark  = Color.FromArgb(150, 0, 0, 0);
@@ -46,8 +70,10 @@ internal static class IconRenderer
     /// 100% before the window resets. When <paramref name="showNumber"/> is false, only the
     /// fill bar is drawn (no digits). When <paramref name="showRemaining"/> is true the display
     /// inverts to quota left — full at 100%, draining to 0% — while the color still tracks usage.
+    /// <paramref name="accent"/> is which profile the number belongs to (T147) as an index into
+    /// <see cref="Accents"/>, or -1 for none — see the mark block below.
     /// </summary>
-    public static Bitmap Render(double pct, State state, bool flash, int size, Projection verdict = Projection.Unknown, bool showNumber = true, bool showRemaining = false)
+    public static Bitmap Render(double pct, State state, bool flash, int size, Projection verdict = Projection.Unknown, bool showNumber = true, bool showRemaining = false, int accent = -1)
     {
         // pct is always the *used* fraction. In "remaining" mode we display its complement (full
         // at 100%, draining to 0%), but the danger color still keys off `used` so the bar warms to
@@ -97,6 +123,28 @@ internal static class IconRenderer
 
         // 3D beveled frame: light on top/left, dark on bottom/right → raised look.
         DrawBevel(g, new RectangleF(0, 0, size - 1, size - 1), radius, Math.Max(1f, size * 0.09f));
+
+        // The profile mark (T147): with the profile global, "whose number is this?" is the question a
+        // glance has to answer, and nothing else on the tile can — the number, the fill and the
+        // projection color are identical whichever profile the icon follows.
+        //
+        // A thin band along the top edge, and NOT the profile's initial: rendered at the real 16px, a
+        // second glyph and the number cannot both be read (measured — "P" against "54" or "100" blurs
+        // both), and the number is the thing the app exists to show. The band costs the digits no space
+        // at all, because it lands inside the margin FitToTile already leaves above them.
+        //
+        // It is a color, which §XI.3 rightly flagged: color here means *projection*. What keeps the two
+        // apart is that they never share a hue (Accents is disjoint from every semantic color) or a
+        // form — projection is a filled level rising from the bottom, identity is a fixed 2px rule at
+        // the top. Drawn after the bevel, so it sits over the fill bar even at 100%.
+        if (accent >= 0)
+        {
+            using var clip = new Region(tile);
+            g.Clip = clip;
+            using (var brush = new SolidBrush(Accents[accent % Accents.Length]))
+                g.FillRectangle(brush, 0, 0, size, Math.Max(2f, size * 0.13f));
+            g.ResetClip();
+        }
 
         if (!showNumber)
             return bmp;

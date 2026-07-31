@@ -314,6 +314,13 @@ in the menu.) The same switch is also on **Settings → Claude Code → Profiles
 row beside whichever profile the page is editing — it reads "Active" once that profile already owns the
 icon.
 
+**The icon says whose number it is.** With more than one profile registered, it wears a thin coloured band
+along its top edge — one colour per profile, so a glance tells you which account the percentage belongs to
+without opening anything. The band's colours (violet, pink, periwinkle) are deliberately none of the ones
+the icon already uses to mean something: the fill still goes green when you're on track and orange→red when
+you're projected to run out, and the band can never be mistaken for either. With a single profile there is
+no band, since there would be no question to answer.
+
 **Or let the icon keep up by itself.** Turn on **Follow the active profile** — in the Profile submenu, or
 in **Settings → Claude Code → Profiles** — and the icon moves to whichever profile Claude Code last worked
 in, so switching accounts needs no click at all. It is read from **transcript timestamps only**, on the
