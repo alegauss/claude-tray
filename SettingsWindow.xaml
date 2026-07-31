@@ -543,6 +543,24 @@
                                    Margin="0,2,0,4" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
+                        <!-- Profile picker — shown only when this machine has more than one Claude Code
+                             config dir. Changing it re-renders every row below from that profile's own
+                             files; it does not switch anything in Claude Code itself. -->
+                        <Border x:Name="SysProfileCard" Style="{StaticResource GroupCard}"
+                                Margin="0,18,0,0" Visibility="Collapsed">
+                            <local:SettingsRow Header="{local:Loc settings.sys.profile}"
+                                               Description="{local:Loc settings.sys.profileDesc}">
+                                <!-- Count under the picker, like every other value/qualifier pair on
+                                     this page, so the row's description keeps its width. -->
+                                <StackPanel>
+                                    <ComboBox x:Name="SysProfileCombo" MinWidth="200"
+                                              HorizontalAlignment="Right"
+                                              SelectionChanged="SysProfile_Changed" />
+                                    <TextBlock x:Name="SysProfileCount" Style="{StaticResource ValueSubText}" />
+                                </StackPanel>
+                            </local:SettingsRow>
+                        </Border>
+
                         <!-- ===== Claude account ===== -->
                         <TextBlock Text="{local:Loc settings.sys.account}" Style="{StaticResource SectionHeader}" Margin="2,16,0,8" />
 

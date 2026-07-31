@@ -183,6 +183,15 @@ internal static class Program
             return;
         }
 
+        // Every Claude Code profile (config dir) this machine exposes, in discovery order. Any extra
+        // arguments are treated as explicitly *registered* dirs — the source the Settings list will
+        // feed once it exists — so discovery can be exercised without one.
+        if (args.Length >= 1 && args[0] == "--profiles")
+        {
+            PrintProfiles(args.Skip(1).ToArray());
+            return;
+        }
+
         // Dev/preview helper: open just the Settings window, standalone, so the UI can be launched
         // and screenshotted deterministically without going through the tray menu.
         if (args.Length >= 1 && args[0] == "--settings")
@@ -1102,6 +1111,29 @@ internal static class Program
         toast.Closed += (_, _) => app.Shutdown();
         toast.Show();
         app.Run();
+    }
+
+    // `--profiles [dir...]`: the config dirs ClaudeAccount.Discover finds, in order, with what each
+    // one identifies. Read-only, like the page it backs. The account uuid is truncated — it is the
+    // dedupe key, and printing it whole serves nobody.
+    private static void PrintProfiles(string[] registered)
+    {
+        List<ClaudeInfo> profiles = ClaudeAccount.Discover(registered);
+        Console.WriteLine($"Claude Code profiles: {profiles.Count}"
+                          + (registered.Length > 0 ? $" ({registered.Length} registered dir(s) passed in)" : ""));
+        Console.WriteLine();
+        foreach (ClaudeInfo p in profiles)
+        {
+            Console.WriteLine($"  {p.Label}{(p.IsDefault ? "  [default]" : "")}");
+            Console.WriteLine($"    dir      {p.ConfigDir}");
+            Console.WriteLine($"    plan     {p.Plan ?? "-"}{(p.PlanTier is { } t ? $"  ({t})" : "")}");
+            Console.WriteLine($"    account  {(p.AccountUuid is { Length: > 8 } u ? u[..8] + "…" : p.AccountUuid ?? "-")}"
+                              + $"   org {p.OrgName ?? "-"}   signed in {(p.TokenExpires is { } e ? e.ToString("g") : "-")}");
+            Console.WriteLine($"    projects {p.ProjectCount}   cli {p.CliVersion ?? "-"}   install {p.InstallMethod ?? "-"}");
+            Console.WriteLine();
+        }
+        if (profiles.Count == 1)
+            Console.WriteLine("Only one profile — the Settings picker stays hidden.");
     }
 
     // Dev/preview helper: same sample data as SimulateReset, but instead of leaving the toast on

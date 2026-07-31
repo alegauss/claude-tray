@@ -12,6 +12,17 @@ namespace ClaudeTray;
 /// </summary>
 internal sealed class ClaudeInfo
 {
+    // ---- Profile identity (which config dir this reading came from) ----
+    /// <summary>How this profile reads in a picker: the organization name, else "Personal" for an
+    /// account without one, else the config folder's name. Derived, never typed by the user.</summary>
+    public string Label = "";
+    /// <summary>The account's own uuid — the **identity** of a profile. Two config dirs can hold the
+    /// same account (a copied config, a junction), and they must not be listed twice.</summary>
+    public string? AccountUuid;
+    /// <summary>True for the config dir Claude Code would use with no override — i.e. the profile a
+    /// bare <c>claude</c> in a fresh shell lands in.</summary>
+    public bool IsDefault;
+
     // ---- Account (from .claude.json → oauthAccount, and .credentials.json) ----
     /// <summary>Plan as a person says it, e.g. "Claude Max 5x". Null when nothing identifies it.</summary>
     public string? Plan;
@@ -59,24 +70,38 @@ internal static class ClaudeAccount
 {
     private static string Home => Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
-    /// <summary>Where Claude Code keeps its configuration: <c>CLAUDE_CONFIG_DIR</c> when set,
-    /// otherwise <c>~/.claude</c>. Every path below is derived from this.</summary>
-    public static string ConfigDir
+    /// <summary>The home config dir — <c>~/.claude</c>. The profile a bare <c>claude</c> uses when
+    /// nothing overrides it.</summary>
+    public static string HomeConfigDir => Path.Combine(Home, ".claude");
+
+    /// <summary>Whether this process inherited a <c>CLAUDE_CONFIG_DIR</c>.</summary>
+    private static string? EnvConfigDir
     {
         get
         {
             string? env = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
-            return string.IsNullOrWhiteSpace(env) ? Path.Combine(Home, ".claude") : env.Trim();
+            return string.IsNullOrWhiteSpace(env) ? null : env.Trim();
         }
     }
 
-    public static ClaudeInfo Read()
+    /// <summary>Where Claude Code keeps its configuration for *this* process: <c>CLAUDE_CONFIG_DIR</c>
+    /// when set, otherwise <c>~/.claude</c>.</summary>
+    public static string ConfigDir => EnvConfigDir ?? HomeConfigDir;
+
+    /// <summary>The reading for the config dir this process would use.</summary>
+    public static ClaudeInfo Read() => Read(ConfigDir);
+
+    /// <summary>
+    /// The reading for one specific config dir — the seam the profile model needs. Anything absent
+    /// stays null; nothing here throws on a missing, denied or half-written file.
+    /// </summary>
+    public static ClaudeInfo Read(string configDir)
     {
         var info = new ClaudeInfo
         {
-            ConfigDir = ConfigDir,
-            ConfigDirOverridden = !string.IsNullOrWhiteSpace(
-                Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR")),
+            ConfigDir = configDir,
+            ConfigDirOverridden = EnvConfigDir is { } env && SamePath(env, configDir),
+            IsDefault = SamePath(configDir, ConfigDir),
             CliVersion = ReadCliVersion(),
         };
 
@@ -86,22 +111,29 @@ internal static class ClaudeAccount
         // The account's own tier is the precise answer; the credentials file's coarse subscriptionType
         // is the fallback for a config that has no oauthAccount block yet.
         info.Plan ??= FriendlyPlan(info.SubscriptionType);
+        info.Label = DeriveLabel(info);
         return info;
     }
 
     // ---- .claude.json ------------------------------------------------------------------------
 
-    /// <summary>The settings file lives beside the config dir when <c>CLAUDE_CONFIG_DIR</c> is set,
-    /// and at <c>~/.claude.json</c> otherwise; try both so either layout reads.</summary>
-    private static IEnumerable<string> ConfigPaths()
+    /// <summary>
+    /// Where a config dir's settings file lives. With <c>CLAUDE_CONFIG_DIR</c> it is *inside* the dir
+    /// (verified: the CLI creates <c>&lt;dir&gt;/.claude.json</c> for a dir that didn't exist); the
+    /// default layout instead keeps it at <c>~/.claude.json</c>, beside <c>~/.claude</c>. The home
+    /// fallback is offered **only** for the home dir — falling back to it for another profile would
+    /// read the default account's identity into that profile, which is the one wrong answer this
+    /// method must never give.
+    /// </summary>
+    private static IEnumerable<string> ConfigPaths(string configDir)
     {
-        yield return Path.Combine(ConfigDir, ".claude.json");
-        yield return Path.Combine(Home, ".claude.json");
+        yield return Path.Combine(configDir, ".claude.json");
+        if (SamePath(configDir, HomeConfigDir)) yield return Path.Combine(Home, ".claude.json");
     }
 
     private static void ReadConfig(ClaudeInfo info)
     {
-        foreach (string path in ConfigPaths())
+        foreach (string path in ConfigPaths(info.ConfigDir))
         {
             JsonDocument? doc = TryParse(path);
             if (doc is null) continue;
@@ -124,6 +156,7 @@ internal static class ClaudeAccount
                     info.Plan = FriendlyPlan(info.PlanTier);
                     info.SeatTier = Str(acct, "seatTier");
                     info.BillingType = Str(acct, "billingType");
+                    info.AccountUuid = Str(acct, "accountUuid");
                     info.HolderName = Str(acct, "displayName");
                     info.HolderEmail = Str(acct, "emailAddress");
                     info.OrgName = Str(acct, "organizationName");
@@ -142,7 +175,7 @@ internal static class ClaudeAccount
 
     private static void ReadCredentials(ClaudeInfo info)
     {
-        JsonDocument? doc = TryParse(Path.Combine(ConfigDir, ".credentials.json"));
+        JsonDocument? doc = TryParse(Path.Combine(info.ConfigDir, ".credentials.json"));
         if (doc is null) return;
         using (doc)
         {
@@ -159,6 +192,180 @@ internal static class ClaudeAccount
                 info.ScopeCount = scopes.GetArrayLength();
         }
     }
+
+    // ---- Profile discovery -------------------------------------------------------------------
+
+    /// <summary>Directory name prefix a profile created by convention uses: <c>~/.claude-&lt;slug&gt;</c>.
+    /// Discovery globs it, so a profile made by hand — or on another machine, in a synced home —
+    /// is found without being registered anywhere.</summary>
+    public const string ConventionPrefix = ".claude-";
+
+    /// <summary>A project path is only probed for a settings override when it is local. A dead UNC
+    /// path can block a stat for seconds, and this runs while a window is being built.</summary>
+    private const int MaxProjectsProbed = 200;
+
+    /// <summary>
+    /// Every Claude Code profile on this machine, default first. A profile is a **config dir**;
+    /// its identity is the account inside it.
+    ///
+    /// <para>Sources, in order and with no guessing: the dir this process would use, <c>~/.claude</c>,
+    /// an <c>env.CLAUDE_CONFIG_DIR</c> in that dir's <c>settings.json</c>, the same key in each
+    /// registered project's <c>.claude/settings.json</c> / <c>settings.local.json</c>, the
+    /// <c>~/.claude-*</c> convention, and <paramref name="registered"/> — the caller's own list.</para>
+    ///
+    /// <para>A candidate counts as a profile when it holds <c>.credentials.json</c>, or a
+    /// <c>.claude.json</c> naming an account, or when it was explicitly registered (the clause that
+    /// covers a profile which exists but has never been logged into). Duplicates are dropped by path
+    /// and then by <see cref="ClaudeInfo.AccountUuid"/>, so one account reached through two paths is
+    /// listed once — under the first path, which is why the default is enumerated first.</para>
+    /// </summary>
+    public static List<ClaudeInfo> Discover(IEnumerable<string>? registered = null)
+    {
+        var regs = new List<string>();
+        foreach (string r in registered ?? Enumerable.Empty<string>())
+            if (Normalize(r) is { Length: > 0 } n) regs.Add(n);
+
+        var found = new List<ClaudeInfo>();
+        var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenAccounts = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (string dir in Candidates(regs))
+        {
+            string norm = Normalize(dir);
+            if (norm.Length == 0 || !seenPaths.Add(norm)) continue;
+
+            bool isRegistered = regs.Contains(norm, StringComparer.OrdinalIgnoreCase);
+            if (!isRegistered && !LooksLikeProfile(norm)) continue;
+
+            ClaudeInfo info = Read(norm);
+            // Same account through a second path (copied config, junction): keep the first.
+            if (info.AccountUuid is { Length: > 0 } uuid && !seenAccounts.Add(uuid)) continue;
+            if (!isRegistered && !info.HasAccount && !HasCredentials(norm)) continue;
+            found.Add(info);
+        }
+        return found;
+    }
+
+    // The candidate dirs, in priority order. Yielding duplicates is fine — Discover dedupes.
+    private static IEnumerable<string> Candidates(List<string> registered)
+    {
+        yield return ConfigDir;          // what this process would use (env override, if any)
+        yield return HomeConfigDir;      // ~/.claude, which still exists when an override is set
+
+        foreach (string d in SettingsOverride(Path.Combine(ConfigDir, "settings.json"))) yield return d;
+        foreach (string d in SettingsOverride(Path.Combine(HomeConfigDir, "settings.json"))) yield return d;
+
+        foreach (string project in ProjectPaths())
+        {
+            string dot = Path.Combine(project, ".claude");
+            foreach (string d in SettingsOverride(Path.Combine(dot, "settings.json"))) yield return d;
+            foreach (string d in SettingsOverride(Path.Combine(dot, "settings.local.json"))) yield return d;
+        }
+
+        foreach (string d in ConventionDirs()) yield return d;
+        foreach (string d in registered) yield return d;
+    }
+
+    /// <summary><c>env.CLAUDE_CONFIG_DIR</c> out of a settings file, expanded. Zero or one value.</summary>
+    private static IEnumerable<string> SettingsOverride(string settingsPath)
+    {
+        JsonDocument? doc = TryParse(settingsPath);
+        if (doc is null) yield break;
+        string? dir;
+        using (doc)
+        {
+            dir = doc.RootElement.ValueKind == JsonValueKind.Object
+                  && doc.RootElement.TryGetProperty("env", out JsonElement env)
+                  && env.ValueKind == JsonValueKind.Object
+                ? Str(env, "CLAUDE_CONFIG_DIR")
+                : null;
+        }
+        if (dir is { Length: > 0 }) yield return Expand(dir);
+    }
+
+    /// <summary>The project directories Claude Code has registered, from the default config's
+    /// <c>projects</c> map — cheaper and more exact than walking the disk. UNC paths are skipped
+    /// (a dead share can block a stat for seconds) and the list is capped.</summary>
+    private static IEnumerable<string> ProjectPaths()
+    {
+        foreach (string path in ConfigPaths(ConfigDir))
+        {
+            JsonDocument? doc = TryParse(path);
+            if (doc is null) continue;
+            var paths = new List<string>();
+            using (doc)
+            {
+                if (doc.RootElement.ValueKind == JsonValueKind.Object
+                    && doc.RootElement.TryGetProperty("projects", out JsonElement projects)
+                    && projects.ValueKind == JsonValueKind.Object)
+                    foreach (JsonProperty p in projects.EnumerateObject())
+                    {
+                        if (p.Name.StartsWith(@"\\") || p.Name.StartsWith("//")) continue;
+                        paths.Add(p.Name);
+                        if (paths.Count >= MaxProjectsProbed) break;
+                    }
+            }
+            return paths;
+        }
+        return Enumerable.Empty<string>();
+    }
+
+    /// <summary>Sibling dirs of <c>~/.claude</c> following the <c>~/.claude-&lt;slug&gt;</c> convention.
+    /// Directories only — <c>.claude.json</c> and <c>.claude.json.backup</c> also match the pattern.</summary>
+    private static IEnumerable<string> ConventionDirs()
+    {
+        string[] dirs;
+        try { dirs = Directory.GetDirectories(Home, ConventionPrefix + "*"); }
+        catch { return Enumerable.Empty<string>(); }
+        Array.Sort(dirs, StringComparer.OrdinalIgnoreCase);
+        return dirs;
+    }
+
+    private static bool LooksLikeProfile(string dir)
+    {
+        try
+        {
+            if (!Directory.Exists(dir)) return false;
+            if (HasCredentials(dir)) return true;
+            foreach (string path in ConfigPaths(dir))
+                if (File.Exists(path)) return true;
+            return false;
+        }
+        catch { return false; }   // denied or gone — not a profile we can read
+    }
+
+    private static bool HasCredentials(string dir)
+    {
+        try { return File.Exists(Path.Combine(dir, ".credentials.json")); }
+        catch { return false; }
+    }
+
+    /// <summary>How a profile reads in a picker. Never asks the user: the organization when there is
+    /// one, "Personal" for an account without one, and the folder name when nothing identifies it.</summary>
+    private static string DeriveLabel(ClaudeInfo info)
+    {
+        if (info.OrgName is { Length: > 0 } org) return org;
+        if (info.HasAccount) return L.T("settings.sys.profilePersonal");
+        string name = Path.GetFileName(info.ConfigDir.TrimEnd('\\', '/'));
+        return name.Length > 0 ? name : info.ConfigDir;
+    }
+
+    /// <summary>Expand <c>%VARS%</c> and a leading <c>~</c> in a path read from a settings file.</summary>
+    private static string Expand(string path)
+    {
+        string p = Environment.ExpandEnvironmentVariables(path.Trim());
+        if (p.StartsWith('~')) p = Path.Combine(Home, p[1..].TrimStart('/', '\\'));
+        return p;
+    }
+
+    private static string Normalize(string dir)
+    {
+        try { return Path.GetFullPath(Expand(dir)).TrimEnd('\\', '/'); }
+        catch { return ""; }
+    }
+
+    private static bool SamePath(string a, string b) =>
+        Normalize(a).Equals(Normalize(b), StringComparison.OrdinalIgnoreCase);
 
     // ---- CLI version -------------------------------------------------------------------------
 

@@ -282,6 +282,11 @@ tokenizer bundled, by design.
 hand: which plan this login is on, who it belongs to, where Claude Code keeps its configuration,
 and what this machine is.
 
+- **Profile** — Claude Code keeps one account per **configuration folder**, so several logins on one
+  machine means several folders (`CLAUDE_CONFIG_DIR`). The tray finds them all — the default one, any
+  set through a settings file, and anything following the `~/.claude-*` naming convention — and, when
+  there is more than one, offers a picker that re-reads the whole page from that profile's own files.
+  One account reached through two paths is listed once. With a single profile the picker stays hidden.
 - **Plan** — the rate-limit tier the API reports for the account, named the way you'd say it
   (*Claude Max 5x*), with the raw tier, seat and billing type underneath. A tier the app doesn't
   recognize is shown verbatim rather than hidden.
@@ -470,7 +475,7 @@ build the installer, and attach `ClaudeTray-Setup.exe` to a GitHub release tagge
 | `ApiClient.cs` | reads credentials, calls the API, parses the rate-limit headers |
 | `BurnTracker.cs` | tracks utilization history, estimates the burn rate, projects exhaustion |
 | `UsageInsights.cs` | aggregates the last 24h of session transcripts into a cost-weighted breakdown |
-| `ClaudeAccount.cs` | reads the local Claude Code config for the plan, holder, org and install shown on the System information page (read-only, no secrets) |
+| `ClaudeAccount.cs` | reads the local Claude Code config for the plan, holder, org and install shown on the System information page, and discovers every profile (config dir) on the machine (read-only, no secrets) |
 | `IconRenderer.cs` | draws the icon with GDI+ (vector + outline + projection dot) at the actual size |
 | `Updater.cs` | checks GitHub Releases and downloads/runs the installer for in-app self-update |
 

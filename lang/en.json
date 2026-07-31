@@ -183,6 +183,11 @@
   "settings.notif.unexpectedDesc": "Shows a tray notification if weekly usage drops unexpectedly — resetting to 0% before its scheduled deadline, or a partial mid-window credit (e.g. 91% → 50%). The event is also saved to reset-events.log.",
 
   // System information page
+  "settings.sys.profile": "Profile",
+  "settings.sys.profileDesc": "Each Claude Code profile is a configuration folder with its own login, projects and settings. Switch to read another one; this changes nothing in Claude Code.",
+  "settings.sys.profilePersonal": "Personal",
+  "settings.sys.profileDefault": "{0} (default)",
+  "settings.sys.profileCount": "{0} profiles found",
   "settings.sys.title": "System information",
   "settings.sys.subtitle": "Your Claude plan, this Claude Code installation and this machine — read from what Claude Code already keeps on this disk. Nothing here is sent anywhere, and nothing is edited.",
   "settings.sys.account": "Claude account",

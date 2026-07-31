@@ -348,7 +348,13 @@ internal partial class SettingsWindow : Window
     /// field this version of Claude Code doesn't write.</summary>
     private const string Dash = "—";
 
-    private ClaudeInfo? _claude;
+    /// <summary>Every Claude Code config dir found on this machine, default first (T122). Never empty:
+    /// a machine with nothing to find still gets the default dir's (mostly null) reading, which is what
+    /// renders the "no account" card.</summary>
+    private List<ClaudeInfo> _profiles = new();
+
+    /// <summary>Index into <see cref="_profiles"/> of the profile whose rows are on screen.</summary>
+    private int _profile;
 
     /// <summary>Whether the holder's real name/email and the absolute paths are on screen. Off by
     /// default: this page is the one that ends up in a screenshot attached to a bug report.</summary>
@@ -356,13 +362,37 @@ internal partial class SettingsWindow : Window
 
     private void LoadSystemInfo()
     {
-        _claude = ClaudeAccount.Read();
+        _profiles = ClaudeAccount.Discover();
+        if (_profiles.Count == 0) _profiles.Add(ClaudeAccount.Read());
+
+        // The picker only earns its space when there is a choice to make.
+        bool several = _profiles.Count > 1;
+        SysProfileCard.Visibility = several ? Visibility.Visible : Visibility.Collapsed;
+        if (several)
+        {
+            SysProfileCount.Text = L.T("settings.sys.profileCount", _profiles.Count);
+            foreach (ClaudeInfo p in _profiles)
+                SysProfileCombo.Items.Add(new System.Windows.Controls.ComboBoxItem
+                {
+                    Content = p.IsDefault ? L.T("settings.sys.profileDefault", p.Label) : p.Label,
+                });
+            SysProfileCombo.SelectedIndex = 0;   // fires SysProfile_Changed → renders
+            return;
+        }
+        RenderSystemInfo();
+    }
+
+    private void SysProfile_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        // Can fire while the items are being added, before there is anything to render.
+        if (_profiles.Count == 0 || SysProfileCombo.SelectedIndex < 0) return;
+        _profile = Math.Clamp(SysProfileCombo.SelectedIndex, 0, _profiles.Count - 1);
         RenderSystemInfo();
     }
 
     private void RenderSystemInfo()
     {
-        ClaudeInfo c = _claude ??= ClaudeAccount.Read();
+        ClaudeInfo c = _profiles[Math.Clamp(_profile, 0, _profiles.Count - 1)];
         var culture = L.Culture;
 
         // ---- Claude account ----
@@ -516,6 +546,11 @@ internal partial class SettingsWindow : Window
         foreach ((string label, string value) in
                  new (string, string)[]
                  {
+                     // Which profile this reading is of, and how many exist — otherwise a pasted
+                     // report from a multi-profile machine is ambiguous about whose numbers it holds.
+                     (L.T("settings.sys.profile"), _profiles.Count > 1
+                         ? $"{_profiles[_profile].Label} ({L.T("settings.sys.profileCount", _profiles.Count)})"
+                         : ""),
                      (L.T("settings.sys.plan"), Line(SysPlan, SysPlanTier)),
                      (L.T("settings.sys.holder"), Line(SysHolder, SysHolderMail)),
                      (L.T("settings.sys.org"), SysOrgRow.Visibility == Visibility.Visible ? Line(SysOrg, SysOrgSub) : ""),

@@ -382,24 +382,6 @@ And "switching" splits into three axes that cost wildly different amounts:
 The third is a hard no rather than a "later", which is why it sits in Non-goals: nothing about a GUI
 changes a live process's environment.
 
-### §VII.1 Discovery, and what identity means (T122)
-
-`ClaudeAccount` already reads a config dir — `ConfigDir` is just a static property resolving
-`CLAUDE_CONFIG_DIR` or `~/.claude`. Parameterizing the reader by directory is most of T122.
-
-Discovery must never guess: a false positive shows somebody the wrong plan. The ordered sources are the
-default dir, an inherited `CLAUDE_CONFIG_DIR`, `env.CLAUDE_CONFIG_DIR` inside `~/.claude/settings.json`
-and each project's `.claude/settings.json` / `settings.local.json` (files `ContextScanner` already
-opens, so this source is free), the `~/.claude-*` naming convention, and the user's own registered
-list. A directory counts as a profile when it holds `.credentials.json`, or a `.claude.json` with an
-`oauthAccount`, or when the user registered it explicitly — that last clause is what covers a profile
-which exists but has never been logged into.
-
-**Identity is the `accountUuid`, not the path.** Two dirs can hold the same account (a copied config, a
-junction) and the page must not list it twice. The label is derived rather than demanded:
-`organizationName` when present, else "Personal" for an account without one, else the folder name — a
-discovered profile then needs no typing at all.
-
 ### §VII.2 The list editor, and why there is no credential CRUD (T123)
 
 The instinct is that switching accounts needs the tray to store account data. It does not. A profile is

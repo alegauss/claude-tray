@@ -179,6 +179,11 @@
   "settings.notif.unexpectedDesc": "Affiche une notification si la consommation hebdomadaire chute de façon inattendue — réinitialisation à 0% avant l'échéance prévue, ou crédit partiel en milieu de fenêtre (ex. 91% → 50%). L'événement est aussi enregistré dans reset-events.log.",
 
   // System information page
+  "settings.sys.profile": "Profil",
+  "settings.sys.profileDesc": "Chaque profil Claude Code est un dossier de configuration avec sa propre connexion, ses projets et ses réglages. Changez-en pour lire un autre ; cela ne modifie rien dans Claude Code.",
+  "settings.sys.profilePersonal": "Personnel",
+  "settings.sys.profileDefault": "{0} (par défaut)",
+  "settings.sys.profileCount": "{0} profils trouvés",
   "settings.sys.title": "Informations système",
   "settings.sys.subtitle": "Votre formule Claude, cette installation de Claude Code et cette machine — lues depuis ce que Claude Code conserve déjà sur ce disque. Rien n'est envoyé où que ce soit, et rien n'est modifié.",
   "settings.sys.account": "Compte Claude",

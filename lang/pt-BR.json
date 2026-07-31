@@ -179,6 +179,11 @@
   "settings.notif.unexpectedDesc": "Mostra uma notificação na bandeja se o uso semanal cair inesperadamente — resetando para 0% antes do prazo previsto, ou um crédito parcial no meio da janela (ex.: 91% → 50%). O evento também é salvo em reset-events.log.",
 
   // System information page
+  "settings.sys.profile": "Perfil",
+  "settings.sys.profileDesc": "Cada perfil do Claude Code é uma pasta de configuração com login, projetos e configurações próprios. Troque para ler outro; isso não altera nada no Claude Code.",
+  "settings.sys.profilePersonal": "Pessoal",
+  "settings.sys.profileDefault": "{0} (padrão)",
+  "settings.sys.profileCount": "{0} perfis encontrados",
   "settings.sys.title": "Informações do sistema",
   "settings.sys.subtitle": "Seu plano Claude, esta instalação do Claude Code e esta máquina — lidos do que o Claude Code já guarda neste disco. Nada daqui é enviado para lugar algum, e nada é alterado.",
   "settings.sys.account": "Conta Claude",
