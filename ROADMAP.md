@@ -149,10 +149,6 @@
 
 - 📋 **T142** (deps: T135) **An interaction harness, not a scratch script** — the checks that caught T135 and verified T137 were ad-hoc UI-Automation scripts in a scratch directory: focus a control by `AutomationId`, `SendKeys`, read the value back; open the tray menu and read the per-profile entries. They belong in `scripts\Check-Interaction.ps1`, because keyboard and menu behaviour are the two things no capture can see. Three traps are already known and must be encoded: the notification-area icon may sit in the overflow flyout and has **no clickable point** (use its bounding rectangle), a collapsed WPF pane is **absent from the UIA tree** (navigate first, and the sidebar items are `Border`s with no automation peer — match the `TextBlock` inside), and a right-click on the icon does not always produce the menu, so it must retry **and fail loudly**: the first version of that script reported a pass having read zero menu entries, which is worse than no test at all. → §IX.1
 
-## Block S — Settings round-trip ("a field missing from the copy is a field reset")
-
-- 📋 **T141** (deps: —) **The Settings copy must be total, not a hand-written field list** — `SettingsWindow` copies the model field by field into an edit buffer and `ApplySettings` copies the whole model back, so a field absent from that constructor list is **silently reset to its default on Save**. Two found so far: `MonitoredConfigDir` (fixed in T126 — any visit to Settings sent the icon back to the default profile) and `NotifyOnContextGrowth` + `ContextNudgeTokens`, still live: the context-growth toggle always opens *off*, and saving turns it off. Adding the missing lines is not the fix — the copy has to be total by construction (a `Clone()` through the same `System.Text.Json` that already writes the file, so no field can be forgotten), which also retires the hand-maintained warning T126 had to add to `AGENTS.md`. → §XI.1
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

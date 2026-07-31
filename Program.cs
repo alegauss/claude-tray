@@ -1504,7 +1504,10 @@ internal sealed class TrayContext : ApplicationContext
     private ApiClient _api = new();
     private readonly BurnTracker _burn = new();
     private readonly Updater _updater = new();
-    private readonly Settings _settings = Settings.Load();
+    // Not readonly: ApplySettings replaces the whole instance with a total copy of the edited one
+    // (T141) instead of assigning field by field. The tray is the only holder of this reference — it is
+    // handed to SettingsWindow, which clones it — so a swap can't leave anyone reading a stale model.
+    private Settings _settings = Settings.Load();
     private volatile InsightsData? _insights;
     private readonly System.Windows.Forms.Timer _poll = new(); // interval set from settings
     private readonly System.Windows.Forms.Timer _flash = new() { Interval = 500 };
@@ -1846,45 +1849,39 @@ internal sealed class TrayContext : ApplicationContext
     // Persist the edited settings and apply the new values immediately.
     private void ApplySettings(Settings updated)
     {
+        // Read what the swap below will overwrite, while it is still the live model: the icon's profile
+        // (to notice a change), and — because a language change only takes effect after a restart, since
+        // localized strings resolve when a window is parsed — whether the *active* language would move.
         string monitoredBefore = _settings.MonitoredConfigDir;
-        _settings.RefreshSeconds = updated.RefreshSeconds;
-        _settings.ShowPercentage = updated.ShowPercentage;
-        _settings.ShowRemaining = updated.ShowRemaining;
-        _settings.FlashNearLimit = updated.FlashNearLimit;
+        bool languageChanged = L.Resolve(updated.Language) != L.Current;
+
+        // Take the edited model whole rather than field by field: the window handed back a total copy
+        // of what it was given, so anything it doesn't edit is already the live value, and no field can
+        // be forgotten here and silently reset (T141). `Metric` is the one exception — it is the tray's
+        // alone (the icon's chosen window, set from the menu) and has no control on the page, so a value
+        // the menu changed while the window sat open must not be undone by the buffer's older snapshot.
+        Settings applied = updated.Clone();
+        applied.Metric = _settings.Metric;
+        _settings = applied;
+
+        // What is left are the genuine side effects — the things a copy cannot do on its own.
+
         // Clear any in-progress flash frame so turning the setting off calms the icon on the next
         // Render() below, rather than leaving it stuck on the deep-slate half of the blink.
         if (!_settings.FlashNearLimit) _flashOn = false;
-        _settings.NotifyOnUnexpectedReset = updated.NotifyOnUnexpectedReset;
-        _settings.NotifyOnScheduledReset = updated.NotifyOnScheduledReset;
-        _settings.NotifyOnSessionReset = updated.NotifyOnSessionReset;
-        _settings.NotifyOnContextGrowth = updated.NotifyOnContextGrowth;
-        _settings.ContextNudgeTokens = updated.ContextNudgeTokens;
-        _settings.SessionResetMinPercent = updated.SessionResetMinPercent;
-        _settings.ScheduledResetMinPercent = updated.ScheduledResetMinPercent;
-        _settings.ClaudeCodeDirectory = updated.ClaudeCodeDirectory;
-        _settings.AutoOpenOnUnauthenticated = updated.AutoOpenOnUnauthenticated;
-        _settings.AuthRetrySeconds = updated.AuthRetrySeconds;
-        // The profile list drives the "Open Claude Code" submenu, so it is rebuilt right here rather
-        // than waiting for a restart.
-        _settings.Profiles = updated.Profiles;
-        _settings.MonitoredConfigDir = updated.MonitoredConfigDir;
         // A profile picked on the page is a choice by hand, exactly like the submenu's: it pins the
         // icon there rather than being overruled by the next probe (T126, pin behavior T139).
-        if (!ClaudeAccount.SamePath(updated.MonitoredConfigDir, monitoredBefore))
+        if (!ClaudeAccount.SamePath(_settings.MonitoredConfigDir, monitoredBefore))
         {
             _followFloorUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             _profilePinned = true;
         }
-        _settings.FollowActiveProfile = updated.FollowActiveProfile;
         if (!_settings.FollowActiveProfile) _lastTurn.Clear();
+        // The profile list drives the "Open Claude Code" submenu, so it is rebuilt right here rather
+        // than waiting for a restart.
         RefreshWatched();          // the list (and so the icon's profile) may have changed
         RefreshProfileMenu();
         if (_profileMenu is not null) _profileMenu.Visible = _watched.Count > 1;
-
-        // A language change only takes effect after a restart (localized strings resolve when a window
-        // is parsed), so note whether the *active* language would change before saving the new value.
-        bool languageChanged = L.Resolve(updated.Language) != L.Current;
-        _settings.Language = updated.Language;
 
         try { _settings.Save(); }
         catch (Exception ex)

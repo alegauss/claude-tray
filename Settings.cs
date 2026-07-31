@@ -182,6 +182,23 @@ internal sealed class Settings
         return new Settings();
     }
 
+    /// <summary>
+    /// A deep copy, made by round-tripping through the same <see cref="JsonSerializer"/> that writes
+    /// the file. The point is that the copy is <b>total by construction</b>: every property that
+    /// persists is copied, including <see cref="Profiles"/> (new <see cref="ClaudeProfile"/> objects,
+    /// so an editor mutating them in place can't reach the original), and a field added later cannot
+    /// be forgotten. A hand-written field list is what silently reset <c>MonitoredConfigDir</c> and the
+    /// context-growth pair on Save — the edit buffer started at the default and was written straight
+    /// back over the user's value.
+    /// </summary>
+    public Settings Clone()
+    {
+        Settings copy = JsonSerializer.Deserialize<Settings>(JsonSerializer.Serialize(this))
+                        ?? new Settings();
+        copy.Clamp();
+        return copy;
+    }
+
     public void Save()
     {
         Clamp();

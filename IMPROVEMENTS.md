@@ -17,7 +17,6 @@
 | [§VI](#vi--system-information-block-n) | System information (Block N) |
 | [§VIII](#viii--project-layout-block-p) | Project layout — the flat root becomes `src/` + `build/` (Block P) |
 | [§IX](#ix--interaction-verification-block-q) | Interaction verification — what a screenshot cannot see (Block Q) |
-| [§XI](#xi--settings-round-trip-block-s) | Settings round-trip — a field missing from the copy is a field reset (Block S) |
 
 > Block I's design sections (§II) are gone: every one of them shipped, and `git log` plus
 > [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a **measurement** — the
@@ -540,35 +539,3 @@ committed script rather than being rediscovered:
 
 Deliverable: `scripts\Check-Interaction.ps1`, documented in `AGENTS.md` beside the capture loop, with
 the keyboard case and the menu case runnable separately.
-
----
-
-## §XI — Settings round-trip (Block S)
-
-### §XI.1 The copy must be total (T141)
-
-`SettingsWindow`'s constructor copies the live `Settings` into an edit buffer **field by field** so that
-Cancel leaves the caller's instance untouched, and `ApplySettings` then copies the buffer back into the
-live model, also field by field. The consequence is not obvious from either side and is severe: a field
-missing from the constructor list starts at its **default**, gets written back on Save, and silently
-destroys whatever the user had.
-
-Two instances found, both by accident:
-
-- `MonitoredConfigDir` — fixed in T126. Symptom: any visit to Settings sent the tray icon back to the
-  default profile, however carefully the user had chosen another one.
-- `NotifyOnContextGrowth` and `ContextNudgeTokens` — **still live**. The context-growth toggle always
-  opens *off* no matter what is on disk, and saving the page turns it off.
-
-The fix is not to add the missing two lines. It is to make the copy total by construction: a
-`Settings.Clone()` that round-trips through the same `System.Text.Json` serializer that already writes
-the file (zero new dependencies, and any property that persists is therefore copied), with `ApplySettings`
-assigning from the returned model instead of enumerating fields — keeping the handful of genuine
-side-effect cases (the flash frame, the poll cadence, the profile list rebuild) as explicit follow-up
-calls rather than as the reason the copy exists.
-
-One field needs care: `Metric` belongs to the tray (the icon's chosen window), not to any control on the
-page, so a total copy must carry it through untouched rather than let a freshly-defaulted buffer win —
-which is exactly the class of bug this task exists to end. The `AGENTS.md` warning T126 had to add
-("every field must also be copied in `SettingsWindow`'s constructor") is a hand-maintained rule standing
-in for a structural fix; when this ships, that note goes.

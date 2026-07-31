@@ -24,36 +24,14 @@ internal partial class SettingsWindow : Window
     public SettingsWindow(Settings current, Action<Settings> onSave, string? initialPage = null)
     {
         _onSave = onSave;
-        // Edit a copy so closing without saving leaves the caller's instance untouched.
-        _settings = new Settings
-        {
-            RefreshSeconds = current.RefreshSeconds,
-            ShowPercentage = current.ShowPercentage,
-            ShowRemaining = current.ShowRemaining,
-            FlashNearLimit = current.FlashNearLimit,
-            NotifyOnUnexpectedReset = current.NotifyOnUnexpectedReset,
-            NotifyOnScheduledReset = current.NotifyOnScheduledReset,
-            NotifyOnSessionReset = current.NotifyOnSessionReset,
-            SessionResetMinPercent = current.SessionResetMinPercent,
-            ScheduledResetMinPercent = current.ScheduledResetMinPercent,
-            ClaudeCodeDirectory = current.ClaudeCodeDirectory,
-            AutoOpenOnUnauthenticated = current.AutoOpenOnUnauthenticated,
-            AuthRetrySeconds = current.AuthRetrySeconds,
-            Language = current.Language,
-            // Carried through even though no control on the page edits it: ApplySettings copies the
-            // whole model back, so a field missing here is a field silently reset on Save — which is
-            // what sent the icon back to the default profile after any visit to Settings.
-            MonitoredConfigDir = current.MonitoredConfigDir,
-            FollowActiveProfile = current.FollowActiveProfile,
-            // Deep-copied like every other field: the profile editor mutates these in place, and
-            // cancelling must leave the caller's list untouched.
-            Profiles = current.Profiles.Select(p => new ClaudeProfile
-            {
-                Label = p.Label,
-                ConfigDir = p.ConfigDir,
-                WorkDir = p.WorkDir,
-            }).ToList(),
-        };
+        // Edit a copy so closing without saving leaves the caller's instance untouched. The copy is a
+        // total one (Settings.Clone, a JSON round-trip) rather than a hand-written field list, because
+        // ApplySettings writes the whole model back: a field missing from the list would start at its
+        // default and be saved over the user's value — which is what sent the icon back to the default
+        // profile after any visit to Settings, and what kept the context-growth toggle off. The profile
+        // list is deep-copied by the same round-trip, so the editor mutating rows in place can't reach
+        // the caller's.
+        _settings = current.Clone();
 
         InitializeComponent();
 

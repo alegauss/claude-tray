@@ -89,7 +89,8 @@
   `MonitoredConfigDir` was (fixed in T126, which is how the class was found) and the context-growth pair
   still is. Block L set the precedent that a block may hold a single task; the reason this is a *block*
   rather than a stray fix is that the task is to make the copy total by construction, which retires a
-  hand-maintained `AGENTS.md` rule.
+  hand-maintained `AGENTS.md` rule. **Closed with T141** (2026-07-31) — its only task — so the block is
+  out of `ROADMAP.md`; see [CHANGELOG.md](CHANGELOG.md) Block S.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 
@@ -157,3 +158,4 @@ here. This file is a terse index, not a memory.
 - **T140 SHIPPED** (Block R — no email in a label, and no two profiles sharing one) — 2026-07-31.
 - **T139 SHIPPED** (Block R — a manual profile pick pins the icon until "Resume following") — 2026-07-31.
 - **T143 SHIPPED** (Block R — a copyable `setx` command, never run by the tray itself) — 2026-07-31.
+- **T141 SHIPPED** (Block S — the Settings copy is total by construction, so no field is reset on Save) — 2026-07-31.
