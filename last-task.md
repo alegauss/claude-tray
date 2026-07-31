@@ -1,6 +1,6 @@
-# Last task number — `T136` · next block letter — `S`
+# Last task number — `T137` · next block letter — `S`
 
-> **Single source of truth for the next free task number.** The next new task is `T137`; after
+> **Single source of truth for the next free task number.** The next new task is `T138`; after
 > assigning it, bump the number above and append a log line below.
 >
 > **Next block letter — `S`** (Block **R** = Profiles, second pass — the defects a real second
@@ -74,7 +74,7 @@
   it still said sign in"* — plus two profiles showing the same name. It is a new block rather than more
   Block O tasks because O is shipped and pruned, and because these are defects found by *using* the
   feature, not gaps in its design. T136 is the one that damaged state: the tray created the stub config
-  that then misdescribed the user's own default profile.
+  that then misdescribed the user's own default profile; T137 is the one that made the user click twice.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 
@@ -137,3 +137,4 @@ here. This file is a terse index, not a memory.
 - **T126 SHIPPED** (Block O — the icon follows the profile a turn just landed in) — 2026-07-31.
 - **T135 SHIPPED** (Block Q — the WPF windows get keyboard input under the WinForms pump) — 2026-07-31.
 - **T136 SHIPPED** (Block R — the default profile stops being described by a stub the tray created) — 2026-07-31.
+- **T137 SHIPPED** (Block R — the menu re-reads the profiles when it opens, so a fresh login shows) — 2026-07-31.

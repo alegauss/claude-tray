@@ -1241,9 +1241,13 @@ internal static class Program
         // without clicking.
         bool check = args.Any(a => a is "--check");
         string[] registered = args.Where(a => !a.StartsWith("--")).ToArray();
+        // Timed because the tray now re-runs this on every menu open (T137): it has to stay cheap.
+        var discovery = System.Diagnostics.Stopwatch.StartNew();
         List<ClaudeInfo> profiles = ClaudeAccount.Discover(registered);
+        discovery.Stop();
         Console.WriteLine($"Claude Code profiles: {profiles.Count}"
-                          + (registered.Length > 0 ? $" ({registered.Length} registered dir(s) passed in)" : ""));
+                          + (registered.Length > 0 ? $" ({registered.Length} registered dir(s) passed in)" : "")
+                          + $"   discovery {discovery.Elapsed.TotalMilliseconds:0.0}ms");
         Console.WriteLine();
         foreach (ClaudeInfo p in profiles)
         {
@@ -1705,6 +1709,19 @@ internal sealed class TrayContext : ApplicationContext
         quit.Click += (_, _) => ExitApp();
         menu.Items.Add(quit);
 
+        // Re-read the profiles every time the menu opens (T137). Discovery used to run only at startup
+        // and on a settings save, which made the menu lie about the thing it is most often opened for:
+        // sign in to a profile through its own entry, and the entry still said "sign in" — clicking it
+        // again just launched a second login. A menu open is a user action, and the sweep is bounded
+        // (a few JSON files: 5–6ms with two profiles, printed by `--profiles`), so paying it here is
+        // cheaper than being wrong — and it costs nothing at all while the menu is closed.
+        menu.Opening += (_, _) =>
+        {
+            RefreshWatched();
+            RefreshProfileMenu();
+            if (_profileMenu is not null) _profileMenu.Visible = _watched.Count > 1;
+        };
+
         return menu;
     }
 
@@ -1972,6 +1989,8 @@ internal sealed class TrayContext : ApplicationContext
     /// choice when it is still on the machine, else the default profile.</summary>
     private void RefreshWatched()
     {
+        string before = _watched.Count > 0 ? ProfileStore.KeyFor(_watched[0]) : "";
+
         try { _watched = ClaudeAccount.Discover(_settings.Profiles); }
         catch { _watched = new List<ClaudeInfo>(); }
         if (_watched.Count == 0) _watched.Add(ClaudeAccount.Read());
@@ -1983,7 +2002,9 @@ internal sealed class TrayContext : ApplicationContext
         _watched.Insert(0, monitored);
         ProfileStore.SetMonitored(monitored);
         _api = new ApiClient(monitored.ConfigDir);
-        _otherData.Clear();
+        // Only when the icon changed hands: the cache is keyed per profile, so a plain re-discovery
+        // (every menu open since T137) must not throw away readings the submenu would then show as "…".
+        if (ProfileStore.KeyFor(_watched[0]) != before) _otherData.Clear();
     }
 
     /// <summary>The "Profile" submenu, hidden while there is only one profile to speak of.</summary>
@@ -2617,9 +2638,9 @@ internal sealed class TrayContext : ApplicationContext
         if (_openClaudeItem is null) return;
         _openClaudeItem.DropDownItems.Clear();
 
-        List<ClaudeInfo> profiles;
-        try { profiles = ClaudeAccount.Discover(_settings.Profiles); }
-        catch { return; }   // discovery is best-effort; the plain command still works
+        // The list RefreshWatched just discovered, rather than a second sweep of its own: one menu open
+        // is one discovery, and the two menus can't disagree about who needs a sign-in (T137).
+        List<ClaudeInfo> profiles = _watched;
         if (profiles.Count < 2) return;
 
         foreach (ClaudeInfo profile in profiles)
