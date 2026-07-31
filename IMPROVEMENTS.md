@@ -257,18 +257,6 @@ now lives in the roadmap's Non-goals.
   it has drifted: the whole point is that the live signal is local.
 - **No tray-icon animation** — T101, dropped. See §V.0 and the roadmap's Non-goals.
 
-### §V.8 The sweep is O(all history) (T103)
-
-`TranscriptTail` lists every `*.jsonl` under `~/.claude/projects` on each sweep and opens only the
-ones whose mtime is recent. Measured today: 602 files, 17ms, metadata-only. That is cheap, and it is
-also the wrong shape — the count only ever grows, and the sweep runs every 3s for as long as the
-window is open.
-
-Two candidate fixes, and the cheaper one should be measured first: enumerate only the *directories*
-whose mtime moved (one stat per project rather than per transcript), or trust the watcher's reported
-paths once the tree passes some size, keeping the full sweep as an occasional reconciliation. Either
-way the floor sweep must stay whole often enough that a lost watcher cannot silently strand a file.
-
 ### §V.9 A line with no reading (T104)
 
 Height means something now — T110 rules and labels the ceiling, T116 draws a rate you can follow — but

@@ -41,9 +41,12 @@ internal static class LiveCli
         TailStats st = tail.Stats;
         Console.WriteLine();
         Console.WriteLine($"{st.Samples:N0} turns from {st.Tracked:N0} tracked files " +
-                          $"({st.Files:N0} seen per sweep)");
-        Console.WriteLine($"{st.Sweeps:N0} sweeps, last {st.LastSweepMs:0.0}ms, " +
-                          $"{st.BytesRead / 1024.0:N1} KB read total");
+                          $"({st.Files:N0} in the tree)");
+        // Full vs cheap is the T103 claim, so print both: a cheap sweep looks only at what the
+        // watcher named, and the whole tree is walked every ReconcileMs to reconcile.
+        Console.WriteLine($"{st.Sweeps:N0} sweeps ({st.FullSweeps:N0} full, every " +
+                          $"{TranscriptTail.ReconcileMs / 1000}s), last {st.LastSweepMs:0.00}ms, " +
+                          $"last full {st.LastFullSweepMs:0.00}ms, {st.BytesRead / 1024.0:N1} KB read total");
         Console.WriteLine(st.Watching
             ? "watcher: live — appends land within ~" + TranscriptTail.DebounceMs + "ms"
             : $"watcher: off — falling back to the {TranscriptTail.SweepFloorMs}ms sweep floor");
@@ -142,7 +145,8 @@ internal static class LiveCli
         Console.WriteLine($"worst redraw drift {worstDrift:N2} tok/s — a second's value must not change " +
                           "after it is drawn (T117)");
         Console.WriteLine($"peak {peak:N0} tok/s over {seconds:0}s — {live.Turns:N0} turns, " +
-                          $"{st.BytesRead / 1024.0:N1} KB read, {st.Sweeps:N0} sweeps");
+                          $"{st.BytesRead / 1024.0:N1} KB read, {st.Sweeps:N0} sweeps " +
+                          $"({st.FullSweeps:N0} full over {st.Files:N0} transcripts)");
         Console.WriteLine("The window average this sits beside is in --stats; it answers a different " +
                           "question and both stay.");
     }

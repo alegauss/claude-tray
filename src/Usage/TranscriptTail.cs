@@ -15,9 +15,13 @@ namespace ClaudeTray;
 internal readonly record struct TailSample(
     double Unix, TokenBits Bits, string Project, string Session, string Name);
 
-/// <summary>What the last sweep cost, so "only the bytes appended" is a number and not a claim.</summary>
+/// <summary>What the last sweep cost, so "only the bytes appended" is a number and not a claim.
+/// <paramref name="Files"/> is what the last <em>full</em> sweep enumerated; <paramref name="Sweeps"/>
+/// counts every sweep and <paramref name="FullSweeps"/> only the reconciling ones, so the ratio says
+/// how much of the tree the tail is actually walking (T103).</summary>
 internal readonly record struct TailStats(
-    int Files, int Tracked, long BytesRead, long Samples, int Sweeps, double LastSweepMs, bool Watching);
+    int Files, int Tracked, long BytesRead, long Samples, int Sweeps, double LastSweepMs, bool Watching,
+    int FullSweeps, double LastFullSweepMs);
 
 /// <summary>
 /// A byte-level tail over <c>~/.claude/projects/**/*.jsonl</c>: notices an appended turn within a
@@ -33,6 +37,12 @@ internal readonly record struct TailStats(
 /// the floor — the watcher is a hint, not a guarantee (its buffer can overflow, and it can die
 /// outright), and a missed event must not freeze the display. Losing the watcher degrades the latency
 /// to the floor and nothing else.</para>
+///
+/// <para>The event also says <em>which</em> file changed, and that is the sweep's work list (T103):
+/// walking the whole tree every <see cref="SweepFloorMs"/> is O(all history) and grows forever, while
+/// an append is one path. Every <see cref="ReconcileMs"/> the pass is whole anyway — that is the
+/// bound on what a dropped event costs, the only way a file nobody announced is discovered, and when
+/// cursors for quiet files are retired. No watcher means every pass is whole.</para>
 ///
 /// <para>Two failure modes are designed for rather than discovered. A file that <b>shrank</b>
 /// (rotation, a truncated write) has its cursor reset to zero instead of seeking past the end, and the
@@ -58,6 +68,13 @@ internal sealed class TranscriptTail : IDisposable
     /// <summary>Sweep floor — the cadence when the watcher says nothing. Short enough that a lost
     /// watcher is a slower feed rather than a dead one.</summary>
     public const int SweepFloorMs = 3000;
+
+    /// <summary>How often the sweep walks the <b>whole</b> tree rather than only what the watcher
+    /// named (T103). Every sweep used to be whole, which is O(all history) — cheap per pass and
+    /// growing forever — while a watcher event already carries the one path that changed. The full
+    /// pass stays as reconciliation: it is what a dropped event costs, and what prunes cursors for
+    /// files that have gone quiet. A watcher that is not running forces every sweep to be full.</summary>
+    public const int ReconcileMs = 30_000;
 
     /// <summary>Coalesces the burst of events one appended turn produces into a single sweep.</summary>
     public const int DebounceMs = 250;
@@ -92,14 +109,18 @@ internal sealed class TranscriptTail : IDisposable
     private readonly Dictionary<string, string> _names = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _gate = new();
 
+    // Paths the watcher named since the last sweep — the cheap sweep's whole work list (T103).
+    private readonly HashSet<string> _hot = new(StringComparer.OrdinalIgnoreCase);
+
     private FileSystemWatcher? _watcher;
     private System.Threading.Timer? _timer;
     private int _sweeping;
     private bool _disposed;
 
-    private int _files, _sweeps;
+    private int _files, _sweeps, _fullSweeps;
     private long _bytesRead, _samples;
-    private double _lastSweepMs;
+    private double _lastSweepMs, _lastFullSweepMs;
+    private long _lastFullTicks;   // Stopwatch timestamp of the last whole-tree pass; 0 = never
     private bool _watching;
 
     /// <param name="projectsDir">Stand-in for <c>~/.claude/projects</c>; defaults to the real one.</param>
@@ -114,7 +135,8 @@ internal sealed class TranscriptTail : IDisposable
         get
         {
             lock (_gate)
-                return new TailStats(_files, _cursors.Count, _bytesRead, _samples, _sweeps, _lastSweepMs, _watching);
+                return new TailStats(_files, _cursors.Count, _bytesRead, _samples, _sweeps, _lastSweepMs,
+                                     _watching, _fullSweeps, _lastFullSweepMs);
         }
     }
 
@@ -140,9 +162,10 @@ internal sealed class TranscriptTail : IDisposable
         }
     }
 
-    // The watcher is the low-latency path; every event just pulls the next sweep forward past the
-    // debounce. It deliberately does not carry which file changed: the sweep is cheap enough to be
-    // whole, and trusting the event's path would make a dropped event a permanently missed file.
+    // The watcher is the low-latency path: an event pulls the next sweep forward past the debounce
+    // and names the file to look at. Trusting that path alone would make a dropped event a
+    // permanently missed file, which is why it is a *work list* and not the only way in — the
+    // reconciling sweep (ReconcileMs) still walks everything, so a lost event costs latency.
     private void StartWatching()
     {
         try
@@ -156,14 +179,19 @@ internal sealed class TranscriptTail : IDisposable
                 InternalBufferSize = 64 * 1024,   // several sessions writing at once shouldn't overflow
             };
 
-            void Bump()
+            void Bump(params string?[] paths)
             {
+                lock (_gate)
+                    foreach (string? p in paths)
+                        if (p is { Length: > 0 }) _hot.Add(p);
                 try { _timer?.Change(DebounceMs, SweepFloorMs); } catch { /* disposed mid-event */ }
             }
 
-            _watcher.Changed += (_, _) => Bump();
-            _watcher.Created += (_, _) => Bump();
-            _watcher.Renamed += (_, _) => Bump();
+            _watcher.Changed += (_, e) => Bump(e.FullPath);
+            _watcher.Created += (_, e) => Bump(e.FullPath);
+            // Both ends: the new name is where the turns are now, and the old one may still carry a
+            // cursor that has to be retired rather than left pointing at a path nobody will visit.
+            _watcher.Renamed += (_, e) => Bump(e.FullPath, e.OldFullPath);
             // A watcher that has errored is finished. Drop it and keep the floor timer: the feed gets
             // slower, never wrong. Same ruling as ContextWindow's T82 watcher.
             _watcher.Error += (_, _) => StopWatching();
@@ -187,8 +215,8 @@ internal sealed class TranscriptTail : IDisposable
         finally { _watcher = null; _watching = false; }
     }
 
-    // One pass: list the transcripts touched recently, read whatever each grew by, report the turns.
-    // Re-entrancy matters — the watcher can pull a sweep forward while one is still running.
+    // One pass: look at the transcripts that may have grown, read whatever each grew by, report the
+    // turns. Re-entrancy matters — the watcher can pull a sweep forward while one is still running.
     private void Sweep()
     {
         if (Interlocked.CompareExchange(ref _sweeping, 1, 0) != 0) return;
@@ -203,8 +231,21 @@ internal sealed class TranscriptTail : IDisposable
             double ceiling = now + 60;
             DateTime cutoffUtc = DateTimeOffset.FromUnixTimeSeconds((long)floor).UtcDateTime.AddMinutes(-1);
 
+            // Whole tree, or only the paths the watcher named? Full when the watcher is not running
+            // (there is no work list to trust), on the first pass, and every ReconcileMs regardless —
+            // so a dropped event costs latency and never a stranded file.
+            bool full;
+            string[] hot;
+            lock (_gate)
+            {
+                full = !_watching || _lastFullTicks == 0 ||
+                       Stopwatch.GetElapsedTime(_lastFullTicks).TotalMilliseconds >= ReconcileMs;
+                hot = full ? Array.Empty<string>() : _hot.ToArray();
+                _hot.Clear();   // taken; anything arriving from here on bumps the next sweep
+            }
+
             int files = 0;
-            foreach (FileInfo fi in Enumerate())
+            foreach (FileInfo fi in full ? Enumerate() : Named(hot))
             {
                 files++;
                 // Metadata only — a transcript nobody has written to since the freshness floor cannot
@@ -212,6 +253,8 @@ internal sealed class TranscriptTail : IDisposable
                 if (fi.LastWriteTimeUtc < cutoffUtc) continue;
                 ReadAppended(fi, floor, ceiling, ref found);
             }
+
+            if (full) PruneCursors(cutoffUtc);
 
             lock (_gate)
             {
@@ -221,9 +264,17 @@ internal sealed class TranscriptTail : IDisposable
                     foreach (string old in _seen.Where(kv => kv.Value < floor).Select(kv => kv.Key).ToList())
                         _seen.Remove(old);
 
-                _files = files;
                 _sweeps++;
                 _lastSweepMs = Stopwatch.GetElapsedTime(t0).TotalMilliseconds;
+                if (full)
+                {
+                    // `Files` stays the size of the tree, not of the last work list — a cheap sweep
+                    // that looked at one file has not discovered that the other 601 are gone.
+                    _files = files;
+                    _fullSweeps++;
+                    _lastFullSweepMs = _lastSweepMs;
+                    _lastFullTicks = t0;
+                }
                 if (found != null)
                 {
                     found.Sort((a, b) => a.Unix.CompareTo(b.Unix));
@@ -242,6 +293,55 @@ internal sealed class TranscriptTail : IDisposable
     }
 
     private IEnumerable<FileInfo> Enumerate() => SafeWalk.Files(_dir, "*.jsonl");
+
+    // The cheap sweep's work list: the watcher's own paths. A path that has since vanished (renamed
+    // away, deleted) is not an error — it is the event that says its cursor can go.
+    private IEnumerable<FileInfo> Named(string[] paths)
+    {
+        foreach (string p in paths)
+        {
+            FileInfo? fi = null;
+            try
+            {
+                var candidate = new FileInfo(p);
+                if (candidate.Exists) fi = candidate;
+                else lock (_gate) _cursors.Remove(p);
+            }
+            catch { /* an unreadable path is skipped, like any other in a sweep */ }
+            if (fi != null) yield return fi;
+        }
+    }
+
+    // Cursors are created per file that recently held a turn, and until T103 they were never removed —
+    // a long-lived window accumulated one per transcript it ever saw. A file untouched since the
+    // cutoff cannot report anything again (every turn in it is already past the freshness floor), so
+    // its cursor is dead weight. Re-priming it later is safe for the same reason: the floor drops what
+    // the prime reads back, and `_seen` covers the clock-skew edge.
+    private void PruneCursors(DateTime cutoffUtc)
+    {
+        string[] tracked;
+        lock (_gate)
+        {
+            if (_cursors.Count == 0) return;
+            tracked = _cursors.Keys.ToArray();
+        }
+
+        List<string>? dead = null;
+        foreach (string path in tracked)
+        {
+            try
+            {
+                var fi = new FileInfo(path);
+                if (!fi.Exists || fi.LastWriteTimeUtc < cutoffUtc) (dead ??= new()).Add(path);
+            }
+            catch { (dead ??= new()).Add(path); }
+        }
+
+        if (dead == null) return;
+        // Sweeps are serialized, so nothing else creates a cursor while this runs.
+        lock (_gate)
+            foreach (string path in dead) _cursors.Remove(path);
+    }
 
     private void ReadAppended(FileInfo fi, double floor, double ceiling, ref List<TailSample>? found)
     {

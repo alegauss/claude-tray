@@ -84,8 +84,9 @@
 >
 > **Second pass (T102–T108).** Building the block turned up one latent correctness bug that predates
 > it (T102, **shipped** — 41% of the assistant lines were repeats of a response already counted), two
-> costs it introduced (T103, T108), two readings it stops just short of (T104, T107), and one
-> duplicated resolver (T105). What is left is ordered by what a user would notice: T104 first.
+> costs it introduced (T103, **shipped** — the sweep now walks the whole tree twice a minute instead
+> of twenty times; T108), two readings it stops just short of (T104, T107), and one duplicated
+> resolver (T105). What is left is ordered by what a user would notice: T104 first.
 >
 > **Shipped since, from watching the real thing: T110–T112, T114–T116.** The strip got a labelled
 > ceiling scaled to what is on screen (T110), its own **Throughput** tab (T111) and percentile clipping
@@ -96,7 +97,6 @@
 > end-of-turn attribution it was about without inventing a duration. What is left of T104 is the
 > per-sample hover.
 
-- 📋 **T103** (deps: T97) **The tail re-enumerates the whole tree every 3s** — 602 transcripts in 17ms today, metadata-only, but it is O(all history) and grows forever while the window is open. Enumerate only directories whose mtime moved, or fall back to watcher-reported paths once the tree passes a size. → §V.8
 - 📋 **T104** (deps: T99, T110, T111, T116) **The charts have no per-sample reading** — T110 gave the row a magnitude, T111 a tab with real height and T116 lines you can follow, which leaves the one interaction a time-series should not ship without: hover a point for its second, its project and the tokens that actually landed in it (the raw buckets are still there, beside the rate the line draws). → §V.9
 - 💭 **T105** (deps: T100) **One resolver for slug → project path** — T100 recovers a project's real folder by walking the `cwd` up to the ancestor whose encoding matches the slug; `ContextScanner.CwdFromTranscripts` answers the same question separately and less exactly. Two readers of the same lossy encoding is one too many. → §V.10
 - 💭 **T107** (deps: T98) **Say what the cache re-read is costing** — measured on real traffic: ~30,000 tok/s of cache read against ~150 tok/s of real work, a 200× ratio the app now computes and shows nobody. That number is what a large eager context costs *per turn*, which makes it the missing link between this block and the Context Load Inspector. → §V.12
