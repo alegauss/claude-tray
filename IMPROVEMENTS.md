@@ -406,19 +406,6 @@ The value of this block is that its diffs are boring and its risk is a build err
 A file that gets "improved while it was open" destroys that property — the improvement becomes a task in
 whichever block owns that subsystem.
 
-### §VIII.2 The windows move (T130)
-
-Separate from T129 because the failure mode is different. A `.xaml` compiled as a `Page` gets a
-generated `InitializeComponent` whose `Uri` is **derived from the file's path**, so moving markup
-rewrites generated code — and anything that had hardcoded a `pack://application:,,,/…` path to a window
-or a resource dictionary would break in a way the build does not necessarily catch. Measured before
-planning this: the repo hardcodes **no** `pack://` URI and has no `ResourceDictionary Source=` in any
-window, so the generated code absorbs the move on its own.
-
-That is a prediction, not a proof, so the gate is not a green build: it is a `preview-ui` screenshot of
-all four windows (Settings across its pages, Statistics, Context, Toast), per the AGENTS visual
-verification loop.
-
 ### §VIII.4 `Program.cs` is two programs (T132)
 
 2,524 lines and 130 KB in one file, and the split is already visible in the structure: `Main` dispatches

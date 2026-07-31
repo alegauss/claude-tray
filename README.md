@@ -573,9 +573,9 @@ build the installer, and attach `ClaudeTray-Setup.exe` to a GitHub release tagge
 
 The sources live under `src/`, one folder per subsystem — `src/Tray/` (the resident app),
 `src/Usage/` (quota, spend, live throughput), `src/Context/` (the Context Load Inspector),
-`src/Profiles/` (accounts and settings) and `src/Core/` (localization and the safe directory walk).
-The windows are the `.xaml`/`.xaml.cs` pairs in the repo root. The namespace is flat (`ClaudeTray`),
-so the folders are for reading, not for the compiler.
+`src/Profiles/` (accounts and settings), `src/Core/` (localization and the safe directory walk) and
+`src/Ui/` (the four windows, as `.xaml`/`.xaml.cs` pairs). The namespace is flat (`ClaudeTray`), so
+the folders are for reading, not for the compiler.
 
 | File | Responsibility |
 |---|---|

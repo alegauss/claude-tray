@@ -35,8 +35,8 @@ with WinForms while showing a WPF window must call `WpfInputBridge.Install()`.
 
 ## File map
 
-The sources live under `src/`, one folder per subsystem (T129) — the folder is the map, this table is
-the detail. **Where does a new file go?** In the folder of the subsystem it belongs to; **the repo root
+The sources live under `src/`, one folder per subsystem (T129–T130) — the folder is the map, this table
+is the detail. **Where does a new file go?** In the folder of the subsystem it belongs to; **the repo root
 is for the project, not for code** (csproj, manifest, icon, `lang/`, `docs/`, the roadmap docs). Two
 things are deliberate and must not be "fixed": the namespace stays **flat `ClaudeTray`** — folders are
 for the person running `ls`, not for the compiler, so no folder-derived namespaces and no new `using`s
@@ -99,12 +99,15 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 | `src/Core/Localization.cs` | The dependency-free `L` / `{local:Loc key}` layer over the embedded `lang\<code>.json` files: language picked from Settings, else the OS UI language, English as the fallback for a missing key. |
 | `src/Core/SafeWalk.cs` | The recursive `~/.claude` walk every scan goes through: per directory, so an unreadable one (untrusted junction, denied ACL, folder deleted mid-sweep) skips its subtree instead of aborting the sweep. Materializes each directory's entries — a `try` around a lazy `Enumerate*` catches nothing — and resolves a reparse point to its target before opening it. |
 
-**Windows (repo root, until T130 moves them to `src/Ui/`)**
+**`src/Ui/` — the windows** (the 4 `.xaml`/`.xaml.cs` pairs + `SettingsRow.cs`). A `Page`'s generated
+`InitializeComponent` builds its `Uri` from the file's **path**, so markup can be moved freely only
+while nothing hardcodes a `pack://application:,,,/…` URI — the repo hardcodes none, and adding one
+would tie a window to its folder.
 
 | File | Responsibility |
 |---|---|
-| `SettingsWindow.xaml(.cs)` | The WPF Fluent settings window. **All layout lives in the XAML.** |
-| `ContextWindow.xaml(.cs)` | The Context Load window: master/detail over `ContextScanner` — projects left; right, the session-zero gauge (base overhead / instructions / memory / skills, with the transcript-measured tick) over the per-source eager/lazy breakdown. Scans on a background thread; view models are `public` because WPF binding resolves paths by reflection over public types only. |
+| `src/Ui/SettingsWindow.xaml(.cs)` | The WPF Fluent settings window. **All layout lives in the XAML.** |
+| `src/Ui/ContextWindow.xaml(.cs)` | The Context Load window: master/detail over `ContextScanner` — projects left; right, the session-zero gauge (base overhead / instructions / memory / skills, with the transcript-measured tick) over the per-source eager/lazy breakdown. Scans on a background thread; view models are `public` because WPF binding resolves paths by reflection over public types only. |
 
 ## UI conventions — the rules that prevent the bugs we already hit
 

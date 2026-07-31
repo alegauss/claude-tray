@@ -119,21 +119,18 @@
 > five release scripts, and the ~10 markdown/config files, in one flat listing of 58 entries. Nothing
 > about that listing said which files are the tray, which are the windows, which read `~/.claude` and
 > which talk to the API — `AGENTS.md`'s file map was the only map, and a table maintained by hand is a
-> poor substitute for a directory that is right by construction. **T129 shipped** the 30 non-UI sources
-> into `src/{Context,Usage,Profiles,Core,Tray}/` and **T131** the seven shipping entries into `build/`
-> — see [CHANGELOG.md](CHANGELOG.md) Block P. What is
-> left is the windows and the four files that have grown past the point where one
-> file is one idea (`Program.cs` 2.5k lines, the two big code-behinds ~1.3k each, `SettingsWindow.xaml`
-> six pages).
+> poor substitute for a directory that is right by construction. **The move is done** — T129 took the
+> 30 non-UI sources into `src/{Context,Usage,Profiles,Core,Tray}/`, T130 the four windows into
+> `src/Ui/` and T131 the seven shipping entries into `build/`; see [CHANGELOG.md](CHANGELOG.md)
+> Block P. What is left is the four files that have grown past the point where one file is one idea
+> (`Program.cs` 2.5k lines, the two big code-behinds ~1.3k each, `SettingsWindow.xaml` six pages).
 >
-> This block moves the files (T130, and T131 shipped) and then splits the ones that are too big to
-> read (T132–T134).
+> What remains of the block splits those (T132–T134).
 > Every task is **rename + reference fix, zero behaviour change** — a Block P commit that alters what
 > the app does is a mistake, not a bonus. The layout and the four things that must *not* move
 > (the flat namespace, `lang/`, the root docs, the csproj) are in
 > [IMPROVEMENTS.md](IMPROVEMENTS.md) §VIII.0.
 
-- 📋 **T130** (deps: T129) **The four windows move into `src/Ui/`** — the 4 `.xaml` + their code-behind + `SettingsRow.cs`. Riskier than T129 because a WPF `Page`'s generated resource URI is derived from its path; no `pack://` URI is hardcoded anywhere in the repo (checked), so the generated `InitializeComponent` should absorb the move, but the gate is a `preview-ui` screenshot of all four windows, not a green build. → §VIII.2
 - 📋 **T132** (deps: T129) **`Program.cs` splits three ways** — 2.5k lines / 130 KB holding two unrelated programs. `Main` and the arg dispatch stay in `Tray/Program.cs`; the ~1,000 lines of headless printers (`--context`/`--activity`/`--live`/`--tail`/`--profiles`, the markdown report writer, the fixture/capture/render entry points) become `src/Cli/*.cs`, one file per flag family; the ~1,080-line `TrayContext` (menu, timers, poll, tooltip, icon render) becomes `Tray/TrayContext.cs`. Mechanical — moved verbatim, not rewritten. → §VIII.4
 - 📋 **T133** (deps: T130) **The two big code-behinds split per surface** — `ContextWindow.xaml.cs` (1,369 lines, 7 types) and `StatisticsWindow.xaml.cs` (1,269 lines: session tab, week tab, throughput tab, activity shape, method popup, profile selector) each carry several independent surfaces plus their helper types in one file. `partial class` per tab, helper types to their own files, no XAML change. → §VIII.5
 - 💭 **T134** (deps: T130) **`SettingsWindow.xaml`: six pages in one file** — 1,019 lines holding General, Display, Claude Code, Notifications, System information and About, over ~170 lines of shared row/value styles they all consume. Needs design before it is worth doing: a `UserControl` per page reads better but separates the styles from their users, and the UI conventions (all layout in XAML, nothing hardcoded that a theme owns) must survive it. → §VIII.6
