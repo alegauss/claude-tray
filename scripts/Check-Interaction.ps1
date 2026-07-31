@@ -409,6 +409,13 @@ function Expected-ProfileEntries {
     return [pscustomobject]@{ Count = 0; Why = $why }
 }
 
+<# How many profiles the app sees at all - the Profile submenu is shown, and expandable, above one. #>
+function Expected-ProfileCount {
+    $out = & $Exe "--lang" $Lang "--profiles" 2>&1 | Out-String
+    if ($out -match 'polled every interval:\s*\d+\s+of\s+(\d+)') { return [int]$Matches[1] }
+    return 0
+}
+
 function Invoke-MenuCase {
     Head "Menu - the tray icon's menu as it is when it opens"
 
@@ -473,6 +480,41 @@ function Invoke-MenuCase {
             else {
                 Pass "'$subLabel' lists $($subs.Count) profile entries"
                 foreach ($s in $subs) { Info "- $($s.Current.Name)" }
+            }
+        }
+
+        # T148: the Profile submenu has to expand from the keyboard too. It only can if it is non-empty
+        # when the menu opens - an empty ToolStripMenuItem exposes no ExpandCollapse pattern, draws no
+        # arrow, and WinForms handles Right as "activate a plain command", dismissing the whole menu.
+        # A mouse hover always worked, which is exactly why this went unnoticed until it was driven.
+        $profileCount = Expected-ProfileCount
+        $profLabel = Label 'menu.profiles'
+        if ($profileCount -lt 2) {
+            Info "one profile: the Profile submenu is hidden, nothing to expand"
+        }
+        elseif ($labels -notcontains $profLabel) {
+            Fail "'$profLabel' is missing from the menu although $profileCount profiles were found"
+        }
+        else {
+            [Native]::Key($VK_ESC)      # close whatever the previous check opened, keep the menu itself
+            Start-Sleep -Milliseconds 400
+            $menu = Find-TrayMenu $proc.Id
+            if (-not $menu) {
+                Fail "the menu closed before the Profile submenu could be expanded"
+            }
+            else {
+                $profSubs = Expand-Item $menu $profLabel
+                $least = $profileCount + 1   # one entry per profile, plus the auto-follow toggle
+                if (-not $profSubs) {
+                    Fail "'$profLabel' did not expand from the keyboard - empty when the menu opened? (T148)"
+                }
+                elseif ($profSubs.Count -lt $least) {
+                    Fail "'$profLabel' expanded with $($profSubs.Count) entries, expected at least $least"
+                }
+                else {
+                    Pass "'$profLabel' expands from the keyboard with $($profSubs.Count) entries"
+                    foreach ($s in $profSubs) { Info "- $($s.Current.Name)" }
+                }
             }
         }
     }

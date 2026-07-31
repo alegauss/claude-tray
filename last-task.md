@@ -164,3 +164,4 @@ here. This file is a terse index, not a memory.
 - **T145 SHIPPED** (Block T — the tray writes the user-scope `CLAUDE_CONFIG_DIR` for a pinned profile) — 2026-07-31.
 - **T146 SHIPPED** (Block T — "Open Claude Code" collapses back to one command while the profile is global) — 2026-07-31.
 - **T147 SHIPPED** (Block T — a per-profile accent band on the tray icon says whose number it is) — 2026-07-31.
+- **T148 SHIPPED** (Block T — the Profile submenu is populated at menu-open, so Right expands it) — 2026-07-31.

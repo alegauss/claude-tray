@@ -136,31 +136,6 @@
 - 📋 **T133** (deps: T130) **The two big code-behinds split per surface** — `ContextWindow.xaml.cs` (1,369 lines, 7 types) and `StatisticsWindow.xaml.cs` (1,269 lines: session tab, week tab, throughput tab, activity shape, method popup, profile selector) each carry several independent surfaces plus their helper types in one file. `partial class` per tab, helper types to their own files, no XAML change. → §VIII.5
 - 💭 **T134** (deps: T130) **`SettingsWindow.xaml`: six pages in one file** — 1,019 lines holding General, Display, Claude Code, Notifications, System information and About, over ~170 lines of shared row/value styles they all consume. Needs design before it is worth doing: a `UserControl` per page reads better but separates the styles from their users, and the UI conventions (all layout in XAML, nothing hardcoded that a theme owns) must survive it. → §VIII.6
 
-## Block T — One profile, the whole environment
-
-> **A deliberate reversal of T143.** That task refused to write a user-level environment variable and
-> shipped a copyable `setx` command instead, on the grounds that the variable reaches every Claude Code
-> session on the machine — including ones the tray never sees — and keeps applying after the tray is
-> uninstalled. The user's requirement is precisely that reach: *"quando eu mudar para um dos perfis, o
-> Windows use este perfil em todo o ambiente"*, VS Code opened from the Start menu included. Nothing the
-> tray does to a process it launches can reach that; a user-scope variable is the only mechanism, and
-> §I.4 does not forbid it (it is about not editing files inside `~/.claude`). The T143 objection is
-> answered rather than ignored: what the tray sets, the tray removes — turning the toggle off, or
-> resuming auto-follow, restores what was there before.
->
-> **What it syncs to is the pin, not the icon.** T139 already models a manual pick as a distinct,
-> persistent, user-visible state ("· pinned" + "Resume following"), and auto-follow only moves the icon
-> while nothing is pinned. Syncing the variable to every icon movement would rewrite the environment
-> continuously on a machine where a profile is more or less always active — which is the observation
-> that produced T139 in the first place. Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XI.
->
-> **T144–T147 shipped**: the prerequisite (a launch decides against what the child inherits, and
-> `~/.claude` is selected by *removing* the variable), the toggle itself, the submenu collapsing back
-> to one command while the toggle is on, and the per-profile accent band that makes the icon say whose
-> number it is. See [CHANGELOG.md](CHANGELOG.md).
-
-- 📋 **T148** (deps: —) **The Profile submenu cannot be opened from the keyboard** — found while driving T145's verification: every other submenu expands with Right, and this one closes the menu instead. Its items are built in `DropDownOpening`, so until it has been opened once `DropDownItems` is empty, WinForms reports no dropdown (no `ExpandCollapse` pattern, no arrow) and treats Right as "activate a plain command". A mouse hover works, which is why it was never noticed. The fix is to populate it before the menu is shown rather than on the way in — the menu already re-reads the profiles on every open (T137), so the data is there. Also unblocks the harness: `Check-Interaction.ps1` can only expand submenus that are non-empty at menu-open time. → §XI.4
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

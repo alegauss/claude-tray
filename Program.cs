@@ -1726,9 +1726,14 @@ internal sealed class TrayContext : ApplicationContext
         // rather than in the tooltip because the tooltip is capped at 127 characters and already
         // compacts its projection line to fit (see BuildTooltip).
         _profileMenu = new ToolStripMenuItem(L.T("menu.profiles")) { Visible = false };
-        _profileMenu.DropDownOpening += (_, _) => PopulateProfileMenu();
         _profileMenu.Visible = _watched.Count > 1;
         menu.Items.Add(_profileMenu);
+        // Filled here and on every menu open, NOT in DropDownOpening (T148): an empty
+        // ToolStripMenuItem is not a submenu to WinForms — it exposes no ExpandCollapse pattern and
+        // draws no arrow, so Right is handled as "activate a plain command" and dismisses the whole
+        // menu. Hovering worked because the mouse path opens the dropdown before anything asks whether
+        // it has items, which is why this was mouse-only without ever looking broken.
+        PopulateProfileMenu();
 
         var insights = new ToolStripMenuItem(L.T("menu.insights"));
         insights.DropDownOpening += (_, _) => PopulateInsights(insights);
@@ -1784,6 +1789,10 @@ internal sealed class TrayContext : ApplicationContext
         {
             RefreshWatched();
             RefreshProfileMenu();
+            // Before the menu is shown rather than on the way into the dropdown, so the submenu is a
+            // real submenu by the time WinForms decides what Right does (T148). The readings it draws
+            // are the poll's, and this runs immediately before display, so nothing is staler for it.
+            PopulateProfileMenu();
             if (_profileMenu is not null) _profileMenu.Visible = _watched.Count > 1;
         };
 
@@ -1952,6 +1961,7 @@ internal sealed class TrayContext : ApplicationContext
         // than waiting for a restart.
         RefreshWatched();          // the list (and so the icon's profile) may have changed
         RefreshProfileMenu();
+        PopulateProfileMenu();     // a profile added or removed here changes the submenu's contents too
         if (_profileMenu is not null) _profileMenu.Visible = _watched.Count > 1;
 
         try { _settings.Save(); }
