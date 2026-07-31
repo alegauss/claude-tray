@@ -110,17 +110,18 @@ internal readonly record struct TokenBits(long Input, long Output, long CacheCre
 
 internal static class UsageReport
 {
-    private static readonly string ProjectsDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        ".claude", "projects");
-
     private const double SessionSeconds = 5 * 3600;
     private const double WeekSeconds = 7 * 86400;
 
     /// <summary>Build the pacing report for both windows from the live snapshot plus the transcripts.</summary>
-    public static PaceReport ComputePace(DateTime nowUtc, PaceSnapshot snap)
+    /// <param name="profile">Which profile the report is about — its stores *and* its transcripts.
+    /// Defaults to the monitored one. Before T128 the transcript scan and the activity profile always
+    /// read <c>~/.claude/projects</c>, so monitoring a non-default profile (T127) would have shaped one
+    /// account's curve with another account's work.</param>
+    public static PaceReport ComputePace(DateTime nowUtc, PaceSnapshot snap, ProfileRef? profile = null)
     {
         var r = new PaceReport { ComputedLocal = nowUtc.ToLocalTime() };
+        ProfileRef p = profile ?? ProfileStore.MonitoredRef;
         try
         {
             double now = new DateTimeOffset(nowUtc, TimeSpan.Zero).ToUnixTimeSeconds();
@@ -136,9 +137,9 @@ internal static class UsageReport
             if (!double.IsPositiveInfinity(earliest))
             {
                 // Real measured utilizations (preferred), plus token samples as the shaping fallback.
-                List<UsageSample> hist = UsageHistory.Load(ProfileStore.Monitored, earliest);
+                List<UsageSample> hist = UsageHistory.Load(p.Key, earliest);
                 List<(double t, TokenBits bits)> samples =
-                    Directory.Exists(ProjectsDir) ? ScanTokens(earliest, now) : new();
+                    Directory.Exists(p.ProjectsDir) ? ScanTokens(p.ProjectsDir, earliest, now) : new();
 
                 FillCurve(r.Session, samples, hist, s => (s.Util5h, s.Reset5h), now);
                 FillCurve(r.Weekly, samples, hist, s => (s.Util7d, s.Reset7d), now);
@@ -147,13 +148,13 @@ internal static class UsageReport
             // Shape the weekly projection around when this machine is actually used. Cached daily and
             // refreshed off-thread, so this costs a file read on all but the first call of the day.
             // The 5-hour window is deliberately left alone: it is one sitting, not a habit.
-            r.Activity = ActivityProfile.Load(nowUtc);
+            r.Activity = ActivityProfile.Load(nowUtc, profile: p);
             r.Weekly.Shape = ActivityShape.Build(r.Weekly, r.Activity, now);
 
             // Last week behind this week, from the folded hourly aggregate — the raw log can't reach
             // back that far (8-day retention), which is exactly why T88 exists.
             if (r.Weekly.HasWindow)
-                r.Weekly.Ghost = HourlyUsage.PreviousWeek(ProfileStore.Monitored, 
+                r.Weekly.Ghost = HourlyUsage.PreviousWeek(p.Key, 
                     r.Weekly.ResetUnix - r.Weekly.WindowSeconds, r.Weekly.WindowSeconds,
                     r.Weekly.ElapsedFraction);
 
@@ -310,13 +311,14 @@ internal static class UsageReport
         return gaps;
     }
 
-    // Collect (unixTime, token breakdown) for every in-window assistant request with usage.
-    private static List<(double t, TokenBits bits)> ScanTokens(double startUnix, double nowUnix)
+    // Collect (unixTime, token breakdown) for every in-window assistant request with usage, from one
+    // profile's transcripts (T128 — before that this always read the default config dir's).
+    private static List<(double t, TokenBits bits)> ScanTokens(string projectsDir, double startUnix, double nowUnix)
     {
         var samples = new List<(double, TokenBits)>();
         DateTime cutoffUtc = DateTimeOffset.FromUnixTimeSeconds((long)startUnix).UtcDateTime;
 
-        foreach (string file in SafeWalk.Paths(ProjectsDir, "*.jsonl"))
+        foreach (string file in SafeWalk.Paths(projectsDir, "*.jsonl"))
         {
             if (File.GetLastWriteTimeUtc(file) < cutoffUtc) continue;
 

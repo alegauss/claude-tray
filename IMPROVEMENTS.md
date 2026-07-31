@@ -395,24 +395,3 @@ per-profile colour dot — and that dot has to survive being looked at beside th
 already carries meaning. Nothing here gets promised before it has been rendered and screenshotted. It is
 not the animated tray hint T101 was dropped for: a static per-profile mark needs no permanent tail
 (T125's polling already knows the profiles) and does not animate.
-
-### §VII.6 Statistics is still single-profile (T128)
-
-T127 polls every profile and stores each one's readings separately, and the Profile submenu reads them.
-The Statistics window did not move: it is built around one `PaceSnapshot` handed in by the tray, and
-everything in it — the two burn-up charts, the projection, the activity shape, the week-over-week ghost,
-the throughput tab — describes that one profile.
-
-Most of what a second profile's view needs already exists. Its readings are on disk under its own key
-(T125), so the pace and the charts are a recompute rather than new data, and `ActivityShape` /
-`HourlyUsage` already take a profile key.
-
-The exception is the **Throughput** tab, and it is worth naming before somebody assumes it comes free:
-`TranscriptTail` reads `~/.claude/projects`, i.e. the *default* config dir's transcripts. A profile is a
-different config dir with different transcripts, so the live rate for another profile means pointing the
-tail at that dir — the constructor already takes one for fixtures, which is the seam.
-
-Open question worth settling in the design, not in code: whether the window gains a profile selector, or
-whether the tray opens one window per profile. A selector keeps one window and one set of charts to
-learn; separate windows let two accounts be watched side by side, which is the whole reason somebody
-registered two profiles.

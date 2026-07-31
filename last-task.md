@@ -110,3 +110,4 @@ here. This file is a terse index, not a memory.
 - **T124 SHIPPED** (Block O — per-profile auth reading, and the "not your subscription" warning) — 2026-07-31.
 - **T125 SHIPPED** (Block O — every per-profile store keyed by profile, with the one-time migration) — 2026-07-31.
 - **T127 SHIPPED** (Block O — a heartbeat per profile, the Profile submenu, and the icon's chosen profile) — 2026-07-31.
+- **T128 SHIPPED** (Block O — Statistics reports on a chosen profile, transcripts included) — 2026-07-31.

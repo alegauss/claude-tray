@@ -92,6 +92,19 @@ internal partial class StatisticsWindow : Window
     /// looked at. See <c>--stats method</c>.</summary>
     internal bool PreviewMethodOpen { get; init; }
 
+    /// <summary>Which profile this window is reporting on (T128). Everything it draws — the charts, the
+    /// projection, the activity shape, the ghost week and the live throughput — comes from this profile's
+    /// own stores and its own transcripts.</summary>
+    private ProfileRef _profile = ProfileStore.MonitoredRef;
+
+    /// <summary>The profiles offered in the picker, monitored first. Empty or single ⇒ no picker.</summary>
+    private List<ClaudeInfo> _profiles = new();
+
+    /// <summary>True while the window is showing the profile the tray polls for the icon. Only then may a
+    /// pushed reading be adopted — a snapshot is one account's utilization, and applying the monitored
+    /// account's numbers to another profile's charts would be a silent lie.</summary>
+    private bool _showingMonitored = true;
+
     public StatisticsWindow(PaceSnapshot? snapshot, bool showRemaining = false, string? error = null)
     {
         _snapshot = snapshot;
@@ -141,6 +154,9 @@ internal partial class StatisticsWindow : Window
     /// </summary>
     internal void UpdateSnapshot(PaceSnapshot? snapshot, string? error = null)
     {
+        // The tray polls the monitored profile for the icon; while this window is showing another one,
+        // that reading is about a different account and adopting it would relabel someone else's usage.
+        if (!_showingMonitored) return;
         _snapshot = snapshot;
         _error = error;
         if (_snapshot is not null)
@@ -222,6 +238,71 @@ internal partial class StatisticsWindow : Window
         }
     }
 
+
+    /// <summary>
+    /// Offer a profile picker (T128). Called by the tray with everything it watches, monitored first;
+    /// with one profile the picker stays hidden and nothing about the window changes.
+    /// </summary>
+    internal void SetProfiles(List<ClaudeInfo> profiles)
+    {
+        _profiles = profiles;
+        if (profiles.Count > 0)
+        {
+            _profile = new ProfileRef(ProfileStore.KeyFor(profiles[0]), profiles[0].ConfigDir);
+            _showingMonitored = true;
+        }
+        if (ProfileCombo is null) return;
+
+        ProfileCard.Visibility = profiles.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        ProfileCombo.SelectionChanged -= Profile_Changed;
+        ProfileCombo.Items.Clear();
+        foreach (ClaudeInfo p in profiles)
+            ProfileCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = p.Label });
+        if (profiles.Count > 0) ProfileCombo.SelectedIndex = 0;
+        ProfileCombo.SelectionChanged += Profile_Changed;
+    }
+
+    /// <summary>Preview-only: pick a profile by index, so the capture path can render the window as
+    /// another profile without a click.</summary>
+    internal void SelectProfileForPreview(int index)
+    {
+        if (ProfileCombo is not null && index >= 0 && index < ProfileCombo.Items.Count)
+            ProfileCombo.SelectedIndex = index;
+    }
+
+    private void Profile_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        int i = ProfileCombo.SelectedIndex;
+        if (i < 0 || i >= _profiles.Count) return;
+
+        ClaudeInfo picked = _profiles[i];
+        _profile = new ProfileRef(ProfileStore.KeyFor(picked), picked.ConfigDir);
+        _showingMonitored = i == 0;
+
+        // Abandon any computation still in flight for the profile we are leaving. `Reload` stamps each
+        // run with a generation and drops a result whose stamp is stale, but nothing bumped it here — so
+        // the previous profile's report would land *after* the switch and repaint the window with another
+        // account's charts under this account's name. Caught by capturing the switch: the picker said
+        // "Pessoal" while the curve was still the other profile's 74%.
+        _generation++;
+
+        // A profile the tray isn't polling for the icon has no live reading in hand — but it has its own
+        // stored series (T125), and its last logged reading is exactly as fresh as its last poll. That is
+        // the honest snapshot to draw it from; the footer timestamp says when it was taken.
+        _snapshot = _showingMonitored
+            ? _snapshot
+            : UsageHistory.Latest(_profile.Key) is { } h
+                ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d)
+                : null;
+
+        // The live strip is a different config dir's transcripts now.
+        StopLive(dispose: true);
+        StartLive();
+
+        if (_snapshot is not null) Reload();
+        else ShowStatus(L.T("stats.noProfileData", picked.Label));
+    }
+
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
     private void Reload()
@@ -240,7 +321,8 @@ internal partial class StatisticsWindow : Window
         DateTime nowUtc = DateTime.UtcNow;
         // Marshal the result back through the window's Dispatcher rather than a sync-context scheduler:
         // Reload() runs from the constructor, before a WPF SynchronizationContext exists on this thread.
-        Task.Run(() => UsageReport.ComputePace(nowUtc, snap)).ContinueWith(t =>
+        ProfileRef profile = _profile;
+        Task.Run(() => UsageReport.ComputePace(nowUtc, snap, profile)).ContinueWith(t =>
         {
             PaceReport result = t.Result;
             Dispatcher.Invoke(() =>
@@ -475,7 +557,9 @@ internal partial class StatisticsWindow : Window
 
         try
         {
-            _tail = new TranscriptTail();
+            // This profile's transcripts, not the default dir's: another profile's live rate is a
+            // different config dir's work (T128).
+            _tail = new TranscriptTail(_profile.ProjectsDir);
             _live = new LiveRate(_tail);
             _tail.Start();
         }

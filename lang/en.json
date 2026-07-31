@@ -301,6 +301,9 @@
 
   // ================= Statistics window =================
   "stats.title": "Statistics",
+  "stats.profile": "Profile",
+  "stats.profileHint": "Everything below is this profile's own — its readings, its transcripts, its week.",
+  "stats.noProfileData": "No readings stored for {0} yet. It gets its first ones on the next refresh.",
   "stats.header": "Consumption pace",
   "stats.subtitle": "Are you spending your quota evenly, or faster than the clock — running out before it resets? The dashed line projects where your current pace lands.",
   "stats.tab.session": "5-hour session",

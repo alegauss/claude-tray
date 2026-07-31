@@ -297,6 +297,9 @@
 
   // ================= Statistics window =================
   "stats.title": "Estadísticas",
+  "stats.profile": "Perfil",
+  "stats.profileHint": "Todo lo de abajo es de este perfil — sus lecturas, sus transcripciones, su semana.",
+  "stats.noProfileData": "Aún no hay lecturas guardadas para {0}. Las primeras llegan en la próxima actualización.",
   "stats.header": "Ritmo de consumo",
   "stats.subtitle": "¿Estás gastando tu cuota de forma equilibrada o más rápido que el reloj — agotándola antes de que se reinicie? La línea discontinua proyecta a dónde llega tu ritmo actual.",
   "stats.tab.session": "Sesión de 5 horas",

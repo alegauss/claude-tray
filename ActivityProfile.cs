@@ -128,10 +128,15 @@ internal sealed class ActivityProfile
     /// </summary>
     /// <param name="refresh">Force a synchronous rescan, ignoring the cache.</param>
     /// <param name="claudeRoot">Stand-in for <c>~/.claude</c> (fixtures). Never reads or writes the cache.</param>
-    public static ActivityProfile Load(DateTime nowUtc, bool refresh = false, string? claudeRoot = null)
+    /// <param name="profile">Which profile's transcripts to mine and whose cache to use. Defaults to the
+    /// monitored one. A fixture root wins over it and stays cacheless — a synthetic tree must never
+    /// overwrite a real profile's grid (T128).</param>
+    public static ActivityProfile Load(DateTime nowUtc, bool refresh = false, string? claudeRoot = null,
+                                       ProfileRef? profile = null)
     {
+        ProfileRef p = profile ?? ProfileStore.MonitoredRef;
         bool real = claudeRoot == null;
-        if (real && !refresh && ReadCache(ProfileStore.Monitored) is { } cached)
+        if (real && !refresh && ReadCache(p.Key) is { } cached)
         {
             cached.FromCache = true;
             if ((nowUtc - cached.ComputedUtc).TotalHours >= RefreshHours &&
@@ -141,8 +146,8 @@ internal sealed class ActivityProfile
                 {
                     try
                     {
-                        ActivityProfile next = Compute(DateTimeOffset.UtcNow.UtcDateTime, ProjectsDir(null));
-                        if (next.Error == null) WriteCache(ProfileStore.Monitored, next);
+                        ActivityProfile next = Compute(DateTimeOffset.UtcNow.UtcDateTime, p.ProjectsDir);
+                        if (next.Error == null) WriteCache(p.Key, next);
                     }
                     catch { /* the stale grid stays; another open will try again */ }
                     finally { Interlocked.Exchange(ref _refreshing, 0); }
@@ -151,8 +156,8 @@ internal sealed class ActivityProfile
             return cached;
         }
 
-        ActivityProfile fresh = Compute(nowUtc, ProjectsDir(claudeRoot));
-        if (real && fresh.Error == null) WriteCache(ProfileStore.Monitored, fresh);
+        ActivityProfile fresh = Compute(nowUtc, claudeRoot is { } root ? ProjectsDir(root) : p.ProjectsDir);
+        if (real && fresh.Error == null) WriteCache(p.Key, fresh);
         return fresh;
     }
 

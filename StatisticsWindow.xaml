@@ -142,6 +142,29 @@
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                        Text="{local:Loc stats.subtitle}" />
 
+            <!-- Profile picker (T128) — only when this machine has more than one Claude Code profile.
+                 Everything below is recomputed from the chosen profile's own stores and transcripts. -->
+            <Border x:Name="ProfileCard" Visibility="Collapsed" Margin="0,14,0,0"
+                    CornerRadius="8" Padding="14,10"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{local:Loc stats.profile}" VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <TextBlock Grid.Column="1" Text="{local:Loc stats.profileHint}" TextWrapping="Wrap"
+                               VerticalAlignment="Center" Margin="12,0,12,0" FontSize="12"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                    <ComboBox Grid.Column="2" x:Name="ProfileCombo" MinWidth="180"
+                              VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
             <!-- Shown only during an API outage: the reason, over charts drawn from the last known
                  local data. Kept collapsed otherwise. -->
             <Border x:Name="ErrorBanner" Visibility="Collapsed" Margin="0,12,0,0"

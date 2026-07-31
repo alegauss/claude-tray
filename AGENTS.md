@@ -122,6 +122,7 @@ dotnet run -- --stats method          # ...with the "how these numbers are measu
                                       #   (it's a separate top-level window, so --capture-stats can't
                                       #   see it — use scripts\Capture-Window.ps1 for this one)
 dotnet run -- --capture-stats docs\_preview\shape shape   # ...all three tabs to PNG, off-screen
+dotnet run -- --capture-stats out shape profile=1     # ...rendered as another profile (T128)
 
 dotnet run -- --context               # what every session costs before you type: per-project table
 dotnet run -- --context <slug|name>   # one project, source by source (eager/lazy, bytes, ≈tokens)

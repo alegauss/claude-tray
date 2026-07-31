@@ -300,6 +300,12 @@ window to read, and calling it would spend money to learn nothing. Because each 
 *that* account's usage, the cost estimate under **Settings → General → Interval** multiplies by the
 number of profiles being polled and says so.
 
+The **Statistics** window reports on one profile at a time and says which: with more than one, a picker
+at the top switches it, and everything below — the charts, the projection, the activity shape, last week's
+ghost and the live throughput — is recomputed from that profile's own readings and its own transcripts. A
+profile the icon isn't following is drawn from its last stored reading, with the footer saying when that
+was; one with nothing stored yet says so rather than borrowing another account's numbers.
+
 The tray icon is one number, so one profile owns it — the **Profile** submenu says which, shows the
 others' readings beside them, and switches with a click. A profile that needs a sign-in says so on its own
 line, rather than a generic prompt that would send you to re-login on the wrong account. (The tooltip only

@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
 namespace ClaudeTray;
@@ -75,6 +75,14 @@ internal static class ProfileStore
     /// </summary>
     public static string Monitored { get; private set; } = "";
 
+    /// <summary>The monitored profile's **config dir**. Everything read from Claude Code's own files —
+    /// its transcripts above all — has to come from this dir rather than from <c>~/.claude</c>, or the
+    /// tray would draw one account's quota curve shaped by another account's work (T128).</summary>
+    public static string MonitoredDir { get; private set; } = "";
+
+    /// <summary>The monitored profile as a <see cref="ProfileRef"/>.</summary>
+    public static ProfileRef MonitoredRef => new(Monitored, MonitoredDir);
+
     /// <summary>
     /// Adopt a profile as the monitored one, migrating the pre-profile flat files into it the first time.
     /// Safe to call repeatedly.
@@ -82,6 +90,7 @@ internal static class ProfileStore
     public static void SetMonitored(ClaudeInfo profile)
     {
         Monitored = KeyFor(profile);
+        MonitoredDir = profile.ConfigDir;
         Migrate(Monitored);
     }
 
@@ -133,4 +142,19 @@ internal static class ProfileStore
             sb.Append(char.IsAsciiLetterOrDigit(c) || c is '-' or '_' ? c : '_');
         return sb.Length > 0 ? sb.ToString() : "default";
     }
+}
+
+/// <summary>
+/// Which profile a reading is about: the key its derived stores live under, and the Claude Code config
+/// dir its own files live in. Passing these two together is what stops a report from mixing one
+/// account's quota with another account's transcripts.
+/// </summary>
+internal readonly record struct ProfileRef(string Key, string ConfigDir)
+{
+    /// <summary>That profile's transcripts.</summary>
+    public string ProjectsDir => Path.Combine(
+        ConfigDir.Length > 0
+            ? ConfigDir
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude"),
+        "projects");
 }

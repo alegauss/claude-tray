@@ -302,7 +302,11 @@ internal static class Program
                 previewApp.Run(new StatisticsWindow(idle, remaining) { Topmost = true });
             }
             else
-                previewApp.Run(new StatisticsWindow(sample, remaining) { Topmost = true });
+            {
+                var w = new StatisticsWindow(sample, remaining) { Topmost = true };
+                w.SetProfiles(ClaudeAccount.Discover(Settings.Load().Profiles));
+                previewApp.Run(w);
+            }
             return;
         }
 
@@ -375,7 +379,12 @@ internal static class Program
                 // so without this the snapshot renders dark-theme text over an unpainted background.
                 ThemeMode = System.Windows.ThemeMode.Dark,
             };
+            win.SetProfiles(ClaudeAccount.Discover(Settings.Load().Profiles));
             win.Show();
+            // `profile=<n>` renders the window as another profile (T128), so the switch path is
+            // captured rather than only the picker sitting there.
+            if (ArgValue(args, "profile") is { } pn && int.TryParse(pn, out int pi))
+                win.SelectProfileForPreview(pi);
             // A fourth argument of "refresh" feeds a fresh reading in — the exact call the tray's poll
             // loop makes — and snapshots *while the recomputation is still in flight*. That is the window
             // a blanked pane would appear in, so the captured PNGs are the check for T118: content, not a
@@ -1673,6 +1682,9 @@ internal sealed class TrayContext : ApplicationContext
         // or — on a live API error like a 403 — the API's own message so it isn't a blank page.
         _statsWindow = new StatisticsWindow(CurrentSnapshot(), _settings.ShowRemaining, CurrentError());
         _statsWindow.Closed += (_, _) => _statsWindow = null;
+        // Offer the picker when there is more than one profile (T128). Monitored first, which is the one
+        // the window opens on and the only one a pushed reading may be applied to.
+        _statsWindow.SetProfiles(_watched);
         _statsWindow.Show();
         _statsWindow.Activate();
     }

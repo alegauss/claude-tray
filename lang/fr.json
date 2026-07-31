@@ -297,6 +297,9 @@
 
   // ================= Statistics window =================
   "stats.title": "Statistiques",
+  "stats.profile": "Profil",
+  "stats.profileHint": "Tout ce qui suit appartient à ce profil — ses relevés, ses transcriptions, sa semaine.",
+  "stats.noProfileData": "Aucun relevé enregistré pour {0} pour l'instant. Les premiers arriveront à la prochaine actualisation.",
   "stats.header": "Rythme de consommation",
   "stats.subtitle": "Consommez-vous votre quota de façon régulière ou plus vite que l'horloge — au risque de l'épuiser avant sa réinitialisation ? La ligne pointillée projette où mène votre rythme actuel.",
   "stats.tab.session": "Session de 5 heures",
