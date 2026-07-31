@@ -546,28 +546,6 @@ the keyboard case and the menu case runnable separately.
 
 ## §X — Profiles, second pass (Block R)
 
-### §X.1 Three controls name a profile; one switches it (T138)
-
-`MonitoredConfigDir` decides which profile the icon and tooltip describe, and exactly one thing writes
-it: `TrayContext.SetMonitoredProfile`, reached from the tray's **Profile** submenu. Meanwhile two
-controls in Settings are labelled with the word "profile":
-
-| Control | What it does | What it looks like |
-|---|---|---|
-| Tray → **Profile** → an entry | switches which profile the icon follows | a switch (correct) |
-| Settings → System information → **Perfil** | re-reads *that page* from the chosen profile's files | a switch |
-| Settings → Claude Code → **Perfil** | selects which profile the fields below edit | a switch |
-
-Reported as *"I selected Pessoal, but I'm still using .claude"* — which is not a misreading, it is the
-only reading. Two of the three controls answer a question the user was not asking.
-
-The Claude Code page is where the fix belongs: it already owns the profile list, and it has the **Save**
-button. The System information page must stay read-only — that is its whole identity (§VI), and giving it
-a write would also give it a Save it deliberately hides. So: a per-profile "the icon follows this one"
-affordance on the Claude Code page (radio-style, since exactly one can be true), the System page's picker
-reworded to say it is a *view*, and the editor combo reworded to say it selects what you are editing.
-Whatever ships must keep the tray submenu working — it is the fast path, and it is the one users find.
-
 ### §X.2 A manual pick should pin, not merely delay (T139)
 
 T126's rule is that a hand-picked profile holds until a turn lands in a *different* profile after the

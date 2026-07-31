@@ -178,8 +178,8 @@
   "settings.cc.retryDesc": "How often to re-check your usage after a sign-out, until you authenticate again.",
 
   "settings.cc.profiles": "Profiles",
-  "settings.cc.profile": "Profile",
-  "settings.cc.profileDesc": "A profile is a Claude Code configuration folder: its own login, projects, memory and settings. Add one to keep work and personal accounts apart.",
+  "settings.cc.profile": "Editing",
+  "settings.cc.profileDesc": "Which profile the fields below edit. It does not change what the tray icon shows — that's the row below, or the tray's own Profile menu.",
   "settings.cc.profileAdd": "Add…",
   "settings.cc.profileAddTitle": "Choose (or create) the folder for this profile's Claude Code configuration",
   "settings.cc.profileRemove": "Remove",
@@ -192,6 +192,10 @@
   "settings.cc.profileWorkDirTitle": "Choose the directory this profile opens in",
   "settings.cc.profileConfigDir": "Configuration folder",
   "settings.cc.profileConfigDirDesc": "Passed as CLAUDE_CONFIG_DIR when launching. It identifies the profile, so it isn't editable — add another profile instead.",
+  "settings.cc.profileIcon": "Icon profile",
+  "settings.cc.profileIconDesc": "Whether the tray icon and tooltip describe this profile. Exactly one profile can be the icon's at a time; the tray's own Profile menu is the fast way to switch it.",
+  "settings.cc.profileIconActive": "Active",
+  "settings.cc.profileIconSet": "Use for icon",
   "settings.cc.followActive": "Follow the active profile",
   "settings.cc.followActiveDesc": "Let the icon show whichever profile Claude Code last worked in, from transcript timestamps read on each refresh — no transcript is ever opened. Choosing a profile by hand still wins until the next turn lands elsewhere.",
   "settings.cc.profileNoLogin": "not signed in",
@@ -216,8 +220,8 @@
   "settings.notif.unexpectedDesc": "Shows a tray notification if weekly usage drops unexpectedly — resetting to 0% before its scheduled deadline, or a partial mid-window credit (e.g. 91% → 50%). The event is also saved to reset-events.log.",
 
   // System information page
-  "settings.sys.profile": "Profile",
-  "settings.sys.profileDesc": "Each Claude Code profile is a configuration folder with its own login, projects and settings. Switch to read another one; this changes nothing in Claude Code.",
+  "settings.sys.profile": "Viewing",
+  "settings.sys.profileDesc": "Which profile's information this read-only page shows. It does not change what the tray icon shows or what Claude Code uses — for that, see the Claude Code page.",
   "settings.sys.profilePersonal": "Personal",
   "settings.sys.profileDefault": "{0} (default)",
   "settings.sys.profileCount": "{0} profiles found",

@@ -465,6 +465,8 @@ internal partial class SettingsWindow : Window
         // With one profile there is nowhere for the icon to follow to, so the toggle would be a switch
         // that does nothing. It reappears the moment a second profile is added (T126).
         FollowActiveRow.Visibility = _ccProfiles.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        ProfileIconRow.Visibility = ProfileIconDivider.Visibility =
+            _ccProfiles.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
 
         FillProfileFields();
     }
@@ -492,8 +494,24 @@ internal partial class SettingsWindow : Window
                 p.Plan ?? L.T("settings.cc.profileNoLogin"),
                 L.T(p.IsRegistered ? "settings.cc.profileRegistered" : "settings.cc.profileDiscovered"));
             ProfileStatusText.Visibility = Shown(ProfileStatusText.Text);
+
+            // The one control that actually changes which profile the icon follows (T138) — distinct
+            // from this very combo, which only picks which profile's fields are on screen right now.
+            bool isIconProfile = p is not null && ClaudeAccount.PickMonitored(_ccProfiles, _settings.MonitoredConfigDir)
+                is { } m && ClaudeAccount.SamePath(m.ConfigDir, p.ConfigDir);
+            ProfileIconButton.IsEnabled = p is not null && !isIconProfile;
+            ProfileIconButton.Content = L.T(isIconProfile ? "settings.cc.profileIconActive" : "settings.cc.profileIconSet");
         }
         finally { _fillingProfile = false; }
+    }
+
+    // Make the profile currently selected above the one the tray icon and tooltip describe. Applied
+    // like every other field here — held until Save — so Cancel leaves the running tray untouched.
+    private void ProfileIcon_Click(object sender, RoutedEventArgs e)
+    {
+        if (SelectedProfile is not { } p) return;
+        _settings.MonitoredConfigDir = p.ConfigDir;
+        FillProfileFields();
     }
 
     private void Profile_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)

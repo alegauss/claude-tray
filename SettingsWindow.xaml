@@ -482,6 +482,21 @@
                                     </StackPanel>
                                 </local:SettingsRow>
 
+                                <Border x:Name="ProfileIconDivider" Style="{StaticResource RowDivider}" />
+
+                                <!-- The one real switch (T138): which profile the tray icon and tooltip
+                                     describe, for whichever profile the combo above has selected. Hidden
+                                     on a one-profile machine, like the row below — there is nothing else
+                                     for the icon to point at. The tray's own Profile submenu does the
+                                     same thing and stays the fast path; this exists so the choice isn't
+                                     two clicks away from the only page that names profiles by identity. -->
+                                <local:SettingsRow x:Name="ProfileIconRow"
+                                                   Header="{local:Loc settings.cc.profileIcon}"
+                                                   Description="{local:Loc settings.cc.profileIconDesc}">
+                                    <Button x:Name="ProfileIconButton" MinWidth="120" Padding="14,5"
+                                            Click="ProfileIcon_Click" />
+                                </local:SettingsRow>
+
                                 <Border Style="{StaticResource RowDivider}" />
 
                                 <!-- Auto-follow (T126). Hidden on a one-profile machine, where there is

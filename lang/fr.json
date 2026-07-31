@@ -174,8 +174,8 @@
   "settings.cc.retryDesc": "Fréquence de revérification de votre consommation après une déconnexion, jusqu'à ce que vous vous authentifiiez de nouveau.",
 
   "settings.cc.profiles": "Profils",
-  "settings.cc.profile": "Profil",
-  "settings.cc.profileDesc": "Un profil est un dossier de configuration Claude Code : sa propre connexion, ses projets, ses mémoires et ses réglages. Ajoutez-en un pour séparer le compte professionnel du personnel.",
+  "settings.cc.profile": "Modification",
+  "settings.cc.profileDesc": "Quel profil les champs ci-dessous modifient. Cela ne change pas ce que montre l'icône — voir la ligne ci-dessous, ou le menu Profil de la barre d'état lui-même.",
   "settings.cc.profileAdd": "Ajouter…",
   "settings.cc.profileAddTitle": "Choisissez (ou créez) le dossier de configuration Claude Code de ce profil",
   "settings.cc.profileRemove": "Retirer",
@@ -188,6 +188,10 @@
   "settings.cc.profileWorkDirTitle": "Choisissez le répertoire dans lequel ce profil s'ouvre",
   "settings.cc.profileConfigDir": "Dossier de configuration",
   "settings.cc.profileConfigDirDesc": "Transmis comme CLAUDE_CONFIG_DIR au lancement. Il identifie le profil, il n'est donc pas modifiable — ajoutez plutôt un autre profil.",
+  "settings.cc.profileIcon": "Profil de l'icône",
+  "settings.cc.profileIconDesc": "Si l'icône de la barre d'état et son infobulle décrivent ce profil. Un seul profil peut être celui de l'icône à la fois ; le menu Profil de la barre d'état est le moyen rapide de le changer.",
+  "settings.cc.profileIconActive": "Actif",
+  "settings.cc.profileIconSet": "Utiliser pour l'icône",
   "settings.cc.followActive": "Suivre le profil actif",
   "settings.cc.followActiveDesc": "Laisse l'icône afficher le profil dans lequel Claude Code a travaillé en dernier, d'après les horodatages des transcriptions lus à chaque rafraîchissement — aucune transcription n'est ouverte. Choisir un profil à la main prévaut jusqu'à ce que l'échange suivant ait lieu ailleurs.",
   "settings.cc.profileNoLogin": "non connecté",
@@ -212,8 +216,8 @@
   "settings.notif.unexpectedDesc": "Affiche une notification si la consommation hebdomadaire chute de façon inattendue — réinitialisation à 0% avant l'échéance prévue, ou crédit partiel en milieu de fenêtre (ex. 91% → 50%). L'événement est aussi enregistré dans reset-events.log.",
 
   // System information page
-  "settings.sys.profile": "Profil",
-  "settings.sys.profileDesc": "Chaque profil Claude Code est un dossier de configuration avec sa propre connexion, ses projets et ses réglages. Changez-en pour lire un autre ; cela ne modifie rien dans Claude Code.",
+  "settings.sys.profile": "Affichage",
+  "settings.sys.profileDesc": "De quel profil cette page en lecture seule montre les informations. Cela ne change ni ce que montre l'icône, ni ce qu'utilise Claude Code — pour cela, voir la page Claude Code.",
   "settings.sys.profilePersonal": "Personnel",
   "settings.sys.profileDefault": "{0} (par défaut)",
   "settings.sys.profileCount": "{0} profils trouvés",

@@ -151,3 +151,4 @@ here. This file is a terse index, not a memory.
 - **T135 SHIPPED** (Block Q — the WPF windows get keyboard input under the WinForms pump) — 2026-07-31.
 - **T136 SHIPPED** (Block R — the default profile stops being described by a stub the tray created) — 2026-07-31.
 - **T137 SHIPPED** (Block R — the menu re-reads the profiles when it opens, so a fresh login shows) — 2026-07-31.
+- **T138 SHIPPED** (Block R — the Claude Code page gets a real "drives the icon" control) — 2026-07-31.

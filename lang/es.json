@@ -174,8 +174,8 @@
   "settings.cc.retryDesc": "Con qué frecuencia volver a comprobar tu uso tras cerrar sesión, hasta que te autentiques de nuevo.",
 
   "settings.cc.profiles": "Perfiles",
-  "settings.cc.profile": "Perfil",
-  "settings.cc.profileDesc": "Un perfil es una carpeta de configuración de Claude Code: su propio inicio de sesión, proyectos, memorias y ajustes. Añade uno para separar las cuentas de trabajo y personal.",
+  "settings.cc.profile": "Editando",
+  "settings.cc.profileDesc": "Qué perfil editan los campos de abajo. No cambia lo que muestra el icono de la aplicación — eso es la fila de abajo, o el propio menú Perfil de la bandeja.",
   "settings.cc.profileAdd": "Añadir…",
   "settings.cc.profileAddTitle": "Elige (o crea) la carpeta de configuración de Claude Code de este perfil",
   "settings.cc.profileRemove": "Quitar",
@@ -188,6 +188,10 @@
   "settings.cc.profileWorkDirTitle": "Elige el directorio en el que se abre este perfil",
   "settings.cc.profileConfigDir": "Carpeta de configuración",
   "settings.cc.profileConfigDirDesc": "Se pasa como CLAUDE_CONFIG_DIR al iniciar. Identifica el perfil, así que no es editable — añade otro perfil en su lugar.",
+  "settings.cc.profileIcon": "Perfil del icono",
+  "settings.cc.profileIconDesc": "Si el icono de la bandeja y su información describen este perfil. Solo un perfil puede ser el del icono a la vez; el propio menú Perfil de la bandeja es la forma rápida de cambiarlo.",
+  "settings.cc.profileIconActive": "Activo",
+  "settings.cc.profileIconSet": "Usar para el icono",
   "settings.cc.followActive": "Seguir el perfil activo",
   "settings.cc.followActiveDesc": "Deja que el icono muestre el perfil en el que Claude Code trabajó por última vez, según las fechas de las transcripciones leídas en cada actualización — no se abre ninguna transcripción. Elegir un perfil a mano sigue valiendo hasta que la siguiente interacción ocurra en otro.",
   "settings.cc.profileNoLogin": "sin sesión",
@@ -212,8 +216,8 @@
   "settings.notif.unexpectedDesc": "Muestra una notificación en la bandeja si el uso semanal cae de forma inesperada — reiniciándose a 0% antes de su fecha prevista, o un crédito parcial a mitad de ventana (p. ej. 91% → 50%). El evento también se guarda en reset-events.log.",
 
   // System information page
-  "settings.sys.profile": "Perfil",
-  "settings.sys.profileDesc": "Cada perfil de Claude Code es una carpeta de configuración con su propio inicio de sesión, proyectos y ajustes. Cambia para leer otro; esto no modifica nada en Claude Code.",
+  "settings.sys.profile": "Viendo",
+  "settings.sys.profileDesc": "De qué perfil muestra información esta página de solo lectura. No cambia lo que muestra el icono de la bandeja ni lo que usa Claude Code — para eso, consulta la página Claude Code.",
   "settings.sys.profilePersonal": "Personal",
   "settings.sys.profileDefault": "{0} (predeterminado)",
   "settings.sys.profileCount": "{0} perfiles encontrados",
