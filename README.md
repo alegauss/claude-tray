@@ -276,6 +276,35 @@ Only **sizes, names, timestamps and token estimates** are ever read — never fi
 nothing leaves your machine. Token counts are estimates and always carry a visible `≈`; there is no
 tokenizer bundled, by design.
 
+## System information — your plan, your install, this machine
+
+**Settings → System information** answers the questions you would otherwise dig out of JSON by
+hand: which plan this login is on, who it belongs to, where Claude Code keeps its configuration,
+and what this machine is.
+
+- **Plan** — the rate-limit tier the API reports for the account, named the way you'd say it
+  (*Claude Max 5x*), with the raw tier, seat and billing type underneath. A tier the app doesn't
+  recognize is shown verbatim rather than hidden.
+- **Account holder & organization** — name, email, workspace and your role in it. **Masked by
+  default** (`A. O.` / `a•••••@example.com`, and paths folded back to `~`) because this is the page
+  that tends to end up in a screenshot attached to a bug report; one click reveals it, another hides
+  it again.
+- **Extra usage · using since · sign-in** — whether the account may keep working past the included
+  limits, when this login first spent a token through Claude Code, and how long the stored sign-in
+  is valid (Claude Code refreshes it as you work, so an expired one is not a problem).
+- **The Claude Code install** — installed CLI version, install method, auto-update state, the
+  configuration folder (with **Open**, and it honours `CLAUDE_CONFIG_DIR`) and how many projects it
+  tracks.
+- **This app & machine** — the running tray version and where it runs from, the Windows build, the
+  .NET runtime and the architecture — the lines a bug report asks for.
+- **Copy for a bug report** — the whole page as plain text, exactly as displayed: a masked holder
+  stays masked in the clipboard too.
+
+Every reading comes from what Claude Code already keeps on your disk (`.claude.json`,
+`.claude/.credentials.json`): no API call, nothing written, no transcript touched — and no secret
+displayed, since the credentials file is read only for its expiry, subscription type and how many
+permissions were granted.
+
 ## Data source
 
 A minimal call to the Anthropic API (Haiku, 1 token) every 5 min reads the
@@ -418,7 +447,8 @@ installs pick it up automatically (see [Updates](#updates)).
   OAuth token; the recovery path when the icon shows a *not authenticated* (HTTP 401) state
 - **Update to vX.Y.Z** — appears only when a newer GitHub release exists; click to download and
   install it (see below)
-- **Settings…** — refresh interval, display options, and **Start with Windows** (autostart)
+- **Settings…** — refresh interval, display options, **Start with Windows** (autostart), and
+  **System information** (your plan, this Claude Code install and this machine — see below)
 - **Quit**
 
 ## Updates
@@ -440,6 +470,7 @@ build the installer, and attach `ClaudeTray-Setup.exe` to a GitHub release tagge
 | `ApiClient.cs` | reads credentials, calls the API, parses the rate-limit headers |
 | `BurnTracker.cs` | tracks utilization history, estimates the burn rate, projects exhaustion |
 | `UsageInsights.cs` | aggregates the last 24h of session transcripts into a cost-weighted breakdown |
+| `ClaudeAccount.cs` | reads the local Claude Code config for the plan, holder, org and install shown on the System information page (read-only, no secrets) |
 | `IconRenderer.cs` | draws the icon with GDI+ (vector + outline + projection dot) at the actual size |
 | `Updater.cs` | checks GitHub Releases and downloads/runs the installer for in-app self-update |
 

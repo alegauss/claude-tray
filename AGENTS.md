@@ -52,7 +52,8 @@ usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don'
 | `SafeWalk.cs` | The recursive `~/.claude` walk every scan goes through: per directory, so an unreadable one (untrusted junction, denied ACL, folder deleted mid-sweep) skips its subtree instead of aborting the sweep. Materializes each directory's entries — a `try` around a lazy `Enumerate*` catches nothing — and resolves a reparse point to its target before opening it. |
 | `IconRenderer.cs` | GDI+ icon (vector number + outline + fill bar + projection color) at the real size; also the app `.ico` and social image. |
 | `Updater.cs` | Checks GitHub Releases; downloads/runs the installer for in-app self-update. `CurrentVersion`. |
-| `Settings.cs` | `Settings` model (JSON in `%LocalAppData%\ClaudeTray`); clamps out-of-range values. |
+| `ClaudeAccount.cs` | The local Claude Code account/install reading behind the **System information** settings page: `.claude.json` + `.claude/.credentials.json` → plan (a rate-limit tier mapped to "Claude Max 5x", unmapped tiers shown verbatim), holder, org, extra usage, dates, config dir (`CLAUDE_CONFIG_DIR` honoured), CLI version, project count. Every field nullable; opens files, never writes one; reads the credentials file **only** for `expiresAt`, `subscriptionType` and the scope *count* — no token reaches the UI. |
+| `Settings.cs` | `Settings` model (JSON in `%LocalAppData%\ClaudeTray`, path exposed as `Settings.DataDir`); clamps out-of-range values. |
 | `SettingsWindow.xaml(.cs)` | The WPF Fluent settings window. **All layout lives in the XAML.** |
 | `ContextWindow.xaml(.cs)` | The Context Load window: master/detail over `ContextScanner` — projects left; right, the session-zero gauge (base overhead / instructions / memory / skills, with the transcript-measured tick) over the per-source eager/lazy breakdown. Scans on a background thread; view models are `public` because WPF binding resolves paths by reflection over public types only. |
 
@@ -94,6 +95,7 @@ dotnet run -c Release                 # build + run the tray app
 dotnet publish -c Release             # single self-contained .exe -> bin\Release\net10.0-windows\win-x64\publish\
 
 dotnet run -- --settings              # open just the Settings window (preview)
+dotnet run -- --settings System       # ...opened on the System information page (any page name works)
 dotnet run -- --lang es --context --window   # any command, rendered in another language (i18n check)
 dotnet run -- --render <dir>          # dump tray-icon PNGs at 16/20/32 px
 dotnet run -- --insights              # print the 24h usage breakdown to the console

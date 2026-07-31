@@ -1,10 +1,11 @@
-# Last task number — `T119` · next block letter — `N`
+# Last task number — `T121` · next block letter — `O`
 
-> **Single source of truth for the next free task number.** The next new task is `T120`; after
+> **Single source of truth for the next free task number.** The next new task is `T122`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `N`** (Block **M** = Explain on demand — the Statistics window's method note
-> moves behind an ⓘ; created 2026-07-29 from a field report).
+> **Next block letter — `O`** (Block **N** = System information — the Settings page over the local
+> Claude Code account/install facts; created 2026-07-31 from a user question, "can About show the
+> plan, the holder and the config directory?").
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -36,6 +37,10 @@
 - **T110–T112** (2026-07-29) stay in Block **K** rather than opening M: all three are the live strip's
   own presentation — T110 its scale, T111 its own tab, T112 its handling of outliers. T110 took the
   magnitude half of K's own T104, which remains open for the per-column hover.
+- Block **N** (T120–T121, created 2026-07-31) opens on a **user question** rather than a plan — "can
+  the About page show the plan, the holder and the config directory?" — and became its own page
+  instead of an About addition: About is the project's identity, this is the *machine's*. T121 stays
+  open because the page cannot be screenshotted from a real account (see IMPROVEMENTS §VI.1).
 - Block **M** (T113, created 2026-07-29) is a one-task block on the *window's* chrome rather than a
   fourth Block K item: K is the live strip, and the method note it hid behind an ⓘ describes every
   number in the window. Block L set the precedent that a block may hold a single task.
@@ -91,3 +96,4 @@ here. This file is a terse index, not a memory.
 - **T117 SHIPPED** (Block K — the chart's left edge stops oscillating: overscan, slide phase, smoothing warm-up) — 2026-07-29.
 - **T118 SHIPPED** (Block K — a poll-driven refresh no longer blanks the whole window) — 2026-07-29.
 - **T119 SHIPPED** (Block K — the chart appends instead of recomputing, so a late turn can't rewrite what was drawn) — 2026-07-29.
+- **T120 SHIPPED** (Block N — System information page over the local Claude Code account) — 2026-07-31.

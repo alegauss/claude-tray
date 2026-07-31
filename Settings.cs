@@ -132,9 +132,13 @@ internal sealed class Settings
     /// <summary>While signed out, how often to re-poll the usage API (seconds) until auth returns.</summary>
     public int AuthRetrySeconds { get; set; } = DefaultAuthRetrySeconds;
 
-    private static string FilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClaudeTray", "settings.json");
+    /// <summary>Where the app keeps its own state — <c>%LocalAppData%\ClaudeTray</c>: this file, the
+    /// caches, the usage/context history and the reset log. Public so the System information page can
+    /// show (and open) it without a second copy of the path.</summary>
+    public static string DataDir => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClaudeTray");
+
+    private static string FilePath => Path.Combine(DataDir, "settings.json");
 
     public static Settings Load()
     {

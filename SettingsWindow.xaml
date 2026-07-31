@@ -101,6 +101,26 @@
             </Setter>
         </Style>
 
+        <!-- ===== Read-only value pair, used as the trailing "control" of the information rows on the
+             System information page: the reading itself, and a muted qualifier under it (the raw API
+             tier behind a friendly plan name, a path's origin, an install method…). ===== -->
+        <Style x:Key="ValueText" TargetType="TextBlock">
+            <Setter Property="TextAlignment" Value="Right" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="MaxWidth" Value="290" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        </Style>
+
+        <Style x:Key="ValueSubText" TargetType="TextBlock">
+            <Setter Property="TextAlignment" Value="Right" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="MaxWidth" Value="290" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+        </Style>
+
         <!-- A pill toggle switch (templated ToggleButton) matching the Fluent accent — the trailing
              control for every boolean setting. IsChecked drives the track color and thumb position. -->
         <Style x:Key="ToggleSwitch" TargetType="ToggleButton">
@@ -214,6 +234,20 @@
                                 Visibility="Collapsed"
                                 Background="{DynamicResource AccentFillColorDefaultBrush}" />
                         <TextBlock Text="{local:Loc settings.nav.notifications}" VerticalAlignment="Center"
+                                   Margin="16,0,0,0" FontSize="14"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    </Grid>
+                </Border>
+
+                <Border x:Name="NavSystem" CornerRadius="6" Height="40" Margin="0,0,0,4"
+                        Background="Transparent" Cursor="Hand"
+                        MouseLeftButtonUp="Nav_Click" Tag="System">
+                    <Grid>
+                        <Border x:Name="AccentSystem" Width="3" CornerRadius="2"
+                                HorizontalAlignment="Left" Margin="2,8,0,8"
+                                Visibility="Collapsed"
+                                Background="{DynamicResource AccentFillColorDefaultBrush}" />
+                        <TextBlock Text="{local:Loc settings.nav.system}" VerticalAlignment="Center"
                                    Margin="16,0,0,0" FontSize="14"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </Grid>
@@ -490,6 +524,189 @@
                                 <ToggleButton x:Name="NotifyResetCheck" Style="{StaticResource ToggleSwitch}" />
                             </local:SettingsRow>
                         </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- ========================= SYSTEM INFORMATION PAGE =========================
+                 Read-only. Every reading comes from what Claude Code already keeps on disk
+                 (ClaudeAccount) plus this process's own environment — no API call, no write.
+                 Rows are label↔value pairs in the same GroupCard pattern as the settings pages;
+                 the values are filled in code-behind (LoadSystemInfo). -->
+            <Grid x:Name="SystemPane" Grid.Row="0" Margin="32,28,32,0" Visibility="Collapsed">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,14,0">
+                    <StackPanel>
+                        <TextBlock Text="{local:Loc settings.sys.title}"
+                                   FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="{local:Loc settings.sys.subtitle}"
+                                   Margin="0,2,0,4" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                        <!-- ===== Claude account ===== -->
+                        <TextBlock Text="{local:Loc settings.sys.account}" Style="{StaticResource SectionHeader}" Margin="2,16,0,8" />
+
+                        <!-- Shown instead of the card when nothing on disk identifies an account
+                             (fresh install, API-key/Bedrock/Vertex setup, or a signed-out machine). -->
+                        <Border x:Name="SysNoAccountCard" Style="{StaticResource GroupCard}" Visibility="Collapsed">
+                            <TextBlock Margin="16,14" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Text="{local:Loc settings.sys.noAccount}" />
+                        </Border>
+
+                        <Border x:Name="SysAccountCard" Style="{StaticResource GroupCard}">
+                            <StackPanel>
+                                <local:SettingsRow Header="{local:Loc settings.sys.plan}"
+                                                   Description="{local:Loc settings.sys.planDesc}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="SysPlan" Style="{StaticResource ValueText}" />
+                                        <TextBlock x:Name="SysPlanTier" Style="{StaticResource ValueSubText}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="{local:Loc settings.sys.holder}"
+                                                   Description="{local:Loc settings.sys.holderDesc}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock x:Name="SysHolder" Style="{StaticResource ValueText}" />
+                                            <TextBlock x:Name="SysHolderMail" Style="{StaticResource ValueSubText}" />
+                                        </StackPanel>
+                                        <!-- Masked by default: this page is what ends up in a screenshot
+                                             attached to a bug report. -->
+                                        <Button x:Name="SysRevealButton" MinWidth="86" Padding="12,5"
+                                                Margin="14,0,0,0" VerticalAlignment="Center"
+                                                Click="SysReveal_Click"
+                                                Content="{local:Loc settings.sys.reveal}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+
+                                <Border x:Name="SysOrgDivider" Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow x:Name="SysOrgRow"
+                                                   Header="{local:Loc settings.sys.org}"
+                                                   Description="{local:Loc settings.sys.orgDesc}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="SysOrg" Style="{StaticResource ValueText}" />
+                                        <TextBlock x:Name="SysOrgSub" Style="{StaticResource ValueSubText}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="{local:Loc settings.sys.extra}"
+                                                   Description="{local:Loc settings.sys.extraDesc}">
+                                    <TextBlock x:Name="SysExtra" Style="{StaticResource ValueText}" />
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="{local:Loc settings.sys.since}"
+                                                   Description="{local:Loc settings.sys.sinceDesc}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="SysSince" Style="{StaticResource ValueText}" />
+                                        <TextBlock x:Name="SysSinceSub" Style="{StaticResource ValueSubText}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="{local:Loc settings.sys.session}"
+                                                   Description="{local:Loc settings.sys.sessionDesc}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="SysToken" Style="{StaticResource ValueText}" />
+                                        <TextBlock x:Name="SysTokenSub" Style="{StaticResource ValueSubText}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ===== The Claude Code installation ===== -->
+                        <TextBlock Text="{local:Loc settings.sys.install}" Style="{StaticResource SectionHeader}" />
+                        <Border Style="{StaticResource GroupCard}">
+                            <StackPanel>
+                                <local:SettingsRow Header="{local:Loc settings.sys.cli}"
+                                                   Description="{local:Loc settings.sys.cliDesc}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="SysCli" Style="{StaticResource ValueText}" />
+                                        <TextBlock x:Name="SysCliSub" Style="{StaticResource ValueSubText}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="{local:Loc settings.sys.configDir}"
+                                                   Description="{local:Loc settings.sys.configDirDesc}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock x:Name="SysConfigDir" Style="{StaticResource ValueText}" />
+                                            <TextBlock x:Name="SysConfigDirSub" Style="{StaticResource ValueSubText}" />
+                                        </StackPanel>
+                                        <Button x:Name="SysOpenConfig" MinWidth="86" Padding="12,5"
+                                                Margin="14,0,0,0" VerticalAlignment="Center"
+                                                Click="SysOpenFolder_Click"
+                                                Content="{local:Loc settings.sys.open}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="{local:Loc settings.sys.projects}"
+                                                   Description="{local:Loc settings.sys.projectsDesc}">
+                                    <TextBlock x:Name="SysProjects" Style="{StaticResource ValueText}" />
+                                </local:SettingsRow>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ===== This app + the machine ===== -->
+                        <TextBlock Text="{local:Loc settings.sys.app}" Style="{StaticResource SectionHeader}" />
+                        <Border Style="{StaticResource GroupCard}">
+                            <StackPanel>
+                                <local:SettingsRow Header="{local:Loc settings.sys.tray}"
+                                                   Description="{local:Loc settings.sys.trayDesc}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="SysApp" Style="{StaticResource ValueText}" />
+                                        <TextBlock x:Name="SysAppSub" Style="{StaticResource ValueSubText}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="{local:Loc settings.sys.machine}"
+                                                   Description="{local:Loc settings.sys.machineDesc}">
+                                    <StackPanel>
+                                        <TextBlock x:Name="SysOs" Style="{StaticResource ValueText}" />
+                                        <TextBlock x:Name="SysOsSub" Style="{StaticResource ValueSubText}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="{local:Loc settings.sys.dataDir}"
+                                                   Description="{local:Loc settings.sys.dataDirDesc}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="SysDataDir" Style="{StaticResource ValueText}"
+                                                   VerticalAlignment="Center" />
+                                        <Button x:Name="SysOpenData" MinWidth="86" Padding="12,5"
+                                                Margin="14,0,0,0" VerticalAlignment="Center"
+                                                Click="SysOpenFolder_Click"
+                                                Content="{local:Loc settings.sys.open}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Copy for a bug report. It copies exactly what is on screen, so a masked
+                             holder stays masked in the clipboard too. -->
+                        <StackPanel Orientation="Horizontal" Margin="2,14,0,4">
+                            <Button x:Name="SysCopyButton" MinWidth="150" Padding="14,6"
+                                    Click="SysCopy_Click" Content="{local:Loc settings.sys.copy}" />
+                            <TextBlock x:Name="SysCopyHint" VerticalAlignment="Center" Margin="12,0,0,0"
+                                       FontSize="12" TextWrapping="Wrap" MaxWidth="380"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                       Text="{local:Loc settings.sys.copyHint}" />
+                        </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

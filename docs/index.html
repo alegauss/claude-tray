@@ -579,6 +579,50 @@
   </div>
 </section>
 
+<!-- SYSTEM INFORMATION -->
+<section style="padding-top:10px">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">System information</div>
+      <h2>Which plan am I actually on?</h2>
+      <p>
+        Settings has a page that answers it without you opening a single JSON file — and it is
+        read-only, like everything else here.
+      </p>
+    </div>
+    <div class="feat-grid">
+      <div class="card feat reveal">
+        <div class="ico">🎟️</div>
+        <h3>Your plan, by name</h3>
+        <p>The rate-limit tier the API reports for your login, read as you'd say it — <b>Claude Max
+        5x</b> — with the raw tier, seat and billing type underneath. Plus whether extra usage is
+        enabled, and how long your stored sign-in is valid.</p>
+      </div>
+      <div class="card feat reveal">
+        <div class="ico">🫥</div>
+        <h3>Masked by default</h3>
+        <p>Account holder, email and absolute paths are hidden until you ask for them, because this
+        is the page that ends up in a screenshot. <b>Show</b> reveals them, <b>Hide</b> puts them
+        back.</p>
+      </div>
+      <div class="card feat reveal">
+        <div class="ico">📂</div>
+        <h3>Your install, at a glance</h3>
+        <p>Installed CLI version, install method, auto-update state, how many projects Claude Code
+        tracks, and the configuration folder — with a button to open it. <code>CLAUDE_CONFIG_DIR</code>
+        is honoured.</p>
+      </div>
+      <div class="card feat reveal">
+        <div class="ico">📋</div>
+        <h3>Copy for a bug report</h3>
+        <p>Windows build, .NET runtime, architecture and the tray's own version and data folder —
+        the whole page as plain text in one click, exactly as shown, so a masked holder stays
+        masked.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- PRIVACY -->
 <section style="padding-top:20px">
   <div class="wrap reveal">
@@ -658,7 +702,7 @@
           <li><span class="chk">✓</span><span><b>Used or remaining</b> — flip the icon to count down your <i>remaining</i> quota instead of counting up usage</span></li>
           <li><span class="chk">✓</span><span><b>Refresh now</b> — immediate API read</span></li>
           <li><span class="chk">✓</span><span><b>Open Claude Code</b> — re-authenticate in one click if the token expires</span></li>
-          <li><span class="chk">✓</span><span><b>Settings…</b> — refresh interval, display, and <b>Start with Windows</b> autostart (no admin)</span></li>
+          <li><span class="chk">✓</span><span><b>Settings…</b> — refresh interval, display, <b>Start with Windows</b> autostart (no admin), and <b>System information</b> (your plan, install and machine)</span></li>
           <li><span class="chk">✓</span><span><b>Update to vX.Y.Z</b> — appears only when a newer release exists</span></li>
         </ul>
       </div>
