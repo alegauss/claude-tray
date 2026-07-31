@@ -111,8 +111,9 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 | `src/Core/SafeWalk.cs` | The recursive `~/.claude` walk every scan goes through: per directory, so an unreadable one (untrusted junction, denied ACL, folder deleted mid-sweep) skips its subtree instead of aborting the sweep. Materializes each directory's entries — a `try` around a lazy `Enumerate*` catches nothing — and resolves a reparse point to its target before opening it. |
 
 **`src/Ui/` — the windows** (the 4 `.xaml`/`.xaml.cs` pairs + `SettingsRow.cs`). A window with several
-independent surfaces is **one class in several files** (T133): `StatisticsWindow.{Throughput,Chart,
-Profiles,Format}.cs` and `ContextWindow.Gauge.cs` are `partial class` files, and the Context window's
+independent surfaces is **one class in several files** (T133–T134): `SettingsWindow.{General,
+Notifications,ClaudeCode,System}.cs` is one file per settings page, `StatisticsWindow.{Throughput,
+Chart,Profiles,Format}.cs` and `ContextWindow.Gauge.cs` the same per surface, and the Context window's
 view models are their own types beside it (`ProjectRow.cs`, `SourceRows.cs`, `RowStyle.cs`,
 `ContextText.cs`) — a new surface gets a new `partial` file, not another 300 lines in the code-behind.
 A `Page`'s generated

@@ -58,9 +58,9 @@
   dependency on any earlier block and every task in it is rename + reference fix with **zero behaviour
   change** — a Block P commit that alters what the app does is a mistake. T129–T131 move files
   (sources / windows / release scripts, split by *failure mode*: compiler, generated XAML URIs, CI),
-  T132–T134 split the oversized ones. §VIII.0 lists the four things that must not move; `lang/` is the
-  sharp one — its resource names are path-derived, so moving it breaks localization at runtime with a
-  green build.
+  T132–T134 split the oversized ones. The four things that must not move are now recorded in
+  [AGENTS.md](AGENTS.md)'s file map; `lang/` is the sharp one — its resource names are path-derived, so
+  moving it breaks localization at runtime with a green build.
 - Block **Q** (T135, created 2026-07-31) opens on a **field report**, like Block L: *"I can't type
   anything in this field"* — and the field was not the bug. Under the tray's WinForms message pump the
   WPF windows never received **any** keyboard input, in every window, since the first one shipped. It is
@@ -170,3 +170,4 @@ here. This file is a terse index, not a memory.
 - **T130 SHIPPED** (Block P — the four windows and `SettingsRow` move into `src/Ui/`) — 2026-07-31.
 - **T132 SHIPPED** (Block P — `Program.cs` splits into `Main`, `src/Cli/*` and `Tray/TrayContext.cs`) — 2026-07-31.
 - **T133 SHIPPED** (Block P — the two big code-behinds split into `partial` files per surface) — 2026-07-31.
+- **T134 SHIPPED** (Block P — `SettingsWindow`'s code-behind splits one file per page; markup untouched) — 2026-07-31.

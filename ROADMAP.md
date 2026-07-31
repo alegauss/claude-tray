@@ -113,26 +113,6 @@
 
 - 📋 **T121** (deps: T120) **A fixture account so the page can be screenshotted** — every other window has a published shot; this one has none, because the only account on a real machine is the developer's, and masking hides the name and the email but not the organization or its mail domain. `ContextFixture` already builds a throwaway `~/.claude` for exactly this reason; the same idea needs a synthetic `.claude.json`/`.credentials.json` pair (a Max 20x personal account and a Team seat, so both the with-org and no-org layouts render) behind a `--settings System --sample`, and then the README and the site block get their image. → §VI.1
 
-## Block P — Project layout ("`ls` should describe the app")
-
-> Every source file in this project was in the **repo root**: 34 `.cs`, 4 `.xaml`, the installer script,
-> five release scripts, and the ~10 markdown/config files, in one flat listing of 58 entries. Nothing
-> about that listing said which files are the tray, which are the windows, which read `~/.claude` and
-> which talk to the API — `AGENTS.md`'s file map was the only map, and a table maintained by hand is a
-> poor substitute for a directory that is right by construction. **The move is done** — T129 took the
-> 30 non-UI sources into `src/{Context,Usage,Profiles,Core,Tray}/`, T130 the four windows into
-> `src/Ui/` and T131 the seven shipping entries into `build/`; see [CHANGELOG.md](CHANGELOG.md)
-> Block P. **T132** then split the biggest file: `Program.cs` is `Main` and the arg dispatch, the
-> headless printers are `src/Cli/*.cs` and the resident app is `Tray/TrayContext.cs`, and **T133** gave
-> each window surface its own `partial` file. What is left is `SettingsWindow.xaml`'s six pages — the
-> one piece of the block that still needs design before it is worth doing.
-> Every task is **rename + reference fix, zero behaviour change** — a Block P commit that alters what
-> the app does is a mistake, not a bonus. The layout and the four things that must *not* move
-> (the flat namespace, `lang/`, the root docs, the csproj) are in
-> [IMPROVEMENTS.md](IMPROVEMENTS.md) §VIII.0.
-
-- 💭 **T134** (deps: T130) **`SettingsWindow.xaml`: six pages in one file** — 1,019 lines holding General, Display, Claude Code, Notifications, System information and About, over ~170 lines of shared row/value styles they all consume. Needs design before it is worth doing: a `UserControl` per page reads better but separates the styles from their users, and the UI conventions (all layout in XAML, nothing hardcoded that a theme owns) must survive it. → §VIII.6
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
