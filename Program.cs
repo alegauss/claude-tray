@@ -1868,10 +1868,13 @@ internal sealed class TrayContext : ApplicationContext
         // than waiting for a restart.
         _settings.Profiles = updated.Profiles;
         _settings.MonitoredConfigDir = updated.MonitoredConfigDir;
-        // A profile picked on the page is a choice by hand, exactly like the submenu's: it holds until a
-        // turn lands elsewhere, rather than being overruled by the next probe (T126).
+        // A profile picked on the page is a choice by hand, exactly like the submenu's: it pins the
+        // icon there rather than being overruled by the next probe (T126, pin behavior T139).
         if (!ClaudeAccount.SamePath(updated.MonitoredConfigDir, monitoredBefore))
+        {
             _followFloorUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            _profilePinned = true;
+        }
         _settings.FollowActiveProfile = updated.FollowActiveProfile;
         if (!_settings.FollowActiveProfile) _lastTurn.Clear();
         RefreshWatched();          // the list (and so the icon's profile) may have changed
@@ -2021,6 +2024,15 @@ internal sealed class TrayContext : ApplicationContext
     private double _followFloorUnix;
 
     /// <summary>
+    /// Set the moment the user picks a profile by hand, and cleared only by "Resume following" (T139).
+    /// The floor above used to be the whole story — a choice held until the *next* turn landed
+    /// elsewhere — which reads as broken on a machine where one profile is continuously active: a turn
+    /// can land seconds after the click and immediately overrule it. The click is the strongest signal
+    /// the app gets, so undoing it now also takes a click.
+    /// </summary>
+    private bool _profilePinned;
+
+    /// <summary>
     /// Point the icon at whichever profile just had a turn, when the user has asked for that. Called at
     /// the top of a poll, before the fetch, so the reading that follows already belongs to the profile
     /// the icon ends up on — the alternative shows one profile's percentage under another's name for a
@@ -2045,7 +2057,8 @@ internal sealed class TrayContext : ApplicationContext
             _lastTurn[ProfileStore.KeyFor(r.Profile)] = r.LastTurnUnix;
 
         double now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        if (ProfileActivity.Pick(readings, now, _followFloorUnix) is { } active
+        if (!_profilePinned
+            && ProfileActivity.Pick(readings, now, _followFloorUnix) is { } active
             && ProfileStore.KeyFor(active) != ProfileStore.KeyFor(_watched[0]))
             AdoptMonitored(active, automatic: true);
     }
@@ -2078,7 +2091,10 @@ internal sealed class TrayContext : ApplicationContext
                     _ => $"{Labels[_metric]} {PctShown(d.Metric(_metric))}",
                 };
 
-            var item = new ToolStripMenuItem($"{p.Label} — {reading}{ActiveSuffix(p)}")
+            string suffix = monitored && _profilePinned && _settings.FollowActiveProfile
+                ? "  · " + L.T("menu.profilePinned")
+                : ActiveSuffix(p);
+            var item = new ToolStripMenuItem($"{p.Label} — {reading}{suffix}")
             {
                 Checked = monitored,
                 ToolTipText = p.ConfigDir,
@@ -2098,6 +2114,15 @@ internal sealed class TrayContext : ApplicationContext
         };
         follow.Click += (_, _) => SetFollowActiveProfile(!_settings.FollowActiveProfile);
         _profileMenu.DropDownItems.Add(follow);
+
+        // Only reachable once a pick has actually pinned the icon (T139) — otherwise there is nothing
+        // to resume, and the item would just be a confusing no-op sitting under the toggle.
+        if (_profilePinned && _settings.FollowActiveProfile)
+        {
+            var unpin = new ToolStripMenuItem(L.T("menu.profileUnpin")) { ToolTipText = L.T("menu.profileUnpinTip") };
+            unpin.Click += (_, _) => UnpinProfile();
+            _profileMenu.DropDownItems.Add(unpin);
+        }
     }
 
     /// <summary>How long ago this profile's last turn landed, when auto-follow is what put the icon
@@ -2110,6 +2135,14 @@ internal sealed class TrayContext : ApplicationContext
         return "  · " + (age < 60 ? L.T("menu.profileActiveNow") : L.T("menu.profileActive", FmtCountdown(age)));
     }
 
+    /// <summary>Undo a manual pick's pin (T139): auto-follow resumes deciding on the very next poll,
+    /// rather than waiting for one to happen on its own.</summary>
+    private void UnpinProfile()
+    {
+        _profilePinned = false;
+        _ = RefreshAsync();
+    }
+
     /// <summary>Turn auto-follow on or off from the menu, and act on it at once: enabling it should move
     /// the icon now if another profile is the live one, not at the next poll.</summary>
     private void SetFollowActiveProfile(bool on)
@@ -2120,14 +2153,14 @@ internal sealed class TrayContext : ApplicationContext
         else _ = RefreshAsync();         // which begins by asking where the last turn landed
     }
 
-    /// <summary>Point the icon at another profile *because the user said so*: the choice is saved, and
-    /// stamped as the moment auto-follow must not overrule (T126). Polls right away so the icon isn't
-    /// left showing the previous account's number.</summary>
+    /// <summary>Point the icon at another profile *because the user said so*: the choice is saved and
+    /// pins the icon there — auto-follow will not move it again until "Resume following" (T139).</summary>
     private void SetMonitoredProfile(ClaudeInfo profile)
     {
         if (_watched.Count > 0 && ProfileStore.KeyFor(_watched[0]) == ProfileStore.KeyFor(profile)) return;
 
         _followFloorUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        _profilePinned = true;
         AdoptMonitored(profile, automatic: false);
         _ = RefreshAsync();
     }

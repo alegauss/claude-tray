@@ -319,8 +319,11 @@ in **Settings → Claude Code → Profiles** — and the icon moves to whichever
 in, so switching accounts needs no click at all. It is read from **transcript timestamps only**, on the
 same refresh you already pay for: no transcript is opened, nothing runs between refreshes, and a profile
 with no subscription quota to read is never followed into. The submenu shows how long ago each profile was
-active. **Choosing a profile by hand still wins** — it holds until a turn actually lands somewhere else —
-because an icon that overrules you is worse than one that never moves. Off by default.
+active. **Choosing a profile by hand pins the icon there** — marked "· pinned" in the submenu — until you
+click **Resume following**, which appears right below the toggle once something is pinned. A held pick
+used to expire the moment a turn landed anywhere else, which on a continuously-active profile could be
+seconds after the click; the click is the strongest signal the app gets, so undoing it now takes one too.
+Off by default.
 
 Switching *which account a session uses* happens when Claude Code launches: the tray passes
 `CLAUDE_CONFIG_DIR` and gets out of the way. It never writes to a configuration folder and never moves credentials between them — Claude Code

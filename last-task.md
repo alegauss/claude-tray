@@ -153,3 +153,4 @@ here. This file is a terse index, not a memory.
 - **T137 SHIPPED** (Block R — the menu re-reads the profiles when it opens, so a fresh login shows) — 2026-07-31.
 - **T138 SHIPPED** (Block R — the Claude Code page gets a real "drives the icon" control) — 2026-07-31.
 - **T140 SHIPPED** (Block R — no email in a label, and no two profiles sharing one) — 2026-07-31.
+- **T139 SHIPPED** (Block R — a manual profile pick pins the icon until "Resume following") — 2026-07-31.

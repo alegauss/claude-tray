@@ -546,29 +546,6 @@ the keyboard case and the menu case runnable separately.
 
 ## §X — Profiles, second pass (Block R)
 
-### §X.2 A manual pick should pin, not merely delay (T139)
-
-T126's rule is that a hand-picked profile holds until a turn lands in a *different* profile after the
-click. The reasoning was sound — auto-follow should resume when you genuinely move — but it assumes
-attention moves *between* profiles. On a machine where one profile is more or less continuously active
-the rule inverts: observed live, a pick was undone within seconds, because an assistant session kept
-writing turns into the work profile the whole time. From the outside it looks exactly like the setting
-being ignored.
-
-Three candidates, with the trade to settle:
-
-1. **A pick turns auto-follow off.** Honest and visible (the toggle reflects reality), but it silently
-   changes a setting the user did not touch.
-2. **A pick pins for a quiet period** — auto-follow resumes only after the pinned profile has been idle
-   for N minutes. No setting changes, but the behaviour is now governed by a second invisible timer, and
-   "why did it move?" gets harder to answer, not easier.
-3. **A pick pins until unpinned.** The strongest signal the app receives is a click, and undoing it is
-   then also a click. Costs a visible pin state in the submenu (a mark on the pinned entry plus an
-   "unpin / follow again" item) so the state is never mysterious.
-
-(3) is the recommendation. Whatever is chosen has to be legible *in the submenu itself*, because that is
-where the user is standing when they wonder why the icon moved.
-
 ### §X.4 Machine-wide `CLAUDE_CONFIG_DIR` (T143)
 
 Diagnosed correctly by the reporter: the variable is set on the process the tray launches and nowhere
