@@ -86,8 +86,9 @@
 > it (T102, **shipped** — 41% of the assistant lines were repeats of a response already counted), two
 > costs it introduced (T103, **shipped** — the sweep now walks the whole tree twice a minute instead
 > of twenty times; T108), two readings it stops just short of (T104, **shipped** — the charts answer
-> for one second at a time now; T107), and one duplicated resolver (T105, **shipped** — `ProjectSlug`
-> is now the only reader of that encoding). What is left: **T107** and **T108**.
+> for one second at a time now; T107, **shipped** — the cache re-read is stated where it is excluded),
+> and one duplicated resolver (T105, **shipped** — `ProjectSlug` is now the only reader of that
+> encoding). What is left: **T108**.
 >
 > **Shipped since, from watching the real thing: T110–T112, T114–T116.** The strip got a labelled
 > ceiling scaled to what is on screen (T110), its own **Throughput** tab (T111) and percentile clipping
@@ -98,7 +99,6 @@
 > end-of-turn attribution it was about without inventing a duration. What is left of T104 is the
 > per-sample hover.
 
-- 💭 **T107** (deps: T98) **Say what the cache re-read is costing** — measured on real traffic: ~30,000 tok/s of cache read against ~150 tok/s of real work, a 200× ratio the app now computes and shows nobody. That number is what a large eager context costs *per turn*, which makes it the missing link between this block and the Context Load Inspector. → §V.12
 - 💭 **T108** (deps: T99) **Move the `--stats live` fixture out of the code-behind** — the synthetic three minutes behind the published screenshot is hand-shaped inside `StatisticsWindow`, and two tasks now depend on it. It belongs beside `ContextFixture`. → §V.13
 
 ## Non-goals (do NOT add as tasks)

@@ -184,6 +184,7 @@ internal partial class StatisticsWindow : Window
                   Big(_live.Window.Total - _live.Window.CacheRead)) +
               (sessions > 0 ? "  ·  " + L.T(sessions == 1 ? "stats.live.session1" : "stats.live.sessionN", sessions) : "");
         LiveHeadS.Text = LiveHeadW.Text = LiveHeadT.Text = head;
+        ShowCacheReadNote(_live.CacheReadPerSecond, _live.TokensPerSecond);
 
         // The geometry is only worth building while its tab is on screen; the number above is on every
         // tab, and is cheap text.
@@ -248,6 +249,44 @@ internal partial class StatisticsWindow : Window
                 L.T("stats.live.projectTip", p.IsOthers ? name : p.Slug, Big(p.WindowTokens))));
         }
     }
+
+    // What the cache re-read costs (T107). `LiveRate` has separated cache reads from real work since
+    // T98 and showed the result to nobody — and the result is the startling one: measured on ordinary
+    // traffic here, ~30,000 tok/s of cache read against ~150 tok/s of work, a 200× ratio. Excluding it
+    // from every rate above is right (it barely weighs on the limit and would drown the signal), but an
+    // exclusion that large has to be *said*, in the place where it is being made.
+    //
+    // Deliberately a sentence and not a fourth line on the chart: a fourth series in a legend of three
+    // reads as something that was drawn, and the number is only meaningful as a ratio anyway. It is
+    // also the per-turn price of a large eager context, which is what makes it the sentence that joins
+    // this tab to the Context Load Inspector rather than a fourth number nobody asked for (§V.12).
+    private void ShowCacheReadNote(double cacheRead, double work)
+    {
+        if (cacheRead <= 0)
+        {
+            CacheReadNote.Visibility = Visibility.Collapsed;
+            return;
+        }
+        // The ratio needs a denominator worth dividing by: through a pause the work rate decays toward
+        // zero, and "∞× the rate above" is a division artefact, not a reading.
+        CacheReadNote.Text = work >= MinWorkForRatio
+            ? L.T("stats.live.cacheRead", Rate(cacheRead), Ratio(cacheRead / work))
+            : L.T("stats.live.cacheReadAlone", Rate(cacheRead));
+        // Why it is excluded, and what it is the price *of*, on hover: the reading has to fit on one
+        // line or it pushes the window averages below the fold — the defect T111 already fixed once.
+        CacheReadNote.ToolTip ??= L.T("stats.live.cacheReadTip");
+        CacheReadNote.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>Below this rate of real work the cache-read ratio is not reported: it would be
+    /// arithmetic about an idle minute rather than a measurement of anything.</summary>
+    private const double MinWorkForRatio = 1.0;
+
+    // A multiplier reads as a magnitude, so it is rounded like one — "200×", not "197.4×".
+    private static string Ratio(double x)
+        => x >= 100 ? Math.Round(x / 10) * 10 + "×"
+        : x >= 10 ? Math.Round(x) + "×"
+        : x.ToString("0.0", Fmt) + "×";
 
     // The second chart's legend: the same three token types the window average is split by, but at the
     // live rate — the last point of each line, which is what the chart above ends on.
@@ -418,6 +457,9 @@ internal partial class StatisticsWindow : Window
 
         LiveHeadS.Text = LiveHeadW.Text = LiveHeadT.Text =
             L.T("stats.live.head", Rate(870), Big(52_000)) + "  ·  " + L.T("stats.live.sessionN", 5);
+        // The measured order of magnitude, not an invented one: ~30k tok/s of cache read is what this
+        // machine's ordinary traffic reads back (§V.12), against the fixture's 870 tok/s of work.
+        ShowCacheReadNote(30_000, 870);
         RenderLive(animate: false);
 
         // Hold the reading open on the deliberate cache write. A captured window has no pointer in it,

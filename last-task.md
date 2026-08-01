@@ -176,3 +176,4 @@ here. This file is a terse index, not a memory.
 - **T103 SHIPPED** (Block K — the watcher's paths are the sweep's work list; the whole tree twice a minute) — 2026-07-31.
 - **T104 SHIPPED** (Block K — per-sample reading: crosshair, dots and a readout naming one second) — 2026-08-01.
 - **T105 SHIPPED** (Block K — `ProjectSlug`: one reader of the slug encoding for the whole app) — 2026-08-01.
+- **T107 SHIPPED** (Block K — the cache re-read is stated, as a ratio, where it is excluded) — 2026-08-01.

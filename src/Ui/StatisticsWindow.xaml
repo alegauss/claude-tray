@@ -4,7 +4,7 @@
         xmlns:local="clr-namespace:ClaudeTray"
         x:ClassModifier="internal"
         Title="{local:Loc stats.title}"
-        Width="880" Height="920"
+        Width="880" Height="948"
         MinWidth="800" MinHeight="740"
         WindowStartupLocation="CenterScreen"
         ThemeMode="System"
@@ -411,11 +411,20 @@
                         </Grid>
                         <StackPanel x:Name="LegendTypes" Orientation="Horizontal" Margin="0,8,0,0" />
 
+                        <!-- The fourth quantity, stated in words rather than drawn as a fourth line
+                             (T107): cache reads are excluded from every rate above, and on real
+                             traffic they are two orders of magnitude larger than the work that is
+                             drawn. The absence has to be explained where it happens, and this is the
+                             per-turn price of a large eager context — the link to Context load. -->
+                        <TextBlock x:Name="CacheReadNote" Margin="0,10,0,0" FontSize="12"
+                                   TextWrapping="Wrap" Visibility="Collapsed"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+
                         <!-- The slow clock, both windows, for scale against the fast one above. One line
                              each, window named inline: the per-type split of a *window* average belongs
                              on that window's own tab, and repeating it here only cost this pane the
                              height that made it scroll. -->
-                        <TextBlock Text="{local:Loc stats.throughput.averages}" Margin="0,20,0,0"
+                        <TextBlock Text="{local:Loc stats.throughput.averages}" Margin="0,16,0,0"
                                    FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">

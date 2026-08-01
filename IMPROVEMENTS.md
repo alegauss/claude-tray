@@ -257,19 +257,6 @@ now lives in the roadmap's Non-goals.
   it has drifted: the whole point is that the live signal is local.
 - **No tray-icon animation** — T101, dropped. See §V.0 and the roadmap's Non-goals.
 
-### §V.12 What the cache re-read costs (T107)
-
-`LiveRate` already separates cache reads from real work, and the measured ratio on ordinary traffic is
-startling: **~30,000 tok/s of cache read against ~150 tok/s of real work**. Excluding it from the
-headline is right — it barely weighs on the limit and would drown the signal — but the number itself
-is a finding the app currently computes and shows nobody.
-
-It is the per-turn price of a large eager context, which makes it the missing link to the Context Load
-Inspector: §III measures the context load once, statically, and this measures what re-reading it
-actually costs, live. The design question is where it belongs — a reading in the live row, or a
-finding in the Context window that cites it — and it should not become a fourth number nobody asked
-for.
-
 ### §V.13 The screenshot fixture belongs with the fixtures (T108)
 
 `--stats live` renders a hand-shaped synthetic three minutes so the published screenshot is

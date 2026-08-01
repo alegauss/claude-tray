@@ -139,6 +139,12 @@ a line's height is a quantity you can read. It is normally the highest point on 
 one large cache write towers over everything else, the axis falls back to the **95th percentile** of the
 samples and the stretch above the ceiling is drawn **dashed along it**, never silently cut.
 
+Under both charts, one line says what the **cache re-read** is costing — on ordinary traffic here,
+~30,000 tok/s against ~150 tok/s of real work. Every rate on the tab excludes it, because it barely
+weighs on the rate limit, but an exclusion that large deserves saying out loud: it is your context
+being re-sent with every turn, which makes it the per-turn price of a large eager context. **Context
+load** measures that context itself.
+
 **Point at a chart and it tells you what that second was.** A crosshair snaps to the nearest second,
 a dot marks every line, and a readout names the time, each series' rate through it and the tokens that
 actually *landed* in it. Those last two are different numbers on purpose: the rate is a trailing
