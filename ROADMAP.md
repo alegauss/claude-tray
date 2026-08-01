@@ -61,46 +61,6 @@
 - 📋 **T95** (deps: —) **Don't let a holiday teach the model** — a week off currently votes "these hours are idle" like any other week; only the flat prior softens it. Drop weeks whose total activity is a small fraction of the median week from the denominator, and say so in `--activity`. → §IV.11
 - 💭 **T96** (deps: —) **`--selftest` for the pacing *and* live math** — Block J added arithmetic with real edge cases (a flat profile must reproduce the straight line exactly, folding must stay idempotent, advice must never exceed its target, the ghost must stay hidden under its gates) and the repo has no test surface at all. **Block K doubled the surface**: the tail's cursor (a partial line waits for its newline, a shrunk file resets without re-reporting, a primed offset aligns) and the rate's kernel (sustained R reads as R, one burst decays linearly to a true zero at W, the smoothed value never exceeds the weighted one, per-project rates sum to the headline) are all verified only by hand against synthetic roots today. A deterministic self-check over synthetic inputs, in-app, keeps the zero-dependency rule intact. → §IV.12
 
-## Block K — Live throughput ("what is burning right now")
-
-> The throughput row under both charts ([`WindowPace.TokensPerSecond`](UsageReport.cs)) is a **window
-> average**: non-cache-read tokens ÷ seconds since the window opened. On the weekly tab the denominator
-> reaches 604,800s, so a 200k-token burst moves the third decimal — the number is immobile by
-> construction, not by refresh rate. And it is recomputed only when the tray pushes a new
-> `PaceSnapshot` (default 300s, floor 30s, far longer while a window is maxed), which is the right
-> cadence for rate-limit headers and useless for a flow.
->
-> A flow rate is the one number in this app that *should* move, and the data for it is already there
-> and already local: transcripts are append-only, and each `assistant` line carries `message.usage`
-> the moment a turn lands. This block reads that tail instead of the API, turns it into a rolling rate,
-> and draws it as motion where the moving axis **is** time — then attributes it per project, which is
-> the question someone running Claude Code across five repos actually has. Design:
-> [IMPROVEMENTS.md](IMPROVEMENTS.md) §V.
->
-> **Shipped: T97–T100.** The tail reader (`TranscriptTail.cs`, `--tail`), the rolling rate
-> (`LiveRate.cs`, `--live`), the moving strip under both charts (`LiveStrip.cs`, `--stats live`) and
-> its per-project attribution — see [CHANGELOG.md](CHANGELOG.md) Block K. **T101 was dropped**, which
-> §V.5 pre-authorised: see Non-goals.
->
-> **Second pass (T102–T108).** Building the block turned up one latent correctness bug that predates
-> it (T102, **shipped** — 41% of the assistant lines were repeats of a response already counted), two
-> costs it introduced (T103, **shipped** — the sweep now walks the whole tree twice a minute instead
-> of twenty times; T108), two readings it stops just short of (T104, **shipped** — the charts answer
-> for one second at a time now; T107, **shipped** — the cache re-read is stated where it is excluded),
-> and one duplicated resolver (T105, **shipped** — `ProjectSlug` is now the only reader of that
-> encoding). What is left: **T108**.
->
-> **Shipped since, from watching the real thing: T110–T112, T114–T116.** The strip got a labelled
-> ceiling scaled to what is on screen (T110), its own **Throughput** tab (T111) and percentile clipping
-> (T112); then the row stopped being bars at all — `LiveRate` serves the rolling rate as a series with
-> sticky per-project slots (T114), a paused project stays on the chart until it ages out instead of
-> blinking (T115), and the tab now carries **two line charts** of that rate, per project and per token
-> type, both always drawn (T116). **T106 was dropped** in the process: the rolling rate absorbs the
-> end-of-turn attribution it was about without inventing a duration. What is left of T104 is the
-> per-sample hover.
-
-- 💭 **T108** (deps: T99) **Move the `--stats live` fixture out of the code-behind** — the synthetic three minutes behind the published screenshot is hand-shaped inside `StatisticsWindow`, and two tasks now depend on it. It belongs beside `ContextFixture`. → §V.13
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
@@ -134,6 +94,6 @@ Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full 
   continuously, and — decisively — it would need a transcript tail running for the whole session.
   T99 deliberately made the tail *window-owned* so a closed Statistics window watches nothing;
   a permanent tail to power an ambient nicety would undo the one property that keeps the feature
-  free when nobody is looking. §V.5 pre-authorised dropping it.
+  free when nobody is looking. See [CHANGELOG.md](CHANGELOG.md) Block K.
 - Pricing/distribution/positioning discussion goes in [STRATEGY.md](STRATEGY.md), never as a
   numbered task.

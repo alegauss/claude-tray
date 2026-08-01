@@ -35,7 +35,11 @@
   against the same Statistics window, so it carries no dependency on J's open tasks.
 - **T110–T112** (2026-07-29) stay in Block **K** rather than opening M: all three are the live strip's
   own presentation — T110 its scale, T111 its own tab, T112 its handling of outliers. T110 took the
-  magnitude half of K's own T104, which remains open for the per-column hover.
+  magnitude half of K's own T104, which the per-sample hover then closed.
+  **Block K closed with T108** (2026-08-01): every task shipped or dropped, so the block is out of
+  `ROADMAP.md` and its design section (§V) out of `IMPROVEMENTS.md` — see
+  [CHANGELOG.md](CHANGELOG.md) Block K. The second pass ran T102 → T103 → T104 → T105 → T107 → T108,
+  one task per commit.
 - Block **N** (T120–T121, created 2026-07-31) opens on a **user question** rather than a plan — "can
   the About page show the plan, the holder and the config directory?" — and became its own page
   instead of an About addition: About is the project's identity, this is the *machine's*. Closed by
@@ -177,3 +181,4 @@ here. This file is a terse index, not a memory.
 - **T104 SHIPPED** (Block K — per-sample reading: crosshair, dots and a readout naming one second) — 2026-08-01.
 - **T105 SHIPPED** (Block K — `ProjectSlug`: one reader of the slug encoding for the whole app) — 2026-08-01.
 - **T107 SHIPPED** (Block K — the cache re-read is stated, as a ratio, where it is excluded) — 2026-08-01.
+- **T108 SHIPPED** (Block K — the `--stats live` fixture moves to `ThroughputFixture`) — 2026-08-01.

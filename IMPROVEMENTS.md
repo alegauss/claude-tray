@@ -13,10 +13,6 @@
 | [§I](#i--house-constraints) | House constraints (binding, app-wide) |
 | [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature (kept: it is data, not design) |
 | [§IV](#iv--activity-aware-pacing-block-j) | Activity-aware pacing (Block J) |
-| [§V](#v--live-throughput-block-k) | Live throughput (Block K) |
-| [§VI](#vi--system-information-block-n) | System information (Block N) |
-| [§VIII](#viii--project-layout-block-p) | Project layout — the flat root becomes `src/` + `build/` (Block P) |
-| [§IX](#ix--interaction-verification-block-q) | Interaction verification — what a screenshot cannot see (Block Q) |
 
 > Block I's design sections (§II) are gone: every one of them shipped, and `git log` plus
 > [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a **measurement** — the
@@ -231,36 +227,3 @@ observations — which is precisely what a self-check is for, and nothing curren
 breaking one silently.
 
 ---
-
-## §V — Live throughput (Block K)
-
-### §V.0 Where Block K stopped
-
-The block's premise held: the throughput row's window average is immobile *by construction* (it
-divides by the whole elapsed window), and the fix was a second metric on a second clock, read from
-the append-only transcripts rather than from a faster API poll. T97–T100 shipped that — tail, rate,
-strip, attribution — and the API cadence was never touched.
-
-**T101 was dropped**, which §V.5 explicitly allowed. The reason turned out sharper than the original
-"costs battery and attention": T99 made the tail *window-owned*, so a closed Statistics window tails
-nothing and the whole feature is free when nobody is looking. A tray hint would require a tail
-running for the entire session to power it. That trade is not worth an ambient nicety, and the ruling
-now lives in the roadmap's Non-goals.
-
-### §V.6 What this block will not do
-
-- **No new notification channel.** Same ruling as §IV.6 — a live rate is a display, not an alarm, and
-  "you are burning fast right now" as a toast needs its own justification.
-- **No content, ever.** Tailing reads the same fields the sweep does (§I.1). Session *names*, prompts
-  and tool output stay unread, and "which project" means the `cwd`, not what is in it.
-- **No API cadence change.** If a task in this block starts arguing for a shorter `RefreshSeconds`,
-  it has drifted: the whole point is that the live signal is local.
-- **No tray-icon animation** — T101, dropped. See §V.0 and the roadmap's Non-goals.
-
-### §V.13 The screenshot fixture belongs with the fixtures (T108)
-
-`--stats live` renders a hand-shaped synthetic three minutes so the published screenshot is
-reproducible; the shaping lives inline in `StatisticsWindow.RenderDemoLive`. Two tasks now depend on
-it, and `ContextFixture` is where this repo already keeps deterministic stand-in data. Pure
-housekeeping — no behaviour change — and worth doing before a third caller appears.
-

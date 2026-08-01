@@ -259,7 +259,7 @@ internal partial class StatisticsWindow : Window
     // Deliberately a sentence and not a fourth line on the chart: a fourth series in a legend of three
     // reads as something that was drawn, and the number is only meaningful as a ratio anyway. It is
     // also the per-turn price of a large eager context, which is what makes it the sentence that joins
-    // this tab to the Context Load Inspector rather than a fourth number nobody asked for (§V.12).
+    // this tab to the Context Load Inspector rather than a fourth number nobody asked for (T107).
     private void ShowCacheReadNote(double cacheRead, double work)
     {
         if (cacheRead <= 0)
@@ -392,83 +392,26 @@ internal partial class StatisticsWindow : Window
         return row;
     }
 
-    // A reproducible three minutes for the screenshot: the real charts depend on whatever happens to be
-    // running, which cannot be captured twice the same way. Deterministic by construction — no
-    // randomness, just shaped bursts — so the published image is stable across runs.
+    // Render the reproducible three minutes behind `--stats live`. The shaping itself lives in
+    // `ThroughputFixture` (T108) — this method is the presentation of it, which is all a code-behind
+    // should own: fields, text, one render, and the pose the readout is held in.
     private void RenderDemoLive()
     {
-        // Four repos plus a residual, so the per-project chart is drawn with the crossings that make the
-        // fixed slots worth having.
-        (string slug, string name, int phase, double weight)[] demo =
-        {
-            ("d--Git-acme-web-console", "web-console", 0, 1.00),
-            ("d--Git-acme-billing-api", "billing-api", 5, 0.62),
-            ("c--Users-dev-notes",      "notes",       2, 0.34),
-            ("d--Git-acme-infra",       "infra",       8, 0.21),
-        };
+        ThroughputDemo demo = ThroughputFixture.Build();
 
-        // Long enough for both filters to be warm at the left edge: every drawn point needs the 60s of
-        // buckets behind it, and the attack lag needs its own run-up before the first drawn one (T117) —
-        // a fixture that started exactly at the left edge would ramp in from zero and then settle.
-        const int span = LiveChart.Samples + LiveRate.WindowSeconds + LiveRate.SmoothWarmUp;
-        var perType = new long[3][];
-        for (int i = 0; i < 3; i++) perType[i] = new long[span];
-        var perProject = demo.Select(_ => new long[span]).ToArray();
-        var others = new long[span];
-
-        for (int i = 0; i < span; i++)
-        {
-            int t = span - 1 - i;                              // seconds ago
-            bool burst = t is (< 22) or (> 40 and < 78) or (> 96 and < 128) or (> 150 and < 205);
-            if (!burst) continue;
-            double k = 1 - t / (double)span;                   // newer bursts a little heavier
-
-            for (int p = 0; p < demo.Length; p++)
-            {
-                if ((i + demo[p].phase) % 3 != 0) continue;
-                perProject[p][i] += (long)((900 * k + 120 * (i % 5) + 1400 * k) * demo[p].weight);
-                perType[0][i] += (long)(40 * k * demo[p].weight);
-                perType[1][i] += (long)((900 * k + 120 * (i % 5)) * demo[p].weight);
-                perType[2][i] += (long)((1400 * k + 300 * (i % 4)) * demo[p].weight);
-            }
-            if (i % 7 == 0) others[i] = (long)(260 * k);
-        }
-
-        // One deliberate cache write, because real traffic has them: a turn that writes a large block
-        // lands tens of thousands of tokens in a single second. Sized to what it *becomes* — the kernel
-        // spreads it over the following minute, so a 240k second (which happens) draws a hump 25× the
-        // ordinary rate and flattens everything else in the fixture to a baseline. A moderate one shows
-        // the same shape and still leaves the four projects legible, which is what this image is for.
-        int spike = span - 1 - 41;                             // 41 seconds ago
-        perType[0][spike] += 2_400;
-        perType[1][spike] += 600;
-        perType[2][spike] += 44_000;
-        perProject[0][spike] += 47_000;
-
-        _lastTypeRates = perType.Select(s => LiveRate.RateFrom(s, LiveChart.Samples)).ToArray();
-        _lastTypeTokens = perType;
-        _lastProjects = demo
-            .Select((d, p) => new ProjectSlice(d.slug, d.name, perProject[p],
-                                               LiveRate.RateFrom(perProject[p], LiveChart.Samples),
-                                               Sum(perProject[p]), 870 * d.weight, false, p))
-            .Append(new ProjectSlice("+3", "+3", others, LiveRate.RateFrom(others, LiveChart.Samples),
-                                     Sum(others), 41, true, -1))
-            .ToArray();
+        _lastTypeRates = demo.TypeRates;
+        _lastTypeTokens = demo.TypeTokens;
+        _lastProjects = demo.Projects;
 
         LiveHeadS.Text = LiveHeadW.Text = LiveHeadT.Text =
-            L.T("stats.live.head", Rate(870), Big(52_000)) + "  ·  " + L.T("stats.live.sessionN", 5);
-        // The measured order of magnitude, not an invented one: ~30k tok/s of cache read is what this
-        // machine's ordinary traffic reads back (§V.12), against the fixture's 870 tok/s of work.
-        ShowCacheReadNote(30_000, 870);
+            L.T("stats.live.head", Rate(demo.HeadRate), Big(demo.HeadTokens)) + "  ·  " +
+            L.T("stats.live.sessionN", demo.Sessions);
+        ShowCacheReadNote(demo.CacheReadPerSecond, demo.HeadRate);
         RenderLive(animate: false);
 
-        // Hold the reading open on the deliberate cache write. A captured window has no pointer in it,
-        // and this is the one second in the fixture where the two numbers a hover separates are most
-        // obviously different: 47k tokens landed here, while the line through it reads a rate that
-        // spreads them over the following minute.
-        _chartProjects?.Pin(41);
-        _chartTypes?.Pin(41);
-
-        static long Sum(long[] a) { long s = 0; foreach (long v in a) s += v; return s; }
+        // A captured window has no pointer in it, so the reading is posed on the second where the two
+        // numbers a hover separates differ most.
+        _chartProjects?.Pin(demo.PinSecondsBack);
+        _chartTypes?.Pin(demo.PinSecondsBack);
     }
 }
