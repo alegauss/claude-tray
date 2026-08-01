@@ -175,3 +175,4 @@ here. This file is a terse index, not a memory.
 - **T102 SHIPPED** (Block K — one API response counted once in every local scan) — 2026-07-31.
 - **T103 SHIPPED** (Block K — the watcher's paths are the sweep's work list; the whole tree twice a minute) — 2026-07-31.
 - **T104 SHIPPED** (Block K — per-sample reading: crosshair, dots and a readout naming one second) — 2026-08-01.
+- **T105 SHIPPED** (Block K — `ProjectSlug`: one reader of the slug encoding for the whole app) — 2026-08-01.

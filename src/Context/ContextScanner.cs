@@ -418,23 +418,34 @@ internal static class ContextScanner
             .ToList();
         plan.Count(pp.Transcripts.Count);
 
-        // Slug → path. Probing the filesystem beats parsing: the slug encoding maps both '\'
-        // and ':' to '-' and leaves literal hyphens alone, so it is genuinely ambiguous.
-        if (TryResolveSlug(pp.Slug, out string resolved))
+        // Slug → path, best answer first (T105 — one resolver for the whole app, `ProjectSlug`).
+        // The recorded cwd walked up to the ancestor that *encodes to this slug* is exact: it
+        // verifies instead of guessing, so it is preferred over probing the filesystem, which can
+        // only guess (both `claude\tray` and `claude-tray` encode identically, and if both exist the
+        // probe returns whichever it reaches first). It also answers for a directory that is gone.
+        string? cwd = CwdFromTranscripts(pp.Transcripts);
+        if (cwd is { Length: > 0 } && ProjectSlug.RootFor(pp.Slug, cwd) is { Length: > 0 } root)
         {
-            pp.Path = resolved;
+            pp.Path = root;
+            pp.FromTranscript = true;
+            pp.State = Directory.Exists(root) ? PathState.Resolved : PathState.Missing;
+        }
+        else if (ProjectSlug.TryProbe(pp.Slug, out string probed))
+        {
+            pp.Path = probed;
             pp.State = PathState.Resolved;
         }
-        else if (CwdFromTranscripts(pp.Transcripts) is { Length: > 0 } cwd)
+        else if (cwd is { Length: > 0 })
         {
-            // The recorded cwd is authoritative — it is the path Claude Code actually ran in.
+            // Nothing verified and nothing on disk, but the session did record where it ran. Kept as
+            // a fallback rather than an answer: a `cd` inside the session moves it off the root.
             pp.Path = cwd;
             pp.FromTranscript = true;
             pp.State = Directory.Exists(cwd) ? PathState.Resolved : PathState.Missing;
         }
         else
         {
-            pp.Path = LiteralPath(pp.Slug);
+            pp.Path = ProjectSlug.Literal(pp.Slug);
             pp.State = pp.Path.Length > 0 ? PathState.Missing : PathState.NotAPath;
             if (pp.State == PathState.NotAPath) pp.Path = "";
         }
@@ -1056,56 +1067,8 @@ internal static class ContextScanner
                 ? (s.Name?.Length ?? 0) + (s.Description?.Length ?? 0) + 2
                 : 0);
 
-    // ---------------------------------------------------------------- slug resolution
-
-    /// <summary>
-    /// Resolve a project slug (<c>d--Git-alegauss-claude-tray</c>) back to a real directory
-    /// (<c>d:\Git\alegauss\claude-tray</c>) by probing the filesystem. The encoding replaces both
-    /// <c>:</c> and <c>\</c> with <c>-</c> and leaves literal hyphens untouched, so parsing alone
-    /// cannot tell <c>claude-tray</c> from <c>claude\tray</c>. Instead we try every split, shortest
-    /// segment first, and let <c>Directory.Exists</c> decide — with backtracking, so
-    /// <c>viglet-model-catalog</c> still resolves when <c>viglet\model</c> happens to exist too.
-    /// </summary>
-    public static bool TryResolveSlug(string slug, out string path)
-    {
-        path = "";
-        if (slug.Length < 4 || slug[1] != '-' || slug[2] != '-' || !char.IsLetter(slug[0])) return false;
-
-        string[] tokens = slug[3..].Split('-', StringSplitOptions.RemoveEmptyEntries);
-        if (tokens.Length == 0)
-        {
-            path = slug[0] + ":\\";
-            return Directory.Exists(path);
-        }
-
-        string root = slug[0] + ":\\";
-        return Directory.Exists(root) && Descend(root, tokens, 0, out path);
-    }
-
-    private static bool Descend(string current, string[] tokens, int i, out string result)
-    {
-        result = current;
-        if (i >= tokens.Length) return true;
-
-        for (int k = i; k < tokens.Length; k++)
-        {
-            string name = string.Join('-', tokens[i..(k + 1)]);
-            string next = Path.Combine(current, name);
-            if (Directory.Exists(next) && Descend(next, tokens, k + 1, out result)) return true;
-        }
-        result = "";
-        return false;
-    }
-
-    /// <summary>
-    /// The naive reading of a slug, used only to report an unresolvable one: every <c>-</c> after
-    /// the drive becomes a separator. Empty when the slug isn't drive-prefixed at all (a shared or
-    /// virtual project dir, which is not a path and must not be reported as a missing one).
-    /// </summary>
-    private static string LiteralPath(string slug)
-        => slug.Length >= 4 && slug[1] == '-' && slug[2] == '-' && char.IsLetter(slug[0])
-            ? slug[0] + ":\\" + string.Join('\\', slug[3..].Split('-', StringSplitOptions.RemoveEmptyEntries))
-            : "";
+    // Slug resolution moved to `ProjectSlug` (T105): three call sites had grown their own reading of
+    // one lossy encoding, and one of them encoded a different set of characters than Claude Code does.
 
     // ---------------------------------------------------------------- cache
 

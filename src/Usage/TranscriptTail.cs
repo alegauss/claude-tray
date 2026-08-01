@@ -440,7 +440,7 @@ internal sealed class TranscriptTail : IDisposable
                 }
             }
             string name;
-            lock (_gate) name = _names.TryGetValue(project, out string? n) ? n : SlugTail(project);
+            lock (_gate) name = _names.TryGetValue(project, out string? n) ? n : ProjectSlug.Tail(project);
             (found ??= new()).Add(new TailSample(t, bits, project, session, name));
         }
     }
@@ -451,45 +451,20 @@ internal sealed class TranscriptTail : IDisposable
         => fi.Directory?.Name ?? "?";
 
     /// <summary>
-    /// The project's folder name, resolved by matching the slug against the recorded <c>cwd</c>.
+    /// The project's folder name, resolved by matching the slug against the recorded <c>cwd</c> —
+    /// <see cref="ProjectSlug.RootFor"/>, which since T105 is the app's only reader of that encoding.
     ///
     /// <para>Naïvely taking <c>GetFileName(cwd)</c> is wrong, and wrong in a way that only shows up in
     /// use: <c>cwd</c> is the working directory <em>of that turn</em>, so any <c>cd</c> inside the
     /// session renames the project — a session that ran one command in <c>docs/_preview</c> started
     /// reporting itself as "_preview". The slug, however, encodes the session's <b>root</b>, so
     /// walking the cwd up its parents until one encodes to the slug recovers the root exactly.</para>
-    ///
-    /// <para>Claude Code builds a slug by replacing every non-alphanumeric character with <c>-</c>
-    /// (<c>d:\Git\acme\claude-tray</c> → <c>d--Git-acme-claude-tray</c>), which is lossy — the reason
-    /// the slug alone cannot be split back into a folder name — but perfectly fine to verify against.</para>
     /// </summary>
     private static string? ResolveName(string slug, string cwd)
     {
-        try
-        {
-            var dir = new DirectoryInfo(cwd.TrimEnd('\\', '/'));
-            for (int up = 0; dir is not null && up < 24; up++, dir = dir.Parent)
-                if (string.Equals(Encode(dir.FullName), slug, StringComparison.OrdinalIgnoreCase))
-                    return dir.Name.Length > 0 ? dir.Name : dir.FullName;
-        }
-        catch { /* an unusable cwd just falls through to the slug */ }
-        return null;
-    }
-
-    private static string Encode(string path)
-    {
-        var sb = new StringBuilder(path.Length);
-        foreach (char c in path) sb.Append(char.IsAsciiLetterOrDigit(c) ? c : '-');
-        return sb.ToString();
-    }
-
-    // Last resort when no line in a transcript carried a usable cwd. Ambiguous by construction — the
-    // slug cannot distinguish a path separator from a dash in the folder name — so it is only ever
-    // used when the authoritative answer is missing.
-    private static string SlugTail(string slug)
-    {
-        int dash = slug.LastIndexOf('-');
-        return dash >= 0 && dash < slug.Length - 1 ? slug[(dash + 1)..] : slug;
+        if (ProjectSlug.RootFor(slug, cwd) is not { Length: > 0 } root) return null;
+        string name = System.IO.Path.GetFileName(root.TrimEnd('\\', '/'));
+        return name.Length > 0 ? name : root;
     }
 
     public void Dispose()

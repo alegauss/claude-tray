@@ -158,12 +158,11 @@ internal static class ContextFixture
         return memory;
     }
 
-    /// <summary>The same encoding Claude Code uses for a project directory name: the drive colon and
-    /// every separator become '-'. Factored out because three call sites have to agree, or a fixture
-    /// project silently fails to resolve.</summary>
-    private static string Slug(string repoPath)
-        => repoPath.Replace(":", "-").Replace(Path.DirectorySeparatorChar, '-')
-                   .Replace(Path.AltDirectorySeparatorChar, '-');
+    /// <summary>The encoding Claude Code uses for a project directory name. Delegated to
+    /// <see cref="ProjectSlug.Encode"/> since T105 — this used to replace only the colon and the
+    /// separators, which agrees with the real encoding until a path carries a dot or a space, and a
+    /// fixture whose slug is a near-miss is a fixture that silently fails to resolve.</summary>
+    private static string Slug(string repoPath) => ProjectSlug.Encode(repoPath);
 
     private static void Skill(string dir, string name, string description, int bodyBytes, DateTime when)
     {

@@ -257,17 +257,6 @@ now lives in the roadmap's Non-goals.
   it has drifted: the whole point is that the live signal is local.
 - **No tray-icon animation** — T101, dropped. See §V.0 and the roadmap's Non-goals.
 
-### §V.10 Two readers of one lossy encoding (T105)
-
-A `projects/<slug>` name is the session's root path with every non-alphanumeric character replaced by
-`-`, which is lossy: `d--Git-acme-claude-tray` cannot be split back into a folder name, and
-`…-shio-2026-3` naïvely reads as "3". T100 recovers the real folder by walking the recorded `cwd` up
-to the ancestor whose encoding equals the slug — exact, because it verifies rather than guesses.
-
-`ContextScanner` needs the same answer and gets it differently (`CwdFromTranscripts` takes the raw
-`cwd`, which is the working directory *of that turn* and moves with any `cd`). One of these is right.
-It should be the only one.
-
 ### §V.12 What the cache re-read costs (T107)
 
 `LiveRate` already separates cache reads from real work, and the measured ratio on ordinary traffic is

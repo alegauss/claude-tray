@@ -110,6 +110,7 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 |---|---|
 | `src/Core/Localization.cs` | The dependency-free `L` / `{local:Loc key}` layer over the embedded `lang\<code>.json` files: language picked from Settings, else the OS UI language, English as the fallback for a missing key. |
 | `src/Core/SampleRoot.cs` | Where a fixture is built: a directory whose path holds no user name (`%PUBLIC%`, temp as fallback), because fixture screenshots get published and an absolute path spells out the Windows account. Shared by `ContextFixture` and `AccountFixture`. |
+| `src/Core/ProjectSlug.cs` | The app's **only** reader and writer of the `projects/<slug>` encoding (T105): `Encode` (also what the fixture names its dirs with), `RootFor`/`NameFor` — exact, by walking a recorded `cwd` up to the ancestor that encodes to the slug — `TryProbe`, the filesystem guess for when no cwd exists, and `Literal`/`Tail` for reporting an unresolvable one. |
 | `src/Core/SafeWalk.cs` | The recursive `~/.claude` walk every scan goes through: per directory, so an unreadable one (untrusted junction, denied ACL, folder deleted mid-sweep) skips its subtree instead of aborting the sweep. Materializes each directory's entries — a `try` around a lazy `Enumerate*` catches nothing — and resolves a reparse point to its target before opening it. |
 
 **`src/Ui/` — the windows** (the 4 `.xaml`/`.xaml.cs` pairs + `SettingsRow.cs`). A window with several
@@ -302,7 +303,9 @@ They live at the repo root on purpose: `docs/` is the published GitHub Pages sit
   `cd` inside a session changes it, so naming a project `GetFileName(cwd)` renames it to whatever
   subfolder a command last ran in. The `projects/<slug>` name encodes the root but is lossy (every
   non-alphanumeric becomes `-`, so `…-shio-2026-3` cannot be split back into `2026.3`). Resolve by
-  walking the cwd up to the ancestor whose encoding equals the slug — `TranscriptTail.ResolveName`.
+  walking the cwd up to the ancestor whose encoding equals the slug — and do it through
+  **`ProjectSlug`**, which owns that encoding for the whole app (T105). Do not write a second reader:
+  the last time there were three, one of them encoded a different set of characters.
 - **A transcript "turn" is a `requestId`, not a line.** Claude Code writes **one `assistant` line per
   content block** of a single API response (thinking, then tool_use, …), and every one of those lines
   repeats that response's `message.usage` verbatim. Summing per line double-counts, weighted toward
