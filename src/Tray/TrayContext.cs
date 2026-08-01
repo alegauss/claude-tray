@@ -24,9 +24,11 @@ internal sealed class TrayContext : ApplicationContext
     private readonly System.Windows.Forms.Timer _poll = new(); // interval set from settings
     private readonly System.Windows.Forms.Timer _flash = new() { Interval = 500 };
     private readonly System.Windows.Forms.Timer _updateCheck = new() { Interval = 21_600_000 }; // 6 h
-    // Context is a weekly-scale phenomenon, so it is sampled four times a day rather than per poll.
-    // This also keeps the drift history (ContextHistory) accumulating without the window being opened.
-    private readonly System.Windows.Forms.Timer _contextCheck = new() { Interval = 21_600_000 }; // 6 h
+    // The two weekly-scale samplers — context load (T79) and the activity grid (T91). Both describe a
+    // habit rather than a moment, so they are sampled four times a day rather than per poll, and both
+    // exist to keep accumulating while every window is closed: the drift history (ContextHistory) and
+    // the activity grid the icon's verdict is projected along.
+    private readonly System.Windows.Forms.Timer _backgroundSample = new() { Interval = 21_600_000 }; // 6 h
     private readonly List<ToolStripMenuItem> _metricItems = new();
     private ToolStripMenuItem _updateItem = null!;
 
@@ -79,8 +81,8 @@ internal sealed class TrayContext : ApplicationContext
         _flash.Start();
         _updateCheck.Tick += async (_, _) => await CheckForUpdateAsync();
         _updateCheck.Start();
-        _contextCheck.Tick += (_, _) => ScanContextInBackground();
-        _contextCheck.Start();
+        _backgroundSample.Tick += (_, _) => { ScanContextInBackground(); WarmActivityProfile(); };
+        _backgroundSample.Start();
 
         _tray.BalloonTipClicked += (_, _) => { if (_update != null) _ = ApplyUpdateAsync(); };
 
@@ -88,7 +90,26 @@ internal sealed class TrayContext : ApplicationContext
         _ = CheckForUpdateAsync(); // look for a newer release on launch
         RecomputeInsights(); // build the 24h usage breakdown in the background
         ScanContextInBackground(); // record context drift, and nudge if the user asked to be nudged
+        WarmActivityProfile();     // keep the weekly shape fresh even if Statistics is never opened
     }
+
+    /// <summary>
+    /// Keep the weekly activity grid warm. <see cref="ActivityProfile.Load"/> was only ever called from
+    /// <see cref="UsageReport.ComputePace"/>, which runs when the Statistics window is open — so a
+    /// machine whose owner never opens it projects along a shape that ages indefinitely (the tray
+    /// icon's verdict rests on that projection), and the first open on a fresh install waits on the
+    /// full ~15s sweep in front of the chart.
+    ///
+    /// Nothing but the caller changes: <c>Load</c> already returns the cached grid immediately and
+    /// recomputes behind it once past <see cref="ActivityProfile.RefreshHours"/>, so a warm pass here
+    /// is a file read, and the window keeps reading whatever is on disk. The pool is not optional —
+    /// the fresh-install path has no cache to return and computes synchronously.
+    /// </summary>
+    private static void WarmActivityProfile() => _ = Task.Run(() =>
+    {
+        try { ActivityProfile.Load(DateTimeOffset.UtcNow.UtcDateTime); }
+        catch { /* a warm cache is an optimisation — never worth disturbing the app over */ }
+    });
 
     /// <summary>
     /// Scan the context sources off the UI thread, record the drift sample, and — only if the user

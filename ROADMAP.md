@@ -43,9 +43,10 @@
 > 02:00. This block models **when** the user is actually active and projects along that shape instead.
 > Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §IV.
 >
-> **Shipped: T86–T90.** The profile (`ActivityProfile.cs`, `--activity`), the staircase projection on
+> **Shipped: T86–T91.** The profile (`ActivityProfile.cs`, `--activity`), the staircase projection on
 > the weekly chart, the permanent hourly aggregate behind it (`HourlyUsage.cs`), last week's ghost
-> curve, and the "stop now, resume at …" advice. See [CHANGELOG.md](CHANGELOG.md) Block J.
+> curve, the "stop now, resume at …" advice, and the tray keeping the grid warm. See
+> [CHANGELOG.md](CHANGELOG.md) Block J.
 >
 > Headless: `--activity`, `--activity --measured`, `--activity --fold`; previews `--stats shape`,
 > `--stats shape ghost`.
@@ -54,7 +55,6 @@
 > The accuracy work is ordered by how much it changes the projection: T93 first (it removes the
 > limitation the UI currently has to disclaim), then T95, then T94.
 
-- 📋 **T91** (deps: —) **The tray keeps the profile warm** — the grid is only ever recomputed when someone opens Statistics, so a machine whose owner never opens it projects from an ageing shape, and the first open on a fresh install waits on a ~15s sweep. Sample it on launch and every 6h from the tray's background timer instead, exactly as T79 already samples context. → §IV.7
 - 📋 **T92** (deps: —) **Incremental transcript sweep** — the daily rebuild re-reads every transcript from scratch (15s / 93k requests measured). Cache per file by path+size+mtime → its hourly counts, the way `ContextUsage` already does, so the recompute costs only the files that changed. → §IV.8
 - 📋 **T93** (deps: T88) **Prefer the measured grid once there are ~3 weeks of it** — `HourlyUsage` sees *all* usage against the limit, including from another machine or claude.ai; the transcript grid structurally cannot, which is the limitation the method note has to disclaim today. Blend toward measured as its coverage grows, keeping the transcript grid to bootstrap the first weeks. → §IV.9
 - 📋 **T94** (deps: T93) **Intensity, not just presence** — every active hour is currently paced at the same rate, so a heavy Monday morning and a light Friday evening spend identically. Add a per-bucket intensity (mean spend per active hour, relative to the average) from the measured store and weight the projection by it. → §IV.10

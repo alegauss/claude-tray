@@ -123,19 +123,6 @@ An activity-aware **tray notification** is explicitly *not* part of this block. 
 the wall-clock verdict and stays that way (T87 settled this); a second, softer notification channel
 would need its own justification.
 
-### §IV.7 Keeping the profile warm (T91)
-
-`ActivityProfile.Load` is called from one place: `UsageReport.ComputePace`, which runs when the
-Statistics window is open. That has two consequences nobody would choose deliberately. A user who
-never opens the window never rebuilds the grid, so the projection they *do* see — through the tray
-icon's verdict, indirectly — is shaped by a profile that may be weeks stale. And the first open on a
-new install lands the full ~15s sweep in front of the first chart.
-
-The tray already solves this exact problem for context (T79: sample on launch, then every 6h, off the
-poll cadence because a warm scan is cheap and weekly drift doesn't need per-minute sampling). The same
-timer should own the profile. Nothing else changes: `Load` already returns a stale cache immediately
-and refreshes behind it, so the window keeps reading whatever is on disk.
-
 ### §IV.8 Incremental transcript sweep (T92)
 
 The rebuild reads every `*.jsonl` under `~/.claude/projects` newer than the 12-week cutoff — measured
@@ -144,8 +131,8 @@ that hasn't been written since yesterday's sweep produces exactly the hourly cou
 
 `ContextUsage` already has the pattern: a per-file cache keyed by path + size + mtime. Here the cached
 value is smaller still — the set of (day, hour) buckets that file touched. Only changed and new files
-get read, which turns the daily refresh into something that could run on launch without a thought
-(and makes T91 cheap enough to be uncontroversial).
+get read, which turns the daily refresh into something that could run on launch without a thought —
+which is now exactly what happens, since T91 warms the grid from the tray's background timer.
 
 Worth keeping the cold path honest: a `--activity --refresh` must still be able to force the full
 sweep, or a cache bug becomes unfalsifiable.
