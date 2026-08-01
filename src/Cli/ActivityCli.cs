@@ -6,8 +6,10 @@ internal static class ActivityCli
 {
     // Headless view of ActivityProfile: the 168-bucket week the projection will be shaped by (T87),
     // printed as a shade grid so a wrong grid is visible at a glance rather than only as a wrong
-    // marker on a chart. Flags: `--refresh` to force a rescan past the daily cache, `--numbers` for
-    // raw percentages instead of shades, `--root <dir>` to read a stand-in for ~/.claude.
+    // marker on a chart. Flags: `--refresh` to force a rescan past the daily cache *and* past T92's
+    // per-file sweep cache (every transcript re-read, which is the only way to falsify that cache),
+    // `--numbers` for raw percentages instead of shades, `--root <dir>` to read a stand-in for
+    // ~/.claude.
     internal static void PrintActivity(string[] flags)
     {
         // Block-drawing characters and "≈" render as replacement chars on cmd.exe's default codepage.
@@ -42,6 +44,12 @@ internal static class ActivityCli
         Console.WriteLine($"Activity profile — {prof.CoverageWeeks:0.0} weeks of coverage, " +
                           $"{prof.Samples:N0} assistant lines ({source})");
         if (root == null) Console.WriteLine("cache: " + ActivityProfile.CachePath(ProfileStore.Monitored));
+        // What the sweep actually cost. Printing "read" beside "in window" is what makes the per-file
+        // cache falsifiable: warm it should be a handful of files, and `--refresh` must read them all.
+        if (!prof.FromCache)
+            Console.WriteLine($"sweep: {prof.FilesSeen:N0} transcripts in window, {prof.FilesRead:N0} read " +
+                              $"({prof.BytesRead / 1048576.0:0.#} MB), {prof.ElapsedMs:0}ms" +
+                              (root == null ? "" : " (fixture root — sweep cache bypassed)"));
         Console.WriteLine(prof.Confident
             ? $"confidence: usable — {prof.CoverageWeeks:0.0} weeks ≥ {ActivityProfile.ConfidentWeeks:0.0}, " +
               "the projection may follow this shape"

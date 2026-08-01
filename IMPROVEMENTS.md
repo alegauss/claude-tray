@@ -123,20 +123,6 @@ An activity-aware **tray notification** is explicitly *not* part of this block. 
 the wall-clock verdict and stays that way (T87 settled this); a second, softer notification channel
 would need its own justification.
 
-### §IV.8 Incremental transcript sweep (T92)
-
-The rebuild reads every `*.jsonl` under `~/.claude/projects` newer than the 12-week cutoff — measured
-at 15s over 93,856 requests on the dev machine — and almost all of that work is repeated: a transcript
-that hasn't been written since yesterday's sweep produces exactly the hourly counts it produced then.
-
-`ContextUsage` already has the pattern: a per-file cache keyed by path + size + mtime. Here the cached
-value is smaller still — the set of (day, hour) buckets that file touched. Only changed and new files
-get read, which turns the daily refresh into something that could run on launch without a thought —
-which is now exactly what happens, since T91 warms the grid from the tray's background timer.
-
-Worth keeping the cold path honest: a `--activity --refresh` must still be able to force the full
-sweep, or a cache bug becomes unfalsifiable.
-
 ### §IV.9 Prefer the measured grid (T93)
 
 The transcript grid has a structural blind spot the UI currently has to apologise for: *usage from

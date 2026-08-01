@@ -26,6 +26,13 @@ namespace ClaudeTray;
 ///
 /// <para>A bucket is a probability, never a boolean. "Usually quiet but sometimes worked" has to
 /// degrade smoothly, or a single unusual evening flips a whole projection.</para>
+///
+/// <para><b>The sweep is incremental (T92).</b> A rebuild used to re-read every transcript in the
+/// window — 15s over 93k requests on the dev machine — although a session untouched since the last
+/// sweep produces exactly the counts it produced then. Each file is now reduced once to the local
+/// hours it touched (<c>SweepEntry</c>, cached on path+size+mtime), so a rebuild costs only the
+/// sessions that changed. The week index is deliberately *not* cached: it is relative to now, so it
+/// would rot by one every seven days — see <c>SweepEntry</c>.</para>
 /// </summary>
 internal sealed class ActivityProfile
 {
@@ -67,6 +74,17 @@ internal sealed class ActivityProfile
     public bool FromCache;
     public double ElapsedMs;
     public string? Error;
+
+    /// <summary>Transcripts in the 12-week window — the work the sweep had to consider.</summary>
+    public int FilesSeen;
+
+    /// <summary>Transcripts actually opened. With a warm sweep cache this is only the ones that
+    /// changed, which is the whole point of T92 — and printing both is what makes a cache bug
+    /// visible rather than merely fast.</summary>
+    public int FilesRead;
+
+    /// <summary>Bytes read by this sweep, not bytes on disk.</summary>
+    public long BytesRead;
 
     /// <summary>Enough weeks behind the shape to project along it rather than along a slope.</summary>
     public bool Confident => CoverageWeeks >= ConfidentWeeks;
@@ -156,7 +174,13 @@ internal sealed class ActivityProfile
             return cached;
         }
 
-        ActivityProfile fresh = Compute(nowUtc, claudeRoot is { } root ? ProjectsDir(root) : p.ProjectsDir);
+        // A fixture root must neither read nor write the shared sweep cache (the same rule T128 set
+        // for the grid cache); `--refresh` re-reads every transcript but still leaves the cache warm,
+        // or forcing a rescan would make the next one slow too.
+        SweepCacheMode mode = !real ? SweepCacheMode.Off
+                            : refresh ? SweepCacheMode.Rebuild
+                            : SweepCacheMode.Use;
+        ActivityProfile fresh = Compute(nowUtc, claudeRoot is { } root ? ProjectsDir(root) : p.ProjectsDir, mode);
         if (real && fresh.Error == null) WriteCache(p.Key, fresh);
         return fresh;
     }
@@ -180,7 +204,8 @@ internal sealed class ActivityProfile
     /// exactly one occurrence of every (day, hour) bucket, whatever the time of day now happens to
     /// be — which is why no partial-week correction is needed: week 0 is as complete as week 5.
     /// </summary>
-    public static ActivityProfile Compute(DateTime nowUtc, string projectsDir)
+    public static ActivityProfile Compute(DateTime nowUtc, string projectsDir,
+                                          SweepCacheMode cache = SweepCacheMode.Use)
     {
         var prof = new ActivityProfile { ComputedUtc = nowUtc };
         long startedTicks = DateTime.UtcNow.Ticks;
@@ -195,33 +220,64 @@ internal sealed class ActivityProfile
             DateTime nowLocal = nowUtc.ToLocalTime();
             DateTime cutoffUtc = nowUtc.AddDays(-7 * MaxWeeks);
 
+            // A transcript last written before the cutoff cannot hold an in-range timestamp, so it is
+            // never opened and never cached — which also bounds the cache to the current window.
+            var files = new List<FileInfo>();
+            foreach (FileInfo f in SafeWalk.Files(projectsDir, "*.jsonl"))
+            {
+                try { if (f.LastWriteTimeUtc < cutoffUtc) continue; } catch { continue; }
+                files.Add(f);
+                if (files.Count >= MaxFiles) break;
+            }
+            prof.FilesSeen = files.Count;
+
+            Dictionary<string, SweepEntry> known = cache == SweepCacheMode.Use ? ReadSweep() : new(PathComparer);
+            var swept = new Dictionary<string, SweepEntry>(files.Count, PathComparer);
+
+            foreach (FileInfo f in files)
+            {
+                // A file already swept at this exact size and mtime cannot have gained a timestamp —
+                // this is what turns the daily rebuild into the cost of the sessions that changed.
+                if (known.TryGetValue(f.FullName, out SweepEntry? hit) &&
+                    hit.Bytes == f.Length && hit.Ticks == f.LastWriteTimeUtc.Ticks)
+                {
+                    swept[f.FullName] = hit;
+                    continue;
+                }
+
+                SweepEntry entry = SweepFile(f);
+                swept[f.FullName] = entry;
+                prof.FilesRead++;
+                prof.BytesRead += entry.Read;
+            }
+
+            if (cache != SweepCacheMode.Off) WriteSweep(swept);
+
             // active[week][bucket] — "this hour saw at least one request that week". A count would let
             // one frantic afternoon outvote five ordinary ones; presence is the honest signal.
             var active = new bool[MaxWeeks, Buckets];
             DateTime? earliestLocal = null;
             long samples = 0;
-            int files = 0;
 
-            foreach (string file in SafeWalk.Paths(projectsDir, "*.jsonl"))
+            // The one place a week index is assigned, so the cached and full-sweep paths cannot drift:
+            // both aggregate the same absolute hour buckets here. The week is *not* stored — it is
+            // relative to now, so a cached week number would rot by one every seven days.
+            foreach (SweepEntry entry in swept.Values)
             {
-                if (++files > MaxFiles) break;
-                // A transcript last written before the cutoff cannot hold an in-range timestamp.
-                try { if (File.GetLastWriteTimeUtc(file) < cutoffUtc) continue; } catch { continue; }
-
-                foreach (string line in ReadLinesSafe(file))
+                for (int i = 0; i < entry.H.Length; i++)
                 {
-                    if (!IsRequestLine(line)) continue;
-                    if (!TryReadTimestamp(line, out DateTime whenUtc)) continue;
-                    if (whenUtc > nowUtc || whenUtc < cutoffUtc) continue;
-
-                    DateTime local = whenUtc.ToLocalTime();
-                    if (earliestLocal == null || local < earliestLocal) earliestLocal = local;
+                    DateTime local = new(entry.H[i] * TimeSpan.TicksPerHour);
+                    // A clock-skewed future timestamp is not evidence of anything. Checked against the
+                    // hour rather than relying on a negative week: `(int)` truncates toward zero, so a
+                    // few hours into the future would still land in week 0.
+                    if (local > nowLocal) continue;
 
                     int week = (int)((nowLocal - local).TotalDays / 7);
                     if (week < 0 || week >= MaxWeeks) continue;
 
+                    if (earliestLocal == null || local < earliestLocal) earliestLocal = local;
                     active[week, Index(local.DayOfWeek, local.Hour)] = true;
-                    samples++;
+                    samples += entry.N[i];
                 }
             }
 
@@ -271,10 +327,124 @@ internal sealed class ActivityProfile
     private static double Elapsed(long startedTicks)
         => (DateTime.UtcNow.Ticks - startedTicks) / (double)TimeSpan.TicksPerMillisecond;
 
-    private static IEnumerable<string> ReadLinesSafe(string file)
+    // ---------------------------------------------------------------- the per-file sweep (T92)
+
+    /// <summary>How <see cref="Compute"/> may use the per-file sweep cache.</summary>
+    internal enum SweepCacheMode
     {
-        try { return File.ReadLines(file); }
-        catch { return Array.Empty<string>(); }
+        /// <summary>Read what is cached, open only what changed, write the result back.</summary>
+        Use,
+        /// <summary>Open every transcript, then write the result back — what `--activity --refresh`
+        /// does. Without it a cache bug would be unfalsifiable.</summary>
+        Rebuild,
+        /// <summary>Neither read nor write: a fixture tree must never touch the real cache.</summary>
+        Off,
+    }
+
+    private static readonly StringComparer PathComparer = StringComparer.OrdinalIgnoreCase;
+
+    /// <summary>
+    /// One transcript reduced to what the grid needs: the local hours it touched, and how many request
+    /// lines landed in each. Valid while the file's size and mtime are unchanged.
+    ///
+    /// <para><b>Absolute hours, never week indices.</b> A week here is the rolling window
+    /// <c>[now−7(w+1)d, now−7w d)</c>, so the week a timestamp belongs to depends on when the sweep
+    /// runs. Caching a week number would therefore be caching an answer that expires; caching the hour
+    /// keeps the entry true forever and costs the same bytes.</para>
+    ///
+    /// <para>The key is <c>local.Ticks / TicksPerHour</c> — the local hour the request happened in,
+    /// converted once at scan time so the historical UTC offset (and DST) is the one that applied
+    /// then. Reversing it recovers the day-of-week and hour exactly, which is all a bucket is.</para>
+    /// </summary>
+    private sealed class SweepEntry
+    {
+        public string Path { get; set; } = "";
+        public long Bytes { get; set; }
+        public long Ticks { get; set; }
+        /// <summary>Distinct local-hour keys, ascending.</summary>
+        public long[] H { get; set; } = Array.Empty<long>();
+        /// <summary>Request lines per hour, parallel to <see cref="H"/>.</summary>
+        public int[] N { get; set; } = Array.Empty<int>();
+
+        /// <summary>Bytes this sweep read for the entry — 0 when it came from the cache. Not persisted.</summary>
+        [System.Text.Json.Serialization.JsonIgnore]
+        public long Read { get; set; }
+    }
+
+    /// <summary>
+    /// Reduce one transcript to its hour histogram. Deliberately does <b>not</b> apply the 12-week
+    /// cutoff to individual lines: the entry then describes the file rather than the moment it was
+    /// scanned, so it stays valid as the window slides and <see cref="Compute"/> can filter at
+    /// aggregation time. The file-level mtime check already keeps out-of-window files from being read
+    /// at all, which is what bounds this.
+    /// </summary>
+    private static SweepEntry SweepFile(FileInfo file)
+    {
+        var hours = new Dictionary<long, int>();
+        long read = 0;
+        try
+        {
+            foreach (string line in File.ReadLines(file.FullName))
+            {
+                read += line.Length;
+                if (!IsRequestLine(line)) continue;
+                if (!TryReadTimestamp(line, out DateTime whenUtc)) continue;
+
+                long key = whenUtc.ToLocalTime().Ticks / TimeSpan.TicksPerHour;
+                hours[key] = hours.TryGetValue(key, out int n) ? n + 1 : 1;
+            }
+        }
+        catch { /* a transcript being written, or an unreadable file — keep what we got */ }
+
+        long[] keys = hours.Keys.ToArray();
+        Array.Sort(keys);
+        var counts = new int[keys.Length];
+        for (int i = 0; i < keys.Length; i++) counts[i] = hours[keys[i]];
+
+        return new SweepEntry
+        {
+            Path = file.FullName,
+            Bytes = SafeLength(file),
+            Ticks = SafeTicks(file),
+            H = keys,
+            N = counts,
+            Read = read,
+        };
+    }
+
+    private static long SafeLength(FileInfo f) { try { return f.Length; } catch { return -1; } }
+    private static long SafeTicks(FileInfo f) { try { return f.LastWriteTimeUtc.Ticks; } catch { return -1; } }
+
+    /// <summary>
+    /// Shared by every profile rather than stored per profile, for the same reason
+    /// <c>context-usage.json</c> is (see <see cref="ProfileStore"/>): entries are keyed by absolute
+    /// transcript path plus a size+mtime fingerprint, so one profile's entry cannot be mistaken for
+    /// another's, and two profiles pointing at the same tree share the work instead of repeating it.
+    /// </summary>
+    public static string SweepCachePath => Path.Combine(Settings.DataDir, "activity-sweep.json");
+
+    private static Dictionary<string, SweepEntry> ReadSweep()
+    {
+        try
+        {
+            if (!File.Exists(SweepCachePath)) return new(PathComparer);
+            var list = JsonSerializer.Deserialize<List<SweepEntry>>(File.ReadAllText(SweepCachePath));
+            var map = new Dictionary<string, SweepEntry>(PathComparer);
+            foreach (SweepEntry e in list ?? new())
+                if (e.Path.Length > 0 && e.H.Length == e.N.Length) map[e.Path] = e;
+            return map;
+        }
+        catch { return new(PathComparer); }
+    }
+
+    private static void WriteSweep(Dictionary<string, SweepEntry> entries)
+    {
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(SweepCachePath)!);
+            File.WriteAllText(SweepCachePath, JsonSerializer.Serialize(entries.Values));
+        }
+        catch { /* the cache is an optimization; failing to write it costs one slow sweep */ }
     }
 
     // Substring tests rather than JsonDocument.Parse: this walks months of transcripts — hundreds of
