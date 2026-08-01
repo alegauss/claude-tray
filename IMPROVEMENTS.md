@@ -257,18 +257,6 @@ now lives in the roadmap's Non-goals.
   it has drifted: the whole point is that the live signal is local.
 - **No tray-icon animation** — T101, dropped. See §V.0 and the roadmap's Non-goals.
 
-### §V.9 A line with no reading (T104)
-
-Height means something now — T110 rules and labels the ceiling, T116 draws a rate you can follow — but
-the charts still answer only in shapes. Which second is that rise, which project, and how many tokens
-actually landed in it: none of the three is available anywhere, and **per-sample hover** is the one
-interaction a time-series should never ship without.
-
-Two things make it more valuable than when it was first written. The chart has its own tab and 180px of
-plot, so a hit target is worth aiming at; and the line draws a *rolling* rate while `LiveRate` still
-keeps the raw per-second buckets beside it, so a hover can report both — "this second carried 12k
-tokens; the rate through it was 800/s" — which is exactly the distinction the rate view smooths over.
-
 ### §V.10 Two readers of one lossy encoding (T105)
 
 A `projects/<slug>` name is the session's root path with every non-alphanumeric character replaced by

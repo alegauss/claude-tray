@@ -95,6 +95,10 @@ internal partial class StatisticsWindow : Window
         bool dark = IsDarkTheme();
         _chartProjects = new LiveChart(ChartProjects, dark, AxisTick, ScaleTip);
         _chartTypes = new LiveChart(ChartTypes, dark, AxisTick, ScaleTip);
+        // The reading under the pointer (T104). The chart knows which second and what it drew; naming
+        // the series, and finding the raw tokens that landed in that second, is this window's job.
+        _chartProjects.Readout = ProjectReadout;
+        _chartTypes.Readout = TypeReadout;
 
         // The charts are drawn in device pixels against their host's width, so a resize (and the very
         // first layout pass, where the width is still zero) has to redraw them. Static, not animated:
@@ -159,6 +163,16 @@ internal partial class StatisticsWindow : Window
         _live.Tick(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
         _lastTypeRates = _live.TypeRates(LiveChart.Samples);
+        // The raw per-second buckets beside the rate the line draws — the two readings the hover
+        // reports together, which is the distinction a rolling rate necessarily smooths over (T104).
+        // The per-project equivalent already rides along in ProjectSlice.PerSecond.
+        TokenBits[] strip = _live.Strip();
+        _lastTypeTokens = new[]
+        {
+            strip.Select(b => b.Input).ToArray(),
+            strip.Select(b => b.Output).ToArray(),
+            strip.Select(b => b.CacheCreate).ToArray(),
+        };
         // The drawn span, so a project is on the chart exactly while the chart can show it — and keeps
         // its slot through a pause instead of blinking out and back (T115).
         _lastProjects = _live.Projects(LiveChart.Samples);
@@ -249,6 +263,75 @@ internal partial class StatisticsWindow : Window
                 L.T("stats.tps.legend", labels[i], Rate(rates[i][^1])), null));
     }
 
+    // ------------------------------------------------------------------ the reading (T104)
+
+    // What the crosshair is standing on, per project: the second itself, then one line per series with
+    // the rate the chart drew and the tokens that actually landed in that second. The two are different
+    // quantities and that is the point — a rolling rate is what is still ageing out of the window, so a
+    // second that carried nothing can sit high on the line, and only saying both explains it.
+    private string? ProjectReadout(int secondsBack, double[] drawn)
+    {
+        if (_lastProjects is not { Length: > 0 } projects) return null;
+
+        var rows = new List<string>();
+        long landed = 0;
+        for (int i = 0; i < projects.Length && i < drawn.Length; i++)
+        {
+            ProjectSlice p = projects[i];
+            long raw = TokensAt(p.PerSecond, secondsBack);
+            landed += raw;
+            string name = p.IsOthers ? L.T("stats.live.others", p.Slug.TrimStart('+')) : p.Display;
+            rows.Add(L.T("stats.live.readSeries", name, Rate(drawn[i]), Big(raw)));
+        }
+        return Card(secondsBack, rows, landed);
+    }
+
+    // The same reading for the by-type chart. Cache reads are absent here exactly as they are absent
+    // from the lines and from the headline — this reports what is drawn, not a fourth series.
+    private string? TypeReadout(int secondsBack, double[] drawn)
+    {
+        if (_lastTypeTokens is not { Length: 3 } tokens || drawn.Length < 3) return null;
+
+        string[] labels = { L.T("stats.tps.input"), L.T("stats.tps.output"), L.T("stats.tps.cacheCreate") };
+        var rows = new List<string>();
+        long landed = 0;
+        for (int i = 0; i < 3; i++)
+        {
+            long raw = TokensAt(tokens[i], secondsBack);
+            landed += raw;
+            rows.Add(L.T("stats.live.readSeries", labels[i], Rate(drawn[i]), Big(raw)));
+        }
+        return Card(secondsBack, rows, landed);
+    }
+
+    // Header + rows, and the sentence that turns a surprising reading into an explained one.
+    private string Card(int secondsBack, List<string> rows, long landed)
+    {
+        var sb = new System.Text.StringBuilder(Moment(secondsBack));
+        foreach (string r in rows) sb.Append('\n').Append(r);
+        if (landed == 0) sb.Append('\n').Append(L.T("stats.live.readNothing"));
+        return sb.ToString();
+    }
+
+    // "14:32:07 · 12 s ago", or just the age when there is no real clock behind the series — the
+    // fixture pins its head second, so printing 1970 there would be worse than printing nothing.
+    private string Moment(int secondsBack)
+    {
+        string ago = secondsBack == 0 ? L.T("stats.live.readNow") : L.T("stats.live.readAgo", secondsBack);
+        long head = _live?.HeadSecond ?? 0;
+        if (head < 1_000_000_000) return ago;
+        DateTime when = DateTimeOffset.FromUnixTimeSeconds(head - secondsBack).LocalDateTime;
+        return L.T("stats.live.readAt", when.ToString("HH:mm:ss", CultureInfo.CurrentCulture), ago);
+    }
+
+    // The raw arrays are oldest-first and may be longer than the drawn span (the ring is 300s, the
+    // chart 182), so an age is counted back from the end rather than indexed from the start.
+    private static long TokensAt(long[] perSecond, int secondsBack)
+    {
+        int i = perSecond.Length - 1 - secondsBack;
+        return i >= 0 && i < perSecond.Length ? perSecond[i] : 0;
+    }
+
     // One swatch + label pair, shared by both legends so they cannot drift apart visually.
     private StackPanel LegendEntry(Color color, string text, string? tip)
     {
@@ -324,6 +407,7 @@ internal partial class StatisticsWindow : Window
         perProject[0][spike] += 47_000;
 
         _lastTypeRates = perType.Select(s => LiveRate.RateFrom(s, LiveChart.Samples)).ToArray();
+        _lastTypeTokens = perType;
         _lastProjects = demo
             .Select((d, p) => new ProjectSlice(d.slug, d.name, perProject[p],
                                                LiveRate.RateFrom(perProject[p], LiveChart.Samples),
@@ -335,6 +419,13 @@ internal partial class StatisticsWindow : Window
         LiveHeadS.Text = LiveHeadW.Text = LiveHeadT.Text =
             L.T("stats.live.head", Rate(870), Big(52_000)) + "  ·  " + L.T("stats.live.sessionN", 5);
         RenderLive(animate: false);
+
+        // Hold the reading open on the deliberate cache write. A captured window has no pointer in it,
+        // and this is the one second in the fixture where the two numbers a hover separates are most
+        // obviously different: 47k tokens landed here, while the line through it reads a rate that
+        // spreads them over the following minute.
+        _chartProjects?.Pin(41);
+        _chartTypes?.Pin(41);
 
         static long Sum(long[] a) { long s = 0; foreach (long v in a) s += v; return s; }
     }

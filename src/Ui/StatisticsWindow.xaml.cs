@@ -82,6 +82,9 @@ internal partial class StatisticsWindow : Window
     // Kept so a resize or a tab switch can repaint without waiting for the next tick.
     private double[][]? _lastTypeRates;
     private ProjectSlice[]? _lastProjects;
+    // The raw per-second tokens behind the type chart's three lines, oldest first — what the hover
+    // reports beside the rate (T104). Per project the same counts ride along in ProjectSlice.PerSecond.
+    private long[][]? _lastTypeTokens;
 
     /// <summary>Dev/preview seam: feed the strip a deterministic synthetic minute instead of the real
     /// tail, so the screenshot of a *moving* row is reproducible. See <c>--stats live</c>.</summary>
@@ -339,7 +342,10 @@ internal partial class StatisticsWindow : Window
         {
             _defaultTabPicked = true;
             bool sessionIdle = !r.Session.HasWindow || r.Session.Util <= 0;
-            if (sessionIdle && r.Weekly.HasWindow)
+            // The live preview is *about* the Throughput tab, so it opens there — the same reasoning
+            // `--stats shape` uses to open on the weekly tab rather than needing a click first.
+            if (PreviewDemoLive) PanesBody.SelectedIndex = ThroughputTab;
+            else if (sessionIdle && r.Weekly.HasWindow)
                 PanesBody.SelectedIndex = 1;
         }
 

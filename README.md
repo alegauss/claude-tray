@@ -137,8 +137,13 @@ goes quiet decays toward zero and ages off the left edge instead of vanishing.
 Full height is a round number labelled on the right — `2k/s`, with half of it on the dashed line — so
 a line's height is a quantity you can read. It is normally the highest point on screen, rounded up; when
 one large cache write towers over everything else, the axis falls back to the **95th percentile** of the
-samples and the stretch above the ceiling is drawn **dashed along it**, never silently cut. Hover a chart
-and it tells you what full height means, how many samples ran past it, and what the real peak was.
+samples and the stretch above the ceiling is drawn **dashed along it**, never silently cut.
+
+**Point at a chart and it tells you what that second was.** A crosshair snaps to the nearest second,
+a dot marks every line, and a readout names the time, each series' rate through it and the tokens that
+actually *landed* in it. Those last two are different numbers on purpose: the rate is a trailing
+minute, so a second that carried nothing can still sit high on the line — that is earlier work ageing
+out, and the reading says so. When something is being clipped at the ceiling, the readout says that too.
 
 The charts scroll because the axis they scroll along **is time** — the motion is the data, not a
 spinner. When nothing is generating they go flat and stop repainting, and they only run at all while

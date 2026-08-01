@@ -6,6 +6,7 @@ using System.Windows.Shapes;
 
 using Brush = System.Windows.Media.Brush;
 using Color = System.Windows.Media.Color;
+using Size = System.Windows.Size;
 // System.IO is a global using here (see the csproj), so `Path` is ambiguous with System.IO.Path.
 using Path = System.Windows.Shapes.Path;
 
@@ -53,6 +54,15 @@ namespace ClaudeTray;
 /// moving samples, and the runs that go past the top are drawn as a <b>dashed line along the ceiling</b>
 /// — T112's rule in the form a line can carry. Clipping is something a monitor may only do out loud, so
 /// the mark says "above here" and the hover says how many samples and what the real peak was.</para>
+///
+/// <para><b>A point can be read (T104).</b> Hovering the plot snaps a crosshair to the nearest second,
+/// dots every series where its line is, and opens a readout naming that second, each series' rate
+/// through it and the tokens that actually <em>landed</em> in it — the distinction the rate view exists
+/// to smooth over, and the one a shape alone can never answer. The readout is drawn <b>inside the
+/// plot</b> rather than as a tooltip: a tooltip is a top-level popup, so it flickers when its text is
+/// reassigned under the pointer and cannot appear in a captured screenshot. The rate it reports is read
+/// from what was <em>drawn</em> (see <see cref="Render"/>), never from a recomputation, so the number
+/// under the pointer is the number on the line.</para>
 /// </summary>
 internal sealed class LiveChart
 {
@@ -139,15 +149,24 @@ internal sealed class LiveChart
     private readonly Grid _plot = new() { ClipToBounds = true };   // the lines' own clip: the slide
     private readonly Canvas _rules = new();                        // moves geometry past both edges
     private readonly Canvas _canvas = new();
+    private readonly Canvas _overlay = new();                      // crosshair + readout, above the lines
     private readonly Canvas _gutter = new();
     private readonly TranslateTransform _slide = new();
     private readonly Func<double, string> _tick;
     private readonly Func<double, int, double, string> _tip;
     private readonly Line[] _lines;
     private readonly TextBlock[] _labels;
+    private readonly Line _cross = new() { StrokeThickness = 1, SnapsToDevicePixels = true };
+    private readonly Border _card = new() { CornerRadius = new CornerRadius(4), BorderThickness = new Thickness(1), Padding = new Thickness(8, 6, 8, 6) };
+    private readonly StackPanel _cardLines = new();
     private Path[] _layers;      // the line per series
     private Path[] _over;        // and the dashed run marking where it left the top
+    private Ellipse[] _dots = Array.Empty<Ellipse>();   // one per series, at the hovered sample
     private string? _tipText;
+    private string? _cardText;   // what the readout currently says, so it is rebuilt only when it changes
+    private int _clipped;        // samples drawn along the ceiling: what the card must own up to
+    private double _hoverX = double.NaN, _hoverY = double.NaN;
+    private int _pin = -1;       // fixture: hold the readout open at this sample (seconds back)
 
     // What has been drawn, and the second it ends at. The chart keeps its own copy of the series and only
     // ever *appends* to it — see Render for why recomputing every second was visibly wrong (T119).
@@ -162,6 +181,13 @@ internal sealed class LiveChart
     // because the decay has to stay smooth while the label may only ever be a round number.
     private double _ceiling;
     private bool _flat = true;
+
+    /// <summary>Formats the per-sample reading (T104): how many seconds back the hovered sample is
+    /// (0 = the second still filling) and the values this chart <b>drew</b> for it, one per series in
+    /// the order they were rendered. Returning null or an empty string means "nothing to read here",
+    /// and the readout stays closed. The caller owns the copy, the localization and which raw counts
+    /// belong beside the rate — this class owns only where the pointer is.</summary>
+    public Func<int, double[], string?>? Readout { get; set; }
 
     /// <param name="tick">Formats an axis value (tokens per second) for the gutter — the caller owns the
     /// app's number formatting and its localized "/s".</param>
@@ -179,12 +205,36 @@ internal sealed class LiveChart
         Grid.SetColumn(_gutter, 1);
         _plot.Children.Add(_rules);      // behind the lines: a rule is a reference, not a series
         _plot.Children.Add(_canvas);
+        _plot.Children.Add(_overlay);    // and the reading on top of them
         _root.Children.Add(_plot);
         _root.Children.Add(_gutter);
         _canvas.RenderTransform = _slide;
         // The host keeps the hover, so its tooltip covers the whole chart rather than only the lines.
         _root.IsHitTestVisible = false;
         _host.Child = _root;
+
+        // The crosshair and the readout live outside the sliding layer: they mark where the *pointer*
+        // is, and something that answers the mouse must not drift with the scroll between rebuilds.
+        _cross.SetResourceReference(Shape.StrokeProperty, "TextFillColorTertiaryBrush");
+        _card.SetResourceReference(Border.BackgroundProperty, "SolidBackgroundFillColorSecondaryBrush");
+        _card.SetResourceReference(Border.BorderBrushProperty, "DividerStrokeColorDefaultBrush");
+        _card.Child = _cardLines;
+        _cross.Visibility = _card.Visibility = Visibility.Collapsed;
+        _overlay.Children.Add(_cross);
+        _overlay.Children.Add(_card);
+
+        _host.MouseMove += (_, e) =>
+        {
+            System.Windows.Point p = e.GetPosition(_plot);
+            _hoverX = p.X;
+            _hoverY = p.Y;
+            ShowReading(SampleAt(p.X));
+        };
+        _host.MouseLeave += (_, _) =>
+        {
+            _hoverX = _hoverY = double.NaN;
+            ShowReading(_pin);      // back to the fixture's pinned sample, or closed
+        };
 
         _lines = new Line[Marks.Length];
         _labels = new TextBlock[Marks.Length];
@@ -229,6 +279,17 @@ internal sealed class LiveChart
         }).ToArray();
         foreach (Path p in _layers) _canvas.Children.Add(p);
         foreach (Path p in _over) _canvas.Children.Add(p);
+
+        // One dot per series, parked in the overlay: the crosshair says *which second*, the dots say
+        // where each line was in it, which is what makes a five-line chart readable at a glance.
+        foreach (Ellipse d in _dots) _overlay.Children.Remove(d);
+        _dots = colors.Select(c => new Ellipse
+        {
+            Width = 6, Height = 6,
+            Fill = Freeze(new SolidColorBrush(c)),
+            Visibility = Visibility.Collapsed,
+        }).ToArray();
+        foreach (Ellipse d in _dots) _overlay.Children.Insert(0, d);   // under the card, never over it
     }
 
     /// <summary>
@@ -309,6 +370,7 @@ internal sealed class LiveChart
             _histSecond = long.MinValue;
             _scale = _ceiling = 0;
             _host.ToolTip = _tipText = null;
+            HideReading();                           // nothing drawn is nothing to read
             LayoutAxis(pw, h, gutter);               // no data, no axis: a scale nothing is drawn against
             _flat = true;
             return;
@@ -371,7 +433,13 @@ internal sealed class LiveChart
         // Rebuilt only when the *text* changes: the peak moves every second, but its compact form
         // ("8k/s") does not, and a tooltip reassigned under the pointer flickers.
         string tip = _tip(ceiling, clipped, peak);
-        if (tip != _tipText) _host.ToolTip = _tipText = tip;
+        if (tip != _tipText || clipped != _clipped)
+        {
+            _tipText = tip;
+            _clipped = clipped;
+            _cardText = null;   // the card may carry this sentence; rebuild it with the new one
+            SyncTip();
+        }
 
         LayoutAxis(pw, h, gutter);
 
@@ -391,6 +459,160 @@ internal sealed class LiveChart
             _slide.BeginAnimation(TranslateTransform.XProperty, null);
             _slide.X = 0;
         }
+
+        // The chart moved under a pointer that did not: the second beneath the crosshair is a different
+        // one now, so the reading is re-evaluated rather than left saying what was true a second ago.
+        ShowReading(double.IsNaN(_hoverX) ? _pin : SampleAt(_hoverX));
+    }
+
+    // ------------------------------------------------------------------ the reading (T104)
+
+    /// <summary>Hold the readout open at a fixed sample — how the deterministic fixture behind the
+    /// published screenshot shows the interaction, since a captured window has no pointer in it.
+    /// −1 turns it off.</summary>
+    public void Pin(int secondsBack)
+    {
+        _pin = secondsBack;
+        if (double.IsNaN(_hoverX)) ShowReading(secondsBack);
+    }
+
+    // Which sample the pointer is over. The lines are drawn at pw − k·colW *inside the sliding layer*,
+    // so the slide's current offset belongs in the mapping — without it the crosshair would name the
+    // second beside the one it is standing on for most of every second.
+    private int SampleAt(double x)
+    {
+        if (_hist is null || _flat) return -1;
+        double w = _host.ActualWidth;
+        double pw = w - (w >= AxisMinWidth ? Gutter : 0);
+        if (pw <= 0 || x < 0 || x > pw) return -1;   // the gutter is axis, not data
+        double colW = pw / Seconds;
+        int n = Math.Min(Seconds, _hist[0].Length);
+        return Math.Clamp((int)Math.Round((pw + _slide.X - x) / colW), 0, n - 1);
+    }
+
+    // Crosshair at that second, a dot per series where its line is, and the card saying what it all
+    // means. Everything is read from `_hist` — what was *drawn* — so the reading and the line can never
+    // disagree, which is the same rule T119 settled for the line itself.
+    private void ShowReading(int k)
+    {
+        double w = _host.ActualWidth, h = _host.ActualHeight;
+        double pw = w - (w >= AxisMinWidth ? Gutter : 0);
+        if (k < 0 || _flat || _hist is null || _ceiling <= 0 || Readout is null || pw <= 0 || h <= 0)
+        {
+            HideReading();
+            return;
+        }
+
+        int len = _hist[0].Length;
+        if (k >= len) { HideReading(); return; }
+        var vals = new double[_hist.Length];
+        for (int i = 0; i < _hist.Length; i++) vals[i] = _hist[i][len - 1 - k];
+
+        string? text = Readout(k, vals);
+        if (string.IsNullOrEmpty(text)) { HideReading(); return; }
+
+        double colW = pw / Seconds;
+        double x = Math.Clamp(pw - k * colW + _slide.X, 0, pw);
+
+        _cross.X1 = _cross.X2 = Math.Round(x) + 0.5;
+        _cross.Y1 = 0;
+        _cross.Y2 = h;
+        _cross.Visibility = Visibility.Visible;
+
+        for (int i = 0; i < _dots.Length; i++)
+        {
+            bool on = i < vals.Length && vals[i] > 0;
+            _dots[i].Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+            if (!on) continue;
+            // Min against the ceiling for the same reason the line is clamped there: a clipped sample is
+            // drawn along the top, and its dot has to sit on the line, not above the plot.
+            Canvas.SetLeft(_dots[i], x - 3);
+            Canvas.SetTop(_dots[i], h - Math.Min(vals[i], _ceiling) / _ceiling * h - 3);
+        }
+
+        if (text != _cardText) { BuildCard(text); _cardText = text; }
+
+        _card.MaxWidth = Math.Max(80, pw - 8);
+        _card.Measure(new Size(Math.Max(1, pw), Math.Max(1, h)));
+        Size sz = _card.DesiredSize;
+        // A card taller than the plot is clipped by it, which loses whichever line falls off the
+        // bottom. The scale footer is the one part that can go: it qualifies the axis, and the axis is
+        // still labelled in the gutter — the readings themselves may never be the thing that is cut.
+        if (sz.Height > h - 8 && DropFooter())
+        {
+            _card.Measure(new Size(Math.Max(1, pw), Math.Max(1, h)));
+            sz = _card.DesiredSize;
+        }
+        // Beside the crosshair, flipped when it would run off the right edge, and on the side of the
+        // plot the pointer is *not* on — a readout that covers the line it is explaining is worse than
+        // no readout.
+        double left = x + 12;
+        if (left + sz.Width > pw - 4) left = x - 12 - sz.Width;
+        double top = !double.IsNaN(_hoverY) && _hoverY < h / 2 ? Math.Max(4, h - sz.Height - 4) : 4;
+        Canvas.SetLeft(_card, Math.Clamp(left, 4, Math.Max(4, pw - sz.Width - 4)));
+        Canvas.SetTop(_card, top);
+        _card.Visibility = Visibility.Visible;
+        SyncTip();
+    }
+
+    // One explanation at a time. While the card is open it carries the scale sentence itself, so the
+    // tooltip is withdrawn — a popup fading in over a readout that is already answering is noise.
+    private void SyncTip()
+        => _host.ToolTip = _card.Visibility == Visibility.Visible ? null : _tipText;
+
+    // The card's text: the first line is the second being read, the rest one line per series. The
+    // footer appears **only while something is actually clipped** — then it is T112's disclosure, which
+    // has to stay reachable while the tooltip is withdrawn; the rest of the time it would only restate
+    // the axis the gutter already labels, at the cost of covering the chart it explains.
+    private void BuildCard(string text)
+    {
+        _cardLines.Children.Clear();
+        string[] rows = text.Split('\n');
+        for (int i = 0; i < rows.Length; i++)
+        {
+            var tb = new TextBlock
+            {
+                Text = rows[i],
+                FontSize = 11,
+                Margin = new Thickness(0, i == 0 ? 0 : 2, 0, 0),
+                FontWeight = i == 0 ? FontWeights.SemiBold : FontWeights.Normal,
+            };
+            tb.SetResourceReference(TextBlock.ForegroundProperty,
+                i == 0 ? "TextFillColorPrimaryBrush" : "TextFillColorSecondaryBrush");
+            _cardLines.Children.Add(tb);
+        }
+
+        if (_clipped <= 0 || _tipText is not { Length: > 0 } scale) return;
+        var foot = new TextBlock
+        {
+            Text = scale,
+            FontSize = 10,
+            MaxWidth = 260,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 6, 0, 0),
+            Tag = FooterTag,
+        };
+        foot.SetResourceReference(TextBlock.ForegroundProperty, "TextFillColorTertiaryBrush");
+        _cardLines.Children.Add(foot);
+    }
+
+    private const string FooterTag = "scale";
+
+    // True if there was a footer to drop. Only the disclosure is ever removed to make room.
+    private bool DropFooter()
+    {
+        if (_cardLines.Children.Count == 0 ||
+            _cardLines.Children[^1] is not TextBlock { Tag: FooterTag }) return false;
+        _cardLines.Children.RemoveAt(_cardLines.Children.Count - 1);
+        return true;
+    }
+
+    private void HideReading()
+    {
+        _cross.Visibility = _card.Visibility = Visibility.Collapsed;
+        foreach (Ellipse d in _dots) d.Visibility = Visibility.Collapsed;
+        _cardText = null;
+        SyncTip();
     }
 
     // The axis: one faint rule per mark across the plot, its value in the gutter. It lives outside the
