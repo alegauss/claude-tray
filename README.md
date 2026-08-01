@@ -101,12 +101,17 @@ shape: flat through the stretches you're normally idle — shaded faintly and la
 idle* — and sloped through your working hours.
 
 It's a habit, not a schedule, so the wording hedges ("around 13:45"). It needs about three weeks
-of local transcripts; below that the chart falls back to the straight average-pace line rather
-than drawing a confident-looking staircase on thin data. And note that usage from another
-machine or from claude.ai counts against the same limit while leaving no transcript here, so an
-hour that looks idle locally may not have been. The even-pace line, the verdict chip and the tray
-icon are deliberately **not** activity-aware — quota drains in wall-clock time whether or not
-anyone is typing.
+of history; below that the chart falls back to the straight average-pace line rather than drawing
+a confident-looking staircase on thin data.
+
+The shape starts out read from your local transcripts, which have one blind spot: usage from
+another machine or from claude.ai counts against the same limit while leaving no transcript here,
+so an hour that looks idle locally may not have been. As the app runs it builds a second version
+of the same week from **your logged rate-limit readings**, which do count that usage wherever it
+came from — and takes over hour by hour as it earns the coverage, so the blind spot closes
+gradually instead of all at once. The method note (ⓘ) says which source the shape currently comes
+from. The even-pace line, the verdict chip and the tray icon are deliberately **not**
+activity-aware — quota drains in wall-clock time whether or not anyone is typing.
 
 ### Live throughput — what is burning right now
 

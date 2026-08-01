@@ -51,10 +51,21 @@ internal static class ActivityCli
                               $"({prof.BytesRead / 1048576.0:0.#} MB), {prof.ElapsedMs:0}ms" +
                               (root == null ? "" : " (fixture root — sweep cache bypassed)"));
         Console.WriteLine(prof.Confident
-            ? $"confidence: usable — {prof.CoverageWeeks:0.0} weeks ≥ {ActivityProfile.ConfidentWeeks:0.0}, " +
+            ? $"confidence: usable — {prof.EffectiveWeeks:0.0} weeks ≥ {ActivityProfile.ConfidentWeeks:0.0}, " +
               "the projection may follow this shape"
-            : $"confidence: thin — {prof.CoverageWeeks:0.0} weeks < {ActivityProfile.ConfidentWeeks:0.0}, " +
+            : $"confidence: thin — {prof.EffectiveWeeks:0.0} weeks < {ActivityProfile.ConfidentWeeks:0.0}, " +
               "the projection stays a straight line");
+
+        // How much of the grid is measured rather than inferred (T93). The transcript grid cannot see
+        // usage from another machine or claude.ai; the folded aggregate can, so it takes over bucket by
+        // bucket as it earns the coverage. Saying which source the shape came from is the point.
+        if (prof.MeasuredDays > 0)
+            Console.WriteLine($"measured blend: {prof.MeasuredShare * 100:0}% of the grid from " +
+                              $"{prof.MeasuredDays} folded days ({prof.MeasuredWeeks:0.0} weeks), " +
+                              $"full trust at {ActivityProfile.MeasuredTrustWeeks:0.0} effective weeks per hour");
+        else
+            Console.WriteLine("measured blend: none yet — the grid is entirely from local transcripts, " +
+                              "which cannot see usage from another machine or claude.ai");
         Console.WriteLine();
 
         if (prof.Samples == 0) { Console.WriteLine("no activity in the last 12 weeks — nothing to shape"); return; }
@@ -85,7 +96,8 @@ internal static class ActivityCli
     private static void PrintMeasuredActivity(ActivityProfile prof, DateTime nowLocal, bool numbers)
     {
         Console.WriteLine();
-        var (measured, weeks, days) = HourlyUsage.MeasuredProfile(ProfileStore.Monitored, nowLocal);
+        (double[] measured, double[] observed, double weeks, int days) =
+            HourlyUsage.MeasuredProfile(ProfileStore.Monitored, nowLocal);
         Console.WriteLine($"Measured profile — {days} folded days, {weeks:0.0} weeks");
         Console.WriteLine("store: " + HourlyUsage.FilePath(ProfileStore.Monitored));
 
@@ -101,14 +113,18 @@ internal static class ActivityCli
         Console.WriteLine();
         PrintGrid(measured, numbers);
 
+        // Against the *inferred* grid, not the effective one: since T93 blends the two, comparing the
+        // measurement with the grid it is already part of would be marking its own homework.
+        double[] inferred = prof.Inferred ?? prof.P;
+
         // Agreement over buckets the measurement can actually speak to: an hour never covered by a
         // reading is unknown, and scoring it as a disagreement would just penalise having been offline.
         double sum = 0, worst = 0;
         int worstBucket = 0, counted = 0, wide = 0;
         for (int b = 0; b < ActivityProfile.Buckets; b++)
         {
-            if (measured[b] <= 0 && prof.P[b] <= 0) continue;
-            double diff = Math.Abs(measured[b] - prof.P[b]);
+            if (measured[b] <= 0 && inferred[b] <= 0) continue;
+            double diff = Math.Abs(measured[b] - inferred[b]);
             sum += diff; counted++;
             if (diff > 0.5) wide++;
             if (diff > worst) { worst = diff; worstBucket = b; }
@@ -120,7 +136,10 @@ internal static class ActivityCli
                               "grid is still all-or-nothing, so a wide |Δ| here is sample size, not conflict)");
         if (counted > 0)
             Console.WriteLine($"widest gap: {(DayOfWeek)(worstBucket / 24)} {worstBucket % 24:00}:00 — " +
-                              $"inferred {prof.P[worstBucket] * 100:0}%, measured {measured[worstBucket] * 100:0}%");
+                              $"inferred {inferred[worstBucket] * 100:0}%, measured {measured[worstBucket] * 100:0}%, " +
+                              $"blended {prof.P[worstBucket] * 100:0}% " +
+                              $"(measured weight {(prof.MeasuredWeight?[worstBucket] ?? 0) * 100:0}%, " +
+                              $"{observed[worstBucket]:0.0} effective weeks observed)");
     }
 
     // One 7×24 heatmap: Monday-first, one character per hour, with each day's expected active hours.

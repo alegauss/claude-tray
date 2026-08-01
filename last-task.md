@@ -184,3 +184,4 @@ here. This file is a terse index, not a memory.
 - **T108 SHIPPED** (Block K — the `--stats live` fixture moves to `ThroughputFixture`) — 2026-08-01.
 - **T91 SHIPPED** (Block J — the tray's 6h timer keeps the activity grid warm) — 2026-08-01.
 - **T92 SHIPPED** (Block J — per-file sweep cache: the rebuild costs only what changed) — 2026-08-01.
+- **T93 SHIPPED** (Block J — the grid blends per bucket toward the measured week) — 2026-08-01.

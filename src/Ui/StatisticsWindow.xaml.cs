@@ -357,12 +357,23 @@ internal partial class StatisticsWindow : Window
         // The weekly projection changes meaning when it follows the activity shape, so the method note
         // has to say so — including the part that can't be measured locally: usage from another
         // machine or from claude.ai spends the same quota while leaving no transcript here.
+        //
+        // That disclaimer stops being true to the degree the measured grid takes over (T93), so past
+        // half the grid the note says where the shape actually came from instead. A stale disclaimer
+        // is its own kind of wrong: it would keep apologising for a blind spot the projection no
+        // longer has.
+        //
         // The live strip has the same blind spot the shaped projection discloses, and it needs saying
         // separately: a rate built from local transcripts cannot see another machine or claude.ai, so
         // an empty strip is "no local turn landed", never proof that nothing is running.
         bool shaped = r.Weekly.Shape is not null;
+        ActivityProfile? activity = r.Activity;
+        bool mostlyMeasured = activity is { MeasuredShare: >= 0.5 };
         MethodNote.Text = (shaped
-            ? L.T("stats.methodNote") + " " + L.T("stats.methodNote.shape", $"{r.Weekly.Shape!.CoverageWeeks:0.#}")
+            ? L.T("stats.methodNote") + " " + (mostlyMeasured
+                ? L.T("stats.methodNote.shapeMeasured", $"{activity!.MeasuredShare * 100:0}",
+                      $"{activity.MeasuredWeeks:0.#}")
+                : L.T("stats.methodNote.shape", $"{r.Weekly.Shape!.CoverageWeeks:0.#}"))
             : L.T("stats.methodNote")) + " " + L.T("stats.methodNote.live");
         LegendIdleW.Visibility = shaped && r.Weekly.Shape!.IdleBands.Count > 0
             ? Visibility.Visible : Visibility.Collapsed;

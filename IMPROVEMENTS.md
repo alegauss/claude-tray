@@ -123,25 +123,6 @@ An activity-aware **tray notification** is explicitly *not* part of this block. 
 the wall-clock verdict and stays that way (T87 settled this); a second, softer notification channel
 would need its own justification.
 
-### §IV.9 Prefer the measured grid (T93)
-
-The transcript grid has a structural blind spot the UI currently has to apologise for: *usage from
-another machine or from claude.ai counts against the same limit but leaves no transcript here.* The
-folded aggregate does not have that blind spot — it is built from the rate-limit utilization itself,
-which counts every request against the limit whoever made it and wherever.
-
-So the measured grid is not merely a second opinion to validate against (its role in T88), it is the
-better source once there is enough of it. The transcript grid keeps two jobs: bootstrapping the first
-weeks, when the store has nothing, and covering hours the app wasn't running to observe.
-
-Blend rather than switch — a hard cutover at three weeks would visibly jump the projection on an
-arbitrary day. Weight per bucket by measured coverage, so hours the store knows well are taken from
-the store and hours it barely saw stay with the transcripts.
-
-When this ships, the method-note sentence about the local-transcript blind spot has to change with it
-— it stops being true to the degree the measured grid dominates, and a stale disclaimer is its own
-kind of wrong.
-
 ### §IV.10 Intensity, not just presence (T94)
 
 `projected = util + rate × Σ p` treats every active hour as costing the same. It does not: a morning

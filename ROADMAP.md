@@ -43,10 +43,11 @@
 > 02:00. This block models **when** the user is actually active and projects along that shape instead.
 > Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §IV.
 >
-> **Shipped: T86–T92.** The profile (`ActivityProfile.cs`, `--activity`), the staircase projection on
+> **Shipped: T86–T93.** The profile (`ActivityProfile.cs`, `--activity`), the staircase projection on
 > the weekly chart, the permanent hourly aggregate behind it (`HourlyUsage.cs`), last week's ghost
-> curve, the "stop now, resume at …" advice, the tray keeping the grid warm, and the incremental
-> sweep behind it. See [CHANGELOG.md](CHANGELOG.md) Block J.
+> curve, the "stop now, resume at …" advice, the tray keeping the grid warm, the incremental sweep
+> behind it, and the per-bucket blend toward the measured week. See
+> [CHANGELOG.md](CHANGELOG.md) Block J.
 >
 > Headless: `--activity`, `--activity --measured`, `--activity --fold`; previews `--stats shape`,
 > `--stats shape ghost`.
@@ -55,7 +56,6 @@
 > The accuracy work is ordered by how much it changes the projection: T93 first (it removes the
 > limitation the UI currently has to disclaim), then T95, then T94.
 
-- 📋 **T93** (deps: T88) **Prefer the measured grid once there are ~3 weeks of it** — `HourlyUsage` sees *all* usage against the limit, including from another machine or claude.ai; the transcript grid structurally cannot, which is the limitation the method note has to disclaim today. Blend toward measured as its coverage grows, keeping the transcript grid to bootstrap the first weeks. → §IV.9
 - 📋 **T94** (deps: T93) **Intensity, not just presence** — every active hour is currently paced at the same rate, so a heavy Monday morning and a light Friday evening spend identically. Add a per-bucket intensity (mean spend per active hour, relative to the average) from the measured store and weight the projection by it. → §IV.10
 - 📋 **T95** (deps: —) **Don't let a holiday teach the model** — a week off currently votes "these hours are idle" like any other week; only the flat prior softens it. Drop weeks whose total activity is a small fraction of the median week from the denominator, and say so in `--activity`. → §IV.11
 - 💭 **T96** (deps: —) **`--selftest` for the pacing *and* live math** — Block J added arithmetic with real edge cases (a flat profile must reproduce the straight line exactly, folding must stay idempotent, advice must never exceed its target, the ghost must stay hidden under its gates) and the repo has no test surface at all. **Block K doubled the surface**: the tail's cursor (a partial line waits for its newline, a shrunk file resets without re-reporting, a primed offset aligns) and the rate's kernel (sustained R reads as R, one burst decays linearly to a true zero at W, the smoothed value never exceeds the weighted one, per-project rates sum to the headline) are all verified only by hand against synthetic roots today. A deterministic self-check over synthetic inputs, in-app, keeps the zero-dependency rule intact. → §IV.12

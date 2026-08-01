@@ -51,6 +51,12 @@ internal sealed class ActivityProfile
     /// <summary>Below this much coverage the shape is a guess; T87 falls back to the straight line.</summary>
     public const double ConfidentWeeks = 3.0;
 
+    /// <summary>Effective weeks of *measured* evidence at which a bucket is taken entirely from the
+    /// folded aggregate rather than from transcripts. With <see cref="WeekDecay"/> this is reached
+    /// after roughly four weeks of continuous coverage, and the ramp to it is linear — a hard cutover
+    /// would visibly jump the projection on an arbitrary day.</summary>
+    public const double MeasuredTrustWeeks = 3.0;
+
     /// <summary>The cache is recomputed about once a day — a habit does not move faster than that.</summary>
     public const double RefreshHours = 20;
 
@@ -86,8 +92,81 @@ internal sealed class ActivityProfile
     /// <summary>Bytes read by this sweep, not bytes on disk.</summary>
     public long BytesRead;
 
+    // ---------------------------------------------------------------- the measured blend (T93)
+
+    /// <summary>The transcript-only grid, kept as it was before the measured blend so the two sources
+    /// can still be compared (`--activity --measured`) rather than one silently becoming the other.</summary>
+    public double[]? Inferred;
+
+    /// <summary>The measured grid this was blended with, when there was one.</summary>
+    public double[]? Measured;
+
+    /// <summary>Per bucket, how much of <see cref="P"/> came from the measured grid (0–1).</summary>
+    public double[]? MeasuredWeight;
+
+    /// <summary>Span of folded coverage behind <see cref="Measured"/>, in weeks.</summary>
+    public double MeasuredWeeks;
+
+    /// <summary>Folded days behind <see cref="Measured"/>.</summary>
+    public int MeasuredDays;
+
+    /// <summary>Mean of <see cref="MeasuredWeight"/> — the share of the whole grid now taken from what
+    /// the rate limit recorded. The UI's method note is worded off this: the local-transcript blind
+    /// spot stops being true to the degree this dominates, and a stale disclaimer is its own kind of
+    /// wrong.</summary>
+    public double MeasuredShare;
+
+    /// <summary>
+    /// Fold the measured grid into this one, bucket by bucket.
+    ///
+    /// <para>The transcript grid has a structural blind spot: usage from another machine or from
+    /// claude.ai counts against the same limit and leaves no transcript here. The folded aggregate
+    /// does not — it is built from the rate-limit utilization itself, which counts every request
+    /// whoever made it and wherever. So once there is enough of it, the measured grid is not a second
+    /// opinion to validate against (its role in T88) but the better source.</para>
+    ///
+    /// <para>Blended per bucket rather than switched wholesale, weighted by how many effective weeks
+    /// the store has actually observed <em>that hour</em>. Hours it knows well come from the store;
+    /// hours it barely saw — and every hour, on a machine that has just started folding — stay with
+    /// the transcripts. That keeps the transcript grid's two remaining jobs: bootstrapping the first
+    /// weeks, and covering hours the app was not running to observe.</para>
+    /// </summary>
+    public void BlendMeasured(string profileKey, DateTime nowLocal)
+    {
+        try
+        {
+            HourlyUsage.MeasuredWeek m = HourlyUsage.MeasuredProfile(profileKey, nowLocal);
+            MeasuredWeeks = m.Weeks;
+            MeasuredDays = m.Days;
+            if (m.Days == 0) return;
+
+            var inferred = (double[])P.Clone();
+            var weight = new double[Buckets];
+            double share = 0;
+
+            for (int b = 0; b < Buckets; b++)
+            {
+                double w = Math.Clamp(m.Observed[b] / MeasuredTrustWeeks, 0, 1);
+                weight[b] = w;
+                share += w;
+                P[b] = w * m.P[b] + (1 - w) * inferred[b];
+            }
+
+            Inferred = inferred;
+            Measured = m.P;
+            MeasuredWeight = weight;
+            MeasuredShare = share / Buckets;
+        }
+        catch { /* the store is an improvement on the grid, never a precondition for having one */ }
+    }
+
+    /// <summary>Weeks of evidence behind the shape, from whichever source has more of it. A machine
+    /// with a thin transcript history but weeks of folded readings knows its own week perfectly
+    /// well.</summary>
+    public double EffectiveWeeks => Math.Max(CoverageWeeks, MeasuredWeeks);
+
     /// <summary>Enough weeks behind the shape to project along it rather than along a slope.</summary>
-    public bool Confident => CoverageWeeks >= ConfidentWeeks;
+    public bool Confident => EffectiveWeeks >= ConfidentWeeks;
 
     /// <summary>Overall share of hours that are active — the flat prior the grid is blended toward.</summary>
     public double Mean
@@ -171,6 +250,7 @@ internal sealed class ActivityProfile
                     finally { Interlocked.Exchange(ref _refreshing, 0); }
                 });
             }
+            cached.BlendMeasured(p.Key, nowUtc.ToLocalTime());
             return cached;
         }
 
@@ -181,7 +261,12 @@ internal sealed class ActivityProfile
                             : refresh ? SweepCacheMode.Rebuild
                             : SweepCacheMode.Use;
         ActivityProfile fresh = Compute(nowUtc, claudeRoot is { } root ? ProjectsDir(root) : p.ProjectsDir, mode);
+
+        // Cache first, blend second, and never the other way round: what is cached is the transcript
+        // grid, which only changes when the transcripts do. The measured store changes every day the
+        // tray runs, so the blend is applied on every read instead of being frozen into the cache.
         if (real && fresh.Error == null) WriteCache(p.Key, fresh);
+        if (real) fresh.BlendMeasured(p.Key, nowUtc.ToLocalTime());
         return fresh;
     }
 

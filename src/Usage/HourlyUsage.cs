@@ -120,15 +120,27 @@ internal static class HourlyUsage
     /// least <see cref="ActiveSpendThreshold"/>; uncovered hours are left out of the denominator
     /// entirely, so days the app was closed dilute nothing.
     /// </summary>
-    /// <returns>The grid, the number of weeks it draws on, and how many folded days were used.</returns>
-    public static (double[] P, double Weeks, int Days) MeasuredProfile(string profileKey, DateTime nowLocal)
+    /// <summary>
+    /// The measured week, plus how much it may be trusted <em>bucket by bucket</em>.
+    /// </summary>
+    /// <param name="P">p(active) per bucket, from what the rate limit recorded.</param>
+    /// <param name="Observed">Decayed weeks of observation per bucket. Each week contributes exactly
+    /// one occurrence of each bucket, so this reads directly as "effective weeks of evidence for this
+    /// hour" — which is what T93 blends by, rather than by a single grid-wide number.</param>
+    /// <param name="Weeks">Span of folded coverage in weeks.</param>
+    /// <param name="Days">Folded days that contributed.</param>
+    internal readonly record struct MeasuredWeek(double[] P, double[] Observed, double Weeks, int Days);
+
+    /// <returns>The grid, its per-bucket evidence, the number of weeks it draws on, and how many
+    /// folded days were used.</returns>
+    public static MeasuredWeek MeasuredProfile(string profileKey, DateTime nowLocal)
     {
         var p = new double[ActivityProfile.Buckets];
         var active = new double[ActivityProfile.Buckets];
         var observed = new double[ActivityProfile.Buckets];
 
         List<HourlyDay> days = Load(profileKey);
-        if (days.Count == 0) return (p, 0, 0);
+        if (days.Count == 0) return new MeasuredWeek(p, observed, 0, 0);
 
         int used = 0;
         double oldest = 0;
@@ -157,7 +169,7 @@ internal static class HourlyUsage
         for (int b = 0; b < ActivityProfile.Buckets; b++)
             p[b] = observed[b] > 0 ? active[b] / observed[b] : 0;
 
-        return (p, Math.Min(oldest / 7.0, ActivityProfile.MaxWeeks), used);
+        return new MeasuredWeek(p, observed, Math.Min(oldest / 7.0, ActivityProfile.MaxWeeks), used);
     }
 
     /// <summary>Last week's burn-up, ready to draw behind this week's.</summary>
