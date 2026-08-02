@@ -345,6 +345,7 @@
   "stats.methodNote.shapeMeasured": "The weekly projection follows the hours you're usually active, so it stays flat overnight instead of spending quota evenly around the clock — it's a habit, not a schedule. Most of that shape ({0}%) now comes from what the rate limit itself recorded, which counts usage from any machine and from claude.ai; the hours it hasn't observed yet still come from local transcripts. The shape rests on {1} weeks of evidence{2}.",
   "stats.methodNote.away.one": ", 1 week away excluded",
   "stats.methodNote.away.many": ", {0} weeks away excluded",
+  "stats.methodNote.thin": "The weekly line is that average pace held steady rather than the hours you're usually active: shaping it takes about {1} weeks of local history and there are {0} so far, so it sharpens on its own while the tray keeps running — there is nothing to set.",
   "stats.methodNote.live": "The two charts on the Throughput tab are the last 3 minutes of local transcript activity — the same rolling rate the number above them reports, sampled once a second, split by project and by token type. It decays through a pause because the work really is ageing out of the 60-second window, not because it was smoothed away. It is token throughput, not quota, and an empty chart only means no turn landed on this machine.",
   "stats.refresh": "Refresh",
   "stats.close": "Close",

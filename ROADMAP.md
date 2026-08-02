@@ -19,17 +19,7 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block Z — What the app knows and doesn't say
-
-> Block V ended by making the evidence behind the projection *correct* — a holiday no longer votes,
-> in either grid. Reading the four commits back against the UI turned up the other half of the same
-> idea: the app now knows how much evidence it has and never said so. The number on screen (T159) and
-> the guard behind it that could not fire on an ordinary machine (T160) have both shipped; what remains
-> is **coverage** over the two things most likely to produce the next such gap — both behind shipped
-> defects already, neither with a single assertion — and one idea deliberately left as one.
-> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XIII.
-
-- 💭 **T163** (deps: —) **A straight-line projection never says why it isn't a shaped one** — when the profile is thin the app silently falls back to the average-pace line and the note reverts to generic text, so the one thing the user might act on (*keep the tray running another week and this gets better*) is the one thing never said. Needs design: what to say, where, and how not to turn a method note into a nag. → §XIII.5
+_No active backlog._ Block Z closed with T163 — see [CHANGELOG.md](CHANGELOG.md).
 
 ## Non-goals (do NOT add as tasks)
 

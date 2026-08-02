@@ -100,28 +100,5 @@ deliberately — this file is published with the repo. The right-hand column is 
 
 ---
 
-## §XIII — What the app knows and doesn't say (Block Z)
-
-Block V made the evidence behind the weekly projection correct: a week away no longer votes, in the
-transcript grid (T95) or in the measured one (T152), and `EffectiveWeeks` subtracts both. Reading those
-four commits back against the running app turned up the other half of the same idea — the app knew
-exactly how much evidence it had and never said so (T159), and the guard producing the measured half of
-it could not fire on the machine it was written on (T160). Both have shipped. What is left here is the
-coverage that keeps the next such gap from being written at all — `ProjectSlug` is asserted end to end as
-of T161, and T162 turned the hand-maintained carry-over list into a declaration on the fields it named.
-What is left is one idea whose obvious implementation is the wrong one.
-
-### §XIII.5 A straight line that doesn't say it is one (T163 — idea)
-
-When the profile is thin the projection quietly stops following the activity shape and goes back to the
-average-pace line, and the method note goes back to its generic text. Nothing tells the user that the
-better projection exists, that it was declined, or that it is a matter of time rather than of
-configuration — which is the one fact here somebody could act on, by leaving the tray running another
-week.
-
-It is an idea and not a design because the obvious implementation is the wrong one. "Not enough data
-yet (2.1 of 3 weeks)" in the method note is accurate and reads as an apology on every open, and this app
-has already ruled that a second nagging channel needs its own justification rather than inheriting one
-(the T87 non-goal). Worth exploring: whether the honest place is the note at all, whether it should
-appear only while the figure is actually climbing, and whether "the projection is a straight line
-because …" is better said where the line is drawn than in a paragraph under it.
+_No active design sections: Block Z closed with T163, and §XIII went with it. Section numbers are never
+reused — an old commit's `→ §XIII.x` must keep pointing where it pointed._

@@ -218,6 +218,29 @@
 
 ## Block Z — What the app knows and doesn't say
 
+- **T163** — **A straight-line projection says which line it is, and that it is a matter of weeks.** When
+  the profile is thin `ActivityShape.Build` returns null, the weekly projection quietly goes back to the
+  average-pace line and the method note went back to its generic text — so the shaped paragraph explained
+  itself while the fallback said nothing, and the one reading somebody could act on (*this sharpens by
+  itself; it is weeks, not a setting*) was the one never made. The note now carries a paragraph for that
+  case too: the weekly line is the average pace held steady rather than the hours you're usually active,
+  shaping it takes ~3 weeks of local history, there are N so far, and it improves on its own while the tray
+  keeps running — nothing to configure. Three decisions, all of them the reason this stayed an idea through
+  Block V: **where** — the method note behind its deliberate ⓘ click (T113), not a caption on the chart and
+  not a notification; a permanent caveat beside the line is the second nagging channel the T87 non-goal
+  refused, and this is the same popup that already explains every other number in the window. **What** —
+  phrased as *what the projection is*, not as what is missing; "not enough data yet (2.1 of 3 weeks)" is
+  accurate and reads as an apology, which is what the design rejected. **When** — only when the shape was
+  declined for **thinness** (`activity is { Confident: false }` and the window exists), because `Build` also
+  returns null at the limit, with nothing spent yet, or with too little activity to calibrate, and "keep
+  the tray running another week" would be a lie about every one of those. The figure is T159's
+  `EffectiveWeeks`, so the number in this paragraph is the one the gate actually acted on; and the promise
+  that it climbs by itself is honest because of T93 — the measured half of the evidence grows from the rate
+  limit's own readings, so the tray running is enough, with or without local work. Five languages, one new
+  key. `--stats thin` (documented in [AGENTS.md](AGENTS.md)) reports as if the history were still thin,
+  because on a machine whose profile is already confident that paragraph can never be seen again — verified
+  by capture in English and pt-BR, plus the confident path re-captured to confirm it is untouched.
+
 - **T162** — **The Settings carry-over list becomes a declaration on the fields it names.** T141 made the
   *copy* total by construction (`Clone()` is a JSON round-trip), and the other end of that round trip was
   still hand-written: `ApplySettings` took the edited model whole and then re-carried four fields the page

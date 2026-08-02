@@ -160,6 +160,14 @@
   its obvious implementation turns a method note into an apology, which the T87 non-goal already
   rejected once. A new block rather than V tasks because V is closed and pruned and because the theme
   is what the app **says**, not what it computes.
+  **Closed with T163** (2026-08-02), so the block is out of `ROADMAP.md` — which again has no active
+  backlog — and §XIII is out of `IMPROVEMENTS.md`; see [CHANGELOG.md](CHANGELOG.md) Block Z. It ran
+  T159 → T160 → T161 → T162 → T163, one task per commit. T163 did **not** stay an idea: the design it was
+  waiting for is in its CHANGELOG line (the note behind the ⓘ, phrased as what the projection *is*, and
+  only when the shape was declined for thinness). Two rules it leaves behind, both in
+  [AGENTS.md](AGENTS.md): a `Skip` must not be able to hide the property it guards (T161), and a setting
+  the Settings page does not edit must carry `[TrayOwned]` (T162) — the one thing in that round trip no
+  assertion can infer.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 
@@ -268,3 +276,4 @@ here. This file is a terse index, not a memory.
 - **T160 SHIPPED** (Block Z — the measured away-week bar is half the median observed week, with a floor, so it can fire) — 2026-08-02.
 - **T161 SHIPPED** (Block Z — `ProjectSlug` asserted end to end; 21 checks, 108 total, no production change) — 2026-08-02.
 - **T162 SHIPPED** (Block Z — `[TrayOwned]` replaces the hand-maintained carry-over list; the round trip is asserted) — 2026-08-02.
+- **T163 SHIPPED** (Block Z — the straight-line projection says which line it is, and that it is weeks and not a setting) — 2026-08-02.

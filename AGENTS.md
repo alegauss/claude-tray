@@ -277,6 +277,9 @@ dotnet run -- --stats shape ghost     # ...plus a synthetic previous-week ghost 
 dotnet run -- --stats method          # ...with the "how these numbers are measured" popup already open
                                       #   (it's a separate top-level window, so --capture-stats can't
                                       #   see it — use scripts\Capture-Window.ps1 for this one)
+dotnet run -- --stats thin            # ...the same popup, reporting as if the local history were still
+                                      #   too thin to shape the projection (T163) — that paragraph is
+                                      #   unreachable on a machine whose profile is already confident
 dotnet run -- --capture-stats docs\_preview\shape shape   # ...all three tabs to PNG, off-screen
 dotnet run -- --capture-stats out shape profile=1     # ...rendered as another profile (T128)
 

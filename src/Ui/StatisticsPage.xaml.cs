@@ -315,6 +315,11 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         }
     }
 
+    /// <summary>Preview seam: report as if the local history were too thin to shape the projection, so the
+    /// straight-line paragraph (T163) can be read in every language on a machine whose profile is already
+    /// confident. Drops the shape only — the numbers stay this machine's. See <c>--stats thin</c>.</summary>
+    internal bool PreviewDemoThin { get; init; }
+
     /// <summary>Preview seam: draw a synthetic previous-week ghost when the real one isn't there yet.
     /// A real ghost needs two weeks of folded history (see <see cref="HourlyUsage"/>), so without this
     /// the line could not be screenshotted until the machine had been running that long.</summary>
@@ -380,9 +385,24 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         // dropped as time away — because that is the number the confidence gate acted on (T159). Where a
         // week was dropped the note says so, and where none was it says nothing: a parenthetical that
         // always reads "(0 excluded)" trains people to stop reading the note.
-        bool shaped = r.Weekly.Shape is not null;
+        //
+        // The straight-line case says which line it is and why (T163). The shaped paragraph explains
+        // itself and the fallback said nothing at all, so the one reading a user could act on — this
+        // sharpens by itself, it is weeks and not a setting — was the one never made. It is stated *here*,
+        // in a note behind a deliberate click, and not on the chart or in a notification: a permanent
+        // caveat beside the line is the second nagging channel the T87 non-goal already refused. Only when
+        // the shape was declined for **thinness** — `Build` also returns null at the limit or with nothing
+        // spent, and "keep the tray running another week" would be a lie about either.
+        bool shaped = r.Weekly.Shape is not null && !PreviewDemoThin;
         ActivityProfile? activity = r.Activity;
         bool mostlyMeasured = activity is { MeasuredShare: >= 0.5 };
+        bool thin = !shaped && r.Weekly.HasWindow &&
+                    (PreviewDemoThin || activity is { Confident: false });
+        // Under the preview the machine's own figure is past the bar, which would print "4.7 of 3" — a
+        // sentence the string is never shown with. Show a figure short of the bar instead.
+        double weeksSoFar = PreviewDemoThin
+            ? ActivityProfile.ConfidentWeeks - 0.9
+            : activity?.EffectiveWeeks ?? 0;
         MethodNote.Text = (shaped
             ? L.T("stats.methodNote") + " " + (mostlyMeasured
                 ? L.T("stats.methodNote.shapeMeasured", $"{activity!.MeasuredShare * 100:0}",
@@ -390,7 +410,10 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
                       WeeksAway(activity.MeasuredExcludedWeeks))
                 : L.T("stats.methodNote.shape", $"{r.Weekly.Shape!.EffectiveWeeks:0.#}",
                       WeeksAway(r.Weekly.Shape!.ExcludedWeeks)))
-            : L.T("stats.methodNote")) + " " + L.T("stats.methodNote.live");
+            : thin
+                ? L.T("stats.methodNote") + " " + L.T("stats.methodNote.thin",
+                      $"{weeksSoFar:0.#}", $"{ActivityProfile.ConfidentWeeks:0.#}")
+                : L.T("stats.methodNote")) + " " + L.T("stats.methodNote.live");
         LegendIdleW.Visibility = shaped && r.Weekly.Shape!.IdleBands.Count > 0
             ? Visibility.Visible : Visibility.Collapsed;
         LegendGhostW.Visibility = r.Weekly.Ghost is not null ? Visibility.Visible : Visibility.Collapsed;

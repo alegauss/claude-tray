@@ -387,6 +387,18 @@ internal static class Program
                     PreviewMethodOpen = true,
                 }));
             }
+            // "--stats thin" is the same popup, reporting as if the local history were still too thin to
+            // shape the projection (T163). Once a machine's profile is confident that paragraph can never
+            // be seen again on it, which is exactly the paragraph nobody had read.
+            else if (args.Length >= 2 && args[1].Equals("thin", StringComparison.OrdinalIgnoreCase))
+            {
+                previewApp.Run(Host(new StatisticsPage(sample, remaining)
+                {
+                    PreviewDemoLive = true,
+                    PreviewMethodOpen = true,
+                    PreviewDemoThin = true,
+                }));
+            }
             else if (args.Length >= 2 && args[1].Equals("idle", StringComparison.OrdinalIgnoreCase))
             {
                 // Preview the "not using Claude" state: the 5h session is idle (0% used → flat chart),

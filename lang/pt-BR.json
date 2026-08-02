@@ -341,6 +341,7 @@
   "stats.methodNote.shapeMeasured": "A projeção semanal segue as horas em que você costuma estar ativo, então fica plana de madrugada em vez de gastar a cota de modo uniforme — é um hábito, não uma agenda. A maior parte dessa forma ({0}%) agora vem do que o próprio limite registrou, que conta o uso em qualquer máquina e no claude.ai; as horas que ele ainda não observou continuam vindo das transcrições locais. A forma se apoia em {1} semanas de evidência{2}.",
   "stats.methodNote.away.one": ", 1 semana de ausência excluída",
   "stats.methodNote.away.many": ", {0} semanas de ausência excluídas",
+  "stats.methodNote.thin": "A linha semanal é esse ritmo médio mantido constante, e não as horas em que você costuma estar ativo: dar forma a ela exige cerca de {1} semanas de histórico local e há {0} até agora, então ela fica mais precisa por conta própria enquanto a bandeja continua rodando — não há nada para configurar.",
   "stats.methodNote.live": "Os dois gráficos da aba Vazão mostram os últimos 3 minutos de atividade nas transcrições locais — a mesma taxa móvel que o número acima deles informa, amostrada a cada segundo, separada por projeto e por tipo de token. Ela cai durante uma pausa porque o trabalho realmente está saindo da janela de 60 segundos, não porque foi suavizado. É vazão de tokens, não cota, e um gráfico vazio significa apenas que nenhum turno chegou nesta máquina.",
   "stats.refresh": "Atualizar",
   "stats.close": "Fechar",

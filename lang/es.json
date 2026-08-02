@@ -341,6 +341,7 @@
   "stats.methodNote.shapeMeasured": "La proyección semanal sigue las horas en las que sueles estar activo, así que se mantiene plana de madrugada en vez de gastar la cuota de forma uniforme — es un hábito, no un horario. La mayor parte de esa forma ({0} %) proviene ahora de lo que el propio límite registró, que cuenta el uso desde cualquier máquina y desde claude.ai; las horas que aún no ha observado siguen viniendo de las transcripciones locales. La forma se apoya en {1} semanas de evidencia{2}.",
   "stats.methodNote.away.one": ", 1 semana de ausencia excluida",
   "stats.methodNote.away.many": ", {0} semanas de ausencia excluidas",
+  "stats.methodNote.thin": "La línea semanal es ese ritmo medio mantenido constante, no las horas en las que sueles estar activo: darle forma requiere unas {1} semanas de historial local y hay {0} hasta ahora, así que se afina por sí sola mientras la bandeja siga funcionando — no hay nada que configurar.",
   "stats.methodNote.live": "Los dos gráficos de la pestaña Rendimiento muestran los últimos 3 minutos de actividad de las transcripciones locales — la misma tasa móvil que indica el número de arriba, muestreada cada segundo, por proyecto y por tipo de token. Baja durante una pausa porque el trabajo realmente está saliendo de la ventana de 60 segundos, no porque se haya suavizado. Es rendimiento de tokens, no cuota, y un gráfico vacío solo significa que ningún turno llegó a esta máquina.",
   "stats.refresh": "Actualizar",
   "stats.close": "Cerrar",
