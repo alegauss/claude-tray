@@ -206,8 +206,8 @@ powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Lang pt-
 
 `src/Cli/SelfTestCli.cs` **is** this repo's test suite — there is no test project, because a
 third-party test framework would break the single-self-contained-`.exe` rule (§I.3). A new invariant
-over the pacing, the stores, the grid, the tail or the live rate is asserted there, on synthetic
-inputs, and nowhere else.
+over the pacing, the stores, the grid, the tail, the live rate or the slug encoding is asserted there,
+on synthetic inputs, and nowhere else.
 
 ```
 dotnet build -c Release
@@ -226,6 +226,11 @@ ClaudeTray.exe --selftest --quick        # skips the sections that wait on real 
   catch priming being removed but are blind to the alignment flag being left set (the fragment is
   rejected by the JSON parse either way), which is the whole reason the append-after-a-primed-read pair
   exists. An assertion that has only ever passed is a comment.
+- **A `Skip` must not be able to hide the property it guards.** T161's probe checks were first gated on
+  "can this machine's temp path be probed at all?", which is itself backtracking — so the build with
+  backtracking deliberately removed reported two green skips instead of a red check. Gate on the
+  *precondition* (here: does every path segment survive the encoding's alphabet), never on a weaker form
+  of the thing being asserted.
 
 ## Build / run / dev helpers
 

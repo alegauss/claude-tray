@@ -266,3 +266,4 @@ here. This file is a terse index, not a memory.
 - **T153 SHIPPED** (Block V — the primed cursor and the zero-fill are asserted; 80 checks, each confirmed to fail first) — 2026-08-02.
 - **T159 SHIPPED** (Block Z — the method note quotes the weeks the grid kept, and says how many it dropped) — 2026-08-02.
 - **T160 SHIPPED** (Block Z — the measured away-week bar is half the median observed week, with a floor, so it can fire) — 2026-08-02.
+- **T161 SHIPPED** (Block Z — `ProjectSlug` asserted end to end; 21 checks, 108 total, no production change) — 2026-08-02.

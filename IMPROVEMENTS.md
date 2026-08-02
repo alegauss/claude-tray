@@ -107,28 +107,9 @@ transcript grid (T95) or in the measured one (T152), and `EffectiveWeeks` subtra
 four commits back against the running app turned up the other half of the same idea — the app knew
 exactly how much evidence it had and never said so (T159), and the guard producing the measured half of
 it could not fire on the machine it was written on (T160). Both have shipped. What is left here is the
-coverage that keeps the next such gap from being written at all: two pieces of code that have already
-produced shipped defects and that `--selftest`, after 87 assertions, does not touch — plus one idea whose
-obvious implementation is the wrong one.
-
-### §XIII.3 The lossiest function in the app has no assertions (T161)
-
-`ProjectSlug` owns an encoding that cannot be inverted: every non-alphanumeric character becomes `-`,
-so `claude-tray` and `claude\tray` produce the same slug. Everything the app displays about a project
-goes through it, it has been the direct cause of two shipped defects (T105 — three call sites had grown
-their own decoders, one encoding a different character set; T154 — three checkouts all labelled
-`2026.3`), and it is *pure*: strings in, strings out, no clock, no profile, no store. `--selftest`
-covers the pacing, the folded store, the transcript grid, the tail's cursor and the rate kernel, and
-not one line of this.
-
-The properties are already written down as prose in the class and simply need stating as assertions:
-`Encode` agrees with what Claude Code writes for a path containing a literal hyphen; `RootFor` recovers
-the root from a `cwd` that has been `cd`-ed several levels deeper, and returns null rather than a guess
-when no ancestor encodes to the slug; `ShortName` is two segments, never one and never the whole path,
-and degrades to the leaf at a drive root; `TryProbe` backtracks (`viglet-model-catalog` resolves even
-when `viglet\model` exists) and returns only directories that exist; `Literal` and `Tail` are the
-deliberately-ambiguous last resorts and must stay reachable only as such. `TryProbe` is the one that
-needs a temp tree; the rest are pure and cost microseconds.
+coverage that keeps the next such gap from being written at all — `ProjectSlug` is asserted end to end as
+of T161, leaving the hand-maintained carry-over list in `ApplySettings`, which has silently reverted a
+field twice — plus one idea whose obvious implementation is the wrong one.
 
 ### §XIII.4 A carry-over list is a field list wearing a different hat (T162)
 

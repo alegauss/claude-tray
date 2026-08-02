@@ -218,6 +218,28 @@
 
 ## Block Z — What the app knows and doesn't say
 
+- **T161** — **`ProjectSlug` gets the assertions its defect record earned it.** It is the one reader *and*
+  writer of a lossy encoding — every non-alphanumeric character becomes `-`, so `claude-tray` and
+  `claude\tray` have the same slug — everything the app displays about a project goes through it, it has
+  been the direct cause of two shipped defects (T105: three call sites had grown their own decoders, one
+  over a different character set; T154: three checkouts all labelled `2026.3`), and it is *pure*: strings
+  in, strings out, no clock, no profile, no store. After 87 assertions `--selftest` covered not one line of
+  it. It now covers all of it — **21 checks, 108 total**, one new section: the encoding (the literal-hyphen
+  case Claude Code writes, the loss itself asserted deliberately, and that it is length-preserving over
+  `[A-Za-z0-9-]`), `RootFor`'s verify-don't-guess walk (recovered from a `cwd` four levels deeper, case
+  folded, trailing separator, bounded at `MaxDepth`, answered without touching the filesystem, and **null
+  rather than a guess** for an unrelated `cwd`), `ShortName`'s two segments (including that two checkouts
+  of `2026.3` name differently — the T154 defect, now a red check), `TryProbe`'s backtracking over a real
+  temp tree where `viglet\model` and `viglet-model-catalog` both exist, and the two deliberately-ambiguous
+  last resorts (`Literal`, `Tail`) pinned *against* the exact answer, so the day one silently becomes the
+  answer a check says so. No production change: `ProjectSlug.cs` is byte-identical. Each claim was
+  confirmed to fail first, against four broken builds — and the first version of the probe's guard was
+  itself a finding: gating those checks on "can this machine's temp path be probed?" *is* backtracking, so
+  removing backtracking produced two green skips instead of a red check. The guard now tests the
+  precondition (every path segment spelled in the encoding's own alphabet, which an 8.3 CI temp path like
+  `RUNNER~1` fails), and the rule is in [AGENTS.md](AGENTS.md): a `Skip` must not be able to hide the
+  property it guards.
+
 - **T160** — **The measured away-week gate opens on a machine the tray doesn't watch all week.** T152
   judged a folded week only once at least half of its 168 hours carried a reading, which resolved the
   real ambiguity (a quiet week is *away* or *the tray was closed*, and only coverage tells them apart)

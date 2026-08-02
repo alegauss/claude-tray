@@ -3,8 +3,9 @@ using System.Text;
 namespace ClaudeTray;
 
 /// <summary>
-/// `--selftest`: a deterministic self-check of the arithmetic behind the weekly projection (Block J)
-/// and the live rate (Block K), over synthetic inputs, exiting non-zero on failure.
+/// `--selftest`: a deterministic self-check of the arithmetic behind the weekly projection (Block J), the
+/// live rate (Block K) and the project-slug encoding both read from (T161), over synthetic inputs, exiting
+/// non-zero on failure.
 ///
 /// <para>Both blocks introduced properties that are cheap to assert and expensive to lose — a flat
 /// profile must reproduce the straight average-pace line <em>exactly</em>, folding must be idempotent,
@@ -61,6 +62,9 @@ internal static class SelfTestCli
 
         Section("sweep — the transcript grid and the away-week exclusion (Block J)");
         Temp(Sweep);
+
+        Section("slug — the projects/<slug> encoding (Blocks K and W)");
+        Temp(Slug);
 
         if (quick)
         {
@@ -453,6 +457,132 @@ internal static class SelfTestCli
             ActivityProfile.SweepCacheMode.Off);
         Check($"under {ActivityProfile.MinWeeksToExclude} weeks nothing is ever excluded",
               thin.ExcludedWeeks == 0, $"{thin.ExcludedWeeks} excluded");
+    }
+
+    // ---------------------------------------------------------------- Blocks K/W: the slug encoding
+
+    /// <summary>
+    /// <see cref="ProjectSlug"/>: the one reader and writer of a <b>lossy</b> encoding, behind two shipped
+    /// defects already (T105's three divergent decoders, T154's three legend lines all labelled
+    /// <c>2026.3</c>) and pure everywhere but <see cref="ProjectSlug.TryProbe"/> — strings in, strings out,
+    /// no clock and no profile. Everything it claims is asserted here, including the two claims that are
+    /// about being <em>wrong</em>: the naive readings exist only as last resorts, and the checks say so by
+    /// pinning them against the exact answer.
+    /// </summary>
+    private static void Slug(string root)
+    {
+        // The path Claude Code's own directory name is built from, chosen for the trap: a literal hyphen
+        // in the leaf encodes exactly like the separators around it.
+        const string project = @"d:\Git\acme\claude-tray";
+        const string encoded = "d--Git-acme-claude-tray";
+
+        Check("the encoding is what Claude Code writes for a path with a literal hyphen",
+              ProjectSlug.Encode(project) == encoded, ProjectSlug.Encode(project));
+        Check("a separator and a literal hyphen encode identically",
+              ProjectSlug.Encode(@"d:\Git\acme\claude\tray") == ProjectSlug.Encode(project),
+              "the loss this class exists to contain — a slug alone cannot be split back into a path");
+        Check("the encoding is length-preserving over an alphabet of [A-Za-z0-9-]",
+              ProjectSlug.Encode(@"c:\Users\ação\Área de Trabalho\x.md").Length ==
+                  @"c:\Users\ação\Área de Trabalho\x.md".Length &&
+              ProjectSlug.Encode(@"c:\Users\ação\Área de Trabalho\x.md")
+                  .All(c => char.IsAsciiLetterOrDigit(c) || c == '-'),
+              ProjectSlug.Encode(@"c:\Users\ação\Área de Trabalho\x.md"));
+
+        // RootFor verifies rather than guesses, which is what makes it immune to the recorded cwd being
+        // the working directory *of that turn* — the defect T105 fixed.
+        Check("the root is recovered from a cwd several levels deeper",
+              ProjectSlug.RootFor(encoded, project + @"\src\Ui\pages\deep") == project,
+              ProjectSlug.RootFor(encoded, project + @"\src\Ui\pages\deep") ?? "null");
+        Check("a trailing separator on the cwd changes nothing",
+              ProjectSlug.RootFor(encoded, project + @"\src\") == project);
+        Check("the comparison is case-insensitive, as the filesystem is",
+              ProjectSlug.RootFor(encoded, @"D:\GIT\ACME\CLAUDE-TRAY\src") is { Length: > 0 });
+        Check("an unrelated cwd is null rather than a guess",
+              ProjectSlug.RootFor(encoded, @"e:\somewhere\else") == null,
+              "a transcript from another machine has no answer here, and inventing one is worse than none");
+        Check("the cwd is answered without touching the filesystem",
+              ProjectSlug.RootFor(encoded, project + @"\gone\deleted") == project,
+              "a directory since deleted or unplugged still has a name");
+
+        // The walk is bounded, so a pathological path cannot spin: 30 levels below the root is past it.
+        string tooDeep = project + string.Concat(Enumerable.Repeat(@"\x", 30));
+        Check("the upward walk is bounded", ProjectSlug.RootFor(encoded, tooDeep) == null);
+
+        // T154: the leaf alone is not an identity on a real machine, and a legend that labels three lines
+        // `2026.3` has labelled none of them.
+        Check("a name on screen is the last two segments",
+              ProjectSlug.ShortName(@"d:\Git\viglet\turing\2026.3") == "turing/2026.3",
+              ProjectSlug.ShortName(@"d:\Git\viglet\turing\2026.3"));
+        Check("two checkouts of the same release name differently",
+              ProjectSlug.ShortName(@"d:\Git\viglet\turing\2026.3") !=
+              ProjectSlug.ShortName(@"d:\Git\viglet\shio\2026.3"),
+              "the T154 defect: three lines all labelled 2026.3");
+        Check("a trailing separator changes no name",
+              ProjectSlug.ShortName(@"d:\Git\acme\web\") == "acme/web");
+        Check("a directory at a drive root degrades to its leaf",
+              ProjectSlug.ShortName(@"d:\acme") == "acme", ProjectSlug.ShortName(@"d:\acme"));
+        Check("a drive root names itself rather than nothing",
+              ProjectSlug.ShortName(@"d:\") == "d:", ProjectSlug.ShortName(@"d:\"));
+
+        // The two deliberately-ambiguous last resorts. Both are asserted *against* the exact answer: the
+        // day one of them silently becomes the answer, these are the checks that say so.
+        Check("the naive literal reading is the wrong path, by construction",
+              ProjectSlug.Literal(encoded) == @"d:\Git\acme\claude\tray" &&
+              ProjectSlug.Literal(encoded) != project,
+              ProjectSlug.Literal(encoded));
+        Check("a slug that is not a drive path is not reported as one",
+              ProjectSlug.Literal("-Users-alexa-code").Length == 0,
+              "a shared or virtual project dir is not a missing directory");
+        Check("the tail is the ambiguous display name, not the verified one",
+              ProjectSlug.Tail(encoded) == "tray" &&
+              ProjectSlug.Tail(encoded) != ProjectSlug.ShortName(project),
+              $"{ProjectSlug.Tail(encoded)} vs {ProjectSlug.ShortName(project)}");
+        Check("a verified cwd names the project, an unverified one falls back to the tail",
+              ProjectSlug.NameFor(encoded, project + @"\src") == "acme/claude-tray" &&
+              ProjectSlug.NameFor(encoded, @"e:\elsewhere") == ProjectSlug.Tail(encoded),
+              ProjectSlug.NameFor(encoded, project + @"\src"));
+        Check("an unverifiable slug reports nothing rather than a guess",
+              ProjectSlug.ShortNameFor(encoded, @"e:\elsewhere") == null);
+
+        // TryProbe is the only part that needs a filesystem: `viglet\model` exists *and* so does
+        // `viglet-model-catalog`, which is the case that fails without backtracking.
+        Directory.CreateDirectory(Path.Combine(root, "viglet", "model"));
+        Directory.CreateDirectory(Path.Combine(root, "viglet-model-catalog"));
+        File.WriteAllText(Path.Combine(root, "notadir"), "");
+
+        // The temp path itself has to survive the round trip, or nothing below it can be probed: a
+        // character that is neither alphanumeric nor a separator — an 8.3 short name's `~`, a space, a dot —
+        // encodes to a `-` that matches no directory on the way down. Tested on the path rather than by
+        // probing it, so a broken probe fails these checks instead of skipping them.
+        if (!Probeable(root))
+        {
+            Skip("the probe backtracks past a shorter directory that exists",
+                 $"this machine's temp path has a segment the encoding cannot reconstruct ({root})");
+            Skip("the probe returns only directories that exist", "same reason");
+            return;
+        }
+
+        string catalog = Path.Combine(root, "viglet-model-catalog");
+        Check("the probe backtracks past a shorter directory that exists",
+              ProjectSlug.TryProbe(ProjectSlug.Encode(catalog), out string probed) && probed == catalog,
+              probed);
+        Check("the probe returns only directories that exist",
+              !ProjectSlug.TryProbe(ProjectSlug.Encode(Path.Combine(root, "viglet", "absent")), out _) &&
+              !ProjectSlug.TryProbe(ProjectSlug.Encode(Path.Combine(root, "notadir")), out _),
+              "a missing directory and a file are both 'no answer', never a path");
+    }
+
+    /// <summary>Every segment of this path is spelled in the alphabet the slug encoding preserves, so a
+    /// probe starting at the drive can rebuild it. False on a CI runner whose temp path is an 8.3 short
+    /// name (<c>RUNNER~1</c>) — the directory exists as spelled, but <c>RUNNER-1</c> does not.</summary>
+    private static bool Probeable(string path)
+    {
+        foreach (string segment in path.Split('\\', '/'))
+        {
+            if (segment.Length == 2 && segment[1] == ':') continue;          // the drive prefix
+            if (!segment.All(c => char.IsAsciiLetterOrDigit(c) || c == '-')) return false;
+        }
+        return true;
     }
 
     // ---------------------------------------------------------------- Block K: the tail's cursor
