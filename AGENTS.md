@@ -18,11 +18,11 @@ already stores locally; never message content.
 |---|---|---|
 | Tray icon + menu + lifetime | **WinForms** (`NotifyIcon`, `ApplicationContext`) | WinForms owns tray icons; WPF has no native tray support. Keep it. |
 | Icon pixels | **GDI+ / System.Drawing** (`IconRenderer`) | Vector draw at the exact tray size (`SM_CXSMICON`), DPI-aware. Never a downscaled bitmap. |
-| Windows (Settings, future dialogs) | **WPF + built-in .NET Fluent theme** (`ThemeMode="System"`) | Declarative XAML = predictable layout; Fluent = Windows 11 look; **zero extra deps**, so the single-exe/installer story is untouched. |
+| The window (one shell, three pages) | **WPF + built-in .NET Fluent theme** (`ThemeMode="System"`) | Declarative XAML = predictable layout; Fluent = Windows 11 look; **zero extra deps**, so the single-exe/installer story is untouched. |
 
 Both `UseWindowsForms` and `UseWPF` are `true` in `ClaudeTray.csproj`. They coexist on one STA
 thread: `Application.Run(new TrayContext())` (WinForms) pumps messages for both. A single
-`System.Windows.Application` is created lazily in `Program.OpenSettings` (never `Run()`) so WPF's
+`System.Windows.Application` is created lazily in `TrayContext.EnsureWpfApp` (never `Run()`) so WPF's
 Fluent theme + pack-URI resources resolve. (Enabling `UseWPF` drops `System.IO` from implicit
 usings — it's re-added via `<Using Include="System.IO" />` in the csproj. Don't remove that.)
 
@@ -49,7 +49,7 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 | File | Responsibility |
 |---|---|
 | `src/Tray/Program.cs` | `Main` and nothing else: the arg dispatch that routes every flag, `ArgValue`, plus `StartupManager` (the HKCU Run entry) and `WpfInputBridge` (see above). |
-| `src/Tray/TrayContext.cs` | The resident app: tray icon, menu, poll/flash/update timers plus the 6h `_backgroundSample` one (context scan + activity-grid warm-up), `ApplySettings`, tooltip, icon render, the watched-profile list and `OpenSettings`/`OpenStatistics`/`OpenContext`. |
+| `src/Tray/TrayContext.cs` | The resident app: tray icon, menu, poll/flash/update timers plus the 6h `_backgroundSample` one (context scan + activity-grid warm-up), `ApplySettings`, tooltip, icon render, the watched-profile list and `OpenMain` — the **one** entry point to the **one** window (T158), from a left-click on the icon or the menu's *Open Claude Code Tray*. |
 | `src/Tray/IconRenderer.cs` | GDI+ icon (vector number + outline + fill bar + projection color) at the real size; also the app `.ico` and social image. |
 | `src/Tray/Updater.cs` | Checks GitHub Releases; downloads/runs the installer for in-app self-update. `CurrentVersion`. |
 
@@ -114,10 +114,18 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 | `src/Core/ProjectSlug.cs` | The app's **only** reader and writer of the `projects/<slug>` encoding (T105): `Encode` (also what the fixture names its dirs with), `RootFor`/`NameFor`/`ShortNameFor` — exact, by walking a recorded `cwd` up to the ancestor that encodes to the slug — `TryProbe`, the filesystem guess for when no cwd exists, and `Literal`/`Tail` for reporting an unresolvable one. Also the **only** place that decides how a directory is *named on screen* (T154): `ShortName` = its last two segments (`turing/2026.3`), which both the Statistics legend and the Context project list go through, since the leaf alone labels three checkouts of a release folder identically. |
 | `src/Core/SafeWalk.cs` | The recursive `~/.claude` walk every scan goes through: per directory, so an unreadable one (untrusted junction, denied ACL, folder deleted mid-sweep) skips its subtree instead of aborting the sweep. Materializes each directory's entries — a `try` around a lazy `Enumerate*` catches nothing — and resolves a reparse point to its target before opening it. |
 
-**`src/Ui/` — the windows** (the 4 `.xaml`/`.xaml.cs` pairs + `SettingsRow.cs`). A window with several
-independent surfaces is **one class in several files** (T133–T134): `SettingsWindow.{General,
-Notifications,ClaudeCode,System}.cs` is one file per settings page, `StatisticsWindow.{Throughput,
-Chart,Profiles,Format}.cs` and `ContextWindow.Gauge.cs` the same per surface, and the Context window's
+**`src/Ui/` — the window and its pages.** There are **two** windows (T158): `MainWindow`, the shell
+the tray opens, and `ToastWindow`. Everything else is a **page** (`UserControl`) shown inside the
+shell's three destinations — `StatisticsPage`, `ContextPage`, `SettingsPage` — so a page owns no
+title, size or theme of its own, and "close" on one means `Window.GetWindow(this)?.Close()`.
+`PageWindow` is the code-only host that shows a single page for the previews and captures, which are
+about the page rather than the shell; `--main` opens the real shell. **A page is built before it is
+shown**, so its constructor cannot resolve theme brushes — the dictionary hangs off the window and
+`FindResource` throws. Use `TryFindResource` there and re-apply on `Loaded`, the way
+`SettingsPage.SelectPage` does. A page with several
+independent surfaces is **one class in several files** (T133–T134): `SettingsPage.{General,
+Notifications,ClaudeCode,System}.cs` is one file per settings page, `StatisticsPage.{Throughput,
+Chart,Profiles,Format}.cs` and `ContextPage.Gauge.cs` the same per surface, and the Context page's
 view models are their own types beside it (`ProjectRow.cs`, `SourceRows.cs`, `RowStyle.cs`,
 `ContextText.cs`) — a new surface gets a new `partial` file, not another 300 lines in the code-behind.
 A `Page`'s generated
@@ -127,8 +135,9 @@ would tie a window to its folder.
 
 | File | Responsibility |
 |---|---|
-| `src/Ui/SettingsWindow.xaml(.cs)` | The WPF Fluent settings window. **All layout lives in the XAML.** |
-| `src/Ui/ContextWindow.xaml(.cs)` | The Context Load window: master/detail over `ContextScanner` — projects left; right, the session-zero gauge (base overhead / instructions / memory / skills, with the transcript-measured tick) over the per-source eager/lazy breakdown. Scans on a background thread; view models are `public` because WPF binding resolves paths by reflection over public types only. |
+| `src/Ui/MainWindow.xaml(.cs)` | The shell (T158): a nav strip over three destinations, each built on its first visit and then kept collapsed, so a scan / a chart's history / a half-edited settings page survives a switch. Owns the chrome; `Statistics` is the one page the tray reaches into (a fresh reading per poll). |
+| `src/Ui/SettingsPage.xaml(.cs)` | The WPF Fluent settings page, with its own six-page sidebar. **All layout lives in the XAML.** Save applies through the callback and confirms in place; Cancel raises `Cancelled` and the shell rebuilds the page from the live model — discarding by construction rather than control by control. |
+| `src/Ui/ContextPage.xaml(.cs)` | The Context Load page: master/detail over `ContextScanner` — projects left; right, the session-zero gauge (base overhead / instructions / memory / skills, with the transcript-measured tick) over the per-source eager/lazy breakdown. Scans on a background thread; view models are `public` because WPF binding resolves paths by reflection over public types only. |
 
 ## UI conventions — the rules that prevent the bugs we already hit
 
@@ -199,7 +208,11 @@ dotnet build -c Debug                 # fast compile check
 dotnet run -c Release                 # build + run the tray app
 dotnet publish -c Release             # single self-contained .exe -> bin\Release\net10.0-windows\win-x64\publish\
 
-dotnet run -- --settings              # open just the Settings window (preview; WPF pump)
+dotnet run -- --main [dest]           # the WHOLE window as the tray opens it (nav strip + the
+                                      # destination: Statistics | Context | Settings), hosted under
+                                      # the WinForms pump like the tray does. Use this to look at
+                                      # the shell; the flags below show one page without it.
+dotnet run -- --settings              # open just the Settings page (preview; WPF pump)
 dotnet run -- --settings System       # ...opened on the System information page (any page name works)
 dotnet run -- --settings System --sample [--reveal]
                                       # ...over the synthetic AccountFixture profiles instead of this

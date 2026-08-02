@@ -14,18 +14,20 @@ using Size = System.Windows.Size;
 namespace ClaudeTray;
 
 /// <summary>
-/// The Statistics window ("Statistics" in the tray menu): a pacing report for the 5-hour session and
+/// The Statistics page — the destination <see cref="MainWindow"/> opens on, and what a click on the
+/// tray icon lands you in: a pacing report for the 5-hour session and
 /// 7-day weekly rate-limit windows, built from <see cref="UsageReport.ComputePace"/>. Each window gets
 /// a burn-up chart — real consumption vs. the even-pace line, plus a dashed projection of where the
 /// current pace lands — so it's visually obvious whether the quota is being spent evenly or will run
 /// out before the reset.
 ///
-/// Same WPF + built-in Fluent theme (<c>ThemeMode="System"</c>) as <see cref="SettingsWindow"/>. The
+/// Same WPF + built-in Fluent theme as <see cref="SettingsPage"/> — owned by the shell, since a page
+/// has no chrome of its own. The
 /// live utilization/reset numbers are passed in from the tray as a <see cref="PaceSnapshot"/>; the
 /// transcript scan that shapes the curves runs off the UI thread, and a generation counter drops
 /// stale results if the report is refreshed while a scan is in flight.
 /// </summary>
-internal partial class StatisticsWindow : Window
+internal partial class StatisticsPage : System.Windows.Controls.UserControl
 {
     // Invariant formatting for numbers/percentages, kept consistent regardless of the OS locale.
     private static readonly CultureInfo Fmt = CultureInfo.InvariantCulture;
@@ -108,19 +110,21 @@ internal partial class StatisticsWindow : Window
     /// account's numbers to another profile's charts would be a silent lie.</summary>
     private bool _showingMonitored = true;
 
-    public StatisticsWindow(PaceSnapshot? snapshot, bool showRemaining = false, string? error = null)
+    public StatisticsPage(PaceSnapshot? snapshot, bool showRemaining = false, string? error = null)
     {
         _snapshot = snapshot;
         _remaining = showRemaining;
         _error = error;
         InitializeComponent();
 
-        Loaded += (_, _) => StartLive();
-        Closed += (_, _) => StopLive(dispose: true);
+        Loaded += (_, _) => { HookHost(); StartLive(); };
+        // The page outlives every navigation — the shell only toggles visibility — so the tail is torn
+        // down when the shell itself goes away, which is the one thing that unloads the page.
+        Unloaded += (_, _) => StopLive(dispose: true);
         // Minimizing leaves IsVisible true in WPF, so both signals are needed to honour
-        // "hidden ⇒ stopped".
+        // "hidden ⇒ stopped". Navigating away from this destination collapses the page, which is the
+        // same claim as hiding the window used to be, and arrives through the same event.
         IsVisibleChanged += (_, _) => SyncLiveClock();
-        StateChanged += (_, _) => SyncLiveClock();
         // The strip is only painted while its tab is on screen, so arriving on that tab has to repaint
         // immediately rather than leaving it blank until the next second. RenderLive as well as the
         // tick, because the preview fixture short-circuits the tick and would otherwise show nothing.
@@ -131,17 +135,22 @@ internal partial class StatisticsWindow : Window
             RenderLive(animate: false);
         };
 
-        try
-        {
-            Icon = System.Windows.Media.Imaging.BitmapFrame.Create(
-                new Uri(Environment.ProcessPath ?? System.Windows.Forms.Application.ExecutablePath));
-        }
-        catch { /* fall back to the default window icon */ }
-
         if (_snapshot is not null)
             Reload();
         else
             ShowStatus(error is { Length: > 0 } ? L.T("stats.apiError", error) : L.T("stats.connect"));
+    }
+
+    /// <summary>True once the host window's <c>StateChanged</c> has been subscribed to. Minimizing is a
+    /// property of the window, not of the page, but "hidden ⇒ the live tail stops" is this page's rule —
+    /// so it listens to whichever window it ends up in, once (Loaded can fire again on a re-parent).</summary>
+    private bool _hostHooked;
+
+    private void HookHost()
+    {
+        if (_hostHooked || Window.GetWindow(this) is not { } host) return;
+        _hostHooked = true;
+        host.StateChanged += (_, _) => SyncLiveClock();
     }
 
     private void Refresh_Click(object sender, RoutedEventArgs e)
@@ -241,7 +250,8 @@ internal partial class StatisticsWindow : Window
         }
     }
 
-    private void Close_Click(object sender, RoutedEventArgs e) => Close();
+    // The footer's Close closes the shell, not the page: a destination has nothing to close.
+    private void Close_Click(object sender, RoutedEventArgs e) => Window.GetWindow(this)?.Close();
 
     private void Reload()
     {

@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 
 // WinForms and WPF each contribute a Brush / Color / Orientation / HorizontalAlignment; pin these
-// names to the WPF ones the gauge is drawn with (same convention as StatisticsWindow).
+// names to the WPF ones the gauge is drawn with (same convention as StatisticsPage).
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using CheckBox = System.Windows.Controls.CheckBox;
@@ -13,8 +13,8 @@ using Orientation = System.Windows.Controls.Orientation;
 
 namespace ClaudeTray;
 
-/// <summary>Part of <see cref="ContextWindow"/> — split out by T133, moved verbatim.</summary>
-internal partial class ContextWindow : Window
+/// <summary>Part of <see cref="ContextPage"/> — split out by T133, moved verbatim.</summary>
+internal partial class ContextPage
 {
     /// <summary>
     /// The one visual the window exists for: what a session in this project loads, against the whole
@@ -29,7 +29,7 @@ internal partial class ContextWindow : Window
     private void BuildGauge(ProjectRow row)
     {
         SessionZero? observed = row.Project!.Observed;
-        int window = ContextScanner.ContextWindowFor(observed?.Model);
+        int window = ContextScanner.ContextPageFor(observed?.Model);
         // The simulated saving comes off the total as well as off the segments, so the bar, the
         // caption and the banner all describe the same hypothetical session.
         int total = _baseTokens + row.Estimated - SimulatedSaving(row);

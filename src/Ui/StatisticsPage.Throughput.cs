@@ -13,8 +13,8 @@ using Size = System.Windows.Size;
 
 namespace ClaudeTray;
 
-/// <summary>Part of <see cref="StatisticsWindow"/> — split out by T133, moved verbatim.</summary>
-internal partial class StatisticsWindow : Window
+/// <summary>Part of <see cref="StatisticsPage"/> — split out by T133, moved verbatim.</summary>
+internal partial class StatisticsPage
 {
     // Throughput breakdown: average tokens/second over the window, split into input / output /
     // cache-creation (cache reads are excluded — see WindowPace.TokensPerSecond). The mix used to be
@@ -127,13 +127,16 @@ internal partial class StatisticsWindow : Window
         LiveTick();
     }
 
-    // "Hidden ⇒ stopped." A minimized or closed-but-not-disposed window must cost what it cost before
-    // this row existed. The tail keeps running (it is a few ms every 3s off-thread and it is what lets
-    // the strip have history the moment the window comes back); only the render clock stops.
+    // "Hidden ⇒ stopped." A minimized window, or one whose shell is showing another destination, must
+    // cost what it cost before this row existed. The tail keeps running (it is a few ms every 3s
+    // off-thread and it is what lets the strip have history the moment the page comes back); only the
+    // render clock stops.
     private void SyncLiveClock()
     {
         if (_liveTimer is null) return;
-        bool onScreen = IsVisible && WindowState != WindowState.Minimized;
+        // IsVisible is false while another destination is selected; the host's state covers minimizing,
+        // which leaves IsVisible true. No host yet (before Loaded) is not a reason to call it hidden.
+        bool onScreen = IsVisible && Window.GetWindow(this) is not { WindowState: WindowState.Minimized };
         if (onScreen && !_liveTimer.IsEnabled) { _liveTimer.Start(); LiveTick(); }
         else if (!onScreen && _liveTimer.IsEnabled)
         {

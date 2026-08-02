@@ -36,6 +36,7 @@
 | [U](#block-u--the-environment-write-stops-freezing-the-app) | The environment write stops freezing the app |
 | [W](#block-w--a-project-is-named-so-you-can-tell-two-apart) | A project is named so you can tell two apart |
 | [X](#block-x--each-control-says-what-it-changes) | Each control says what it changes — the Claude Code page's own scope |
+| [Y](#block-y--one-window-you-navigate-instead-of-three-you-open) | One window you navigate, instead of three you open |
 
 ## Block A — Foundation (tray, icon, API, projection)
 
@@ -213,6 +214,34 @@
 - **T107** — The cache re-read is said out loud, where it is excluded. `LiveRate` has separated cache reads from real work since T98 and showed the result to nobody, and the result is the startling part: measured on this machine's ordinary traffic, **~30,000 tok/s of cache read against ~150 tok/s of work**. Keeping it out of every rate on the tab is right — it barely weighs on the rate limit and would drown the signal — but an exclusion two orders of magnitude larger than what *is* drawn has to be stated, in the place where it is being made. One line now sits under both charts: the rate, its ratio to the rates above (`34×` in the fixture, rounded like a magnitude — "200×", never "197.4×"), and what it is: your context, re-sent with every turn. **Deliberately a sentence and not a fourth line**, which is what §V.12 warned against: a fourth entry in a legend of three reads as a series that was drawn, and the number is only meaningful as a ratio anyway. The ratio is dropped entirely when the work rate falls below 1 tok/s — through a pause the denominator decays toward zero and "∞× the rate above" is a division artefact, not a reading. The rest of the argument — why it is excluded, and that this is the per-turn price of a large eager context, which **Context load** measures statically — is on hover, because it did not fit: the first version was a two-line paragraph, and the screenshot showed it pushing the window averages below the fold, which is exactly the defect T111 fixed once already. Fixing it properly took both halves: the copy shrank to one line, and the window grew 920→948px (the "Window averages" heading's margin gave up 4 more), because in the *real* window — not the smaller capture frame — the last row was still being cut in half. Verified by looking at both: the capture path for the published image and the real window driven at its default size. Three keys across all five `lang/*.json`; the fixture reports the measured 30k tok/s against its own 870 tok/s of work, so the published screenshot carries a real order of magnitude rather than an invented one. README, site and `llms.txt` updated; `docs/statistics-*.png` regenerated.
 
 - **T108** — The screenshot fixture moves in with the fixtures (`src/Usage/ThroughputFixture.cs`). The deterministic three minutes behind `--stats live` was hand-shaped inline in `StatisticsWindow.RenderDemoLive`, where it had accreted next to the rendering it feeds while three tasks came to depend on it (T110's ceiling, T112's outlier, T104's pinned reading). It is now one `Build()` returning a `ThroughputDemo` record — series, raw buckets, headline, sessions, cache-read rate and the second the readout is posed on — and the code-behind keeps only what a code-behind should: assign the fields, set the text, render once, hold the pose. Same numbers, same constants, same shaping through the real `LiveRate.RateFrom` kernel. **Pure housekeeping, and proved to be**: capturing the Throughput tab before and after and diffing the two PNGs pixel by pixel gives **77 differing pixels, all inside x 202–210, y 1311–1323** — the minute digits in the footer's "Updated …" line. Both charts, both readout cards, the legends and the cache-read line are pixel-identical. Block K's last task, so the block leaves `ROADMAP.md` and its design section (§V) leaves `IMPROVEMENTS.md`; three TOC rows there that pointed at sections already pruned went with it, and the roadmap's tray-icon non-goal now cites this changelog instead of a section that no longer exists.
+
+## Block Y — One window you navigate, instead of three you open
+
+- **T158** — **Statistics, Context and Settings stop being three windows and become three destinations
+  of one.** Asked for as *"seria possível remover estes 3 itens de menu e ao clicar no tray abrir a
+  janela com Estatística e ter um menu que abro configurações e contexto na própria janela"* — the
+  three menu entries each opened a top-level window of its own, so reading the pace report and then
+  checking a project's context load meant two windows on the taskbar and a trip back to the tray icon
+  between them. A left-click on the icon now opens `MainWindow` on the pacing report, and a nav strip
+  under the title bar switches destinations; the tray menu keeps only what needs no window, plus a
+  bold **Open Claude Code Tray** as its default entry (a left-click is not a route everyone has — the
+  keyboard's menu key opens the list and nothing else). `StatisticsWindow`, `ContextWindow` and
+  `SettingsWindow` became `StatisticsPage`, `ContextPage` and `SettingsPage` (`UserControl`s, files
+  renamed with them); `TrayContext`'s three `Open*` methods and three window fields collapsed into
+  `OpenMain` over one. Deliberately *not* the same pill segments the Statistics tabs use, because two
+  identical rows stacked read as one flat set of six tabs: the strip is chrome — tinted, divided,
+  accent underline — over the page's own tabs. A destination is built on its first visit and then kept
+  collapsed, so opening the icon costs no `~/.claude` walk, and a scan, a chart's history or a
+  half-edited settings page all survive switching away; the Context page stops watching `~/.claude`
+  while it is not on screen and re-scans on return, and the live throughput clock already stopped on
+  "hidden", which is now also what navigating away means. Saving settings no longer closes anything,
+  so it confirms in place (`settings.saved`, three seconds), and Cancel discards by rebuilding the
+  page from the live model rather than walking every control back. `PageWindow` (code-only) keeps
+  every preview and off-screen capture rendering one page without the shell's chrome, so the
+  published screenshots are unchanged; `--main [dest]` opens the real shell under the tray's own
+  WinForms pump. Three menu strings dropped and four added in all five languages. `--selftest` 51/51
+  (`--quick`), `Check-Interaction -Case Keyboard` passes under the shell's page, and all three
+  destinations verified by capture in pt-BR.
 
 ## Block X — Each control says what it changes
 

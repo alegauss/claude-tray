@@ -20,7 +20,7 @@ internal readonly record struct ThroughputDemo(
 /// (<see cref="LiveRate.RateFrom"/>), so what is published is what the app would draw, not a curve
 /// drawn to look like one.</para>
 ///
-/// <para>Split out of <c>StatisticsWindow</c>'s code-behind by T108, where it had accreted next to
+/// <para>Split out of <c>StatisticsPage</c>'s code-behind by T108, where it had accreted next to
 /// the rendering it feeds while three tasks came to depend on it. No behaviour change: the same
 /// numbers, in the file where this repo keeps stand-in data for a subsystem.</para>
 /// </summary>

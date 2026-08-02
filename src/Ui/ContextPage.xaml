@@ -1,16 +1,12 @@
-<Window x:Class="ClaudeTray.ContextWindow"
+<!-- A destination of MainWindow rather than a window: the shell owns the chrome (see StatisticsPage). -->
+<UserControl x:Class="ClaudeTray.ContextPage"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:ClaudeTray"
         x:ClassModifier="internal"
-        Title="{local:Loc context.title}"
-        Width="1000" Height="720"
-        MinWidth="880" MinHeight="620"
-        WindowStartupLocation="CenterScreen"
-        ThemeMode="System"
         FontFamily="Segoe UI Variable Text, Segoe UI">
 
-    <Window.Resources>
+    <UserControl.Resources>
         <!-- The rounded surface that holds the project list and the detail pane. -->
         <Style x:Key="GroupCard" TargetType="Border">
             <Setter Property="CornerRadius" Value="8" />
@@ -197,7 +193,7 @@
                 <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource SourceRowTemplate}" />
             </StackPanel>
         </DataTemplate>
-    </Window.Resources>
+    </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -548,4 +544,4 @@
             </StackPanel>
         </Grid>
     </Grid>
-</Window>
+</UserControl>

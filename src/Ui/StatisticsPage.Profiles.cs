@@ -13,8 +13,8 @@ using Size = System.Windows.Size;
 
 namespace ClaudeTray;
 
-/// <summary>Part of <see cref="StatisticsWindow"/> — split out by T133, moved verbatim.</summary>
-internal partial class StatisticsWindow : Window
+/// <summary>Part of <see cref="StatisticsPage"/> — split out by T133, moved verbatim.</summary>
+internal partial class StatisticsPage
 {
     /// <summary>
     /// Offer a profile picker (T128). Called by the tray with everything it watches, monitored first;

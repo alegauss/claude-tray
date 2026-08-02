@@ -1,6 +1,6 @@
 ---
 name: preview-ui
-description: Build and visually verify a WPF window in Claude Code Tray by launching it and capturing a screenshot. Use whenever a change touches SettingsWindow.xaml / .xaml.cs or any windowed UI, before claiming the layout works.
+description: Build and visually verify the Claude Code Tray window by launching it and capturing a screenshot. Use whenever a change touches MainWindow, any of its pages (SettingsPage / StatisticsPage / ContextPage) or any windowed UI, before claiming the layout works.
 ---
 
 # Preview UI (Claude Code Tray)
@@ -11,7 +11,7 @@ window and capturing a PNG you can read back.
 
 ## When to use
 
-- After editing `SettingsWindow.xaml` or `SettingsWindow.xaml.cs`.
+- After editing `MainWindow.xaml`, `SettingsPage.xaml` or any page's `.xaml.cs`.
 - After any change that affects a windowed surface (new settings page, new dialog).
 - Before telling the user a UI change is done.
 
@@ -21,7 +21,9 @@ The app exposes a deterministic preview entry point so the window can be shown *
 through the tray menu:
 
 ```
-ClaudeTray.exe --settings      # opens just the Settings window, standalone
+ClaudeTray.exe --main [dest]   # the whole window as the tray opens it (nav strip + destination:
+                               # Statistics | Context | Settings) — use this for the shell itself
+ClaudeTray.exe --settings      # just the Settings page, without the shell's nav strip
 ```
 
 `scripts\Capture-Window.ps1` launches that, waits for the first paint, makes itself

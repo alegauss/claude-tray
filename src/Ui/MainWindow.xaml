@@ -1,0 +1,104 @@
+<!-- The app's one window. A click on the tray icon opens it on Statistics; the strip below the title
+     switches between the three destinations, so Context and Settings are navigated to rather than
+     opened as windows of their own. Each destination keeps its own header, its own second level of
+     navigation (Settings' six pages, Statistics' three tabs) and its own footer — this shell owns only
+     the chrome and the strip. -->
+<Window x:Class="ClaudeTray.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ClaudeTray"
+        x:ClassModifier="internal"
+        Title="{local:Loc dialog.appName}"
+        Width="1000" Height="960"
+        MinWidth="900" MinHeight="700"
+        WindowStartupLocation="CenterScreen"
+        ThemeMode="System"
+        FontFamily="Segoe UI Variable Text, Segoe UI">
+
+    <Window.Resources>
+        <!-- A destination in the nav strip. Deliberately *not* the pill segments the Statistics tabs
+             use: those sit a few pixels below inside the page, and two rows of identical pills would
+             read as one flat set of six tabs. This is window chrome — quiet text, an accent underline
+             under the selected one — so the hierarchy is legible without a caption explaining it. -->
+        <Style x:Key="NavDest" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="3" />
+                            </Grid.RowDefinitions>
+                            <Border x:Name="Hit" Grid.Row="0" Background="Transparent"
+                                    CornerRadius="6" Padding="16,9">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <Border x:Name="Bar" Grid.Row="1" Margin="10,0" CornerRadius="2"
+                                    Visibility="Hidden"
+                                    Background="{DynamicResource AccentFillColorDefaultBrush}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bar" Property="Visibility" Value="Visible" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Hit" Property="Background"
+                                        Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                <Setter Property="Foreground"
+                                        Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /><!-- nav strip -->
+            <RowDefinition Height="*" />   <!-- the selected destination -->
+        </Grid.RowDefinitions>
+
+        <!-- ===== Nav strip ===== -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource LayerFillColorDefaultBrush}"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
+            <!-- The destinations and nothing else. The app's name is already in the title bar, and
+                 repeating it at the head of this row made it read as a fourth, selected-looking tab.
+                 Radio buttons rather than hand-toggled Borders: one destination is selected at a time
+                 by construction, and the group is arrow-key navigable for free.
+                 No IsChecked in the markup: ticking a destination navigates, and during
+                 InitializeComponent there is nothing built to navigate to — the constructor ticks the
+                 default once the pages exist. -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="18,0,18,0">
+                <RadioButton x:Name="NavStatistics" Style="{StaticResource NavDest}"
+                             GroupName="Destination"
+                             Content="{local:Loc main.nav.statistics}"
+                             Tag="Statistics" Checked="Destination_Checked" />
+                <RadioButton x:Name="NavContext" Style="{StaticResource NavDest}"
+                             GroupName="Destination"
+                             Content="{local:Loc main.nav.context}"
+                             Tag="Context" Checked="Destination_Checked" />
+                <RadioButton x:Name="NavSettings" Style="{StaticResource NavDest}"
+                             GroupName="Destination"
+                             Content="{local:Loc main.nav.settings}"
+                             Tag="Settings" Checked="Destination_Checked" />
+            </StackPanel>
+        </Border>
+
+        <!-- ===== Destination host =====
+             Every page that has been visited stays here, collapsed, exactly like the Settings pages
+             inside their own sidebar: state (a scan, a chart's history, half-edited settings) survives
+             switching away, and a destination nobody opened is never built at all. -->
+        <Grid x:Name="DestinationHost" Grid.Row="1" />
+    </Grid>
+</Window>

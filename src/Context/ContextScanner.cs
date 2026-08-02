@@ -249,7 +249,7 @@ internal static class ContextScanner
     /// models report it in their id, which is the only signal available here — so the window is read
     /// off the model of the observed session rather than assumed.
     /// </summary>
-    internal static int ContextWindowFor(string? model)
+    internal static int ContextPageFor(string? model)
         => model is { Length: > 0 } m && m.Contains("[1m]", StringComparison.OrdinalIgnoreCase)
             ? 1_000_000
             : 200_000;

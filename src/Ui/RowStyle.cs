@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 
 // WinForms and WPF each contribute a Brush / Color / Orientation / HorizontalAlignment; pin these
-// names to the WPF ones the gauge is drawn with (same convention as StatisticsWindow).
+// names to the WPF ones the gauge is drawn with (same convention as StatisticsPage).
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using CheckBox = System.Windows.Controls.CheckBox;

@@ -1,9 +1,9 @@
-# Last task number — `T157` · next block letter — `Y`
+# Last task number — `T158` · next block letter — `Z`
 
-> **Single source of truth for the next free task number.** The next new task is `T158`; after
+> **Single source of truth for the next free task number.** The next new task is `T159`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `Y`** (Block **X** = Each control says what it changes; created 2026-08-02).
+> **Next block letter — `Z`** (Block **Y** = One window you navigate; created 2026-08-02).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -131,6 +131,14 @@
   block did not have — **the tray's UI thread never carries a `WM_SETTINGCHANGE` broadcast**, which is
   a property of every future environment write, not of this one call site. Block L set the precedent
   that a block may hold a single task.
+- Block **Y** (T158, created 2026-08-02) opens on a **user request** rather than a defect, like Blocks
+  N and X: *"seria possível remover estes 3 itens de menu e ao clicar no tray abrir a janela … na
+  própria janela"*. A block of its own because it is not about any one window's contents but about the
+  app's **shape** — three top-level windows become three destinations of one shell, which re-cuts
+  surfaces from shipped Blocks C, F and I (all closed) and changes what the tray menu is *for*.
+  The rule it leaves behind is in [AGENTS.md](AGENTS.md): a page is constructed before it is shown, so
+  its constructor must not `FindResource` a theme brush — the dictionary hangs off the window.
+  Shipped in the same commit it was created in, so it has no `ROADMAP.md`/`IMPROVEMENTS.md` entries.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 
@@ -230,3 +238,4 @@ here. This file is a terse index, not a memory.
 - **T155 SHIPPED** (Block X — the redundant Icon profile row leaves Settings; the tray submenu is the one switch) — 2026-08-02.
 - **T156 SHIPPED** (Block X — the two app-wide profile switches move out of the per-profile card into "All profiles") — 2026-08-02.
 - **T157 SHIPPED** (Block X — auto-follow's description says what it does before how it reads it) — 2026-08-02.
+- **T158 SHIPPED** (Block Y — one window with three destinations; the tray menu keeps only what needs no window) — 2026-08-02.

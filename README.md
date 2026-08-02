@@ -219,7 +219,7 @@ appears — without reading a word:
 
 The two weekly anomalies (early reset, mid-window credit) are known Claude Code quirks worth
 knowing about; the routine weekly and session resets are calmer "your quota's back" pings. **All
-are on by default** — toggle any of them independently in **Settings** (right-click → Settings),
+are on by default** — toggle any of them independently in **Settings** (click the icon → Settings),
 so you can keep the surprises and silence the routine ones, or vice versa.
 
 ## Usage insights (last 24h)
@@ -249,7 +249,7 @@ bounded to files touched in the last 24h and runs in the background (refreshed o
 
 Claude Code loads your instruction files, your memory index and **every skill's description**
 before your first prompt. That is a fixed toll paid on *every request* of the session, and it is
-normally invisible. **Context…** in the tray menu shows the number.
+normally invisible. The **Context** tab of the window shows the number.
 
 - **Session-zero gauge** — one honest bar of what a session loads against the 200k window, split
   into Claude Code's own ≈32k system prompt and tool definitions, your instructions, your memory
@@ -529,7 +529,7 @@ It can be copied anywhere and runs without .NET installed.
 
 Three ways, from simplest to most complete:
 
-1. **From Settings** (recommended): right-click the icon → **Settings…** → **Startup** →
+1. **From Settings** (recommended): click the icon → **Settings** → **Startup** →
    **Start with Windows**. Writes/removes a key under `HKCU\…\Run` pointing to the current `.exe`. No admin.
 2. **Installer** (see below): check "Start with Windows" during installation.
 3. **Manual**: `Win + R` → `shell:startup` → create a shortcut to `ClaudeTray.exe`.
@@ -565,12 +565,27 @@ build\build-installer.cmd                 # publish + build dist\ClaudeTray-Setu
 Then create a GitHub release tagged `vX.Y.Z` and attach `ClaudeTray-Setup.exe`. Existing
 installs pick it up automatically (see [Updates](#updates)).
 
+## The window (click the icon)
+
+A **left-click on the tray icon** opens the app's one window, on the pacing report. A strip along
+the top switches between its three destinations, so nothing needs a second window:
+
+- **Statistics** — the pacing report: 5h session, 7d week and live throughput (see above)
+- **Context** — what every session in a project loads before your first prompt (see above)
+- **Settings** — refresh interval, display options, notifications, **Start with Windows**
+  (autostart), profiles, and **System information** (your plan, this Claude Code install and this
+  machine)
+
+Each destination remembers where you left it while the window is open — a scan, a chart, a
+half-edited settings page all survive switching to another one and back.
+
 ## Menu (right-click the icon)
 
+The menu is what can be done *without* the window:
+
+- **Open Claude Code Tray** — the same window a left-click on the icon opens
 - **Show on icon** — Session 5h / Week 7d / Extra (remembered across restarts)
 - **Usage insights (24h)** — local cost breakdown from session transcripts (see below)
-- **Context…** — what every session in a project loads before your first prompt, what it costs,
-  and what is worth pruning (see below)
 - **Refresh now** — immediate API read
 - **Open Claude Code** — launches the Claude Code CLI so it re-authenticates and refreshes the
   OAuth token; the recovery path when the icon shows a *not authenticated* (HTTP 401) state
@@ -581,8 +596,6 @@ installs pick it up automatically (see [Updates](#updates)).
 - **Open Claude Code ▸ &lt;profile&gt;** — with more than one profile registered, this becomes a submenu:
   each entry launches Claude Code with that profile's configuration folder and its own working
   directory (see below). It stays a single command when the chosen profile is the whole machine's
-- **Settings…** — refresh interval, display options, **Start with Windows** (autostart), profiles, and
-  **System information** (your plan, this Claude Code install and this machine — see below)
 - **Quit**
 
 ## Updates

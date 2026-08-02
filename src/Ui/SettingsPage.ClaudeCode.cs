@@ -2,8 +2,8 @@ using System.Windows;
 
 namespace ClaudeTray;
 
-/// <summary>Part of <see cref="SettingsWindow"/> — one page per file, split out by T134, moved verbatim.</summary>
-internal partial class SettingsWindow : Window
+/// <summary>Part of <see cref="SettingsPage"/> — one page per file, split out by T134, moved verbatim.</summary>
+internal partial class SettingsPage
 {
     // Pick the working directory Claude Code opens in. WinForms' folder dialog is already available
     // (this is a WinForms+WPF hybrid) and gives the familiar Windows folder picker.

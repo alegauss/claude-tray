@@ -2,8 +2,8 @@ using System.Windows;
 
 namespace ClaudeTray;
 
-/// <summary>Part of <see cref="SettingsWindow"/> — one page per file, split out by T134, moved verbatim.</summary>
-internal partial class SettingsWindow : Window
+/// <summary>Part of <see cref="SettingsPage"/> — one page per file, split out by T134, moved verbatim.</summary>
+internal partial class SettingsPage
 {
     /// <summary>Shown wherever a reading isn't available — a fresh install, an API-key setup, or a
     /// field this version of Claude Code doesn't write.</summary>

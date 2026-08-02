@@ -2,8 +2,8 @@ using System.Windows;
 
 namespace ClaudeTray;
 
-/// <summary>Part of <see cref="SettingsWindow"/> — one page per file, split out by T134, moved verbatim.</summary>
-internal partial class SettingsWindow : Window
+/// <summary>Part of <see cref="SettingsPage"/> — one page per file, split out by T134, moved verbatim.</summary>
+internal partial class SettingsPage
 {
     // Approximate tokens billed per heartbeat: the request carries ~10 input tokens
     // ("hi" + message framing) and max_tokens=1 caps the reply at 1 output token.

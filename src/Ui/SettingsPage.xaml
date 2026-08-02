@@ -1,16 +1,13 @@
-<Window x:Class="ClaudeTray.SettingsWindow"
+<!-- A destination of MainWindow rather than a window: the shell owns the chrome (see StatisticsPage).
+     The sidebar below is this page's *own* second level — the six settings pages. -->
+<UserControl x:Class="ClaudeTray.SettingsPage"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:ClaudeTray"
         x:ClassModifier="internal"
-        Title="{local:Loc settings.title}"
-        Width="880" Height="600"
-        MinWidth="760" MinHeight="560"
-        WindowStartupLocation="CenterScreen"
-        ThemeMode="System"
         FontFamily="Segoe UI Variable Text, Segoe UI">
 
-    <Window.Resources>
+    <UserControl.Resources>
         <!-- A clickable info card on the About page: lifts and accents its border on hover so it
              reads as a link, not a static panel. The URL is carried in each card's Tag. -->
         <Style x:Key="LinkCard" TargetType="Border">
@@ -160,7 +157,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-    </Window.Resources>
+    </UserControl.Resources>
 
     <!-- Two columns: a fixed navigation sidebar and a content pane that fills the rest.
          The whole layout is declared here (declarative XAML) — no imperative z-order stacking,
@@ -176,12 +173,9 @@
                 Background="{DynamicResource LayerFillColorDefaultBrush}"
                 BorderThickness="0,0,1,0"
                 BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
+            <!-- No "Settings" heading over the list: the nav strip above already names this
+                 destination, and the two sat one under the other saying the same word. -->
             <StackPanel Margin="12,16,12,12">
-                <TextBlock Text="{local:Loc settings.title}"
-                           FontSize="20" FontWeight="SemiBold"
-                           Margin="8,0,0,14"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-
                 <!-- Nav items. Selection (accent bar + subtle background) is toggled in code-behind;
                      a transparent background keeps the whole row clickable even when unselected. -->
                 <Border x:Name="NavGeneral" CornerRadius="6" Height="40" Margin="0,0,0,4"
@@ -1071,6 +1065,12 @@
                            VerticalAlignment="Center"
                            Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <!-- Saving no longer closes anything (the page lives inside the shell), so it says
+                         so here for a few seconds instead. -->
+                    <TextBlock x:Name="SavedText" Visibility="Collapsed" VerticalAlignment="Center"
+                               Margin="0,0,14,0" FontWeight="SemiBold"
+                               Text="{local:Loc settings.saved}"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     <Button x:Name="CancelButton" Content="{local:Loc settings.cancel}"
                             MinWidth="92" Padding="14,6" Margin="0,0,8,0"
                             Click="Cancel_Click" />
@@ -1082,4 +1082,4 @@
             </Grid>
         </Grid>
     </Grid>
-</Window>
+</UserControl>

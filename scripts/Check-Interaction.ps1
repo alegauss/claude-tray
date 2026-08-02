@@ -457,6 +457,13 @@ function Invoke-MenuCase {
         Pass "the menu opened with $($labels.Count) entries"
         foreach ($l in $labels) { Info "- $l" }
 
+        # T158: the window is opened from here as well as by a left-click on the icon. The menu is the
+        # only route a keyboard user has (the context-menu key opens this list and nothing else), so
+        # the entry going missing would strand them with no way in at all.
+        $openLabel = Label 'menu.open'
+        if ($labels -contains $openLabel) { Pass "'$openLabel' opens the window from the menu" }
+        else { Fail "'$openLabel' is missing - the menu is the only route to the window without a mouse (T158)" }
+
         $expect = Expected-ProfileEntries
         $subLabel = Label 'menu.openClaude'
         if ($expect.Count -lt 2) {

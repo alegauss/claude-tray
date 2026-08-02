@@ -194,7 +194,7 @@ internal sealed class TranscriptTail : IDisposable
             // cursor that has to be retired rather than left pointing at a path nobody will visit.
             _watcher.Renamed += (_, e) => Bump(e.FullPath, e.OldFullPath);
             // A watcher that has errored is finished. Drop it and keep the floor timer: the feed gets
-            // slower, never wrong. Same ruling as ContextWindow's T82 watcher.
+            // slower, never wrong. Same ruling as ContextPage's T82 watcher.
             _watcher.Error += (_, _) => StopWatching();
 
             _watcher.EnableRaisingEvents = true;

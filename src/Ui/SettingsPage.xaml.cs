@@ -3,20 +3,27 @@
 namespace ClaudeTray;
 
 /// <summary>
-/// The settings window, built with WPF + the built-in .NET Fluent theme (<c>ThemeMode="System"</c>),
-/// so it follows the Windows light/dark setting and gets the Windows 11 look (Mica, rounded corners,
-/// Fluent controls) with no extra dependencies. The layout lives entirely in
-/// <c>SettingsWindow.xaml</c> as a declarative grid — there is no imperative z-order stacking, which
-/// is what made the old WinForms sidebar fragile.
+/// The settings page — a destination of <see cref="MainWindow"/>, which owns the chrome and the theme
+/// (the built-in .NET Fluent one, so it follows the Windows light/dark setting and gets the Windows 11
+/// look). The layout lives entirely in
+/// <c>SettingsPage.xaml</c> as a declarative grid — there is no imperative z-order stacking, which
+/// is what made the old WinForms sidebar fragile. Its own sidebar is the *second* level of navigation:
+/// six settings pages inside one of the shell's three destinations.
 ///
-/// Shown non-modally from the tray; on Save it applies the edited <see cref="Settings"/> through the
-/// <c>onSave</c> callback supplied at construction. The interval is edited in minutes (the model
-/// stores seconds).
+/// On Save it applies the edited <see cref="Settings"/> through the <c>onSave</c> callback supplied at
+/// construction and says so in place — the page no longer closes anything, because there is nothing to
+/// close. Cancel raises <see cref="Cancelled"/>: the shell builds a fresh page from the live model,
+/// which discards the edits by construction rather than by undoing them control by control. The
+/// interval is edited in minutes (the model stores seconds).
 /// </summary>
-internal partial class SettingsWindow : Window
+internal partial class SettingsPage : System.Windows.Controls.UserControl
 {
     private readonly Settings _settings;
     private readonly Action<Settings> _onSave;
+
+    /// <summary>Raised when the user discards the edits. The shell replaces this page with a new one
+    /// over the live settings — see the class summary.</summary>
+    internal event Action? Cancelled;
 
     private static double MinMinutes => Settings.MinRefreshSeconds / 60.0;
     private static double MaxMinutes => Settings.MaxRefreshSeconds / 60.0;
@@ -26,7 +33,7 @@ internal partial class SettingsWindow : Window
     /// of this machine's, so the page can be screenshotted for the README and the site.</param>
     /// <param name="revealIdentity">Preview-only: open with the holder and the paths already revealed.
     /// Safe to publish only together with <paramref name="sampleProfiles"/>.</param>
-    public SettingsWindow(Settings current, Action<Settings> onSave, string? initialPage = null,
+    public SettingsPage(Settings current, Action<Settings> onSave, string? initialPage = null,
                           List<ClaudeInfo>? sampleProfiles = null, bool revealIdentity = false)
     {
         _onSave = onSave;
@@ -103,10 +110,6 @@ internal partial class SettingsWindow : Window
         HeroVersion.Text = L.T("settings.heroVersion", Updater.CurrentVersion);
         LogoImage.Source = RenderLogoSource(192);
 
-        try { Icon = System.Windows.Media.Imaging.BitmapFrame.Create(
-            new Uri(Environment.ProcessPath ?? System.Windows.Forms.Application.ExecutablePath)); }
-        catch { /* fall back to the default window icon */ }
-
         LoadProfiles();
         LoadSystemInfo();
 
@@ -119,7 +122,14 @@ internal partial class SettingsWindow : Window
             not null when string.Equals(initialPage, "ClaudeCode", StringComparison.OrdinalIgnoreCase) => "ClaudeCode",
             _ => "General",
         });
+        // …and again once the page is inside a window, because that is where the theme's brushes live:
+        // a page built before it is shown resolves none of them (see SelectPage), so the highlight the
+        // constructor's pass could not paint lands here.
+        Loaded += (_, _) => SelectPage(_page);
     }
+
+    /// <summary>The sidebar page currently shown — re-applied on Loaded, see the constructor.</summary>
+    private string _page = "General";
 
     // Switch the visible page (General / System / About …) and move the sidebar selection highlight.
     private void Nav_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -127,6 +137,7 @@ internal partial class SettingsWindow : Window
 
     private void SelectPage(string page)
     {
+        _page = page;
         bool general = page == "General";
         bool display = page == "Display";
         bool claudeCode = page == "ClaudeCode";
@@ -141,7 +152,11 @@ internal partial class SettingsWindow : Window
         SystemPane.Visibility = system ? Visibility.Visible : Visibility.Collapsed;
         AboutPane.Visibility = about ? Visibility.Visible : Visibility.Collapsed;
 
-        var selected = (System.Windows.Media.Brush)FindResource("SubtleFillColorSecondaryBrush");
+        // TryFindResource, not FindResource: the theme dictionary hangs off the window, and this runs
+        // once from the constructor — before the page has a window to look up through. That pass leaves
+        // the highlight transparent and the Loaded pass paints it.
+        var selected = TryFindResource("SubtleFillColorSecondaryBrush") as System.Windows.Media.Brush
+                       ?? System.Windows.Media.Brushes.Transparent;
         var clear = System.Windows.Media.Brushes.Transparent;
         NavGeneral.Background = general ? selected : clear;
         NavDisplay.Background = display ? selected : clear;
@@ -156,10 +171,13 @@ internal partial class SettingsWindow : Window
         AccentSystem.Visibility = system ? Visibility.Visible : Visibility.Collapsed;
         AccentAbout.Visibility = about ? Visibility.Visible : Visibility.Collapsed;
 
-        // About and System information are read-only pages: hide Save and turn Cancel into a plain Close.
-        bool readOnly = about || system;
-        SaveButton.Visibility = readOnly ? Visibility.Collapsed : Visibility.Visible;
-        CancelButton.Content = readOnly ? L.T("settings.close") : L.T("settings.cancel");
+        // About and System information are read-only pages: hide Save and turn Cancel into a plain
+        // Close — there are no edits to discard there, and closing the shell is what the other two
+        // destinations' footers offer in the same corner.
+        _readOnlyPage = about || system;
+        SaveButton.Visibility = _readOnlyPage ? Visibility.Collapsed : Visibility.Visible;
+        CancelButton.Content = _readOnlyPage ? L.T("settings.close") : L.T("settings.cancel");
+        SavedText.Visibility = Visibility.Collapsed;   // the confirmation belongs to the page that saved
     }
 
     // Open a card's Tag URL in the default browser.
@@ -231,14 +249,45 @@ internal partial class SettingsWindow : Window
         }
 
         _onSave(_settings);
-        Close();
+        ConfirmSaved();
     }
 
-    private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
+    /// <summary>
+    /// Say the settings were applied, where the button that applied them is. Saving used to close the
+    /// window, which was the whole confirmation; inside a page that stays open, silence would be
+    /// indistinguishable from a click that missed.
+    /// </summary>
+    private void ConfirmSaved()
+    {
+        SavedText.Visibility = Visibility.Visible;
+        _savedFade ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        _savedFade.Stop();   // a second save restarts the three seconds rather than inheriting them
+        _savedFade.Tick -= HideSaved;
+        _savedFade.Tick += HideSaved;
+        _savedFade.Start();
+    }
+
+    private System.Windows.Threading.DispatcherTimer? _savedFade;
+
+    private void HideSaved(object? sender, EventArgs e)
+    {
+        _savedFade?.Stop();
+        SavedText.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>Set by <see cref="SelectPage"/> for About / System information, where the same button
+    /// reads "Close" and means the window rather than "Cancel" over edits that don't exist.</summary>
+    private bool _readOnlyPage;
+
+    private void Cancel_Click(object sender, RoutedEventArgs e)
+    {
+        if (_readOnlyPage) Window.GetWindow(this)?.Close();
+        else Cancelled?.Invoke();
+    }
 
     /// <summary>
     /// Render the window's content to a PNG at 1.5×, off-screen, without depending on it being visible
-    /// or foreground — the same deterministic path <c>StatisticsWindow.SaveSnapshot</c> takes, and for
+    /// or foreground — the same deterministic path <c>StatisticsPage.SaveSnapshot</c> takes, and for
     /// the same reason: the screen-copy capture script grabs whatever pixels are *on screen* in the
     /// window's rectangle, so any app that steals focus or sits on top ends up in the file. Behind
     /// <c>--capture-settings</c>.

@@ -194,15 +194,11 @@ internal static class Program
                 }
 
                 var contextApp = new System.Windows.Application();
-                // Topmost like the other previews: the capture script can't always take foreground
-                // (Windows refuses the steal when another app owns it), and a screen-copy of an
-                // occluded window is a screenshot of whatever covered it.
                 // A slug/name may follow the flags; --root's value must not be mistaken for one.
                 string? select = contextFlags.FirstOrDefault(f => !f.StartsWith("--") && f != windowRoot);
-                contextApp.Run(new ContextWindow(select)
+                var contextPage = new ContextPage(select)
                 {
                     ScanRoot = windowRoot,
-                    Topmost = true,
                     // `--scroll` opens on the source table instead of the gauge, so the rows can be
                     // screenshotted — the pane is taller than the screen at the default size.
                     PreviewScrollToTable = contextFlags.Contains("--scroll"),
@@ -212,6 +208,14 @@ internal static class Program
                     // `--demo-history` draws the drift row from a synthetic series, so the sparkline
                     // can be screenshotted before weeks of real history exist.
                     PreviewDemoHistory = contextFlags.Contains("--demo-history"),
+                };
+                // The page alone, without the shell's nav strip: this preview is about the page (see
+                // PageWindow). Topmost like the other previews — the capture script can't always take
+                // foreground (Windows refuses the steal when another app owns it), and a screen-copy of
+                // an occluded window is a screenshot of whatever covered it.
+                contextApp.Run(new PageWindow(contextPage, L.T("context.title"), 1000, 720, 880, 620)
+                {
+                    Topmost = true,
                 });
                 return;
             }
@@ -256,10 +260,37 @@ internal static class Program
             ApplicationConfiguration.Initialize();
             _ = new System.Windows.Application { ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown };
             WpfInputBridge.Install();
-            var trayHosted = new SettingsWindow(Settings.Load(), _ => { }, PageArg(args),
-                SampleProfiles(args), args.Contains("--reveal"));
+            var trayHosted = new PageWindow(
+                new SettingsPage(Settings.Load(), _ => { }, PageArg(args),
+                    SampleProfiles(args), args.Contains("--reveal")),
+                L.T("settings.title"), 880, 600, 760, 560);
             trayHosted.Show();
             trayHosted.Activate();
+            Application.Run();
+            return;
+        }
+
+        // Dev/preview helper: the **whole window** as the tray opens it — the nav strip over its three
+        // destinations — hosted under the WinForms pump with the input bridge, which is what the tray
+        // does (see UI convention 6). `--main [Statistics|Context|Settings]` opens on a destination.
+        if (args.Length >= 1 && args[0] == "--main")
+        {
+            ApplicationConfiguration.Initialize();
+            _ = new System.Windows.Application { ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown };
+            WpfInputBridge.Install();
+            long mainNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            // The same synthetic reading `--stats` uses, so the report has both verdicts on screen
+            // without depending on this machine's quota at the moment of the screenshot.
+            var mainSample = new PaceSnapshot(
+                Util5h: 0.72, Reset5h: mainNow + 2 * 3600,
+                Util7d: 0.38, Reset7d: mainNow + 3 * 86400);
+            Settings mainSettings = Settings.Load();
+            var shell = new MainWindow(mainSample, mainSettings.ShowRemaining, null,
+                () => mainSettings, _ => { });
+            shell.Statistics.SetProfiles(ClaudeAccount.Discover(mainSettings.Profiles));
+            shell.Navigate(args.Length >= 2 ? args[1] : MainWindow.DestStatistics);
+            shell.Show();
+            shell.Activate();
             Application.Run();
             return;
         }
@@ -272,18 +303,21 @@ internal static class Program
         if (args.Length >= 1 && args[0] == "--settings")
         {
             var previewApp = new System.Windows.Application();
-            var win = new SettingsWindow(Settings.Load(), _ => { }, PageArg(args),
+            var page = new SettingsPage(Settings.Load(), _ => { }, PageArg(args),
                 SampleProfiles(args), args.Contains("--reveal"));
-            previewApp.Run(win);
+            previewApp.Run(new PageWindow(page, L.T("settings.title"), 880, 600, 760, 560));
             return;
         }
 
-        // Dev/preview helper: open just the Statistics window, standalone, for the same
-        // launch-and-screenshot loop (see the preview-ui skill). Feeds a synthetic snapshot — a 5h
-        // session burning ahead of pace, a 7d week comfortably on track — so both verdicts render.
+        // Dev/preview helper: open just the Statistics page, standalone (no nav strip — see PageWindow),
+        // for the same launch-and-screenshot loop (see the preview-ui skill). Feeds a synthetic snapshot
+        // — a 5h session burning ahead of pace, a 7d week comfortably on track — so both verdicts render.
         if (args.Length >= 1 && args[0] == "--stats")
         {
             var previewApp = new System.Windows.Application();
+            // Every branch shows the same page in the same chrome; only what the page is fed differs.
+            static PageWindow Host(StatisticsPage page)
+                => new(page, L.T("stats.title"), 880, 948, 800, 740) { Topmost = true };
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             var sample = new PaceSnapshot(
                 Util5h: 0.72, Reset5h: now + 2 * 3600,      // 3h of 5h elapsed (60%), 72% used → ahead
@@ -301,23 +335,22 @@ internal static class Program
                 PaceSnapshot? fromDisk = UsageHistory.Latest(ProfileStore.Monitored) is { } h
                     ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d)
                     : null;
-                previewApp.Run(new StatisticsWindow(fromDisk, remaining) { Topmost = true });
+                previewApp.Run(Host(new StatisticsPage(fromDisk, remaining)));
             }
             else if (args.Length >= 2 && args[1].Equals("error", StringComparison.OrdinalIgnoreCase))
-                previewApp.Run(new StatisticsWindow(sample, remaining,
-                    "Your subscription payment is past due. Please pay your overdue invoice to restore access, or reach out to your company admin.")
-                { Topmost = true });
+                previewApp.Run(Host(new StatisticsPage(sample, remaining,
+                    "Your subscription payment is past due. Please pay your overdue invoice to restore access, or reach out to your company admin.")));
             else if (args.Length >= 2 && args[1].Equals("gapdemo", StringComparison.OrdinalIgnoreCase))
             {
                 // Deterministic preview of the recovered state: a hand-built report with a past data gap
                 // that has since recovered — no error banner, but the outage still marked red on the
                 // curve. Pass "ongoing" to also show the error banner (mid-outage).
                 bool ongoing = args.Length >= 3 && args[2].Equals("ongoing", StringComparison.OrdinalIgnoreCase);
-                var win = new StatisticsWindow(null) { Topmost = true };
-                win.Loaded += (_, _) => win.PreviewReport(PreviewCli.BuildGapDemoReport(now), ongoing
+                var page = new StatisticsPage(null);
+                page.Loaded += (_, _) => page.PreviewReport(PreviewCli.BuildGapDemoReport(now), ongoing
                     ? "Your subscription payment is past due. Please pay your overdue invoice to restore access, or reach out to your company admin."
                     : null);
-                previewApp.Run(win);
+                previewApp.Run(Host(page));
             }
             else if (args.Length >= 2 && args[1].Equals("shape", StringComparison.OrdinalIgnoreCase))
             {
@@ -331,34 +364,28 @@ internal static class Program
                     Util7d: 0.74, Reset7d: now + 3 * 86400);    // 4d of 7d elapsed, 74% used → runs out early
                 // "--stats shape ghost" also draws a synthetic previous week behind it: the real ghost
                 // needs two weeks of folded history, which a fresh machine hasn't got.
-                previewApp.Run(new StatisticsWindow(heavy, remaining)
+                previewApp.Run(Host(new StatisticsPage(heavy, remaining)
                 {
-                    Topmost = true,
                     PreviewDemoGhost = args.Any(a => a.Equals("ghost", StringComparison.OrdinalIgnoreCase)),
-                });
+                }));
             }
             // "--stats live" feeds the throughput strip a deterministic synthetic three minutes
             // instead of the real tail: the live row depends on whatever happens to be generating,
             // which cannot be screenshotted twice the same way.
             else if (args.Length >= 2 && args[1].Equals("live", StringComparison.OrdinalIgnoreCase))
             {
-                previewApp.Run(new StatisticsWindow(sample, remaining)
-                {
-                    Topmost = true,
-                    PreviewDemoLive = true,
-                });
+                previewApp.Run(Host(new StatisticsPage(sample, remaining) { PreviewDemoLive = true }));
             }
             // "--stats method" opens the window with the method popup already up. It is its own
             // top-level window, so --capture-stats (RenderTargetBitmap over the content) cannot see it;
             // this is the path that gets it on screen for the capture script.
             else if (args.Length >= 2 && args[1].Equals("method", StringComparison.OrdinalIgnoreCase))
             {
-                previewApp.Run(new StatisticsWindow(sample, remaining)
+                previewApp.Run(Host(new StatisticsPage(sample, remaining)
                 {
-                    Topmost = true,
                     PreviewDemoLive = true,
                     PreviewMethodOpen = true,
-                });
+                }));
             }
             else if (args.Length >= 2 && args[1].Equals("idle", StringComparison.OrdinalIgnoreCase))
             {
@@ -368,13 +395,13 @@ internal static class Program
                 var idle = new PaceSnapshot(
                     Util5h: 0.0, Reset5h: now + 5 * 3600,       // fresh/expired session, nothing used
                     Util7d: 0.38, Reset7d: now + 3 * 86400);    // week still has accumulated usage
-                previewApp.Run(new StatisticsWindow(idle, remaining) { Topmost = true });
+                previewApp.Run(Host(new StatisticsPage(idle, remaining)));
             }
             else
             {
-                var w = new StatisticsWindow(sample, remaining) { Topmost = true };
-                w.SetProfiles(ClaudeAccount.Discover(Settings.Load().Profiles));
-                previewApp.Run(w);
+                var page = new StatisticsPage(sample, remaining);
+                page.SetProfiles(ClaudeAccount.Discover(Settings.Load().Profiles));
+                previewApp.Run(Host(page));
             }
             return;
         }
@@ -394,8 +421,9 @@ internal static class Program
             {
                 ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
             };
-            var win = new SettingsWindow(Settings.Load(), _ => { }, page,
-                SampleProfiles(args), args.Contains("--reveal"))
+            var settingsPage = new SettingsPage(Settings.Load(), _ => { }, page,
+                SampleProfiles(args), args.Contains("--reveal"));
+            var win = new PageWindow(settingsPage, L.T("settings.title"), 880, 600, 760, 560)
             {
                 WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
                 Left = -32000,
@@ -405,13 +433,13 @@ internal static class Program
                 ThemeMode = System.Windows.ThemeMode.Dark,
             };
             win.Show();
-            if (profile >= 0) win.SelectProfileForPreview(profile);
+            if (profile >= 0) settingsPage.SelectProfileForPreview(profile);
 
             var settle = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             settle.Tick += (_, _) =>
             {
                 settle.Stop();
-                try { win.SaveSnapshot(outPath, scroll); Console.WriteLine("wrote " + outPath); }
+                try { settingsPage.SaveSnapshot(outPath, scroll); Console.WriteLine("wrote " + outPath); }
                 finally { previewApp.Shutdown(); }
             };
             settle.Start();
@@ -437,11 +465,14 @@ internal static class Program
             var sample = new PaceSnapshot(
                 Util5h: 0.72, Reset5h: now + 2 * 3600,
                 Util7d: heavyWeek ? 0.74 : 0.38, Reset7d: now + 3 * 86400);
-            var win = new StatisticsWindow(sample)
+            var statsPage = new StatisticsPage(sample)
             {
                 PreviewDemoGhost = args.Any(a => a.Equals("ghost", StringComparison.OrdinalIgnoreCase)),
                 // Deterministic live strip, so the captured PNG is stable across runs.
                 PreviewDemoLive = args.Any(a => a.Equals("live", StringComparison.OrdinalIgnoreCase)),
+            };
+            var win = new PageWindow(statsPage, L.T("stats.title"), 880, 948, 800, 740)
+            {
                 WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
                 Left = -32000,
                 Top = -32000,
@@ -449,12 +480,12 @@ internal static class Program
                 // so without this the snapshot renders dark-theme text over an unpainted background.
                 ThemeMode = System.Windows.ThemeMode.Dark,
             };
-            win.SetProfiles(ClaudeAccount.Discover(Settings.Load().Profiles));
+            statsPage.SetProfiles(ClaudeAccount.Discover(Settings.Load().Profiles));
             win.Show();
             // `profile=<n>` renders the window as another profile (T128), so the switch path is
             // captured rather than only the picker sitting there.
             if (ArgValue(args, "profile") is { } pn && int.TryParse(pn, out int pi))
-                win.SelectProfileForPreview(pi);
+                statsPage.SelectProfileForPreview(pi);
             // A fourth argument of "refresh" feeds a fresh reading in — the exact call the tray's poll
             // loop makes — and snapshots *while the recomputation is still in flight*. That is the window
             // a blanked pane would appear in, so the captured PNGs are the check for T118: content, not a
@@ -466,8 +497,8 @@ internal static class Program
             settle.Tick += (_, _) =>
             {
                 settle.Stop();
-                if (refresh) win.UpdateSnapshot(sample);
-                try { win.SaveAllTabs(outBase); Console.WriteLine("wrote " + outBase + "-5h.png / -7d.png / -throughput.png"); }
+                if (refresh) statsPage.UpdateSnapshot(sample);
+                try { statsPage.SaveAllTabs(outBase); Console.WriteLine("wrote " + outBase + "-5h.png / -7d.png / -throughput.png"); }
                 finally { previewApp.Shutdown(); }
             };
             settle.Start();

@@ -2,8 +2,8 @@ using System.Windows;
 
 namespace ClaudeTray;
 
-/// <summary>Part of <see cref="SettingsWindow"/> — one page per file, split out by T134, moved verbatim.</summary>
-internal partial class SettingsWindow : Window
+/// <summary>Part of <see cref="SettingsPage"/> — one page per file, split out by T134, moved verbatim.</summary>
+internal partial class SettingsPage
 {
     private void WeeklyMinSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         => UpdateWeeklyMinLabel();

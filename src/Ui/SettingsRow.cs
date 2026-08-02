@@ -10,7 +10,7 @@ namespace ClaudeTray;
 /// right. Lets the settings pages read as scannable label↔control pairs instead of stacked blocks.
 ///
 /// It is a lookless control: the visual tree lives in the implicit Style for this type in
-/// <c>SettingsWindow.xaml</c>. The trailing control is just this control's XAML child.
+/// <c>SettingsPage.xaml</c>. The trailing control is just this control's XAML child.
 /// </summary>
 internal sealed class SettingsRow : ContentControl
 {

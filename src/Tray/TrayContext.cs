@@ -18,7 +18,7 @@ internal sealed class TrayContext : ApplicationContext
     private readonly Updater _updater = new();
     // Not readonly: ApplySettings replaces the whole instance with a total copy of the edited one
     // (T141) instead of assigning field by field. The tray is the only holder of this reference — it is
-    // handed to SettingsWindow, which clones it — so a swap can't leave anyone reading a stale model.
+    // handed to SettingsPage, which clones it — so a swap can't leave anyone reading a stale model.
     private Settings _settings = Settings.Load();
     private volatile InsightsData? _insights;
     private readonly System.Windows.Forms.Timer _poll = new(); // interval set from settings
@@ -70,9 +70,9 @@ internal sealed class TrayContext : ApplicationContext
         };
         Render(); // initial "connecting" icon
 
-        // A left-click on the tray icon opens the Statistics window (the pace report). MouseClick with
-        // a left-button filter keeps the right-click context menu untouched.
-        _tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) OpenStatistics(); };
+        // A left-click on the tray icon opens the window on the pace report. MouseClick with a
+        // left-button filter keeps the right-click context menu untouched.
+        _tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) OpenMain(); };
 
         _poll.Interval = _settings.RefreshSeconds * 1000;
         _poll.Tick += async (_, _) => await RefreshAsync();
@@ -152,7 +152,7 @@ internal sealed class TrayContext : ApplicationContext
     // and no confetti (see ToastWindow.OnLoaded).
     private void NudgeContext(ContextProject project, int eager)
     {
-        int window = ContextScanner.ContextWindowFor(project.Observed?.Model);
+        int window = ContextScanner.ContextPageFor(project.Observed?.Model);
         double share = Math.Clamp((double)eager / window, 0, 1);
         double cost = eager * UsageInsights.Price(project.Observed?.Model ?? "").cw / 1_000_000.0;
 
@@ -183,6 +183,17 @@ internal sealed class TrayContext : ApplicationContext
     {
         var menu = new ContextMenuStrip();
 
+        // The one entry that opens the window (on the pace report, where a left-click on the icon also
+        // lands). Bold, because it is the menu's default action — and it is here at all because a
+        // left-click is not a route everyone has: the keyboard's context-menu key opens this list and
+        // nothing else. Statistics, Context and Settings used to be three entries opening three
+        // windows; they are now three destinations inside this one.
+        var open = new ToolStripMenuItem(L.T("menu.open"));
+        open.Click += (_, _) => OpenMain();
+        open.Font = new Font(menu.Font, FontStyle.Bold);
+        menu.Items.Add(open);
+        menu.Items.Add(new ToolStripSeparator());
+
         var showOn = new ToolStripMenuItem(L.T("menu.showOnIcon"));
         foreach (string key in Metrics)
         {
@@ -212,17 +223,6 @@ internal sealed class TrayContext : ApplicationContext
         insights.DropDownItems.Add(new ToolStripMenuItem(L.T("insights.loading")) { Enabled = false });
         menu.Items.Add(insights);
 
-        // Opens the pacing report: 5h-session and 7d-week usage vs. the clock, with a projection.
-        var stats = new ToolStripMenuItem(L.T("menu.statistics"));
-        stats.Click += (_, _) => OpenStatistics();
-        menu.Items.Add(stats);
-
-        // Opens the Context Load window: what every session in a project costs before the first
-        // prompt — the instruction chain, the memory index and the skill/agent index.
-        var context = new ToolStripMenuItem(L.T("menu.context"));
-        context.Click += (_, _) => OpenContext();
-        menu.Items.Add(context);
-
         var refresh = new ToolStripMenuItem(L.T("menu.refreshNow"));
         refresh.Click += async (_, _) => await RefreshAsync();
         menu.Items.Add(refresh);
@@ -240,10 +240,6 @@ internal sealed class TrayContext : ApplicationContext
         _updateItem = new ToolStripMenuItem(L.T("menu.updateAvailable")) { Visible = false, Font = new Font(menu.Font, FontStyle.Bold) };
         _updateItem.Click += (_, _) => { if (!_updating) _ = ApplyUpdateAsync(); };
         menu.Items.Add(_updateItem);
-
-        var settings = new ToolStripMenuItem(L.T("menu.settings"));
-        settings.Click += (_, _) => OpenSettings();
-        menu.Items.Add(settings);
 
         menu.Items.Add(new ToolStripSeparator());
 
@@ -281,11 +277,9 @@ internal sealed class TrayContext : ApplicationContext
         Render();
     }
 
-    // The settings and statistics windows are shown non-modally; keep references so we reuse an open
-    // one instead of stacking duplicates.
-    private SettingsWindow? _settingsWindow;
-    private StatisticsWindow? _statsWindow;
-    private ContextWindow? _contextWindow;
+    // The app's one window, shown non-modally; kept so a second open reuses it instead of stacking
+    // duplicates. Null while it is closed, which is the resident state — the tray runs without it.
+    private MainWindow? _window;
 
     // A WPF Application must exist before any WPF window (Settings, the reset toast) is shown on this
     // thread, for the Fluent theme and pack-URI resources to resolve. Hosted as a single instance for
@@ -302,69 +296,42 @@ internal sealed class TrayContext : ApplicationContext
             };
     }
 
-    // Open the settings window (non-modal); on Save it calls ApplySettings to persist and apply.
-    private void OpenSettings()
+    /// <summary>
+    /// Open the app's window (non-modal) on <paramref name="destination"/>, or bring the open one
+    /// forward and navigate it there. It carries the current live usage as its snapshot, so the pace
+    /// report reflects the same numbers the icon does.
+    ///
+    /// <para>One window and one entry point, where there used to be three of each. The pages the tray
+    /// itself has to reach into afterwards — the pacing report, which every poll pushes a reading
+    /// into — are reached through <see cref="MainWindow.Statistics"/>.</para>
+    /// </summary>
+    private void OpenMain(string destination = MainWindow.DestStatistics)
     {
-        if (_settingsWindow is not null)
+        if (_window is not null)
         {
-            if (_settingsWindow.WindowState == System.Windows.WindowState.Minimized)
-                _settingsWindow.WindowState = System.Windows.WindowState.Normal;
-            _settingsWindow.Activate();
+            if (_window.WindowState == System.Windows.WindowState.Minimized)
+                _window.WindowState = System.Windows.WindowState.Normal;
+            _window.Navigate(destination);
+            _window.Activate();
             return;
         }
 
         EnsureWpfApp();
 
-        _settingsWindow = new SettingsWindow(_settings, ApplySettings);
-        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
-        _settingsWindow.Show();
-        _settingsWindow.Activate();
-    }
-
-    // Open the Statistics window (non-modal) with the current live usage as its snapshot, so the pace
-    // report reflects the same numbers the icon does. Reuses an already-open window.
-    private void OpenStatistics()
-    {
-        if (_statsWindow is not null)
-        {
-            if (_statsWindow.WindowState == System.Windows.WindowState.Minimized)
-                _statsWindow.WindowState = System.Windows.WindowState.Normal;
-            _statsWindow.Activate();
-            return;
-        }
-
-        EnsureWpfApp();
-
-        // Only pass a snapshot when we have a good reading; otherwise the window shows a "connect" hint,
+        // Only pass a snapshot when we have a good reading; otherwise the page shows a "connect" hint,
         // or — on a live API error like a 403 — the API's own message so it isn't a blank page.
-        _statsWindow = new StatisticsWindow(CurrentSnapshot(), _settings.ShowRemaining, CurrentError());
-        _statsWindow.Closed += (_, _) => _statsWindow = null;
+        // The settings model is read through a callback rather than handed over: the page is built when
+        // it is first navigated to, which can be long after this, and by then a menu pick may have moved
+        // the icon's profile or the auto-follow toggle.
+        _window = new MainWindow(CurrentSnapshot(), _settings.ShowRemaining, CurrentError(),
+            () => _settings, ApplySettings);
+        _window.Closed += (_, _) => _window = null;
         // Offer the picker when there is more than one profile (T128). Monitored first, which is the one
-        // the window opens on and the only one a pushed reading may be applied to.
-        _statsWindow.SetProfiles(_watched);
-        _statsWindow.Show();
-        _statsWindow.Activate();
-    }
-
-    // Open the Context Load window (non-modal): the per-project eager/lazy breakdown of everything
-    // Claude Code loads before the first prompt. It scans on open, on its own background thread, so
-    // there is nothing to hand it here. Reuses an already-open window.
-    private void OpenContext()
-    {
-        if (_contextWindow is not null)
-        {
-            if (_contextWindow.WindowState == System.Windows.WindowState.Minimized)
-                _contextWindow.WindowState = System.Windows.WindowState.Normal;
-            _contextWindow.Activate();
-            return;
-        }
-
-        EnsureWpfApp();
-
-        _contextWindow = new ContextWindow();
-        _contextWindow.Closed += (_, _) => _contextWindow = null;
-        _contextWindow.Show();
-        _contextWindow.Activate();
+        // the report opens on and the only one a pushed reading may be applied to.
+        _window.Statistics.SetProfiles(_watched);
+        _window.Navigate(destination);
+        _window.Show();
+        _window.Activate();
     }
 
     // The reading the Statistics window charts from: the live one when healthy, otherwise the last good
@@ -446,7 +413,7 @@ internal sealed class TrayContext : ApplicationContext
         Render();
 
         // If the Statistics window is open, flip its used/remaining framing to match right away.
-        _statsWindow?.SetShowRemaining(_settings.ShowRemaining);
+        _window?.Statistics.SetShowRemaining(_settings.ShowRemaining);
 
         // Offer to restart so the new language applies immediately; the saved preference is read back
         // on the next launch either way.
@@ -877,7 +844,7 @@ internal sealed class TrayContext : ApplicationContext
         Render();
         // Push the fresh reading into an open Statistics window so it auto-refreshes on the same
         // cadence as the icon, rather than staying frozen until the user clicks Refresh.
-        _statsWindow?.UpdateSnapshot(CurrentSnapshot(), CurrentError());
+        _window?.Statistics.UpdateSnapshot(CurrentSnapshot(), CurrentError());
         RecomputeInsights();
         AdjustForAuthState();
 

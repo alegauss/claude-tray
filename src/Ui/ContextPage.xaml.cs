@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 
 // WinForms and WPF each contribute a Brush / Color / Orientation / HorizontalAlignment; pin these
-// names to the WPF ones the gauge is drawn with (same convention as StatisticsWindow).
+// names to the WPF ones the gauge is drawn with (same convention as StatisticsPage).
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using CheckBox = System.Windows.Controls.CheckBox;
@@ -14,7 +14,8 @@ using Orientation = System.Windows.Controls.Orientation;
 namespace ClaudeTray;
 
 /// <summary>
-/// The Context Load window: what opening a session in a project costs before the first prompt.
+/// The Context Load page (a destination of <see cref="MainWindow"/>): what opening a session in a
+/// project costs before the first prompt.
 /// Master/detail — every <c>~/.claude/projects</c> directory on the left, heaviest first, and on the
 /// right what the selected one loads, source by source, split into what is paid every request (eager)
 /// and what is only paid when used (lazy).
@@ -27,7 +28,7 @@ namespace ClaudeTray;
 /// Privacy (the app's standing promise): paths, sizes, timestamps and token estimates only. No file
 /// contents are shown here, and nothing leaves the machine.
 /// </summary>
-internal partial class ContextWindow : Window
+internal partial class ContextPage : System.Windows.Controls.UserControl
 {
     private readonly string? _initialSelection;
     private bool _scanning;
@@ -88,7 +89,7 @@ internal partial class ContextWindow : Window
     internal string? ScanRoot { get; set; }
 
     /// <param name="selectSlug">Project to open on (slug, directory name or path); null = the heaviest.</param>
-    public ContextWindow(string? selectSlug = null)
+    public ContextPage(string? selectSlug = null)
     {
         InitializeComponent();
         _initialSelection = selectSlug;
@@ -98,16 +99,30 @@ internal partial class ContextWindow : Window
         // wired straight to the selection.
         SortBox.SelectionChanged += (_, _) => { if (IsLoaded) ShowSelected(); };
         RescanButton.Click += (_, _) => StartScan();
-        CloseButton.Click += (_, _) => Close();
+        // Close means the shell: a destination has nothing of its own to close.
+        CloseButton.Click += (_, _) => Window.GetWindow(this)?.Close();
         SimClearButton.Click += (_, _) => { _simulated.Clear(); ShowSelected(); };
         CopyPromptButton.Click += (_, _) => CopyCleanupPrompt(projectScope: true);
         AllCopyPromptButton.Click += (_, _) => CopyCleanupPrompt(projectScope: false);
+        // The scan and the watcher start when the page is first put on screen, which is the first
+        // navigation to this destination rather than the moment the shell opens (the shell builds a
+        // destination lazily, so opening the tray icon on Statistics costs no ~/.claude walk at all).
         Loaded += (_, _) =>
         {
             StartScan();
             StartWatching();
         };
-        Closed += (_, _) => StopWatching();
+        Unloaded += (_, _) => StopWatching();
+        // Navigating to another destination collapses this page but keeps it alive, and a watcher over
+        // ~/.claude that re-scans on every memory write is not something to leave running behind a page
+        // nobody is looking at. Coming back re-scans, so the numbers are current rather than as old as
+        // the last visit — the same claim the watcher makes while the page *is* on screen.
+        IsVisibleChanged += (_, _) =>
+        {
+            if (!IsLoaded) return;   // the first show is the Loaded handler's, not this one's
+            if (IsVisible) { StartScan(); StartWatching(); }
+            else StopWatching();
+        };
     }
 
     /// <summary>
@@ -122,6 +137,7 @@ internal partial class ContextWindow : Window
     /// </summary>
     private void StartWatching()
     {
+        if (_watcher is not null) return;   // called again on every return to this destination
         try
         {
             string root = ScanRoot ?? ContextScanner.DefaultClaudeRoot;
@@ -641,9 +657,7 @@ internal partial class ContextWindow : Window
         {
             // The clipboard can genuinely be locked by another process; say so rather than silently
             // doing nothing.
-            System.Windows.MessageBox.Show(this, L.T("context.fix.copyFailed", ex.Message),
-                L.T("dialog.appName"), System.Windows.MessageBoxButton.OK,
-                System.Windows.MessageBoxImage.Warning);
+            Warn(L.T("context.fix.copyFailed", ex.Message));
         }
     }
 
@@ -697,10 +711,20 @@ internal partial class ContextWindow : Window
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(this, L.T("context.actionFailed", row.Label, ex.Message),
-                L.T("dialog.appName"), System.Windows.MessageBoxButton.OK,
-                System.Windows.MessageBoxImage.Warning);
+            Warn(L.T("context.actionFailed", row.Label, ex.Message));
         }
+    }
+
+    /// <summary>A warning owned by whichever window this page is in — a page cannot own a dialog, and an
+    /// ownerless message box can end up behind the window that raised it.</summary>
+    private void Warn(string message)
+    {
+        if (Window.GetWindow(this) is { } owner)
+            System.Windows.MessageBox.Show(owner, message, L.T("dialog.appName"),
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+        else
+            System.Windows.MessageBox.Show(message, L.T("dialog.appName"),
+                System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
     }
 
     // ---------------------------------------------------------------- the session-zero gauge
