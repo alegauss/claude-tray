@@ -172,6 +172,26 @@ internal sealed class ActivityProfile
     /// <summary>Folded days behind <see cref="Measured"/>.</summary>
     public int MeasuredDays;
 
+    /// <summary>Folded weeks dropped as time away rather than time worked (T152) — the measured half of
+    /// what <see cref="ExcludedWeeks"/> reports for the transcripts. Inside <see cref="MeasuredWeeks"/>,
+    /// which is a span, and subtracted from it by <see cref="EffectiveWeeks"/>.</summary>
+    public int MeasuredExcludedWeeks;
+
+    /// <summary>Active hours in the median well-covered folded week — the yardstick
+    /// <see cref="MeasuredExcludedWeeks"/> was measured against, 0 when the test could not run.</summary>
+    public double MeasuredMedianWeekHours;
+
+    /// <summary>Active hours per folded week, newest first, with the two parallel verdicts: which weeks
+    /// had enough coverage to be judged at all, and which of those were dropped. Kept for the same
+    /// reason <see cref="WeekHours"/> is — "one week excluded" is unfalsifiable without them.</summary>
+    public int[] MeasuredWeekHours = Array.Empty<int>();
+
+    /// <inheritdoc cref="MeasuredWeekHours"/>
+    public bool[] MeasuredWeekCovered = Array.Empty<bool>();
+
+    /// <inheritdoc cref="MeasuredWeekHours"/>
+    public bool[] MeasuredWeekAway = Array.Empty<bool>();
+
     /// <summary>Mean of <see cref="MeasuredWeight"/> — the share of the whole grid now taken from what
     /// the rate limit recorded. The UI's method note is worded off this: the local-transcript blind
     /// spot stops being true to the degree this dominates, and a stale disclaimer is its own kind of
@@ -200,6 +220,11 @@ internal sealed class ActivityProfile
             HourlyUsage.MeasuredWeek m = HourlyUsage.MeasuredProfile(profileKey, nowLocal);
             MeasuredWeeks = m.Weeks;
             MeasuredDays = m.Days;
+            MeasuredExcludedWeeks = m.Excluded;
+            MeasuredMedianWeekHours = m.Median;
+            MeasuredWeekHours = m.WeekHours;
+            MeasuredWeekCovered = m.WeekCovered;
+            MeasuredWeekAway = m.WeekAway;
             if (m.Days == 0) return;
 
             var inferred = (double[])P.Clone();
@@ -270,8 +295,11 @@ internal sealed class ActivityProfile
     ///
     /// <para>Weeks away are subtracted (T95), not merely skipped: a two-week holiday inside a
     /// four-week history leaves two weeks of evidence, and a confidence gate told otherwise would let
-    /// the shape be drawn on a sample that no longer supports it.</para></summary>
-    public double EffectiveWeeks => Math.Max(Math.Max(CoverageWeeks - ExcludedWeeks, 0), MeasuredWeeks);
+    /// the shape be drawn on a sample that no longer supports it. From <em>both</em> sources since
+    /// T152 — a holiday is a holiday whether it was noticed in the transcripts or in the folded
+    /// readings, and the source with more weeks left is the one that answers.</para></summary>
+    public double EffectiveWeeks => Math.Max(Math.Max(CoverageWeeks - ExcludedWeeks, 0),
+                                             Math.Max(MeasuredWeeks - MeasuredExcludedWeeks, 0));
 
     /// <summary>Enough weeks behind the shape to project along it rather than along a slope.</summary>
     public bool Confident => EffectiveWeeks >= ConfidentWeeks;

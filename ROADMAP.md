@@ -27,11 +27,10 @@
 > the point: they came from having to state what "correct" means.
 > Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XII.
 >
-> What remains are the two accuracy/coverage tasks. (T150 — the number that was wrong on screen — and
-> T151 — the check running on push rather than only at release — shipped first, in that order; see
-> [CHANGELOG.md](CHANGELOG.md) Block V.)
+> What remains is the coverage task. (T150 — the number that was wrong on screen — T151 — the check
+> running on push rather than only at release — and T152 — the away-week exclusion reaching the
+> measured grid — shipped first, in that order; see [CHANGELOG.md](CHANGELOG.md) Block V.)
 
-- 📋 **T152** (deps: —) **A week away shouldn't teach the measured grid either** — T95 excludes away weeks from the transcript grid only, so a holiday still votes "these hours are idle" in the folded store — and as the measured share grows that becomes the dominant vote. Resolvable because the store already separates *unknown* from *idle*: judge a week only once it is known to have been observed. → §XII.2
 - 📋 **T153** (deps: —) **Two properties the self-check still doesn't cover** — the tail's primed-offset alignment (the fixture files are too small to ever start mid-line) and the rate's zero-fill on a paused caller (no seam to feed `LiveRate` without a real tail). Both were named in the design that justified building `--selftest`. → §XII.3
 
 ## Non-goals (do NOT add as tasks)

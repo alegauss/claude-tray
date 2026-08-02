@@ -106,26 +106,9 @@ Building `--selftest` (T96) was the first time the pacing and live-rate arithmet
 properties rather than looked at on a chart, and writing them down turned up four things: three gaps
 in what the check itself covers or guards, and one number that had been wrong on screen since T98.
 None of them was found by a user report, which is the point: they were found by having to state what
-"correct" means. Two have shipped — T150, the live rate's 1.7% kernel bias, and T151, the check running
-on push instead of only at release — so what is designed below is the remaining pair: what the check
-still gets wrong about a week away, and two properties it does not assert at all.
-
-### §XII.2 A week away shouldn't teach the measured grid either (T152)
-
-T95 drops weeks the user was away from the **transcript** grid's vote. The measured grid (T88, blended
-in by T93) still counts every folded hour, so the same holiday still votes "these hours are idle" —
-and as the measured share grows, that becomes the *dominant* vote rather than a softened one.
-
-It was deferred out of T95 for a stated reason: a low-activity week in the folded store is ambiguous
-between "away" and "the app was closed". That ambiguity is resolvable rather than fundamental, and the
-store already holds what resolves it — an hour with no reading is *unknown* and is already outside the
-denominator, so a week can be judged only once it is known to have been **observed**. The test
-therefore needs two conditions where the transcript one needed a single one: a week is away when it is
-well covered (a majority of its hours have readings) *and* its active-hour count falls under
-`AwayFraction` of the median covered week's. Weeks that fail the coverage test are not evidence either
-way and must keep contributing exactly what they contribute today. `--activity --measured` should
-print the exclusion the same way `--activity` prints the transcript one, and for the same reason:
-silently discarding a sixth of the input is what looks like a bug three months later.
+"correct" means. Three have shipped — T150, the live rate's 1.7% kernel bias; T151, the check running on
+push instead of only at release; and T152, the away-week exclusion reaching the measured grid — so what
+is designed below is the last of them: two properties the check does not assert at all.
 
 ### §XII.3 Two properties the self-check still doesn't cover (T153)
 

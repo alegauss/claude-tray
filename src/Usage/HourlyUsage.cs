@@ -45,6 +45,13 @@ internal static class HourlyUsage
     /// week's quota is a couple of real requests — below it, a stray keepalive shouldn't count.</summary>
     public const double ActiveSpendThreshold = 0.001;
 
+    /// <summary>Share of a week's 168 hours that must carry a reading before the week may be judged a
+    /// week <em>away</em> (T152). Below it the week is not evidence either way: a folded week can be
+    /// quiet because nobody worked or because the tray was not running to see it, and only coverage
+    /// tells the two apart. Half is the same bar <see cref="MinGhostCoverage"/> sets for drawing a
+    /// previous week at all, and for the same reason.</summary>
+    public const double MinAwayWeekCoverage = 0.5;
+
     /// <summary>Per profile (T125) — see <see cref="ProfileStore"/>. This store is permanent, so a
     /// second account folded into it would skew the measured week for good.</summary>
     public static string FilePath(string profileKey) =>
@@ -118,7 +125,8 @@ internal static class HourlyUsage
     ///
     /// An hour counts as active only if it was <em>covered</em> (at least one reading) and spent at
     /// least <see cref="ActiveSpendThreshold"/>; uncovered hours are left out of the denominator
-    /// entirely, so days the app was closed dilute nothing.
+    /// entirely, so days the app was closed dilute nothing. A whole week the user was away is dropped
+    /// the same way the transcript grid drops one — see <see cref="WeeksAway"/> (T152).
     /// </summary>
     /// <summary>
     /// The measured week, plus how much it may be trusted <em>bucket by bucket</em>.
@@ -135,25 +143,51 @@ internal static class HourlyUsage
     /// absence of evidence; the caller (T94) shrinks toward 1 rather than reading it as light.</param>
     /// <param name="Active">Decayed weeks in which that bucket was observed <em>active</em> — the
     /// sample size behind <paramref name="Intensity"/>, and always ≤ <paramref name="Observed"/>.</param>
+    /// <param name="Excluded">Weeks dropped as time away rather than time worked (T152). They are
+    /// inside <paramref name="Weeks"/>, which is a span, and out of everything else here.</param>
+    /// <param name="Median">Active hours in the median <em>well-covered</em> week — the yardstick
+    /// <paramref name="Excluded"/> was measured against, 0 when the test could not run.</param>
+    /// <param name="WeekHours">Active hours per week, newest first — the input to the away test, so
+    /// "one week excluded" can be checked against the weeks it dropped rather than taken on faith.</param>
+    /// <param name="WeekReadings">Parallel to <paramref name="WeekHours"/>: hours of that week that
+    /// carry a reading at all, out of 168. This is what the coverage gate tests, so printing it is what
+    /// makes "too little coverage to judge" checkable rather than merely asserted.</param>
+    /// <param name="WeekCovered">Parallel to <paramref name="WeekHours"/>: which weeks had enough
+    /// coverage to be judged at all. An uncovered week is never excluded and never in the median.</param>
+    /// <param name="WeekAway">Parallel to <paramref name="WeekHours"/>: which weeks were dropped.</param>
     internal readonly record struct MeasuredWeek(double[] P, double[] Observed, double Weeks, int Days,
-        double[] Intensity, double[] Active);
+        double[] Intensity, double[] Active, int Excluded, double Median,
+        int[] WeekHours, int[] WeekReadings, bool[] WeekCovered, bool[] WeekAway);
 
     /// <returns>The grid, its per-bucket evidence, the number of weeks it draws on, and how many
     /// folded days were used.</returns>
     public static MeasuredWeek MeasuredProfile(string profileKey, DateTime nowLocal)
     {
-        var p = new double[ActivityProfile.Buckets];
-        var active = new double[ActivityProfile.Buckets];
-        var observed = new double[ActivityProfile.Buckets];
+        int buckets = ActivityProfile.Buckets;
+        var p = new double[buckets];
+        var active = new double[buckets];
+        var observed = new double[buckets];
         // Quota spent in the hours that counted as active, so the mean below is per *active* hour:
         // dividing by every observed hour would just re-measure p(active) a second time.
-        var spent = new double[ActivityProfile.Buckets];
-        var intensity = new double[ActivityProfile.Buckets];
+        var spent = new double[buckets];
+        var intensity = new double[buckets];
+        int[] noHours = Array.Empty<int>();
+        bool[] noWeeks = Array.Empty<bool>();
 
         List<HourlyDay> days = Load(profileKey);
-        if (days.Count == 0) return new MeasuredWeek(p, observed, 0, 0, intensity, active);
+        if (days.Count == 0)
+            return new MeasuredWeek(p, observed, 0, 0, intensity, active, 0, 0,
+                                    noHours, noHours, noWeeks, noWeeks);
 
-        int used = 0;
+        // Read the store into weeks first, rather than straight into the grid, because the away test
+        // (T152) is a statement about a whole week and cannot be made one hour at a time. The weeks are
+        // the same rolling `[now − 7(w+1)d, now − 7w d)` windows the transcript grid uses, so each holds
+        // exactly one occurrence of every bucket and two weeks' hour counts are directly comparable.
+        int maxWeeks = ActivityProfile.MaxWeeks;
+        var seen = new bool[maxWeeks, buckets];      // an hour with a reading — covered, whatever it spent
+        var worked = new bool[maxWeeks, buckets];    // …and it spent enough to count as active
+        var spend = new double[maxWeeks, buckets];
+        int used = 0, weeks = 0;
         double oldest = 0;
         foreach (HourlyDay d in days)
         {
@@ -164,23 +198,43 @@ internal static class HourlyUsage
 
                 DateTime at = d.Date.AddHours(h);
                 int week = (int)((nowLocal - at).TotalDays / 7);
-                if (week < 0 || week >= ActivityProfile.MaxWeeks) continue;
+                if (week < 0 || week >= maxWeeks) continue;
 
-                double weight = Math.Pow(ActivityProfile.WeekDecay, week);
                 int b = ActivityProfile.Index(at.DayOfWeek, h);
-                observed[b] += weight;
-                if (d.Spend[h] >= ActiveSpendThreshold) { active[b] += weight; spent[b] += weight * d.Spend[h]; }
+                seen[week, b] = true;
+                if (d.Spend[h] >= ActiveSpendThreshold) { worked[week, b] = true; spend[week, b] = d.Spend[h]; }
 
                 counted = true;
+                weeks = Math.Max(weeks, week + 1);
                 oldest = Math.Max(oldest, (nowLocal - at).TotalDays);
             }
             if (counted) used++;
         }
 
+        bool[] away = WeeksAway(seen, worked, weeks, out double median,
+                                out int[] weekHours, out int[] weekReadings, out bool[] covered);
+        int excluded = 0;
+        foreach (bool a in away) if (a) excluded++;
+
+        // Only the weeks that are evidence about *which hours are worked* reach the grid. A dropped week
+        // leaves no weight behind it, exactly as on the transcript side: removing evidence has to weaken
+        // the bucket rather than hand its vote to the weeks that remain.
+        for (int w = 0; w < weeks; w++)
+        {
+            if (away[w]) continue;
+            double weight = Math.Pow(ActivityProfile.WeekDecay, w);
+            for (int b = 0; b < buckets; b++)
+            {
+                if (!seen[w, b]) continue;
+                observed[b] += weight;
+                if (worked[w, b]) { active[b] += weight; spent[b] += weight * spend[w, b]; }
+            }
+        }
+
         // The reference is the mean over every active hour anywhere in the week, weighted the same
         // way — so the grid is unitless and a week that simply spends more moves no bucket.
         double totalSpent = 0, totalActive = 0;
-        for (int b = 0; b < ActivityProfile.Buckets; b++)
+        for (int b = 0; b < buckets; b++)
         {
             p[b] = observed[b] > 0 ? active[b] / observed[b] : 0;
             totalSpent += spent[b];
@@ -189,11 +243,71 @@ internal static class HourlyUsage
 
         double mean = totalActive > 0 ? totalSpent / totalActive : 0;
         if (mean > 0)
-            for (int b = 0; b < ActivityProfile.Buckets; b++)
+            for (int b = 0; b < buckets; b++)
                 if (active[b] > 0) intensity[b] = spent[b] / active[b] / mean;
 
-        return new MeasuredWeek(p, observed, Math.Min(oldest / 7.0, ActivityProfile.MaxWeeks), used,
-            intensity, active);
+        return new MeasuredWeek(p, observed, Math.Min(oldest / 7.0, maxWeeks), used,
+            intensity, active, excluded, median, weekHours, weekReadings, covered, away);
+    }
+
+    /// <summary>
+    /// Which folded weeks were weeks <em>away</em> rather than weeks worked differently (T152) — the
+    /// measured half of the test T95 gave the transcript grid.
+    ///
+    /// <para>It is the same test in the same currency (active hours against the median week's), and it
+    /// matters more here than there: the measured grid takes over bucket by bucket as it earns coverage
+    /// (T93), so as the store grows a holiday inside it goes from softening the vote to <em>being</em>
+    /// the vote.</para>
+    ///
+    /// <para>What T95 deferred was the ambiguity: a quiet folded week can mean the user was away or that
+    /// the tray was not running to see it, and the second must not be read as the first. The store
+    /// already separates them — an hour with no reading is <em>unknown</em> and is outside the
+    /// denominator — so the condition is simply two conditions instead of one. A week is judged only
+    /// once at least <see cref="MinAwayWeekCoverage"/> of its 168 hours carry a reading, and it is
+    /// dropped only if it is judged <em>and</em> under <see cref="ActivityProfile.AwayFraction"/> of the
+    /// median judged week's active hours. Weeks that fail the coverage test are not evidence either way:
+    /// they are not in the median, are never dropped, and go on contributing exactly what they
+    /// contributed before this existed.</para>
+    /// </summary>
+    /// <param name="median">Active hours in the median judged week — 0 when the test could not run.</param>
+    /// <param name="hours">Active hours per week, newest first, whether or not the test ran.</param>
+    /// <param name="readings">Parallel: hours of each week that carry a reading, out of 168.</param>
+    /// <param name="covered">Parallel: which weeks were covered enough to be judged.</param>
+    private static bool[] WeeksAway(bool[,] seen, bool[,] worked, int weeks,
+                                    out double median, out int[] hours, out int[] readings, out bool[] covered)
+    {
+        int buckets = ActivityProfile.Buckets;
+        var away = new bool[weeks];
+        hours = new int[weeks];
+        readings = new int[weeks];
+        covered = new bool[weeks];
+        median = 0;
+
+        var judged = new List<int>();
+        for (int w = 0; w < weeks; w++)
+        {
+            for (int b = 0; b < buckets; b++)
+            {
+                if (seen[w, b]) readings[w]++;
+                if (worked[w, b]) hours[w]++;
+            }
+            covered[w] = readings[w] >= MinAwayWeekCoverage * buckets;
+            if (covered[w]) judged.Add(hours[w]);
+        }
+
+        // The same floor T95 sets, counted over judged weeks only: with three of them the median is one
+        // of them, and dropping the quieter ones is not evidence handling but wishful thinking.
+        if (judged.Count < ActivityProfile.MinWeeksToExclude) return away;
+
+        judged.Sort();
+        median = judged.Count % 2 == 1
+            ? judged[judged.Count / 2]
+            : (judged[judged.Count / 2 - 1] + judged[judged.Count / 2]) / 2.0;
+        if (median <= 0) return away;
+
+        double floor = ActivityProfile.AwayFraction * median;
+        for (int w = 0; w < weeks; w++) away[w] = covered[w] && hours[w] < floor;
+        return away;
     }
 
     /// <summary>Last week's burn-up, ready to draw behind this week's.</summary>

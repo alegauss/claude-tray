@@ -162,6 +162,9 @@ internal static class SelfTestCli
         Check("weeks away are subtracted from the confidence gate",
               !new ActivityProfile { CoverageWeeks = 4, ExcludedWeeks = 2 }.Confident,
               $"4 weeks − 2 away is under {ActivityProfile.ConfidentWeeks:0.0}");
+        Check("the measured span is subtracted the same way (T152)",
+              !new ActivityProfile { MeasuredWeeks = 5, MeasuredExcludedWeeks = 3 }.Confident,
+              $"5 folded weeks − 3 away is under {ActivityProfile.ConfidentWeeks:0.0}");
     }
 
     // ---------------------------------------------------------------- Block K: the rate kernel
@@ -277,6 +280,36 @@ internal static class SelfTestCli
         Check("an hour observed but never active stays exactly ordinary",
               prof.IntensityAt(HeavyHour.AddHours(5)) == 1.0,
               "no evidence is not 'a light hour'");
+
+        // T152: the away-week exclusion, on the measured side. Six weeks, newest first — four ordinary,
+        // one well covered but nearly idle (the holiday), and one whose readings cover too little of it
+        // to say anything either way (the tray was closed for half of it).
+        WriteStore(FoldedWeeks(new[] { (24, 8), (24, 8), (24, 8), (24, 1), (24, 8), (12, 0) }));
+        HourlyUsage.MeasuredWeek m = HourlyUsage.MeasuredProfile(ProfileKey, DateTime.Now);
+        string weeks = string.Join(", ", m.WeekHours.Select((h, i) =>
+            $"{h}h{(m.WeekAway[i] ? "*" : m.WeekCovered[i] ? "" : "?")}"));
+
+        Check("the folded holiday is excluded from the measured grid", m.Excluded == 1,
+              $"{m.Excluded} excluded of [{weeks}], median {m.Median:0.#}h");
+        Check("a week too thinly covered to judge is not excluded",
+              !m.WeekCovered[5] && !m.WeekAway[5],
+              "half a week of readings cannot tell a holiday from a closed tray");
+        Check("the median well-covered week is never excluded",
+              m.WeekHours.Where((_, i) => m.WeekCovered[i] && !m.WeekAway[i]).DefaultIfEmpty(0).Max() >= m.Median);
+
+        // The excluded week leaves no weight behind it, and the unjudged one keeps every bit of the
+        // weight it had — which is the whole difference between the two verdicts.
+        int b3 = ActivityProfile.Index(DateTime.Today.AddDays(-2).DayOfWeek, 3);
+        double kept = 1 + 0.8 + 0.64 + Math.Pow(0.8, 4) + Math.Pow(0.8, 5);
+        Near("an excluded week's hours are out of the measured evidence", m.Observed[b3], kept, 1e-9);
+        Near("an unjudged quiet week still votes", m.P[b3], (kept - Math.Pow(0.8, 5)) / kept, 1e-9);
+
+        // The same guard the transcript side has, counted over the weeks that can be judged: with three
+        // of them the median is one of them.
+        WriteStore(FoldedWeeks(new[] { (24, 8), (24, 8), (24, 1) }));
+        HourlyUsage.MeasuredWeek thin = HourlyUsage.MeasuredProfile(ProfileKey, DateTime.Now);
+        Check($"under {ActivityProfile.MinWeeksToExclude} well-covered weeks nothing is excluded",
+              thin.Excluded == 0, $"{thin.Excluded} excluded");
     }
 
     // ---------------------------------------------------------------- Block J: the sweep
@@ -494,6 +527,35 @@ internal static class SelfTestCli
             }
             days.Add(new HourlyDay(date.Year * 10000 + date.Month * 100 + date.Day, spend, count));
         }
+        return days;
+    }
+
+    /// <summary>
+    /// Whole folded weeks, newest first: per week, how many hours of each day carry a reading and how
+    /// many of those spent enough to count as active.
+    ///
+    /// <para>Four days per week rather than seven, at days 2–5 back from each week's start. The week a
+    /// folded hour belongs to is <c>(now − then)/7</c>, so an hour at the very edge of a week can be
+    /// pushed across it by the time of day the check happens to run — or by a DST change. Both ends are
+    /// kept a full day clear of the boundary instead, which costs nothing here: the test is about how
+    /// many hours a week holds, not about which day they fall on.</para>
+    /// </summary>
+    private static List<HourlyDay> FoldedWeeks((int covered, int active)[] weeks)
+    {
+        var days = new List<HourlyDay>();
+        for (int w = 0; w < weeks.Length; w++)
+            for (int d = 2; d <= 5; d++)
+            {
+                DateTime date = DateTime.Today.AddDays(-7 * w - d);
+                var spend = new double[24];
+                var count = new int[24];
+                for (int h = 0; h < weeks[w].covered; h++)
+                {
+                    count[h] = 3;
+                    spend[h] = h < weeks[w].active ? 0.004 : 0;
+                }
+                days.Add(new HourlyDay(date.Year * 10000 + date.Month * 100 + date.Day, spend, count));
+            }
         return days;
     }
 

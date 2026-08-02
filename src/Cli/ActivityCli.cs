@@ -54,12 +54,12 @@ internal static class ActivityCli
         // later, so the exclusion is printed whether or not it fired — and with the yardstick, since
         // "1 week excluded" is unfalsifiable without the median it was measured against.
         if (prof.ExcludedWeeks > 0)
-            Console.WriteLine($"weeks away: {prof.ExcludedWeeks} excluded from the vote — under " +
+            Console.WriteLine($"weeks away (transcripts): {prof.ExcludedWeeks} excluded from the vote — under " +
                               $"{ActivityProfile.AwayFraction * 100:0}% of the median week's " +
                               $"{prof.MedianWeekHours:0.#} active hours, so evidence of being elsewhere " +
                               "rather than of which hours are worked");
         else
-            Console.WriteLine($"weeks away: none excluded" +
+            Console.WriteLine($"weeks away (transcripts): none excluded" +
                               (prof.MedianWeekHours > 0
                                   ? $" — every week is at least {ActivityProfile.AwayFraction * 100:0}% of the " +
                                     $"median week's {prof.MedianWeekHours:0.#} active hours"
@@ -160,6 +160,34 @@ internal static class ActivityCli
             Console.WriteLine("its 8-day retention, so this fills in from about a week of running the tray.");
             Console.WriteLine("(`--activity --fold` folds every complete day currently in the raw log now.)");
             return;
+        }
+
+        // The measured half of the away-week exclusion (T152), printed for the same reason the
+        // transcript one is: as the store takes over bucket by bucket, silently dropping a week of it
+        // is exactly what looks like a bug three months later. Two verdicts per week, not one — a week
+        // too thinly covered to judge is not evidence either way and is never dropped.
+        if (m.Excluded > 0)
+            Console.WriteLine($"weeks away (measured): {m.Excluded} excluded from the grid — under " +
+                              $"{ActivityProfile.AwayFraction * 100:0}% of the median well-covered week's " +
+                              $"{m.Median:0.#} active hours");
+        else
+            Console.WriteLine("weeks away (measured): none excluded" +
+                              (m.Median > 0
+                                  ? $" — every well-covered week is at least {ActivityProfile.AwayFraction * 100:0}% " +
+                                    $"of the median one's {m.Median:0.#} active hours"
+                                  : $" — fewer than {ActivityProfile.MinWeeksToExclude} weeks have readings for " +
+                                    $"{HourlyUsage.MinAwayWeekCoverage * 100:0}% of their hours, too little " +
+                                    "coverage to tell a holiday from a week the tray was closed"));
+
+        if (m.WeekHours.Length > 0)
+        {
+            var weekly = new List<string>();
+            for (int w = 0; w < m.WeekHours.Length; w++)
+                weekly.Add($"{m.WeekHours[w]}h/{m.WeekReadings[w]}c" +
+                           (m.WeekAway[w] ? "*" : m.WeekCovered[w] ? "" : "?"));
+            Console.WriteLine($"  active/covered hours per week (newest first): {string.Join("  ", weekly)}");
+            Console.WriteLine($"  (of 168 hours; judged from {ActivityProfile.MinWeeksToExclude} weeks covering " +
+                              $"{HourlyUsage.MinAwayWeekCoverage * 168:0}+ hours each — * excluded, ? not judged)");
         }
 
         Console.WriteLine();
