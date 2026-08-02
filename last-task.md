@@ -29,8 +29,15 @@
   1.7% kernel bias) that has been wrong on screen since T98 and that nobody could have seen without
   writing the property down. It is a new block rather than a Block J or K second pass because both are
   closed and pruned, and because the theme is the *check itself* rather than either feature.
-  Its design section is **§XII**: §II and §IV–§XI have all been retired, and section numbers are never
+  Its design section was **§XII**: §II and §IV–§XI had all been retired, and section numbers are never
   reused — an old commit's `→ §V` must keep pointing where it pointed.
+  **Closed with T153** (2026-08-02), so the block is out of `ROADMAP.md` — which again has no active
+  backlog — and §XII is out of `IMPROVEMENTS.md`; see [CHANGELOG.md](CHANGELOG.md) Block V. It ran
+  T150 → T151 → T152 → T153, one task per commit. Two rules it leaves behind, both in
+  [AGENTS.md](AGENTS.md): `SelfTestCli` is the repo's test suite, so a new invariant is asserted there
+  rather than in a test project (§I.3 rules one out), and a check is not finished until it has been
+  seen to **fail** against a deliberately broken build — T153's eight new assertions were each
+  confirmed that way before being trusted.
 - Block **W** (T154, created 2026-08-02) is a **field report against shipped Block K**, arriving as a
   screenshot of the Throughput tab with two lines both labelled `2026.3`. A block of its own rather
   than a K task because K is closed and pruned, and because the fix is not local to the live charts:
@@ -242,3 +249,4 @@ here. This file is a terse index, not a memory.
 - **T150 SHIPPED** (Block V — the live rate is normalised by the kernel's real sum, so sustained work reads as itself) — 2026-08-02.
 - **T151 SHIPPED** (Block V — a `check` workflow runs `--selftest` on every push and PR, so a broken invariant is a red commit) — 2026-08-02.
 - **T152 SHIPPED** (Block V — the measured grid drops a week away too, judged only once the week was covered enough to judge) — 2026-08-02.
+- **T153 SHIPPED** (Block V — the primed cursor and the zero-fill are asserted; 80 checks, each confirmed to fail first) — 2026-08-02.

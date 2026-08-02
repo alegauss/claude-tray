@@ -12,14 +12,13 @@
 |---|---|
 | [§I](#i--house-constraints) | House constraints (binding, app-wide) |
 | [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature (kept: it is data, not design) |
-| [§XII](#xii--what-the-self-check-found-block-v) | What the self-check found (Block V) |
 
-> Block I's design sections (§II) and Block J's (§IV) are gone: every one of them shipped, and
-> `git log` plus [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a
+> Block I's design sections (§II), Block J's (§IV) and Block V's (§XII) are gone: every one of them
+> shipped, and `git log` plus [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a
 > **measurement** — the numbers the rule thresholds and the base-overhead constant were calibrated
 > against.
 >
-> Section numbers are **never reused**: §II, §IV–§XI have all been retired, so a new block takes the
+> Section numbers are **never reused**: §II, §IV–§XII have all been retired, so a new block takes the
 > next unused numeral rather than the next free-looking one. A `→ §V` in an old commit message must
 > keep pointing at what it pointed at.
 
@@ -97,32 +96,3 @@ deliberately — this file is published with the repo. The right-hand column is 
 | `settings.json` | 87 KB | settings bloat |
 | Base overhead (system prompt + tools + MCP) | ≈32k tokens, p25 30k / p75 34k | shown as its own gauge segment, never folded into a project's number |
 | Heaviest scannable eager load | ≈22k tokens (a 43 KB `AGENTS.md` + 20 KB index) | the hero number the gauge shows |
-
----
-
-## §XII — What the self-check found (Block V)
-
-Building `--selftest` (T96) was the first time the pacing and live-rate arithmetic was written down as
-properties rather than looked at on a chart, and writing them down turned up four things: three gaps
-in what the check itself covers or guards, and one number that had been wrong on screen since T98.
-None of them was found by a user report, which is the point: they were found by having to state what
-"correct" means. Three have shipped — T150, the live rate's 1.7% kernel bias; T151, the check running on
-push instead of only at release; and T152, the away-week exclusion reaching the measured grid — so what
-is designed below is the last of them: two properties the check does not assert at all.
-
-### §XII.3 Two properties the self-check still doesn't cover (T153)
-
-§IV.12 listed the tail's **primed offset** ("a primed mid-line cursor skips to a character boundary")
-and the rate's **zero-fill** ("a paused caller resumes with a truthful gap rather than a stale
-plateau") among the properties that justified building `--selftest`. Neither is asserted: the fixture's
-transcripts are a few hundred bytes, so the first sweep always starts at offset 0 and `NeedsAlign` is
-never exercised, and there is no way to feed `LiveRate` a turn without a real `TranscriptTail` raising
-its event.
-
-Both are cheap once named. The priming path needs a fixture larger than `PrimeBytes` (256 KB) so the
-cursor genuinely starts mid-line — a few hundred synthetic turns, written once. The zero-fill needs a
-seam: `LiveRate.Add` is private and reached only through `tail.Appended`, so making it internal (the
-same visibility the fixtures already rely on) lets a check push a burst, skip thirty seconds of
-`Tick`, and assert the strip came back empty instead of holding its last value. A property listed as
-the reason a feature exists and then left unasserted is worse than one nobody wrote down.
-

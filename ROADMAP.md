@@ -19,19 +19,11 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block V — What the self-check found
+## No active backlog
 
-> Writing Block J and K's arithmetic down as properties (T96) — instead of looking at it on a chart —
-> turned up four things in one afternoon. Three are gaps in what the check covers or in when it runs;
-> one is a number that has been 1.7% wrong on screen since T98. None came from a user report, which is
-> the point: they came from having to state what "correct" means.
-> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XII.
->
-> What remains is the coverage task. (T150 — the number that was wrong on screen — T151 — the check
-> running on push rather than only at release — and T152 — the away-week exclusion reaching the
-> measured grid — shipped first, in that order; see [CHANGELOG.md](CHANGELOG.md) Block V.)
-
-- 📋 **T153** (deps: —) **Two properties the self-check still doesn't cover** — the tail's primed-offset alignment (the fixture files are too small to ever start mid-line) and the rate's zero-fill on a paused caller (no seam to feed `LiveRate` without a real tail). Both were named in the design that justified building `--selftest`. → §XII.3
+Every numbered task has shipped or been dropped — see [CHANGELOG.md](CHANGELOG.md). Block V closed with
+T153 (2026-08-02) and is pruned from here along with its design section; the next task takes the number
+in [last-task.md](last-task.md) and opens a block under the next free letter.
 
 ## Non-goals (do NOT add as tasks)
 

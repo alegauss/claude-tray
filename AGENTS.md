@@ -61,6 +61,7 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 | `src/Cli/ActivityCli.cs` | `--activity`: the weekly activity profile as a 24×7 shaded grid, plus the measured-hours variant. |
 | `src/Cli/LiveCli.cs` | `--tail` and `--live`: each assistant turn as it lands, and the rolling tok/s with its per-project sparklines. |
 | `src/Cli/ProfilesCli.cs` | `--profiles [--check]`: every profile on the machine, its auth, its config-dir action and its icon accent band. |
+| `src/Cli/SelfTestCli.cs` | `--selftest [--quick]`: 80 assertions over the pacing, store, grid, tail and live-rate arithmetic, on synthetic inputs, exiting non-zero on failure — run on every push by `.github/workflows/check.yml` and again before an installer is packaged by `build.yml`. Writes only a temp tree and a `selftest` profile dir, both removed. This is the repo's test suite: there is no test project (a third-party framework would break §I.3), so a new invariant is asserted **here**. |
 | `src/Cli/PreviewCli.cs` | The deterministic previews behind the published images: `--simulate-reset`, `--capture-toast`, `--render` (icon contact sheet), `--makeicon`, and the gap-demo report `--stats gapdemo` feeds. |
 
 **`src/Usage/` — quota, spend and live throughput**
@@ -200,6 +201,31 @@ powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Lang pt-
 - **Reading nothing is a FAIL, never a pass.** The script's header documents the three UIA traps
   (no clickable point / overflow flyout, collapsed panes absent from the tree, the menu not always
   opening) — read it before writing any new check by hand.
+
+## Arithmetic verification (`--selftest`)
+
+`src/Cli/SelfTestCli.cs` **is** this repo's test suite — there is no test project, because a
+third-party test framework would break the single-self-contained-`.exe` rule (§I.3). A new invariant
+over the pacing, the stores, the grid, the tail or the live rate is asserted there, on synthetic
+inputs, and nowhere else.
+
+```
+dotnet build -c Release
+Start-Process bin\Release\net10.0-windows\win-x64\ClaudeTray.exe --selftest -Wait -PassThru `
+  -RedirectStandardOutput st.log -RedirectStandardError st.err   # a WinExe: redirect to read it
+ClaudeTray.exe --selftest --quick        # skips the sections that wait on real sweeps
+```
+
+- It runs on **every push and PR** (`.github/workflows/check.yml`) and again against the packaged
+  single-file `.exe` before an installer is built (`build.yml`). A red commit, not a blocked release.
+- Everything it touches is synthetic and removed: a temp transcript tree and a `selftest` profile dir.
+  A real profile's stores are never read or written.
+- **A check is not finished until it has been seen to fail.** Break the property deliberately, watch the
+  assertion go red, then revert — T153's new assertions were each confirmed that way against three
+  broken builds, and doing it is what showed *which* assertion catches what: the primed-cursor counts
+  catch priming being removed but are blind to the alignment flag being left set (the fragment is
+  rejected by the JSON parse either way), which is the whole reason the append-after-a-primed-read pair
+  exists. An assertion that has only ever passed is a comment.
 
 ## Build / run / dev helpers
 

@@ -5,7 +5,7 @@
 /// <paramref name="Slug"/> is the <c>~/.claude/projects/&lt;slug&gt;</c> directory name and the grouping
 /// key; <paramref name="Display"/> is the directory's last two segments (<c>turing/2026.3</c>) resolved
 /// from the session's <c>cwd</c> — never the full path, and never the leaf alone, which on a machine
-/// that checks a release folder out per client labels three different lines "2026.3" (T150).
+/// that checks a release folder out per client labels three different lines "2026.3" (T154).
 /// <paramref name="IsOthers"/> marks the residual bucket that everything past the top few
 /// folds into, and <paramref name="Slot"/> is its <b>stable</b> position: assigned on first appearance
 /// and held until the project leaves the window, so neither its colour nor its place in the legend
@@ -345,8 +345,14 @@ internal sealed class LiveRate
         }
     }
 
-    // Called on the tail's sweep thread.
-    private void Add(IReadOnlyList<TailSample> batch)
+    /// <summary>Called on the tail's sweep thread — the only way a turn enters this class.</summary>
+    /// <remarks><b>Internal rather than private for the self-check (T153).</b> The zero-fill property —
+    /// a paused caller resumes with a truthful gap rather than a stale plateau — was one of the reasons
+    /// <c>--selftest</c> was built and was the one property it could not assert, because reaching this
+    /// method meant standing up a real <see cref="TranscriptTail"/> and waiting for a sweep. It is the
+    /// same visibility the fixtures already rely on, and the widening is one method on an
+    /// <c>internal</c> class.</remarks>
+    internal void Add(IReadOnlyList<TailSample> batch)
     {
         lock (_gate)
         {

@@ -454,7 +454,7 @@ internal sealed class TranscriptTail : IDisposable
     /// <summary>
     /// The project's display name, resolved by matching the slug against the recorded <c>cwd</c> —
     /// <see cref="ProjectSlug.ShortNameFor"/>, which since T105 is the app's only reader of that
-    /// encoding and since T150 the only writer of the name that comes out of it (the last two
+    /// encoding and since T154 the only writer of the name that comes out of it (the last two
     /// segments, so three checkouts called <c>2026.3</c> are three different labels).
     ///
     /// <para>Naïvely taking <c>GetFileName(cwd)</c> is wrong, and wrong in a way that only shows up in

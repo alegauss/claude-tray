@@ -71,6 +71,9 @@ internal static class SelfTestCli
         {
             Section("tail — the byte cursor (Block K)");
             Temp(Tail);
+
+            Section("tail — the primed cursor over a large transcript (Block K)");
+            Temp(Primed);
         }
 
         double ms = (DateTime.UtcNow.Ticks - started) / (double)TimeSpan.TicksPerMillisecond;
@@ -213,6 +216,53 @@ internal static class SelfTestCli
 
         Check("an empty feed reads as zero, not as a stale plateau",
               LiveRate.RateFrom(new long[4 * w], 30).All(v => v == 0));
+
+        ZeroFill();
+    }
+
+    /// <summary>
+    /// T153: the zero-fill on a paused caller — one of the properties that justified building this
+    /// check, and the one it could not make. <see cref="LiveRate.Tick"/> is caller-driven precisely so
+    /// a hidden window costs nothing, which means a resumed caller is the normal case and not an edge:
+    /// the strip must come back showing the gap, never the value it was left at.
+    /// </summary>
+    /// <remarks>Reaching <see cref="LiveRate.Add"/> used to mean standing up a real
+    /// <see cref="TranscriptTail"/> and waiting for a sweep to raise its event — which is why this was
+    /// left unasserted. The method is <c>internal</c> now (same visibility the fixtures use), so the
+    /// burst can be pushed straight in and the clock moved by hand.</remarks>
+    private static void ZeroFill()
+    {
+        const int w = LiveRate.WindowSeconds;
+        // Never started, so it never touches the disk or arms a watcher: the tail is here only because
+        // the rate subscribes to one.
+        using var tail = new TranscriptTail(Path.Combine(Path.GetTempPath(), "claude-tray-selftest-nofeed"));
+        var rate = new LiveRate(tail);
+
+        double t0 = Math.Floor(Now);
+        rate.Tick(t0);
+        rate.Add(new[] { new TailSample(t0, new TokenBits(60_000, 0, 0, 0), "slug", "session", "slug") });
+        rate.Tick(t0);
+
+        Near("a burst lands at its full weight", rate.Instant, 60_000 / LiveRate.KernelSum, 1e-9);
+        Check("and the strip holds the second it landed in", rate.Strip()[^1].Total == 60_000);
+
+        // The caller goes away for longer than the rate window and comes back. Nothing arrived while it
+        // was gone, and the honest reading of that is zero — not the last number it computed.
+        rate.Tick(t0 + w + 1);
+        Check($"a caller paused past the {w}s window resumes at a true zero",
+              rate.TokensPerSecond == 0 && rate.Instant == 0,
+              $"{rate.TokensPerSecond:0.####} tok/s smoothed, {rate.Instant:0.####} raw");
+        Check("and reports itself quiet rather than merely small", rate.Quiet);
+        Check("the burst is still in the strip, which is 5 minutes and not 1",
+              rate.Strip().Any(b => b.Total == 60_000));
+
+        // Gone for an hour: the zero-fill is capped at the ring, so what comes back is an empty strip
+        // rather than whatever the ring's arithmetic left behind at that offset.
+        rate.Tick(t0 + 3600);
+        Check("a caller gone for an hour comes back to an empty strip",
+              rate.Strip().All(b => b.Total == 0),
+              $"{rate.Strip().Count(b => b.Total != 0)} of {LiveRate.HistorySeconds} buckets still hold tokens");
+        Check("and to no project series at all", rate.Projects().Length == 0);
     }
 
     // ---------------------------------------------------------------- Block J: the stores
@@ -414,6 +464,101 @@ internal static class SelfTestCli
               $"{Count(seen) - before} new samples, expected 1");
     }
 
+    // ---------------------------------------------------------------- Block K: the primed cursor
+
+    /// <summary>
+    /// T153: a transcript larger than <see cref="TranscriptTail.PrimeBytes"/>, so the first sweep
+    /// resumes it 256 KB from the end — <em>mid-line</em> — instead of at offset 0.
+    ///
+    /// <para>Every fixture the tail has had is a few hundred bytes, so <c>NeedsAlign</c> has never
+    /// executed in a check: the priming window, the fragment it lands in and the line boundary it has
+    /// to skip forward to were all verified once, by hand, on a real machine. The file here is written
+    /// so the prime offset lands inside a <em>fresh</em> turn, which is what makes the assertion sharp:
+    /// that turn must be dropped (its first bytes are behind the cursor), every turn after it must
+    /// arrive exactly once, and nothing before it may arrive at all.</para>
+    /// </summary>
+    private static void Primed(string root)
+    {
+        string dir = Path.Combine(root, "projects", "d--selftest");
+        Directory.CreateDirectory(dir);
+
+        // Built as bytes rather than as lines: the property is about a byte offset, so the check has to
+        // know where every line starts. `\n` only — WriteAllLines would use CRLF and the arithmetic
+        // below would describe a different file from the one on disk.
+        DateTime now = DateTime.Now;
+        var lines = new List<string>();
+        var offsets = new List<long>();
+        long at = 0;
+        void Append(string line)
+        {
+            offsets.Add(at);
+            lines.Add(line);
+            at += Encoding.UTF8.GetByteCount(line) + 1;
+        }
+
+        // Bulk that is older than the freshness floor: it exists to push the prime offset past itself,
+        // and reporting any of it would be a failure of two things at once.
+        for (int i = 0; i < 200; i++) Append(Turn(now.AddDays(-2), $"old-{i}", 100 + i));
+        int firstFresh = lines.Count;
+        long freshStart = at;
+
+        // Fresh turns, each carrying its own input-token count, so a reported sample says exactly which
+        // line it came from. Enough of them to overfill the prime window by a few KB.
+        for (int i = 0; at - freshStart < TranscriptTail.PrimeBytes + 4096; i++)
+            Append(Turn(now.AddSeconds(-30), $"new-{i}", 1000 + i));
+
+        string file = Path.Combine(dir, "session.jsonl");
+        File.WriteAllText(file, string.Join("\n", lines) + "\n");
+
+        // Where the tail will start, and the first line it can report whole: everything up to the next
+        // newline is a fragment of a turn nobody is resuming.
+        long from = at - TranscriptTail.PrimeBytes;
+        int first = 0;
+        while (first < offsets.Count && offsets[first] <= from) first++;
+        int expected = lines.Count - first;
+
+        if (!Check("the prime offset lands inside a fresh turn, not in the old bulk",
+                   first > firstFresh && expected > 0,
+                   $"line {first} of {lines.Count}, {at / 1024} KB file, prime at {from / 1024} KB")) return;
+
+        using var tail = new TranscriptTail(Path.Combine(root, "projects"));
+        var seen = new List<TailSample>();
+        tail.Appended += batch => { lock (seen) seen.AddRange(batch); };
+        tail.Start();
+
+        if (!Check("the primed sweep reports the tail of a large transcript",
+                   Wait(() => Count(seen) >= expected), $"{Count(seen)} of {expected}")) return;
+
+        TailSample[] got;
+        lock (seen) got = seen.ToArray();
+
+        Check("a primed cursor reports every whole turn after it, exactly once",
+              got.Length == expected, $"{got.Length} samples, expected {expected}");
+        // Min and max rather than first and last: the sweep sorts by timestamp and these turns share a
+        // second, so their order is not defined — the *set* is what the property is about.
+        Check("the turn the cursor landed inside is dropped, and the next one is not",
+              got.Min(s => s.Bits.Input) == 1000 + (first - firstFresh),
+              $"oldest reported turn is #{got.Min(s => s.Bits.Input) - 1000}, expected #{first - firstFresh}");
+        Check("and nothing behind the prime window is reported",
+              got.Max(s => s.Bits.Input) == 1000 + (lines.Count - 1 - firstFresh) &&
+              got.All(s => s.Bits.Input >= 1000));
+
+        // The reason the priming is bounded at all: without the cap the first sweep of a long-running
+        // session would read the whole history to draw three minutes of chart.
+        Check("priming reads the window and not the file",
+              tail.Stats.BytesRead == TranscriptTail.PrimeBytes,
+              $"{tail.Stats.BytesRead / 1024} KB read of a {at / 1024} KB file " +
+              $"({TranscriptTail.PrimeBytes / 1024} KB window)");
+
+        // The alignment is a one-shot: it applies to the sweep that primed the cursor and to no other.
+        // Left set, the next append would have its own first line eaten as if it were a fragment — the
+        // failure this asserts against, and the only one of these that the flag alone can cause.
+        File.AppendAllText(file, Turn(now, "appended", 9999) + "\n");
+        Check("an append after a primed read is not re-aligned away",
+              Wait(() => Count(seen) == expected + 1), $"{Count(seen)} samples, expected {expected + 1}");
+        lock (seen) Check("and arrives whole", seen.Any(s => s.Bits.Input == 9999));
+    }
+
     private static int Count(List<TailSample> seen) { lock (seen) return seen.Count; }
 
     /// <summary>Wait for a sweep to produce something. The tail is timer-driven (a watcher event, or
@@ -499,13 +644,15 @@ internal static class SelfTestCli
 
     /// <summary>One assistant line in the shape the transcript readers parse — a timestamp, a usage
     /// block and an id. No content, here as everywhere else.</summary>
-    private static string Turn(DateTime local, string id = "req")
+    /// <param name="input">Input tokens for the line. Distinct per line where a check needs to say
+    /// <em>which</em> line a reported sample came from (T153).</param>
+    private static string Turn(DateTime local, string id = "req", int input = 120)
     {
         string ts = local.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ",
             System.Globalization.CultureInfo.InvariantCulture);
         return $"{{\"type\":\"assistant\",\"timestamp\":\"{ts}\",\"requestId\":\"{id}-{ts}\"," +
                $"\"cwd\":\"D:\\\\selftest\",\"message\":{{\"id\":\"msg-{id}\",\"model\":\"claude-selftest\"," +
-               "\"usage\":{\"input_tokens\":120,\"output_tokens\":340,\"cache_creation_input_tokens\":0," +
+               $"\"usage\":{{\"input_tokens\":{input},\"output_tokens\":340,\"cache_creation_input_tokens\":0," +
                "\"cache_read_input_tokens\":0}}}";
     }
 
