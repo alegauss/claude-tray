@@ -52,8 +52,20 @@ internal static class LiveCli
             : $"watcher: off — falling back to the {TranscriptTail.SweepFloorMs}ms sweep floor");
     }
 
+    /// <summary>Column width for a project name in the per-project lines. Wide enough for the two
+    /// segments the app names a directory by since T150 ("alegauss/claude-tray"), so the disambiguating
+    /// half is not what gets cut.</summary>
+    private const int NameWidth = 24;
+
+    // Elided in the *middle*, not from the front: a name is "parent/leaf" since T150 and the parent is
+    // the half that tells two checkouts of the same release folder apart, so cutting the head would
+    // throw away the reason it is there.
     private static string Trim(string s, int max)
-        => s.Length <= max ? s : "…" + s[^(max - 1)..];
+    {
+        if (s.Length <= max) return s;
+        int tail = (max - 1) * 2 / 3;
+        return s[..(max - 1 - tail)] + "…" + s[^tail..];
+    }
 
     // Headless view of LiveRate: one line a second, so the metric can be watched against real work
     // and diffed against `--tail`'s raw turns. Flags: `--live <seconds>` to bound the run (default
@@ -122,7 +134,7 @@ internal static class LiveCli
             string where = live.Quiet
                 ? "quiet"
                 : string.Join("  ", live.Projects().Select(p =>
-                      $"[{(p.IsOthers ? "·" : p.Slot.ToString())}] {(p.IsOthers ? p.Display : Trim(p.Display, 18))} {p.TokensPerSecond,6:N0}/s"));
+                      $"[{(p.IsOthers ? "·" : p.Slot.ToString())}] {(p.IsOthers ? p.Display : Trim(p.Display, NameWidth))} {p.TokensPerSecond,6:N0}/s"));
 
             Console.WriteLine($"{DateTime.Now:HH:mm:ss}  {rate,8:N0} tok/s  {bar}  " +
                               (raw ? $"[raw {live.Instant,8:N0}]  " : "") +
@@ -137,7 +149,7 @@ internal static class LiveCli
         Console.WriteLine($"rolling rate, last {history.Length}s (one cell per {history.Length / 60}s):");
         Console.WriteLine("  " + Spark(history, 60) + $"   → {history[^1]:N0} tok/s at the right edge");
         foreach (ProjectSlice p in live.Projects(LiveChart.Seconds).Where(p => p.RatePerSecond.Length > 0))
-            Console.WriteLine($"  [{(p.IsOthers ? "·" : p.Slot.ToString())}] {Trim(p.Display, 18),-18} " +
+            Console.WriteLine($"  [{(p.IsOthers ? "·" : p.Slot.ToString())}] {Trim(p.Display, NameWidth),-NameWidth} " +
                               Spark(p.RatePerSecond, 60) + $"   → {p.RatePerSecond[^1]:N0} tok/s");
 
         TailStats st = tail.Stats;

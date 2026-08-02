@@ -7,7 +7,8 @@ namespace ClaudeTray;
 /// <c>~/.claude/projects/&lt;slug&gt;</c> directory it landed in, and which session file carried it.</summary>
 /// <remarks><paramref name="Project"/> is the encoded slug — unique, and the right grouping key, since
 /// two worktrees of the same repo share a folder name but never a slug. <paramref name="Name"/> is
-/// that project's folder name resolved from the session's <c>cwd</c>, which is the only way to get it
+/// that project's display name (its last two path segments, <c>turing/2026.3</c>) resolved from the
+/// session's <c>cwd</c>, which is the only way to get it
 /// right: the slug encodes path separators and literal dashes identically, so
 /// <c>d--Git-acme-claude-tray</c> cannot be split back into "claude-tray" without guessing (and
 /// guessing turns <c>...-shio-2026-3</c> into "3"). <paramref name="Session"/> is the transcript's
@@ -451,8 +452,10 @@ internal sealed class TranscriptTail : IDisposable
         => fi.Directory?.Name ?? "?";
 
     /// <summary>
-    /// The project's folder name, resolved by matching the slug against the recorded <c>cwd</c> —
-    /// <see cref="ProjectSlug.RootFor"/>, which since T105 is the app's only reader of that encoding.
+    /// The project's display name, resolved by matching the slug against the recorded <c>cwd</c> —
+    /// <see cref="ProjectSlug.ShortNameFor"/>, which since T105 is the app's only reader of that
+    /// encoding and since T150 the only writer of the name that comes out of it (the last two
+    /// segments, so three checkouts called <c>2026.3</c> are three different labels).
     ///
     /// <para>Naïvely taking <c>GetFileName(cwd)</c> is wrong, and wrong in a way that only shows up in
     /// use: <c>cwd</c> is the working directory <em>of that turn</em>, so any <c>cd</c> inside the
@@ -460,12 +463,7 @@ internal sealed class TranscriptTail : IDisposable
     /// reporting itself as "_preview". The slug, however, encodes the session's <b>root</b>, so
     /// walking the cwd up its parents until one encodes to the slug recovers the root exactly.</para>
     /// </summary>
-    private static string? ResolveName(string slug, string cwd)
-    {
-        if (ProjectSlug.RootFor(slug, cwd) is not { Length: > 0 } root) return null;
-        string name = System.IO.Path.GetFileName(root.TrimEnd('\\', '/'));
-        return name.Length > 0 ? name : root;
-    }
+    private static string? ResolveName(string slug, string cwd) => ProjectSlug.ShortNameFor(slug, cwd);
 
     public void Dispose()
     {

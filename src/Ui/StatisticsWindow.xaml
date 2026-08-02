@@ -391,7 +391,10 @@
                                        Margin="0,0,44,0"
                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                         </Grid>
-                        <StackPanel x:Name="LegendProjects" Orientation="Horizontal" Margin="0,8,0,0" />
+                        <!-- Wraps, unlike the by-type legend below: project names are as long as the
+                             machine's folders and carry a parent segment (T150), so five of them can
+                             out-run the plate. Identical to a StackPanel while they fit. -->
+                        <WrapPanel x:Name="LegendProjects" Orientation="Horizontal" Margin="0,8,0,0" />
 
                         <TextBlock Text="{local:Loc stats.throughput.byType}" Margin="0,16,0,0"
                                    FontSize="12" FontWeight="SemiBold"

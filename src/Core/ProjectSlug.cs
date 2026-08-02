@@ -23,6 +23,10 @@ namespace ClaudeTray;
 /// return a directory that exists, and when two readings both exist it returns the first one found,
 /// which is why it is the fallback and not the answer.</item>
 /// </list>
+///
+/// <para>It also owns the other half of that question — <em>how the answer is written down</em>. Every
+/// screen that names a project names it through <see cref="ShortName"/>, so the Statistics legend and
+/// the Context Load Inspector's list cannot disagree about what to call the same directory (T150).</para>
 /// </summary>
 internal static class ProjectSlug
 {
@@ -57,13 +61,34 @@ internal static class ProjectSlug
         return null;
     }
 
-    /// <summary>The folder <em>name</em> of that root — what a chart legend or a project list shows.
-    /// Falls back to <see cref="Tail"/> when the slug cannot be verified against this cwd.</summary>
-    public static string NameFor(string slug, string cwd)
+    /// <summary>The display name of that root — what a chart legend or a project list shows. Falls
+    /// back to <see cref="Tail"/> when the slug cannot be verified against this cwd.</summary>
+    public static string NameFor(string slug, string cwd) => ShortNameFor(slug, cwd) ?? Tail(slug);
+
+    /// <summary>The same display name, or <c>null</c> when no ancestor of <paramref name="cwd"/>
+    /// encodes to the slug — for callers that would rather report nothing than a guess.</summary>
+    public static string? ShortNameFor(string slug, string cwd)
+        => RootFor(slug, cwd) is { Length: > 0 } root ? ShortName(root) : null;
+
+    /// <summary>
+    /// How a directory is <b>named on screen</b> anywhere in this app: its last two segments —
+    /// <c>turing/2026.3</c>, <c>viglet/cloud</c> — never the full path and never the leaf alone.
+    /// </summary>
+    /// <remarks>The leaf on its own is not an identity on a real machine (T150): a release folder is
+    /// checked out once per client, so three different projects here are all called <c>2026.3</c>, and
+    /// a legend that labels three lines identically has labelled none of them. One segment of parent is
+    /// what disambiguates them in practice, and it is what the Context Load Inspector's project list has
+    /// shown since it shipped — the two screens name the same directory the same way because they now
+    /// name it through the same method. Falls back to the leaf when there is no parent to add.</remarks>
+    public static string ShortName(string path)
     {
-        if (RootFor(slug, cwd) is not { Length: > 0 } root) return Tail(slug);
-        string name = Path.GetFileName(root.TrimEnd('\\', '/'));
-        return name.Length > 0 ? name : root;
+        string trimmed = path.TrimEnd('\\', '/');
+        string leaf = Path.GetFileName(trimmed);
+        if (leaf.Length == 0) return trimmed;
+        string parent = Path.GetDirectoryName(trimmed) is { Length: > 0 } up
+            ? Path.GetFileName(up.TrimEnd('\\', '/'))
+            : "";
+        return parent.Length > 0 ? parent + "/" + leaf : leaf;
     }
 
     /// <summary>

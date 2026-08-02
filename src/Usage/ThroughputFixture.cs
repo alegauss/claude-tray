@@ -27,13 +27,15 @@ internal readonly record struct ThroughputDemo(
 internal static class ThroughputFixture
 {
     // Four repos plus a residual, so the per-project chart is drawn with the crossings that make the
-    // fixed slots (T114) worth having. The phase staggers who is generating when.
+    // fixed slots (T114) worth having. The phase staggers who is generating when. The names carry
+    // their parent segment because the real ones do (T150) — a fixture that publishes a shorter label
+    // than the app draws would understate what the legend has to fit.
     private static readonly (string Slug, string Name, int Phase, double Weight)[] Repos =
     {
-        ("d--Git-acme-web-console", "web-console", 0, 1.00),
-        ("d--Git-acme-billing-api", "billing-api", 5, 0.62),
-        ("c--Users-dev-notes",      "notes",       2, 0.34),
-        ("d--Git-acme-infra",       "infra",       8, 0.21),
+        ("d--Git-acme-web-console", "acme/web-console", 0, 1.00),
+        ("d--Git-acme-billing-api", "acme/billing-api", 5, 0.62),
+        ("c--Users-dev-notes",      "dev/notes",        2, 0.34),
+        ("d--Git-acme-infra",       "acme/infra",       8, 0.21),
     };
 
     /// <summary>Long enough for both filters to be warm at the left edge: every drawn point needs the

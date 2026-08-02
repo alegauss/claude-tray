@@ -1,9 +1,10 @@
-# Last task number — `T153` · next block letter — `W`
+# Last task number — `T154` · next block letter — `X`
 
-> **Single source of truth for the next free task number.** The next new task is `T154`; after
+> **Single source of truth for the next free task number.** The next new task is `T155`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `W`** (Block **V** = What the self-check found; created 2026-08-02).
+> **Next block letter — `X`** (Block **W** = A project is named so you can tell two apart; created
+> 2026-08-02).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -31,6 +32,12 @@
   closed and pruned, and because the theme is the *check itself* rather than either feature.
   Its design section is **§XII**: §II and §IV–§XI have all been retired, and section numbers are never
   reused — an old commit's `→ §V` must keep pointing where it pointed.
+- Block **W** (T154, created 2026-08-02) is a **field report against shipped Block K**, arriving as a
+  screenshot of the Throughput tab with two lines both labelled `2026.3`. A block of its own rather
+  than a K task because K is closed and pruned, and because the fix is not local to the live charts:
+  the rule for *how a directory is named on screen* now lives in `ProjectSlug` and both windows read
+  it. Shipped in the same commit it was created in, so it has no `ROADMAP.md`/`IMPROVEMENTS.md`
+  entries — the design is the CHANGELOG line and the code.
 - **Block J closed with T96** (2026-08-02) and is pruned from `ROADMAP.md`, which now has no active
   backlog at all. Its §IV design sections are gone from `IMPROVEMENTS.md` too; the one decision that
   outlived the block — no activity-aware tray notification — moved to the roadmap's non-goals, since a
@@ -210,3 +217,4 @@ here. This file is a terse index, not a memory.
 - **T94 SHIPPED** (Block J — per-bucket intensity: the projection paces a heavy hour differently from a light one) — 2026-08-02.
 - **T95 SHIPPED** (Block J — weeks away are dropped from the vote instead of teaching the grid that nobody works) — 2026-08-02.
 - **T96 SHIPPED** (Block J — `--selftest`: 58 checks over the pacing and live-rate arithmetic, wired into the build) — 2026-08-02.
+- **T154 SHIPPED** (Block W — the legend names a project by its last two segments, one rule for both windows) — 2026-08-02.

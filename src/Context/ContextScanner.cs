@@ -148,21 +148,13 @@ internal sealed class ContextProject
     /// <summary>
     /// Display name: the last two path segments ("viglet/cloud", "turing/2026.3"). Leaf-only would
     /// be ambiguous on this machine — three different worktree projects are all called "2026.3".
+    /// The rule itself lives in <see cref="ProjectSlug.ShortName"/> since T150, so the Statistics
+    /// legend names the same directory the same way this list does.
     /// </summary>
     [JsonIgnore]
-    public string ShortPath
-    {
-        get
-        {
-            if (State == PathState.NotAPath || Path.Length == 0) return Slug;
-            string trimmed = Path.TrimEnd('\\', '/');
-            string? parent = System.IO.Path.GetDirectoryName(trimmed);
-            string leaf = System.IO.Path.GetFileName(trimmed);
-            if (leaf.Length == 0) return trimmed;
-            string parentLeaf = parent is { Length: > 0 } ? System.IO.Path.GetFileName(parent.TrimEnd('\\', '/')) : "";
-            return parentLeaf.Length > 0 ? parentLeaf + "/" + leaf : leaf;
-        }
-    }
+    public string ShortPath => State == PathState.NotAPath || Path.Length == 0
+        ? Slug
+        : ProjectSlug.ShortName(Path);
 
     /// <summary>Eager tokens from this project's own sources (excludes the shared ones).</summary>
     [JsonIgnore]

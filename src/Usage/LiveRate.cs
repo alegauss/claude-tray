@@ -3,8 +3,10 @@
 /// <summary>One project's share of the live rate: its per-second history over the strip, the same
 /// history as a <b>rolling rate</b>, its total over the trailing window, and its rate right now.
 /// <paramref name="Slug"/> is the <c>~/.claude/projects/&lt;slug&gt;</c> directory name and the grouping
-/// key; <paramref name="Display"/> is the folder name resolved from the session's <c>cwd</c> — never the
-/// full path. <paramref name="IsOthers"/> marks the residual bucket that everything past the top few
+/// key; <paramref name="Display"/> is the directory's last two segments (<c>turing/2026.3</c>) resolved
+/// from the session's <c>cwd</c> — never the full path, and never the leaf alone, which on a machine
+/// that checks a release folder out per client labels three different lines "2026.3" (T150).
+/// <paramref name="IsOthers"/> marks the residual bucket that everything past the top few
 /// folds into, and <paramref name="Slot"/> is its <b>stable</b> position: assigned on first appearance
 /// and held until the project leaves the window, so neither its colour nor its place in the legend
 /// moves while it is on screen (residual slices carry −1).</summary>
