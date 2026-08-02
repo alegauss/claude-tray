@@ -198,3 +198,4 @@ here. This file is a terse index, not a memory.
 - **T149 SHIPPED** (Block U — the environment write leaves the UI thread, so a profile pick can't freeze the tray) — 2026-08-01.
 - **T85 DROPPED** (Block I — usage evidence for memory files; no structured recall signal exists, now a binding non-goal) — 2026-08-02.
 - **T94 SHIPPED** (Block J — per-bucket intensity: the projection paces a heavy hour differently from a light one) — 2026-08-02.
+- **T95 SHIPPED** (Block J — weeks away are dropped from the vote instead of teaching the grid that nobody works) — 2026-08-02.

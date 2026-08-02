@@ -50,6 +50,34 @@ internal static class ActivityCli
             Console.WriteLine($"sweep: {prof.FilesSeen:N0} transcripts in window, {prof.FilesRead:N0} read " +
                               $"({prof.BytesRead / 1048576.0:0.#} MB), {prof.ElapsedMs:0}ms" +
                               (root == null ? "" : " (fixture root — sweep cache bypassed)"));
+        // Silently discarding a sixth of the input is exactly the kind of thing that looks like a bug
+        // later, so the exclusion is printed whether or not it fired — and with the yardstick, since
+        // "1 week excluded" is unfalsifiable without the median it was measured against.
+        if (prof.ExcludedWeeks > 0)
+            Console.WriteLine($"weeks away: {prof.ExcludedWeeks} excluded from the vote — under " +
+                              $"{ActivityProfile.AwayFraction * 100:0}% of the median week's " +
+                              $"{prof.MedianWeekHours:0.#} active hours, so evidence of being elsewhere " +
+                              "rather than of which hours are worked");
+        else
+            Console.WriteLine($"weeks away: none excluded" +
+                              (prof.MedianWeekHours > 0
+                                  ? $" — every week is at least {ActivityProfile.AwayFraction * 100:0}% of the " +
+                                    $"median week's {prof.MedianWeekHours:0.#} active hours"
+                                  : $" — fewer than {ActivityProfile.MinWeeksToExclude} whole weeks observed, " +
+                                    "too little to call one of them a holiday"));
+
+        // The weeks themselves, newest first, so the count above can be checked against its input
+        // rather than believed. Only a fresh scan has them — they describe a sweep, not the grid, and
+        // are deliberately not cached.
+        if (!prof.FromCache && prof.WeekHours.Length > 0)
+        {
+            var weekly = new List<string>();
+            for (int w = 0; w < prof.WeekHours.Length; w++)
+                weekly.Add($"{prof.WeekHours[w]}h{(prof.WeekAway.Length > w && prof.WeekAway[w] ? "*" : "")}");
+            Console.WriteLine($"  active hours per week (newest first): {string.Join("  ", weekly)}" +
+                              (prof.ExcludedWeeks > 0 ? "   (* excluded)" : ""));
+        }
+
         Console.WriteLine(prof.Confident
             ? $"confidence: usable — {prof.EffectiveWeeks:0.0} weeks ≥ {ActivityProfile.ConfidentWeeks:0.0}, " +
               "the projection may follow this shape"

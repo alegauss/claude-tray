@@ -64,6 +64,15 @@ internal sealed class ActivityProfile
     /// <summary>The cache is recomputed about once a day — a habit does not move faster than that.</summary>
     public const double RefreshHours = 20;
 
+    /// <summary>A week with fewer than this share of the median week's active hours was a week away,
+    /// not a week worked differently, and is dropped from the vote entirely (T95). Below 1 by
+    /// construction, so the median week itself can never be excluded.</summary>
+    public const double AwayFraction = 0.25;
+
+    /// <summary>Fewer observed weeks than this and nothing is ever excluded: with two weeks the median
+    /// is one of them, and dropping the quieter one is not evidence handling but wishful thinking.</summary>
+    public const int MinWeeksToExclude = 4;
+
     /// <summary>Strength of the flat intensity prior (i = 1), in equivalent weeks of *active*
     /// observation of that hour. Deliberately larger than the evidence a rare hour ever accumulates:
     /// a bucket seen working once must stay ordinary until it repeats.</summary>
@@ -77,7 +86,10 @@ internal sealed class ActivityProfile
     /// <inheritdoc cref="MinIntensity"/>
     public const double MaxIntensity = 2.0;
 
-    private const int CacheVersion = 1;
+    // 2: T95 added the away-week exclusion. A v1 grid was built without it and would report "0 weeks
+    // excluded" — a claim about the evidence, not a missing decoration — so it is rebuilt rather than
+    // read. The sweep cache survives the bump, so the rebuild costs the sessions that changed (T92).
+    private const int CacheVersion = 2;
 
     /// <summary>Walk cap, mirroring <see cref="ContextScanner"/>: a pathological tree must not hang.</summary>
     private const int MaxFiles = 20_000;
@@ -101,8 +113,25 @@ internal sealed class ActivityProfile
     /// leaves every projection identical to the pre-T94 one, by construction.</summary>
     public bool HasIntensity;
 
-    /// <summary>Span of transcript coverage in weeks (capped at <see cref="MaxWeeks"/>).</summary>
+    /// <summary>Span of transcript coverage in weeks (capped at <see cref="MaxWeeks"/>). A span, not a
+    /// vote count: weeks the user was away are inside it and excluded from the grid — see
+    /// <see cref="ExcludedWeeks"/> and <see cref="EffectiveWeeks"/>.</summary>
     public double CoverageWeeks;
+
+    /// <summary>Weeks inside that span dropped as time away rather than time worked (T95).</summary>
+    public int ExcludedWeeks;
+
+    /// <summary>Active hours in the median observed week — the yardstick <see cref="ExcludedWeeks"/>
+    /// was measured against, 0 when nothing was excluded or there were too few weeks to try.</summary>
+    public double MedianWeekHours;
+
+    /// <summary>Active hours per observed week, newest first — the input to the away test, kept so
+    /// "2 weeks excluded" can be checked against the weeks it actually dropped rather than taken on
+    /// faith. Not cached (it belongs to a scan, not to the grid), so only a fresh scan has it.</summary>
+    public int[] WeekHours = Array.Empty<int>();
+
+    /// <summary>Parallel to <see cref="WeekHours"/>: which of those weeks were dropped.</summary>
+    public bool[] WeekAway = Array.Empty<bool>();
 
     /// <summary>Requests that fed the grid. Only their timestamps were read.</summary>
     public long Samples;
@@ -237,8 +266,12 @@ internal sealed class ActivityProfile
 
     /// <summary>Weeks of evidence behind the shape, from whichever source has more of it. A machine
     /// with a thin transcript history but weeks of folded readings knows its own week perfectly
-    /// well.</summary>
-    public double EffectiveWeeks => Math.Max(CoverageWeeks, MeasuredWeeks);
+    /// well.
+    ///
+    /// <para>Weeks away are subtracted (T95), not merely skipped: a two-week holiday inside a
+    /// four-week history leaves two weeks of evidence, and a confidence gate told otherwise would let
+    /// the shape be drawn on a sample that no longer supports it.</para></summary>
+    public double EffectiveWeeks => Math.Max(Math.Max(CoverageWeeks - ExcludedWeeks, 0), MeasuredWeeks);
 
     /// <summary>Enough weeks behind the shape to project along it rather than along a slope.</summary>
     public bool Confident => EffectiveWeeks >= ConfidentWeeks;
@@ -465,12 +498,21 @@ internal sealed class ActivityProfile
             int weeks = Math.Clamp((int)Math.Floor(coverageDays / 7.0), 1, MaxWeeks);
             if (samples == 0) { prof.ElapsedMs = Elapsed(startedTicks); return prof; }
 
+            bool[] away = WeeksAway(active, weeks, out double median, out int[] weekHours);
+            prof.MedianWeekHours = median;
+            prof.WeekHours = weekHours;
+            prof.WeekAway = away;
+
             double weightSum = 0;
             var raw = new double[Buckets];
+            int voting = 0;
             for (int w = 0; w < weeks; w++)
             {
+                if (away[w]) { prof.ExcludedWeeks++; continue; }
+
                 double weight = Math.Pow(WeekDecay, w);
                 weightSum += weight;
+                voting++;
                 for (int b = 0; b < Buckets; b++)
                     if (active[w, b]) raw[b] += weight;
             }
@@ -485,8 +527,11 @@ internal sealed class ActivityProfile
             foreach (double r in raw) prior += r;
             prior /= Buckets;
 
+            // Against the *voting* weeks, not every week in range: dropping a holiday removes evidence,
+            // and evidence removed has to weaken the grid relative to the prior rather than be quietly
+            // replaced by the weeks that remain.
             for (int b = 0; b < Buckets; b++)
-                prof.P[b] = (weeks * raw[b] + PriorWeeks * prior) / (weeks + PriorWeeks);
+                prof.P[b] = (voting * raw[b] + PriorWeeks * prior) / (voting + PriorWeeks);
 
             prof.ElapsedMs = Elapsed(startedTicks);
             return prof;
@@ -497,6 +542,50 @@ internal sealed class ActivityProfile
             prof.ElapsedMs = Elapsed(startedTicks);
             return prof;
         }
+    }
+
+    /// <summary>
+    /// Which of the observed weeks were weeks <em>away</em> rather than weeks worked differently (T95).
+    ///
+    /// <para>Every week votes with equal weight (times recency decay), so a week on holiday votes
+    /// "these hours are idle" exactly as confidently as a working week votes the opposite — and with a
+    /// 12-week horizon, two weeks off pull every bucket down by a sixth. The flat prior does not
+    /// address this: it is about <em>thin</em> evidence, not <em>unrepresentative</em> evidence.</para>
+    ///
+    /// <para>The test is a week's active-hour count against the median week's, in the same currency
+    /// the grid itself votes in (presence, never request counts — a quiet week is still a working
+    /// week). A week under <see cref="AwayFraction"/> of the median is not evidence about which hours
+    /// are worked; it is evidence the person was elsewhere. Because the fraction is below 1, the median
+    /// week can never be excluded, so at least half the weeks always survive.</para>
+    ///
+    /// <para>Below <see cref="MinWeeksToExclude"/> the question isn't answerable: with two weeks the
+    /// median is one of them, and "drop the quieter half of what little you have" is how a model
+    /// convinces itself of a shape it has not seen.</para>
+    /// </summary>
+    /// <param name="median">Active hours in the median week — 0 when nothing was excluded.</param>
+    /// <param name="hours">Active hours per week, newest first, whether or not the test ran.</param>
+    private static bool[] WeeksAway(bool[,] active, int weeks, out double median, out int[] hours)
+    {
+        var away = new bool[weeks];
+        median = 0;
+
+        hours = new int[weeks];
+        for (int w = 0; w < weeks; w++)
+            for (int b = 0; b < Buckets; b++)
+                if (active[w, b]) hours[w]++;
+
+        if (weeks < MinWeeksToExclude) return away;
+
+        var sorted = (int[])hours.Clone();
+        Array.Sort(sorted);
+        median = sorted.Length % 2 == 1
+            ? sorted[sorted.Length / 2]
+            : (sorted[sorted.Length / 2 - 1] + sorted[sorted.Length / 2]) / 2.0;
+        if (median <= 0) return away;
+
+        double floor = AwayFraction * median;
+        for (int w = 0; w < weeks; w++) away[w] = hours[w] < floor;
+        return away;
     }
 
     private static double Elapsed(long startedTicks)
@@ -664,7 +753,7 @@ internal sealed class ActivityProfile
             var sb = new StringBuilder(2048);
             long computed = new DateTimeOffset(p.ComputedUtc, TimeSpan.Zero).ToUnixTimeSeconds();
             sb.Append(FormattableString.Invariant(
-                $"{{\"v\":{CacheVersion},\"t\":{computed},\"weeks\":{p.CoverageWeeks:0.###},\"n\":{p.Samples},\"p\":["));
+                $"{{\"v\":{CacheVersion},\"t\":{computed},\"weeks\":{p.CoverageWeeks:0.###},\"n\":{p.Samples},\"away\":{p.ExcludedWeeks},\"med\":{p.MedianWeekHours:0.#},\"p\":["));
             for (int b = 0; b < Buckets; b++)
             {
                 if (b > 0) sb.Append(',');
@@ -698,6 +787,8 @@ internal sealed class ActivityProfile
                     r.TryGetProperty("t", out JsonElement t) ? t.GetInt64() : 0).UtcDateTime,
                 CoverageWeeks = r.TryGetProperty("weeks", out JsonElement w) ? w.GetDouble() : 0,
                 Samples = r.TryGetProperty("n", out JsonElement n) ? n.GetInt64() : 0,
+                ExcludedWeeks = r.TryGetProperty("away", out JsonElement a) ? a.GetInt32() : 0,
+                MedianWeekHours = r.TryGetProperty("med", out JsonElement md) ? md.GetDouble() : 0,
             };
             int i = 0;
             foreach (JsonElement e in arr.EnumerateArray())

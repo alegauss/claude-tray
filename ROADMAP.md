@@ -29,20 +29,20 @@
 > 02:00. This block models **when** the user is actually active and projects along that shape instead.
 > Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §IV.
 >
-> **Shipped: T86–T94.** The profile (`ActivityProfile.cs`, `--activity`), the staircase projection on
+> **Shipped: T86–T95.** The profile (`ActivityProfile.cs`, `--activity`), the staircase projection on
 > the weekly chart, the permanent hourly aggregate behind it (`HourlyUsage.cs`), last week's ghost
 > curve, the "stop now, resume at …" advice, the tray keeping the grid warm, the incremental sweep
-> behind it, the per-bucket blend toward the measured week, and the per-bucket intensity that paces a
-> heavy hour differently from a light one. See [CHANGELOG.md](CHANGELOG.md) Block J.
+> behind it, the per-bucket blend toward the measured week, the per-bucket intensity that paces a
+> heavy hour differently from a light one, and the away-week exclusion that stops a holiday teaching
+> the model. See [CHANGELOG.md](CHANGELOG.md) Block J.
 >
 > Headless: `--activity`, `--activity --measured`, `--activity --fold`; previews `--stats shape`,
 > `--stats shape ghost`.
 >
 > **Second pass (T91–T96).** Building the block exposed four accuracy gaps and two mechanical ones.
-> The accuracy work was ordered by how much it changes the projection: T93 first (it removed the
-> limitation the UI had to disclaim), then T94; T95 is what remains of it.
+> **The accuracy work is done** — T93, then T94, then T95, in order of how much each moved the
+> projection. What remains is the one the whole block (and Block K) is verified by hand without.
 
-- 📋 **T95** (deps: —) **Don't let a holiday teach the model** — a week off currently votes "these hours are idle" like any other week; only the flat prior softens it. Drop weeks whose total activity is a small fraction of the median week from the denominator, and say so in `--activity`. → §IV.11
 - 💭 **T96** (deps: —) **`--selftest` for the pacing *and* live math** — Block J added arithmetic with real edge cases (a flat profile must reproduce the straight line exactly, folding must stay idempotent, advice must never exceed its target, the ghost must stay hidden under its gates) and the repo has no test surface at all. **Block K doubled the surface**: the tail's cursor (a partial line waits for its newline, a shrunk file resets without re-reporting, a primed offset aligns) and the rate's kernel (sustained R reads as R, one burst decays linearly to a true zero at W, the smoothed value never exceeds the weighted one, per-project rates sum to the headline) are all verified only by hand against synthetic roots today. A deterministic self-check over synthetic inputs, in-app, keeps the zero-dependency rule intact. → §IV.12
 
 ## Non-goals (do NOT add as tasks)

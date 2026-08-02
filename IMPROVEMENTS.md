@@ -123,19 +123,6 @@ An activity-aware **tray notification** is explicitly *not* part of this block. 
 the wall-clock verdict and stays that way (T87 settled this); a second, softer notification channel
 would need its own justification.
 
-### §IV.11 Holidays shouldn't teach the model (T95)
-
-Every observed week votes with equal weight (times recency decay). A week on holiday therefore votes
-"these hours are idle" as confidently as a working week votes the opposite, and with a 12-week horizon
-two weeks off in the sample pull every bucket down by a sixth. The flat prior softens this but doesn't
-address it: the prior is about *thin* evidence, not *unrepresentative* evidence.
-
-A week whose total activity is far below the median week (say under a quarter of it) is not evidence
-about which hours are worked — it is evidence that the person was away. Dropping such weeks from both
-the numerator and the denominator leaves the shape untouched and the coverage count honestly reduced.
-`--activity` should print how many weeks were excluded, because silently discarding a sixth of the
-input is exactly the kind of thing that looks like a bug later.
-
 ### §IV.12 A self-check for the pacing math (T96)
 
 Block J introduced arithmetic with genuine edge cases and the repo has no test surface at all — every
