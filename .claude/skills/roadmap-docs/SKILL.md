@@ -91,6 +91,9 @@ the real maximum block letter** — grep it to confirm, then bump the letter whe
    covering several tasks, never an uncommitted pile at the end.
    - `run-commit.cmd` **stages everything**, so check `git status` first: an unrelated stray file
      (an editor's `.vscode/settings.json`, a scratch script) will ride along into the commit.
+   - `run-commit.cmd` is a **global command on the Windows PATH**, not a file in this repo. Searching
+     the tree for it comes up empty, which is not a reason to fall back to a raw `git commit` — call
+     it by name from the repo root (`where run-commit.cmd` confirms it).
 8. **A batch of ≥2 tasks MUST run under `/loop` — mandatory, not a suggestion.** When the ask covers
    multiple tasks (a whole phase/block, or an explicit list of `T<n>`s), drive it with the `/loop`
    skill self-paced: **exactly one task per iteration, `run-commit.cmd` at the end of that iteration

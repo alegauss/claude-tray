@@ -295,6 +295,9 @@ They live at the repo root on purpose: `docs/` is the published GitHub Pages sit
 ## Conventions
 
 - **Commits**: use `run-commit.cmd -m "<conventional-commits title>"` (stages all, AI writes body).
+  **`run-commit.cmd` is a global command on the Windows PATH, not a file in this repo** — `ls` and
+  `find` inside the tree will not find it and that is not a reason to fall back to raw `git commit`.
+  Call it by name from the repo root; `where run-commit.cmd` resolves it if you need to be sure.
   **One commit per finished, validated task — never batch two tasks into one commit**, and check
   `git status` first, since it stages everything. A batch of ≥2 tasks runs under `/loop`, one task
   per iteration. See the `roadmap-docs` skill.
