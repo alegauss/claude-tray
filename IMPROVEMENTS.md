@@ -19,6 +19,7 @@
 | [§XVI](#xvi--the-tray-reports-the-switch-it-performed-not-the-switch-the-machine-got-block-ac) | The tray reports the switch it performed, not the switch the machine got (Block AC) |
 | [§XVII](#xvii--the-window-can-be-read-now-and-what-that-turned-up-block-ad) | The window can be read now, and what that turned up (Block AD) |
 | [§XVIII](#xviii--extra-usage-is-money-and-the-tray-is-asleep-for-it-block-ae) | Extra usage is money, and the tray is asleep for it (Block AE) |
+| [§XIX](#xix--six-surfaces-shipped-and-what-nothing-was-checking-block-af) | Six surfaces shipped, and what nothing was checking (Block AF) |
 
 > Block I's design sections (§II), Block J's (§IV), Block V's (§XII), Block Z's (§XIII) and Block AA's
 > (§XIV) are gone: every one of them shipped, and `git log` plus [CHANGELOG.md](CHANGELOG.md) are the
@@ -469,3 +470,157 @@ transition, names and values only. It costs nothing (the call is already made), 
 The alternative is tempting and wrong: shipping "Extra usage: 42% of your extra-usage limit" on a
 plausible guess. A tray whose whole value proposition is *this number is trustworthy* cannot afford a
 label that turns out to name a different denominator.
+
+## §XIX — Six surfaces shipped, and what nothing was checking (Block AF)
+
+Block AE was built in one session, and the same thing kept happening: the tool that should have caught
+a mistake was absent, broken, or disagreeing with its twin. None of these was reported by anybody, and
+none is a Block AE task — they are what building it cost.
+
+Three are gaps where a rule exists and nothing holds it (§XIX.1, §XIX.5, §XIX.6): a string reaching
+one language, a chart rule held by a screenshot, a Settings branch never rendered. Two are the preview
+tooling misleading whoever runs it (§XIX.2, §XIX.3) — and one of those produced a plausible-looking
+capture of the wrong thing, which is worse than a crash. Two are what six new surfaces cost the things
+around them (§XIX.4, §XIX.7): a colour that now means two opposite things, and a map at its ceiling.
+
+The pattern worth naming, because it is the one that recurs: **each was found by doing the task, not by
+checking it.** The capture crash surfaced because a directory happened not to exist; the argument
+divergence because a chart's numbers looked wrong; the colour collision because the same hex was typed
+twice in one afternoon. A verification loop nobody exercises is indistinguishable from one that passes.
+
+### XIX.1 Five files, one pair of eyes
+
+Block AE added nineteen keys across `en`, `pt-BR`, `pt-PT`, `es` and `fr`, every one by hand, in a
+repository whose own rule is *new user-visible strings go into all five*. The rule is right and
+nothing enforces it: a key that lands only in `en` falls back silently, so the app is correct in
+English and quietly untranslated everywhere else until somebody opens that screen in that language.
+
+`--lang <code>` is the stated verification, and it is a person remembering. This block ran it for
+three languages and never for the two Portuguese variants — exactly the sampling that lets a gap
+live.
+
+The check belongs in `--selftest`, which is already this repository's test suite: load the five
+embedded resources, assert the key sets match, name what is missing. Two details decide whether it
+is worth having. It must compare **placeholders** too — `{0}` present in one language and absent in
+another is a formatted string that silently drops a number, which no key-set comparison sees. And it
+must name the offending key rather than report a count, because a count is something people learn to
+live with.
+
+What it must not become is a translation-*quality* check. Whether the Portuguese reads well is not
+something an assertion can hold, and pretending otherwise would make it untrustworthy in the one way
+that matters.
+
+### XIX.2 Two flags, one preview, no overlap
+
+`--stats <variant>` and `--capture-stats <out> <variant>` are the interactive preview and the
+screenshot of the same window, and they parse their variants in two separate `if` chains. A variant
+added to one is not merely missing from the other: it is **ignored**, and the capture falls through
+to the default sample.
+
+Measured while building T183. `--capture-stats … overage` produced a chart of this machine's real
+38% week, correctly rendered, with no error and no warning. It was caught only because the number on
+the card was not the number the fixture specifies — had the synthetic value happened to resemble the
+real one, a screenshot of the wrong thing would have shipped as evidence of the right one.
+
+That is the sharp end: a crash is self-reporting, and this is a preview that lies quietly. Anything
+that captures the window for verification has to be showing what the flag names, or the loop this
+repository leans on for UI work is worth nothing on exactly the surfaces that are new.
+
+The shape is one variant table both entry points read, so adding a preview is one edit and the two
+cannot drift. A cheaper stopgap — refusing an unrecognised variant instead of silently defaulting —
+would have turned this into an error message rather than a wrong picture.
+
+### XIX.3 A capture that dies after it has drawn
+
+`StatisticsPage.SaveSnapshot` calls `File.Create` on the path it is given, and nothing creates the
+directory above it. Capturing into a folder that does not exist yet throws
+`DirectoryNotFoundException` — from a `DispatcherTimer` tick, so it surfaces as an unhandled
+exception with a WPF stack, after the window has already rendered and the expensive part is done.
+
+Every sibling does the opposite: `PreviewCli.RenderTest` opens with `Directory.CreateDirectory`, and
+`UsageHistory.Append` creates its own parent on every write. This one call site is the exception.
+
+It is a one-line fix and it goes on the list for the same reason as §XIX.2: what a person is doing
+when they hit it is *verifying a change*, and a stack trace in the middle of that reads as "the
+change broke the app" rather than "the folder was new". The cost is a wrong diagnosis on the surface
+where somebody is already suspicious.
+
+Worth doing once for the whole family — `--capture-settings` and `--capture-toast` take output paths
+too, and neither has been tried against a fresh directory.
+
+### XIX.4 The same clay for opposite news
+
+T184 gave the extra-usage toast the brand clay, deliberately: the tray icon's bar (T182) and the
+weekly chart's second axis (T183) already wear it for *past the included quota*, and one fact should
+look the same everywhere it appears.
+
+The collision is that `ToastTheme.Surprise` — the weekly limit resetting **early**, unambiguously
+good news — has used the same clay since the toasts shipped, as the `_ =>` fallback of the gradient
+switch. So the notification colour vocabulary now says clay for both "you got quota back ahead of
+schedule" and "you have started paying", which are as close to opposite as this app has.
+
+Both claims are individually reasonable and that is what makes it a design decision rather than a
+bug to squash: either the app-wide clay yields on the toast surface, or Surprise moves. Surprise
+moving is the smaller change and the better one — its clay was a default rather than a choice, while
+T182 and T183 picked theirs for a stated reason, and *Bonus* (violet) already shows the good-news
+family has room. But it repaints a shipped notification, so it is worth saying out loud rather than
+doing quietly.
+
+Whichever way it goes, the published `notify-surprise.png` and `notify-extra.png` are then two cards
+of the same colour on one page, which is the form the reader actually meets.
+
+### XIX.5 A chart rule held by one screenshot
+
+T183's series obeys a rule that matters: a stored reading carrying **no** overage figure is skipped,
+not plotted as zero. Reading absent as zero would draw a floor along the bottom of the chart that
+nobody measured — the same `absent ≠ zero` distinction T179 built the store around, one layer up.
+
+Nothing asserts it. `FillCurve` is `private` inside `UsageReport`, reached only through
+`ComputePace`, which wants a real profile and its transcripts; the drawing itself is WPF and
+off-limits to a headless run. So the rule is held by the fixture screenshot taken once while
+building it — and a fixture that contains no nulls cannot demonstrate the null path at all, which
+means even that screenshot does not show it.
+
+The same shape as §XV.2: a real decision living where `--selftest` cannot reach. The fix is the same
+too — lift the series-building to something callable with a `List<UsageSample>` and a window, and
+assert the three cases directly (nulls skipped, a measured zero kept, `ExtraMax` over the kept
+points only). None of that needs a profile, a chart, or a screen.
+
+It is worth doing beyond overage: `Curve` and `Gaps` are built in the same method and asserted by
+nothing either.
+
+### XIX.6 The branch that shipped unseen
+
+T182 appends to the System page's extra-usage row whether the allowance is *in use* — "Enabled — in
+use now (42%)" — read from the profile's own stored history rather than a live call.
+
+Only the empty branch has ever been rendered. Showing the percentage needs a profile whose
+`usage-history.jsonl` carries an overage figure, and there is none: this machine's accounts are
+`org_level_disabled`, and the work profile's history predates the field, so it takes the null path.
+`AccountFixture` builds two config directories and no stores at all, so `--settings System --sample`
+cannot reach it either.
+
+The layout risk is small — the string is about as long as the token-expiry value in the row three
+below it — and small is not the same as checked. This repository's own rule is that a UI change is
+not done without a screenshot, and this branch has none.
+
+What it actually asks for is the missing half of `AccountFixture`: a fixture that writes a short
+`usage-history.jsonl` for the profile it invents. That unlocks this row, and also gives `--stats` a
+deterministic overage series without the `PreviewDemoOverage` seam T183 had to add to the page.
+
+### XIX.7 A map at its ceiling
+
+`AGENTS.md` carries a declared budget — 400 lines, 42,000 bytes — and sits at exactly 400. Block AE
+added `src/Usage/HeaderProbe.cs`, `src/Usage/QuotaState.cs` and `src/Cli/ProbeCli.cs`, plus
+`--probe`, `--stats overage` and `--capture-toast extra`. None is in the file map or the dev-helper
+list, because adding them costs lines the budget does not have.
+
+This was met head-on: correcting the plugin-scope sentence there had to be rewritten twice to land
+net-zero, and the operational detail moved to the `roadmap-docs` skill instead. That was the right
+trade for one sentence and it does not scale — the map now silently omits whatever ships next, and a
+map with holes is worse than a long one, because it is read as complete.
+
+`roadkeep.toml` calls the number "a ceiling to come down, not a target", so the answer is not
+raising it. The file's own §I.5 list, the release process and the flag catalogue are all candidates
+to move or compress — the flag list in particular is a reference, consulted rather than read, and
+reference material is what a per-turn budget is least willing to pay for.
