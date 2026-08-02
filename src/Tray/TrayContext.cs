@@ -716,6 +716,11 @@ internal sealed class TrayContext : ApplicationContext
     /// Silent on failure by design: this runs off a menu click that has already done its real job
     /// (the icon moved), and a modal about an environment variable would be the wrong thing to
     /// interrupt it with — <c>--profiles</c> and the Settings row both show the live value.</para>
+    ///
+    /// <para>Returns immediately: the variable is written on the thread pool, because the broadcast it
+    /// entails takes seconds and this sits directly under a menu click and under Save (T149). The
+    /// bookkeeping saved here is settled before that returns, so the order of two quick picks is the
+    /// order they were clicked.</para>
     /// </summary>
     private void SyncEnvironmentToPin(ClaudeInfo? pinned)
     {
@@ -1422,6 +1427,9 @@ internal sealed class TrayContext : ApplicationContext
         _tray.Visible = false;
         if (_iconHandle != IntPtr.Zero) DestroyIcon(_iconHandle);
         _tray.Dispose();
+        // A profile switched a moment ago has its environment write in flight on the thread pool
+        // (T149); the process must not take it down with it.
+        EnvironmentProfile.Drain();
         ExitThread();
     }
 }

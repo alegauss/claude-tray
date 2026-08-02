@@ -43,7 +43,15 @@ internal static class EnvironmentProfile
 
     /// <summary>
     /// Make <paramref name="configDir"/> the environment's profile, remembering what was there the
-    /// first time so <see cref="Restore"/> can undo it. Returns false if the write failed.
+    /// first time so <see cref="Restore"/> can undo it.
+    ///
+    /// <para>Returns whether the write was <b>accepted</b>, not whether it landed: since T149 the write
+    /// itself happens on the thread pool (see <see cref="Write"/>), so there is no result to wait for
+    /// without re-freezing the click this exists to unfreeze. The bookkeeping below is therefore
+    /// recorded up front. What that costs if the write ever does fail is one line in the settings file
+    /// claiming a variable the tray does not actually own — and the only thing that line does is make
+    /// <see cref="Restore"/> put back the value that is already there. The tray never abandons a
+    /// setting it manages either way, which was the whole promise.</para>
     /// </summary>
     internal static bool Adopt(Settings settings, string configDir)
     {
@@ -66,10 +74,55 @@ internal static class EnvironmentProfile
         return true;
     }
 
-    /// <summary>Set the user-scope variable, or remove it when <paramref name="value"/> is null, and
-    /// tell the shell — without the broadcast, Explorer keeps the environment block it built at logon
-    /// and nothing launched from the Start menu sees the change until the next sign-out.</summary>
+    /// <summary>
+    /// Set the user-scope variable, or remove it when <paramref name="value"/> is null, and tell the
+    /// shell — without the broadcast, Explorer keeps the environment block it built at logon and
+    /// nothing launched from the Start menu sees the change until the next sign-out.
+    ///
+    /// <para><b>Never on the calling thread</b> (T149). Both halves of this are a broadcast to every
+    /// top-level window on the machine: <see cref="Environment.SetEnvironmentVariable(string,string?,EnvironmentVariableTarget)"/>
+    /// sends its own <c>WM_SETTINGCHANGE</c> before returning, and <see cref="Broadcast"/> sends a
+    /// second one. Each sweep waits on every window in turn — measured at 129 ms and 486 ms on an
+    /// *idle* machine, and seconds on a working one. Called straight from a menu click, that is the
+    /// tray's UI thread held for the whole sweep, which is what the freeze on "Profile &gt; …" and on
+    /// Save was. So the write is queued to the thread pool and the caller returns at once.</para>
+    ///
+    /// <para>Queued rather than merely thrown: the writes are chained, so two quick picks land in the
+    /// order they were clicked instead of racing for the last word. The return value is now "accepted",
+    /// not "written" — see <see cref="Adopt"/> for why that is the right trade.</para>
+    /// </summary>
     private static bool Write(string? value)
+    {
+        lock (Gate)
+        {
+            // Already what it should be: no registry write, and — the part that costs the seconds —
+            // no broadcast. This is the ordinary case for Save, which reconciles the environment on
+            // every press whether or not the profile row was the thing that changed.
+            //
+            // Compared against where the queue is *heading*, never against what the registry says.
+            // A queued write has not landed yet, so the variable still reads its old value, and
+            // comparing against that drops the second of two quick picks on the floor: measured —
+            // pick the other profile, pick this one straight back, and the machine stays on the
+            // other one. With no write pending the registry is the honest answer, which is also how
+            // a value changed behind the tray's back (System Properties) is picked up again.
+            string? heading = _inFlight > 0 ? _target : Current();
+            if (string.Equals(heading ?? "", value ?? "", StringComparison.OrdinalIgnoreCase)) return true;
+
+            _target = value;
+            _inFlight++;
+            _writes = _writes.ContinueWith(_ => Apply(value), TaskScheduler.Default);
+        }
+        return true;
+    }
+
+    private static readonly object Gate = new();
+    private static Task _writes = Task.CompletedTask;
+    /// <summary>Where the queue is heading, meaningful only while <see cref="_inFlight"/> is above
+    /// zero — see <see cref="Write"/> for why the registry cannot answer that question.</summary>
+    private static string? _target;
+    private static int _inFlight;
+
+    private static void Apply(string? value)
     {
         try
         {
@@ -77,9 +130,19 @@ internal static class EnvironmentProfile
             // "select ~/.claude" case, not an error.
             Environment.SetEnvironmentVariable(Var, value, EnvironmentVariableTarget.User);
             Broadcast();
-            return true;
         }
-        catch { return false; }
+        catch { /* the icon already moved; nothing the user is waiting on depends on this */ }
+        finally { lock (Gate) _inFlight--; }
+    }
+
+    /// <summary>Let a queued write finish before the process goes away — switching profile and quitting
+    /// within the same second must not lose the variable. Bounded, because a shutdown must not hang on
+    /// a window that never answers.</summary>
+    internal static void Drain(int timeoutMs = 3000)
+    {
+        Task pending;
+        lock (Gate) pending = _writes;
+        try { pending.Wait(timeoutMs); } catch { /* nothing left to do about it at exit */ }
     }
 
     private const int WM_SETTINGCHANGE = 0x001A;
@@ -90,11 +153,16 @@ internal static class EnvironmentProfile
     private static extern IntPtr SendMessageTimeout(
         IntPtr hWnd, int msg, IntPtr wParam, string lParam, int flags, int timeoutMs, out IntPtr result);
 
-    /// <summary>Ask every top-level window to re-read the environment. Timed out rather than sent
-    /// blocking: one hung app must not freeze the tray's menu click.</summary>
+    /// <summary>Ask every top-level window to re-read the environment. Kept even though .NET sends its
+    /// own <c>WM_SETTINGCHANGE</c> from <c>SetEnvironmentVariable</c>: that one goes out with no flags,
+    /// so it waits out a hung window in full, while this one aborts on it.
+    ///
+    /// <para>The per-window budget is two seconds, down from five (T149): nothing blocks on this
+    /// anymore, but it now runs in a queue, and a slow sweep delays the next profile switch's.</para>
+    /// </summary>
     private static void Broadcast()
     {
-        try { SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, "Environment", SMTO_ABORTIFHUNG, 5000, out _); }
+        try { SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, "Environment", SMTO_ABORTIFHUNG, 2000, out _); }
         catch { /* the value is written either way; the broadcast is the courtesy */ }
     }
 }

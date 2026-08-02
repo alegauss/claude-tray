@@ -1,10 +1,10 @@
-# Last task number — `T148` · next block letter — `U`
+# Last task number — `T149` · next block letter — `V`
 
-> **Single source of truth for the next free task number.** The next new task is `T149`; after
+> **Single source of truth for the next free task number.** The next new task is `T150`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `U`** (Block **T** = One profile, the whole environment — the tray writes the
-> user-scope `CLAUDE_CONFIG_DIR` itself, reversing T143; created 2026-07-31).
+> **Next block letter — `V`** (Block **U** = The environment write stops freezing the app; created
+> 2026-08-01).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -95,6 +95,12 @@
   rather than a stray fix is that the task is to make the copy total by construction, which retires a
   hand-maintained `AGENTS.md` rule. **Closed with T141** (2026-07-31) — its only task — so the block is
   out of `ROADMAP.md`; see [CHANGELOG.md](CHANGELOG.md) Block S.
+- Block **U** (T149, created 2026-08-01) is a **field report against shipped Block T**, on the Block R
+  precedent: T is closed and pruned, and this is a defect found by *using* the feature, not a gap in
+  its design. It is not a Block T task and not a stray fix because what it establishes is a rule the
+  block did not have — **the tray's UI thread never carries a `WM_SETTINGCHANGE` broadcast**, which is
+  a property of every future environment write, not of this one call site. Block L set the precedent
+  that a block may hold a single task.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 
@@ -185,3 +191,4 @@ here. This file is a terse index, not a memory.
 - **T91 SHIPPED** (Block J — the tray's 6h timer keeps the activity grid warm) — 2026-08-01.
 - **T92 SHIPPED** (Block J — per-file sweep cache: the rebuild costs only what changed) — 2026-08-01.
 - **T93 SHIPPED** (Block J — the grid blends per bucket toward the measured week) — 2026-08-01.
+- **T149 SHIPPED** (Block U — the environment write leaves the UI thread, so a profile pick can't freeze the tray) — 2026-08-01.
