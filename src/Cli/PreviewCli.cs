@@ -21,7 +21,9 @@ internal static class PreviewCli
         if (variant.Equals("context", StringComparison.OrdinalIgnoreCase))
         {
             var nudge = new ToastWindow("📇", L.T("toast.context.title"),
-                L.T("toast.context.subtitle", "viglet/turing/2026.2"),
+                // Invented, for the reason ContextFixture exists at all: this card gets published, and
+                // a real repo name here puts a client's name on the marketing page.
+                L.T("toast.context.subtitle", "acme/atlas/2026.2"),
                 0.27, 0.27,
                 L.T("toast.context.caption", TokenEstimate.Format(54_000), (0.336).ToString("0.000", L.Culture)),
                 L.T("toast.context.quotaLabel"), ToastWindow.ToastTheme.Context);
@@ -71,7 +73,9 @@ internal static class PreviewCli
                     1 - 0.06, 1 - 0.06, L.T("toast.extra.caption", "2d 3h"),
                     L.T("toast.extra.quotaLabel"), ToastWindow.ToastTheme.ExtraUsage)
                 : new ToastWindow("📇", L.T("toast.context.title"),
-                L.T("toast.context.subtitle", "viglet/turing/2026.2"),
+                // Invented, for the reason ContextFixture exists at all: this card gets published, and
+                // a real repo name here puts a client's name on the marketing page.
+                L.T("toast.context.subtitle", "acme/atlas/2026.2"),
                 0.27, 0.27,
                 L.T("toast.context.caption", TokenEstimate.Format(54_000), (0.336).ToString("0.000", L.Culture)),
                 L.T("toast.context.quotaLabel"), ToastWindow.ToastTheme.Context);

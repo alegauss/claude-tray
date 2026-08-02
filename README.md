@@ -222,8 +222,6 @@ appears — without reading a word:
 &nbsp;
 <img src="docs/notify-session.png" alt="Fresh session! — 5h session reset (blue)" width="48%">
 
-<img src="docs/notify-extra.png" alt="Extra usage has started — past the quota included in your plan (clay)" width="48%">
-
 </div>
 
 | Notification | Color | What it means | Setting |
@@ -232,18 +230,35 @@ appears — without reading a word:
 | 🎉 **Bonus!** | **Violet** | A partial mid-window **credit** dropped your weekly usage (e.g. 91% → 50%) | Unexpected reset |
 | ✦ **New week!** | **Teal** | The routine **weekly** reset — fresh quota for the week | Scheduled reset |
 | ✦ **Fresh session!** | **Blue** | The **5-hour session** window reset — fresh for the next 5 hours | Session reset |
-| 🧾 **Extra usage has started** | **Clay** | You've passed the quota included in your plan and work is now being charged as extra usage | Extra usage starts |
 
 The two weekly anomalies (early reset, mid-window credit) are known Claude Code quirks worth
 knowing about; the routine weekly and session resets are calmer "your quota's back" pings. **All
 are on by default** — toggle any of them independently in **Settings** (click the icon → Settings),
 so you can keep the surprises and silence the routine ones, or vice versa.
 
-The last one is the only one that isn't good news, and it exists because the others are: the app
-interrupted you to say quota came *back* and said nothing when you started paying. It fires **once**
-when a check first finds you past your included quota — not on a timer, and not again while the same
-spell lasts — and it is a receipt, not a prompt: it names no account, suggests nothing, and offers
-no button but *close*.
+### Two that aren't celebrations
+
+Not every thing worth knowing is good news. These use the same card without the confetti:
+
+<div align="center">
+
+<img src="docs/notify-context.png" alt="Heavy startup context — a project loading a lot before the first prompt (ochre)" width="48%">
+&nbsp;
+<img src="docs/notify-extra.png" alt="Extra usage has started — past the quota included in your plan (clay)" width="48%">
+
+</div>
+
+| Notification | Color | What it means | Setting |
+|---|---|---|---|
+| 📇 **Heavy startup context** | **Ochre** | A project's instruction files, memory and skills have grown enough that **every session pays for them before you type** — with what a cold-cache load costs | Context growth (**off** by default) |
+| 🧾 **Extra usage has started** | **Clay** | You've passed the quota included in your plan and work is now being **charged as extra usage** | Extra usage starts |
+
+The context nudge fires at most **once per project per week**, and is off by default on purpose:
+nobody asked to be told their own memory directory is growing. The extra-usage one exists *because*
+the resets do — the app interrupted you to say quota came *back* and said nothing when you started
+paying. It fires **once** when a check first finds you past your included quota, not on a timer and
+not again while the same spell lasts, and it's a receipt rather than a prompt: it names no account,
+suggests nothing, and offers no button but *close*.
 
 ## Usage insights (last 24h)
 
