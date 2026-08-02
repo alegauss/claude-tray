@@ -1,10 +1,10 @@
-# Last task number — `T174` · next block letter — `AD`
+# Last task number — `T178` · next block letter — `AE`
 
-> **Single source of truth for the next free task number.** The next new task is `T175`; after
+> **Single source of truth for the next free task number.** The next new task is `T179`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `AD`** (Block **AC** = The tray reports the switch it performed, not the switch
-> the machine got; created 2026-08-02).
+> **Next block letter — `AE`** (Block **AD** = The window can be read now, and what that turned up;
+> created 2026-08-02).
 > Z was the last single letter, so the scheme continues **AA, AB, …** —
 > two letters, same ordering, and `CHANGELOG.md`'s table sorts them after Z. Nothing in the docs parses
 > a block letter, so this costs a wider column and nothing else.
@@ -170,6 +170,15 @@
   the one that redirected the whole investigation: **a spinner verifies the click, and what needs
   verifying is the result** — the first theory here was a race, and the race was measured at 87 ms while
   the real gap was three minutes of a write that never happened. Its design section is **§XVI**.
+- Block **AD** (T175–T178, created 2026-08-02) is the **read-back of Block AA**, and specifically of the
+  half-hour in which the Statistics window was, for the first time, *read* rather than photographed. A
+  block of its own because the theme is not profiles: it is that every verification loop this repo had was
+  a picture, and a picture cannot be wrong about whether the window is in the accessibility tree at all —
+  which it was not, from T111 until T165 looked. One task is that same defect one layer down (two controls
+  with no accessible name), one is the gap that lets it come back (the pane-in-the-tree assertion sits
+  behind `-Case Profiles`'s two-profile skip, so it never runs on a one-profile machine or in CI), and two
+  are ways the new check misleads whoever runs it next. Its design section is **§XVII**: §XIV was retired
+  with Block AA and §XVI belongs to Block AC.
 - Block **AA** (T164–T166, created 2026-08-02) is a **field report against shipped Block O**, on the
   Block R / U / W precedent: O is closed and pruned, and this is a defect found by *using* the feature.
   The first two-letter block — Z was the last single letter, and nothing in the docs parses one.

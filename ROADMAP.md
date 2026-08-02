@@ -19,6 +19,23 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
+## Block AD — The window can be read now, and what that turned up
+
+> Block AA ended with the first check that *reads* the Statistics window rather than photographing it,
+> and reading it found something no screenshot could: the whole tab body was outside the accessibility
+> tree (fixed in T165). Four things came out of that half-hour and belong to none of AA's tasks — one is
+> the same defect one layer down, one is a gap in the check that found it, and two are ways the new check
+> can mislead the next person to run it. All four exist because *nobody had ever asked the window what it
+> was showing* — every earlier verification asked a picture.
+> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XVII.
+>
+> Ordered by what a user is affected by today, then by what protects the rest.
+
+- 📋 **T175** (deps: —) **The two controls a screen reader most needs named are the two with no accessible name** — dumping the window's control view (T165) shows `RefreshButton`, `CloseButton` and the three nav destinations carrying their labels, and `ProfileCombo` and `MethodInfo` carrying `''`. The picker's label is a *separate* `TextBlock` beside it and the ⓘ is a glyph-only `ToggleButton`, so neither has anything to derive a name from: the two controls that switch the whole report and open the note explaining it announce as an unnamed combo box and an unnamed button. Both strings already exist in `lang/*.json` (`stats.profile`, the method-note header) — this is `AutomationProperties.Name`, not new copy. → §XVII.1
+- 📋 **T176** (deps: T165) **The assertion that the panes are readable at all sits behind a two-profile skip** — `-Case Profiles` is the only thing that would notice the tab body leaving the UIA tree again, and it skips entirely on a machine with one profile, which is most machines and every CI runner. The pane-in-the-tree property has nothing to do with profiles: it wants to be asserted wherever the window opens, before the round trip that needs two. Splitting it out also gives the one-profile machine a real check instead of a stated skip. → §XVII.2
+- 📋 **T177** (deps: T166) **T166's whole claim is a timing, and no check makes it** — "coming back is instant" was measured with a scratch script (status line at 162 ms and panes at 961 ms without the cache; never shown and 12 ms with it) and the script is gone. The property is cheap to assert and sharply defined: on the switch *back* to a profile seen seconds ago, the status line must never appear at all. Same precedent as T142 and T165 — the check that found something belongs in the repo, not in a scratch directory. → §XVII.3
+- 📋 **T178** (deps: T165) **"Read NOTHING" is reported for a window that was talking the whole time** — `Read-ProfileStop` waits out `stats.computing` and, on timeout, fails with *"no panes and no status line after 25s"*. On the first real run that message was wrong in the way that matters: the status line was up for all 25 s saying *"Computing your consumption pace…"*, and the true fault was elsewhere entirely. A timeout must report what it last saw and distinguish *slower than the deadline* from *nothing on screen* — the second is the failure the script exists for, and conflating them cost a debugging session on the check's own first outing. → §XVII.4
+
 ## Block AB — What Block Z's own work left behind
 
 > Block Z made the app say what it knows: the method note stopped overstating its evidence (T159), the

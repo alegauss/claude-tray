@@ -13,6 +13,7 @@
 | [§I](#i--house-constraints) | House constraints (binding, app-wide) |
 | [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature (kept: it is data, not design) |
 | [§XV](#xv--what-block-zs-own-work-left-behind-block-ab) | What Block Z's own work left behind (Block AB) |
+| [§XVII](#xvii--the-window-can-be-read-now-and-what-that-turned-up-block-ad) | The window can be read now, and what that turned up (Block AD) |
 
 > Block I's design sections (§II), Block J's (§IV), Block V's (§XII), Block Z's (§XIII) and Block AA's
 > (§XIV) are gone: every one of them shipped, and `git log` plus [CHANGELOG.md](CHANGELOG.md) are the
@@ -316,3 +317,92 @@ is a smaller card, not a borrowed metaphor.
 This also needs its own justification rather than inheriting one, per the T87 non-goal on notification
 channels. It has one, and it is narrow: this fires only on an explicit user action, only once per action,
 and only to confirm a change whose effect is otherwise unobservable. Nothing ambient, nothing on a timer.
+
+---
+
+## §XVII — The window can be read now, and what that turned up (Block AD)
+
+Every verification loop this repo had before T165 was a **picture**: `Capture-Window.ps1`,
+`--capture-settings`, `--capture-stats`, the `preview-ui` skill. T142 added one that *drives* the UI, and
+T165 added the first that drives the **Statistics window** and reads its numbers back. Half an hour of
+doing that turned up more than the task was about, and the four items here share a cause: a picture can
+only be wrong about what it shows, while the accessibility tree can be wrong about *whether the window
+exists at all* — and nothing had ever asked it.
+
+The headline finding is already fixed: the segmented-tab `ControlTemplate` never named its content host,
+WPF looks it up by `GetTemplateChild("PART_SelectedContentHost")`, and without the name the entire selected
+pane was absent from the UI Automation tree. Every number, chart legend, projection sentence and the live
+headline. It shipped in T111 and survived to T165 because a screenshot does not use that tree, and neither
+did anything else in this repo. What follows is the same lesson at three smaller scales.
+
+### §XVII.1 Two unnamed controls, and they are the two that matter (T175)
+
+The control-view dump taken while building T165 reads, verbatim:
+
+```
+ProfileCombo   ComboBox   off=False  ''
+PanesBody      Tab        off=False  ''
+MethodInfo     Button     off=False  ''
+RefreshButton  Button     off=False  'Refresh'
+CloseButton    Button     off=False  'Close'
+```
+
+`RefreshButton` and `CloseButton` announce themselves because a WPF `Button` derives its accessible name
+from its `Content`. `ProfileCombo` has no content to derive from — its label is a *separate* `TextBlock`
+sitting beside it in the card, which the automation tree has no way to associate — and `MethodInfo` is a
+glyph-only `ToggleButton` whose content is the Segoe MDL2 codepoint for ⓘ. So the control that switches
+which account the entire report is about, and the control that opens the note explaining every number in
+it, both announce as *"combo box"* and *"button"*.
+
+`PanesBody` is not the same problem: a `TabControl`'s name is carried by its items, and those read
+correctly (*"5-hour session"*, *"Week (7 days)"*, *"Throughput"*).
+
+This is `AutomationProperties.Name`, not new copy — `stats.profile` already exists in all five languages
+and the method note already has a header string. The task is to bind them, and to decide whether the rule
+generalises: a control whose label lives in a *neighbouring* element is the pattern to look for, and the
+Settings page is full of exactly that shape (`SettingsRow` puts a label and a control side by side).
+
+### §XVII.2 The pane-in-the-tree check is trapped behind a two-profile precondition (T176)
+
+`-Case Profiles` is now the only thing in the repo that would notice the tab body leaving the accessibility
+tree again — and it opens by asking `--profiles` for a count and skipping, loudly but completely, below
+two. That is right for the round trip, which cannot exist with one profile. It is wrong for the property
+that made the round trip readable, which has nothing to do with profiles at all.
+
+The practical effect is that the check protecting the regression T165 just fixed does not run on a
+single-profile machine, which is most machines and every CI runner — the same shape as T169's skip in Block
+AB, arriving from the opposite direction. Splitting the assertion out (the window opens; the panes are in
+the tree; a used %, a reset caption and a live headline can be read) gives the one-profile machine a real
+check where it currently gets a stated skip, and leaves `-Case Profiles` to be about the switch.
+
+### §XVII.3 The timing T166 claims is asserted nowhere (T177)
+
+T166's entire claim is a timing: coming back to a profile seen seconds ago must not blank the panes. It was
+verified properly — a probe that switches and then polls the tree every 60 ms, run against a build with the
+cache and one without: *status line at 162 ms, panes back after 961 ms* without, *status line never shown,
+panes readable after 12 ms* with. Both numbers are in the T166 changelog entry, and the script that produced
+them was a scratch file.
+
+That is the situation T142 and T165 were both created to end. The property is cheap and sharply defined —
+on the switch **back**, `StatusText` must never become visible — and it belongs beside the round-trip
+assertions that already drive the same picker. Worth stating in the check itself: this is the one assertion
+in the file that would fail on a *slow* machine for a correct reason if it were written as a deadline, so
+it must be written as "the status line was never observed", not as "the panes returned within N ms".
+
+### §XVII.4 A timeout that reports the opposite of what it saw (T178)
+
+`Read-ProfileStop` polls for either the panes or a settled status line, treating `stats.computing` as
+"still in flight", and on expiry returns `nothing` — which the caller reports as
+*"read NOTHING - no panes and no status line after 25s"*.
+
+On the first real run of the case that message was false in the way that costs the most time. The status
+line was up for the whole 25 seconds, saying *"Computing your consumption pace…"*, and the actual fault was
+the missing `PART_SelectedContentHost` — nothing to do with timing, and nothing the message pointed at.
+Diagnosing it took a separate throwaway script to dump the tree, which is precisely the work the script is
+supposed to have already done.
+
+Two things to fix, and they are one task because the second without the first is still misleading: the
+timeout must report **what it last saw** (the status text, or that the tree held neither), and it must
+distinguish *the window was working and did not finish in time* from *the window showed nothing at all*.
+The first is a slow machine or a cold transcript cache; the second is the failure this script exists for.
+Only the second should read as the same kind of failure as an empty menu read (T142's founding trap).
