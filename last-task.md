@@ -1,10 +1,9 @@
-# Last task number — `T149` · next block letter — `V`
+# Last task number — `T153` · next block letter — `W`
 
-> **Single source of truth for the next free task number.** The next new task is `T150`; after
+> **Single source of truth for the next free task number.** The next new task is `T154`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `V`** (Block **U** = The environment write stops freezing the app; created
-> 2026-08-01).
+> **Next block letter — `W`** (Block **V** = What the self-check found; created 2026-08-02).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -25,6 +24,13 @@
   Claude Code records recalls as structured metadata") was checked against the real transcripts rather
   than left waiting, and no such signal exists. The block is out of `ROADMAP.md` and the exclusion is a
   binding non-goal there; see [CHANGELOG.md](CHANGELOG.md) Block I.
+- Block **V** (T150–T153, created 2026-08-02) opens on **what building the self-check exposed**, not on
+  a plan: three gaps in what `--selftest` covers or in when it runs, plus one number (the live rate's
+  1.7% kernel bias) that has been wrong on screen since T98 and that nobody could have seen without
+  writing the property down. It is a new block rather than a Block J or K second pass because both are
+  closed and pruned, and because the theme is the *check itself* rather than either feature.
+  Its design section is **§XII**: §II and §IV–§XI have all been retired, and section numbers are never
+  reused — an old commit's `→ §V` must keep pointing where it pointed.
 - **Block J closed with T96** (2026-08-02) and is pruned from `ROADMAP.md`, which now has no active
   backlog at all. Its §IV design sections are gone from `IMPROVEMENTS.md` too; the one decision that
   outlived the block — no activity-aware tray notification — moved to the roadmap's non-goals, since a

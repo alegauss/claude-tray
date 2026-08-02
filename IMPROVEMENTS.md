@@ -12,11 +12,16 @@
 |---|---|
 | [§I](#i--house-constraints) | House constraints (binding, app-wide) |
 | [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature (kept: it is data, not design) |
+| [§XII](#xii--what-the-self-check-found-block-v) | What the self-check found (Block V) |
 
 > Block I's design sections (§II) and Block J's (§IV) are gone: every one of them shipped, and
 > `git log` plus [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a
 > **measurement** — the numbers the rule thresholds and the base-overhead constant were calibrated
 > against.
+>
+> Section numbers are **never reused**: §II, §IV–§XI have all been retired, so a new block takes the
+> next unused numeral rather than the next free-looking one. A `→ §V` in an old commit message must
+> keep pointing at what it pointed at.
 
 ---
 
@@ -92,4 +97,75 @@ deliberately — this file is published with the repo. The right-hand column is 
 | `settings.json` | 87 KB | settings bloat |
 | Base overhead (system prompt + tools + MCP) | ≈32k tokens, p25 30k / p75 34k | shown as its own gauge segment, never folded into a project's number |
 | Heaviest scannable eager load | ≈22k tokens (a 43 KB `AGENTS.md` + 20 KB index) | the hero number the gauge shows |
+
+---
+
+## §XII — What the self-check found (Block V)
+
+Building `--selftest` (T96) was the first time the pacing and live-rate arithmetic was written down as
+properties rather than looked at on a chart, and writing them down turned up four things. Three are
+gaps in what the check itself covers or guards; one is a number that has been wrong on screen since
+T98. None of them was found by a user report, which is the point: they were found by having to state
+what "correct" means.
+
+### §XII.1 The live rate reads 1.7% high (T150)
+
+The rolling rate weights each of the last `W` seconds by `1 − i/W` and divides by `W/2`. That divisor
+is the integral of the triangular window, `∫₀^W (1 − t/W) dt`, but the kernel is a **sum over discrete
+seconds**, and that sum is `Σᵢ₌₀^{W−1} (1 − i/W) = (W+1)/2` — 30.5, not 30. A perfectly sustained
+`R` tokens/s therefore reads as `R · (1 + 1/W)`, which at `W = 60` is **1.67% high**, everywhere the
+rate is shown: the headline, the strip, the per-project lines, the hover.
+
+The fix is one divisor — normalise by the sum the kernel actually has. It is small, it is not urgent
+(nobody makes a decision on the second decimal of a tokens/second reading), and it is worth doing
+because the number claims a unit: "≈134 tok/s" is an assertion about tokens and seconds, not a
+relative index, and being consistently high by a fixed factor is exactly the kind of thing that is
+free to fix now and embarrassing to explain later. `--selftest` currently pins the *present* value as
+a closed form (`R × (1 + 1/60)`), deliberately, so the assertion has to move in the same commit —
+which is the check doing its job rather than an obstacle.
+
+### §XII.2 A week away shouldn't teach the measured grid either (T151)
+
+T95 drops weeks the user was away from the **transcript** grid's vote. The measured grid (T88, blended
+in by T93) still counts every folded hour, so the same holiday still votes "these hours are idle" —
+and as the measured share grows, that becomes the *dominant* vote rather than a softened one.
+
+It was deferred out of T95 for a stated reason: a low-activity week in the folded store is ambiguous
+between "away" and "the app was closed". That ambiguity is resolvable rather than fundamental, and the
+store already holds what resolves it — an hour with no reading is *unknown* and is already outside the
+denominator, so a week can be judged only once it is known to have been **observed**. The test
+therefore needs two conditions where the transcript one needed a single one: a week is away when it is
+well covered (a majority of its hours have readings) *and* its active-hour count falls under
+`AwayFraction` of the median covered week's. Weeks that fail the coverage test are not evidence either
+way and must keep contributing exactly what they contribute today. `--activity --measured` should
+print the exclusion the same way `--activity` prints the transcript one, and for the same reason:
+silently discarding a sixth of the input is what looks like a bug three months later.
+
+### §XII.3 Two properties the self-check still doesn't cover (T152)
+
+§IV.12 listed the tail's **primed offset** ("a primed mid-line cursor skips to a character boundary")
+and the rate's **zero-fill** ("a paused caller resumes with a truthful gap rather than a stale
+plateau") among the properties that justified building `--selftest`. Neither is asserted: the fixture's
+transcripts are a few hundred bytes, so the first sweep always starts at offset 0 and `NeedsAlign` is
+never exercised, and there is no way to feed `LiveRate` a turn without a real `TranscriptTail` raising
+its event.
+
+Both are cheap once named. The priming path needs a fixture larger than `PrimeBytes` (256 KB) so the
+cursor genuinely starts mid-line — a few hundred synthetic turns, written once. The zero-fill needs a
+seam: `LiveRate.Add` is private and reached only through `tail.Appended`, so making it internal (the
+same visibility the fixtures already rely on) lets a check push a burst, skip thirty seconds of
+`Tick`, and assert the strip came back empty instead of holding its last value. A property listed as
+the reason a feature exists and then left unasserted is worse than one nobody wrote down.
+
+### §XII.4 The self-check only runs when a release is cut (T153)
+
+`build.yml` is `workflow_dispatch` only, so `--selftest` — now wired into it — runs when somebody
+decides to publish. A broken invariant therefore surfaces at the least convenient moment available,
+with an installer half-built behind it.
+
+The check takes 2.3 seconds and needs no secrets, no signing and no Inno Setup. Running it on push and
+on pull requests as its own small job (build, run, done) turns "the release is blocked" into "the
+commit is red", which is the entire value of having written the properties down. Deliberately a
+separate job rather than a condition on the existing one: the release workflow must stay manual, and a
+guard that can only run by publishing is not a guard.
 

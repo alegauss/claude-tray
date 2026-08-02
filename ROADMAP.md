@@ -19,15 +19,22 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## No active backlog
+## Block V — What the self-check found
 
-Every block is shipped and pruned from this file — see [CHANGELOG.md](CHANGELOG.md), which is
-authoritative for what exists and for the real maximum block letter. **Block J closed with T96**
-(2026-08-02): the activity-aware projection, its two accuracy passes, and the in-app `--selftest`
-that keeps its arithmetic (and Block K's) from breaking silently.
+> Writing Block J and K's arithmetic down as properties (T96) — instead of looking at it on a chart —
+> turned up four things in one afternoon. Three are gaps in what the check covers or in when it runs;
+> one is a number that has been 1.7% wrong on screen since T98. None came from a user report, which is
+> the point: they came from having to state what "correct" means.
+> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XII.
+>
+> Ordered by what is wrong *today* for somebody looking at the app, then by what protects the rest:
+> T150 fixes the number, T151 makes a broken invariant a red commit instead of a blocked release, and
+> the two accuracy/coverage tasks follow.
 
-New work opens a new block — read [last-task.md](last-task.md) for the next free `T<n>` and the next
-block letter, and check the non-goals below before proposing it.
+- 📋 **T150** (deps: —) **The live rate reads 1.7% high** — the triangular kernel is normalised by `W/2` (the integral) while the discrete sum it actually computes is `(W+1)/2`, so a sustained `R` tok/s displays as `R × (1 + 1/60)` in the headline, the strip, the per-project lines and the hover. One divisor; `--selftest` pins the present value as a closed form, so that assertion moves in the same commit. → §XII.1
+- 📋 **T151** (deps: —) **Run the self-check on push, not only at release** — `build.yml` is `workflow_dispatch` only, so the 2.3s check that guards the pacing and rate math runs when somebody decides to publish, with an installer half-built behind it. A separate job on push/PR (no secrets, no signing, no Inno Setup) makes it a red commit instead. → §XII.4
+- 📋 **T152** (deps: —) **A week away shouldn't teach the measured grid either** — T95 excludes away weeks from the transcript grid only, so a holiday still votes "these hours are idle" in the folded store — and as the measured share grows that becomes the dominant vote. Resolvable because the store already separates *unknown* from *idle*: judge a week only once it is known to have been observed. → §XII.2
+- 📋 **T153** (deps: —) **Two properties the self-check still doesn't cover** — the tail's primed-offset alignment (the fixture files are too small to ever start mid-line) and the rate's zero-fill on a paused caller (no seam to feed `LiveRate` without a real tail). Both were named in the design that justified building `--selftest`. → §XII.3
 
 ## Non-goals (do NOT add as tasks)
 
