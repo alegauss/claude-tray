@@ -178,6 +178,7 @@
   "settings.cc.retryDesc": "Com que frequência reverificar a sua utilização após terminar sessão, até autenticar novamente.",
 
   "settings.cc.profiles": "Perfis",
+  "settings.cc.profilesGlobal": "Todos os perfis",
   "settings.cc.profile": "A editar",
   "settings.cc.profileDesc": "Que perfil os campos abaixo editam. Isto não altera o que o ícone da área de notificação mostra — isso é o próprio menu Perfil da área de notificação.",
   "settings.cc.profileAdd": "Adicionar…",

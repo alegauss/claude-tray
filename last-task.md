@@ -1,9 +1,9 @@
-# Last task number — `T155` · next block letter — `Y`
+# Last task number — `T156` · next block letter — `Y`
 
-> **Single source of truth for the next free task number.** The next new task is `T156`; after
+> **Single source of truth for the next free task number.** The next new task is `T157`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `Y`** (Block **X** = One switch in one place; created 2026-08-02).
+> **Next block letter — `Y`** (Block **X** = Each control says what it changes; created 2026-08-02).
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -37,13 +37,16 @@
   the rule for *how a directory is named on screen* now lives in `ProjectSlug` and both windows read
   it. Shipped in the same commit it was created in, so it has no `ROADMAP.md`/`IMPROVEMENTS.md`
   entries — the design is the CHANGELOG line and the code.
-- Block **X** (T155, created 2026-08-02) opens on a **user question** rather than a defect, on the
-  Block N precedent: *"what is the icon profile?"* — and the honest answer was that it duplicated the
-  tray's Profile submenu, so the row was removed rather than reworded. A block of its own because it
-  retires a control from shipped Block R (closed and pruned) and because the rule it leaves behind is
-  general: a field the Settings page does not edit must be carried over from the live model, not from
-  the window's opening snapshot (T141's list). Shipped in the same commit it was created in, so it has
-  no `ROADMAP.md`/`IMPROVEMENTS.md` entries.
+- Block **X** (T155–T156, created 2026-08-02) opens on **user questions** rather than defects, on the
+  Block N precedent — *"what is the icon profile?"*, then *"why is the Windows-wide toggle a per-profile
+  setting?"* — and in both the honest answer was about the page, not the model: one control duplicated
+  the tray's Profile submenu, two others were app-wide switches sitting in the per-profile card. A block
+  of its own because it re-cuts controls from shipped Blocks R and T (both closed and pruned), and
+  because the theme is what a control **claims to change**, not what any one feature does. T156 is the
+  second item, added the same day from the same session. The rule T155 leaves behind is general: a field
+  the Settings page does not edit must be carried over from the live model, not from the window's
+  opening snapshot (T141's list). Shipped in the same commits they were created in, so neither has
+  `ROADMAP.md`/`IMPROVEMENTS.md` entries.
 - **Block J closed with T96** (2026-08-02) and is pruned from `ROADMAP.md`, which now has no active
   backlog at all. Its §IV design sections are gone from `IMPROVEMENTS.md` too; the one decision that
   outlived the block — no activity-aware tray notification — moved to the roadmap's non-goals, since a
@@ -225,3 +228,4 @@ here. This file is a terse index, not a memory.
 - **T96 SHIPPED** (Block J — `--selftest`: 58 checks over the pacing and live-rate arithmetic, wired into the build) — 2026-08-02.
 - **T154 SHIPPED** (Block W — the legend names a project by its last two segments, one rule for both windows) — 2026-08-02.
 - **T155 SHIPPED** (Block X — the redundant Icon profile row leaves Settings; the tray submenu is the one switch) — 2026-08-02.
+- **T156 SHIPPED** (Block X — the two app-wide profile switches move out of the per-profile card into "All profiles") — 2026-08-02.

@@ -177,6 +177,7 @@
   "settings.cc.retryDesc": "Fréquence de revérification de votre consommation après une déconnexion, jusqu'à ce que vous vous authentifiiez de nouveau.",
 
   "settings.cc.profiles": "Profils",
+  "settings.cc.profilesGlobal": "Tous les profils",
   "settings.cc.profile": "Modification",
   "settings.cc.profileDesc": "Quel profil les champs ci-dessous modifient. Cela ne change pas ce que montre l'icône — c'est le menu Profil de la barre d'état lui-même.",
   "settings.cc.profileAdd": "Ajouter…",

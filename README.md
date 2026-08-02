@@ -337,7 +337,7 @@ you're projected to run out, and the band can never be mistaken for either. With
 no band, since there would be no question to answer.
 
 **Or let the icon keep up by itself.** Turn on **Follow the active profile** — in the Profile submenu, or
-in **Settings → Claude Code → Profiles** — and the icon moves to whichever profile Claude Code last worked
+in **Settings → Claude Code → All profiles** — and the icon moves to whichever profile Claude Code last worked
 in, so switching accounts needs no click at all. It is read from **transcript timestamps only**, on the
 same refresh you already pay for: no transcript is opened, nothing runs between refreshes, and a profile
 with no subscription quota to read is never followed into. The submenu shows how long ago each profile was
@@ -358,7 +358,7 @@ the variable for that session instead, because pointing it *at* `~/.claude` woul
 against a second, empty state file instead of your own project history.
 
 **Want the profile you pick to be the whole machine's?** Turn on **Use the chosen profile everywhere in
-Windows** in **Settings → Claude Code → Profiles**. Then picking a profile by hand writes
+Windows** in **Settings → Claude Code → All profiles**. Then picking a profile by hand writes
 `CLAUDE_CONFIG_DIR` into your Windows user environment, so a terminal you open yourself, an editor
 started from the Start menu and anything else use that profile too — not only the sessions the tray
 launches. It follows the profile you **choose**, never the one auto-follow drifts to, and the row shows

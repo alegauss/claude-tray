@@ -74,12 +74,11 @@ internal partial class SettingsWindow : Window
         if (_ccProfiles.Count > 0) ProfileCombo.SelectedIndex = index;
         _fillingProfile = false;
 
-        // With one profile there is nowhere for the icon to follow to, so the toggle would be a switch
-        // that does nothing. It reappears the moment a second profile is added (T126).
-        FollowActiveRow.Visibility = FollowActiveDivider.Visibility =
-            _ccProfiles.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-        // Same rule (T145): with one profile there is nothing to point the environment at.
-        EnvSyncRow.Visibility = EnvSyncDivider.Visibility =
+        // With one profile there is nowhere for the icon to follow to and nothing to point the
+        // environment at, so both of the app-wide rows would be switches that do nothing — the whole
+        // section goes, header included, and comes back the moment a second profile is added
+        // (T126, T145; one gate since T156 put them in a card of their own).
+        ProfilesGlobalHeader.Visibility = ProfilesGlobalCard.Visibility =
             _ccProfiles.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
         // The live reading, not the intent — so the row still tells the truth when something else on
         // the machine set the variable, or when the tray's own write failed.

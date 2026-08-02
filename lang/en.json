@@ -181,6 +181,7 @@
   "settings.cc.retryDesc": "How often to re-check your usage after a sign-out, until you authenticate again.",
 
   "settings.cc.profiles": "Profiles",
+  "settings.cc.profilesGlobal": "All profiles",
   "settings.cc.profile": "Editing",
   "settings.cc.profileDesc": "Which profile the fields below edit. It does not change what the tray icon shows — that's the tray's own Profile menu.",
   "settings.cc.profileAdd": "Add…",

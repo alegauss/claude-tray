@@ -177,6 +177,7 @@
   "settings.cc.retryDesc": "Com que frequência reverificar seu uso após uma desconexão, até você autenticar novamente.",
 
   "settings.cc.profiles": "Perfis",
+  "settings.cc.profilesGlobal": "Todos os perfis",
   "settings.cc.profile": "Editando",
   "settings.cc.profileDesc": "Qual perfil os campos abaixo editam. Isso não muda o que o ícone da bandeja mostra — isso é o próprio menu Perfil da bandeja.",
   "settings.cc.profileAdd": "Adicionar…",

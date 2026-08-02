@@ -510,25 +510,38 @@
                                     </StackPanel>
                                 </local:SettingsRow>
 
-                                <Border x:Name="FollowActiveDivider" Style="{StaticResource RowDivider}" />
+                            </StackPanel>
+                        </Border>
 
-                                <!-- Auto-follow (T126). Hidden on a one-profile machine, where there is
-                                     nothing for the icon to follow to. -->
-                                <local:SettingsRow x:Name="FollowActiveRow"
-                                                   Header="{local:Loc settings.cc.followActive}"
+                        <TextBlock Margin="2,10,2,4" TextWrapping="Wrap" FontSize="12"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                   Text="{local:Loc settings.cc.profileNote}" />
+
+                        <!-- ===== All profiles (T156) =====
+                             Both rows below are single settings for the app, not fields of the profile
+                             selected above — and inside that card, one row from the combo, they read as
+                             the selected profile's own. They are hidden together with their header on a
+                             one-profile machine: auto-follow has nowhere to follow to, and there is no
+                             choice for the environment to carry (T126, T145). -->
+                        <TextBlock x:Name="ProfilesGlobalHeader"
+                                   Text="{local:Loc settings.cc.profilesGlobal}"
+                                   Style="{StaticResource SectionHeader}" />
+                        <Border x:Name="ProfilesGlobalCard" Style="{StaticResource GroupCard}" Margin="0,0,0,4">
+                            <StackPanel>
+                                <!-- Auto-follow (T126). -->
+                                <local:SettingsRow Header="{local:Loc settings.cc.followActive}"
                                                    Description="{local:Loc settings.cc.followActiveDesc}">
                                     <ToggleButton x:Name="FollowActiveCheck" Style="{StaticResource ToggleSwitch}" />
                                 </local:SettingsRow>
 
-                                <Border x:Name="EnvSyncDivider" Style="{StaticResource RowDivider}" />
+                                <Border Style="{StaticResource RowDivider}" />
 
                                 <!-- T145: the one setting that writes outside this app's own file — the
                                      user-scope CLAUDE_CONFIG_DIR, so a hand-picked profile reaches
                                      sessions the tray never launches. Off by default, and the value
                                      under it is the live reading, so the row always shows what the
                                      environment actually says rather than what the toggle intends. -->
-                                <local:SettingsRow x:Name="EnvSyncRow"
-                                                   Header="{local:Loc settings.cc.envSync}"
+                                <local:SettingsRow Header="{local:Loc settings.cc.envSync}"
                                                    Description="{local:Loc settings.cc.envSyncDesc}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock x:Name="EnvSyncValue" VerticalAlignment="Center"
@@ -540,10 +553,6 @@
                                 </local:SettingsRow>
                             </StackPanel>
                         </Border>
-
-                        <TextBlock Margin="2,10,2,4" TextWrapping="Wrap" FontSize="12"
-                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                   Text="{local:Loc settings.cc.profileNote}" />
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
