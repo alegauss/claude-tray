@@ -1,6 +1,6 @@
-# Last task number — `T156` · next block letter — `Y`
+# Last task number — `T157` · next block letter — `Y`
 
-> **Single source of truth for the next free task number.** The next new task is `T157`; after
+> **Single source of truth for the next free task number.** The next new task is `T158`; after
 > assigning it, bump the number above and append a log line below.
 >
 > **Next block letter — `Y`** (Block **X** = Each control says what it changes; created 2026-08-02).
@@ -37,7 +37,7 @@
   the rule for *how a directory is named on screen* now lives in `ProjectSlug` and both windows read
   it. Shipped in the same commit it was created in, so it has no `ROADMAP.md`/`IMPROVEMENTS.md`
   entries — the design is the CHANGELOG line and the code.
-- Block **X** (T155–T156, created 2026-08-02) opens on **user questions** rather than defects, on the
+- Block **X** (T155–T157, created 2026-08-02) opens on **user questions** rather than defects, on the
   Block N precedent — *"what is the icon profile?"*, then *"why is the Windows-wide toggle a per-profile
   setting?"* — and in both the honest answer was about the page, not the model: one control duplicated
   the tray's Profile submenu, two others were app-wide switches sitting in the per-profile card. A block
@@ -229,3 +229,4 @@ here. This file is a terse index, not a memory.
 - **T154 SHIPPED** (Block W — the legend names a project by its last two segments, one rule for both windows) — 2026-08-02.
 - **T155 SHIPPED** (Block X — the redundant Icon profile row leaves Settings; the tray submenu is the one switch) — 2026-08-02.
 - **T156 SHIPPED** (Block X — the two app-wide profile switches move out of the per-profile card into "All profiles") — 2026-08-02.
+- **T157 SHIPPED** (Block X — auto-follow's description says what it does before how it reads it) — 2026-08-02.
