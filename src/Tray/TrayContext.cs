@@ -392,10 +392,9 @@ internal sealed class TrayContext : ApplicationContext
     // Persist the edited settings and apply the new values immediately.
     private void ApplySettings(Settings updated)
     {
-        // Read what the swap below will overwrite, while it is still the live model: the icon's profile
-        // (to notice a change), and — because a language change only takes effect after a restart, since
-        // localized strings resolve when a window is parsed — whether the *active* language would move.
-        string monitoredBefore = _settings.MonitoredConfigDir;
+        // Read what the swap below will overwrite, while it is still the live model: because a language
+        // change only takes effect after a restart, since localized strings resolve when a window is
+        // parsed, whether the *active* language would move has to be asked before the swap.
         bool languageChanged = L.Resolve(updated.Language) != L.Current;
 
         // Take the edited model whole rather than field by field: the window handed back a total copy
@@ -411,6 +410,10 @@ internal sealed class TrayContext : ApplicationContext
         // then never put back what it replaced.
         applied.EnvironmentProfileOwned = _settings.EnvironmentProfileOwned;
         applied.EnvironmentProfileRestore = _settings.EnvironmentProfileRestore;
+        // And the same for the icon's own profile (T155): with the page's "Icon profile" row gone, the
+        // Profile submenu is the only thing that moves the icon, so the window's snapshot — taken when
+        // it opened — must not write back an older choice over a pick made while it sat there.
+        applied.MonitoredConfigDir = _settings.MonitoredConfigDir;
         _settings = applied;
 
         // What is left are the genuine side effects — the things a copy cannot do on its own.
@@ -418,15 +421,9 @@ internal sealed class TrayContext : ApplicationContext
         // Clear any in-progress flash frame so turning the setting off calms the icon on the next
         // Render() below, rather than leaving it stuck on the deep-slate half of the blink.
         if (!_settings.FlashNearLimit) _flashOn = false;
-        // A profile picked on the page is a choice by hand, exactly like the submenu's: it pins the
-        // icon there rather than being overruled by the next probe (T126, pin behavior T139).
-        if (!ClaudeAccount.SamePath(_settings.MonitoredConfigDir, monitoredBefore))
-        {
-            _followFloorUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            _profilePinned = true;
-        }
-        // The page can change the standing choice *and* the toggle in one Save, so the environment is
-        // reconciled once, from both: switching the toggle off restores the old value here (T145).
+        // The page no longer changes the standing choice, but it still owns the auto-follow toggle, so
+        // the environment is reconciled from both: switching the toggle off restores the old value
+        // here (T145).
         SyncEnvironmentToPin(DeliberateProfile());
         if (!_settings.FollowActiveProfile) _lastTurn.Clear();
         // The profile list drives the "Open Claude Code" submenu, so it is rebuilt right here rather

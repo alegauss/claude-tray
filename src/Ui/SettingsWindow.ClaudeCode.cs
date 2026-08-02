@@ -76,8 +76,7 @@ internal partial class SettingsWindow : Window
 
         // With one profile there is nowhere for the icon to follow to, so the toggle would be a switch
         // that does nothing. It reappears the moment a second profile is added (T126).
-        FollowActiveRow.Visibility = _ccProfiles.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-        ProfileIconRow.Visibility = ProfileIconDivider.Visibility =
+        FollowActiveRow.Visibility = FollowActiveDivider.Visibility =
             _ccProfiles.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
         // Same rule (T145): with one profile there is nothing to point the environment at.
         EnvSyncRow.Visibility = EnvSyncDivider.Visibility =
@@ -129,24 +128,8 @@ internal partial class SettingsWindow : Window
                 ProfileTerminalCommand.Text = $"setx CLAUDE_CONFIG_DIR \"{p.ConfigDir}\"";
                 ProfileTerminalHint.Text = "";
             }
-
-            // The one control that actually changes which profile the icon follows (T138) — distinct
-            // from this very combo, which only picks which profile's fields are on screen right now.
-            bool isIconProfile = p is not null && ClaudeAccount.PickMonitored(_ccProfiles, _settings.MonitoredConfigDir)
-                is { } m && ClaudeAccount.SamePath(m.ConfigDir, p.ConfigDir);
-            ProfileIconButton.IsEnabled = p is not null && !isIconProfile;
-            ProfileIconButton.Content = L.T(isIconProfile ? "settings.cc.profileIconActive" : "settings.cc.profileIconSet");
         }
         finally { _fillingProfile = false; }
-    }
-
-    // Make the profile currently selected above the one the tray icon and tooltip describe. Applied
-    // like every other field here — held until Save — so Cancel leaves the running tray untouched.
-    private void ProfileIcon_Click(object sender, RoutedEventArgs e)
-    {
-        if (SelectedProfile is not { } p) return;
-        _settings.MonitoredConfigDir = p.ConfigDir;
-        FillProfileFields();
     }
 
     // Copies the command; never runs it. The tray stays a reader of CLAUDE_CONFIG_DIR, never a writer

@@ -326,9 +326,8 @@ The tray icon is one number, so one profile owns it — the **Profile** submenu 
 others' readings beside them, and switches with a click. A profile that needs a sign-in says so on its own
 line, rather than a generic prompt that would send you to re-login on the wrong account. (The tooltip only
 names the monitored profile: Windows caps a tray tooltip at 127 characters, which is why the numbers live
-in the menu.) The same switch is also on **Settings → Claude Code → Profiles**, as an **Icon profile**
-row beside whichever profile the page is editing — it reads "Active" once that profile already owns the
-icon.
+in the menu.) That submenu is the only place the icon changes hands — the Claude Code settings page names
+profiles and edits them, but switching one is a click on the tray, not a trip through Settings and Save.
 
 **The icon says whose number it is.** With more than one profile registered, it wears a thin coloured band
 along its top edge — one colour per profile, so a glance tells you which account the percentage belongs to
