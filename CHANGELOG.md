@@ -216,6 +216,26 @@
 
 - **T108** — The screenshot fixture moves in with the fixtures (`src/Usage/ThroughputFixture.cs`). The deterministic three minutes behind `--stats live` was hand-shaped inline in `StatisticsWindow.RenderDemoLive`, where it had accreted next to the rendering it feeds while three tasks came to depend on it (T110's ceiling, T112's outlier, T104's pinned reading). It is now one `Build()` returning a `ThroughputDemo` record — series, raw buckets, headline, sessions, cache-read rate and the second the readout is posed on — and the code-behind keeps only what a code-behind should: assign the fields, set the text, render once, hold the pose. Same numbers, same constants, same shaping through the real `LiveRate.RateFrom` kernel. **Pure housekeeping, and proved to be**: capturing the Throughput tab before and after and diffing the two PNGs pixel by pixel gives **77 differing pixels, all inside x 202–210, y 1311–1323** — the minute digits in the footer's "Updated …" line. Both charts, both readout cards, the legends and the cache-read line are pixel-identical. Block K's last task, so the block leaves `ROADMAP.md` and its design section (§V) leaves `IMPROVEMENTS.md`; three TOC rows there that pointed at sections already pruned went with it, and the roadmap's tray-icon non-goal now cites this changelog instead of a section that no longer exists.
 
+## Block Z — What the app knows and doesn't say
+
+- **T159** — **The method note stops counting the weeks the grid threw away.** The note said "{0} weeks
+  of local transcripts" from the coverage *span*, while the confidence gate that decided to draw a
+  shaped projection at all used `EffectiveWeeks`, which subtracts the weeks away (T95, and since T152
+  the measured ones too): on the dev machine **6.7 weeks claimed against 4.7 of evidence**, with two
+  weeks excluded in between. `ActivityShape` now carries `EffectiveWeeks` and `ExcludedWeeks` instead of
+  the span — the span is not carried at all, so a future note cannot quote it by accident — and
+  `ActivityProfile` names the two halves of its own gate (`EffectiveTranscriptWeeks`,
+  `EffectiveMeasuredWeeks`) rather than inlining the subtraction once. Having decided in T95 that
+  silently discarding a sixth of the input looks like a bug three months later, the note now *says* it:
+  "4.7 weeks of local transcripts, 2 weeks away excluded", from a clause localized whole (`.away.one` /
+  `.away.many`) because where it can sit in the sentence is a property of the language, and omitted
+  entirely when nothing was excluded — a parenthetical that always reads "(0 excluded)" trains people
+  to stop reading the note. The measured branch got the same treatment and one honesty fix it needed
+  anyway: it printed the *folded-reading* span under a sentence that attributed it to local transcripts,
+  and now reports the effective figure as what the shape rests on. Five languages, two new keys, no
+  arithmetic change to any projection. `--selftest` 83/83, its two new checks each confirmed to fail
+  against a build that carried the span; verified on screen via `--stats method` in English and pt-BR.
+
 ## Block Y — One window you navigate, instead of three you open
 
 - **T158** — **Statistics, Context and Settings stop being three windows and become three destinations

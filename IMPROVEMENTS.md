@@ -111,27 +111,6 @@ machine it was written on. The two coverage tasks are the ones that keep the nex
 written at all: both are over code that has already produced shipped defects and that `--selftest`,
 after 80 assertions, does not touch.
 
-### §XIII.1 The method note counts the weeks the grid threw away (T159)
-
-`StatisticsPage` builds the shaped method note from `r.Weekly.Shape!.CoverageWeeks` — the coverage
-*span*, holidays included. The decision to draw a shaped projection at all was made from
-`EffectiveWeeks`, which subtracts them. So the note claims more evidence than the app was willing to
-act on: on the dev machine, "6.7 weeks of local transcripts" against the 4.7 weeks its own confidence
-line reports, with two weeks excluded in between. The measured branch has the same flaw and acquired it
-this week — it prints `MeasuredWeeks`, and since T152 that span can contain exclusions too.
-
-It is the T150 shape of defect exactly: a number that claims a unit, consistently overstated, nobody
-would report it, and it is free to fix now. The fix is the accessor, not the arithmetic — the shape
-already carries what it needs once `ActivityShape` copies the effective figure rather than the span.
-
-What is worth more than the correction is the sentence it enables. Having decided that silently
-discarding a sixth of the input looks like a bug three months later (T95's reasoning, and why
-`--activity` prints the exclusion), the app should say it in the one place a user actually reads:
-"4.7 weeks of local transcripts (2 weeks away excluded)". Five languages, one new placeholder, and
-the string stays a *method note* — it explains the number, it does not advertise a feature. Where no
-week was excluded the extra clause must not appear at all; a parenthetical that always says "(0
-excluded)" is noise that trains people to stop reading the note.
-
 ### §XIII.2 A gate that cannot fire is not a guard (T160)
 
 T152 judges a folded week only once at least half its 168 hours carry a reading. That bar was chosen

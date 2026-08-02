@@ -298,8 +298,17 @@ internal sealed class ActivityProfile
     /// the shape be drawn on a sample that no longer supports it. From <em>both</em> sources since
     /// T152 — a holiday is a holiday whether it was noticed in the transcripts or in the folded
     /// readings, and the source with more weeks left is the one that answers.</para></summary>
-    public double EffectiveWeeks => Math.Max(Math.Max(CoverageWeeks - ExcludedWeeks, 0),
-                                             Math.Max(MeasuredWeeks - MeasuredExcludedWeeks, 0));
+    public double EffectiveWeeks => Math.Max(EffectiveTranscriptWeeks, EffectiveMeasuredWeeks);
+
+    /// <summary>The transcript half of <see cref="EffectiveWeeks"/>: the span minus the weeks away. This
+    /// is the figure to show a user beside "weeks of local transcripts" — <see cref="CoverageWeeks"/> is
+    /// the span the grid threw part of away, so printing it claims more evidence than the app acted on
+    /// (T159).</summary>
+    public double EffectiveTranscriptWeeks => Math.Max(CoverageWeeks - ExcludedWeeks, 0);
+
+    /// <summary>The measured half of <see cref="EffectiveWeeks"/>, on the same terms — a span since T152
+    /// can hold exclusions too.</summary>
+    public double EffectiveMeasuredWeeks => Math.Max(MeasuredWeeks - MeasuredExcludedWeeks, 0);
 
     /// <summary>Enough weeks behind the shape to project along it rather than along a slope.</summary>
     public bool Confident => EffectiveWeeks >= ConfidentWeeks;

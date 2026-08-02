@@ -168,6 +168,19 @@ internal static class SelfTestCli
         Check("the measured span is subtracted the same way (T152)",
               !new ActivityProfile { MeasuredWeeks = 5, MeasuredExcludedWeeks = 3 }.Confident,
               $"5 folded weeks − 3 away is under {ActivityProfile.ConfidentWeeks:0.0}");
+
+        // T159: the method note quotes the shape's own figure, so the shape has to carry what the gate
+        // acted on — the span minus the weeks away — and the count that explains why it is smaller. The
+        // whole defect was one accessor, which is exactly the kind an assertion pins for good.
+        ActivityProfile withAway = Flat(0.35, weeks: 6);
+        withAway.ExcludedWeeks = 2;
+        ActivityShape? kept = ActivityShape.Build(Week(0.40, 0.5), withAway, Now);
+        if (Check("a profile with weeks away still shapes the projection", kept != null))
+        {
+            Near("the shape reports the weeks the grid kept, not the span", kept!.EffectiveWeeks, 4, 1e-9);
+            Check("the shape carries the excluded count the note needs", kept.ExcludedWeeks == 2,
+                  $"{kept.ExcludedWeeks} excluded");
+        }
     }
 
     // ---------------------------------------------------------------- Block K: the rate kernel

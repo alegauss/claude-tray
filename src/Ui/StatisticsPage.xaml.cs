@@ -376,19 +376,32 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         // The live strip has the same blind spot the shaped projection discloses, and it needs saying
         // separately: a rate built from local transcripts cannot see another machine or claude.ai, so
         // an empty strip is "no local turn landed", never proof that nothing is running.
+        // Both week figures in the note are the *effective* weeks — the span minus the weeks the grid
+        // dropped as time away — because that is the number the confidence gate acted on (T159). Where a
+        // week was dropped the note says so, and where none was it says nothing: a parenthetical that
+        // always reads "(0 excluded)" trains people to stop reading the note.
         bool shaped = r.Weekly.Shape is not null;
         ActivityProfile? activity = r.Activity;
         bool mostlyMeasured = activity is { MeasuredShare: >= 0.5 };
         MethodNote.Text = (shaped
             ? L.T("stats.methodNote") + " " + (mostlyMeasured
                 ? L.T("stats.methodNote.shapeMeasured", $"{activity!.MeasuredShare * 100:0}",
-                      $"{activity.MeasuredWeeks:0.#}")
-                : L.T("stats.methodNote.shape", $"{r.Weekly.Shape!.CoverageWeeks:0.#}"))
+                      $"{activity.EffectiveMeasuredWeeks:0.#}",
+                      WeeksAway(activity.MeasuredExcludedWeeks))
+                : L.T("stats.methodNote.shape", $"{r.Weekly.Shape!.EffectiveWeeks:0.#}",
+                      WeeksAway(r.Weekly.Shape!.ExcludedWeeks)))
             : L.T("stats.methodNote")) + " " + L.T("stats.methodNote.live");
         LegendIdleW.Visibility = shaped && r.Weekly.Shape!.IdleBands.Count > 0
             ? Visibility.Visible : Visibility.Collapsed;
         LegendGhostW.Visibility = r.Weekly.Ghost is not null ? Visibility.Visible : Visibility.Collapsed;
     }
+
+    // The "why the figure is smaller than the history" clause, or nothing when no week was dropped.
+    // Localized as a clause rather than assembled from words, because where it can sit inside the
+    // sentence is a property of the language, not of the count.
+    private static string WeeksAway(int weeks) => weeks <= 0
+        ? string.Empty
+        : L.T(weeks == 1 ? "stats.methodNote.away.one" : "stats.methodNote.away.many", $"{weeks}");
 
     // The static captions/legend labels that change wording between "used" and "remaining" framing.
     private void ApplyModeLabels()

@@ -80,8 +80,15 @@ internal sealed class ActivityShape
     /// same unit; 1 when there is no intensity grid.</summary>
     public double ElapsedIntensity = 1;
 
-    /// <summary>Weeks of coverage behind the profile, for the wording that hedges on it.</summary>
-    public double CoverageWeeks;
+    /// <summary>Weeks of transcript evidence behind the profile, for the wording that hedges on it — the
+    /// span *minus* the weeks away, which is the figure the confidence gate itself was willing to act on.
+    /// The span is not carried at all: a note that quotes it overstates the evidence every time a week
+    /// was dropped (T159).</summary>
+    public double EffectiveWeeks;
+
+    /// <summary>Weeks inside that span dropped as time away, so the note can say why the figure is
+    /// smaller than the history. 0 means the clause must not be shown at all.</summary>
+    public int ExcludedWeeks;
 
     /// <summary>True when the rate was calibrated against hours actually measured in this window,
     /// false when it fell back to the profile's expectation for the elapsed span.</summary>
@@ -140,7 +147,8 @@ internal sealed class ActivityShape
 
         var shape = new ActivityShape
         {
-            CoverageWeeks = p.CoverageWeeks,
+            EffectiveWeeks = p.EffectiveTranscriptWeeks,
+            ExcludedWeeks = p.ExcludedWeeks,
             MeasuredCalibration = measured,
             RatePerActiveHour = w.Util / elapsedActive,
             ElapsedIntensity = elapsedIntensity,
