@@ -218,6 +218,27 @@
 
 ## Block Z — What the app knows and doesn't say
 
+- **T160** — **The measured away-week gate opens on a machine the tray doesn't watch all week.** T152
+  judged a folded week only once at least half of its 168 hours carried a reading, which resolved the
+  real ambiguity (a quiet week is *away* or *the tray was closed*, and only coverage tells them apart)
+  and then never fired: measured on the machine that shipped it, `--activity --measured` reported **67
+  and 71 covered hours against a bar of 84**, because the tray runs about ten hours a day. Every week
+  was `?`, nothing was ever judged, and the exclusion was unreachable in practice. The question the gate
+  is really asking is not "was this week mostly observed?" but **did the tray run that week the way it
+  runs the others?** — a comparison, not an absolute: the bar is now half the median *observed* week's
+  coverage (weeks with no reading at all don't calibrate it — they are what it exists to disqualify),
+  with an absolute floor of 24 covered hours so a machine watched three hours a day cannot rest an away
+  verdict on a day and a half of readings. Same two-verdict structure, same "an unjudged week changes
+  nothing" property, and against a round-the-clock store the bar is still 84. On the dev machine it is
+  now **35**, and both folded weeks are judged. `MeasuredWeek` carries the `CoverageBar` it worked out so
+  `--activity --measured` prints the number rather than the constant behind it — the reading that made
+  the old bar's failure visible is the one that keeps the new one checkable. `--selftest` 87/87: the
+  round-the-clock fixture keeps asserting the bar is 84's worth of coverage, and three new checks cover
+  the office-hours machine (five weeks at 40 covered hours judge, and the holiday inside them is
+  excluded) and the floor. Each was confirmed to fail first — under the old absolute bar the
+  office-hours store judged **0 of 5** weeks, and without the floor a 12-covered-hour week was judged on
+  a bar of 6.
+
 - **T159** — **The method note stops counting the weeks the grid threw away.** The note said "{0} weeks
   of local transcripts" from the coverage *span*, while the confidence gate that decided to draw a
   shaped projection at all used `EffectiveWeeks`, which subtracts the weeks away (T95, and since T152

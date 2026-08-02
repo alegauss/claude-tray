@@ -104,36 +104,12 @@ deliberately — this file is published with the repo. The right-hand column is 
 
 Block V made the evidence behind the weekly projection correct: a week away no longer votes, in the
 transcript grid (T95) or in the measured one (T152), and `EffectiveWeeks` subtracts both. Reading those
-four commits back against the running app turned up the other half of the same idea. The app now knows
-exactly how much evidence it has and how much it discarded — and the one place a *user* reads that
-number still prints the span, while the guard that produces the measured half of it cannot fire on the
-machine it was written on. The two coverage tasks are the ones that keep the next such gap from being
-written at all: both are over code that has already produced shipped defects and that `--selftest`,
-after 80 assertions, does not touch.
-
-### §XIII.2 A gate that cannot fire is not a guard (T160)
-
-T152 judges a folded week only once at least half its 168 hours carry a reading. That bar was chosen
-to resolve a real ambiguity — a quiet week is "away" or "the tray was closed", and only coverage tells
-them apart — and it does resolve it. It also, measured on the machine that shipped it, never opens:
-`--activity --measured` reports 67 and 71 covered hours against a bar of 84, because the tray runs
-about ten hours a day. Every week is `?`, nothing is ever judged, and the exclusion is unreachable in
-practice. The safe direction (an unjudged week keeps its old behaviour exactly) is what makes this a
-gap rather than a defect, but a guard that only fires for a machine the tray watches around the clock
-is not the guard that was designed.
-
-The question the gate is really asking is not "was this week mostly observed?" but "**did the tray run
-that week the way it runs the others?**" — which is a comparison, not an absolute. A week whose
-coverage reaches half the median week's was watched as usual, and a quiet one is then evidence of
-somebody being elsewhere; a week at a fifth of it is the tray being off, and stays unjudged. That reads
-the same store, keeps the two-verdict structure and the "unjudged weeks change nothing" property, and
-it fires on an ordinary machine.
-
-One guard has to come with it: relative alone would let a machine whose *typical* week holds fourteen
-covered hours judge a holiday on seven. So a week must clear both — half the median coverage **and** an
-absolute floor of roughly a day's worth of hours — or the verdict rests on a sample too small to mean
-anything. `--activity --measured` already prints each week's coverage beside its verdict (T152), which
-is what makes the new bar checkable on a real machine rather than argued about.
+four commits back against the running app turned up the other half of the same idea — the app knew
+exactly how much evidence it had and never said so (T159), and the guard producing the measured half of
+it could not fire on the machine it was written on (T160). Both have shipped. What is left here is the
+coverage that keeps the next such gap from being written at all: two pieces of code that have already
+produced shipped defects and that `--selftest`, after 87 assertions, does not touch — plus one idea whose
+obvious implementation is the wrong one.
 
 ### §XIII.3 The lossiest function in the app has no assertions (T161)
 

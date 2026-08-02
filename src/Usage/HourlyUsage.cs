@@ -45,12 +45,22 @@ internal static class HourlyUsage
     /// week's quota is a couple of real requests — below it, a stray keepalive shouldn't count.</summary>
     public const double ActiveSpendThreshold = 0.001;
 
-    /// <summary>Share of a week's 168 hours that must carry a reading before the week may be judged a
-    /// week <em>away</em> (T152). Below it the week is not evidence either way: a folded week can be
-    /// quiet because nobody worked or because the tray was not running to see it, and only coverage
-    /// tells the two apart. Half is the same bar <see cref="MinGhostCoverage"/> sets for drawing a
-    /// previous week at all, and for the same reason.</summary>
-    public const double MinAwayWeekCoverage = 0.5;
+    /// <summary>Share of the <em>median observed week's</em> coverage a week must reach before it may be
+    /// judged a week <em>away</em> (T152, T160). Below it the week is not evidence either way: a folded
+    /// week can be quiet because nobody worked or because the tray was not running to see it, and only
+    /// coverage tells the two apart.
+    ///
+    /// <para>It was half of the full 168 hours until T160, and measured on the machine that shipped it
+    /// that bar never opened: a tray running about ten hours a day covers ~70 hours a week, so every week
+    /// was unjudged and the exclusion was unreachable in practice. The question the gate is really asking
+    /// is not "was this week mostly observed?" but <em>did the tray run that week the way it runs the
+    /// others?</em> — which is a comparison, not an absolute.</para></summary>
+    public const double AwayWeekCoverageShare = 0.5;
+
+    /// <summary>…and the absolute floor under that comparison, in covered hours. Relative alone would let
+    /// a machine whose typical week holds fourteen covered hours judge a holiday on seven; roughly a
+    /// day's worth of readings is the least a week can rest a verdict on (T160).</summary>
+    public const int MinAwayWeekCoverageHours = 24;
 
     /// <summary>Per profile (T125) — see <see cref="ProfileStore"/>. This store is permanent, so a
     /// second account folded into it would skew the measured week for good.</summary>
@@ -155,9 +165,12 @@ internal static class HourlyUsage
     /// <param name="WeekCovered">Parallel to <paramref name="WeekHours"/>: which weeks had enough
     /// coverage to be judged at all. An uncovered week is never excluded and never in the median.</param>
     /// <param name="WeekAway">Parallel to <paramref name="WeekHours"/>: which weeks were dropped.</param>
+    /// <param name="CoverageBar">Covered hours a week had to reach to be judged at all — derived from this
+    /// store's own median week since T160, so it is a number this machine can be shown rather than a
+    /// constant to be argued about.</param>
     internal readonly record struct MeasuredWeek(double[] P, double[] Observed, double Weeks, int Days,
         double[] Intensity, double[] Active, int Excluded, double Median,
-        int[] WeekHours, int[] WeekReadings, bool[] WeekCovered, bool[] WeekAway);
+        int[] WeekHours, int[] WeekReadings, bool[] WeekCovered, bool[] WeekAway, int CoverageBar);
 
     /// <returns>The grid, its per-bucket evidence, the number of weeks it draws on, and how many
     /// folded days were used.</returns>
@@ -177,7 +190,7 @@ internal static class HourlyUsage
         List<HourlyDay> days = Load(profileKey);
         if (days.Count == 0)
             return new MeasuredWeek(p, observed, 0, 0, intensity, active, 0, 0,
-                                    noHours, noHours, noWeeks, noWeeks);
+                                    noHours, noHours, noWeeks, noWeeks, 0);
 
         // Read the store into weeks first, rather than straight into the grid, because the away test
         // (T152) is a statement about a whole week and cannot be made one hour at a time. The weeks are
@@ -212,7 +225,8 @@ internal static class HourlyUsage
         }
 
         bool[] away = WeeksAway(seen, worked, weeks, out double median,
-                                out int[] weekHours, out int[] weekReadings, out bool[] covered);
+                                out int[] weekHours, out int[] weekReadings, out bool[] covered,
+                                out int coverageBar);
         int excluded = 0;
         foreach (bool a in away) if (a) excluded++;
 
@@ -247,7 +261,7 @@ internal static class HourlyUsage
                 if (active[b] > 0) intensity[b] = spent[b] / active[b] / mean;
 
         return new MeasuredWeek(p, observed, Math.Min(oldest / 7.0, maxWeeks), used,
-            intensity, active, excluded, median, weekHours, weekReadings, covered, away);
+            intensity, active, excluded, median, weekHours, weekReadings, covered, away, coverageBar);
     }
 
     /// <summary>
@@ -262,19 +276,22 @@ internal static class HourlyUsage
     /// <para>What T95 deferred was the ambiguity: a quiet folded week can mean the user was away or that
     /// the tray was not running to see it, and the second must not be read as the first. The store
     /// already separates them — an hour with no reading is <em>unknown</em> and is outside the
-    /// denominator — so the condition is simply two conditions instead of one. A week is judged only
-    /// once at least <see cref="MinAwayWeekCoverage"/> of its 168 hours carry a reading, and it is
-    /// dropped only if it is judged <em>and</em> under <see cref="ActivityProfile.AwayFraction"/> of the
-    /// median judged week's active hours. Weeks that fail the coverage test are not evidence either way:
-    /// they are not in the median, are never dropped, and go on contributing exactly what they
-    /// contributed before this existed.</para>
+    /// denominator — so the condition is simply two conditions instead of one. A week is judged only once
+    /// its coverage clears <see cref="AwayWeekCoverageShare"/> of the median observed week's <em>and</em>
+    /// <see cref="MinAwayWeekCoverageHours"/> hours outright (T160 — an absolute share of all 168 hours
+    /// only ever opened for a tray that runs around the clock), and it is dropped only if it is judged
+    /// <em>and</em> under <see cref="ActivityProfile.AwayFraction"/> of the median judged week's active
+    /// hours. Weeks that fail the coverage test are not evidence either way: they are not in the median,
+    /// are never dropped, and go on contributing exactly what they contributed before this existed.</para>
     /// </summary>
     /// <param name="median">Active hours in the median judged week — 0 when the test could not run.</param>
     /// <param name="hours">Active hours per week, newest first, whether or not the test ran.</param>
     /// <param name="readings">Parallel: hours of each week that carry a reading, out of 168.</param>
     /// <param name="covered">Parallel: which weeks were covered enough to be judged.</param>
+    /// <param name="bar">The covered-hours bar those verdicts were taken against.</param>
     private static bool[] WeeksAway(bool[,] seen, bool[,] worked, int weeks,
-                                    out double median, out int[] hours, out int[] readings, out bool[] covered)
+                                    out double median, out int[] hours, out int[] readings,
+                                    out bool[] covered, out int bar)
     {
         int buckets = ActivityProfile.Buckets;
         var away = new bool[weeks];
@@ -283,31 +300,46 @@ internal static class HourlyUsage
         covered = new bool[weeks];
         median = 0;
 
-        var judged = new List<int>();
         for (int w = 0; w < weeks; w++)
-        {
             for (int b = 0; b < buckets; b++)
             {
                 if (seen[w, b]) readings[w]++;
                 if (worked[w, b]) hours[w]++;
             }
-            covered[w] = readings[w] >= MinAwayWeekCoverage * buckets;
-            if (covered[w]) judged.Add(hours[w]);
-        }
+
+        // The yardstick is this machine's own habit of being watched: the median week that was observed
+        // at all. Weeks with no reading whatsoever are not "the way the tray runs" and would only drag the
+        // bar down to the floor — they are the weeks the gate exists to disqualify, not to calibrate on.
+        bar = Math.Max(MinAwayWeekCoverageHours, (int)Math.Ceiling(AwayWeekCoverageShare * Median(
+            readings.Where(r => r > 0))));
+        for (int w = 0; w < weeks; w++) covered[w] = readings[w] >= bar;
+
+        var judged = new List<int>();
+        for (int w = 0; w < weeks; w++) if (covered[w]) judged.Add(hours[w]);
 
         // The same floor T95 sets, counted over judged weeks only: with three of them the median is one
         // of them, and dropping the quieter ones is not evidence handling but wishful thinking.
         if (judged.Count < ActivityProfile.MinWeeksToExclude) return away;
 
-        judged.Sort();
-        median = judged.Count % 2 == 1
-            ? judged[judged.Count / 2]
-            : (judged[judged.Count / 2 - 1] + judged[judged.Count / 2]) / 2.0;
+        median = Median(judged);
         if (median <= 0) return away;
 
         double floor = ActivityProfile.AwayFraction * median;
         for (int w = 0; w < weeks; w++) away[w] = covered[w] && hours[w] < floor;
         return away;
+    }
+
+    /// <summary>The median of a handful of week counts, 0 when there are none. A median rather than a mean
+    /// in both places it is used here (the coverage bar and the active-hours floor), because the outliers
+    /// are exactly what is being looked for.</summary>
+    private static double Median(IEnumerable<int> values)
+    {
+        var sorted = values.ToList();
+        if (sorted.Count == 0) return 0;
+        sorted.Sort();
+        return sorted.Count % 2 == 1
+            ? sorted[sorted.Count / 2]
+            : (sorted[sorted.Count / 2 - 1] + sorted[sorted.Count / 2]) / 2.0;
     }
 
     /// <summary>Last week's burn-up, ready to draw behind this week's.</summary>

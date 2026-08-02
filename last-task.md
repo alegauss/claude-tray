@@ -265,3 +265,4 @@ here. This file is a terse index, not a memory.
 - **T152 SHIPPED** (Block V — the measured grid drops a week away too, judged only once the week was covered enough to judge) — 2026-08-02.
 - **T153 SHIPPED** (Block V — the primed cursor and the zero-fill are asserted; 80 checks, each confirmed to fail first) — 2026-08-02.
 - **T159 SHIPPED** (Block Z — the method note quotes the weeks the grid kept, and says how many it dropped) — 2026-08-02.
+- **T160 SHIPPED** (Block Z — the measured away-week bar is half the median observed week, with a floor, so it can fire) — 2026-08-02.

@@ -175,9 +175,9 @@ internal static class ActivityCli
                               (m.Median > 0
                                   ? $" — every well-covered week is at least {ActivityProfile.AwayFraction * 100:0}% " +
                                     $"of the median one's {m.Median:0.#} active hours"
-                                  : $" — fewer than {ActivityProfile.MinWeeksToExclude} weeks have readings for " +
-                                    $"{HourlyUsage.MinAwayWeekCoverage * 100:0}% of their hours, too little " +
-                                    "coverage to tell a holiday from a week the tray was closed"));
+                                  : $" — fewer than {ActivityProfile.MinWeeksToExclude} weeks reach {m.CoverageBar} " +
+                                    "covered hours, too little coverage to tell a holiday from a week the " +
+                                    "tray was closed"));
 
         if (m.WeekHours.Length > 0)
         {
@@ -186,8 +186,12 @@ internal static class ActivityCli
                 weekly.Add($"{m.WeekHours[w]}h/{m.WeekReadings[w]}c" +
                            (m.WeekAway[w] ? "*" : m.WeekCovered[w] ? "" : "?"));
             Console.WriteLine($"  active/covered hours per week (newest first): {string.Join("  ", weekly)}");
+            // The bar is this store's own median week since T160, so printing the number it worked out —
+            // not the constant behind it — is what makes "not judged" checkable on a real machine.
             Console.WriteLine($"  (of 168 hours; judged from {ActivityProfile.MinWeeksToExclude} weeks covering " +
-                              $"{HourlyUsage.MinAwayWeekCoverage * 168:0}+ hours each — * excluded, ? not judged)");
+                              $"{m.CoverageBar}+ hours each — {HourlyUsage.AwayWeekCoverageShare * 100:0}% of the " +
+                              $"median observed week, at least {HourlyUsage.MinAwayWeekCoverageHours} — " +
+                              "* excluded, ? not judged)");
         }
 
         Console.WriteLine();

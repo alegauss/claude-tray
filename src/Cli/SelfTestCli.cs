@@ -346,17 +346,17 @@ internal static class SelfTestCli
 
         // T152: the away-week exclusion, on the measured side. Six weeks, newest first — four ordinary,
         // one well covered but nearly idle (the holiday), and one whose readings cover too little of it
-        // to say anything either way (the tray was closed for half of it).
-        WriteStore(FoldedWeeks(new[] { (24, 8), (24, 8), (24, 8), (24, 1), (24, 8), (12, 0) }));
+        // to say anything either way (the tray was closed for most of it).
+        WriteStore(FoldedWeeks(new[] { (24, 8), (24, 8), (24, 8), (24, 1), (24, 8), (5, 0) }));
         HourlyUsage.MeasuredWeek m = HourlyUsage.MeasuredProfile(ProfileKey, DateTime.Now);
         string weeks = string.Join(", ", m.WeekHours.Select((h, i) =>
-            $"{h}h{(m.WeekAway[i] ? "*" : m.WeekCovered[i] ? "" : "?")}"));
+            $"{h}h/{m.WeekReadings[i]}c{(m.WeekAway[i] ? "*" : m.WeekCovered[i] ? "" : "?")}"));
 
         Check("the folded holiday is excluded from the measured grid", m.Excluded == 1,
               $"{m.Excluded} excluded of [{weeks}], median {m.Median:0.#}h");
         Check("a week too thinly covered to judge is not excluded",
               !m.WeekCovered[5] && !m.WeekAway[5],
-              "half a week of readings cannot tell a holiday from a closed tray");
+              "twenty hours of readings cannot tell a holiday from a closed tray");
         Check("the median well-covered week is never excluded",
               m.WeekHours.Where((_, i) => m.WeekCovered[i] && !m.WeekAway[i]).DefaultIfEmpty(0).Max() >= m.Median);
 
@@ -373,6 +373,30 @@ internal static class SelfTestCli
         HourlyUsage.MeasuredWeek thin = HourlyUsage.MeasuredProfile(ProfileKey, DateTime.Now);
         Check($"under {ActivityProfile.MinWeeksToExclude} well-covered weeks nothing is excluded",
               thin.Excluded == 0, $"{thin.Excluded} excluded");
+
+        // T160: the bar itself. Against a round-the-clock store it is still half of what a week holds,
+        // and the whole point is what happens when the tray only runs office hours — the case the
+        // absolute half-of-168 bar could never judge, on the very machine that wrote it.
+        Check("the coverage bar is half the median observed week", m.CoverageBar == 48,
+              $"{m.CoverageBar} against weeks of [{string.Join(", ", m.WeekReadings)}] covered hours");
+
+        WriteStore(FoldedWeeks(new[] { (10, 8), (10, 8), (10, 8), (10, 1), (10, 8) }));
+        HourlyUsage.MeasuredWeek office = HourlyUsage.MeasuredProfile(ProfileKey, DateTime.Now);
+        Check("a tray that runs ten hours a day can still judge its weeks",
+              office.WeekCovered.Count(c => c) >= ActivityProfile.MinWeeksToExclude,
+              $"{office.WeekCovered.Count(c => c)} of {office.WeekCovered.Length} weeks judged at a bar of " +
+              $"{office.CoverageBar} against [{string.Join(", ", office.WeekReadings)}] covered hours");
+        Check("and the holiday inside them is excluded", office.Excluded == 1,
+              $"{office.Excluded} excluded of [{string.Join(", ", office.WeekHours)}] active hours, " +
+              $"median {office.Median:0.#}h");
+
+        // The floor under the comparison: relative alone would let a machine watched three hours a day
+        // rest an away verdict on a day and a half of readings.
+        WriteStore(FoldedWeeks(new[] { (3, 2), (3, 2), (3, 2), (3, 0), (3, 2) }));
+        HourlyUsage.MeasuredWeek sparse = HourlyUsage.MeasuredProfile(ProfileKey, DateTime.Now);
+        Check($"a week under {HourlyUsage.MinAwayWeekCoverageHours} covered hours is never judged",
+              sparse.WeekCovered.All(c => !c) && sparse.Excluded == 0,
+              $"bar {sparse.CoverageBar} against [{string.Join(", ", sparse.WeekReadings)}] covered hours");
     }
 
     // ---------------------------------------------------------------- Block J: the sweep

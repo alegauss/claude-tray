@@ -23,16 +23,12 @@
 
 > Block V ended by making the evidence behind the projection *correct* — a holiday no longer votes,
 > in either grid. Reading the four commits back against the UI turned up the other half of the same
-> idea: the app now knows how much evidence it has and never said so. The number on screen was T159
-> and has shipped; what remains is the **guard behind it** — which cannot fire on an ordinary machine —
-> and the coverage over the two things most likely to produce the next such gap, both behind shipped
-> defects already and neither with a single assertion.
+> idea: the app now knows how much evidence it has and never said so. The number on screen (T159) and
+> the guard behind it that could not fire on an ordinary machine (T160) have both shipped; what remains
+> is **coverage** over the two things most likely to produce the next such gap — both behind shipped
+> defects already, neither with a single assertion — and one idea deliberately left as one.
 > Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XIII.
->
-> Ordered by what is wrong *today* for somebody looking at the app, then by what protects the rest:
-> T160 is a guard that never fires on a normal machine, and the two coverage tasks follow.
 
-- 📋 **T160** (deps: —) **The measured away-week gate never fires on a machine the tray doesn't watch all week** — T152's coverage test is an absolute half of 168 hours, and a tray running ~10h/day lands at 67 and 71 covered hours, so every week is "not judged" and the exclusion is unreachable in practice (measured, `--activity --measured`). Relative to the median week's coverage — with an absolute floor so a thin machine can't judge a week on a handful of hours — asks the question that actually separates *away* from *tray closed*: did the tray run that week the way it runs the others? → §XIII.2
 - 📋 **T161** (deps: —) **`ProjectSlug` is the app's most defect-prone pure function and has no assertions** — the one reader *and* writer of a lossy encoding (a separator and a literal hyphen encode identically), behind two shipped defects already (T105's three divergent decoders, T154's three lines all labelled `2026.3`), and every claim it makes is a pure string function: `Encode`, `RootFor`'s verify-don't-guess walk, `ShortName`'s two segments, `TryProbe`'s backtracking, `Literal`/`Tail`'s deliberate ambiguity. `--selftest` covers Blocks J and K and not one line of it. → §XIII.3
 - 📋 **T162** (deps: —) **The Settings carry-over list is hand-maintained, and forgetting a line is a silent revert** — T141 made the *copy* total by construction, but `ApplySettings` then re-carries four tray-owned fields (`Metric`, the two `EnvironmentProfile*`, `MonitoredConfigDir`) one line at a time, and a field missing from that list is written back stale on every Save. That exact bug has shipped twice (T126, T155). Declare tray-owned once on `Settings`, carry by the declaration, assert the two agree. → §XIII.4
 - 💭 **T163** (deps: —) **A straight-line projection never says why it isn't a shaped one** — when the profile is thin the app silently falls back to the average-pace line and the note reverts to generic text, so the one thing the user might act on (*keep the tray running another week and this gets better*) is the one thing never said. Needs design: what to say, where, and how not to turn a method note into a nag. → §XIII.5
