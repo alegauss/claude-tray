@@ -25,6 +25,10 @@
   Claude Code records recalls as structured metadata") was checked against the real transcripts rather
   than left waiting, and no such signal exists. The block is out of `ROADMAP.md` and the exclusion is a
   binding non-goal there; see [CHANGELOG.md](CHANGELOG.md) Block I.
+- **Block J closed with T96** (2026-08-02) and is pruned from `ROADMAP.md`, which now has no active
+  backlog at all. Its §IV design sections are gone from `IMPROVEMENTS.md` too; the one decision that
+  outlived the block — no activity-aware tray notification — moved to the roadmap's non-goals, since a
+  binding constraint must not be deleted along with the design that happened to record it.
 - **T102–T108 are Block K's second pass**, added 2026-07-28 as T97–T100 closed: same theme, so they
   stay in K rather than opening L (the precedent Block J set with T91–T96). They came out of
   *building* the block — one latent bug it exposed elsewhere (T102), two costs it introduced, two
@@ -199,3 +203,4 @@ here. This file is a terse index, not a memory.
 - **T85 DROPPED** (Block I — usage evidence for memory files; no structured recall signal exists, now a binding non-goal) — 2026-08-02.
 - **T94 SHIPPED** (Block J — per-bucket intensity: the projection paces a heavy hour differently from a light one) — 2026-08-02.
 - **T95 SHIPPED** (Block J — weeks away are dropped from the vote instead of teaching the grid that nobody works) — 2026-08-02.
+- **T96 SHIPPED** (Block J — `--selftest`: 58 checks over the pacing and live-rate arithmetic, wired into the build) — 2026-08-02.

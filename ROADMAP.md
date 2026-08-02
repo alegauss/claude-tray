@@ -19,31 +19,15 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block J — Activity-aware pacing ("the week doesn't burn at 4am")
+## No active backlog
 
-> The weekly projection extrapolates the **average pace since the window opened**
-> ([`UsageReport.Fill`](UsageReport.cs)) — a straight line that spends quota uniformly, including
-> through the nights and weekends still ahead. It therefore lands the "you run out here" marker at
-> times nobody is working (03:59 on a Friday), and it misreads any window whose *remaining* active/idle
-> mix differs from its elapsed one — a partial day, an approaching weekend, a window that opened at
-> 02:00. This block models **when** the user is actually active and projects along that shape instead.
-> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §IV.
->
-> **Shipped: T86–T95.** The profile (`ActivityProfile.cs`, `--activity`), the staircase projection on
-> the weekly chart, the permanent hourly aggregate behind it (`HourlyUsage.cs`), last week's ghost
-> curve, the "stop now, resume at …" advice, the tray keeping the grid warm, the incremental sweep
-> behind it, the per-bucket blend toward the measured week, the per-bucket intensity that paces a
-> heavy hour differently from a light one, and the away-week exclusion that stops a holiday teaching
-> the model. See [CHANGELOG.md](CHANGELOG.md) Block J.
->
-> Headless: `--activity`, `--activity --measured`, `--activity --fold`; previews `--stats shape`,
-> `--stats shape ghost`.
->
-> **Second pass (T91–T96).** Building the block exposed four accuracy gaps and two mechanical ones.
-> **The accuracy work is done** — T93, then T94, then T95, in order of how much each moved the
-> projection. What remains is the one the whole block (and Block K) is verified by hand without.
+Every block is shipped and pruned from this file — see [CHANGELOG.md](CHANGELOG.md), which is
+authoritative for what exists and for the real maximum block letter. **Block J closed with T96**
+(2026-08-02): the activity-aware projection, its two accuracy passes, and the in-app `--selftest`
+that keeps its arithmetic (and Block K's) from breaking silently.
 
-- 💭 **T96** (deps: —) **`--selftest` for the pacing *and* live math** — Block J added arithmetic with real edge cases (a flat profile must reproduce the straight line exactly, folding must stay idempotent, advice must never exceed its target, the ghost must stay hidden under its gates) and the repo has no test surface at all. **Block K doubled the surface**: the tail's cursor (a partial line waits for its newline, a shrunk file resets without re-reporting, a primed offset aligns) and the rate's kernel (sustained R reads as R, one burst decays linearly to a true zero at W, the smoothed value never exceeds the weighted one, per-project rates sum to the headline) are all verified only by hand against synthetic roots today. A deterministic self-check over synthetic inputs, in-app, keeps the zero-dependency rule intact. → §IV.12
+New work opens a new block — read [last-task.md](last-task.md) for the next free `T<n>` and the next
+block letter, and check the non-goals below before proposing it.
 
 ## Non-goals (do NOT add as tasks)
 
@@ -86,6 +70,10 @@ Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full 
   flag the memories being maintained as the ones in use. So memory rows stay blank, and a wrong "never
   used" — the one error an advisor must not make — stays impossible by construction. Reopen only if a
   memory analogue of `attributionSkill` appears; the re-check is written down on `UsageEvidence`.
+- **No activity-aware tray notification** (settled by T87). The nudge threshold is the wall-clock
+  verdict and stays that way: the shaped projection changed what the *chart* says, not what is worth
+  interrupting somebody for, and a second, softer notification channel would need its own
+  justification rather than inheriting this one's.
 - **No live hint on the tray icon** (settled by dropping T101). An animating icon draws the eye
   continuously, and — decisively — it would need a transcript tail running for the whole session.
   T99 deliberately made the tail *window-owned* so a closed Statistics window watches nothing;

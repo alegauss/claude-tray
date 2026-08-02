@@ -30,6 +30,20 @@ jobs:
       - name: Publish (self-contained, win-x64, single file)
         run: dotnet publish -c Release
 
+      # The pacing and live-rate arithmetic, asserted over synthetic inputs (T96). Runs against the
+      # very .exe about to be packaged, and fails the build before an installer is made — the whole
+      # point of shipping the checks inside the binary instead of in a test project.
+      # Started rather than invoked: the app is a Windows-subsystem .exe, so its output has to be
+      # redirected to be seen and its exit code has to be waited for.
+      - name: Self-check
+        shell: pwsh
+        run: |
+          $exe = 'bin\Release\net10.0-windows\win-x64\publish\ClaudeTray.exe'
+          $p = Start-Process $exe -ArgumentList '--selftest' -Wait -PassThru `
+                 -RedirectStandardOutput selftest.log -RedirectStandardError selftest.err
+          Get-Content selftest.log, selftest.err -ErrorAction SilentlyContinue
+          if ($p.ExitCode -ne 0) { throw "self-check failed (exit $($p.ExitCode))" }
+
       - name: Build installer (Inno Setup)
         run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\installer.iss'
 

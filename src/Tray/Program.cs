@@ -146,6 +146,16 @@ internal static class Program
             return;
         }
 
+        // The self-check (T96): the pacing and live-rate arithmetic asserted over synthetic inputs,
+        // exiting non-zero on failure so CI can run it as one line. Everything it touches is
+        // synthetic and removed afterwards; no real profile is read or written. `--quick` skips the
+        // tail section, which waits on real sweeps and takes a few seconds.
+        if (args.Length >= 1 && args[0] == "--selftest")
+        {
+            Environment.ExitCode = SelfTestCli.Run(args.Skip(1).ToArray());
+            return;
+        }
+
         // Headless view of the weekly activity shape behind the projection: 168 buckets of
         // p(active), the coverage that backs them, and what they predict for the hours ahead.
         if (args.Length >= 1 && args[0] == "--activity")

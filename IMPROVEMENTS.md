@@ -12,11 +12,11 @@
 |---|---|
 | [§I](#i--house-constraints) | House constraints (binding, app-wide) |
 | [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature (kept: it is data, not design) |
-| [§IV](#iv--activity-aware-pacing-block-j) | Activity-aware pacing (Block J) |
 
-> Block I's design sections (§II) are gone: every one of them shipped, and `git log` plus
-> [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a **measurement** — the
-> numbers the rule thresholds and the base-overhead constant were calibrated against.
+> Block I's design sections (§II) and Block J's (§IV) are gone: every one of them shipped, and
+> `git log` plus [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a
+> **measurement** — the numbers the rule thresholds and the base-overhead constant were calibrated
+> against.
 
 ---
 
@@ -93,61 +93,3 @@ deliberately — this file is published with the repo. The right-hand column is 
 | Base overhead (system prompt + tools + MCP) | ≈32k tokens, p25 30k / p75 34k | shown as its own gauge segment, never folded into a project's number |
 | Heaviest scannable eager load | ≈22k tokens (a 43 KB `AGENTS.md` + 20 KB index) | the hero number the gauge shows |
 
----
-
-## §IV — Activity-aware pacing (Block J)
-
-### §IV.0 The problem, stated precisely
-
-The weekly projection is **not** blind to idle time. `UsageReport.Fill` derives it from the average
-pace since the window opened — `elapsed * (1 - util) / util` — and that average already has every
-idle hour so far diluted into it. Adding "average idle time" as a separate correction would
-double-count something already priced in.
-
-What the average cannot represent is **where** the idle sits. A straight line spends quota at 03:00
-Sunday at exactly the rate it spends it at 15:00 Tuesday, which produces two concrete errors:
-
-1. **Impossible landings.** The projection can place the exhaustion marker inside a stretch where the
-   user is reliably asleep — observed on a real chart at *Fri 03:59*. A limit cannot be reached while
-   nothing is running, so that timestamp is wrong by construction, not merely imprecise.
-2. **Asymmetric remainders.** The projection is only sound when the *remaining* window has the same
-   active/idle mix as the elapsed one. It does not, whenever the window ends on a partial day (it is
-   19:52 — roughly three active hours left today, not twenty-four), when a weekend or holiday falls in
-   the remainder, or when the window opened mid-night (the 02:00 reset boundary the API hands out).
-
-The fix is to project along a **shape**, not a slope.
-
-### §IV.6 Where Block J stopped
-
-An activity-aware **tray notification** is explicitly *not* part of this block. The nudge threshold is
-the wall-clock verdict and stays that way (T87 settled this); a second, softer notification channel
-would need its own justification.
-
-### §IV.12 A self-check for the pacing math (T96)
-
-Block J introduced arithmetic with genuine edge cases and the repo has no test surface at all — every
-verification in the block was a screenshot or a CLI read-out by a human. Some of the properties are
-cheap to assert and expensive to lose:
-
-- a *flat* profile must make the staircase reproduce the straight average-pace line exactly (this is
-  the whole "degrades correctly" claim, and it is one line of arithmetic away from being false)
-- folding must be idempotent, and folding the same day twice must not double its spend
-- the resume advice must never propose an hour whose projected close exceeds its own target
-- the ghost must stay hidden below its coverage and total gates
-- `ExpectedActiveHours` over a whole week must equal the sum of the grid
-
-A test project would mean a third-party test framework, which the non-goals rule out for a repo whose
-single-self-contained-exe story is a feature. An in-app `--selftest` that builds synthetic profiles and
-windows, asserts these properties and exits non-zero on failure costs nothing at runtime, ships inside
-the same binary, and can run in CI as one line.
-
-Block K doubled the surface this has to cover, and every one of these was checked by hand against a
-synthetic tree exactly once: the tail's cursor (a partial line is held until its newline, a shrunk
-file restarts without re-reporting, a primed offset skips to a character boundary) and the rate's
-kernel (sustained R reads as R, a single burst decays linearly to a true zero at exactly W, the
-smoothed value never exceeds the weighted one, a paused caller resumes with an empty strip, and the
-per-project rates sum to the headline because the kernel is linear). Those are properties, not
-observations — which is precisely what a self-check is for, and nothing currently stops an edit from
-breaking one silently.
-
----

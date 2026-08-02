@@ -100,8 +100,9 @@ internal sealed class ActivityShape
     public bool RunsOut => ExhaustFraction <= 1;
 
     /// <summary>Aim to close the week just under the limit rather than exactly at it — advice that
-    /// lands on 100.0% is advice to get blocked.</summary>
-    private const double AdviceTarget = 0.98;
+    /// lands on 100.0% is advice to get blocked. Public because <c>--selftest</c> asserts against the
+    /// real constant: a check that hardcodes 0.98 stops being a check the day the target moves.</summary>
+    public const double AdviceTarget = 0.98;
 
     /// <summary>
     /// Build the staircase, or null when the shape shouldn't be trusted here — no window, nothing
