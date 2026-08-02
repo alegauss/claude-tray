@@ -333,7 +333,7 @@ internal static class Program
             if (args.Length >= 2 && args[1].Equals("history", StringComparison.OrdinalIgnoreCase))
             {
                 PaceSnapshot? fromDisk = UsageHistory.Latest(ProfileStore.Monitored) is { } h
-                    ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d)
+                    ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d, h.Extra, h.ResetExtra)
                     : null;
                 previewApp.Run(Host(new StatisticsPage(fromDisk, remaining)));
             }

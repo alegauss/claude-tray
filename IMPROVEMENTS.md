@@ -451,30 +451,6 @@ Two constraints bind. The **privacy promise** is not in tension: rate-limit head
 overage more visible, and the next sentence, *this account is out, the other has room*, is the one the
 roadmap forbids. §XVIII.6 binds hardest; §XVI.4 found the answer's shape: a receipt, not a reward.
 
-### §XVIII.1 A reading with nowhere to be written (T179)
-
-`UsageSample` is `(T, Util5h, Reset5h, Util7d, Reset7d)`, the JSONL line is `{"t","u5","r5","u7","r7"}`,
-and `PaceSnapshot` carries the same four. The overage figure survives one render of one tooltip and is
-gone. Measured in the tray's own store, on the reporter's machine:
-
-| Measurement | Value |
-|---|---|
-| Stored readings, work profile (`acct-8ba439df4d4b`) | **1,403** |
-| Of those, weekly utilization at 97–99% | **178** |
-| Peak weekly utilization recorded | **0.99** |
-| Overage figures in the file | **0** — the line format has no field for one |
-| Longest run at 0.99 weekly | ~30 min of 180 s polls, 5h window at 0.02 and climbing |
-| `hasExtraUsageEnabled`, `~/.claude` vs `~/.claude-pessoal` | `true` vs `false` — no behavioural difference |
-
-That last run is *work past the included limit*, sampled 178 times and recorded nowhere. It goes first
-because it is the only irreversible task: no later one recovers those readings. The peak stopping at 0.99
-is the luck that kept T180's defect out of this data set.
-
-The trap is `ApiClient`'s own, one layer down. A header-less HTTP 200 parsing as utilization 0 is read by
-the burn tracker as usage collapsing, firing a phantom reset and wiping the history; an older line with no
-overage field is that hazard in the store rather than the wire. *Absent* must stay distinguishable from
-*zero* — zero is a real reading, and the one whose first departure §XVIII.6 notifies on.
-
 ### §XVIII.2 The one stretch that matters is the one that is not polled (T180)
 
 `BlockedUntilUnix` is careful, correct code resting on a premise that has an exception nobody applied:

@@ -71,7 +71,7 @@ internal partial class StatisticsPage
         _snapshot = _showingMonitored
             ? _monitoredSnapshot
             : UsageHistory.Latest(_profile.Key) is { } h
-                ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d)
+                ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d, h.Extra, h.ResetExtra)
                 : null;
 
         // The banner belongs to the reading it came with. "The live API is unavailable" is a fact about

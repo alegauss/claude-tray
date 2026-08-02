@@ -12,6 +12,7 @@ internal sealed class UsageData
     public double Session5h;
     public double Week7d;
     public double Extra;
+    public bool HasExtra;      // the overage header was on the response at all — see ExtraUtil
     public double Reset5h;     // unix seconds
     public double Reset7d;
     public double ResetExtra;
@@ -22,6 +23,13 @@ internal sealed class UsageData
                                 // browser /login is required; false = a refresh token exists, so just
                                 // opening Claude Code silently refreshes the access token (no browser)
     public bool Transient;      // true when Error is a timeout/network/5xx blip worth retrying quietly
+
+    /// <summary>The overage utilization as a reading rather than a number: null when the account has no
+    /// overage header at all, <c>0</c> when it has one and nothing has been spent past the included
+    /// quota. The two are different facts and only this form keeps them apart — <see cref="Extra"/> is
+    /// 0 for both, which is fine for a tooltip that only draws above zero and wrong for anything that
+    /// stores, charts or notifies on the figure (T179).</summary>
+    public double? ExtraUtil => HasExtra ? Extra : null;
 
     public double Metric(string key) => key switch
     {
@@ -89,6 +97,10 @@ internal sealed class ApiClient
                 ResetExtra = H(resp, "anthropic-ratelimit-unified-overage-reset"),
                 Status    = S(resp, "anthropic-ratelimit-unified-5h-status") ?? "unknown",
             };
+            // Read the presence separately from the value: an account without extra usage sends no
+            // overage header, and one that has it enabled but has spent nothing sends 0. H() collapses
+            // both to 0.0, so the distinction has to be captured here or it cannot be recovered later.
+            d.HasExtra = resp.Headers.Contains("anthropic-ratelimit-unified-overage-utilization");
 
             // The unified rate-limit headers are the entire reading we care about. When none of them
             // come back — the call failed (expired token, 403…), or it "succeeded" but a gateway/edge

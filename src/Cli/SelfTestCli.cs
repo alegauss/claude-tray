@@ -57,7 +57,12 @@ internal static class SelfTestCli
         string dir = ProfileStore.DirFor(ProfileKey);
         Console.WriteLine($"  scratch profile: {dir}");
         Remove(dir);            // a crashed earlier run must not decide what "already folded" means
-        try { Stores(); }
+        try
+        {
+            Stores();
+            Section("overage — a reading with somewhere to be written (Block AE)");
+            Overage();
+        }
         catch (Exception e) { Fail("the section threw", e.Message); }
         finally { Remove(dir); }
 
@@ -284,6 +289,40 @@ internal static class SelfTestCli
               rate.Strip().All(b => b.Total == 0),
               $"{rate.Strip().Count(b => b.Total != 0)} of {LiveRate.HistorySeconds} buckets still hold tokens");
         Check("and to no project series at all", rate.Projects().Length == 0);
+    }
+
+    // ---------------------------------------------------------------- Block AE: the overage column
+
+    /// <summary>T179's one invariant, and the only one no later task can recover: a reading that carried
+    /// no overage figure must come back out of the store as <em>absent</em>, and a measured zero must come
+    /// back as a zero. Both are <c>0.0</c> to anything that reads them as a plain double, which is exactly
+    /// how a store loses the difference — and the transition worth notifying on is a first departure
+    /// <em>from</em> zero, so history that fabricates zeros would announce a charge on a machine that never
+    /// spent a cent.</summary>
+    private static void Overage()
+    {
+        long t0 = (long)Now - 300;
+        // A line in the shape written before the field existed, then a measured zero, then a real figure.
+        UsageHistory.Append(ProfileKey, t0, 0.50, Now + 3600, 0.40, Now + 86400);
+        UsageHistory.Append(ProfileKey, t0 + 60, 0.60, Now + 3600, 0.50, Now + 86400, extraUtil: 0);
+        UsageHistory.Append(ProfileKey, t0 + 120, 1.00, Now + 3600, 1.00, Now + 86400,
+                            extraUtil: 0.42, extraReset: Now + 7200);
+
+        List<UsageSample> read = UsageHistory.Load(ProfileKey, t0 - 1);
+        if (!Check("three readings go in and three come back", read.Count == 3, $"{read.Count} read")) return;
+
+        Check("a reading with no overage figure stays absent, not zero", read[0].Extra == null);
+        Check("a measured zero stays a measured zero", read[1].Extra is 0);
+        Near("an overage figure survives the round trip", read[2].Extra ?? -1, 0.42, 1e-9);
+        Near("and so does the deadline it resets on", read[2].ResetExtra, (long)(Now + 7200), 1);
+
+        // The absence has to be in the *line*, not only in the parse: a "ux":0 written for a reading that
+        // had none would satisfy every check above and still be a zero nobody measured.
+        string first = File.ReadLines(ProfileStore.PathFor(ProfileKey, "usage-history.jsonl")).First();
+        Check("an absent figure writes no field at all", !first.Contains("\"ux\""), first);
+
+        Check("the newest reading is what Latest reports, overage included",
+              UsageHistory.Latest(ProfileKey) is { Extra: 0.42 });
     }
 
     // ---------------------------------------------------------------- Block J: the stores

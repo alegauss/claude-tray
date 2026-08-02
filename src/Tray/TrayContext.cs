@@ -342,11 +342,11 @@ internal sealed class TrayContext : ApplicationContext
     private PaceSnapshot? CurrentSnapshot()
     {
         if (_data is { Error: null } d)
-            return new PaceSnapshot(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d);
+            return new PaceSnapshot(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d, d.ExtraUtil, d.ResetExtra);
         if (_lastGoodSnapshot is { } s)
             return s;
         return UsageHistory.Latest(ProfileStore.Monitored) is { } h
-            ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d)
+            ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d, h.Extra, h.ResetExtra)
             : null;
     }
 
@@ -775,7 +775,7 @@ internal sealed class TrayContext : ApplicationContext
             _otherData[key] = d;
             // Its own series, so its history is ready if the icon ever follows it (T125).
             if (d.Error == null)
-                UsageHistory.Append(key, now, d.Session5h, d.Reset5h, d.Week7d, d.Reset7d);
+                UsageHistory.Append(key, now, d.Session5h, d.Reset5h, d.Week7d, d.Reset7d, d.ExtraUtil, d.ResetExtra);
         }
     }
 
@@ -808,11 +808,13 @@ internal sealed class TrayContext : ApplicationContext
             // Remember this good reading so the Statistics window can keep drawing its charts from
             // local data during a later API outage, and mark when it was taken (the outage gap starts
             // here).
-            _lastGoodSnapshot = new PaceSnapshot(fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d);
+            _lastGoodSnapshot = new PaceSnapshot(fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d,
+                                                 fresh.ExtraUtil, fresh.ResetExtra);
 
             // Log the live reading so the Statistics charts can draw the real utilization curve over
             // time, rather than inferring the burn shape from transcript token counts.
-            UsageHistory.Append(ProfileStore.Monitored, now, fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d);
+            UsageHistory.Append(ProfileStore.Monitored, now, fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d,
+                                fresh.ExtraUtil, fresh.ResetExtra);
 
             foreach (string key in Metrics)
             {

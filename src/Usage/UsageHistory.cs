@@ -3,8 +3,18 @@
 namespace ClaudeTray;
 
 /// <summary>One logged rate-limit reading: the live utilizations and reset deadlines captured at a
-/// single poll. Utilizations are 0–1; times are unix seconds.</summary>
-internal readonly record struct UsageSample(double T, double Util5h, double Reset5h, double Util7d, double Reset7d);
+/// single poll. Utilizations are 0–1; times are unix seconds.
+///
+/// <para><see cref="Extra"/> is the overage utilization and is <b>nullable on purpose</b> (T179):
+/// <c>null</c> means this reading carries no overage figure — a line written before the field existed,
+/// or a response with no overage header — while <c>0</c> means the account was measured spending
+/// nothing past its included quota. Collapsing the two would make every historical line look like a
+/// measured zero, which is the same hazard <see cref="ApiClient"/> guards one layer up: a fabricated
+/// zero reads as a collapse to nobody's usage. It is also the distinction the "you have started
+/// paying" transition is detected against, since that is a first departure *from* zero.</para></summary>
+internal readonly record struct UsageSample(
+    double T, double Util5h, double Reset5h, double Util7d, double Reset7d,
+    double? Extra = null, double ResetExtra = 0);
 
 /// <summary>
 /// A tiny append-only log of the live rate-limit readings, written once per successful poll to
@@ -12,7 +22,9 @@ internal readonly record struct UsageSample(double T, double Util5h, double Rese
 /// can draw the <em>real</em> utilization measured over time, instead of inferring the shape from
 /// transcript token counts (which weighs cache reads and models wrong against the limit).
 ///
-/// One compact JSON object per line, e.g. <c>{"t":1719900000,"u5":0.72,"r5":...,"u7":0.38,"r7":...}</c>.
+/// One compact JSON object per line, e.g. <c>{"t":1719900000,"u5":0.72,"r5":...,"u7":0.38,"r7":...}</c>,
+/// plus <c>"ux"</c>/<c>"rx"</c> for the overage reading — written only when there is one, so a line
+/// without them reads back as <em>absent</em> rather than as a measured zero (see <see cref="UsageSample"/>).
 /// At the default 5-minute cadence this is ~230 KB per week; growth is bounded by age-based pruning
 /// (older than <see cref="RetentionDays"/> days), triggered lazily so we don't rewrite every poll.
 /// Every operation is best-effort: a failure here must never disrupt a poll or the report.
@@ -32,7 +44,10 @@ internal static class UsageHistory
         ProfileStore.PathFor(profileKey, "usage-history.jsonl");
 
     /// <summary>Append one reading. Best-effort; prunes stale lines lazily.</summary>
-    public static void Append(string profileKey, long nowUnix, double util5h, double reset5h, double util7d, double reset7d)
+    /// <param name="extraUtil">The overage utilization, or null when this response carried none. Null
+    /// omits the field entirely rather than writing a zero — see <see cref="UsageSample"/>.</param>
+    public static void Append(string profileKey, long nowUnix, double util5h, double reset5h, double util7d, double reset7d,
+                              double? extraUtil = null, double extraReset = 0)
     {
         try
         {
@@ -40,6 +55,9 @@ internal static class UsageHistory
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             string line = FormattableString.Invariant(
                 $"{{\"t\":{nowUnix},\"u5\":{util5h:0.####},\"r5\":{(long)reset5h},\"u7\":{util7d:0.####},\"r7\":{(long)reset7d}}}");
+            if (extraUtil is { } x)
+                line = FormattableString.Invariant(
+                    $"{line[..^1]},\"ux\":{x:0.####},\"rx\":{(long)extraReset}}}");
             File.AppendAllText(path, line + Environment.NewLine);
             PruneIfStale(profileKey, path, nowUnix);
         }
@@ -137,7 +155,10 @@ internal static class UsageHistory
             using var doc = JsonDocument.Parse(line);
             JsonElement root = doc.RootElement;
             s = new UsageSample(
-                Num(root, "t"), Num(root, "u5"), Num(root, "r5"), Num(root, "u7"), Num(root, "r7"));
+                Num(root, "t"), Num(root, "u5"), Num(root, "r5"), Num(root, "u7"), Num(root, "r7"),
+                // NumOrNull, not Num: every line written before T179 lacks "ux", and reading those back
+                // as 0 would invent a measurement nobody took.
+                NumOrNull(root, "ux"), Num(root, "rx"));
             return s.T > 0;
         }
         catch { return false; }
@@ -161,4 +182,7 @@ internal static class UsageHistory
 
     private static double Num(JsonElement obj, string name)
         => obj.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
+
+    private static double? NumOrNull(JsonElement obj, string name)
+        => obj.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : null;
 }

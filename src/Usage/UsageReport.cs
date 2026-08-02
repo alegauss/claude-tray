@@ -87,8 +87,11 @@ internal sealed class WindowPace
 }
 
 /// <summary>Live rate-limit reading passed in from the tray. Utilizations are 0–1; resets are unix
-/// seconds (0 when unknown).</summary>
-internal readonly record struct PaceSnapshot(double Util5h, double Reset5h, double Util7d, double Reset7d);
+/// seconds (0 when unknown). <see cref="Extra"/> follows <see cref="UsageSample.Extra"/>: null is
+/// "this reading has no overage figure", 0 is "measured, nothing spent past the included quota".</summary>
+internal readonly record struct PaceSnapshot(
+    double Util5h, double Reset5h, double Util7d, double Reset7d,
+    double? Extra = null, double ResetExtra = 0);
 
 internal sealed class PaceReport
 {
