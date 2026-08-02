@@ -31,6 +31,23 @@
 - 📋 **T165** (deps: T164) **Nothing drives the profile picker, so a switch is checked one direction at a time** — every `--capture-stats` before T164 rendered *a* profile; none rendered the same profile twice with another in between, which is the only sequence the three defects appear in. `Check-Interaction.ps1` already drives the real UI through UI Automation and asserts pass/fail (T142) — a `-Case Profiles` that walks the picker 0 → 1 → 0 and reads back the "% da cota usada", the reset caption and the live headline would have caught all three, and reading nothing must stay a FAIL. → §XIV.1
 - 💭 **T166** (deps: T164) **A profile switch blanks the panes it could have kept** — T164 clears the last-rendered pace on purpose (leaving it up means the previous account's curves under this account's name), so the window now shows "computing…" for the length of a transcript scan, Throughput tab included — the exact cost T118 removed for the poll refresh. Keeping the last report *per profile* would make a switch back instant and correct at once, but a cached report is a stale one the moment its profile is polled again. Needs design: what invalidates an entry, and whether the footer timestamp is enough to make a cached view honest. → §XIV.2
 
+## Block AB — What Block Z's own work left behind
+
+> Block Z made the app say what it knows: the method note stopped overstating its evidence (T159), the
+> away-week gate started firing on an ordinary machine (T160), the slug encoding and the settings round
+> trip got their first assertions (T161, T162), and the straight-line projection began explaining itself
+> (T163). Four things surfaced *while building it* that are not part of any of those tasks — three of them
+> only visible in a screenshot or a CI log, none of them reported by anybody. Two are one number and one
+> paragraph the block itself grew; two are about the checks that were supposed to protect it.
+> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XV.
+>
+> Ordered by what is wrong on screen today, then by what protects the rest.
+
+- 📋 **T167** (deps: —) **Numbers interpolated into localized strings bypass the window's own invariant formatter** — `StatisticsPage.Format.cs` routes every number through `Fmt` (13 call sites: `Pct`, `Tps`, tokens, bytes) precisely so the report reads the same in every locale, and the method note's five interpolations use bare `$"{x:0.#}"`, which takes the OS culture. Measured on a pt-BR machine with `--lang en`: *"4,7 weeks of local transcripts"* and *"there are 2,1 so far"* in the same popup as `1,319 tok/s` and `40%`. One window, two conventions. → §XV.1
+- 📋 **T168** (deps: —) **The method note's composition is UI code, so the rules T159 and T163 added cannot be asserted** — which paragraphs a report yields is now a real decision (shaped vs. measured vs. thin, and the away clause only when a week was dropped), it lives inline in `Render`, and `--selftest` cannot reach it. As a pure function of `(report, activity)` returning the ordered key list, every rule the block just introduced becomes a check: never shaped *and* thin, thin only when the shape was declined for thinness, no away clause at zero. → §XV.2
+- 📋 **T169** (deps: —) **A skip that fires on every run is a check that does not exist** — T161's probe guard skips when the temp path holds a character the encoding cannot reconstruct, which is every CI runner whose profile is an 8.3 short name (`RUNNER~1`), so the two `TryProbe` assertions may never have run outside a dev machine. Canonicalising the temp root to its long form removes the skip entirely; and the summary counts skips without naming them, so lost coverage reads as a green run. → §XV.3
+- 💭 **T170** (deps: —) **The method note is ~1,000 characters of 12px prose in one unstructured paragraph** — 238 + 352 + 422 for the shaped branch, 1,080 for the measured one, and Block Z added to it twice (T159 a clause, T163 a whole sentence). T113 moved it behind an ⓘ because six lines pinned under the panes was a lot of screen; it is now twelve lines behind a click, and the next task will make it thirteen. Needs design: structure (a line per number? a note per tab?) before another sentence lands. → §XV.4
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

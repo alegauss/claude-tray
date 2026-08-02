@@ -1,10 +1,10 @@
-# Last task number — `T166` · next block letter — `AB`
+# Last task number — `T170` · next block letter — `AC`
 
-> **Single source of truth for the next free task number.** The next new task is `T167`; after
+> **Single source of truth for the next free task number.** The next new task is `T171`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `AB`** (Block **AA** = The picker switches profiles; the window has to switch
-> with it; created 2026-08-02). Z was the last single letter, so the scheme continues **AA, AB, …** —
+> **Next block letter — `AC`** (Block **AB** = What Block Z's own work left behind; created 2026-08-02).
+> Z was the last single letter, so the scheme continues **AA, AB, …** —
 > two letters, same ordering, and `CHANGELOG.md`'s table sorts them after Z. Nothing in the docs parses
 > a block letter, so this costs a wider column and nothing else.
 >
@@ -149,6 +149,14 @@
   The rule it leaves behind is in [AGENTS.md](AGENTS.md): a page is constructed before it is shown, so
   its constructor must not `FindResource` a theme brush — the dictionary hangs off the window.
   Shipped in the same commit it was created in, so it has no `ROADMAP.md`/`IMPROVEMENTS.md` entries.
+- Block **AB** (T167–T170, created 2026-08-02) is the **read-back of Block Z**, the same move Z itself was
+  against V — and it is a block rather than four stray fixes because the four share one shape: *the thing
+  being looked at was not the thing being checked.* Two were on screen in the very captures taken to verify
+  Z (a number in the OS locale inside an English sentence, a note that has quietly become twelve lines),
+  and two are in the checks written to protect it (the note's branch rules live where `--selftest` cannot
+  reach, and T161's own precondition guard skips forever on any machine with an 8.3 temp path — plausibly
+  every CI runner, where those two assertions may never have run). None was reported by anybody. Its design
+  section is **§XV**: §XIII was retired with Z, and §XIV belongs to Block AA.
 - Block **AA** (T164–T166, created 2026-08-02) is a **field report against shipped Block O**, on the
   Block R / U / W precedent: O is closed and pruned, and this is a defect found by *using* the feature.
   The first two-letter block — Z was the last single letter, and nothing in the docs parses one.
