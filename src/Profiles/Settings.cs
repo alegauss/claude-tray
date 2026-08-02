@@ -100,6 +100,15 @@ internal sealed class Settings
     /// </summary>
     public bool NotifyOnContextGrowth { get; set; } = false;
 
+    /// <summary>
+    /// Say so, once, the first time a reading shows the account spending past the quota included in its
+    /// plan (T184). Default <b>on</b>, like the three reset notifications and unlike the context nudge:
+    /// the resets interrupt to say quota came back, and staying silent when the opposite happens is the
+    /// asymmetry this exists to close. It is a fact about the user's own money, it fires at most once per
+    /// spell rather than on a timer, and it can be turned off here.
+    /// </summary>
+    public bool NotifyOnExtraUsage { get; set; } = true;
+
     /// <summary>Eager-token threshold for that nudge. The measured spread across real projects is
     /// ≈4k–22k (IMPROVEMENTS §III), so the default sits above the middle of it.</summary>
     public int ContextNudgeTokens { get; set; } = DefaultContextNudgeTokens;

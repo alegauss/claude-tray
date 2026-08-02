@@ -48,6 +48,18 @@ internal static class QuotaStates
     public static bool CanSpendPastQuota(double? extraUtil, bool? extraUsageEnabled)
         => extraUtil > 0 || extraUsageEnabled == true;
 
+    /// <summary>
+    /// Whether this pair of consecutive readings is the moment the meter started (T184).
+    ///
+    /// <para>A <em>rise</em>, not a state: the previous reading must be a measured zero. <c>null</c> is
+    /// not zero (T179) and deliberately does not arm it — a profile whose history predates that field, or
+    /// a response carrying no overage header, has never been observed at zero, and announcing a "start"
+    /// from a reading nobody took is how a notification loses its credibility. Equally, a previous reading
+    /// already above zero is a spell in progress, not its beginning.</para>
+    /// </summary>
+    public static bool StartsSpending(double? previous, double? current)
+        => current > 0 && previous is { } was && was <= 0;
+
     /// <summary>Which state a reading puts the account in.</summary>
     public static QuotaState Resolve(double util, double? extraUtil, bool? extraUsageEnabled)
         => util < AtLimitThreshold ? QuotaState.InQuota

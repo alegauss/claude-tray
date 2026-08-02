@@ -221,6 +221,8 @@
   "settings.notif.sessionDesc": "Una notificación de «nueva sesión» cuando tu ventana de sesión de 5 horas se reinicia (puede ocurrir varias veces al día).",
   "settings.notif.sessionMin": "Uso de sesión mínimo para avisar",
   "settings.notif.sessionMinDesc": "Omite el aviso de sesión si la ventana apenas se usó antes de reiniciarse.",
+  "settings.notif.extra": "Inicio del uso extra",
+  "settings.notif.extraDesc": "Avisar, una vez, cuando una comprobación te encuentre gastando más allá de la cuota incluida en tu plan. No se repite mientras dure el mismo periodo.",
   "settings.notif.anomalies": "Anomalías",
   "settings.notif.unexpected": "Caída inesperada de uso",
   "settings.notif.unexpectedDesc": "Muestra una notificación en la bandeja si el uso semanal cae de forma inesperada — reiniciándose a 0% antes de su fecha prevista, o un crédito parcial a mitad de ventana (p. ej. 91% → 50%). El evento también se guarda en reset-events.log.",
@@ -583,5 +585,10 @@
   "toast.context.title": "Contexto inicial pesado",
   "toast.context.subtitle": "{0} carga mucho antes de tu primer prompt",
   "toast.context.caption": "{0} en cada sesión · ≈{1} US$ para cargar en frío",
+  "toast.extra.title": "El uso extra ha comenzado",
+  "toast.extra.subtitle": "Has superado la cuota incluida en tu plan — el trabajo continúa, cobrado como uso extra.",
+  "toast.extra.caption": "Esta ventana de uso extra se reinicia en {0}.",
+  "toast.extra.captionNoReset": "Su propia hora de reinicio aún no se informa.",
+  "toast.extra.quotaLabel": "uso extra hasta ahora",
   "toast.context.quotaLabel": "Ventana de contexto aún libre"
 }

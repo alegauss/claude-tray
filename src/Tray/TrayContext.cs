@@ -148,6 +148,71 @@ internal sealed class TrayContext : ApplicationContext
         if (nudge is { } n) NudgeContext(n.project, n.eager);
     }
 
+    /// <summary>The last overage reading seen for the monitored profile, so a rise can be told from a
+    /// state. Seeded from the store on the first poll of the process (see <see cref="NoteExtraUsage"/>):
+    /// held only in memory, a restart mid-spell would read as a fresh transition and toast again.</summary>
+    private double? _lastExtra;
+    private bool _lastExtraSeeded;
+
+    /// <summary>
+    /// Announce the start of the meter, once (T184).
+    ///
+    /// <para><b>Why this interrupts at all.</b> The tray already interrupts to say quota came *back* —
+    /// three reset notifications, on by default. It said nothing when the opposite happened, and that
+    /// asymmetry is the whole point: the app was cheerful about good news and silent about the user's own
+    /// money. This is not a second notification channel arguing for itself against the T87 non-goal (which
+    /// rejects a *predicted*, continuous, activity-shaped nudge); it is the existing channel's missing
+    /// half — a discrete transition, observed rather than forecast, at most once per spell.</para>
+    ///
+    /// <para><b>A rise, not a state.</b> It fires on the first reading above zero after one at zero.
+    /// <c>null</c> is not zero (T179) and deliberately does not arm it: a profile whose history predates
+    /// that field, or a response with no overage header, has not been observed at zero, and announcing a
+    /// "start" from a reading nobody took is how a notification loses its credibility.</para>
+    ///
+    /// <para><b>What it must not say.</b> It fires exactly when somebody is most receptive to *the other
+    /// profile still has quota* — the sentence the roadmap forbids as limit circumvention in a convenience
+    /// costume. So the card names no profile, no account and no alternative, and offers no action. It
+    /// states the fact and the reset, and stops: a receipt, not a reward, and not a suggestion.</para>
+    /// </summary>
+    private void NoteExtraUsage(double? extra, double resetExtra)
+    {
+        if (!_lastExtraSeeded)
+        {
+            // The reading before this process started, so a restart in the middle of an overage spell
+            // does not look like its beginning.
+            _lastExtraSeeded = true;
+            try { _lastExtra = UsageHistory.Latest(ProfileStore.Monitored)?.Extra; } catch { _lastExtra = null; }
+        }
+
+        double? previous = _lastExtra;
+        _lastExtra = extra;
+
+        if (!_settings.NotifyOnExtraUsage) return;
+        if (!QuotaStates.StartsSpending(previous, extra)) return;
+        double now = extra!.Value;
+
+        string title = L.T("toast.extra.title");
+        string subtitle = L.T("toast.extra.subtitle");
+        string caption = resetExtra > 0
+            ? L.T("toast.extra.caption", FmtDays(resetExtra - DateTimeOffset.UtcNow.ToUnixTimeSeconds()))
+            : L.T("toast.extra.captionNoReset");
+        try
+        {
+            EnsureWpfApp();
+            // The card's bar renders "quota still available" (1 − x), so the complement is passed: the
+            // filled sliver is then the extra usage spent so far, matching the label beside it.
+            double bar = Math.Clamp(1 - now, 0, 1);
+            new ToastWindow("🧾", title, subtitle, bar, bar, caption,
+                L.T("toast.extra.quotaLabel"), ToastWindow.ToastTheme.ExtraUsage).Show();
+        }
+        catch
+        {
+            _tray.BalloonTipTitle = title;
+            _tray.BalloonTipText = subtitle;
+            _tray.ShowBalloonTip(8000);
+        }
+    }
+
     // The nudge itself, in the existing toast style: same card, same bar, ochre instead of festive,
     // and no confetti (see ToastWindow.OnLoaded).
     private void NudgeContext(ContextProject project, int eager)
@@ -823,6 +888,10 @@ internal sealed class TrayContext : ApplicationContext
             // the overage percentage denominates can only be taken while an account is in overage, which
             // is a moment nobody can schedule — so it is recorded rather than waited for.
             HeaderProbe.Record(ProfileStore.Monitored, now, fresh.RateHeaders);
+
+            // The moment the meter starts (T184) — checked against the reading before this one, so the
+            // toast marks a transition rather than the mere fact of being in overage.
+            NoteExtraUsage(fresh.ExtraUtil, fresh.ResetExtra);
 
             foreach (string key in Metrics)
             {

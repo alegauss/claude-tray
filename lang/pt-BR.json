@@ -221,6 +221,8 @@
   "settings.notif.sessionDesc": "Uma notificação de “sessão renovada” quando sua janela de sessão de 5 horas reseta (pode ocorrer várias vezes ao dia).",
   "settings.notif.sessionMin": "Uso da sessão mínimo para notificar",
   "settings.notif.sessionMinDesc": "Pula o aviso da sessão se a janela foi pouco usada antes de resetar.",
+  "settings.notif.extra": "Início do uso extra",
+  "settings.notif.extraDesc": "Avisar, uma vez, quando uma verificação encontrar você gastando além da cota incluída no seu plano. Não se repete enquanto durar o mesmo período.",
   "settings.notif.anomalies": "Anomalias",
   "settings.notif.unexpected": "Queda inesperada de uso",
   "settings.notif.unexpectedDesc": "Mostra uma notificação na bandeja se o uso semanal cair inesperadamente — resetando para 0% antes do prazo previsto, ou um crédito parcial no meio da janela (ex.: 91% → 50%). O evento também é salvo em reset-events.log.",
@@ -583,5 +585,10 @@
   "toast.context.title": "Contexto inicial pesado",
   "toast.context.subtitle": "{0} carrega muito antes do seu primeiro prompt",
   "toast.context.caption": "{0} em cada sessão · ≈US$ {1} para carregar com cache frio",
+  "toast.extra.title": "O uso extra começou",
+  "toast.extra.subtitle": "Você passou da cota incluída no seu plano — o trabalho continua, cobrado como uso extra.",
+  "toast.extra.caption": "Esta janela de uso extra reseta em {0}.",
+  "toast.extra.captionNoReset": "O horário de reset dela ainda não está sendo informado.",
+  "toast.extra.quotaLabel": "uso extra até agora",
   "toast.context.quotaLabel": "Janela de contexto ainda livre"
 }

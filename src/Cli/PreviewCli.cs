@@ -56,10 +56,21 @@ internal static class PreviewCli
         };
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        // The context-load nudge shares the card but is not a reset event, so it is built directly.
-        if (variant.Equals("context", StringComparison.OrdinalIgnoreCase))
+        // Two variants share the card without being reset events, so they are built directly. The
+        // extra-usage one (T184) can only be seen this way: the state it announces is one no machine can
+        // be put into on demand.
+        if (variant.Equals("context", StringComparison.OrdinalIgnoreCase)
+            || variant.Equals("extra", StringComparison.OrdinalIgnoreCase))
         {
-            var nudge = new ToastWindow("📇", L.T("toast.context.title"),
+            bool isExtra = variant.Equals("extra", StringComparison.OrdinalIgnoreCase);
+            var nudge = isExtra
+                // The card's bar is "quota still available", so it renders 1 − x. Passing the complement
+                // makes the filled sliver read as the extra usage spent so far, which is what the label
+                // beside it says.
+                ? new ToastWindow("🧾", L.T("toast.extra.title"), L.T("toast.extra.subtitle"),
+                    1 - 0.06, 1 - 0.06, L.T("toast.extra.caption", "2d 3h"),
+                    L.T("toast.extra.quotaLabel"), ToastWindow.ToastTheme.ExtraUsage)
+                : new ToastWindow("📇", L.T("toast.context.title"),
                 L.T("toast.context.subtitle", "viglet/turing/2026.2"),
                 0.27, 0.27,
                 L.T("toast.context.caption", TokenEstimate.Format(54_000), (0.336).ToString("0.000", L.Culture)),

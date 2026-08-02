@@ -469,27 +469,3 @@ transition, names and values only. It costs nothing (the call is already made), 
 The alternative is tempting and wrong: shipping "Extra usage: 42% of your extra-usage limit" on a
 plausible guess. A tray whose whole value proposition is *this number is trustworthy* cannot afford a
 label that turns out to name a different denominator.
-
-### §XVIII.6 The transition nobody is told about (T184 — idea)
-
-The tray notifies on resets — good news, opt-in per window, with a floor so a trivial reset does not ping.
-It has no notification for the one transition that costs the user money, and that asymmetry is the whole
-observation: the app interrupts you to say *you got something back* and stays silent when *you started
-paying*.
-
-The shape is a one-shot on the first reading with overage above zero after a stretch at zero — the
-`absent ≠ zero` distinction §XVIII.1 exists to preserve, and what §XVIII.2's polling gap would otherwise
-hide. `ToastWindow` is the mechanism; `ToastTheme.Context` already proved a card can carry a
-non-celebratory fact.
-
-It stays an idea because two constraints have to be settled before it is designed, not after.
-
-**It needs its own justification.** The T87 non-goal is explicit that a second notification channel argues
-for itself rather than inheriting the reset channel's argument. This one looks strong — a real state
-change, once, about the user's own money, never on a timer — but "looks strong" is what that non-goal
-exists to interrogate.
-
-**It must not become a hop suggestion.** It fires when a user is most receptive to *the other profile
-still has quota*, and that sentence is forbidden. §XVI.4 refused the same temptation in its stronger form,
-and the reasoning transfers: the constraint is violated by implication, not only by wording, so a toast
-mentioning the account at all is near the line.

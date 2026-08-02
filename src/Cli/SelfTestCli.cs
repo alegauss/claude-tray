@@ -366,6 +366,24 @@ internal static class SelfTestCli
               QuotaStates.Resolve(QuotaStates.AtLimitThreshold, null, false) == QuotaState.Stopped
               && QuotaStates.Resolve(QuotaStates.AtLimitThreshold - 0.001, null, false) == QuotaState.InQuota);
 
+        // T184's rule: the toast marks a *transition*, and both ways of getting it wrong are bad — a
+        // missed start says nothing while money is spent, a false one cries wolf about a charge that
+        // never began. `null` arms nothing, because a reading nobody took is not an observation of zero.
+        Check("leaving a measured zero is the start of spending",
+              QuotaStates.StartsSpending(0, 0.02));
+        Check("a spell already under way is not a start",
+              !QuotaStates.StartsSpending(0.02, 0.31));
+        Check("an absent previous reading never fires it",
+              !QuotaStates.StartsSpending(null, 0.42));
+        Check("nor does an absent current one",
+              !QuotaStates.StartsSpending(0, null));
+        Check("nor two measured zeros",
+              !QuotaStates.StartsSpending(0, 0));
+        Check("falling back to zero is not a start either",
+              !QuotaStates.StartsSpending(0.42, 0));
+        Check("and the next rise after a return to zero is a start again",
+              QuotaStates.StartsSpending(0, 0.05));
+
         // The two answers must agree by construction: "never idle" and "billing" are the same fact, and
         // a tray that sleeps through a state its icon is drawing is the defect T180 and T182 each half-fixed.
         foreach (double? x in new double?[] { null, 0, 0.42 })

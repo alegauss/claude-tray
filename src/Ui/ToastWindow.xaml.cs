@@ -23,7 +23,7 @@ namespace ClaudeTray;
 internal partial class ToastWindow : Window
 {
     /// <summary>Color theme per notification type, so each is identifiable at a glance.</summary>
-    internal enum ToastTheme { Surprise, Bonus, Weekly, Session, Context }
+    internal enum ToastTheme { Surprise, Bonus, Weekly, Session, Context, ExtraUsage }
 
     private bool _closing;
     private double _targetScale = 1.0; // available quota after the event; the bar animates to this
@@ -72,6 +72,9 @@ internal partial class ToastWindow : Window
             ToastTheme.Weekly => ("#43B894", "#23987A", "#136E58"),  // teal/green
             ToastTheme.Session => ("#6BA3E6", "#3F79CF", "#234E96"), // blue
             ToastTheme.Context => ("#D9A85C", "#BE8535", "#8A5E1E"),  // ochre — a nudge, not a party
+            // Clay: the colour the icon's bar and the weekly chart's second axis already wear for
+            // "past the included quota", so the same fact looks the same wherever it appears (T184).
+            ToastTheme.ExtraUsage => ("#E89072", "#D97757", "#B0512F"),
             _ => ("#E89072", "#D97757", "#B0512F"),                  // clay (Surprise)
         };
         static Color C(string hex) => (Color)ColorConverter.ConvertFromString(hex);
@@ -86,8 +89,9 @@ internal partial class ToastWindow : Window
         PlayEntrance();
         FillTheBar();
         // Every toast so far has been good news (quota back). The context nudge is the first that
-        // isn't, so it gets the same card and animation without the celebration.
-        if (_theme != ToastTheme.Context) LaunchConfetti();
+        // isn't, so it gets the same card and animation without the celebration — and the extra-usage
+        // one is a receipt, which is the least celebratory thing this app has to say.
+        if (_theme is not (ToastTheme.Context or ToastTheme.ExtraUsage)) LaunchConfetti();
 
         // Auto-dismiss after a comfortable read; the user can also close or act before then.
         var life = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };

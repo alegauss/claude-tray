@@ -612,6 +612,16 @@
                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
                                 </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <!-- The one notification here that is not good news (T184): it fires at
+                                     most once per overage spell, and only for an account that can go past
+                                     its included quota at all. -->
+                                <local:SettingsRow Header="{local:Loc settings.notif.extra}"
+                                                   Description="{local:Loc settings.notif.extraDesc}">
+                                    <ToggleButton x:Name="NotifyExtraCheck" Style="{StaticResource ToggleSwitch}" />
+                                </local:SettingsRow>
                             </StackPanel>
                         </Border>
 

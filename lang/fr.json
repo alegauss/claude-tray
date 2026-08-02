@@ -221,6 +221,8 @@
   "settings.notif.sessionDesc": "Une notification « nouvelle session » quand votre fenêtre de session de 5 heures se réinitialise (possible plusieurs fois par jour).",
   "settings.notif.sessionMin": "Consommation de session minimale pour notifier",
   "settings.notif.sessionMinDesc": "Ignore l'avertissement de session si la fenêtre a été à peine utilisée avant sa réinitialisation.",
+  "settings.notif.extra": "Début de l’usage supplémentaire",
+  "settings.notif.extraDesc": "Le signaler, une fois, lorsqu’une vérification vous trouve au-delà du quota inclus dans votre offre. Cela ne se répète pas tant que dure la même période.",
   "settings.notif.anomalies": "Anomalies",
   "settings.notif.unexpected": "Chute inattendue de consommation",
   "settings.notif.unexpectedDesc": "Affiche une notification si la consommation hebdomadaire chute de façon inattendue — réinitialisation à 0% avant l'échéance prévue, ou crédit partiel en milieu de fenêtre (ex. 91% → 50%). L'événement est aussi enregistré dans reset-events.log.",
@@ -583,5 +585,10 @@
   "toast.context.title": "Contexte de démarrage lourd",
   "toast.context.subtitle": "{0} charge beaucoup avant votre premier prompt",
   "toast.context.caption": "{0} à chaque session · ≈{1} $ pour charger à froid",
+  "toast.extra.title": "L’usage supplémentaire a commencé",
+  "toast.extra.subtitle": "Vous avez dépassé le quota inclus dans votre offre — le travail continue, facturé en usage supplémentaire.",
+  "toast.extra.caption": "Cette fenêtre d’usage supplémentaire se réinitialise dans {0}.",
+  "toast.extra.captionNoReset": "Sa propre heure de réinitialisation n’est pas encore indiquée.",
+  "toast.extra.quotaLabel": "usage supplémentaire à ce jour",
   "toast.context.quotaLabel": "Fenêtre de contexte encore libre"
 }

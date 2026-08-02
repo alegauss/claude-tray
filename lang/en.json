@@ -225,6 +225,8 @@
   "settings.notif.sessionDesc": "A “fresh session” notification when your 5-hour session window resets (can happen several times a day).",
   "settings.notif.sessionMin": "Minimum session usage to notify",
   "settings.notif.sessionMinDesc": "Skip the session ping if the window was barely used before resetting.",
+  "settings.notif.extra": "Extra usage starts",
+  "settings.notif.extraDesc": "Say so, once, the first time a check finds you spending past the quota included in your plan. It never repeats while the same spell lasts.",
   "settings.notif.anomalies": "Anomalies",
   "settings.notif.unexpected": "Unexpected usage drop",
   "settings.notif.unexpectedDesc": "Shows a tray notification if weekly usage drops unexpectedly — resetting to 0% before its scheduled deadline, or a partial mid-window credit (e.g. 91% → 50%). The event is also saved to reset-events.log.",
@@ -587,5 +589,10 @@
   "toast.context.title": "Heavy startup context",
   "toast.context.subtitle": "{0} loads a lot before your first prompt",
   "toast.context.caption": "{0} every session · ≈${1} to load on a cold cache",
+  "toast.extra.title": "Extra usage has started",
+  "toast.extra.subtitle": "You've passed the quota included in your plan — work continues, charged as extra usage.",
+  "toast.extra.caption": "This extra-usage window resets in {0}.",
+  "toast.extra.captionNoReset": "Its own reset time isn't being reported yet.",
+  "toast.extra.quotaLabel": "extra usage so far",
   "toast.context.quotaLabel": "Context window still free"
 }
