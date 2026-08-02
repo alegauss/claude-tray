@@ -17,6 +17,14 @@ internal sealed class UsageData
     public double Reset7d;
     public double ResetExtra;
     public string Status = "unknown";
+
+    /// <summary>Every <c>anthropic-ratelimit-*</c> response header, verbatim, exactly as the API sent it
+    /// (T181). The parsed fields above are this app's *reading* of four of them; this is the reading
+    /// nobody has made yet — what the overage percentage denominates, and what the status header says
+    /// while an account is consuming overage. Quota metadata only: no message content and no credential
+    /// ever appears in a response header, so §I.1 is untouched.</summary>
+    public Dictionary<string, string> RateHeaders = new(StringComparer.OrdinalIgnoreCase);
+
     public string? Error;
     public bool Unauthorized;   // true on HTTP 401 / no usable token — Claude Code must re-auth
     public bool NeedsFullLogin; // when Unauthorized: true = no refresh token on disk, a full OAuth2
@@ -101,6 +109,11 @@ internal sealed class ApiClient
             // overage header, and one that has it enabled but has spent nothing sends 0. H() collapses
             // both to 0.0, so the distinction has to be captured here or it cannot be recovered later.
             d.HasExtra = resp.Headers.Contains("anthropic-ratelimit-unified-overage-utilization");
+            // The whole family, kept verbatim rather than parsed: a header this app does not yet read is
+            // exactly the one T181 needs to see, and it costs nothing — the response is already in hand.
+            foreach (var h in resp.Headers)
+                if (h.Key.StartsWith("anthropic-ratelimit-", StringComparison.OrdinalIgnoreCase))
+                    d.RateHeaders[h.Key] = string.Join(", ", h.Value);
 
             // The unified rate-limit headers are the entire reading we care about. When none of them
             // come back — the call failed (expired token, 403…), or it "succeeded" but a gateway/edge

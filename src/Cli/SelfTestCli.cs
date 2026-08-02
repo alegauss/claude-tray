@@ -65,6 +65,9 @@ internal static class SelfTestCli
             Stores();
             Section("overage — a reading with somewhere to be written (Block AE)");
             Overage();
+
+            Section("probe — the headers verbatim, recorded on a change (Block AE)");
+            Probe();
         }
         catch (Exception e) { Fail("the section threw", e.Message); }
         finally { Remove(dir); }
@@ -334,6 +337,62 @@ internal static class SelfTestCli
               TrayContext.BlockedUntilUnix(1.00, r5, 1.00, r7, 0, null, now) == r5);
         Check("and an account nowhere near its limit is unaffected by the flag",
               TrayContext.BlockedUntilUnix(0.10, r5, 0.10, r7, null, true, now) == 0);
+    }
+
+    // ---------------------------------------------------------------- Block AE: the header probe
+
+    /// <summary>T181. The probe is only useful if it is still readable after a week of polling, and that
+    /// rests entirely on what counts as a change: utilizations move every poll, so recording on any
+    /// difference would bury the two transitions the question is about under thousands of lines.</summary>
+    private static void Probe()
+    {
+        const string Util5 = "anthropic-ratelimit-unified-5h-utilization";
+        const string Over = "anthropic-ratelimit-unified-overage-utilization";
+        const string Status = "anthropic-ratelimit-unified-5h-status";
+
+        static Dictionary<string, string> H(params string[] kv)
+        {
+            var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i + 1 < kv.Length; i += 2) d[kv[i]] = kv[i + 1];
+            return d;
+        }
+
+        // The shape rule, on its own: what must and must not read as a change.
+        Check("a moving utilization is not a change",
+              HeaderProbe.Shape(H(Util5, "0.10", Status, "allowed"))
+              == HeaderProbe.Shape(H(Util5, "0.97", Status, "allowed")));
+        Check("a changed status is a change",
+              HeaderProbe.Shape(H(Util5, "0.97", Status, "allowed"))
+              != HeaderProbe.Shape(H(Util5, "0.97", Status, "allowed_warning")));
+        Check("a header appearing is a change",
+              HeaderProbe.Shape(H(Util5, "1.0")) != HeaderProbe.Shape(H(Util5, "1.0", Over, "0")));
+        Check("overage leaving zero is a change — the transition the whole probe is for",
+              HeaderProbe.Shape(H(Util5, "1.0", Over, "0"))
+              != HeaderProbe.Shape(H(Util5, "1.0", Over, "0.02")));
+        Check("but overage merely climbing is not",
+              HeaderProbe.Shape(H(Util5, "1.0", Over, "0.02"))
+              == HeaderProbe.Shape(H(Util5, "1.0", Over, "0.83")));
+        Check("header order is not a change",
+              HeaderProbe.Shape(H(Util5, "1.0", Over, "0")) == HeaderProbe.Shape(H(Over, "0", Util5, "1.0")));
+
+        // And the same rule through the file, which is where a restart could quietly break it.
+        Check("the first reading is always kept", HeaderProbe.Record(ProfileKey, (long)Now, H(Util5, "0.10")));
+        Check("an unchanged shape writes nothing",
+              !HeaderProbe.Record(ProfileKey, (long)Now + 60, H(Util5, "0.55")));
+        Check("the transition into overage writes",
+              HeaderProbe.Record(ProfileKey, (long)Now + 120, H(Util5, "1.0", Over, "0.02")));
+
+        List<ProbeEntry> log = HeaderProbe.Load(ProfileKey);
+        if (Check("two readings are on file, not three", log.Count == 2, $"{log.Count}"))
+        {
+            Check("and the values are kept verbatim, not reparsed", log[1].Get(Over) == "0.02");
+            Check("with the reading's own timestamp", Math.Abs(log[1].T - (Now + 120)) < 1);
+        }
+
+        // An empty header set is an error, not a reading: recording it would put a line in the log for
+        // every API outage and make the file a record of the network instead of the account.
+        Check("a header-less response is never recorded",
+              !HeaderProbe.Record(ProfileKey, (long)Now + 180, new Dictionary<string, string>()));
     }
 
     // ---------------------------------------------------------------- Block AE: the overage column

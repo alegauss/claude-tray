@@ -249,6 +249,14 @@ internal static class Program
             return;
         }
 
+        // The rate-limit headers as the API sent them, plus every shape change the tray has recorded
+        // (T181). The instrument for a reading only an account already in overage can supply.
+        if (args.Length >= 1 && args[0] == "--probe")
+        {
+            Environment.ExitCode = ProbeCli.RunAsync(args.Skip(1).ToArray()).GetAwaiter().GetResult();
+            return;
+        }
+
         // Dev helper: the Settings window hosted **exactly as the tray hosts it** — a WPF Application
         // object that is never Run, under the WinForms message pump — with the `--settings` preview's
         // convenience of not needing the tray menu. This is not a duplicate of `--settings`: that one
