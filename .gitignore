@@ -5,3 +5,4 @@ _preview/
 # WPF markup-compilation scratch projects (auto-generated in the project dir during XAML build,
 # normally deleted afterward — ignored so a stray one is never tracked/committed).
 *_wpftmp.csproj
+.roadkeep/

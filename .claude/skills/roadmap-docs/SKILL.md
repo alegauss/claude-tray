@@ -13,6 +13,15 @@ hand-edit is denied by the hook. Which command to call — `add`, `ship`, `amend
 every project that adopted it. A rule stated in two files is a rule two files can disagree about, so
 nothing here repeats it.
 
+**First check that the tool is actually here.** The plugin install is **per repo**, so a roadkeep
+installed for another project supplies this one with no `mcp__roadkeep__*` tools, no `roadkeep`
+skill and — the one that matters — **no hook**: nothing denies a hand-edit to a governed file and
+nothing runs `lint` at the turn's end. `roadkeep` on PATH or `python -m roadkeep.cli <command>` is
+the fallback **when the package is importable at all** (a checkout or a pip install — the plugin
+cache is not on `sys.path`); check with `python -c "import roadkeep"` before assuming it. Either way
+the discipline is then yours to keep: never hand-edit the four files, and **run `roadkeep lint`
+yourself before committing**, because nothing else will.
+
 What this file holds is what roadkeep has no opinion about: **when** a commit happens, and what a
 shipped feature owes the user.
 
@@ -69,6 +78,30 @@ letters**. Z was the last single letter, so the scheme continues **AA, AB, …**
 **[`CHANGELOG.md`](../../../CHANGELOG.md), not `ROADMAP.md`, is authoritative for the real maximum
 letter** — the roadmap is periodically pruned of fully-shipped blocks. Grep it before opening a
 block, and record the new letter in [`last-task.md`](../../../last-task.md).
+
+**Declare the block in the ledger before shipping its first task.** `roadkeep ship` refuses with
+*"no heading declares Block X"* and writes nothing: naming a block is editorial, so the tool will
+never invent the heading. Add both by hand, in the same commit as that first task — a row in
+`CHANGELOG.md`'s block table, and a `## Block X — <title>` heading in the body, placed at the top of
+the newest-first run (the file is A–K ascending, then newest-first from there). The title is the
+roadmap's own block heading; mark the row `(active — see ROADMAP)` while tasks remain open. This is
+the **one** hand-edit to a governed file the discipline allows, and `roadkeep lint` must pass after.
+
+## `ship --why`, or live with it
+
+`ship` copies the roadmap line's `why` into the ledger by default — and that line states a **problem**,
+because that is what a roadmap line is for. A ledger entry states an **outcome**: what now works.
+`--why` is the only chance to say so. **`amend` refuses a shipped id** ("it is already in the
+changelog") and `record drop` only removes the later of two entries for one id, so there is no second
+pass over an entry's wording, ever. Write it at ship time:
+
+```
+roadkeep ship T179 --why "The overage figure has a column in the store, and a reading that carries none stays absent rather than becoming a measured zero."
+```
+
+`roadkeep.toml`'s `[ledger] symptom = false` means an entry needs no bold symptom — the symptom
+belonged to the roadmap line `ship` just deleted. Needs none, not forbidden: the richer entries here
+open with one, and that is the house style worth matching for anything a user would notice.
 
 ## Release notes
 

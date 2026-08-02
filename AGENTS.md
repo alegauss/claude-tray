@@ -351,9 +351,9 @@ the `→ §` pointer are derived on render, and an `Edit` is denied by a hook na
 They live at the repo root on purpose: `docs/` is the published GitHub Pages site. This project's
 numbers — prefix `T`, the limits, the markers, the ledger's two absences — are
 [`roadkeep.toml`](roadkeep.toml), the **only** roadkeep file this repository carries: the tool
-arrives as a Claude Code plugin, so there is no copy of it here and no path to a checkout. Once per
-machine, `/plugin marketplace add alegauss/roadkeep` then `/plugin install roadkeep@alegauss` —
-that supplies the hook, the `mcp__roadkeep__*` tools and the `roadkeep` skill. CI needs none of it:
+arrives as a Claude Code plugin, so there is no copy of it here and no path to a checkout. `/plugin
+marketplace add alegauss/roadkeep` once per machine, `/plugin install roadkeep@alegauss` **per
+repo** — installed for another, it leaves this one no hook, no tools, no skill. CI needs none of it:
 [`roadkeep.yml`](.github/workflows/roadkeep.yml) runs the published action, and `lint` must pass.
 
 Two skills that do not overlap: **`roadkeep`** says which command to call and what each derives (it
