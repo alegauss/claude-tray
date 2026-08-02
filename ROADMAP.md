@@ -23,12 +23,12 @@
 
 > A field report against shipped Block O: *"se eu visualizo o gráfico de consumo de um perfil, mudo
 > para outro perfil no combobox e volto para o perfil anterior, o gráfico muda"*. Three pieces of state
-> the switch left behind, fixed in T164 — the live reading, the live tail, and the drawn history. What
-> remains is the reason all three survived every capture this repo has taken: nothing *drives* the
-> picker, so the round trip has only ever been checked by a person looking at one profile at a time.
+> the switch left behind, fixed in T164 — the live reading, the live tail, and the drawn history. The
+> reason all three survived every capture this repo has taken is that nothing *drove* the picker; T165
+> now does, 0 → 1 → 0, and found on the way that the pane it had to read was not in the accessibility
+> tree at all. What remains is what the switch costs while it is right.
 > Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XIV.
 
-- 📋 **T165** (deps: T164) **Nothing drives the profile picker, so a switch is checked one direction at a time** — every `--capture-stats` before T164 rendered *a* profile; none rendered the same profile twice with another in between, which is the only sequence the three defects appear in. `Check-Interaction.ps1` already drives the real UI through UI Automation and asserts pass/fail (T142) — a `-Case Profiles` that walks the picker 0 → 1 → 0 and reads back the "% da cota usada", the reset caption and the live headline would have caught all three, and reading nothing must stay a FAIL. → §XIV.1
 - 💭 **T166** (deps: T164) **A profile switch blanks the panes it could have kept** — T164 clears the last-rendered pace on purpose (leaving it up means the previous account's curves under this account's name), so the window now shows "computing…" for the length of a transcript scan, Throughput tab included — the exact cost T118 removed for the poll refresh. Keeping the last report *per profile* would make a switch back instant and correct at once, but a cached report is a stale one the moment its profile is polled again. Needs design: what invalidates an entry, and whether the footer timestamp is enough to make a cached view honest. → §XIV.2
 
 ## Block AB — What Block Z's own work left behind
@@ -47,6 +47,24 @@
 - 📋 **T168** (deps: —) **The method note's composition is UI code, so the rules T159 and T163 added cannot be asserted** — which paragraphs a report yields is now a real decision (shaped vs. measured vs. thin, and the away clause only when a week was dropped), it lives inline in `Render`, and `--selftest` cannot reach it. As a pure function of `(report, activity)` returning the ordered key list, every rule the block just introduced becomes a check: never shaped *and* thin, thin only when the shape was declined for thinness, no away clause at zero. → §XV.2
 - 📋 **T169** (deps: —) **A skip that fires on every run is a check that does not exist** — T161's probe guard skips when the temp path holds a character the encoding cannot reconstruct, which is every CI runner whose profile is an 8.3 short name (`RUNNER~1`), so the two `TryProbe` assertions may never have run outside a dev machine. Canonicalising the temp root to its long form removes the skip entirely; and the summary counts skips without naming them, so lost coverage reads as a green run. → §XV.3
 - 💭 **T170** (deps: —) **The method note is ~1,000 characters of 12px prose in one unstructured paragraph** — 238 + 352 + 422 for the shaped branch, 1,080 for the measured one, and Block Z added to it twice (T159 a clause, T163 a whole sentence). T113 moved it behind an ⓘ because six lines pinned under the panes was a lot of screen; it is now twelve lines behind a click, and the next task will make it thirteen. Needs design: structure (a line per number? a note per tab?) before another sentence lands. → §XV.4
+
+## Block AC — The tray reports the switch it performed, not the switch the machine got
+
+> A field report against shipped Block T, arriving as a question rather than a bug: *"mudei para o
+> Pessoal, mas se eu digito `/usage`, aparece VILT Group"*. The tray was right and so was `/usage` —
+> they were answering different questions. Picking a profile by hand always moves the icon and re-keys
+> the stores; it writes `CLAUDE_CONFIG_DIR` **only** when "Usar o perfil escolhido em todo o Windows"
+> is on, and that switch is off by default (deliberately, T145). With it off the pick does half its
+> job and reports success for the whole. Three distinct ways the choice fails to reach a new session,
+> and the tray currently distinguishes none of them.
+> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XVI.
+>
+> Ordered by what is wrong for every user today, then by what makes the result checkable.
+
+- 📋 **T171** (deps: —) **A hand pick with the Windows-wide switch off does half its job and says nothing** — `SyncEnvironmentToPin` returns on its first line when `SyncEnvironmentProfile` is false and the tray never owned the variable, so `SetMonitoredProfile` moves the icon, re-keys the stores and saves, while `CLAUDE_CONFIG_DIR` is never touched. Both halves are correct in isolation and the user sees only the half that happened. The pick must state what it does and does not change, with the affordance to turn the other half on — silence is the defect, not the default. → §XVI.1
+- 📋 **T172** (deps: —) **Nothing on screen answers "which profile will the next session actually use?"** — the icon, the submenu check mark and the Statistics picker all report `MonitoredConfigDir`, which is what the tray *watches*; what Claude Code *obeys* is the user-scope `CLAUDE_CONFIG_DIR`, and the Settings row that shows it (T145) is one line on a page nobody opens mid-doubt. Reading it back beside the pick, and marking the two as disagreeing when they do, turns an investigation into a glance. → §XVI.2
+- 📋 **T173** (deps: —) **`Adopt` returns "accepted", never "written", so no failure of the write is observable** — T149 moved the registry write and its `WM_SETTINGCHANGE` sweep to the thread pool and settled the bookkeeping up front, which is the right trade for the UI thread and leaves nothing that ever reads the result. Measured, the window is small (`SetEnvironmentVariable(User)` returns in 87 ms; the value is readable at 108 ms), so this is not a spinner — it is a read-back once the queue drains, and a divergence that becomes visible state instead of a caught-and-dropped exception. → §XVI.3
+- 📋 **T174** (deps: T173) **A machine-wide write is the one action with no feedback at all** — the icon moving is feedback for the icon, not for the environment; the effect of the write is invisible until the *next* process starts. `ToastWindow` already exists for events worth noticing and `ToastTheme.Context` already established a card without the celebration. A switch toast fires on T173's confirmation, naming the profile and the effective directory, and carrying the sentence the "no switching a running session" non-goal requires. **No quota bar and no confetti**: animating one account's remaining quota into another's would say the one thing the "profiles are contexts, not quota pools" non-goal forbids. → §XVI.4
 
 ## Non-goals (do NOT add as tasks)
 

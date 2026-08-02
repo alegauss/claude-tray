@@ -11,11 +11,16 @@
     (T135) while every screenshot ever taken of them looked perfect, because mouse input travels
     `WndProc` and keyboard input travels `ComponentDispatcher`. This script closes the checking gap.
 
-    Two cases, runnable separately:
+    Three cases, runnable separately:
 
       -Case Keyboard   Launch `--settings-tray` (WinForms pump — the only preview that can see a
                        keyboard bug), navigate to a page, type into a TextBox and read the value back
                        through ValuePattern, Tab out of it, and drive a Slider with an arrow key.
+      -Case Profiles   Launch `--main`, walk the Statistics page's profile picker 0 -> 1 -> 0 through
+                       the real ComboBox and read the report back at each stop: the used %, the reset
+                       caption and the live headline. Nothing else in this repo *drives* the picker —
+                       every capture renders one profile, which is structurally incapable of seeing
+                       T164's three defects (all need a second switch; two need it to go back).
       -Case Menu       Launch the real tray, open the notification-area icon's menu, read its entries,
                        and expand "Open Claude Code" to read the per-profile entries (this is what
                        verified T137).
@@ -40,12 +45,16 @@
     3. THE MENU DOES NOT ALWAYS OPEN on the first try. This script retries — and when it read nothing
        it FAILS. The first version of this check reported a pass having read zero menu entries, which
        is strictly worse than having no check at all.
+    4. A PROFILE SWITCH LEGITIMATELY EMPTIES THE PANES for the length of a transcript scan (T164 clears
+       the last-rendered pace on the way out, and T118's keep-it-up rule is about a refresh of the
+       *same* profile). So a reading taken right after a switch is the "computing…" line, or worse the
+       *previous* profile's numbers still on screen — the Profiles case waits that out before it reads.
 
     A menu item is never Invoked: invoking "Open Claude Code" would launch a terminal. Submenus are
     opened the way a keyboard user opens them (Down to the item, Right to expand), and read.
 
 .PARAMETER Case
-    Keyboard, Menu, or All (default).
+    Keyboard, Profiles, Menu, or All (default).
 
 .PARAMETER Exe
     The build under test. Defaults to the Debug build.
@@ -62,10 +71,11 @@
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Keyboard
+    powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Profiles
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Menu -UseRunning
 #>
 param(
-    [ValidateSet('All', 'Keyboard', 'Menu')]
+    [ValidateSet('All', 'Keyboard', 'Profiles', 'Menu')]
     [string]$Case = 'All',
     [string]$Exe = "bin\Debug\net10.0-windows\win-x64\ClaudeTray.exe",
     [string]$Lang = "en",
@@ -116,7 +126,7 @@ public static class Native {
 "@
 [Native]::Dpi()
 
-$VK_APPS = 0x5D; $VK_DOWN = 0x28; $VK_RIGHT = 0x27; $VK_LEFT = 0x25; $VK_ESC = 0x1B
+$VK_APPS = 0x5D; $VK_DOWN = 0x28; $VK_RIGHT = 0x27; $VK_LEFT = 0x25; $VK_ESC = 0x1B; $VK_UP = 0x26
 $AE   = [System.Windows.Automation.AutomationElement]
 $ANY  = [System.Windows.Automation.Condition]::TrueCondition
 $ROOT = $AE::RootElement
@@ -301,6 +311,264 @@ function Invoke-KeyboardCase {
     finally {
         # WaitForExit, not just Kill: the menu case that may run next refuses to start while any
         # ClaudeTray process is alive, and a still-dying preview would look like the tray to it.
+        if ($proc -and -not $proc.HasExited) { $proc.Kill(); $proc.WaitForExit(5000) | Out-Null }
+    }
+}
+
+# ---------------------------------------------------------------- profiles case
+
+<# The label the picker is showing. A closed WPF ComboBox is a ContentPresenter over the selected item,
+   so the visible text is the last resort rather than the first: ask the patterns, then read the box. #>
+function Combo-SelectedText($combo) {
+    try {
+        $v = [string]$combo.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value
+        if ($v) { return $v }
+    } catch { }
+    try {
+        $sel = @($combo.GetCurrentPattern([System.Windows.Automation.SelectionPattern]::Pattern).Current.GetSelection())
+        if ($sel.Count -gt 0 -and $sel[0].Current.Name) { return [string]$sel[0].Current.Name }
+    } catch { }
+    $textCond = New-Object System.Windows.Automation.PropertyCondition(
+        $AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Text)
+    $t = $combo.FindFirst('Descendants', $textCond)
+    if ($t) { return [string]$t.Current.Name }
+    return ""
+}
+
+<#
+  Select an index through the control itself, never through `SelectProfileForPreview` — the preview seam
+  sets SelectedIndex directly, and it is the thing this case exists to stop trusting. Returns which route
+  worked, so a pass says how the switch was made instead of implying the first one.
+#>
+function Combo-Select($combo, [int]$index) {
+    $ec = [System.Windows.Automation.ExpandCollapsePattern]::Pattern
+    # WPF generates the item containers on the first drop-down, so before that there are no ListItems in
+    # the tree to select at all.
+    try { $combo.GetCurrentPattern($ec).Expand(); Start-Sleep -Milliseconds 500 } catch { }
+    $itemCond = New-Object System.Windows.Automation.PropertyCondition(
+        $AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::ListItem)
+    $items = @($combo.FindAll('Descendants', $itemCond))
+    if ($items.Count -gt $index) {
+        try {
+            $items[$index].GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+            Start-Sleep -Milliseconds 250
+            try { $combo.GetCurrentPattern($ec).Collapse() } catch { }
+            return "UIA"
+        } catch { Info "SelectionItemPattern.Select threw - $($_.Exception.Message)" }
+    }
+    # Fallback, and a real user's route: a closed WPF ComboBox moves its selection with the arrow keys.
+    # Kept because a dead UIA path here would report a red build for a bug in this script.
+    try { $combo.GetCurrentPattern($ec).Collapse() } catch { }
+    try { $combo.SetFocus() } catch { Info "combo SetFocus threw - $($_.Exception.Message)" }
+    Start-Sleep -Milliseconds 250
+    for ($i = 0; $i -lt ($items.Count + 4); $i++) { [Native]::Key($VK_UP) }
+    for ($i = 0; $i -lt $index; $i++) { [Native]::Key($VK_DOWN) }
+    return "keyboard"
+}
+
+<# "2h 00m" / "3d 4h" / "5m" as whole minutes. Dur() writes those unit letters itself, in every
+   language, so this parse is not pinned to a locale. Null when there is no window to reset. #>
+function Reset-Minutes($text) {
+    if (-not $text) { return $null }
+    $m = 0; $seen = $false
+    if ($text -match '(\d+)\s*d') { $m += [int]$Matches[1] * 1440; $seen = $true }
+    if ($text -match '(\d+)\s*h') { $m += [int]$Matches[1] * 60;   $seen = $true }
+    if ($text -match '(\d+)\s*m') { $m += [int]$Matches[1];        $seen = $true }
+    if ($seen) { return $m }
+    return $null
+}
+
+<#
+  What the window says about the profile now on screen, once it has settled. Two legitimate outcomes:
+  the panes (a report), or the status line (a profile with no stored readings yet). Reading NEITHER is
+  the failure this script exists to prevent, so it is reported as one by the caller.
+
+  The tab matters: a TabControl only realizes the selected tab, so the 5h pane's controls are absent
+  while the weekly one is up. Whichever is there is read, and the suffix is returned - the default tab
+  is picked once per window (`_defaultTabPicked`), so it must be the same at every stop.
+#>
+function Read-ProfileStop($win, $computing, $timeoutSec = 25) {
+    $deadline = (Get-Date).AddSeconds($timeoutSec)
+    do {
+        foreach ($sfx in @('S', 'W')) {
+            $used = ById $win "Used$sfx" 200
+            if ($used -and [string]$used.Current.Name) {
+                # Read, then build: Windows PowerShell has no `if` expression, and a null element here
+                # must stay null rather than becoming an empty string a comparison would call equal.
+                $reset = ById $win "Reset$sfx" 1000
+                $live  = ById $win "LiveHead$sfx" 1000
+                $resetText = $null; if ($reset) { $resetText = [string]$reset.Current.Name }
+                $liveText  = $null; if ($live)  { $liveText  = [string]$live.Current.Name }
+                return [pscustomobject]@{
+                    Kind   = 'panes'
+                    Suffix = $sfx
+                    Used   = [string]$used.Current.Name
+                    Reset  = $resetText
+                    Live   = $liveText
+                    Status = $null
+                }
+            }
+        }
+        $status = ById $win 'StatusText' 200
+        if ($status) {
+            $txt = [string]$status.Current.Name
+            # "Computing…" is the switch still in flight, not an answer - keep waiting for one.
+            if ($txt -and $txt -ne $computing) {
+                return [pscustomobject]@{
+                    Kind = 'status'; Suffix = $null; Used = $null; Reset = $null; Live = $null; Status = $txt
+                }
+            }
+        }
+        Start-Sleep -Milliseconds 300
+    } while ((Get-Date) -lt $deadline)
+    return [pscustomobject]@{
+        Kind = 'nothing'; Suffix = $null; Used = $null; Reset = $null; Live = $null; Status = $null
+    }
+}
+
+<#
+  The round trip: view a profile, switch away, switch back. That sequence is the whole point - all three
+  defects T164 fixed need a second switch to appear, and two of them only when it returns to where it
+  started, which is why a capture of one profile never saw them.
+
+  `--main` rather than the tray: the same shell the tray opens, under the same WinForms pump, over the
+  real discovered profiles - and its monitored reading is the synthetic one, so index 0 is a fixed number
+  rather than whatever this machine's quota happens to be at the moment of the run.
+#>
+function Invoke-ProfilesCase {
+    Head "Profiles - the picker walked 0 -> 1 -> 0, and the report read back at each stop"
+
+    $count = Expected-ProfileCount
+    if ($count -lt 2) {
+        # Named, never silent: the round trip does not exist on a machine with one profile, and a Skip
+        # that does not say what it failed to check is worse than no check (T161).
+        Info "SKIPPED - this check needs 2+ Claude Code profiles; --profiles reports $count."
+        Info "          Nothing about the profile switch (T164) was verified on this run."
+        return
+    }
+
+    $computing = Label 'stats.computing'
+    $liveOff   = Label 'stats.live.off'
+
+    $proc = Start-App "--lang $Lang --main"
+    try {
+        $win = WindowOfProcess $proc.Id
+        if (-not $win) { Fail "the main window never appeared"; return }
+        Start-Sleep -Milliseconds 1200
+        [Native]::Topmost([IntPtr]$win.Current.NativeWindowHandle)
+        try { $win.SetFocus() } catch { Info "window SetFocus threw - $($_.Exception.Message)" }
+
+        $combo = ById $win 'ProfileCombo' 8000
+        if (-not $combo) {
+            Fail "the profile picker is not in the tree although --profiles found $count profiles"
+            return
+        }
+        Pass "the profile picker is on the Statistics page ($count profiles)"
+
+        # 0 is where the window already opened, so the first stop is read without touching the picker.
+        $stops = @()
+        foreach ($step in @(0, 1, 0)) {
+            if ($stops.Count -gt 0) {
+                $route = Combo-Select $combo $step
+                Info "selected index $step through the $route route"
+            }
+            $stop = Read-ProfileStop $win $computing
+            if ($stop.Kind -eq 'nothing') {
+                Fail "stop $($stops.Count + 1) (index $step) read NOTHING - no panes and no status line after 25s"
+                return
+            }
+            $stop | Add-Member -NotePropertyName Index -NotePropertyValue $step
+            $stop | Add-Member -NotePropertyName Label -NotePropertyValue (Combo-SelectedText $combo)
+            $stops += $stop
+            if ($stop.Kind -eq 'panes') {
+                Info "index $step '$($stop.Label)': used $($stop.Used), reset $($stop.Reset)"
+                Info "  live: $($stop.Live)"
+            } else {
+                Info "index $step '$($stop.Label)': no report - '$($stop.Status)'"
+            }
+        }
+
+        # This check's own precondition. If the picker never moved, every comparison below is a profile
+        # against itself and they all pass - the exact false green a switch check must not be able to give.
+        if ($stops[1].Label -eq $stops[0].Label) {
+            Fail "the picker did not move: index 0 and index 1 both read '$($stops[0].Label)'"
+            return
+        }
+        if ($stops[2].Label -ne $stops[0].Label) {
+            Fail "the picker did not come back: index 0 read '$($stops[0].Label)', then '$($stops[2].Label)'"
+            return
+        }
+        Pass "the picker walked '$($stops[0].Label)' -> '$($stops[1].Label)' -> '$($stops[0].Label)'"
+
+        # The report changed with the profile. Two accounts CAN read the same percentage, so the switch is
+        # judged on the pair: an identical used % and a reset caption to the same minute means the panes
+        # were never repainted (or were repainted with the profile being left behind - T164's first defect).
+        $moved = ($stops[1].Kind -ne $stops[0].Kind) -or
+                 ($stops[1].Used -ne $stops[0].Used) -or
+                 ((Reset-Minutes $stops[1].Reset) -ne (Reset-Minutes $stops[0].Reset))
+        if ($moved) {
+            Pass "the report follows the picker - '$($stops[1].Label)' is not '$($stops[0].Label)''s reading"
+        } else {
+            Fail "the switch to '$($stops[1].Label)' left the report unchanged: still used $($stops[0].Used), reset $($stops[0].Reset)"
+        }
+
+        # The round trip, which is the field report: come back and the same profile reads the same.
+        if ($stops[2].Kind -ne $stops[0].Kind) {
+            Fail "coming back changed what the window shows: '$($stops[0].Kind)' first, '$($stops[2].Kind)' on return"
+        }
+        elseif ($stops[0].Kind -eq 'status') {
+            if ($stops[2].Status -eq $stops[0].Status) {
+                Pass "the round trip is stable (no stored readings for '$($stops[0].Label)', same message both times)"
+            } else {
+                Fail "the status line changed over the round trip: '$($stops[0].Status)' -> '$($stops[2].Status)'"
+            }
+        }
+        else {
+            if ($stops[2].Suffix -ne $stops[0].Suffix) {
+                Fail "the open tab changed over the round trip ('$($stops[0].Suffix)' -> '$($stops[2].Suffix)') - the readings are not comparable"
+            }
+            if ($stops[2].Used -eq $stops[0].Used) {
+                Pass "the used % survives the round trip ($($stops[0].Used) both times)"
+            } else {
+                Fail "the used % changed over the round trip: $($stops[0].Used) -> $($stops[2].Used) for the same profile (T164)"
+            }
+            # A minute of tolerance, and only that: the caption counts down in real time, so a run that
+            # straddles a minute boundary must not be a red build - but an hour of drift is another profile's
+            # window, which is the defect.
+            $a = Reset-Minutes $stops[0].Reset
+            $b = Reset-Minutes $stops[2].Reset
+            if ($null -eq $a -or $null -eq $b) {
+                if ($stops[0].Reset -eq $stops[2].Reset) {
+                    Pass "the reset caption survives the round trip ('$($stops[0].Reset)' both times)"
+                } else {
+                    Fail "the reset caption changed over the round trip: '$($stops[0].Reset)' -> '$($stops[2].Reset)'"
+                }
+            }
+            elseif ([Math]::Abs($a - $b) -le 1) {
+                Pass "the reset caption survives the round trip ('$($stops[0].Reset)' -> '$($stops[2].Reset)')"
+            } else {
+                Fail "the reset caption jumped over the round trip: '$($stops[0].Reset)' -> '$($stops[2].Reset)' for the same profile (T164)"
+            }
+        }
+
+        # The defect a percentage cannot see: the tail is disposed on the way out and restarted for the new
+        # config dir, and `StartLive` ticks synchronously - so a headline still reading "unavailable" once a
+        # stop has settled means the switch left the live strip watching nothing.
+        $off = @($stops | Where-Object { $_.Kind -eq 'panes' -and $_.Live -eq $liveOff })
+        if ($off.Count -gt 0) {
+            Fail "the live headline reads '$liveOff' at $($off.Count) of the stops - the tail did not follow the switch (T164)"
+        } else {
+            $seen = @($stops | Where-Object { $_.Kind -eq 'panes' }).Count
+            if ($seen -eq 0) {
+                Info "no stop showed the panes, so the live headline was never on screen to read"
+            } else {
+                Pass "the live headline is a reading, not 'unavailable', at all $seen pane stops"
+            }
+        }
+    }
+    finally {
+        # WaitForExit, not just Kill: the menu case refuses to start while any ClaudeTray process is alive,
+        # and a still-dying `--main` would look like the tray to it.
         if ($proc -and -not $proc.HasExited) { $proc.Kill(); $proc.WaitForExit(5000) | Out-Null }
     }
 }
@@ -588,6 +856,8 @@ function Invoke-MenuCase {
 
 Write-Host "Check-Interaction - $Exe (lang $Lang)" -ForegroundColor White
 if ($Case -in @('All', 'Keyboard')) { Invoke-KeyboardCase }
+# Before the menu case, and killed with WaitForExit: that one refuses to run while any ClaudeTray is alive.
+if ($Case -in @('All', 'Profiles')) { Invoke-ProfilesCase }
 if ($Case -in @('All', 'Menu'))     { Invoke-MenuCase }
 
 Write-Host ""

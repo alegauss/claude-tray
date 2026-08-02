@@ -1,9 +1,10 @@
-# Last task number — `T170` · next block letter — `AC`
+# Last task number — `T174` · next block letter — `AD`
 
-> **Single source of truth for the next free task number.** The next new task is `T171`; after
+> **Single source of truth for the next free task number.** The next new task is `T175`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `AC`** (Block **AB** = What Block Z's own work left behind; created 2026-08-02).
+> **Next block letter — `AD`** (Block **AC** = The tray reports the switch it performed, not the switch
+> the machine got; created 2026-08-02).
 > Z was the last single letter, so the scheme continues **AA, AB, …** —
 > two letters, same ordering, and `CHANGELOG.md`'s table sorts them after Z. Nothing in the docs parses
 > a block letter, so this costs a wider column and nothing else.
@@ -157,6 +158,18 @@
   reach, and T161's own precondition guard skips forever on any machine with an 8.3 temp path — plausibly
   every CI runner, where those two assertions may never have run). None was reported by anybody. Its design
   section is **§XV**: §XIII was retired with Z, and §XIV belongs to Block AA.
+- Block **AC** (T171–T174, created 2026-08-02) is a **field report against shipped Block T**, on the Block
+  R / U / W / AA precedent, and it arrived as a *question* rather than a defect: *"mudei para o Pessoal,
+  mas se eu digito `/usage`, aparece VILT Group"*. The block exists because the honest answer was that
+  nothing was broken — the tray reports what it **watches** (`MonitoredConfigDir`) and Claude Code obeys
+  what the **environment** says (`CLAUDE_CONFIG_DIR`), the two are wired together only under a flag that
+  is off by default, and no surface in the app has ever named the difference. It is not a Block T task
+  because T is closed and pruned, and not a stray fix because the four tasks separate **three distinct
+  failure modes** that one symptom hides (never written · written but unread · written and still not
+  inherited), and the third of them is not fixable at all — only reportable. The rule it leaves behind is
+  the one that redirected the whole investigation: **a spinner verifies the click, and what needs
+  verifying is the result** — the first theory here was a race, and the race was measured at 87 ms while
+  the real gap was three minutes of a write that never happened. Its design section is **§XVI**.
 - Block **AA** (T164–T166, created 2026-08-02) is a **field report against shipped Block O**, on the
   Block R / U / W precedent: O is closed and pruned, and this is a defect found by *using* the feature.
   The first two-letter block — Z was the last single letter, and nothing in the docs parses one.
@@ -295,3 +308,4 @@ here. This file is a terse index, not a memory.
 - **T162 SHIPPED** (Block Z — `[TrayOwned]` replaces the hand-maintained carry-over list; the round trip is asserted) — 2026-08-02.
 - **T163 SHIPPED** (Block Z — the straight-line projection says which line it is, and that it is weeks and not a setting) — 2026-08-02.
 - **T164 SHIPPED** (Block AA — a profile switch resets the reading, the tail and the drawn history, so coming back shows that profile) — 2026-08-02.
+- **T165 SHIPPED** (Block AA — `-Case Profiles` walks the picker 0 → 1 → 0 and asserts the round trip; the tab pane rejoins the UIA tree) — 2026-08-02.

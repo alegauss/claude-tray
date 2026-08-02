@@ -110,30 +110,8 @@ same — state whose lifetime is "the window" where it should have been "the pro
 
 The report that opened the block is the round trip, and the round trip is the point: *view a profile,
 switch away, switch back, and the chart is a different chart.* Nothing about a single switch looked
-wrong, which is exactly why this survived — see §XIV.1.
-
-### §XIV.1 Nothing drives the picker, so a switch is checked one direction at a time
-
-Every capture this repo has taken of the profile feature renders **one** profile: `--capture-stats out
-shape profile=1` selects an index and snapshots it. That is enough to check the thing T128 built, and
-structurally incapable of catching what T164 fixed — all three defects need a *second* switch to become
-visible, and two of them only when the second switch goes back to where it started.
-
-T164 widened the seam (`profile=1,0` walks a list, one full settle per step) and the check is still a
-person comparing two PNGs. The precedent for closing that gap is T142: `Check-Interaction.ps1` drives the
-real window through UI Automation and exits non-zero unless every assertion passed, which is what turned
-"the keyboard works, I tried it" into something CI-shaped. A `-Case Profiles` is the same move —
-
-- select index 1, then 0, settling between them, through the real `ComboBox` rather than the preview seam;
-- read back the **used %**, the reset caption and the live headline at each stop;
-- assert the two readings of the same profile are equal, that the middle one differs from both, and that
-  the live headline never reads "unavailable" after a switch (the one defect a percentage cannot see);
-- and keep T142's rule that **reading nothing is a FAIL** — a collapsed pane is absent from the UIA tree,
-  which is precisely the state a broken switch produces.
-
-The window is per-machine, so the case has to skip cleanly with **one** profile registered — and the skip
-must state the precondition it failed, per the T161 rule: a `Skip` that could hide the property it guards
-is worse than no check.
+wrong, which is exactly why this survived — until T165 walked the picker 0 → 1 → 0 and asserted what
+came back. What is left is not correctness but cost: the switch is right now, and it is a blank pane.
 
 ### §XIV.2 A profile switch blanks the panes it could have kept
 
@@ -247,3 +225,128 @@ Worth exploring: whether the note is a paragraph at all or a short list keyed to
 (one line per figure, in the order the window shows them); whether the parts that never change belong in
 the README instead, with the popup keeping only what is specific to *this* machine's evidence; and what
 the real limit is — a note nobody finishes reading is not more honest than a shorter one, it is less.
+
+---
+
+## §XVI — The tray reports the switch it performed, not the switch the machine got (Block AC)
+
+The report is a question, not a bug: *"mudei para o Pessoal, mas se eu digito `/usage`, aparece VILT
+Group"* — with the reasonable inference that `/usage` must be lying, since the personal account still had
+quota and the work account had none. It was not lying. The running session really was on the work account,
+and the tray really was showing the personal one. **Both were correct about different questions**, and
+nothing in the app connects them.
+
+What the investigation turned up is worth writing down, because the first theory was wrong in an
+instructive way. The suspicion was a race — that the environment write is asynchronous (it is, since T149)
+and had not landed before the editor launched. Measured on the reporter's machine, it is not:
+
+| Measurement | Value |
+|---|---|
+| `Environment.SetEnvironmentVariable(…, User)` returns | **87 ms** |
+| Value readable back from `HKCU\Environment` | **108 ms** |
+| `HKCU\Environment` last write | 2026-08-02 **18:09:36** |
+| `%LocalAppData%\ClaudeTray\settings.json` mtime | 2026-08-02 **18:09:36** — the same Save |
+| `EnvironmentProfileRestore` / `EnvironmentProfileOwned` | `null` / `true` — the first `Adopt` ever saw no prior value |
+| Editor process launched | 18:06:35, from an `explorer.exe` of 12:39:04 |
+
+The variable had never been written *at all* until the moment the Windows-wide switch was ticked, three
+minutes after the editor that asked the question had already started. Every profile pick before that
+changed `MonitoredConfigDir` and nothing else. The async window is a tenth of a second and was never the
+problem — which is why the fix is not a progress dialog. **A spinner would have verified the click; what
+needs verifying is the result.**
+
+Three failure modes hide behind one symptom, and they need separating before any of them can be fixed:
+
+- **A — the write is never attempted.** `SyncEnvironmentProfile` is off (the default), so
+  `SyncEnvironmentToPin` returns immediately. This is the one that actually happened. → §XVI.1
+- **B — the write is attempted and its outcome is never read.** `Adopt` returns *accepted*, by design.
+  → §XVI.3
+- **C — the write lands and the next process still misses it.** A child inherits its parent's environment
+  block at creation; the editor's parent was an Explorer started six hours earlier, and Explorer's refresh
+  on `WM_SETTINGCHANGE` is a courtesy, not a guarantee. → §XVI.2
+
+C is the one that bounds the whole block: **no amount of checking the registry proves the next process
+will see the value.** That is why §XVI.2 is about displaying the effective value continuously rather than
+asserting it once at the moment of the pick.
+
+### §XVI.1 A pick that does half its job and reports the whole (T171)
+
+`SetMonitoredProfile` does two independent things: `AdoptMonitored` (icon, stores, save — always) and
+`SyncEnvironmentToPin` (the machine-wide variable — only under a flag). The flag is off by default and
+should stay off: T145 chose that deliberately, and an update that silently rewrote somebody's environment
+would be a worse bug than this one. The defect is not the default, it is that the user is shown the half
+that happened and told nothing about the half that did not.
+
+The menu says "Profile ▸ Pessoal" and the icon changes, which reads as *the machine is now on Pessoal*. It
+means *the tray is now watching Pessoal*. Those coincide only when the flag is on, and the app has never
+said which regime it is in at the moment the choice is made.
+
+So the pick states its own scope. The design constraint is that this must not become a modal on every
+switch — the tray's whole manner is to stay out of the way, and §XIV's lesson about interrupting a menu
+click applies. What is wanted is the difference made legible at the point of decision (the submenu item
+itself can carry it) plus a route to the other half for somebody who wants it, without a trip through
+Settings to discover the switch exists. The "no switching a running session" non-goal supplies the exact
+claim the text may make: this applies to sessions started from now on.
+
+### §XVI.2 The effective profile is not on screen anywhere (T172)
+
+Every profile indicator in the app is fed by `MonitoredConfigDir`: the icon and its accent band (T147),
+the submenu check mark, the Statistics picker. All of them answer *whose numbers am I looking at?* — a
+real question, and the one the tray was built for. None answers *which account will the next session
+use?*, which is the question somebody has when `/usage` surprises them. T145 put the live value on the
+Claude Code settings page, and that is the right place for a setting, but it is a row on a page opened
+deliberately — no help to a person who does not yet suspect there is anything to check.
+
+The fix is to read `EnvironmentProfile.Current()` back where the choice is made and where the doubt
+arises, and — the load-bearing half — to **mark the two as disagreeing when they disagree**. Agreement is
+the common case and deserves no ceremony; the divergence is the whole signal.
+
+Note what this can and cannot promise, per failure mode C. The honest phrasing is about the *variable*,
+not about any future process: sessions started from a shell that has picked up the change will use it.
+Claiming more would be inventing a guarantee Windows does not offer. There is a stronger source of truth
+available — a live session writes its transcript under the config dir it is actually using, which is how
+the original investigation was settled — and reading that would let the tray name the account a *running*
+session is on. That is a larger idea than this task and is deliberately not folded into it; if it is worth
+doing it is worth its own design, and it must respect §I.1 (paths and existence only, never content).
+
+### §XVI.3 A write whose result nothing reads (T173)
+
+T149's trade was correct and should not be reverted: the registry write plus its `WM_SETTINGCHANGE` sweep
+were measured at 129 ms and 486 ms *idle*, and seconds on a working machine, so carrying that on the UI
+thread is what made a profile pick freeze the tray. `Write` therefore queues to the thread pool and
+`Adopt` records its bookkeeping up front and returns *accepted*. `Apply` swallows the exception with the
+comment that nothing the user is waiting on depends on it.
+
+That was true when nothing displayed the result. §XVI.2 makes something display it, and then a write that
+threw is a screen that quietly disagrees with itself. `Drain` already exists for the shutdown path and is
+the shape to reuse: once the queue is empty, read the variable back, compare against the intent, and give
+the mismatch somewhere to go. This is bookkeeping, not UI — a completion signal per queued write, so the
+outcome is available to whatever wants it, which in T174's case is the toast.
+
+Two things this must not become. It is not a blocking wait: the caller returns at once, exactly as now.
+And it is not a dialog on failure — T145's own reasoning holds, that a modal about an environment variable
+is the wrong way to interrupt a menu click.
+
+### §XVI.4 The one action with no feedback at all (T174)
+
+Writing a machine-wide setting is the least visible thing the tray does and the only one whose effect
+cannot be seen until another process starts. `ToastWindow` is already the app's answer to "an event worth
+noticing", and `ToastTheme.Context` already established that a toast need not be a celebration — same
+card, same slide-and-fade, no confetti, because a nudge is not good news.
+
+A switch toast is the same category. It fires on §XVI.3's confirmation — **after** the value is read back,
+never on the click — and says what was applied: the profile, the effective directory, and the sentence the
+"no switching a running session" non-goal requires.
+
+The design decision worth recording is what the toast **must not** do. `ToastWindow`'s central metaphor is
+a quota bar animating from its old level to its new one, and reusing it here is the obvious move: animate
+from the outgoing account's remaining quota to the incoming one's. It is also forbidden. The roadmap's
+"profiles are contexts, not quota pools" non-goal says no string may suggest changing accounts because one
+hit its limit, and a bar leaping from 0% to 100% on a switch says it without a string — more persuasively
+than a string could, and in precisely the situation that produced this report. So this toast carries no
+quota bar and no confetti; it is a receipt, not a reward. If that leaves the card looking thin, the answer
+is a smaller card, not a borrowed metaphor.
+
+This also needs its own justification rather than inheriting one, per the T87 non-goal on notification
+channels. It has one, and it is narrow: this fires only on an explicit user action, only once per action,
+and only to confirm a change whose effect is otherwise unobservable. Nothing ambient, nothing on a timer.

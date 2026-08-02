@@ -198,9 +198,21 @@ powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Lang pt-
   *Open Claude Code* and reads the per-profile ones. It **refuses** to run while another tray is alive
   (the single-instance mutex would make its own launch exit silently, and it would then read the other
   tray's menu and call that a pass) — quit that tray, or pass `-UseRunning` to drive it deliberately.
-- **Reading nothing is a FAIL, never a pass.** The script's header documents the three UIA traps
+- **Profiles** launches `--main` and walks the Statistics page's profile picker **0 → 1 → 0** through the
+  real `ComboBox`, reading the used %, the reset caption and the live headline at each stop: the same
+  profile must read the same on the way back, the middle one must differ, and the live headline must
+  never be "unavailable" at a settled stop (T165). It **skips out loud** with fewer than two profiles
+  registered. Run it after anything that touches the profile model, the picker or the live tail.
+- **Reading nothing is a FAIL, never a pass.** The script's header documents the four UIA traps
   (no clickable point / overflow flyout, collapsed panes absent from the tree, the menu not always
-  opening) — read it before writing any new check by hand.
+  opening, a profile switch legitimately emptying the panes while it recomputes) — read it before
+  writing any new check by hand.
+- **A custom `TabControl` template must name its content host `PART_SelectedContentHost`.** WPF finds
+  the selected tab's content by that exact name, and the `TabItem` peer asks for it to attach the pane's
+  children — so an unnamed `ContentPresenter` leaves the **whole body** of every tab out of the UI
+  Automation tree. A screen reader then reads the tab headers over nothing, and no interaction check can
+  read the window at all. It is invisible to every screenshot, which is how it survived from T111 to
+  T165. The same trap applies to any templated control whose parts WPF looks up by name.
 
 ## Arithmetic verification (`--selftest`)
 

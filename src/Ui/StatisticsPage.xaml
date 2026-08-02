@@ -115,7 +115,15 @@
                                     BorderThickness="1">
                                 <TabPanel IsItemsHost="True" />
                             </Border>
-                            <ContentPresenter Grid.Row="1" ContentSource="SelectedContent" />
+                            <!-- The name is not decoration: TabControl finds its content host by
+                                 GetTemplateChild("PART_SelectedContentHost"), and TabItem's automation
+                                 peer asks for it to attach the selected tab's children. Without it the
+                                 whole pane — every number, chart legend and projection sentence — is
+                                 absent from the UI Automation tree, so a screen reader reads three tab
+                                 headers over an empty body and no check can read the window either
+                                 (found by writing one, T165). -->
+                            <ContentPresenter x:Name="PART_SelectedContentHost"
+                                              Grid.Row="1" ContentSource="SelectedContent" />
                         </Grid>
                     </ControlTemplate>
                 </Setter.Value>
