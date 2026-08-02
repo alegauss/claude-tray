@@ -1,0 +1,19 @@
+# The gate the write path already runs locally, called in CI through the action
+# roadkeep publishes rather than a copied `run:` block, which drifts per
+# repository. `roadkeep lint` exits 1 on a governed file that drifted, and that
+# exit code is the whole contract.
+#
+# Yours from here: `with: {directory: .}` where roadkeep.toml is not at the root,
+# and `with: {baseline: origin/main}` to fail on what a branch added rather than
+# on a backlog's standing debt.
+name: roadkeep
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    name: roadkeep lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: alegauss/roadkeep@main

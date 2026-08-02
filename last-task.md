@@ -1,16 +1,20 @@
-# Last task number — `T184` · next block letter — `AF`
+# Block letter register — next is `AF`
 
-> **Single source of truth for the next free task number.** The next new task is `T185`; after
-> assigning it, bump the number above and append a log line below.
+> ⚠ **This file is no longer the task-number counter.** `roadkeep next-id` derives the next free
+> `T<n>` from `ROADMAP.md`, `CHANGELOG.md` and `AGENTS.md` themselves, and `roadkeep add` mints it —
+> so there is nothing here to bump and nothing that can drift. Do not re-add a counter line.
 >
 > **Next block letter — `AF`** (Block **AE** = Extra usage is money, and the tray is asleep for it;
-> created 2026-08-02).
+> created 2026-08-02). Block letters are the one thing roadkeep does not derive.
 > Z was the last single letter, so the scheme continues **AA, AB, …** —
 > two letters, same ordering, and `CHANGELOG.md`'s table sorts them after Z. Nothing in the docs parses
 > a block letter, so this costs a wider column and nothing else.
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
+>
+> The per-task log below is history. `CHANGELOG.md` is the shipped ledger and `git log` is
+> authoritative for detail; nothing needs to be appended here when a task ships.
 
 ## Structural notes
 

@@ -337,9 +337,9 @@ self-update from it.
 
 ## Roadmap & docs maintenance
 
-Planned and shipped work is tracked across **five root files**, each with one job. Read the
-**`roadmap-docs` skill** before adding a task, marking one shipped, or editing any of them — it holds
-the cross-file update rules, the T-number/block-letter discipline, and the one-task-one-commit rule.
+Four root files, each with one job, **written by [roadkeep](https://github.com/alegauss/roadkeep)
+and not by hand** — the fields are refused at insertion, the id, the `(deps: … ✅)` annotation and
+the `→ §` pointer are derived on render, and an `Edit` is denied by a hook naming the command instead.
 
 | File | Job |
 |---|---|
@@ -347,9 +347,20 @@ the cross-file update rules, the T-number/block-letter discipline, and the one-t
 | [`CHANGELOG.md`](CHANGELOG.md) | What has shipped. One line per task; `git log` is authoritative for detail. |
 | [`IMPROVEMENTS.md`](IMPROVEMENTS.md) | Design rationale for *unshipped* work, plus §I the binding house constraints. |
 | [`STRATEGY.md`](STRATEGY.md) | Positioning, licence, distribution, the trust promise. Never a task. |
-| [`last-task.md`](last-task.md) | Next free `T<n>` + next block letter + a one-line-per-task log. |
 
-They live at the repo root on purpose: `docs/` is the published GitHub Pages site.
+They live at the repo root on purpose: `docs/` is the published GitHub Pages site. This project's
+numbers — prefix `T`, the limits, the markers, the ledger's two absences — are
+[`roadkeep.toml`](roadkeep.toml), the **only** roadkeep file this repository carries: the tool
+arrives as a Claude Code plugin, so there is no copy of it here and no path to a checkout. Once per
+machine, `/plugin marketplace add alegauss/roadkeep` then `/plugin install roadkeep@alegauss` —
+that supplies the hook, the `mcp__roadkeep__*` tools and the `roadkeep` skill. CI needs none of it:
+[`roadkeep.yml`](.github/workflows/roadkeep.yml) runs the published action, and `lint` must pass.
+
+Two skills that do not overlap: **`roadkeep`** says which command to call and what each derives (it
+ships with the tool, so nothing here repeats it); **`roadmap-docs`** holds this project's own
+shipping discipline — one task one commit, the user-facing-surface gate, block letters, releases.
+Query instead of reading: `pick` chooses the next task and says why, `brief <id>` is everything it
+costs to start one. [`last-task.md`](last-task.md) is no longer the counter — `next-id` derives it.
 
 ## Conventions
 

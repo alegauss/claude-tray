@@ -1,0 +1,92 @@
+# Claude Code Tray, governed by roadkeep (https://github.com/alegauss/roadkeep).
+# The four files below are written by `roadkeep`, not by hand: the format is refused at
+# the point of insertion instead of being a convention this file asks an author to keep.
+
+prefix = "T"
+
+# The rationale file is numbered §I…§XVIII by hand and section numbers are never reused —
+# an old commit's `→ §V` must keep pointing where it pointed. So the pointer is the
+# outline anchor, not the task id.
+ref_scheme = "outline"
+
+# AGENTS.md quotes task ids in its prose, and an id the scan misses is an id that gets
+# reused. last-task.md is deliberately absent: it *was* the counter, and a counter file is
+# the thing `roadkeep next-id` removes by deriving the maximum from the files themselves.
+id_sources = ["AGENTS.md"]
+
+# What jumps the queue, in order. Declared and empty: this backlog's order is its block
+# order plus its deps, and `pick` names which tier answered — so a priority nobody
+# declared is never implied.
+priority = []
+
+[files]
+# At the repo root on purpose: `docs/` is the published GitHub Pages site.
+roadmap = "ROADMAP.md"
+changelog = "CHANGELOG.md"
+improvements = "IMPROVEMENTS.md"
+strategy = "STRATEGY.md"
+
+[ledger]
+# Blocks A–H were reconstructed from 110 commits when the ledger was introduced, and every
+# entry in this file shipped — so the marker is a fact about the file, stated once here
+# instead of on all 163 of its lines. Its entries are a why with a commit, with no bold
+# symptom: the symptom belonged to the roadmap line that ship deleted.
+marker = false
+symptom = false
+
+[limits]
+# roadkeep's defaults, unchanged. Measured against this backlog before adoption they were
+# all over — 18 of 18 lines, the worst `why` at 655 characters — which is the drift the
+# tool exists to stop, so the lines moved rather than the numbers.
+symptom = 120
+why = 200
+line = 320
+
+# A section is prose, so its budget is words. 300, measured after the compression this
+# repository's adoption ran: 27 of 29 sections clear roadkeep's own 250, and the two that do
+# not are `§III` (230 of its 269 words are the measured-baseline table) and `§XVI.3` (72 of
+# 293 are the timing table). Both are under 250 counting prose alone, and `words()` splits on
+# whitespace, so a table cell costs what a sentence does. The number holds the tables and
+# nothing else: a design section that reaches 300 words of prose is two sections.
+section = 300
+# `prose` is the width a written section is filled to: 100, which is what every doc in this
+# repository — README, AGENTS.md, STRATEGY.md — is already wrapped to.
+prose = 100
+
+[limits.changelog]
+# The ledger is history: 163 entries reconstructed from 110 commits, the longest at 3,392
+# characters, written years before this grammar existed and unreachable by any edit their
+# author can now make. Judging them by the roadmap's 320 is a report about work nobody will
+# redo. New entries do not inherit the slack — `ship` copies the roadmap line's `why`, which
+# was already refused at 200 — so this number holds the past and governs nothing ahead of it.
+why = 3400
+line = 3500
+
+[rules.changelog]
+# Same declaration, same reason: `why` is one sentence ending in a stop *because* the
+# remainder belongs in the section the line points at, and a shipped entry points at nothing
+# — ship deletes the section. That reasoning is the roadmap's, so the exemption is the
+# ledger's.
+one_sentence = false
+terminator = false
+
+[non_goals]
+# The roadmap's other bullet is governed too. Measured on the fourteen already written:
+# longest lead 52 characters, longest reason 199.
+lead = 60
+why = 200
+
+[budgets]
+# Files loaded on every turn, and what each may cost. A ceiling to come down, not a target:
+# roadkeep's own agents.md holds 8.4 KB against this one's 41 KB, and the arrangement where
+# the budget lives in the file's own prose is what let Viglet Shio's reach 186 KB.
+"AGENTS.md" = { lines = 400, bytes = 42000 }
+
+[markers]
+open = ["📋", "💭", "⏳", "🛠"]
+# Which of those still have their design to write. `pick --designed` sets these aside for a
+# caller executing a block, and every answer says when the line it chose is one of them.
+undesigned = ["💭"]
+shipped = "✅"
+# The ledger's other door: a line that left without shipping — T85 and T101 both did.
+retired = "🗑"

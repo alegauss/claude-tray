@@ -1,12 +1,12 @@
 # Claude Code Tray — Strategy & positioning
 
-> Business / positioning / distribution decisions: what this project *is*, how it reaches people, and
-> what it will never be. **Not a backlog** — nothing here is a numbered task, and a pricing,
+> Business / positioning / distribution decisions: what this project *is*, how it reaches people,
+> and what it will never be. **Not a backlog** — nothing here is a numbered task, and a pricing,
 > distribution or naming discussion belongs here rather than in [ROADMAP.md](ROADMAP.md).
 >
 > This file records decisions **already made and visible in the repo** (README, LICENSE, installer,
-> winget manifests, CI, the docs site). It is deliberately short; speculative product strategy is not
-> invented here.
+> winget manifests, CI, the docs site). It is deliberately short; speculative product strategy is
+> not invented here.
 
 ## §I — What this is
 
@@ -24,7 +24,8 @@ site, and must survive any future marketing copy.
 The usage number is drawn as a **vector** (`GraphicsPath` with an outline), **at the exact size the
 tray requests** (`SM_CXSMICON`), with `PerMonitorV2` DPI awareness. No downscaling a 64px bitmap, so
 the number stays crisp at 125–200% scaling (20–32px icons). This is the product's whole visual
-premise and the reason the stack is what it is — see [AGENTS.md](AGENTS.md) for the three-layer split.
+premise and the reason the stack is what it is — see [AGENTS.md](AGENTS.md) for the three-layer
+split.
 
 ## §III — Licence and openness
 
@@ -35,8 +36,8 @@ premise and the reason the stack is what it is — see [AGENTS.md](AGENTS.md) fo
 
 Two channels, both in place:
 
-1. **winget** — `winget install alegauss.ClaudeCodeTray`. Manifests live in `build/winget/` (with an en-US
-   and a pt-BR locale) and are updated automatically by CI on release.
+1. **winget** — `winget install alegauss.ClaudeCodeTray`. Manifests live in `build/winget/` (with an
+   en-US and a pt-BR locale) and are updated automatically by CI on release.
 2. **GitHub Releases** — `ClaudeTray-Setup.exe`, an Inno Setup **per-user** install (no admin).
    Installed copies then **self-update** from Releases via `Updater`.
 
@@ -57,15 +58,15 @@ purpose. See [IMPROVEMENTS.md](IMPROVEMENTS.md) §I.1–§I.2 for the binding en
 
 The marketing surface is the GitHub Pages site served from `docs/` (`index.html`), which already
 carries `llms.txt`, `robots.txt` and `sitemap.xml` — i.e. the site is written to be discoverable by
-LLM assistants as well as search engines. Localization into five languages (en, pt-BR, pt-PT, fr, es)
-is part of the same reach decision, not a nice-to-have.
+LLM assistants as well as search engines. Localization into five languages (en, pt-BR, pt-PT, fr,
+es) is part of the same reach decision, not a nice-to-have.
 
 ## §VII — Deliberately not doing
 
 - **No paid tier, no accounts, no license server.** Changing this would invalidate §V.
 - **Not a Claude Code manager.** The app observes usage and context cost; it does not administer
   Claude Code's configuration (see [ROADMAP.md](ROADMAP.md) → Non-goals).
-- **No cross-platform port.** The premise is a *native Windows tray* icon drawn with GDI+ at the real
-  tray size; a Mac/Linux port would be a different product, not a build target.
-- **No bundled third-party dependencies.** The single-exe install story is a distribution decision as
-  much as an engineering one.
+- **No cross-platform port.** The premise is a *native Windows tray* icon drawn with GDI+ at the
+  real tray size; a Mac/Linux port would be a different product, not a build target.
+- **No bundled third-party dependencies.** The single-exe install story is a distribution decision
+  as much as an engineering one.
