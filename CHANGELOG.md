@@ -226,6 +226,7 @@
 
 - **T179** — `UsageSample` and `PaceSnapshot` carry four numbers and none is overage, so every task downstream waits on a store with no column the figure could go in.
 - **T180** — The idle is gated on its own premise: an account that can still spend past its included quota keeps polling, so the stretch that costs money is sampled instead of slept through.
+- **T182** — Reaching 100% is drawn as one of three things: the bar goes clay rather than the alarming red when extra usage is paying, the tooltip says which kind of maxed, and the System row says whether the allowance is in use or merely enabled.
 
 ## Block AA — The picker switches profiles; the window has to switch with it
 

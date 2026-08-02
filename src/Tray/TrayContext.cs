@@ -48,10 +48,10 @@ internal sealed class TrayContext : ApplicationContext
 
     private const int ErrorTolerance = 2; // transient blips to ride out before showing an error
 
-    // At/above this utilization (0–1) a window is treated as maxed out — usage is blocked until it
-    // resets, so the poll loop idles to the reset instead of hammering the API. Matches the 0.995
-    // "at limit" threshold used elsewhere (the projection/ExhaustSeconds logic).
-    private const double AtLimitThreshold = 0.995;
+    // At/above this utilization (0–1) the included quota is spent. What that *means* is one of three
+    // things and QuotaStates owns the decision (T182); this alias keeps the old call sites reading the
+    // same, and keeps the poll's idle on the same number as the icon's verdict.
+    private const double AtLimitThreshold = QuotaStates.AtLimitThreshold;
     private const int LimitResetBufferSeconds = 20; // wait past the predicted reset before double-checking
     private const int LimitDoubleCheckSeconds = 30; // retry cadence once a reset is due but not yet observed
 
@@ -952,7 +952,7 @@ internal sealed class TrayContext : ApplicationContext
     internal static double BlockedUntilUnix(double util5h, double reset5h, double util7d, double reset7d,
                                             double? extraUtil, bool? extraUsageEnabled, long now)
     {
-        if (extraUtil > 0 || extraUsageEnabled == true) return 0;
+        if (QuotaStates.CanSpendPastQuota(extraUtil, extraUsageEnabled)) return 0;
 
         double soonest = double.PositiveInfinity;
         bool atLimit = false;
@@ -1160,7 +1160,7 @@ internal sealed class TrayContext : ApplicationContext
             _data is { Unauthorized: true } || state == IconRenderer.State.Connecting || apiError
                 ? IconRenderer.RenderLogo(size, apiError)
                 : IconRenderer.Render(CurrentPct(), state, flash, size, verdict, _settings.ShowPercentage,
-                    _settings.ShowRemaining, AccentSlot());
+                    _settings.ShowRemaining, AccentSlot(), CurrentQuotaState() == QuotaState.Billing);
         SetTrayIcon(bmp);
         _tray.Text = Truncate(BuildTooltip(), 127);
     }
@@ -1176,6 +1176,16 @@ internal sealed class TrayContext : ApplicationContext
 
         old?.Dispose();
         if (oldHandle != IntPtr.Zero) DestroyIcon(oldHandle);
+    }
+
+    /// <summary>Which of the three states the icon's own metric is in (T182). The metric, not the worst
+    /// window: the icon shows one number and the tooltip's at-limit sentence names that same scope, so
+    /// answering about another window would caption the wrong figure.</summary>
+    private QuotaState CurrentQuotaState()
+    {
+        if (_data is not { Error: null } d) return QuotaState.InQuota;
+        bool? extraEnabled = _watched.Count > 0 ? _watched[0].ExtraUsage : null;
+        return QuotaStates.Resolve(d.Metric(_metric), d.ExtraUtil, extraEnabled);
     }
 
     private string BuildTooltip()
@@ -1223,9 +1233,13 @@ internal sealed class TrayContext : ApplicationContext
         string hits = _settings.ShowRemaining ? L.T("tip.hitsLeft") : L.T("tip.hitsUsed");
         // Each projection verdict has a full form and a compact fallback for when the tooltip is
         // tight (see the 127-char cap note below). null => no projection line at all.
-        (string full, string compact)? projection = CurrentPct() >= 0.995
-            // Already maxed: state it plainly rather than "projecting" a limit you've reached.
-            ? (L.T("tip.atLimitFull", scope, limit), L.T("tip.atLimitCompact", limit))
+        (string full, string compact)? projection = CurrentPct() >= QuotaStates.AtLimitThreshold
+            // Already maxed: state it plainly rather than "projecting" a limit you've reached — and say
+            // *which* kind of maxed, because "you have stopped" and "you are paying to carry on" are
+            // opposite pieces of news and this line used to give the first for both (T182).
+            ? CurrentQuotaState() == QuotaState.Billing
+                ? (L.T("tip.billingFull", scope), L.T("tip.billingCompact"))
+                : (L.T("tip.atLimitFull", scope, limit), L.T("tip.atLimitCompact", limit))
             : verdict switch
             {
                 Projection.Danger => hasEta

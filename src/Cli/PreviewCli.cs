@@ -124,6 +124,17 @@ internal static class PreviewCli
                 using (var bmp = IconRenderer.Render(pct, st, fl, size, verdict))
                     bmp.Save(Path.Combine(dir, $"icon_{(int)(pct * 100)}_{size}.png"));
 
+        // The third state (T182): a full tile that is *paying* rather than stopped. Rendered beside the
+        // stopped one at the same sizes, because the only question worth asking of this colour is
+        // whether the two are tellable apart at 16px without either reading as an alarm.
+        foreach (int size in new[] { 16, 20, 32 })
+        {
+            using (var stopped = IconRenderer.Render(1.00, IconRenderer.State.Ok, false, size, Projection.Danger))
+                stopped.Save(Path.Combine(dir, $"icon_stopped_{size}.png"));
+            using (var billing = IconRenderer.Render(1.00, IconRenderer.State.Ok, false, size, Projection.Danger, billing: true))
+                billing.Save(Path.Combine(dir, $"icon_billing_{size}.png"));
+        }
+
         // The same cases carrying each profile accent (T147), plus a contact sheet magnified 8x with
         // the real 16px pixels preserved — the band has to be judged at tray size, and a 16px PNG
         // viewed at 16px cannot be judged at all.

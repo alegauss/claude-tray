@@ -56,6 +56,9 @@ internal static class SelfTestCli
         Section("poll — when the idle is right, and when it is a hole in the history (Block AE)");
         PollIdle();
 
+        Section("states — in the quota, past it and billing, stopped (Block AE)");
+        States();
+
         Section("stores — folding, the ghost, intensity (Block J)");
         string dir = ProfileStore.DirFor(ProfileKey);
         Console.WriteLine($"  scratch profile: {dir}");
@@ -337,6 +340,39 @@ internal static class SelfTestCli
               TrayContext.BlockedUntilUnix(1.00, r5, 1.00, r7, 0, null, now) == r5);
         Check("and an account nowhere near its limit is unaffected by the flag",
               TrayContext.BlockedUntilUnix(0.10, r5, 0.10, r7, null, true, now) == 0);
+    }
+
+    // ---------------------------------------------------------------- Block AE: the three states
+
+    /// <summary>T182. Three surfaces ask the same question — the icon's colour, the tooltip's sentence and
+    /// the Settings row — so the answer lives in one place and is asserted once. The state that had never
+    /// been modelled is the middle one, and the failure it caused was telling somebody their work had
+    /// stopped while they were paying to carry on.</summary>
+    private static void States()
+    {
+        Check("under the limit is in-quota, whatever extra usage says",
+              QuotaStates.Resolve(0.90, null, true) == QuotaState.InQuota);
+        Check("at the limit with no extra usage is stopped",
+              QuotaStates.Resolve(1.00, null, false) == QuotaState.Stopped);
+        Check("at the limit with extra usage enabled is billing, not stopped",
+              QuotaStates.Resolve(1.00, null, true) == QuotaState.Billing);
+        Check("an overage figure above zero is billing on its own",
+              QuotaStates.Resolve(1.00, 0.42, null) == QuotaState.Billing);
+        Check("a measured zero is not, by itself, billing",
+              QuotaStates.Resolve(1.00, 0, null) == QuotaState.Stopped);
+        Check("an unknown flag and no figure is stopped — the honest default",
+              QuotaStates.Resolve(1.00, null, null) == QuotaState.Stopped);
+        Check("the threshold is the same one the poll idles on",
+              QuotaStates.Resolve(QuotaStates.AtLimitThreshold, null, false) == QuotaState.Stopped
+              && QuotaStates.Resolve(QuotaStates.AtLimitThreshold - 0.001, null, false) == QuotaState.InQuota);
+
+        // The two answers must agree by construction: "never idle" and "billing" are the same fact, and
+        // a tray that sleeps through a state its icon is drawing is the defect T180 and T182 each half-fixed.
+        foreach (double? x in new double?[] { null, 0, 0.42 })
+            foreach (bool? f in new bool?[] { null, false, true })
+                Check($"idle and state agree (extra={x?.ToString() ?? "absent"}, flag={f?.ToString() ?? "unknown"})",
+                      (QuotaStates.Resolve(1.00, x, f) == QuotaState.Billing)
+                      == (TrayContext.BlockedUntilUnix(1.00, Now + 60, 0.10, Now + 600, x, f, (long)Now) == 0));
     }
 
     // ---------------------------------------------------------------- Block AE: the header probe

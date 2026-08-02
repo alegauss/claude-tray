@@ -74,6 +74,13 @@ Beyond the current percentage, the app projects when usage would reach 100% and 
 - **danger** — usage hits 100% *before* the reset (you'll run out early) → the fill bar turns
   **vivid red**
 
+At 100% there is a third thing the tile can mean, and it gets its own color:
+
+- **extra usage is paying** — you're past the quota included in your plan and still working,
+  because the account has extra usage enabled → the fill bar turns **clay**, not red. Red means
+  *stopped*; clay means *this is costing money*. The tooltip says which, and the **System
+  information** page tells you whether the allowance is merely enabled or actually in use.
+
 How the verdict is computed depends on the window:
 
 - **Week 7d — pace line.** The weekly window uses a proportional rule: it compares your

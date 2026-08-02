@@ -470,27 +470,6 @@ The alternative is tempting and wrong: shipping "Extra usage: 42% of your extra-
 plausible guess. A tray whose whole value proposition is *this number is trustworthy* cannot afford a
 label that turns out to name a different denominator.
 
-### §XVIII.4 Two states modelled where there are three (T182)
-
-`AtLimitThreshold = 0.995` drives three behaviours — the icon's alarming red, the tooltip's "already
-maxed" sentence, and the sleep — and all three encode one binary: under the limit, or stopped. The third
-state has been in the model all along, used by one line of `SettingsPage.System.cs`.
-
-The states are **inside the included quota** (today's normal), **past it and billing** (this block), and
-**genuinely stopped** (no extra usage, or the allowance itself exhausted). The app draws the first and the
-third, and it draws the second as the third.
-
-The design problem is the icon, and it is real at 16×16. Red is spoken for: it means *danger*, warming as
-usage approaches 100%, which is a pace signal. "You are spending money" is not more urgent than that — it
-is a different kind of fact, and a hotter red would say *worse* where it means *other*. T147's accent band
-established that the icon can carry a second, categorical channel without disturbing the first, and that
-is the shape worth exploring; the constraint is that somebody who deliberately enabled extra usage and is
-comfortably using it must not be alarmed every time they glance at the taskbar.
-
-The Settings page has the matching gap and belongs to the same task: the System row says extra usage is
-*enabled*, a property of the account, and nothing about whether it is being *consumed* — which is the
-question somebody opening that page mid-doubt has.
-
 ### §XVIII.5 A chart that cannot draw the thing being asked about (T183)
 
 The weekly chart's story is *here is your curve, here is the pace line, here is where it meets 100%*. For

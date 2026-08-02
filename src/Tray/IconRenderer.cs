@@ -33,6 +33,15 @@ internal static class IconRenderer
     private static readonly Color BarOrange   = Color.FromArgb(255, 150, 20); // early-warning orange
     private static readonly Color BarDanger   = Color.FromArgb(255, 35, 30);  // vivid, alarming red
 
+    // Past the included quota and paying for it (T182). Red is spoken for: it means *danger*, warming as
+    // usage climbs toward 100%, and it is the right colour for work that has actually stopped. Somebody
+    // who deliberately enabled extra usage and is comfortably using it is not in danger — they are in a
+    // different state, and a hotter red would say "worse" where the fact is "other". So the full bar goes
+    // to the brand clay: outside the projection ramp entirely (green → orange → red), outside the cyan of
+    // "no projection yet" and the amber of an API error, and calm at a glance. It is the one colour on the
+    // tile that means a category rather than a severity, which is exactly what this is.
+    private static readonly Color BarBilling  = Color.FromArgb(217, 119, 87);
+
     // Per-profile accent (T147), used only for the top-edge identity band. Chosen to be disjoint from
     // every color that already carries meaning here — the green/orange/red of the projection, the cyan
     // of "no projection yet", the amber of an API error and the slate of the tile itself — so the band
@@ -72,8 +81,10 @@ internal static class IconRenderer
     /// inverts to quota left — full at 100%, draining to 0% — while the color still tracks usage.
     /// <paramref name="accent"/> is which profile the number belongs to (T147) as an index into
     /// <see cref="Accents"/>, or -1 for none — see the mark block below.
+    /// <paramref name="billing"/> is the account past its included quota and paying to keep working
+    /// (T182): the bar goes clay instead of the alarming red, which is for work that has stopped.
     /// </summary>
-    public static Bitmap Render(double pct, State state, bool flash, int size, Projection verdict = Projection.Unknown, bool showNumber = true, bool showRemaining = false, int accent = -1)
+    public static Bitmap Render(double pct, State state, bool flash, int size, Projection verdict = Projection.Unknown, bool showNumber = true, bool showRemaining = false, int accent = -1, bool billing = false)
     {
         // pct is always the *used* fraction. In "remaining" mode we display its complement (full
         // at 100%, draining to 0%), but the danger color still keys off `used` so the bar warms to
@@ -110,7 +121,10 @@ internal static class IconRenderer
             // Blue until a projection exists; green when on track; in danger, blend orange→red
             // by how close usage is to 100%, so the bar deepens to the full alarming red as it
             // nears the limit.
-            Color barColor = verdict switch
+            // Billing outranks the projection: a projection answers "will you run out", and for an
+            // account already past its quota that question is settled — what is left to say is which
+            // side of the line it is on (T182).
+            Color barColor = billing ? BarBilling : verdict switch
             {
                 Projection.Unknown => BarUnknown,
                 Projection.Danger  => Lerp(BarOrange, BarDanger, used),

@@ -109,7 +109,7 @@ internal partial class SettingsPage
 
         SysExtra.Text = c.ExtraUsage switch
         {
-            true => L.T("settings.sys.enabled"),
+            true => L.T("settings.sys.enabled") + ExtraInUse(c),
             false => L.T("settings.sys.disabled"),
             null => Dash,
         };
@@ -118,6 +118,28 @@ internal partial class SettingsPage
         SysSinceSub.Text = c.AccountCreated is { } created
             ? L.T("settings.sys.accountCreated", created.ToString("d", culture)) : "";
         SysSinceSub.Visibility = Shown(SysSinceSub.Text);
+
+        // ---- Whether the allowance is being *used*, not merely available (T182) ----
+        //
+        // "Enabled" is a property of the account and answers a question nobody opening this page
+        // mid-doubt is asking: what they want to know is whether it is costing them anything right now.
+        // The reading comes from the profile's own stored history (T179) rather than a live call — this
+        // page makes no network requests, and the last poll is as fresh as the tray is. A profile with
+        // no history yet, or one whose readings predate T179, adds nothing rather than claiming a zero.
+        static string ExtraInUse(ClaudeInfo c)
+        {
+            try
+            {
+                double? extra = UsageHistory.Latest(ProfileStore.KeyFor(c))?.Extra;
+                return extra switch
+                {
+                    null => "",
+                    > 0.001 => L.T("settings.sys.extraInUse", (extra.Value * 100).ToString("0.#", L.Culture)),
+                    _ => L.T("settings.sys.extraIdle"),
+                };
+            }
+            catch { return ""; }
+        }
 
         // The OAuth access token's own clock. Expiry is normal and self-healing (Claude Code refreshes
         // it silently), so an expired token is stated, not alarming.
