@@ -218,6 +218,26 @@
 
 ## Block Z — What the app knows and doesn't say
 
+- **T162** — **The Settings carry-over list becomes a declaration on the fields it names.** T141 made the
+  *copy* total by construction (`Clone()` is a JSON round-trip), and the other end of that round trip was
+  still hand-written: `ApplySettings` took the edited model whole and then re-carried four fields the page
+  does not edit — `Metric`, `MonitoredConfigDir`, `EnvironmentProfileOwned`, `EnvironmentProfileRestore` —
+  one line each, because the window's snapshot of them is older than the tray's. Four is already a list,
+  and the list had no owner: it lived in `TrayContext` while the fields lived in `Settings`, so the two
+  could drift with nothing noticing. That exact defect has shipped twice (T126 lost the monitored config
+  dir, T155 the icon's profile, moved by a Save no control on the page had touched). The fields now declare
+  themselves with `[TrayOwned]`, `Settings.CarryTrayOwnedFrom` carries everything so marked, and the four
+  lines in `ApplySettings` are one. `--selftest` gained the round trip the design asked for — **26 checks,
+  134 total**: for every writable property, a value the page edited and a *different* value the tray moved
+  after the window opened, then `Clone()` + carry, asserting that exactly one of the two survives (the
+  tray's if it owns the field, the page's otherwise). Driven by reflection over the property list rather
+  than a list written in the test, so a field added tomorrow is covered tomorrow — and a property whose
+  type has no varying rule **fails** rather than being skipped, verified by temporarily adding a `double`
+  one. The pre-T162 partial list (`Metric` alone) reproduces T126 and T155 as three red checks. What the
+  sweep cannot do is notice a field that *should* have been marked — it reads the attribute, so for an
+  unmarked field it asserts the page's value survives, which is what happens; the four named checks pin the
+  fields whose omission actually shipped, and the rule for new ones is in [AGENTS.md](AGENTS.md).
+
 - **T161** — **`ProjectSlug` gets the assertions its defect record earned it.** It is the one reader *and*
   writer of a lossy encoding — every non-alphanumeric character becomes `-`, so `claude-tray` and
   `claude\tray` have the same slug — everything the app displays about a project goes through it, it has

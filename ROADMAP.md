@@ -29,7 +29,6 @@
 > defects already, neither with a single assertion — and one idea deliberately left as one.
 > Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XIII.
 
-- 📋 **T162** (deps: —) **The Settings carry-over list is hand-maintained, and forgetting a line is a silent revert** — T141 made the *copy* total by construction, but `ApplySettings` then re-carries four tray-owned fields (`Metric`, the two `EnvironmentProfile*`, `MonitoredConfigDir`) one line at a time, and a field missing from that list is written back stale on every Save. That exact bug has shipped twice (T126, T155). Declare tray-owned once on `Settings`, carry by the declaration, assert the two agree. → §XIII.4
 - 💭 **T163** (deps: —) **A straight-line projection never says why it isn't a shaped one** — when the profile is thin the app silently falls back to the average-pace line and the note reverts to generic text, so the one thing the user might act on (*keep the tray running another week and this gets better*) is the one thing never said. Needs design: what to say, where, and how not to turn a method note into a nag. → §XIII.5
 
 ## Non-goals (do NOT add as tasks)

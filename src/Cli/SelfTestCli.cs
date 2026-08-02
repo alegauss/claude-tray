@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 
 namespace ClaudeTray;
@@ -65,6 +66,9 @@ internal static class SelfTestCli
 
         Section("slug — the projects/<slug> encoding (Blocks K and W)");
         Temp(Slug);
+
+        Section("settings — the page's copy and the tray's carry (Blocks S and Z)");
+        SettingsRoundTrip();
 
         if (quick)
         {
@@ -458,6 +462,113 @@ internal static class SelfTestCli
         Check($"under {ActivityProfile.MinWeeksToExclude} weeks nothing is ever excluded",
               thin.ExcludedWeeks == 0, $"{thin.ExcludedWeeks} excluded");
     }
+
+    // ---------------------------------------------------------------- Blocks S/Z: the settings round trip
+
+    /// <summary>
+    /// The Settings round trip, one check per property: the window is handed a total copy
+    /// (<see cref="Settings.Clone"/>), hands one back, and the tray carries its own fields over
+    /// (<see cref="Settings.CarryTrayOwnedFrom"/>). For every property, exactly one of two things must
+    /// happen — the page's value survives, or, if the tray owns it, the live value does.
+    ///
+    /// <para>Driven by reflection over the property list rather than by a list written here, which is the
+    /// whole point of T162: a field added tomorrow is covered tomorrow. A property whose type has no
+    /// varying rule below <b>fails</b> rather than being skipped, so adding one that this cannot vary is a
+    /// red check and not a quiet gap.</para>
+    ///
+    /// <para><b>Where this stops.</b> The sweep reads the attribute, so it cannot tell that a field
+    /// <em>should</em> have been marked — for an unmarked field it asserts the page's value survives, which
+    /// is exactly what happens. Nothing here knows which controls the page has. The four named checks above
+    /// are therefore not redundant: they pin the fields whose omission has actually shipped a defect, and a
+    /// genuinely new tray-owned field still depends on the author marking it (a rule in AGENTS.md).</para>
+    /// </summary>
+    private static void SettingsRoundTrip()
+    {
+        // The two shipped defects this replaces, named: both were a tray-owned field with no line in the
+        // hand-maintained list, written back stale on every Save.
+        foreach (string owned in new[] { nameof(Settings.MonitoredConfigDir), nameof(Settings.Metric),
+                                         nameof(Settings.EnvironmentProfileOwned),
+                                         nameof(Settings.EnvironmentProfileRestore) })
+            Check($"{owned} is declared tray-owned",
+                  Settings.TrayOwned.Any(p => p.Name == owned),
+                  "T126 and T155 were both this field missing from the carry-over list");
+
+        foreach (PropertyInfo p in typeof(Settings)
+                     .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                     .Where(p => p.CanRead && p.CanWrite))
+        {
+            bool trayOwned = p.IsDefined(typeof(TrayOwnedAttribute));
+            string what = trayOwned ? "the tray's value survives an older window snapshot"
+                                    : "the page's edit survives the carry";
+
+            if (Vary(p) is not { } varied)
+            {
+                Fail($"{p.Name}: {what}", "no varying rule for this property's type — add one");
+                continue;
+            }
+            (object? edited, object? moved) = varied;
+
+            // The window opened, so it holds a copy; then the *menu* moved the tray-owned fields, so the
+            // live model and that copy disagree; then Save applies the copy.
+            var live = new Settings();
+            p.SetValue(live, moved);
+            Settings snapshot = live.Clone();
+            p.SetValue(snapshot, edited);          // whatever the page did to it, edit or not
+
+            Settings applied = snapshot.Clone();
+            applied.CarryTrayOwnedFrom(live);
+
+            object? expected = trayOwned ? moved : edited;
+            Check($"{p.Name}: {what}", Json(p.GetValue(applied)) == Json(expected),
+                  $"{Json(p.GetValue(applied))} vs {Json(expected)}");
+        }
+    }
+
+    /// <summary>Two distinct values for a property, both of which survive <see cref="Settings.Clone"/>'s
+    /// clamping — null when this property's type (or validator) has no rule here, which the caller reports
+    /// as a failure rather than skipping.</summary>
+    private static (object? edited, object? moved)? Vary(PropertyInfo p)
+    {
+        (object? a, object? b)? pair = p.Name switch
+        {
+            // Validated values: an arbitrary string would be clamped back to the default, and a check
+            // over a value the model rejects asserts nothing.
+            nameof(Settings.Metric) => ("7d", "extra"),
+            nameof(Settings.Language) => ("en", "fr"),
+            nameof(Settings.Profiles) => (Profiles(@"d:\one"), Profiles(@"d:\two")),
+            _ => p.PropertyType switch
+            {
+                var t when t == typeof(bool) => (false, true),
+                // Off the default rather than from thin air: every int here is clamped to a range the
+                // default sits inside, so default±1 is in range without this knowing the range.
+                var t when t == typeof(int) => Ints(p),
+                var t when t == typeof(string) => ("alpha", "beta"),
+                _ => ((object?, object?)?)null,
+            },
+        };
+        if (pair is not { } both) return null;
+        (object? a, object? b) = both;
+
+        // Only claim a pair the model actually keeps: setting a value the clamp rewrites would make the
+        // check pass or fail for a reason that has nothing to do with the carry.
+        foreach (object? v in new[] { a, b })
+        {
+            var probe = new Settings();
+            p.SetValue(probe, v);
+            if (Json(p.GetValue(probe.Clone())) != Json(v)) return null;
+        }
+        return (a, b);
+    }
+
+    private static (object? a, object? b) Ints(PropertyInfo p)
+    {
+        int d = (int)p.GetValue(new Settings())!;
+        return (d + 1, d + 2);
+    }
+
+    private static List<ClaudeProfile> Profiles(string dir) => new() { new ClaudeProfile { ConfigDir = dir } };
+
+    private static string Json(object? v) => System.Text.Json.JsonSerializer.Serialize(v);
 
     // ---------------------------------------------------------------- Blocks K/W: the slug encoding
 

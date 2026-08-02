@@ -366,21 +366,17 @@ internal sealed class TrayContext : ApplicationContext
 
         // Take the edited model whole rather than field by field: the window handed back a total copy
         // of what it was given, so anything it doesn't edit is already the live value, and no field can
-        // be forgotten here and silently reset (T141). `Metric` is the one exception — it is the tray's
-        // alone (the icon's chosen window, set from the menu) and has no control on the page, so a value
-        // the menu changed while the window sat open must not be undone by the buffer's older snapshot.
+        // be forgotten here and silently reset (T141). The exceptions are the fields the *tray* owns —
+        // the icon's chosen window and its profile, and the bookkeeping for the environment variable —
+        // which have no control on any page, so a value the menu moved while the window sat open must
+        // not be undone by that window's older snapshot.
+        //
+        // Which fields those are is declared on the fields themselves ([TrayOwned]) and carried by the
+        // declaration, because the four lines that used to stand here were a list with no owner: it lived
+        // in this file while the fields lived in `Settings`, and a field missing from it was a silent
+        // revert on every Save — T126 and T155 both (T162).
         Settings applied = updated.Clone();
-        applied.Metric = _settings.Metric;
-        // Same exception, same reason (T141): these two are the tray's bookkeeping for the environment
-        // variable it owns, with no control on the page. If the window sat open while a menu pick took
-        // the variable over, the buffer's older snapshot would say "not owned" — and the tray would
-        // then never put back what it replaced.
-        applied.EnvironmentProfileOwned = _settings.EnvironmentProfileOwned;
-        applied.EnvironmentProfileRestore = _settings.EnvironmentProfileRestore;
-        // And the same for the icon's own profile (T155): with the page's "Icon profile" row gone, the
-        // Profile submenu is the only thing that moves the icon, so the window's snapshot — taken when
-        // it opened — must not write back an older choice over a pick made while it sat there.
-        applied.MonitoredConfigDir = _settings.MonitoredConfigDir;
+        applied.CarryTrayOwnedFrom(_settings);
         _settings = applied;
 
         // What is left are the genuine side effects — the things a copy cannot do on its own.

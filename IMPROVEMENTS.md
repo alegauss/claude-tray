@@ -108,28 +108,8 @@ four commits back against the running app turned up the other half of the same i
 exactly how much evidence it had and never said so (T159), and the guard producing the measured half of
 it could not fire on the machine it was written on (T160). Both have shipped. What is left here is the
 coverage that keeps the next such gap from being written at all — `ProjectSlug` is asserted end to end as
-of T161, leaving the hand-maintained carry-over list in `ApplySettings`, which has silently reverted a
-field twice — plus one idea whose obvious implementation is the wrong one.
-
-### §XIII.4 A carry-over list is a field list wearing a different hat (T162)
-
-T141's finding was that copying a model field by field means a forgotten field is a silent reset, and
-its fix was to stop copying by hand: `Settings.Clone()` is a JSON round-trip, total by construction.
-The *other* end of the same round-trip is still hand-written. `ApplySettings` takes the edited model
-whole and then re-carries four fields the page does not edit — `Metric`, `EnvironmentProfileOwned`,
-`EnvironmentProfileRestore`, `MonitoredConfigDir` — one line each, because the window's snapshot of
-them is older than the tray's. Add a fifth tray-owned field and forget its line, and every Save writes
-a stale value over it: the exact defect T126 found (the monitored config dir) and T155 found again (the
-icon's profile, moved by a Save that no control on the page had touched).
-
-Four is already a list, and the list has no owner: it lives in `TrayContext`, while the fields it names
-live in `Settings`, so the two can drift without anything noticing. Marking the fields themselves —
-`[TrayOwned]` on the property, one loop in `ApplySettings` that carries everything so marked — puts the
-declaration next to the thing being declared and makes the carry total for the same reason the copy is.
-The assertion `--selftest` can then make is the one that matters: round-trip a `Settings` through the
-page's copy and the tray's apply with every property set to a non-default value, and nothing may change
-except what the page edits. A new field is then covered the day it is added rather than the day
-somebody notices it resetting.
+of T161, and T162 turned the hand-maintained carry-over list into a declaration on the fields it named.
+What is left is one idea whose obvious implementation is the wrong one.
 
 ### §XIII.5 A straight line that doesn't say it is one (T163 — idea)
 

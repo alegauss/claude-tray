@@ -267,3 +267,4 @@ here. This file is a terse index, not a memory.
 - **T159 SHIPPED** (Block Z — the method note quotes the weeks the grid kept, and says how many it dropped) — 2026-08-02.
 - **T160 SHIPPED** (Block Z — the measured away-week bar is half the median observed week, with a floor, so it can fire) — 2026-08-02.
 - **T161 SHIPPED** (Block Z — `ProjectSlug` asserted end to end; 21 checks, 108 total, no production change) — 2026-08-02.
+- **T162 SHIPPED** (Block Z — `[TrayOwned]` replaces the hand-maintained carry-over list; the round trip is asserted) — 2026-08-02.
