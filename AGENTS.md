@@ -49,7 +49,7 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 | File | Responsibility |
 |---|---|
 | `src/Tray/Program.cs` | `Main` and nothing else: the arg dispatch that routes every flag, `ArgValue`, plus `StartupManager` (the HKCU Run entry) and `WpfInputBridge` (see above). |
-| `src/Tray/TrayContext.cs` | The resident app: tray icon, menu, poll/flash/update timers plus the 6h `_backgroundSample` one (context scan + activity-grid warm-up), `ApplySettings`, tooltip, icon render, the watched-profile list and `OpenMain` — the **one** entry point to the **one** window (T158), from a left-click on the icon or the menu's *Open Claude Code Tray*. |
+| `src/Tray/TrayContext.cs` | The resident app: tray icon, menu, poll/flash/update timers plus the 6h `_backgroundSample` one (context scan + activity-grid warm-up), `ApplySettings`, tooltip, icon render, the watched-profile list and `OpenMain` — the **one** entry point to the **one** window (T158), from a left-click on the icon or the menu's bold *Open*. |
 | `src/Tray/IconRenderer.cs` | GDI+ icon (vector number + outline + fill bar + projection color) at the real size; also the app `.ico` and social image. |
 | `src/Tray/Updater.cs` | Checks GitHub Releases; downloads/runs the installer for in-app self-update. `CurrentVersion`. |
 

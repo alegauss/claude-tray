@@ -140,6 +140,19 @@ function ById($root, $id, $timeoutMs = 4000) {
     return $null
 }
 
+<# By UIA Name rather than AutomationId - for controls whose identity is their label (the nav strip's
+   destinations are RadioButtons whose Name is the localized text). #>
+function ByName($root, $name, $timeoutMs = 4000) {
+    $cond = New-Object System.Windows.Automation.PropertyCondition($AE::NameProperty, $name)
+    $deadline = (Get-Date).AddMilliseconds($timeoutMs)
+    do {
+        $el = $root.FindFirst('Descendants', $cond)
+        if ($el) { return $el }
+        Start-Sleep -Milliseconds 200
+    } while ((Get-Date) -lt $deadline)
+    return $null
+}
+
 function WindowOfProcess($processId, $timeoutMs = 15000) {
     $cond = New-Object System.Windows.Automation.PropertyCondition($AE::ProcessIdProperty, $processId)
     $deadline = (Get-Date).AddMilliseconds($timeoutMs)
@@ -466,10 +479,13 @@ function Invoke-MenuCase {
 
         $expect = Expected-ProfileEntries
         $subLabel = Label 'menu.openClaude'
+        $expandedOpenClaude = $false
         if ($expect.Count -lt 2) {
             # Prefix, not equality: the collapsed command carries T137's "- sign in" marking when the
-            # profile it aims at has no credentials on disk, and that is still the same entry.
-            $plain = @($labels | Where-Object { $_ -like "$subLabel*" })
+            # profile it aims at has no credentials on disk, and that is still the same entry. The
+            # open-the-window entry is excluded by name, or a label that merely *starts* the same way
+            # would satisfy this check for the wrong item (it did, when it read "Open Claude Code Tray").
+            $plain = @($labels | Where-Object { $_ -like "$subLabel*" -and $_ -ne $openLabel })
             if ($plain.Count -gt 0) {
                 Pass "$($expect.Why): '$($plain[0])' stays a plain command, as designed"
             } else {
@@ -488,6 +504,7 @@ function Invoke-MenuCase {
                 Pass "'$subLabel' lists $($subs.Count) profile entries"
                 foreach ($s in $subs) { Info "- $($s.Current.Name)" }
             }
+            $expandedOpenClaude = $true
         }
 
         # T148: the Profile submenu has to expand from the keyboard too. It only can if it is non-empty
@@ -503,11 +520,19 @@ function Invoke-MenuCase {
             Fail "'$profLabel' is missing from the menu although $profileCount profiles were found"
         }
         else {
-            [Native]::Key($VK_ESC)      # close whatever the previous check opened, keep the menu itself
-            Start-Sleep -Milliseconds 400
+            # Esc only if the previous check actually expanded a submenu: on a machine where "Open
+            # Claude Code" stays a plain command (T146) nothing is open, so the Esc closed the *menu*
+            # and this check failed on its own doing.
+            if ($expandedOpenClaude) {
+                [Native]::Key($VK_ESC)   # close the submenu, keep the menu itself
+                Start-Sleep -Milliseconds 400
+            }
             $menu = Find-TrayMenu $proc.Id
+            # And if it closed anyway, re-open it rather than report a Profile submenu that was never
+            # asked the question. Only a menu that will not open at all is a failure here.
+            if (-not $menu) { $menu = Open-TrayMenu 'Claude Code' $proc.Id }
             if (-not $menu) {
-                Fail "the menu closed before the Profile submenu could be expanded"
+                Fail "the menu would not reopen for the Profile submenu check"
             }
             else {
                 $profSubs = Expand-Item $menu $profLabel
@@ -521,6 +546,34 @@ function Invoke-MenuCase {
                 else {
                     Pass "'$profLabel' expands from the keyboard with $($profSubs.Count) entries"
                     foreach ($s in $profSubs) { Info "- $($s.Current.Name)" }
+                }
+            }
+        }
+
+        # T158: a LEFT-click on the icon is now the app's main entry point - it opens the one window on
+        # the pacing report. Nothing else in this repo drives that path (`--main` builds the shell
+        # directly, which is a different caller), and it is the one gesture most users make.
+        [Native]::Key($VK_ESC); [Native]::Key($VK_ESC)   # the menu must be gone before clicking the icon
+        Start-Sleep -Milliseconds 400
+        $icon = Get-TrayIcon 'Claude Code'
+        if (-not $icon) {
+            Fail "the tray icon could not be found for the left-click check"
+        }
+        else {
+            ClickCentre $icon
+            $win = WindowOfProcess $proc.Id 12000
+            if (-not $win) {
+                Fail "a left-click on the icon opened no window (T158)"
+            }
+            else {
+                # The nav strip's three destinations are the window's identity: a window with the right
+                # title and no strip would pass a title-only check.
+                $dests = @('main.nav.statistics', 'main.nav.context', 'main.nav.settings') | ForEach-Object { Label $_ }
+                $missing = @($dests | Where-Object { -not (ByName $win $_ 3000) })
+                if ($missing.Count -gt 0) {
+                    Fail "the window opened but these destinations are missing from the nav strip: $($missing -join ', ')"
+                } else {
+                    Pass "a left-click on the icon opens the window, with $($dests -join ' / ')"
                 }
             }
         }

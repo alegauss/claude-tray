@@ -224,8 +224,10 @@
   checking a project's context load meant two windows on the taskbar and a trip back to the tray icon
   between them. A left-click on the icon now opens `MainWindow` on the pacing report, and a nav strip
   under the title bar switches destinations; the tray menu keeps only what needs no window, plus a
-  bold **Open Claude Code Tray** as its default entry (a left-click is not a route everyone has — the
-  keyboard's menu key opens the list and nothing else). `StatisticsWindow`, `ContextWindow` and
+  bold **Open** as its default entry (a left-click is not a route everyone has — the keyboard's menu
+  key opens the list and nothing else). That entry read *Open Claude Code Tray* until the menu was
+  driven and the check meant for **Open Claude Code** matched it by prefix: two entries three words
+  alike, one opening the window and one launching the CLI, is a collision for a reader too. `StatisticsWindow`, `ContextWindow` and
   `SettingsWindow` became `StatisticsPage`, `ContextPage` and `SettingsPage` (`UserControl`s, files
   renamed with them); `TrayContext`'s three `Open*` methods and three window fields collapsed into
   `OpenMain` over one. Deliberately *not* the same pill segments the Statistics tabs use, because two
@@ -240,8 +242,15 @@
   every preview and off-screen capture rendering one page without the shell's chrome, so the
   published screenshots are unchanged; `--main [dest]` opens the real shell under the tray's own
   WinForms pump. Three menu strings dropped and four added in all five languages. `--selftest` 51/51
-  (`--quick`), `Check-Interaction -Case Keyboard` passes under the shell's page, and all three
-  destinations verified by capture in pt-BR.
+  (`--quick`), `Check-Interaction` passes both cases in English and pt-BR, and all three destinations
+  verified by capture. The Menu case gained the check this task needs most — **a left-click on the
+  icon opens the window, and the nav strip holds all three destinations**, the one gesture no other
+  loop here drives (`--main` builds the shell directly, which is a different caller) — plus the
+  assertion that the **Open** entry exists at all, since the menu is the only route without a mouse.
+  Two of its own defects surfaced while running it: the prefix match described above, and an `Esc`
+  that assumed the previous check had expanded a submenu — on a machine where **Open Claude Code**
+  stays a plain command (T146) it closed the menu instead, and the Profile check then failed on the
+  script's own doing rather than on anything the app did.
 
 ## Block X — Each control says what it changes
 

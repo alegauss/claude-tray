@@ -583,7 +583,8 @@ half-edited settings page all survive switching to another one and back.
 
 The menu is what can be done *without* the window:
 
-- **Open Claude Code Tray** — the same window a left-click on the icon opens
+- **Open** — the same window a left-click on the icon opens (in bold: it is the menu's default action,
+  and the only route to the window without a mouse)
 - **Show on icon** — Session 5h / Week 7d / Extra (remembered across restarts)
 - **Usage insights (24h)** — local cost breakdown from session transcripts (see below)
 - **Refresh now** — immediate API read
