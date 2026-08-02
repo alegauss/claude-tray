@@ -494,10 +494,17 @@ internal static class Program
             };
             statsPage.SetProfiles(ClaudeAccount.Discover(Settings.Load().Profiles));
             win.Show();
-            // `profile=<n>` renders the window as another profile (T128), so the switch path is
-            // captured rather than only the picker sitting there.
-            if (ArgValue(args, "profile") is { } pn && int.TryParse(pn, out int pi))
-                statsPage.SelectProfileForPreview(pi);
+            // `profile=<n>` renders the window as another profile (T128), so the switch path is captured
+            // rather than only the picker sitting there. A **list** — `profile=1,0` — walks the picker
+            // through each index in turn, one full settle apart: that is the round trip the report has to
+            // survive (T164), and the check is that its PNGs match a plain capture of the profile it
+            // lands on. One selection at a time is what makes it a check: a switch that is still
+            // computing when the next one arrives would prove nothing about either.
+            int[] profileSteps = (ArgValue(args, "profile") ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => int.TryParse(s, out int n) ? n : -1)
+                .Where(n => n >= 0)
+                .ToArray();
             // A fourth argument of "refresh" feeds a fresh reading in — the exact call the tray's poll
             // loop makes — and snapshots *while the recomputation is still in flight*. That is the window
             // a blanked pane would appear in, so the captured PNGs are the check for T118: content, not a
@@ -506,8 +513,14 @@ internal static class Program
 
             // Let the async pace computation finish and the charts render, then snapshot each tab.
             var settle = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
+            int nextStep = 0;
             settle.Tick += (_, _) =>
             {
+                if (nextStep < profileSteps.Length)
+                {
+                    statsPage.SelectProfileForPreview(profileSteps[nextStep++]);
+                    return;
+                }
                 settle.Stop();
                 if (refresh) statsPage.UpdateSnapshot(sample);
                 try { statsPage.SaveAllTabs(outBase); Console.WriteLine("wrote " + outBase + "-5h.png / -7d.png / -throughput.png"); }

@@ -52,6 +52,17 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     // The live rate-limit reading, refreshed in place by the tray on each poll (see UpdateSnapshot),
     // so the report tracks the same cadence configured in Settings without polling the API itself.
     private PaceSnapshot? _snapshot;
+
+    // The monitored profile's own reading, held aside for as long as the window is showing a different
+    // one (T164). `_snapshot` is whichever profile is on screen, so switching away overwrites it with the
+    // other account's numbers — and switching *back* used to keep them, because the monitored branch read
+    // `_snapshot` and found what the other profile had left there. The charts were then this profile's
+    // history scaled to another profile's utilization, until the next poll happened to correct it (five
+    // minutes by default). Kept fresh even while another profile is shown: the tray goes on polling this
+    // one for the icon regardless, so coming back must not have to wait for the poll after that.
+    private PaceSnapshot? _monitoredSnapshot;
+    private string? _monitoredError;
+
     private int _generation;
     private WindowPace? _session;  // last-rendered data, kept so the charts can redraw on resize
     private WindowPace? _weekly;
@@ -112,9 +123,9 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
 
     public StatisticsPage(PaceSnapshot? snapshot, bool showRemaining = false, string? error = null)
     {
-        _snapshot = snapshot;
+        _snapshot = _monitoredSnapshot = snapshot;
         _remaining = showRemaining;
-        _error = error;
+        _error = _monitoredError = error;
         InitializeComponent();
 
         Loaded += (_, _) => { HookHost(); StartLive(); };
@@ -166,8 +177,12 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     /// </summary>
     internal void UpdateSnapshot(PaceSnapshot? snapshot, string? error = null)
     {
-        // The tray polls the monitored profile for the icon; while this window is showing another one,
-        // that reading is about a different account and adopting it would relabel someone else's usage.
+        // The tray polls the monitored profile for the icon on its own cadence, whichever profile this
+        // window happens to be showing — so the reading is *recorded* either way. Displaying it is the
+        // part that is conditional: while another profile is on screen this is a different account's
+        // utilization, and adopting it would relabel someone else's usage.
+        _monitoredSnapshot = snapshot;
+        _monitoredError = error;
         if (!_showingMonitored) return;
         _snapshot = snapshot;
         _error = error;

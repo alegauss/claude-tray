@@ -19,7 +19,17 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-_No active backlog._ Block Z closed with T163 — see [CHANGELOG.md](CHANGELOG.md).
+## Block AA — The picker switches profiles; the window has to switch with it
+
+> A field report against shipped Block O: *"se eu visualizo o gráfico de consumo de um perfil, mudo
+> para outro perfil no combobox e volto para o perfil anterior, o gráfico muda"*. Three pieces of state
+> the switch left behind, fixed in T164 — the live reading, the live tail, and the drawn history. What
+> remains is the reason all three survived every capture this repo has taken: nothing *drives* the
+> picker, so the round trip has only ever been checked by a person looking at one profile at a time.
+> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XIV.
+
+- 📋 **T165** (deps: T164) **Nothing drives the profile picker, so a switch is checked one direction at a time** — every `--capture-stats` before T164 rendered *a* profile; none rendered the same profile twice with another in between, which is the only sequence the three defects appear in. `Check-Interaction.ps1` already drives the real UI through UI Automation and asserts pass/fail (T142) — a `-Case Profiles` that walks the picker 0 → 1 → 0 and reads back the "% da cota usada", the reset caption and the live headline would have caught all three, and reading nothing must stay a FAIL. → §XIV.1
+- 💭 **T166** (deps: T164) **A profile switch blanks the panes it could have kept** — T164 clears the last-rendered pace on purpose (leaving it up means the previous account's curves under this account's name), so the window now shows "computing…" for the length of a transcript scan, Throughput tab included — the exact cost T118 removed for the poll refresh. Keeping the last report *per profile* would make a switch back instant and correct at once, but a cached report is a stale one the moment its profile is polled again. Needs design: what invalidates an entry, and whether the footer timestamp is enough to make a cached view honest. → §XIV.2
 
 ## Non-goals (do NOT add as tasks)
 

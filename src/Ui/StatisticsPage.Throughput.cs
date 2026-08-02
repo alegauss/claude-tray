@@ -91,22 +91,32 @@ internal partial class StatisticsPage
     // so a closed Statistics window tails nothing.
     private void StartLive()
     {
-        if (_chartProjects is not null) return;
-        bool dark = IsDarkTheme();
-        _chartProjects = new LiveChart(ChartProjects, dark, AxisTick, ScaleTip);
-        _chartTypes = new LiveChart(ChartTypes, dark, AxisTick, ScaleTip);
-        // The reading under the pointer (T104). The chart knows which second and what it drew; naming
-        // the series, and finding the raw tokens that landed in that second, is this window's job.
-        _chartProjects.Readout = ProjectReadout;
-        _chartTypes.Readout = TypeReadout;
+        // Two lifetimes, deliberately separated (T164). The **charts** are built once and live as long as
+        // the page: they own the Border's child and its hover handlers, so rebuilding them would stack a
+        // second set of handlers on the same Border. The **tail** is per profile and is restarted every
+        // time the picker moves. Guarding both on `_chartProjects is not null` — as this did — made
+        // `StopLive(dispose: true); StartLive();` a one-way trip: the tail was disposed and the early
+        // return meant nothing ever replaced it, so one profile switch killed the live strip for the rest
+        // of the window's life, on every profile including the one it started on.
+        if (_chartProjects is null)
+        {
+            bool dark = IsDarkTheme();
+            _chartProjects = new LiveChart(ChartProjects, dark, AxisTick, ScaleTip);
+            _chartTypes = new LiveChart(ChartTypes, dark, AxisTick, ScaleTip);
+            // The reading under the pointer (T104). The chart knows which second and what it drew; naming
+            // the series, and finding the raw tokens that landed in that second, is this window's job.
+            _chartProjects.Readout = ProjectReadout;
+            _chartTypes.Readout = TypeReadout;
 
-        // The charts are drawn in device pixels against their host's width, so a resize (and the very
-        // first layout pass, where the width is still zero) has to redraw them. Static, not animated:
-        // a resize is not a second passing.
-        ChartProjects.SizeChanged += (_, _) => RenderLive(animate: false);
-        ChartTypes.SizeChanged += (_, _) => RenderLive(animate: false);
+            // The charts are drawn in device pixels against their host's width, so a resize (and the very
+            // first layout pass, where the width is still zero) has to redraw them. Static, not animated:
+            // a resize is not a second passing.
+            ChartProjects.SizeChanged += (_, _) => RenderLive(animate: false);
+            ChartTypes.SizeChanged += (_, _) => RenderLive(animate: false);
+        }
 
         if (PreviewDemoLive) { RenderDemoLive(); return; }
+        if (_liveTimer is not null) return;   // already tailing this profile
 
         try
         {
@@ -156,6 +166,21 @@ internal partial class StatisticsPage
         try { _tail?.Dispose(); } catch { /* best-effort */ }
         _tail = null;
         _live = null;
+
+        // Everything below this line is *one profile's* transcripts, and disposing the tail is what makes
+        // it stale (T164). The drawn history counts: the chart appends by design (T119), so leaving it in
+        // place splices the next profile's first second onto three minutes of the previous one's line —
+        // and for the by-type chart, whose series set is always the same three, nothing else would ever
+        // force the wholesale re-adopt that hides it.
+        _lastTypeRates = null;
+        _lastProjects = null;
+        _lastTypeTokens = null;
+        _chartProjects?.Clear();
+        _chartTypes?.Clear();
+        LegendProjects.Children.Clear();
+        LegendTypes.Children.Clear();
+        CacheReadNote.Visibility = Visibility.Collapsed;
+        LiveHeadS.Text = LiveHeadW.Text = LiveHeadT.Text = L.T("stats.live.off");
     }
 
     private void LiveTick()

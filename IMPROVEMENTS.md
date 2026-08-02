@@ -12,14 +12,14 @@
 |---|---|
 | [§I](#i--house-constraints) | House constraints (binding, app-wide) |
 | [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature (kept: it is data, not design) |
-| [§XIII](#xiii--what-the-app-knows-and-doesnt-say-block-z) | What the app knows and doesn't say (Block Z) |
+| [§XIV](#xiv--the-picker-switches-profiles-the-window-has-to-switch-with-it-block-aa) | The picker switches profiles; the window has to switch with it (Block AA) |
 
-> Block I's design sections (§II), Block J's (§IV) and Block V's (§XII) are gone: every one of them
-> shipped, and `git log` plus [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a
-> **measurement** — the numbers the rule thresholds and the base-overhead constant were calibrated
-> against.
+> Block I's design sections (§II), Block J's (§IV), Block V's (§XII) and Block Z's (§XIII) are gone:
+> every one of them shipped, and `git log` plus [CHANGELOG.md](CHANGELOG.md) are the history. §III
+> stays because it is a **measurement** — the numbers the rule thresholds and the base-overhead
+> constant were calibrated against.
 >
-> Section numbers are **never reused**: §II, §IV–§XII have all been retired, so a new block takes the
+> Section numbers are **never reused**: §II, §IV–§XIII have all been retired, so a new block takes the
 > next unused numeral rather than the next free-looking one. A `→ §V` in an old commit message must
 > keep pointing at what it pointed at.
 
@@ -100,5 +100,55 @@ deliberately — this file is published with the repo. The right-hand column is 
 
 ---
 
-_No active design sections: Block Z closed with T163, and §XIII went with it. Section numbers are never
-reused — an old commit's `→ §XIII.x` must keep pointing where it pointed._
+## §XIV — The picker switches profiles; the window has to switch with it (Block AA)
+
+The Statistics window has reported on a chosen profile since T128, and the picker has been correct about
+*which* profile it names since the day it shipped. What T164 found is that naming it is not the same as
+becoming it: a switch left three pieces of the previous profile behind, and the shape of all three is the
+same — state whose lifetime is "the window" where it should have been "the profile on screen".
+
+The report that opened the block is the round trip, and the round trip is the point: *view a profile,
+switch away, switch back, and the chart is a different chart.* Nothing about a single switch looked
+wrong, which is exactly why this survived — see §XIV.1.
+
+### §XIV.1 Nothing drives the picker, so a switch is checked one direction at a time
+
+Every capture this repo has taken of the profile feature renders **one** profile: `--capture-stats out
+shape profile=1` selects an index and snapshots it. That is enough to check the thing T128 built, and
+structurally incapable of catching what T164 fixed — all three defects need a *second* switch to become
+visible, and two of them only when the second switch goes back to where it started.
+
+T164 widened the seam (`profile=1,0` walks a list, one full settle per step) and the check is still a
+person comparing two PNGs. The precedent for closing that gap is T142: `Check-Interaction.ps1` drives the
+real window through UI Automation and exits non-zero unless every assertion passed, which is what turned
+"the keyboard works, I tried it" into something CI-shaped. A `-Case Profiles` is the same move —
+
+- select index 1, then 0, settling between them, through the real `ComboBox` rather than the preview seam;
+- read back the **used %**, the reset caption and the live headline at each stop;
+- assert the two readings of the same profile are equal, that the middle one differs from both, and that
+  the live headline never reads "unavailable" after a switch (the one defect a percentage cannot see);
+- and keep T142's rule that **reading nothing is a FAIL** — a collapsed pane is absent from the UIA tree,
+  which is precisely the state a broken switch produces.
+
+The window is per-machine, so the case has to skip cleanly with **one** profile registered — and the skip
+must state the precondition it failed, per the T161 rule: a `Skip` that could hide the property it guards
+is worse than no check.
+
+### §XIV.2 A profile switch blanks the panes it could have kept
+
+T164 clears the last-rendered pace on the way out, and that is the right default: keeping it means the
+previous account's curves sit under this account's name for the length of a transcript scan, which is the
+same misattribution the task exists to remove — only briefer. The cost is that a switch now shows
+"computing…" over the whole pane, Throughput tab included, and that is the exact blink T118 removed for
+the poll refresh. T118's reasoning does not carry over (it is about a refresh of the *same* profile), but
+the ugliness does.
+
+Keeping the last report **per profile** would make the round trip instant *and* correct — the case the
+field report is about is the one a cache serves best, since the user is going back to something the window
+computed sixty seconds ago. The reason this stays an idea rather than a task is that a cached report is a
+stale one the moment its profile is polled again, and this app's whole claim is that a number on screen is
+a number that was measured. So the design question is not "how to cache" but **what makes a cached view
+honest**: whether the footer's "Atualizado …" timestamp is enough on its own, what invalidates an entry
+(its own poll landing, certainly — but the transcripts move continuously and the curve is built from
+them), and whether a report older than some age should be shown at all rather than recomputed behind it.
+Answer those and it is a small change; skip them and it is T118's blink traded for a subtler lie.

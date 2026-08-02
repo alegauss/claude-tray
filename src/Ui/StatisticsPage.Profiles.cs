@@ -65,12 +65,28 @@ internal partial class StatisticsPage
 
         // A profile the tray isn't polling for the icon has no live reading in hand — but it has its own
         // stored series (T125), and its last logged reading is exactly as fresh as its last poll. That is
-        // the honest snapshot to draw it from; the footer timestamp says when it was taken.
+        // the honest snapshot to draw it from; the footer timestamp says when it was taken. The monitored
+        // profile is restored from where the poll loop keeps it, **never** from `_snapshot`: by this point
+        // `_snapshot` is whatever the profile being left behind put there (T164).
         _snapshot = _showingMonitored
-            ? _snapshot
+            ? _monitoredSnapshot
             : UsageHistory.Latest(_profile.Key) is { } h
                 ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d)
                 : null;
+
+        // The banner belongs to the reading it came with. "The live API is unavailable" is a fact about
+        // the profile the tray polls; carrying it over a stored reading of another account would blame
+        // that account for an outage nothing tried to reach on its behalf.
+        _error = _showingMonitored ? _monitoredError : null;
+
+        // Both windows' last-rendered pace go with it. They are kept so a resize can redraw without a
+        // rescan (and the Throughput tab reads them for its two window averages) — which makes them the
+        // *previous* profile's curves from here until the new report lands, and permanently if this
+        // profile has nothing to report. Clearing them is also what puts "computing…" back up: with a
+        // report on screen T118 deliberately leaves it there, and that rule is about a refresh of the
+        // same profile, not about a switch to another one.
+        _session = null;
+        _weekly = null;
 
         // The live strip is a different config dir's transcripts now.
         StopLive(dispose: true);

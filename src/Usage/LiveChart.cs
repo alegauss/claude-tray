@@ -680,5 +680,29 @@ internal sealed class LiveChart
         _slide.X = 0;
     }
 
+    /// <summary>
+    /// Throw away everything drawn so far, so the next <see cref="Render"/> adopts its series wholesale
+    /// instead of appending to them. <b>Stopping is not the same as clearing</b>: this chart keeps its own
+    /// history by design (T119) precisely so a recomputation cannot rewrite the past — which is right
+    /// while the past belongs to the same source, and wrong the moment the source changes. Switching the
+    /// Statistics window to another profile is exactly that: a different config dir's transcripts, whose
+    /// first second would otherwise be spliced onto three minutes of the previous account's line (T164).
+    /// </summary>
+    public void Clear()
+    {
+        Stop();
+        foreach (Path p in _layers) p.Data = null;
+        foreach (Path p in _over) p.Data = null;
+        _hist = null;
+        _histSecond = long.MinValue;
+        _scale = _ceiling = 0;
+        _host.ToolTip = _tipText = null;
+        _clipped = 0;
+        HideReading();                  // nothing drawn is nothing to read
+        LayoutAxis(0, 0, 0);            // and no scale to label, since nothing is drawn against one
+        // An empty chart *is* the flat state, so a tick that finds nothing to draw must not repaint it.
+        _flat = true;
+    }
+
     private static Brush Freeze(SolidColorBrush b) { b.Freeze(); return b; }
 }

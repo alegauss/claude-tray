@@ -1,12 +1,12 @@
-# Last task number — `T163` · next block letter — `AA`
+# Last task number — `T166` · next block letter — `AB`
 
-> **Single source of truth for the next free task number.** The next new task is `T164`; after
+> **Single source of truth for the next free task number.** The next new task is `T167`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `AA`** (Block **Z** = What the app knows and doesn't say; created 2026-08-02).
-> Z is the last single letter, so the scheme continues **AA, AB, …** — two letters, same ordering, and
-> `CHANGELOG.md`'s table sorts them after Z. Nothing in the docs parses a block letter, so this costs
-> a wider column and nothing else.
+> **Next block letter — `AB`** (Block **AA** = The picker switches profiles; the window has to switch
+> with it; created 2026-08-02). Z was the last single letter, so the scheme continues **AA, AB, …** —
+> two letters, same ordering, and `CHANGELOG.md`'s table sorts them after Z. Nothing in the docs parses
+> a block letter, so this costs a wider column and nothing else.
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -149,6 +149,15 @@
   The rule it leaves behind is in [AGENTS.md](AGENTS.md): a page is constructed before it is shown, so
   its constructor must not `FindResource` a theme brush — the dictionary hangs off the window.
   Shipped in the same commit it was created in, so it has no `ROADMAP.md`/`IMPROVEMENTS.md` entries.
+- Block **AA** (T164–T166, created 2026-08-02) is a **field report against shipped Block O**, on the
+  Block R / U / W precedent: O is closed and pruned, and this is a defect found by *using* the feature.
+  The first two-letter block — Z was the last single letter, and nothing in the docs parses one.
+  T164 shipped in the commit that created the block, so it has no `ROADMAP.md`/`IMPROVEMENTS.md` entries;
+  T165 and T166 came out of fixing it and are the block's open half. The rule T164 leaves behind is
+  general enough to be worth stating: **state whose lifetime is "the window" is a bug when its subject is
+  "the profile on screen"** — all three defects were that one shape, and the third (a chart that appends
+  by design) shows the trap has a *correct* version, so the fix is a reset at the switch rather than
+  making anything less sticky.
 - Block **Z** (T159–T163, created 2026-08-02) is the **read-back of Block V**, not a second pass of it:
   V corrected the evidence behind the projection, and reading those four commits against the running
   app showed the app never tells anybody what it now knows. T159 and T160 are that mismatch (a number
@@ -277,3 +286,4 @@ here. This file is a terse index, not a memory.
 - **T161 SHIPPED** (Block Z — `ProjectSlug` asserted end to end; 21 checks, 108 total, no production change) — 2026-08-02.
 - **T162 SHIPPED** (Block Z — `[TrayOwned]` replaces the hand-maintained carry-over list; the round trip is asserted) — 2026-08-02.
 - **T163 SHIPPED** (Block Z — the straight-line projection says which line it is, and that it is weeks and not a setting) — 2026-08-02.
+- **T164 SHIPPED** (Block AA — a profile switch resets the reading, the tail and the drawn history, so coming back shows that profile) — 2026-08-02.
