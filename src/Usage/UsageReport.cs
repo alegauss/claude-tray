@@ -67,6 +67,19 @@ internal sealed class WindowPace
     // hour — so a window that sat idle all morning isn't paced as if it hadn't.
     public double MeasuredActiveHours;
 
+    // The overage series over this same span (T183): x = fraction of the window elapsed, y = the overage
+    // utilization exactly as the API reported it. Empty unless the stored readings carry one.
+    //
+    // Deliberately NOT merged into Curve and never plotted against its axis. Curve and the pace line are
+    // fractions of a fixed cap, which is the whole reason a 0–100% axis means something and the gridlines
+    // can be read. Nothing has established what the overage percentage is a fraction *of*, so laying it
+    // over that axis would assert a denominator nobody has measured — the one lie this chart must not
+    // tell. It gets its own axis, scaled to its own observed maximum (ExtraMax).
+    public List<(double frac, double val)> ExtraCurve = new();
+
+    // The largest overage reading in the window — what the second axis is scaled to. 0 when there is none.
+    public double ExtraMax;
+
     // The activity-aware projection (T87), or null to keep drawing the straight average-pace line:
     // weekly window only, and only when the profile has enough weeks behind it. See ActivityShape.
     public ActivityShape? Shape;
@@ -235,6 +248,22 @@ internal static class UsageReport
         w.TokensInWindow = total;
         w.RequestsInWindow = inWin.Count;
         w.MeasuredActiveHours = activeHours.Count;
+
+        // The overage series (T183), gathered here because the same readings are already in hand.
+        //
+        // Selected by *time* only, with no reset matching: overage runs on its own reset clock
+        // (`anthropic-ratelimit-unified-overage-reset`), so requiring it to match this window's reset —
+        // as the utilization series must, or a previous window's samples would splice onto this one —
+        // would discard every point. `null` is skipped rather than read as 0: a reading with no overage
+        // figure is not a measurement of zero (T179), and plotting it as one would draw a floor that
+        // nobody recorded.
+        foreach (UsageSample s in hist)
+        {
+            if (s.T < start || s.T > now || s.Extra is not { } x) continue;
+            w.ExtraCurve.Add((Math.Clamp((s.T - start) / w.WindowSeconds, 0, 1), x));
+            if (x > w.ExtraMax) w.ExtraMax = x;
+        }
+        w.ExtraCurve.Sort((a, b) => a.frac.CompareTo(b.frac));
 
         // Preferred path: the real measured utilization over this window.
         var real = new List<(double frac, double cum)>();

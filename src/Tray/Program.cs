@@ -377,6 +377,17 @@ internal static class Program
                     PreviewDemoGhost = args.Any(a => a.Equals("ghost", StringComparison.OrdinalIgnoreCase)),
                 }));
             }
+            // "--stats overage" previews the second axis (T183): a week whose included quota ran out
+            // part-way through and which kept working and billing. Synthetic, because putting a real
+            // account past its own limit is not something a screenshot can arrange.
+            else if (args.Length >= 2 && args[1].Equals("overage", StringComparison.OrdinalIgnoreCase))
+            {
+                var spent = new PaceSnapshot(
+                    Util5h: 0.0, Reset5h: now + 5 * 3600,
+                    Util7d: 1.0, Reset7d: now + 2 * 86400,      // the quota is gone; the clay line is what moves
+                    Extra: 0.47, ResetExtra: now + 2 * 86400);
+                previewApp.Run(Host(new StatisticsPage(spent, remaining) { PreviewDemoOverage = true }));
+            }
             // "--stats live" feeds the throughput strip a deterministic synthetic three minutes
             // instead of the real tail: the live row depends on whatever happens to be generating,
             // which cannot be screenshotted twice the same way.
@@ -482,12 +493,17 @@ internal static class Program
             // projection runs out before the reset, so the staircase's landing marker and the
             // usually-idle bands are in the captured 7d tab (see `--stats shape`).
             bool heavyWeek = args.Any(a => a.Equals("shape", StringComparison.OrdinalIgnoreCase));
+            // "overage" spends the week outright and draws the second axis (T183) — the state an account
+            // cannot be put into on demand, so the only way to look at that chart before shipping it.
+            bool overage = args.Any(a => a.Equals("overage", StringComparison.OrdinalIgnoreCase));
             var sample = new PaceSnapshot(
                 Util5h: 0.72, Reset5h: now + 2 * 3600,
-                Util7d: heavyWeek ? 0.74 : 0.38, Reset7d: now + 3 * 86400);
+                Util7d: overage ? 1.0 : heavyWeek ? 0.74 : 0.38, Reset7d: now + 3 * 86400,
+                Extra: overage ? 0.47 : null, ResetExtra: overage ? now + 3 * 86400 : 0);
             var statsPage = new StatisticsPage(sample)
             {
                 PreviewDemoGhost = args.Any(a => a.Equals("ghost", StringComparison.OrdinalIgnoreCase)),
+                PreviewDemoOverage = overage,
                 // Deterministic live strip, so the captured PNG is stable across runs.
                 PreviewDemoLive = args.Any(a => a.Equals("live", StringComparison.OrdinalIgnoreCase)),
             };

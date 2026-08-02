@@ -470,23 +470,6 @@ The alternative is tempting and wrong: shipping "Extra usage: 42% of your extra-
 plausible guess. A tray whose whole value proposition is *this number is trustworthy* cannot afford a
 label that turns out to name a different denominator.
 
-### §XVIII.5 A chart that cannot draw the thing being asked about (T183)
-
-The weekly chart's story is *here is your curve, here is the pace line, here is where it meets 100%*. For
-an account in overage that story ends before the interesting part: the curve flattens against the ceiling,
-the projection reports the window exhausted, and the quantity that is still moving is not on the canvas.
-
-Once T179 stores the series this becomes an honest design question rather than a plumbing one, and it has
-a sharp constraint. The two existing series are fractions of a fixed cap, which is what lets them share a
-0–100% axis and what makes the gridlines mean something. Overage — pending T181 — may have no comparable
-cap. Putting an uncapped series on a capped axis is how a chart tells its first lie, so the choice is
-between a second axis, a separate pane, or a presentation that is not a percentage at all.
-
-Worth stating what this is *not*: it is not a second projection. The weekly projection answers "when do
-you run out", and for an account in overage the answer has already happened. Projecting *spend* forward is
-a different feature with different obligations (it would be the app making a claim about money), and it is
-deliberately outside this task.
-
 ### §XVIII.6 The transition nobody is told about (T184 — idea)
 
 The tray notifies on resets — good news, opt-in per window, with a floor so a trivial reset does not ping.

@@ -195,6 +195,13 @@ this same point in the week. It appears once there are two weeks of history to d
 stays hidden if too much of that week went unrecorded — a line drawn from hours the app wasn't
 running would look like a quiet week, which is exactly the wrong conclusion.
 
+**Extra usage, on an axis of its own.** If you go past the quota included in your plan and keep
+working, the weekly chart draws what you're spending past it as a **clay** line — with its **own
+right-hand scale**, never against the 0–100% one. That axis means "of the quota included in your
+plan", and the overage figure isn't a fraction of anything comparable, so sharing the axis would
+quietly imply a denominator nobody has established. The legend says "own scale" for the same
+reason. It's not a second projection: "when do you run out" has already been answered.
+
 ## ✨ Reset notifications — color-coded, at a glance
 
 When a usage window hands your quota back, the app celebrates it with a **bespoke, on-brand

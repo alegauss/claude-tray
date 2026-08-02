@@ -333,6 +333,14 @@
                                 <TextBlock Text="{local:Loc stats.legend.usualIdle}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
+                            <!-- Shown only when this window carries an overage series (T183). Named as
+                                 having its own scale right here in the legend, because it is the one line
+                                 on this chart that is NOT read against the percentage axis. -->
+                            <StackPanel x:Name="LegendExtraW" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
+                                <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#D97757" />
+                                <TextBlock Text="{local:Loc stats.legend.extra}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
                             <!-- Shown only when enough of last week was recorded to draw its ghost. -->
                             <StackPanel x:Name="LegendGhostW" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
                                 <Rectangle Width="16" Height="2" VerticalAlignment="Center" Opacity="0.32"

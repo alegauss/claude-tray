@@ -35,7 +35,6 @@
 > user would actually see.
 
 - ⏳ **T181** (deps: —) **Nobody has established what the overage percentage is a percentage of** — It is printed beside two figures meaning *of your included window*, and no reading of a real account mid-overage exists to settle what 100% of this one would be. → §XVIII.3
-- 📋 **T183** (deps: T179 ✅, T181) **The Statistics window has no overage anywhere** — The weekly chart draws a curve flattening against a ceiling while the quantity that costs money climbs off-chart, and an uncapped series has no axis to share. → §XVIII.5
 - 💭 **T184** (deps: T181) **Nothing marks the moment the included quota ends and the meter starts** — Resets are notified because they are good news, and the one transition that starts costing the user money passes without a word. → §XVIII.6
 
 ## Block AD — The window can be read now, and what that turned up

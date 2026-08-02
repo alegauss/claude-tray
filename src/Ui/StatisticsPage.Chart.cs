@@ -44,6 +44,12 @@ internal partial class StatisticsPage
                 : warning;
         }
 
+        // At the limit *and* still spending: the window said "until then, usage is blocked" while the
+        // account was working and being charged for it — the tooltip's defect (T182) in the one surface
+        // that also draws the evidence. Said before either mode's switch, because both were wrong.
+        if (w.Verdict == PaceVerdict.AtLimit && w.ExtraCurve.Count > 0 && w.ExtraMax > 0)
+            return L.T("stats.proj.billing", Pct(w.ExtraCurve[^1].val), toReset);
+
         if (_remaining)
         {
             return w.Verdict switch
@@ -92,8 +98,11 @@ internal partial class StatisticsPage
         var grid = (Brush)FindResource("DividerStrokeColorDefaultBrush");
         var axisFg = (Brush)FindResource("TextFillColorTertiaryBrush");
 
-        // Right margin leaves room for the 0/50/100% gridline labels past the plot's right edge.
-        const double left = 6, right = 36, top = 10, bottom = 22;
+        // Right margin leaves room for the 0/50/100% gridline labels past the plot's right edge — and a
+        // second gutter beyond them when there is an overage series to scale (T183).
+        bool hasExtra = w.ExtraCurve.Count >= 2 && w.ExtraMax > 0;
+        const double left = 6, top = 10, bottom = 22;
+        double right = hasExtra ? 78 : 36;
         double pw = W - left - right, ph = H - top - bottom;
         double X(double frac) => left + Math.Clamp(frac, 0, 1) * pw;
         // Y for a display value (0 at the bottom axis, 1 at the top). The 0/50/100% gridlines and their
@@ -364,6 +373,63 @@ internal partial class StatisticsPage
             });
             AddHit(c, (xa + xb) / 2, Yc((c0 + c1) / 2),
                 L.T("stats.chart.unavailable", LocalTime(windowStart + f0 * w.WindowSeconds)));
+        }
+
+        // The overage series, on an axis of its own (T183).
+        //
+        // The quantity that costs money is the one thing this chart could not draw: the usage curve
+        // flattens against the ceiling and the interesting number keeps climbing off-canvas. It is drawn
+        // here in the same clay the tray icon wears for the paying state, on a **separate right-hand
+        // scale** with its own labelled maximum — never against the 0–100% axis, because that axis means
+        // "of the quota included in your plan" and nothing has established that this figure is a fraction
+        // of anything comparable. Two axes stated plainly is honest; one axis silently shared is not.
+        //
+        // Explicitly not a projection: the weekly projection answers "when do you run out", which for an
+        // account already in overage has been answered. Projecting spend forward would be the app making
+        // a claim about money, and it is deliberately not this task.
+        if (hasExtra)
+        {
+            // Headroom above the peak, so this series' maximum never lands on the 100% gridline. Scaled
+            // flush to its own max, the two axes would agree exactly at the top of the plot — drawing the
+            // precise coincidence ("your overage maximum *is* your quota ceiling") that separating them
+            // exists to deny. The peak sits at ~83% of the height instead, where it reads as its own.
+            double eTop = w.ExtraMax * 1.2;
+            double Ye(double v) => top + (1 - Math.Clamp(v / eTop, 0, 1)) * ph;
+
+            var poly = new Polyline { Stroke = BillingBrush, StrokeThickness = 2 };
+            foreach (var (frac, val) in w.ExtraCurve)
+                poly.Points.Add(new System.Windows.Point(X(frac), Ye(val)));
+            c.Children.Add(poly);
+
+            // A short tick at the peak rather than a rule across the plot: a full-width dashed line would
+            // compete with the projection's, and this axis has no target worth spanning the chart for.
+            c.Children.Add(HLine(X(1) - 8, X(1), Ye(w.ExtraMax), BillingBrush, null));
+            var top1 = new TextBlock { Text = Pct(w.ExtraMax), FontSize = 10, Foreground = BillingBrush };
+            Canvas.SetLeft(top1, X(1) + 38);
+            Canvas.SetTop(top1, Ye(w.ExtraMax) - 8);
+            c.Children.Add(top1);
+
+            var zero = new TextBlock { Text = Pct(0), FontSize = 10, Foreground = BillingBrush };
+            Canvas.SetLeft(zero, X(1) + 38);
+            Canvas.SetTop(zero, Ye(0) - 8);
+            c.Children.Add(zero);
+
+            // Which gutter is which, said once rather than inferred from two columns of percentages.
+            var cap = new TextBlock
+            {
+                Text = L.T("stats.chart.extraAxis"), FontSize = 9, Foreground = BillingBrush,
+                LayoutTransform = new RotateTransform(90),
+            };
+            Canvas.SetLeft(cap, X(1) + 66);
+            Canvas.SetTop(cap, top);
+            c.Children.Add(cap);
+
+            var (lastF, lastV) = w.ExtraCurve[^1];
+            var edot = new Ellipse { Width = 7, Height = 7, Fill = BillingBrush };
+            Canvas.SetLeft(edot, X(lastF) - 3.5);
+            Canvas.SetTop(edot, Ye(lastV) - 3.5);
+            c.Children.Add(edot);
+            AddHit(c, X(lastF), Ye(lastV), L.T("stats.chart.extraNow", Pct(lastV)));
         }
 
         // Axis labels: window start (left) and reset time (right).

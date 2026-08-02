@@ -339,6 +339,7 @@
   "stats.legend.projection": "proyección",
   "stats.legend.usualIdle": "normalmente inactivo",
   "stats.legend.lastWeek": "semana pasada",
+  "stats.legend.extra": "uso extra (escala propia)",
   "stats.methodTitle": "Cómo se miden estos números",
   "stats.methodNote": "«Usado» y el reinicio vienen en directo de los límites de tasa de Anthropic; la curva es tu utilización real medida a lo largo de la ventana (hasta que hay registro suficiente, se reconstruye a partir de las transcripciones locales). La proyección asume el ritmo medio actual.",
   "stats.methodNote.shape": "La proyección semanal sigue las horas en las que sueles estar activo ({0} semanas de transcripciones locales{1}), así que se mantiene plana de madrugada en vez de gastar la cuota de forma uniforme — es un hábito, no un horario. El uso desde otra máquina o desde claude.ai cuenta para el mismo límite pero no deja transcripción aquí, así que una hora que parece inactiva puede no serlo.",
@@ -399,6 +400,7 @@
   // Projection text
   "stats.proj.noWindow": "Aún no hay lectura de límite para esta ventana.",
   "stats.proj.atLimit": "Has alcanzado el límite de esta ventana. Se reinicia en {0} — hasta entonces, el uso está bloqueado.",
+  "stats.proj.billing": "Has gastado la cuota incluida en esta ventana y sigues trabajando — el uso extra está pagando, ahora en {0} de su propia escala. Esta ventana se reinicia en {1}.",
   "stats.proj.aheadEta": "Al ritmo actual, tu cuota llega al 100% en {0} — unos {1} antes del reinicio (en {2}). Conviene reducir el ritmo para no quedar bloqueado.",
   "stats.proj.ahead": "Estás consumiendo por encima del ritmo equilibrado (se esperaría {0} a estas alturas, pero ya has usado {1}). Se reinicia en {2}.",
   "stats.proj.ok": "Vas a ritmo equilibrado — por debajo del objetivo de {0}. Al ritmo actual, la cuota dura tranquilamente hasta el reinicio, en {1}.",
@@ -429,6 +431,8 @@
   "stats.chart.start": "inicio {0}",
   "stats.chart.reset": "reinicio {0}",
   "stats.chart.unavailable": "Uso en directo no disponible desde {0} — sin datos en este tramo",
+  "stats.chart.extraAxis": "uso extra",
+  "stats.chart.extraNow": "Uso extra: {0} (escala propia — mira la nota del método)",
 
   // ================= Ventana de carga de contexto (ContextWindow) =================
   // Todas las claves de abajo pertenecen a esta función; los subcomentarios las agrupan por panel.

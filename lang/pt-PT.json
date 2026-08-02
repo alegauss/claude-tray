@@ -340,6 +340,7 @@
   "stats.legend.projection": "projeção",
   "stats.legend.usualIdle": "normalmente inativo",
   "stats.legend.lastWeek": "semana passada",
+  "stats.legend.extra": "uso extra (escala própria)",
   "stats.methodTitle": "Como estes números são medidos",
   "stats.methodNote": "“Utilizado” e a reposição vêm em direto dos limites de taxa da Anthropic; a curva é a sua utilização real medida ao longo da janela (até haver registo suficiente, é reconstruída a partir das transcrições locais). A projeção assume o ritmo médio atual.",
   "stats.methodNote.shape": "A projeção semanal segue as horas em que costuma estar ativo ({0} semanas de transcrições locais{1}), pelo que fica plana de madrugada em vez de gastar a quota de modo uniforme — é um hábito, não um horário. Utilização noutra máquina ou no claude.ai conta para o mesmo limite mas não deixa transcrição aqui, por isso uma hora que parece inativa pode não o ser.",
@@ -400,6 +401,7 @@
   // Projection text
   "stats.proj.noWindow": "Ainda não há leitura de limite para esta janela.",
   "stats.proj.atLimit": "Atingiu o limite desta janela. Repõe em {0} — até lá, a utilização está bloqueada.",
+  "stats.proj.billing": "Gastou a quota incluída nesta janela e continua a trabalhar — o uso extra está a pagar, agora em {0} da escala própria dele. Esta janela repõe em {1}.",
   "stats.proj.aheadEta": "Ao ritmo atual, a sua quota chega a 100% em {0} — cerca de {1} antes da reposição (em {2}). Vale a pena abrandar para não ficar bloqueado.",
   "stats.proj.ahead": "Está a consumir acima do ritmo equilibrado ({0} seria o esperado até agora, mas já utilizou {1}). Repõe em {2}.",
   "stats.proj.ok": "Está no ritmo equilibrado — abaixo da meta de {0}. Ao ritmo atual, a quota dura tranquilamente até à reposição, em {1}.",
@@ -430,6 +432,8 @@
   "stats.chart.start": "início {0}",
   "stats.chart.reset": "reposição {0}",
   "stats.chart.unavailable": "Utilização em direto indisponível desde {0} — sem dados neste intervalo",
+  "stats.chart.extraAxis": "uso extra",
+  "stats.chart.extraNow": "Uso extra: {0} (escala própria — veja a nota do método)",
 
   // ================= Janela de carga de contexto (ContextWindow) =================
   // Todas as chaves abaixo pertencem a esta funcionalidade; os subcomentários agrupam por painel.

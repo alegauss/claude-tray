@@ -339,6 +339,7 @@
   "stats.legend.projection": "projection",
   "stats.legend.usualIdle": "habituellement inactif",
   "stats.legend.lastWeek": "semaine dernière",
+  "stats.legend.extra": "usage suppl. (échelle propre)",
   "stats.methodTitle": "Comment ces chiffres sont mesurés",
   "stats.methodNote": "« Utilisé » et la réinitialisation viennent en direct des limites de débit d'Anthropic ; la courbe est votre utilisation réelle mesurée sur la fenêtre (jusqu'à ce qu'assez de points soient enregistrés, elle est reconstruite depuis les transcriptions locales). La projection suppose le rythme moyen actuel.",
   "stats.methodNote.shape": "La projection hebdomadaire suit les heures où vous êtes habituellement actif ({0} semaines de transcriptions locales{1}) : elle reste donc plate la nuit au lieu de dépenser le quota uniformément — c'est une habitude, pas un horaire. L'usage depuis une autre machine ou depuis claude.ai compte sur la même limite mais ne laisse aucune transcription ici, donc une heure qui semble inactive ne l'est pas forcément.",
@@ -399,6 +400,7 @@
   // Projection text
   "stats.proj.noWindow": "Aucune lecture de limite pour cette fenêtre pour l'instant.",
   "stats.proj.atLimit": "Vous avez atteint la limite de cette fenêtre. Elle se réinitialise dans {0} — d'ici là, la consommation est bloquée.",
+  "stats.proj.billing": "Vous avez épuisé le quota inclus dans cette fenêtre et continuez à travailler — l’usage supplémentaire paie, actuellement à {0} de sa propre échelle. Cette fenêtre se réinitialise dans {1}.",
   "stats.proj.aheadEta": "Au rythme actuel, votre quota atteint 100% dans {0} — environ {1} avant la réinitialisation (dans {2}). Mieux vaut lever le pied pour ne pas être bloqué.",
   "stats.proj.ahead": "Vous consommez au-dessus du rythme régulier ({0} serait attendu à ce stade, mais vous avez déjà utilisé {1}). Elle se réinitialise dans {2}.",
   "stats.proj.ok": "Vous êtes à un rythme régulier — sous la cible de {0}. Au rythme actuel, le quota tient confortablement jusqu'à la réinitialisation, dans {1}.",
@@ -429,6 +431,8 @@
   "stats.chart.start": "début {0}",
   "stats.chart.reset": "réinit. {0}",
   "stats.chart.unavailable": "Consommation en direct indisponible depuis {0} — aucune donnée sur cet intervalle",
+  "stats.chart.extraAxis": "usage suppl.",
+  "stats.chart.extraNow": "Usage supplémentaire : {0} (échelle propre — voir la note de méthode)",
 
   // ================= Fenêtre de charge de contexte (ContextWindow) =================
   // Toutes les clés ci-dessous appartiennent à cette fonctionnalité ; les sous-commentaires les groupent par panneau.

@@ -44,6 +44,10 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     private static readonly Brush OutageBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xE3, 0x3B, 0x30)));
     private static readonly Brush OutageBandBrush = Freeze(new SolidColorBrush(Color.FromArgb(0x22, 0xE3, 0x3B, 0x30)));
 
+    /// <summary>The overage series and its own axis (T183) — the same clay the tray icon wears for the
+    /// paying state, so one colour means "past the included quota" across the whole app.</summary>
+    private static readonly Brush BillingBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xD9, 0x77, 0x57)));
+
     // Projected-idle bands: the projection's own amber at band strength. Deliberately *not* red —
     // red already means "no reading was logged", and "we measured, and it was zero" is the opposite
     // claim. Past idle gets no band at all: the curve is already visibly flat there.
@@ -356,6 +360,30 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     /// the line could not be screenshotted until the machine had been running that long.</summary>
     internal bool PreviewDemoGhost { get; init; }
 
+    /// <summary>Preview seam: a synthetic overage series on the weekly chart (T183). The real one needs an
+    /// account that has actually gone past its included quota, which is a state no machine can be put into
+    /// on demand — so without this the second axis could never be looked at before shipping it. Same rule
+    /// as the other fixtures: synthetic input, real drawing code. See <c>--stats overage</c>.</summary>
+    internal bool PreviewDemoOverage { get; init; }
+
+    /// <summary>The shape of a week that ran out mid-way and kept working: flat nothing until the quota is
+    /// spent, then a climb that does not stop at the ceiling because it is not measured against one.</summary>
+    private static void FillDemoOverage(WindowPace w)
+    {
+        if (!w.HasWindow || w.ExtraCurve.Count > 0) return;
+        // Relative to how much of the window has actually elapsed, not an absolute fraction: the preview
+        // is only ever as wide as "now", so a fixed onset past it produces an empty series and a chart
+        // that silently draws nothing.
+        double onset = w.ElapsedFraction * 0.55;         // where the included quota ran out
+        double span = Math.Max(0.001, w.ElapsedFraction - onset);
+        for (int i = 0; i <= 40; i++)
+        {
+            double t = i / 40.0, f = onset + t * span;
+            w.ExtraCurve.Add((f, 0.47 * t * (0.75 + 0.25 * Math.Sin(t * 9))));
+        }
+        foreach (var (_, v) in w.ExtraCurve) w.ExtraMax = Math.Max(w.ExtraMax, v);
+    }
+
     private void Render(PaceReport r)
     {
         ComputedText.Text = L.T("stats.updated", r.ComputedLocal.ToString("MMM d, HH:mm", DateFmt));
@@ -379,6 +407,8 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
 
         _session = r.Session;
         _weekly = r.Weekly;
+
+        if (PreviewDemoOverage) FillDemoOverage(r.Weekly);
 
         if (PreviewDemoGhost && r.Weekly.Ghost is null && r.Weekly.HasWindow)
             r.Weekly.Ghost = HourlyUsage.Demo(
@@ -453,6 +483,8 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         LegendIdleW.Visibility = shaped && r.Weekly.Shape!.IdleBands.Count > 0
             ? Visibility.Visible : Visibility.Collapsed;
         LegendGhostW.Visibility = r.Weekly.Ghost is not null ? Visibility.Visible : Visibility.Collapsed;
+        LegendExtraW.Visibility = r.Weekly.ExtraCurve.Count >= 2 && r.Weekly.ExtraMax > 0
+            ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // The "why the figure is smaller than the history" clause, or nothing when no week was dropped.
