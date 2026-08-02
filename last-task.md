@@ -240,3 +240,4 @@ here. This file is a terse index, not a memory.
 - **T157 SHIPPED** (Block X — auto-follow's description says what it does before how it reads it) — 2026-08-02.
 - **T158 SHIPPED** (Block Y — one window with three destinations; the tray menu keeps only what needs no window) — 2026-08-02.
 - **T150 SHIPPED** (Block V — the live rate is normalised by the kernel's real sum, so sustained work reads as itself) — 2026-08-02.
+- **T151 SHIPPED** (Block V — a `check` workflow runs `--selftest` on every push and PR, so a broken invariant is a red commit) — 2026-08-02.

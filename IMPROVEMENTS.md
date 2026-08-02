@@ -104,9 +104,11 @@ deliberately — this file is published with the repo. The right-hand column is 
 
 Building `--selftest` (T96) was the first time the pacing and live-rate arithmetic was written down as
 properties rather than looked at on a chart, and writing them down turned up four things: three gaps
-in what the check itself covers or guards, and one number that had been wrong on screen since T98
-(T150, shipped — the live rate's 1.7% kernel bias). None of them was found by a user report, which is
-the point: they were found by having to state what "correct" means.
+in what the check itself covers or guards, and one number that had been wrong on screen since T98.
+None of them was found by a user report, which is the point: they were found by having to state what
+"correct" means. Two have shipped — T150, the live rate's 1.7% kernel bias, and T151, the check running
+on push instead of only at release — so what is designed below is the remaining pair: what the check
+still gets wrong about a week away, and two properties it does not assert at all.
 
 ### §XII.2 A week away shouldn't teach the measured grid either (T152)
 
@@ -140,16 +142,4 @@ seam: `LiveRate.Add` is private and reached only through `tail.Appended`, so mak
 same visibility the fixtures already rely on) lets a check push a burst, skip thirty seconds of
 `Tick`, and assert the strip came back empty instead of holding its last value. A property listed as
 the reason a feature exists and then left unasserted is worse than one nobody wrote down.
-
-### §XII.4 The self-check only runs when a release is cut (T151)
-
-`build.yml` is `workflow_dispatch` only, so `--selftest` — now wired into it — runs when somebody
-decides to publish. A broken invariant therefore surfaces at the least convenient moment available,
-with an installer half-built behind it.
-
-The check takes 2.3 seconds and needs no secrets, no signing and no Inno Setup. Running it on push and
-on pull requests as its own small job (build, run, done) turns "the release is blocked" into "the
-commit is red", which is the entire value of having written the properties down. Deliberately a
-separate job rather than a condition on the existing one: the release workflow must stay manual, and a
-guard that can only run by publishing is not a guard.
 

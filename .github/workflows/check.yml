@@ -1,0 +1,68 @@
+name: check
+
+# The guard, on every push and pull request: build the app and run the checks it carries
+# (`--selftest`, T96) over the pacing and live-rate arithmetic.
+#
+# Deliberately a workflow of its own rather than a job added to build.yml. The trigger belongs to the
+# workflow, not to the job, and build.yml must stay `workflow_dispatch` — cutting a release is a
+# decision somebody makes, never something a push does. A guard that can only run by publishing is
+# not a guard: it turns "this commit is red" into "the release is blocked", with an installer
+# half-built behind it. build.yml runs the same check again against the packaged single-file .exe,
+# which is a different artifact and worth asserting twice.
+#
+# Nothing here needs a secret, a signature or Inno Setup — build, run, done.
+#
+# The two `paths-ignore` lists are duplicated on purpose: GitHub Actions does not support YAML
+# anchors, so a shared list would silently not be shared. Keep them in step.
+on:
+  push:
+    branches: ['**']          # branches only: a tag push is a release, and build.yml owns that path
+    # A commit that touches only prose cannot move the arithmetic. `paths-ignore` skips the run only
+    # when *every* changed file matches, so the usual code-plus-docs commit still runs the check.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'             # the published GitHub Pages site
+      - 'LICENSE'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+
+permissions:
+  contents: read
+
+# A superseded push has nothing left to say — cancel its run rather than queue behind it.
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  selftest:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      # `dotnet build`, not `dotnet publish`: the csproj is self-contained for win-x64 either way, so
+      # the plain build output is a runnable .exe, and skipping the single-file bundling and its
+      # compression is most of the difference between this job and the release one.
+      - name: Build
+        run: dotnet build -c Release --nologo
+
+      # Started rather than invoked: the app is a Windows-subsystem .exe, so its output has to be
+      # redirected to be seen and its exit code has to be waited for. Same idiom as build.yml.
+      - name: Self-check
+        shell: pwsh
+        run: |
+          $exe = 'bin\Release\net10.0-windows\win-x64\ClaudeTray.exe'
+          $p = Start-Process $exe -ArgumentList '--selftest' -Wait -PassThru `
+                 -RedirectStandardOutput selftest.log -RedirectStandardError selftest.err
+          Get-Content selftest.log, selftest.err -ErrorAction SilentlyContinue
+          if ($p.ExitCode -ne 0) { throw "self-check failed (exit $($p.ExitCode))" }
