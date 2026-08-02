@@ -12,6 +12,7 @@
 |---|---|
 | [§I](#i--house-constraints) | House constraints (binding, app-wide) |
 | [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature (kept: it is data, not design) |
+| [§XIII](#xiii--what-the-app-knows-and-doesnt-say-block-z) | What the app knows and doesn't say (Block Z) |
 
 > Block I's design sections (§II), Block J's (§IV) and Block V's (§XII) are gone: every one of them
 > shipped, and `git log` plus [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a
@@ -96,3 +97,115 @@ deliberately — this file is published with the repo. The right-hand column is 
 | `settings.json` | 87 KB | settings bloat |
 | Base overhead (system prompt + tools + MCP) | ≈32k tokens, p25 30k / p75 34k | shown as its own gauge segment, never folded into a project's number |
 | Heaviest scannable eager load | ≈22k tokens (a 43 KB `AGENTS.md` + 20 KB index) | the hero number the gauge shows |
+
+---
+
+## §XIII — What the app knows and doesn't say (Block Z)
+
+Block V made the evidence behind the weekly projection correct: a week away no longer votes, in the
+transcript grid (T95) or in the measured one (T152), and `EffectiveWeeks` subtracts both. Reading those
+four commits back against the running app turned up the other half of the same idea. The app now knows
+exactly how much evidence it has and how much it discarded — and the one place a *user* reads that
+number still prints the span, while the guard that produces the measured half of it cannot fire on the
+machine it was written on. The two coverage tasks are the ones that keep the next such gap from being
+written at all: both are over code that has already produced shipped defects and that `--selftest`,
+after 80 assertions, does not touch.
+
+### §XIII.1 The method note counts the weeks the grid threw away (T159)
+
+`StatisticsPage` builds the shaped method note from `r.Weekly.Shape!.CoverageWeeks` — the coverage
+*span*, holidays included. The decision to draw a shaped projection at all was made from
+`EffectiveWeeks`, which subtracts them. So the note claims more evidence than the app was willing to
+act on: on the dev machine, "6.7 weeks of local transcripts" against the 4.7 weeks its own confidence
+line reports, with two weeks excluded in between. The measured branch has the same flaw and acquired it
+this week — it prints `MeasuredWeeks`, and since T152 that span can contain exclusions too.
+
+It is the T150 shape of defect exactly: a number that claims a unit, consistently overstated, nobody
+would report it, and it is free to fix now. The fix is the accessor, not the arithmetic — the shape
+already carries what it needs once `ActivityShape` copies the effective figure rather than the span.
+
+What is worth more than the correction is the sentence it enables. Having decided that silently
+discarding a sixth of the input looks like a bug three months later (T95's reasoning, and why
+`--activity` prints the exclusion), the app should say it in the one place a user actually reads:
+"4.7 weeks of local transcripts (2 weeks away excluded)". Five languages, one new placeholder, and
+the string stays a *method note* — it explains the number, it does not advertise a feature. Where no
+week was excluded the extra clause must not appear at all; a parenthetical that always says "(0
+excluded)" is noise that trains people to stop reading the note.
+
+### §XIII.2 A gate that cannot fire is not a guard (T160)
+
+T152 judges a folded week only once at least half its 168 hours carry a reading. That bar was chosen
+to resolve a real ambiguity — a quiet week is "away" or "the tray was closed", and only coverage tells
+them apart — and it does resolve it. It also, measured on the machine that shipped it, never opens:
+`--activity --measured` reports 67 and 71 covered hours against a bar of 84, because the tray runs
+about ten hours a day. Every week is `?`, nothing is ever judged, and the exclusion is unreachable in
+practice. The safe direction (an unjudged week keeps its old behaviour exactly) is what makes this a
+gap rather than a defect, but a guard that only fires for a machine the tray watches around the clock
+is not the guard that was designed.
+
+The question the gate is really asking is not "was this week mostly observed?" but "**did the tray run
+that week the way it runs the others?**" — which is a comparison, not an absolute. A week whose
+coverage reaches half the median week's was watched as usual, and a quiet one is then evidence of
+somebody being elsewhere; a week at a fifth of it is the tray being off, and stays unjudged. That reads
+the same store, keeps the two-verdict structure and the "unjudged weeks change nothing" property, and
+it fires on an ordinary machine.
+
+One guard has to come with it: relative alone would let a machine whose *typical* week holds fourteen
+covered hours judge a holiday on seven. So a week must clear both — half the median coverage **and** an
+absolute floor of roughly a day's worth of hours — or the verdict rests on a sample too small to mean
+anything. `--activity --measured` already prints each week's coverage beside its verdict (T152), which
+is what makes the new bar checkable on a real machine rather than argued about.
+
+### §XIII.3 The lossiest function in the app has no assertions (T161)
+
+`ProjectSlug` owns an encoding that cannot be inverted: every non-alphanumeric character becomes `-`,
+so `claude-tray` and `claude\tray` produce the same slug. Everything the app displays about a project
+goes through it, it has been the direct cause of two shipped defects (T105 — three call sites had grown
+their own decoders, one encoding a different character set; T154 — three checkouts all labelled
+`2026.3`), and it is *pure*: strings in, strings out, no clock, no profile, no store. `--selftest`
+covers the pacing, the folded store, the transcript grid, the tail's cursor and the rate kernel, and
+not one line of this.
+
+The properties are already written down as prose in the class and simply need stating as assertions:
+`Encode` agrees with what Claude Code writes for a path containing a literal hyphen; `RootFor` recovers
+the root from a `cwd` that has been `cd`-ed several levels deeper, and returns null rather than a guess
+when no ancestor encodes to the slug; `ShortName` is two segments, never one and never the whole path,
+and degrades to the leaf at a drive root; `TryProbe` backtracks (`viglet-model-catalog` resolves even
+when `viglet\model` exists) and returns only directories that exist; `Literal` and `Tail` are the
+deliberately-ambiguous last resorts and must stay reachable only as such. `TryProbe` is the one that
+needs a temp tree; the rest are pure and cost microseconds.
+
+### §XIII.4 A carry-over list is a field list wearing a different hat (T162)
+
+T141's finding was that copying a model field by field means a forgotten field is a silent reset, and
+its fix was to stop copying by hand: `Settings.Clone()` is a JSON round-trip, total by construction.
+The *other* end of the same round-trip is still hand-written. `ApplySettings` takes the edited model
+whole and then re-carries four fields the page does not edit — `Metric`, `EnvironmentProfileOwned`,
+`EnvironmentProfileRestore`, `MonitoredConfigDir` — one line each, because the window's snapshot of
+them is older than the tray's. Add a fifth tray-owned field and forget its line, and every Save writes
+a stale value over it: the exact defect T126 found (the monitored config dir) and T155 found again (the
+icon's profile, moved by a Save that no control on the page had touched).
+
+Four is already a list, and the list has no owner: it lives in `TrayContext`, while the fields it names
+live in `Settings`, so the two can drift without anything noticing. Marking the fields themselves —
+`[TrayOwned]` on the property, one loop in `ApplySettings` that carries everything so marked — puts the
+declaration next to the thing being declared and makes the carry total for the same reason the copy is.
+The assertion `--selftest` can then make is the one that matters: round-trip a `Settings` through the
+page's copy and the tray's apply with every property set to a non-default value, and nothing may change
+except what the page edits. A new field is then covered the day it is added rather than the day
+somebody notices it resetting.
+
+### §XIII.5 A straight line that doesn't say it is one (T163 — idea)
+
+When the profile is thin the projection quietly stops following the activity shape and goes back to the
+average-pace line, and the method note goes back to its generic text. Nothing tells the user that the
+better projection exists, that it was declined, or that it is a matter of time rather than of
+configuration — which is the one fact here somebody could act on, by leaving the tray running another
+week.
+
+It is an idea and not a design because the obvious implementation is the wrong one. "Not enough data
+yet (2.1 of 3 weeks)" in the method note is accurate and reads as an apology on every open, and this app
+has already ruled that a second nagging channel needs its own justification rather than inheriting one
+(the T87 non-goal). Worth exploring: whether the honest place is the note at all, whether it should
+appear only while the figure is actually climbing, and whether "the projection is a straight line
+because …" is better said where the line is drawn than in a paragraph under it.

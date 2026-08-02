@@ -53,11 +53,11 @@ internal static class LiveCli
     }
 
     /// <summary>Column width for a project name in the per-project lines. Wide enough for the two
-    /// segments the app names a directory by since T150 ("alegauss/claude-tray"), so the disambiguating
+    /// segments the app names a directory by since T154 ("alegauss/claude-tray"), so the disambiguating
     /// half is not what gets cut.</summary>
     private const int NameWidth = 24;
 
-    // Elided in the *middle*, not from the front: a name is "parent/leaf" since T150 and the parent is
+    // Elided in the *middle*, not from the front: a name is "parent/leaf" since T154 and the parent is
     // the half that tells two checkouts of the same release folder apart, so cutting the head would
     // throw away the reason it is there.
     private static string Trim(string s, int max)

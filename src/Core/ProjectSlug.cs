@@ -26,7 +26,7 @@ namespace ClaudeTray;
 ///
 /// <para>It also owns the other half of that question — <em>how the answer is written down</em>. Every
 /// screen that names a project names it through <see cref="ShortName"/>, so the Statistics legend and
-/// the Context Load Inspector's list cannot disagree about what to call the same directory (T150).</para>
+/// the Context Load Inspector's list cannot disagree about what to call the same directory (T154).</para>
 /// </summary>
 internal static class ProjectSlug
 {
@@ -74,7 +74,7 @@ internal static class ProjectSlug
     /// How a directory is <b>named on screen</b> anywhere in this app: its last two segments —
     /// <c>turing/2026.3</c>, <c>viglet/cloud</c> — never the full path and never the leaf alone.
     /// </summary>
-    /// <remarks>The leaf on its own is not an identity on a real machine (T150): a release folder is
+    /// <remarks>The leaf on its own is not an identity on a real machine (T154): a release folder is
     /// checked out once per client, so three different projects here are all called <c>2026.3</c>, and
     /// a legend that labels three lines identically has labelled none of them. One segment of parent is
     /// what disambiguates them in practice, and it is what the Context Load Inspector's project list has

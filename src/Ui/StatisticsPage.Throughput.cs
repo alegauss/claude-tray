@@ -377,7 +377,7 @@ internal partial class StatisticsPage
     // One swatch + label pair, shared by both legends so they cannot drift apart visually.
     private StackPanel LegendEntry(Color color, string text, string? tip)
     {
-        // The bottom margin only ever shows when the project legend wraps to a second row (T150); on
+        // The bottom margin only ever shows when the project legend wraps to a second row (T154); on
         // one row it is 3px of slack under a 10px swatch, which nothing else is measured against.
         var row = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal, Margin = new Thickness(0, 0, 18, 3) };
         row.Children.Add(new System.Windows.Shapes.Rectangle

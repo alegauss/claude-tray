@@ -28,7 +28,7 @@ internal static class ThroughputFixture
 {
     // Four repos plus a residual, so the per-project chart is drawn with the crossings that make the
     // fixed slots (T114) worth having. The phase staggers who is generating when. The names carry
-    // their parent segment because the real ones do (T150) — a fixture that publishes a shorter label
+    // their parent segment because the real ones do (T154) — a fixture that publishes a shorter label
     // than the app draws would understate what the legend has to fit.
     private static readonly (string Slug, string Name, int Phase, double Weight)[] Repos =
     {

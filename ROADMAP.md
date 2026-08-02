@@ -19,11 +19,25 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## No active backlog
+## Block Z — What the app knows and doesn't say
 
-Every numbered task has shipped or been dropped — see [CHANGELOG.md](CHANGELOG.md). Block V closed with
-T153 (2026-08-02) and is pruned from here along with its design section; the next task takes the number
-in [last-task.md](last-task.md) and opens a block under the next free letter.
+> Block V ended by making the evidence behind the projection *correct* — a holiday no longer votes,
+> in either grid. Reading the four commits back against the UI turned up the other half of the same
+> idea: the app now knows how much evidence it has, and the one place a user reads that number still
+> prints the **span**. Two of these are that mismatch on screen; two are the guards that keep the
+> next one from being written, both over code that has already produced shipped defects and has no
+> assertion at all.
+> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XIII.
+>
+> Ordered by what is wrong *today* for somebody looking at the app, then by what protects the rest:
+> T159 is a number on screen, T160 a guard that never fires on a normal machine, and the two
+> coverage tasks follow.
+
+- 📋 **T159** (deps: —) **The method note counts the weeks the grid threw away** — the Statistics note says "{0} weeks of local transcripts" from `Shape.CoverageWeeks`, the *span*, while the confidence gate that decided to draw the shape at all uses `EffectiveWeeks`; on the dev machine that is **6.7 weeks claimed against 4.7 of evidence**, and the measured branch prints `MeasuredWeeks` with the same flaw since T152 can now exclude there too. One number, five languages, and it should say *why* it is smaller when weeks were dropped. → §XIII.1
+- 📋 **T160** (deps: —) **The measured away-week gate never fires on a machine the tray doesn't watch all week** — T152's coverage test is an absolute half of 168 hours, and a tray running ~10h/day lands at 67 and 71 covered hours, so every week is "not judged" and the exclusion is unreachable in practice (measured, `--activity --measured`). Relative to the median week's coverage — with an absolute floor so a thin machine can't judge a week on a handful of hours — asks the question that actually separates *away* from *tray closed*: did the tray run that week the way it runs the others? → §XIII.2
+- 📋 **T161** (deps: —) **`ProjectSlug` is the app's most defect-prone pure function and has no assertions** — the one reader *and* writer of a lossy encoding (a separator and a literal hyphen encode identically), behind two shipped defects already (T105's three divergent decoders, T154's three lines all labelled `2026.3`), and every claim it makes is a pure string function: `Encode`, `RootFor`'s verify-don't-guess walk, `ShortName`'s two segments, `TryProbe`'s backtracking, `Literal`/`Tail`'s deliberate ambiguity. `--selftest` covers Blocks J and K and not one line of it. → §XIII.3
+- 📋 **T162** (deps: —) **The Settings carry-over list is hand-maintained, and forgetting a line is a silent revert** — T141 made the *copy* total by construction, but `ApplySettings` then re-carries four tray-owned fields (`Metric`, the two `EnvironmentProfile*`, `MonitoredConfigDir`) one line at a time, and a field missing from that list is written back stale on every Save. That exact bug has shipped twice (T126, T155). Declare tray-owned once on `Settings`, carry by the declaration, assert the two agree. → §XIII.4
+- 💭 **T163** (deps: —) **A straight-line projection never says why it isn't a shaped one** — when the profile is thin the app silently falls back to the average-pace line and the note reverts to generic text, so the one thing the user might act on (*keep the tray running another week and this gets better*) is the one thing never said. Needs design: what to say, where, and how not to turn a method note into a nag. → §XIII.5
 
 ## Non-goals (do NOT add as tasks)
 

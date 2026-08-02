@@ -1,9 +1,12 @@
-# Last task number — `T158` · next block letter — `Z`
+# Last task number — `T163` · next block letter — `AA`
 
-> **Single source of truth for the next free task number.** The next new task is `T159`; after
+> **Single source of truth for the next free task number.** The next new task is `T164`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `Z`** (Block **Y** = One window you navigate; created 2026-08-02).
+> **Next block letter — `AA`** (Block **Z** = What the app knows and doesn't say; created 2026-08-02).
+> Z is the last single letter, so the scheme continues **AA, AB, …** — two letters, same ordering, and
+> `CHANGELOG.md`'s table sorts them after Z. Nothing in the docs parses a block letter, so this costs
+> a wider column and nothing else.
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
 > the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
@@ -146,6 +149,17 @@
   The rule it leaves behind is in [AGENTS.md](AGENTS.md): a page is constructed before it is shown, so
   its constructor must not `FindResource` a theme brush — the dictionary hangs off the window.
   Shipped in the same commit it was created in, so it has no `ROADMAP.md`/`IMPROVEMENTS.md` entries.
+- Block **Z** (T159–T163, created 2026-08-02) is the **read-back of Block V**, not a second pass of it:
+  V corrected the evidence behind the projection, and reading those four commits against the running
+  app showed the app never tells anybody what it now knows. T159 and T160 are that mismatch (a number
+  on screen that counts weeks the grid threw away; a guard whose absolute coverage bar cannot open on a
+  machine the tray watches ten hours a day — measured, not supposed). T161 and T162 are coverage over
+  the two things most likely to produce the *next* one: `ProjectSlug`, behind two shipped defects and
+  with zero assertions despite being pure, and the hand-maintained carry-over list in `ApplySettings`,
+  which has silently reverted a field twice (T126, T155). T163 is an idea and deliberately stays one —
+  its obvious implementation turns a method note into an apology, which the T87 non-goal already
+  rejected once. A new block rather than V tasks because V is closed and pruned and because the theme
+  is what the app **says**, not what it computes.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 

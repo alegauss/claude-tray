@@ -148,7 +148,7 @@ internal sealed class ContextProject
     /// <summary>
     /// Display name: the last two path segments ("viglet/cloud", "turing/2026.3"). Leaf-only would
     /// be ambiguous on this machine — three different worktree projects are all called "2026.3".
-    /// The rule itself lives in <see cref="ProjectSlug.ShortName"/> since T150, so the Statistics
+    /// The rule itself lives in <see cref="ProjectSlug.ShortName"/> since T154, so the Statistics
     /// legend names the same directory the same way this list does.
     /// </summary>
     [JsonIgnore]
