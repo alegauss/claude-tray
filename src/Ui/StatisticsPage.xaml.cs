@@ -67,6 +67,22 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     private WindowPace? _session;  // last-rendered data, kept so the charts can redraw on resize
     private WindowPace? _weekly;
 
+    // The last report each profile rendered, keyed by profile (T166). T164 clears the panes on the way
+    // out of a profile — correctly, since leaving them up puts the previous account's curves under this
+    // account's name — and the cost is that coming back blanks the window for a whole transcript scan,
+    // which is the exact blink T118 removed for the poll refresh. A report is *that profile's own*, so
+    // putting it straight back is neither a relabelling nor a guess; the recompute lands on top of it a
+    // second or two later. Never keyed by anything but the profile: the entry a switch reads must be the
+    // one the same profile wrote, which is precisely what T165's round trip asserts.
+    private readonly Dictionary<string, PaceReport> _lastReport = new();
+
+    // How stale a re-shown report may be. The numbers in one are true as of `ComputedLocal` and the
+    // footer says so — but two of them are countdowns ("until reset", "even-pace target now") that drift
+    // against a fixed report, and `Dur` renders them to the minute. A minute is therefore the longest an
+    // honest re-show can last, and it is the same tolerance T165's check already treats as one reading.
+    // It also covers the case the field report is about: switch away, look, switch back.
+    private const double CachedReportMaxAgeSeconds = 60;
+
     // Mirrors Settings.ShowRemaining: when true the report reads as quota *left* — the burn-up chart
     // flips into a burn-down (starts full at 100%, descends to 0%), and every percentage/caption shows
     // the remaining side. The underlying pace, verdict and projection are unchanged; only the framing.
@@ -355,6 +371,11 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         MethodInfo.Visibility = Visibility.Visible;
         if (PreviewMethodOpen) MethodInfo.IsChecked = true;
         ApplyErrorBanner();
+
+        // Under the profile it was computed for, and only once it is known to be renderable — an errored
+        // report is not a view worth coming back to. The recompute that follows every switch overwrites
+        // this entry, so nothing else has to invalidate it (T166).
+        _lastReport[_profile.Key] = r;
 
         _session = r.Session;
         _weekly = r.Weekly;

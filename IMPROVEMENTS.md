@@ -12,15 +12,14 @@
 |---|---|
 | [§I](#i--house-constraints) | House constraints (binding, app-wide) |
 | [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature (kept: it is data, not design) |
-| [§XIV](#xiv--the-picker-switches-profiles-the-window-has-to-switch-with-it-block-aa) | The picker switches profiles; the window has to switch with it (Block AA) |
 | [§XV](#xv--what-block-zs-own-work-left-behind-block-ab) | What Block Z's own work left behind (Block AB) |
 
-> Block I's design sections (§II), Block J's (§IV), Block V's (§XII) and Block Z's (§XIII) are gone:
-> every one of them shipped, and `git log` plus [CHANGELOG.md](CHANGELOG.md) are the history. §III
-> stays because it is a **measurement** — the numbers the rule thresholds and the base-overhead
-> constant were calibrated against.
+> Block I's design sections (§II), Block J's (§IV), Block V's (§XII), Block Z's (§XIII) and Block AA's
+> (§XIV) are gone: every one of them shipped, and `git log` plus [CHANGELOG.md](CHANGELOG.md) are the
+> history. §III stays because it is a **measurement** — the numbers the rule thresholds and the
+> base-overhead constant were calibrated against.
 >
-> Section numbers are **never reused**: §II, §IV–§XIII have all been retired, so a new block takes the
+> Section numbers are **never reused**: §II, §IV–§XIV have all been retired, so a new block takes the
 > next unused numeral rather than the next free-looking one. A `→ §V` in an old commit message must
 > keep pointing at what it pointed at.
 
@@ -98,39 +97,6 @@ deliberately — this file is published with the repo. The right-hand column is 
 | `settings.json` | 87 KB | settings bloat |
 | Base overhead (system prompt + tools + MCP) | ≈32k tokens, p25 30k / p75 34k | shown as its own gauge segment, never folded into a project's number |
 | Heaviest scannable eager load | ≈22k tokens (a 43 KB `AGENTS.md` + 20 KB index) | the hero number the gauge shows |
-
----
-
-## §XIV — The picker switches profiles; the window has to switch with it (Block AA)
-
-The Statistics window has reported on a chosen profile since T128, and the picker has been correct about
-*which* profile it names since the day it shipped. What T164 found is that naming it is not the same as
-becoming it: a switch left three pieces of the previous profile behind, and the shape of all three is the
-same — state whose lifetime is "the window" where it should have been "the profile on screen".
-
-The report that opened the block is the round trip, and the round trip is the point: *view a profile,
-switch away, switch back, and the chart is a different chart.* Nothing about a single switch looked
-wrong, which is exactly why this survived — until T165 walked the picker 0 → 1 → 0 and asserted what
-came back. What is left is not correctness but cost: the switch is right now, and it is a blank pane.
-
-### §XIV.2 A profile switch blanks the panes it could have kept
-
-T164 clears the last-rendered pace on the way out, and that is the right default: keeping it means the
-previous account's curves sit under this account's name for the length of a transcript scan, which is the
-same misattribution the task exists to remove — only briefer. The cost is that a switch now shows
-"computing…" over the whole pane, Throughput tab included, and that is the exact blink T118 removed for
-the poll refresh. T118's reasoning does not carry over (it is about a refresh of the *same* profile), but
-the ugliness does.
-
-Keeping the last report **per profile** would make the round trip instant *and* correct — the case the
-field report is about is the one a cache serves best, since the user is going back to something the window
-computed sixty seconds ago. The reason this stays an idea rather than a task is that a cached report is a
-stale one the moment its profile is polled again, and this app's whole claim is that a number on screen is
-a number that was measured. So the design question is not "how to cache" but **what makes a cached view
-honest**: whether the footer's "Atualizado …" timestamp is enough on its own, what invalidates an entry
-(its own poll landing, certainly — but the transcripts move continuously and the curve is built from
-them), and whether a report older than some age should be shown at all rather than recomputed behind it.
-Answer those and it is a small change; skip them and it is T118's blink traded for a subtler lie.
 
 ---
 

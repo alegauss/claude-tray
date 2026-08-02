@@ -19,18 +19,6 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block AA — The picker switches profiles; the window has to switch with it
-
-> A field report against shipped Block O: *"se eu visualizo o gráfico de consumo de um perfil, mudo
-> para outro perfil no combobox e volto para o perfil anterior, o gráfico muda"*. Three pieces of state
-> the switch left behind, fixed in T164 — the live reading, the live tail, and the drawn history. The
-> reason all three survived every capture this repo has taken is that nothing *drove* the picker; T165
-> now does, 0 → 1 → 0, and found on the way that the pane it had to read was not in the accessibility
-> tree at all. What remains is what the switch costs while it is right.
-> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XIV.
-
-- 💭 **T166** (deps: T164) **A profile switch blanks the panes it could have kept** — T164 clears the last-rendered pace on purpose (leaving it up means the previous account's curves under this account's name), so the window now shows "computing…" for the length of a transcript scan, Throughput tab included — the exact cost T118 removed for the poll refresh. Keeping the last report *per profile* would make a switch back instant and correct at once, but a cached report is a stale one the moment its profile is polled again. Needs design: what invalidates an entry, and whether the footer timestamp is enough to make a cached view honest. → §XIV.2
-
 ## Block AB — What Block Z's own work left behind
 
 > Block Z made the app say what it knows: the method note stopped overstating its evidence (T159), the

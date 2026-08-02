@@ -92,7 +92,28 @@ internal partial class StatisticsPage
         StopLive(dispose: true);
         StartLive();
 
-        if (_snapshot is not null) Reload();
-        else ShowStatus(L.T("stats.noProfileData", picked.Label));
+        if (_snapshot is null)
+        {
+            ShowStatus(L.T("stats.noProfileData", picked.Label));
+            return;
+        }
+
+        // Put this profile's own last report back up while the new one is computed (T166), so the round
+        // trip the field report is about is instant instead of a blank pane for the length of a transcript
+        // scan. Deliberately *after* the live strip was reset: what comes back is the pace panes, never
+        // the drawn live history — that one is appended by construction (T119) and splicing another
+        // profile's minute onto it is the third defect T164 fixed.
+        //
+        // Rendering it also refills `_session`/`_weekly`, so the `Reload` below sees a report on screen and
+        // leaves it there rather than swapping in "computing…" (T118's rule, now reaching the switch too).
+        // The footer is what keeps this honest: `Render` stamps it from the report's own `ComputedLocal`,
+        // so a re-shown view says when it was measured rather than claiming to be now.
+        if (_lastReport.TryGetValue(_profile.Key, out PaceReport? cached) &&
+            (DateTime.Now - cached.ComputedLocal).TotalSeconds is >= 0 and <= CachedReportMaxAgeSeconds)
+        {
+            Render(cached);
+        }
+
+        Reload();
     }
 }

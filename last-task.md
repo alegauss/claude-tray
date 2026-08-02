@@ -174,11 +174,17 @@
   Block R / U / W precedent: O is closed and pruned, and this is a defect found by *using* the feature.
   The first two-letter block — Z was the last single letter, and nothing in the docs parses one.
   T164 shipped in the commit that created the block, so it has no `ROADMAP.md`/`IMPROVEMENTS.md` entries;
-  T165 and T166 came out of fixing it and are the block's open half. The rule T164 leaves behind is
+  T165 and T166 came out of fixing it. The rule T164 leaves behind is
   general enough to be worth stating: **state whose lifetime is "the window" is a bug when its subject is
   "the profile on screen"** — all three defects were that one shape, and the third (a chart that appends
   by design) shows the trap has a *correct* version, so the fix is a reset at the switch rather than
   making anything less sticky.
+  **Closed with T166** (2026-08-02), so the block is out of `ROADMAP.md` and §XIV is out of
+  `IMPROVEMENTS.md`; see [CHANGELOG.md](CHANGELOG.md) Block AA. It ran T164 → T165 → T166, one task per
+  commit. The rule T165 leaves behind is in [AGENTS.md](AGENTS.md) and is not about profiles at all:
+  **a custom `TabControl` template must name its content host `PART_SelectedContentHost`**, or the whole
+  tab body leaves the UI Automation tree — invisible to every screenshot, which is how it survived from
+  T111 to the first check that tried to *read* the window.
 - Block **Z** (T159–T163, created 2026-08-02) is the **read-back of Block V**, not a second pass of it:
   V corrected the evidence behind the projection, and reading those four commits against the running
   app showed the app never tells anybody what it now knows. T159 and T160 are that mismatch (a number
@@ -309,3 +315,4 @@ here. This file is a terse index, not a memory.
 - **T163 SHIPPED** (Block Z — the straight-line projection says which line it is, and that it is weeks and not a setting) — 2026-08-02.
 - **T164 SHIPPED** (Block AA — a profile switch resets the reading, the tail and the drawn history, so coming back shows that profile) — 2026-08-02.
 - **T165 SHIPPED** (Block AA — `-Case Profiles` walks the picker 0 → 1 → 0 and asserts the round trip; the tab pane rejoins the UIA tree) — 2026-08-02.
+- **T166 SHIPPED** (Block AA — each profile's last report is put straight back on a switch, capped at a minute, stamped with when it was measured) — 2026-08-02.
