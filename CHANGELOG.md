@@ -131,6 +131,15 @@
 > followed. The design sections that guided it have been removed from
 > [IMPROVEMENTS.md](IMPROVEMENTS.md) as each task shipped — the measured baseline they were calibrated
 > against remains as §III.
+>
+> In the tray menu it is `Context…`; the window is "Context Load — memories, skills & instructions".
+> Headless: `--context`, `--context --check`, `--context --usage`, `--context --prompt`,
+> `--context-report <file.md>`, `--context --sample`.
+>
+> **Closed 2026-08-02 by dropping T85** — the memory-usage annotation it parked pending a structured
+> recall signal. The signal was looked for rather than waited on and does not exist (the measurement
+> is on `UsageEvidence`), so the exclusion is now a binding non-goal in [ROADMAP.md](ROADMAP.md)
+> rather than an open task.
 
 - **T66** — `ContextScanner.cs`: discovers every context source per project — the user + project instruction chain with `@imports`, the memory index and its files, skill/agent frontmatter, settings sizes — splits **eager** (paid on every request) from **lazy** and **not-loaded**, and resolves each `~/.claude/projects/<slug>` back to a real path by filesystem probing with the transcript `cwd` as the authoritative fallback. Verified byte-for-byte against `find`/`stat` on two projects. (`159d714`)
 - **T67** — `TokenEstimate.cs`: chars→tokens for markdown, classified per line (prose / code fence / table), always rendered as an estimate ("≈4.9k"). (`159d714`)

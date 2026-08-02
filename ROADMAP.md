@@ -19,20 +19,6 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block I — Context Load Inspector ("what every session costs you before you type")
-
-> **Shipped: T66–T84.** The scanner, the window (session-zero gauge, source table, cross-project
-> overview, what-if simulator), the rule engine, the evidence pass, the A–F grade with drift, the
-> opt-in nudge, live refresh, the fixture, the markdown report and the docs. See
-> [CHANGELOG.md](CHANGELOG.md) Block I for what each task did; the measured baseline the whole block
-> was calibrated against is [IMPROVEMENTS.md](IMPROVEMENTS.md) §III.
->
-> In the tray menu it is `Context…`; the window is "Context Load — memories, skills & instructions".
-> Headless: `--context`, `--context --check`, `--context --usage`, `--context --prompt`,
-> `--context-report <file.md>`, `--context --sample`.
-
-- 💭 **T85** (deps: —) **Usage evidence for memory files — only if a structured signal appears** — T75 covers skills and agents, where an invocation is a real tool call in the transcript. A memory recall has no such record: the harness injects it into the conversation, so the only trace is message content, which the app never reads (§I.1). Annotating memories would therefore mean guessing, and a wrong "never used" is the one error an advisor must not make. Revisit only if Claude Code starts recording recalls as structured metadata.
-
 ## Block J — Activity-aware pacing ("the week doesn't burn at 4am")
 
 > The weekly projection extrapolates the **average pace since the window opened**
@@ -89,6 +75,18 @@ Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full 
 - **Don't swap the UI stack.** WinForms owns the tray icon, WPF owns windows, both on one STA thread.
   No imperative `Dock=Top` stacking; no hardcoded hex for theme-able surfaces.
 - **No second source of truth for the version** — `<Version>` in `ClaudeTray.csproj` only.
+- **No usage annotation on memory files** (settled by dropping T85). T75 annotates skills and agents
+  because an invocation is a real tool call; a recall is the harness injecting a file into the
+  conversation, and the app never reads message content (§I.1). The task was parked pending a
+  structured signal, and the signal was then looked for rather than waited on: across 530 local
+  transcripts (195,451 lines) the harness records four kinds of provenance — `attributionSkill`,
+  `attributionAgent`, `attributionMcpServer`, `attributionMcpTool` — and sixteen attachment kinds
+  including `skill_listing` and `agent_listing_delta`, and **none of them concerns a memory**. No
+  `memor*`/`recall*` field exists at all; the only memory paths recorded are in
+  `file-history-snapshot`, which tracks files Claude *wrote* — the opposite signal, and one that would
+  flag the memories being maintained as the ones in use. So memory rows stay blank, and a wrong "never
+  used" — the one error an advisor must not make — stays impossible by construction. Reopen only if a
+  memory analogue of `attributionSkill` appears; the re-check is written down on `UsageEvidence`.
 - **No live hint on the tray icon** (settled by dropping T101). An animating icon draws the eye
   continuously, and — decisively — it would need a transcript tail running for the whole session.
   T99 deliberately made the tail *window-owned* so a closed Statistics window watches nothing;

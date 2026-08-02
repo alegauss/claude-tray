@@ -28,6 +28,23 @@ internal sealed class UsageStat
 /// working memory "never used", which is the one error an advisor must not make. So memories get no
 /// usage annotation at all, rather than a misleading one.</para>
 ///
+/// <para>That was the reasoning; T85 <b>measured</b> it, and the measurement is what keeps this
+/// paragraph from being an assumption nobody rechecks. Over the whole local history — 530
+/// transcripts, 195,451 lines — every top-level <c>type</c>, every <c>attachment.type</c> and every
+/// JSON field name was enumerated. The harness keeps four kinds of structured provenance
+/// (<c>attributionSkill</c> ×40,573, <c>attributionAgent</c> ×4,450, <c>attributionMcpServer</c> and
+/// <c>attributionMcpTool</c> ×230 each) and sixteen attachment kinds including <c>skill_listing</c>
+/// and <c>agent_listing_delta</c>. <b>Not one of them concerns a memory.</b> No field matching
+/// <c>memor*</c> or <c>recall*</c> exists anywhere; the only memory paths in a transcript sit under
+/// <c>file-history-snapshot.snapshot.trackedFileBackups</c>, which records files Claude <i>wrote</i>,
+/// not ones it recalled — the opposite signal, and it would mark the memories being maintained as the
+/// ones in use.</para>
+///
+/// <para><b>To re-check</b> when Claude Code changes: enumerate distinct <c>attachment.type</c> values
+/// and field names across <c>~/.claude/projects/**/*.jsonl</c> and look for a memory analogue of
+/// <c>attributionSkill</c>. Until one exists, this exclusion stands — it is a binding non-goal in
+/// ROADMAP.md, not an open task.</para>
+///
 /// <para><b>Privacy.</b> Two fields are read out of a tool call and nothing else: <c>input.skill</c>
 /// for the <c>Skill</c> tool and <c>input.subagent_type</c> for the agent tool — both plain
 /// identifiers. No other argument, and no message content, is parsed or retained.</para>

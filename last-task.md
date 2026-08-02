@@ -21,6 +21,10 @@
 - **T91–T96 are Block J's second pass**, added 2026-07-28 right after T86–T90 shipped: same theme, so
   they stay in J rather than opening K (Block I set the precedent — shipped T66–T84 alongside an
   active T85). They came out of building the first pass, not out of planning it.
+  **Block I closed with T85** (2026-08-02) — dropped, not shipped: its trigger condition ("revisit if
+  Claude Code records recalls as structured metadata") was checked against the real transcripts rather
+  than left waiting, and no such signal exists. The block is out of `ROADMAP.md` and the exclusion is a
+  binding non-goal there; see [CHANGELOG.md](CHANGELOG.md) Block I.
 - **T102–T108 are Block K's second pass**, added 2026-07-28 as T97–T100 closed: same theme, so they
   stay in K rather than opening L (the precedent Block J set with T91–T96). They came out of
   *building* the block — one latent bug it exposed elsewhere (T102), two costs it introduced, two
@@ -192,3 +196,4 @@ here. This file is a terse index, not a memory.
 - **T92 SHIPPED** (Block J — per-file sweep cache: the rebuild costs only what changed) — 2026-08-01.
 - **T93 SHIPPED** (Block J — the grid blends per bucket toward the measured week) — 2026-08-01.
 - **T149 SHIPPED** (Block U — the environment write leaves the UI thread, so a profile pick can't freeze the tray) — 2026-08-01.
+- **T85 DROPPED** (Block I — usage evidence for memory files; no structured recall signal exists, now a binding non-goal) — 2026-08-02.
