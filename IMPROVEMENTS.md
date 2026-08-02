@@ -407,3 +407,185 @@ timeout must report **what it last saw** (the status text, or that the tree held
 distinguish *the window was working and did not finish in time* from *the window showed nothing at all*.
 The first is a slow machine or a cold transcript cache; the second is the failure this script exists for.
 Only the second should read as the same kind of failure as an empty menu read (T142's founding trap).
+
+## §XVIII — Extra usage is money, and the tray is asleep for it (Block AE)
+
+The report is one sentence and it indicts the whole feature: *"apesar de estar em 100% de uso, ainda
+funcionava, porque estava com uso extra ativado — mas no Claude Tray isto não aparece evidente, nem no
+gráfico, nem no tray, em lugar nenhum"*. The user was watching a number the app told them was a ceiling
+while working straight through it, and the app had no opinion about that at all.
+
+What makes this a block rather than a missing feature is that **none of the data is missing**. All of it
+is already in hand:
+
+| Signal | Where it is read | What is done with it |
+|---|---|---|
+| `anthropic-ratelimit-unified-overage-utilization` | `ApiClient.FetchAsync` → `UsageData.Extra` | one tooltip line, only when `> 0.001` |
+| `anthropic-ratelimit-unified-overage-reset` | → `UsageData.ResetExtra` | the countdown on that same line |
+| `hasExtraUsageEnabled` (`.claude.json` → `oauthAccount`) | `ClaudeAccount` → `ClaudeInfo.ExtraUsage` | one text row on the System page |
+| `anthropic-ratelimit-unified-5h-status` | `UsageData.Status` | printed verbatim in the tooltip; read by nothing |
+
+Three of those four have been parsed since before there was a Statistics window, and `"extra"` has been a
+selectable tray metric all along. The gap is not acquisition, it is that **nothing downstream believes the
+account can be past 100% and still working.**
+
+The evidence for that is on the reporter's own machine, in the tray's own store:
+
+| Measurement | Value |
+|---|---|
+| Stored readings, work profile (`acct-8ba439df4d4b`) | **1,403** |
+| Of those, weekly utilization at 97–99% | **178** |
+| Peak weekly utilization recorded | **0.99** |
+| Overage figures in the file | **0** — the line format has no field for one |
+| Longest run at 0.99 weekly | ~30 min of 180 s polls, with the 5h window at 0.02 and climbing |
+| `hasExtraUsageEnabled`, `~/.claude` vs `~/.claude-pessoal` | `true` vs `false` — no behavioural difference anywhere |
+
+That last run is the situation in miniature: the weekly pinned near its ceiling while the session window
+refilled and was spent again, which is *work happening past the included limit*, sampled 178 times and
+recorded nowhere. The peak stopping at 0.99 rather than 1.00 is luck, and it is the luck that kept T180's
+defect out of this data set — one more percentage point and the tray would have stopped polling
+altogether, leaving not a flat line but a **gap**.
+
+Two constraints bound everything in this block.
+
+**The first is the privacy promise, and it is not in tension here.** Rate-limit headers are metadata about
+quota, not content; §I.1 restricts what is read from *transcripts*, and this block adds no transcript
+reading and no new endpoint. §I.2 holds unchanged — the same one API call, already being made.
+
+**The second is the "profiles are contexts, not quota pools" non-goal, and it is in tension throughout.**
+Every task here makes overage more visible, and the natural next sentence — *this account is out, the
+other one has room* — is precisely the sentence the roadmap forbids. Visibility of one's own spending is
+the goal; a hop suggestion wearing a spending-visibility costume is the failure mode. §XVIII.6 is where
+this binds hardest, and §XVI.4 already worked out the shape of the answer: a receipt, not a reward.
+
+### §XVIII.1 A reading with nowhere to be written (T179)
+
+`UsageSample` is `(T, Util5h, Reset5h, Util7d, Reset7d)` and the JSONL line is `{"t","u5","r5","u7","r7"}`.
+`PaceSnapshot` carries the same four numbers, and it is what the Statistics window reconstructs its charts
+from during an API outage. The overage figure survives one render of one tooltip and is gone.
+
+This is first in the block because it is the only irreversible one: a chart drawn tomorrow can be drawn
+from history stored today, and no later task can recover the 178 readings already lost.
+
+The design is small and the trap is not. `ApiClient` carries a load-bearing comment about exactly this
+shape of mistake — a header-less HTTP 200 parsing as utilization 0, read by the burn tracker as usage
+collapsing, firing a phantom reset and wiping the history. An older line with no overage field is the same
+hazard in the store rather than the wire: *absent* must be distinguishable from *zero*, because zero is a
+real and meaningful overage reading — it is the state everyone is in most of the time, and the state whose
+first departure §XVIII.6 wants to notify on. A nullable field, and readers that treat null as no-evidence
+rather than as no-spend.
+
+Backward compatibility comes free from the format (an appended key is invisible to a reader that does not
+ask for it), and forward compatibility needs the same discipline `UsageHistory.Load` already has.
+
+### §XVIII.2 The one stretch that matters is the one that is not polled (T180)
+
+`BlockedUntilUnix` is careful, correct code resting on a premise that has an exception nobody applied:
+
+> When a limit is hit, usage is blocked and consumption is frozen until that window resets, so polling on
+> the normal cadence just burns API calls to read the same 100%.
+
+True for an account without extra usage. False for one with it — and the tray *knows which* it is looking
+at, because `ClaudeInfo.ExtraUsage` was parsed for the System page. With extra usage enabled the session
+does not stop, so the value being read is not "the same 100%"; the interesting number has merely moved to
+a different header, and the tray sleeps for up to seven days rather than reading it.
+
+The consequence compounds with §XVIII.1. It is not that the chart shows a flat line through the overage
+period — it is that the chart shows **nothing at all** through the overage period, because the sampler
+that would have written the points is idle. The one stretch where a user is spending real money is the one
+stretch with no data, and it will look, later, like the app was closed.
+
+The fix is to gate the idle on its actual precondition rather than on a threshold. There is a genuine
+question of cadence: the idle exists because polling to re-read a frozen number is waste, and the tray's
+API-cost story (the Settings estimate, multiplied per profile) is a real commitment. So this is not
+"remove the idle" — it is "an account that can still spend is never in the blocked state", with the same
+cost accounting applied to the state that replaces it.
+
+### §XVIII.3 Nobody has established what the number denominates (T181)
+
+The tooltip prints `Extra: 42%` next to `Session 5h: 42%` and `Week 7d: 42%`, and the two neighbours mean
+"of the quota included in your plan". Nobody in this repo has confirmed what the third one means. Plausible
+readings differ materially for the user: a fraction of a spend cap they configured, a fraction of some
+policy ceiling, or something with no cap at all, in which case a percentage is the wrong presentation
+entirely and the honest display is an amount.
+
+The same applies to `anthropic-ratelimit-unified-5h-status`. It is read, stored on `UsageData`, printed raw
+in the tooltip's status line and consulted by no logic. Whatever it says while an account is consuming
+overage is likely the cleanest signal in the whole block — and it is unmeasured.
+
+Hence a probe before any wording: capture the unified headers verbatim from a real account across the
+transition, names and values only. This costs nothing (the call is already being made), risks nothing
+against §I.1 (no message content is involved), and it is the difference between the app explaining a
+number and the app inventing one. Two of the tasks above it in this block are wording tasks, and both
+depend on it for that reason.
+
+It is worth being explicit about the alternative, because it is tempting and wrong: shipping a label like
+"Extra usage: 42% of your extra-usage limit" on the strength of a plausible guess. A tray whose entire
+value proposition is *this number is trustworthy* cannot afford a label that turns out to describe a
+different denominator.
+
+### §XVIII.4 Two states modelled where there are three (T182)
+
+`AtLimitThreshold = 0.995` drives three separate behaviours — the icon's alarming red, the tooltip's
+"already maxed, stated plainly rather than projected" sentence, and the sleep — and all three encode the
+same binary: under the limit, or stopped. The third state has been observable in the model this whole
+time and is used by one line of `SettingsPage.System.cs`.
+
+The states are: **inside the included quota** (today's normal), **past it and billing** (this block), and
+**genuinely stopped** (no extra usage, or the extra allowance itself exhausted). The first and third are
+what the app draws today, and it draws the second as the third.
+
+The design problem is the icon, and it is a real one at 16×16. Red is already spoken for: it means
+*danger*, warming continuously as usage approaches 100%, which is a pace signal. "You are spending money"
+is not more urgent than that — it is a different kind of fact, and rendering it as a hotter red would say
+*worse* when it means *other*. The accent band from T147 established that the icon can carry a second,
+categorical channel without disturbing the first, and that is the shape worth exploring; the constraint to
+hold is that a user who has deliberately enabled extra usage and is comfortably using it must not be
+alarmed every time they look at their taskbar.
+
+The Settings page has the matching gap and belongs to the same task: the System row says extra usage is
+*enabled*, which is a property of the account, and says nothing about whether it is being *consumed*,
+which is the question somebody opening that page mid-doubt actually has.
+
+### §XVIII.5 A chart that cannot draw the thing being asked about (T183)
+
+The weekly chart's story is *here is your curve, here is the pace line, here is where it meets 100%*. For
+an account in overage that story ends before the interesting part: the curve flattens against the ceiling,
+the projection reports the window exhausted, and the quantity that is still moving is not on the canvas.
+
+Once T179 stores the series this becomes an honest design question rather than a plumbing one, and it has
+a sharp constraint. The two existing series are fractions of a fixed cap, which is what lets them share a
+0–100% axis and what makes the gridlines mean something. Overage — pending T181 — may have no comparable
+cap. Putting an uncapped series on a capped axis is how a chart tells its first lie, so the choice is
+between a second axis, a separate pane, or a presentation that is not a percentage at all.
+
+Worth stating what this is *not*: it is not a second projection. The weekly projection answers "when do
+you run out", and for an account in overage the answer has already happened. Projecting *spend* forward is
+a different feature with different obligations (it would be the app making a claim about money), and it is
+deliberately outside this task.
+
+### §XVIII.6 The transition nobody is told about (T184 — idea)
+
+The tray notifies on resets — quota returning, good news, opt-in per window, with a minimum-usage floor so
+a trivial reset does not ping. It has no notification for the one transition that costs the user money,
+and that asymmetry is the whole observation: the app interrupts you to say *you got something back* and
+stays silent when *you started paying*.
+
+The shape is a one-shot on the first reading with overage above zero after a stretch at zero — which is
+exactly the `absent ≠ zero` distinction §XVIII.1 exists to preserve, and exactly what §XVIII.2's polling
+gap would otherwise hide. `ToastWindow` is the mechanism and `ToastTheme.Context` already proved a card
+can carry a non-celebratory fact.
+
+Why it stays an idea: two constraints have to be settled before it is designed, not after.
+
+**It needs its own justification.** The T87 non-goal is explicit that a second notification channel must
+argue for itself rather than inherit the reset channel's argument. The argument here looks strong — fires
+on a real state change, once, about the user's own money, never on a timer — but "looks strong" is what
+that non-goal exists to interrogate.
+
+**It must not become a hop suggestion.** This fires at the moment a user is most receptive to the sentence
+*the other profile still has quota*, and that sentence is forbidden. §XVI.4 already refused the same
+temptation in its stronger form — animating one account's quota into another's — and the reasoning
+transfers exactly: the constraint is violated by implication, not only by wording, so a toast that
+mentions the account at all is already near the line. The safe version says what happened and nothing
+about what to do next.

@@ -1,9 +1,9 @@
-# Last task number — `T178` · next block letter — `AE`
+# Last task number — `T184` · next block letter — `AF`
 
-> **Single source of truth for the next free task number.** The next new task is `T179`; after
+> **Single source of truth for the next free task number.** The next new task is `T185`; after
 > assigning it, bump the number above and append a log line below.
 >
-> **Next block letter — `AE`** (Block **AD** = The window can be read now, and what that turned up;
+> **Next block letter — `AF`** (Block **AE** = Extra usage is money, and the tray is asleep for it;
 > created 2026-08-02).
 > Z was the last single letter, so the scheme continues **AA, AB, …** —
 > two letters, same ordering, and `CHANGELOG.md`'s table sorts them after Z. Nothing in the docs parses
@@ -213,6 +213,20 @@
   [AGENTS.md](AGENTS.md): a `Skip` must not be able to hide the property it guards (T161), and a setting
   the Settings page does not edit must carry `[TrayOwned]` (T162) — the one thing in that round trip no
   assertion can infer.
+- Block **AE** (T179–T184, created 2026-08-02) opens on a **field report about a number the app already
+  reads**: *"apesar de estar em 100% de uso, ainda funcionava, porque estava com uso extra ativado — mas
+  no Claude Tray isto não aparece em lugar nenhum"*. A block of its own rather than a task against any
+  shipped one because the gap is not in a feature — `ApiClient` has parsed the overage headers since the
+  first version, `"extra"` has always been a selectable metric, and `hasExtraUsageEnabled` has been on the
+  model since T120. What is missing is that **nothing downstream believes the account can be past 100% and
+  still working**: the store has no column for it, the poll idles through it, the charts cannot draw it and
+  the icon calls it *blocked*. Its design section is **§XVIII** (§XVII belongs to Block AD). The measured
+  fact that made the block concrete is in the reporter's own store — 1,403 readings, 178 of them at 97–99%
+  weekly, zero overage figures, peak 0.99: one percentage point below the threshold that would have stopped
+  the polling and turned the flat line into a gap.
+  Created in a session parallel to Block AD's, which is why it takes T179+ rather than T175+ — the
+  numbering was re-read from this file after AD landed, per the rule that block letters and T-numbers
+  are never inferred from a `git log` scan.
 - Docs live at the **repo root** (`ROADMAP.md`, `CHANGELOG.md`, `IMPROVEMENTS.md`, `STRATEGY.md`,
   `last-task.md`), not under `docs/` — `docs/` is the published GitHub Pages site.
 

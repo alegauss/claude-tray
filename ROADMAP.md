@@ -19,6 +19,30 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
+## Block AE — Extra usage is money, and the tray is asleep for it
+
+> A field report the tray had no way to answer: *"quando estava usando o perfil da VILT, apesar de estar
+> em 100% de uso, ainda funcionava, porque estava com uso extra ativado — mas no Claude Tray isto não
+> aparece evidente, nem no gráfico, nem no tray, em lugar nenhum"*. Right on every count. The overage
+> reading **is** fetched — `ApiClient` has parsed `anthropic-ratelimit-unified-overage-utilization` since
+> the first version — and then it reaches one conditional line of tooltip and stops: never stored, never
+> charted, never notified, and never changing what any other number on screen *means*. Measured on the
+> reporter's machine: 1,403 stored readings on the work profile, **178 of them at 97–99% weekly**, in a
+> file whose line format has no column an overage figure could go in. That account has
+> `hasExtraUsageEnabled: true`; the other profile on the same machine has it `false`; the app behaves
+> identically for both.
+> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XVIII.
+>
+> Ordered by what is losing data today, then by what every string here is waiting on, then by what a
+> user would actually see.
+
+- 📋 **T179** (deps: —) **The overage reading is fetched, shown once and thrown away** — `UsageSample` is `(T, Util5h, Reset5h, Util7d, Reset7d)` and `UsageHistory.Append` takes five numbers, none of them overage; `PaceSnapshot` carries the same four, so the Statistics window could not draw the series even if it wanted to. Every other task in this block is downstream of the store, which is why it goes first. The trap is `ApiClient`'s own, one layer down: a missing field must read as **unknown, not 0** — the header-less-200 guard exists precisely because a 0 parsed as a real reading fires a phantom reset and wipes the burn history, and an append-only JSONL that gained a column is exactly where that mistake is cheap to make. → §XVIII.1
+- 📋 **T180** (deps: —) **The poll goes to sleep exactly when the spending starts** — `BlockedUntilUnix` idles the timer until the window's reset for anything ≥ `AtLimitThreshold` (0.995), on the stated reasoning that "usage is blocked and consumption is frozen until that window resets". For an account with extra usage enabled that sentence is false: the session keeps working and keeps billing, and the tray stops looking — for up to seven days on the weekly window. The only stretch in which a percentage is a *price* is the one stretch the app records nothing about. The idle belongs to *there is nothing left to observe*, not to a threshold. → §XVIII.2
+- 📋 **T181** (deps: —) **Nobody has established what the overage percentage is a percentage of** — it is printed beside two numbers that mean "of your included window", and the app has never confirmed what 100% of *this* one would mean, nor what `anthropic-ratelimit-unified-5h-status` reads while overage is being consumed (it is displayed verbatim in the tooltip and read by nothing). Until that is captured from a real account mid-overage, every string the rest of this block wants to put on screen is a guess. A probe that records the unified headers verbatim — names and values only, no message content (§I.1) — is what T182–T184 are waiting on. → §XVIII.3
+- 📋 **T182** (deps: T181) **The icon and the tooltip say "blocked" where the account is paying** — one threshold drives the red fill, the "at limit" sentence and the sleep, and it models two states where there are three: inside the included quota, past it and billing, and genuinely stopped. `ClaudeInfo.ExtraUsage` is already on the model, already parsed per profile, and is consulted by a single text row in Settings. Making it a modelled state is the task; the design problem is that red is already spoken for by *danger*, so "you are now spending money" has to be legible at 16×16 without becoming a second alarm — and the Settings row has the matching gap, stating that extra usage is *enabled* while saying nothing about whether it is being *used*. → §XVIII.4
+- 📋 **T183** (deps: T179, T181) **The Statistics window has no overage anywhere** — the weekly chart draws a curve flattening against a ceiling and a projection announcing the window is exhausted, while the quantity that actually matters keeps climbing off-chart. Once T179 stores the series there is a real design choice — a third line on the weekly chart, or a pane of its own — under a real constraint: an overage curve has no cap to be a percentage *of*, so it cannot share an axis with two windows that do without one of them lying. → §XVIII.5
+- 💭 **T184** (deps: T181) **Nothing marks the moment the included quota ends and the meter starts** — resets are notified because they are good news; the one transition that costs the user money is silent. A one-shot toast on the first reading with overage above zero is the obvious shape, and `ToastTheme.Context` already established a card with no celebration. Needs design, and it inherits two hard constraints: the T87 non-goal means a new notification needs its own justification rather than the reset channel's, and the "profiles are contexts, not quota pools" non-goal means the one thing it must never imply is that some other account still has quota. → §XVIII.6
+
 ## Block AD — The window can be read now, and what that turned up
 
 > Block AA ended with the first check that *reads* the Statistics window rather than photographing it,
