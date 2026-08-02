@@ -34,7 +34,6 @@
 > Ordered by what is losing data today, then by what every string here is waiting on, then by what a
 > user would actually see.
 
-- 📋 **T180** (deps: —) **The poll goes to sleep exactly when the spending starts** — `BlockedUntilUnix` idles the timer above 0.995 on the premise that consumption is frozen, which is false for an account whose session keeps working and billing. → §XVIII.2
 - 📋 **T181** (deps: —) **Nobody has established what the overage percentage is a percentage of** — It is printed beside two figures meaning *of your included window*, and no reading of a real account mid-overage exists to settle what 100% of this one would be. → §XVIII.3
 - 📋 **T182** (deps: T181) **The icon and the tooltip say "blocked" where the account is paying** — One threshold drives the red fill, the at-limit sentence and the sleep, modelling two states where there are three: in the quota, past it and billing, stopped. → §XVIII.4
 - 📋 **T183** (deps: T179 ✅, T181) **The Statistics window has no overage anywhere** — The weekly chart draws a curve flattening against a ceiling while the quantity that costs money climbs off-chart, and an uncapped series has no axis to share. → §XVIII.5

@@ -451,28 +451,6 @@ Two constraints bind. The **privacy promise** is not in tension: rate-limit head
 overage more visible, and the next sentence, *this account is out, the other has room*, is the one the
 roadmap forbids. §XVIII.6 binds hardest; §XVI.4 found the answer's shape: a receipt, not a reward.
 
-### §XVIII.2 The one stretch that matters is the one that is not polled (T180)
-
-`BlockedUntilUnix` is careful, correct code resting on a premise that has an exception nobody applied:
-
-> When a limit is hit, usage is blocked and consumption is frozen until that window resets, so polling on
-> the normal cadence just burns API calls to read the same 100%.
-
-True without extra usage. False with it — and the tray *knows which* it is looking at, because
-`ClaudeInfo.ExtraUsage` was parsed for the System page. The session does not stop, so the value being read
-is not "the same 100%": the interesting number has moved to another header, and the tray sleeps for up to
-seven days rather than reading it.
-
-The consequence compounds with §XVIII.1. The chart does not show a flat line through the overage period —
-it shows **nothing at all**, because the sampler that would write the points is idle. The one stretch
-where a user spends real money is the one with no data, and it will look, later, like the app was closed.
-
-The fix gates the idle on its actual precondition rather than on a threshold. Cadence is a genuine
-question: the idle exists because re-reading a frozen number is waste, and the API-cost story (the
-Settings estimate, multiplied per profile) is a real commitment. So this is not "remove the idle" — it is
-"an account that can still spend is never blocked", with the same cost accounting applied to whatever
-state replaces it.
-
 ### §XVIII.3 Nobody has established what the number denominates (T181)
 
 The tooltip prints `Extra: 42%` beside `Session 5h: 42%` and `Week 7d: 42%`, and the two neighbours mean

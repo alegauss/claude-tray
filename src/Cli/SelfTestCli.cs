@@ -53,6 +53,9 @@ internal static class SelfTestCli
         Section("kernel — the live rate (Block K)");
         Kernel();
 
+        Section("poll — when the idle is right, and when it is a hole in the history (Block AE)");
+        PollIdle();
+
         Section("stores — folding, the ghost, intensity (Block J)");
         string dir = ProfileStore.DirFor(ProfileKey);
         Console.WriteLine($"  scratch profile: {dir}");
@@ -289,6 +292,48 @@ internal static class SelfTestCli
               rate.Strip().All(b => b.Total == 0),
               $"{rate.Strip().Count(b => b.Total != 0)} of {LiveRate.HistorySeconds} buckets still hold tokens");
         Check("and to no project series at all", rate.Projects().Length == 0);
+    }
+
+    // ---------------------------------------------------------------- Block AE: the poll's own premise
+
+    /// <summary>T180. The idle is right exactly when consumption is frozen, and an account with extra
+    /// usage is the case where it is not. Being wrong in that direction is not a stale reading — the poll
+    /// is the sampler, so it is a hole in the history across the one stretch that cost money, and no later
+    /// task can fill it in.</summary>
+    private static void PollIdle()
+    {
+        long now = (long)Now;
+        double r5 = now + 3600, r7 = now + 5 * 86400;
+
+        // The behaviour that must survive: a plain account at its limit still idles to the reset.
+        Check("an account at the weekly limit idles until it resets",
+              TrayContext.BlockedUntilUnix(0.30, r5, 1.00, r7, null, null, now) == r7);
+        Check("and to the soonest reset when both windows are maxed",
+              TrayContext.BlockedUntilUnix(1.00, r5, 1.00, r7, null, null, now) == r5);
+        Check("an account under the limit never idles",
+              TrayContext.BlockedUntilUnix(0.90, r5, 0.90, r7, null, null, now) == 0);
+        Check("at the limit with no known reset, the short cadence rather than forever",
+              TrayContext.BlockedUntilUnix(1.00, 0, 0.10, r7, null, null, now) == now);
+
+        // T180 itself. Either signal is enough, and the flag alone must do it — an account that has
+        // enabled extra usage but not yet spent any reads 0, which is the moment the gap would open.
+        Check("extra usage enabled means the poll never sleeps at the limit",
+              TrayContext.BlockedUntilUnix(1.00, r5, 1.00, r7, null, true, now) == 0);
+        Check("and that holds before a single cent of it is spent",
+              TrayContext.BlockedUntilUnix(1.00, r5, 1.00, r7, 0, true, now) == 0);
+        Check("an overage figure above zero is enough on its own",
+              TrayContext.BlockedUntilUnix(1.00, r5, 1.00, r7, 0.42, null, now) == 0);
+        Check("an overage figure above zero outvotes a flag that says otherwise",
+              TrayContext.BlockedUntilUnix(1.00, r5, 1.00, r7, 0.42, false, now) == 0);
+
+        // The other direction, which is what keeps the API-cost story honest: nothing about extra usage
+        // may make a profile that genuinely stops poll any harder than it did before.
+        Check("extra usage explicitly off still idles to the reset",
+              TrayContext.BlockedUntilUnix(1.00, r5, 1.00, r7, 0, false, now) == r5);
+        Check("an unknown flag with a measured zero still idles",
+              TrayContext.BlockedUntilUnix(1.00, r5, 1.00, r7, 0, null, now) == r5);
+        Check("and an account nowhere near its limit is unaffected by the flag",
+              TrayContext.BlockedUntilUnix(0.10, r5, 0.10, r7, null, true, now) == 0);
     }
 
     // ---------------------------------------------------------------- Block AE: the overage column

@@ -225,6 +225,7 @@
 ## Block AE — Extra usage is money, and the tray is asleep for it
 
 - **T179** — `UsageSample` and `PaceSnapshot` carry four numbers and none is overage, so every task downstream waits on a store with no column the figure could go in.
+- **T180** — The idle is gated on its own premise: an account that can still spend past its included quota keeps polling, so the stretch that costs money is sampled instead of slept through.
 
 ## Block AA — The picker switches profiles; the window has to switch with it
 

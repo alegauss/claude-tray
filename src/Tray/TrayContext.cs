@@ -878,10 +878,11 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     // The poll cadence for the current state. Auth-retry while signed out; the normal interval when
-    // consuming; and — once a window is maxed out — a long idle until just past the known reset. When
-    // a limit is hit, usage is blocked and consumption is frozen until that window resets, so polling
-    // on the normal cadence just burns API calls to read the same 100%. Instead we sleep until the
-    // reset is due and poll once to confirm it landed (see BlockedUntilUnix / the double-check floor).
+    // consuming; and — once a window is maxed out *and the account cannot spend past it* — a long idle
+    // until just past the known reset. Where consumption really is frozen, polling on the normal cadence
+    // just burns API calls to read the same 100%, so we sleep until the reset is due and poll once to
+    // confirm it landed. Where extra usage means it is not frozen, there is nothing to sleep through and
+    // the normal cadence applies (T180 — see BlockedUntilUnix for the premise and the double-check floor).
     private int DesiredPollMs()
     {
         if (_data is { Unauthorized: true })
@@ -909,10 +910,46 @@ internal sealed class TrayContext : ApplicationContext
     private double BlockedUntilUnix(long now)
     {
         if (_data is not { Error: null } d) return 0;
+        // The monitored profile is _watched[0] (RefreshWatched keeps it first), and its account flag is
+        // the one that says whether hitting 100% stops the work or starts charging for it.
+        bool? extraEnabled = _watched.Count > 0 ? _watched[0].ExtraUsage : null;
+        return BlockedUntilUnix(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d, d.ExtraUtil, extraEnabled, now);
+    }
+
+    /// <summary>
+    /// The idle decision, as arithmetic over one reading (T180). Static and parameterised so
+    /// <c>--selftest</c> can assert it: the tray it used to live inside cannot be constructed headlessly,
+    /// which is how a policy this consequential ended up verified by nobody.
+    ///
+    /// <para><b>The premise, stated so it can be checked.</b> The idle rests on "at the limit, usage is
+    /// blocked and consumption is frozen, so polling re-reads the same 100%". That is true for an account
+    /// which stops at its included quota and <em>false</em> for one with extra usage: the session keeps
+    /// working and keeps billing. Gating on the threshold alone modelled the premise as if it always
+    /// held, and the cost of being wrong is not a stale number — it is silence. The sampler that writes
+    /// the history is the poll, so sleeping through the overage leaves no points at all across the one
+    /// stretch where money was spent, and later it reads as the app having been closed.</para>
+    ///
+    /// <para>So the gate is the premise itself: an account that can still spend is never blocked. Two
+    /// things say it can — the account's own <c>hasExtraUsageEnabled</c>, and an overage figure already
+    /// above zero, which is the account demonstrably doing it whatever the flag says. Either is enough,
+    /// deliberately: idling wrongly loses readings nothing can recover, while polling wrongly costs one
+    /// API call per interval, and only for an account already past 100%.</para>
+    ///
+    /// <para>What this does <b>not</b> try to decide is whether the extra-usage allowance is itself
+    /// exhausted — the third state, where the account really has stopped. Nothing established yet says
+    /// what the overage percentage is a percentage <em>of</em>, so treating 1.0 as "stopped" would be
+    /// inventing the denominator this block exists to go and measure.</para>
+    /// </summary>
+    /// <returns>The unix second to idle until, or 0 when the poll should keep its normal cadence.</returns>
+    internal static double BlockedUntilUnix(double util5h, double reset5h, double util7d, double reset7d,
+                                            double? extraUtil, bool? extraUsageEnabled, long now)
+    {
+        if (extraUtil > 0 || extraUsageEnabled == true) return 0;
+
         double soonest = double.PositiveInfinity;
         bool atLimit = false;
-        if (d.Session5h >= AtLimitThreshold) { atLimit = true; if (d.Reset5h > now) soonest = Math.Min(soonest, d.Reset5h); }
-        if (d.Week7d >= AtLimitThreshold) { atLimit = true; if (d.Reset7d > now) soonest = Math.Min(soonest, d.Reset7d); }
+        if (util5h >= AtLimitThreshold) { atLimit = true; if (reset5h > now) soonest = Math.Min(soonest, reset5h); }
+        if (util7d >= AtLimitThreshold) { atLimit = true; if (reset7d > now) soonest = Math.Min(soonest, reset7d); }
         if (!atLimit) return 0;
         // At limit but no known future reset (0 / stale header): keep checking on the short cadence
         // rather than idling forever.
