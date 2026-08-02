@@ -103,28 +103,12 @@ deliberately — this file is published with the repo. The right-hand column is 
 ## §XII — What the self-check found (Block V)
 
 Building `--selftest` (T96) was the first time the pacing and live-rate arithmetic was written down as
-properties rather than looked at on a chart, and writing them down turned up four things. Three are
-gaps in what the check itself covers or guards; one is a number that has been wrong on screen since
-T98. None of them was found by a user report, which is the point: they were found by having to state
-what "correct" means.
+properties rather than looked at on a chart, and writing them down turned up four things: three gaps
+in what the check itself covers or guards, and one number that had been wrong on screen since T98
+(T150, shipped — the live rate's 1.7% kernel bias). None of them was found by a user report, which is
+the point: they were found by having to state what "correct" means.
 
-### §XII.1 The live rate reads 1.7% high (T150)
-
-The rolling rate weights each of the last `W` seconds by `1 − i/W` and divides by `W/2`. That divisor
-is the integral of the triangular window, `∫₀^W (1 − t/W) dt`, but the kernel is a **sum over discrete
-seconds**, and that sum is `Σᵢ₌₀^{W−1} (1 − i/W) = (W+1)/2` — 30.5, not 30. A perfectly sustained
-`R` tokens/s therefore reads as `R · (1 + 1/W)`, which at `W = 60` is **1.67% high**, everywhere the
-rate is shown: the headline, the strip, the per-project lines, the hover.
-
-The fix is one divisor — normalise by the sum the kernel actually has. It is small, it is not urgent
-(nobody makes a decision on the second decimal of a tokens/second reading), and it is worth doing
-because the number claims a unit: "≈134 tok/s" is an assertion about tokens and seconds, not a
-relative index, and being consistently high by a fixed factor is exactly the kind of thing that is
-free to fix now and embarrassing to explain later. `--selftest` currently pins the *present* value as
-a closed form (`R × (1 + 1/60)`), deliberately, so the assertion has to move in the same commit —
-which is the check doing its job rather than an obstacle.
-
-### §XII.2 A week away shouldn't teach the measured grid either (T151)
+### §XII.2 A week away shouldn't teach the measured grid either (T152)
 
 T95 drops weeks the user was away from the **transcript** grid's vote. The measured grid (T88, blended
 in by T93) still counts every folded hour, so the same holiday still votes "these hours are idle" —
@@ -141,7 +125,7 @@ way and must keep contributing exactly what they contribute today. `--activity -
 print the exclusion the same way `--activity` prints the transcript one, and for the same reason:
 silently discarding a sixth of the input is what looks like a bug three months later.
 
-### §XII.3 Two properties the self-check still doesn't cover (T152)
+### §XII.3 Two properties the self-check still doesn't cover (T153)
 
 §IV.12 listed the tail's **primed offset** ("a primed mid-line cursor skips to a character boundary")
 and the rate's **zero-fill** ("a paused caller resumes with a truthful gap rather than a stale
@@ -157,7 +141,7 @@ same visibility the fixtures already rely on) lets a check push a burst, skip th
 `Tick`, and assert the strip came back empty instead of holding its last value. A property listed as
 the reason a feature exists and then left unasserted is worse than one nobody wrote down.
 
-### §XII.4 The self-check only runs when a release is cut (T153)
+### §XII.4 The self-check only runs when a release is cut (T151)
 
 `build.yml` is `workflow_dispatch` only, so `--selftest` — now wired into it — runs when somebody
 decides to publish. A broken invariant therefore surfaces at the least convenient moment available,

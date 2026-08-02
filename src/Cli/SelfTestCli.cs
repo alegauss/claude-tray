@@ -170,13 +170,14 @@ internal static class SelfTestCli
     {
         const int w = LiveRate.WindowSeconds;
 
-        // A triangular window summed over discrete seconds has gain (W+1)/2, not W/2, so a sustained R
-        // reads 1/W high by construction. Asserted as the closed form rather than as "about R": the
-        // number is what it is, and pinning it is what makes a change to the normalisation visible.
+        // A triangular window summed over discrete seconds has gain (W+1)/2, not W/2 — the integral of
+        // the same shape. Normalising by the integral read every sustained rate 1/W high (T150), so the
+        // assertion is that R reads as R exactly: the kernel claims a unit, and a fixed factor on a
+        // number labelled tok/s is a wrong number, not a scale.
         var steady = new long[4 * w];
         Array.Fill(steady, 1000L);
         double[] flat = LiveRate.RateFrom(steady, 30);
-        Near($"a sustained rate reads as itself × (1 + 1/{w})", flat[^1], 1000.0 * (1 + 1.0 / w), 1e-9);
+        Near("a sustained rate reads as itself", flat[^1], 1000.0, 1e-9);
         Check("a sustained rate is flat across the reported span",
               Math.Abs(flat[0] - flat[^1]) < 1e-9);
 
@@ -185,7 +186,7 @@ internal static class SelfTestCli
         var burst = new long[w + w + 1];
         burst[w] = 60_000;
         double[] decay = LiveRate.RateFrom(burst, w + 1);
-        Near("a burst starts at its full weight", decay[0], 60_000 / (w / 2.0), 1e-9);
+        Near("a burst starts at its full weight", decay[0], 60_000 / LiveRate.KernelSum, 1e-9);
         Near("a burst decays linearly", decay[w / 2], decay[0] * 0.5, 1e-9);
         Check($"a burst reaches a true zero at exactly {w}s", decay[w] == 0,
               $"value at {w}s = {decay[w]:0.#####}");

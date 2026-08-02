@@ -36,8 +36,8 @@ internal readonly record struct ProjectSlice(
 /// the way this metric must not be — one 60k-token turn pinned the display at 1,000 tok/s for a full
 /// minute after the work had stopped, then dropped to zero in a single step. Weighting by age makes
 /// a pause decay from the moment it starts, and the triangular kernel still reports sustained work at
-/// its true rate (the weights sum to <c>W/2</c>, which is what it is divided by). An <b>EWMA</b> on
-/// top only takes the corners off the arrival of a large turn.</para>
+/// its true rate (the weights sum to <see cref="KernelSum"/>, which is what it is divided by). An
+/// <b>EWMA</b> on top only takes the corners off the arrival of a large turn.</para>
 ///
 /// <para>Cache reads are excluded from the headline, exactly as <see cref="WindowPace"/> excludes
 /// them: they are the whole context re-read every turn, they dwarf real work by an order of
@@ -52,6 +52,14 @@ internal sealed class LiveRate
 {
     /// <summary>The trailing window the rate is measured over.</summary>
     public const int WindowSeconds = 60;
+
+    /// <summary>What a weighted sum is divided by to read back as a rate: the gain of the triangular
+    /// kernel, <c>Σᵢ₌₀^{W−1} (1 − i/W) = (W+1)/2</c>. Deliberately <b>not</b> the integral
+    /// <c>∫₀^W (1 − t/W) dt = W/2</c>, which is what a continuous window of the same shape would have —
+    /// the kernel here is a sum over discrete seconds, and normalising by the integral instead reported
+    /// every sustained rate <c>1/W</c> (1.7% at <c>W = 60</c>) high, everywhere the rate is shown
+    /// (T150).</summary>
+    public const double KernelSum = (WindowSeconds + 1) / 2.0;
 
     /// <summary>How much per-second history is kept — T99's strip draws ~3 minutes of it, and it is
     /// the same span <see cref="TranscriptTail.MaxSampleAgeSeconds"/> reports over.</summary>
@@ -209,7 +217,7 @@ internal sealed class LiveRate
                 if (idx < 0) break;
                 if (idx < perSecond.Length) weighted += perSecond[idx] * (1.0 - (double)i / WindowSeconds);
             }
-            raw[k] = weighted / (WindowSeconds / 2.0);
+            raw[k] = weighted / KernelSum;
         }
         Smooth(raw);
         return warm == 0 ? raw : raw[warm..];
@@ -229,7 +237,7 @@ internal sealed class LiveRate
             double weighted = 0;
             for (int i = 0; i < WindowSeconds; i++)
                 weighted += bucketAt(t - i) * (1.0 - (double)i / WindowSeconds);
-            raw[k] = weighted / (WindowSeconds / 2.0);
+            raw[k] = weighted / KernelSum;
         }
         Smooth(raw);
         return warm == 0 ? raw : raw[warm..];
@@ -319,9 +327,9 @@ internal sealed class LiveRate
             }
             _window = new TokenBits(input, output, create, read);
 
-            // Σ weights over a sustained rate R is R·W/2, so dividing by W/2 reports R — the kernel
-            // changes how a burst ages, not what steady work reads as.
-            _instant = weighted / (WindowSeconds / 2.0);
+            // Σ weights over a sustained rate R is R·KernelSum, so dividing by it reports R — the
+            // kernel changes how a burst ages, not what steady work reads as.
+            _instant = weighted / KernelSum;
 
             // Smoothing applies to the *attack* only. A large turn arriving in one second is the one
             // thing that would read as a spike, so it is eased in with a first-order lag discretised
@@ -467,7 +475,7 @@ internal sealed class LiveRate
         double weighted = 0;
         for (int i = 0; i < WindowSeconds; i++)
             weighted += ring[Index(_head - i)] * (1.0 - (double)i / WindowSeconds);
-        return weighted / (WindowSeconds / 2.0);
+        return weighted / KernelSum;
     }
 
     private long[] Unroll(long[] ring)
