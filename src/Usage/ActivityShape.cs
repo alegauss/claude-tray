@@ -18,6 +18,12 @@ namespace ClaudeTray;
 /// remainder's mix matches the elapsed one it reproduces the straight line exactly, and it only
 /// diverges where the mix genuinely differs.</para>
 ///
+/// <para>T94 makes the unit an <em>ordinary</em> active hour rather than any active hour: the sums
+/// become <c>Σ p·i</c>, and the measured rate is divided by the elapsed span's own mean intensity so
+/// it is expressed in the same unit it is later multiplied back into. Where the grid is flat — no
+/// folded store yet, or a week with no heavy and light hours to tell apart — every factor is 1 and
+/// the arithmetic is byte-for-byte the T87 one.</para>
+///
 /// <para>Weekly window only — a 5-hour window is a single sitting, and a habit grid has nothing to
 /// say about it. Built only when the profile has enough weeks behind it
 /// (<see cref="ActivityProfile.Confident"/>); a confident-looking staircase drawn on one week of data
@@ -60,6 +66,20 @@ internal sealed class ActivityShape
     /// <summary>Quota fraction spent per active hour, the calibrated rate.</summary>
     public double RatePerActiveHour;
 
+    /// <summary>Expected <em>ordinary-hour equivalents</em> ahead — <c>Σ p·i</c> (T94). Equal to
+    /// <see cref="ActiveHoursAhead"/> when the intensity grid is flat.</summary>
+    public double IntensityHoursAhead;
+
+    /// <summary>The rate re-expressed per ordinary active hour, which is the unit
+    /// <see cref="IntensityHoursAhead"/> is counted in. This, not <see cref="RatePerActiveHour"/>, is
+    /// what the projection multiplies by.</summary>
+    public double RatePerOrdinaryHour;
+
+    /// <summary>Mean intensity of the elapsed span — how heavy this window's hours have been so far,
+    /// relative to an ordinary one. The divisor that keeps the calibration and the projection in the
+    /// same unit; 1 when there is no intensity grid.</summary>
+    public double ElapsedIntensity = 1;
+
     /// <summary>Weeks of coverage behind the profile, for the wording that hedges on it.</summary>
     public double CoverageWeeks;
 
@@ -101,19 +121,31 @@ internal sealed class ActivityShape
         DateTime resetLocal = Local(w.ResetUnix);
         if (resetLocal <= nowLocal) return null;
 
+        double elapsedP = p.ExpectedActiveHours(startLocal, nowLocal);
+
         // Prefer what this window actually did over what the profile expects it to have done: a week
         // spent on holiday should not be paced as if its usual hours had been worked.
         double elapsedActive = w.MeasuredActiveHours;
         bool measured = elapsedActive >= MinMeasuredActiveHours;
-        if (!measured) elapsedActive = p.ExpectedActiveHours(startLocal, nowLocal);
+        if (!measured) elapsedActive = elapsedP;
         if (elapsedActive < 0.25) return null;
+
+        // The rate is measured in plain active hours but spent against ordinary-hour equivalents, so
+        // it has to be converted between the two units — by the elapsed span's own mean intensity,
+        // which is the only estimate available of how heavy the hours behind `util` were. Exactly 1
+        // on a flat grid, so this factor cannot move a projection it has no evidence to move.
+        double elapsedPi = p.ExpectedIntensityHours(startLocal, nowLocal);
+        double elapsedIntensity = elapsedP > 0 && elapsedPi > 0 ? elapsedPi / elapsedP : 1;
 
         var shape = new ActivityShape
         {
             CoverageWeeks = p.CoverageWeeks,
             MeasuredCalibration = measured,
             RatePerActiveHour = w.Util / elapsedActive,
+            ElapsedIntensity = elapsedIntensity,
+            RatePerOrdinaryHour = w.Util / elapsedActive / elapsedIntensity,
             ActiveHoursAhead = p.ExpectedActiveHours(nowLocal, resetLocal),
+            IntensityHoursAhead = p.ExpectedIntensityHours(nowLocal, resetLocal),
         };
 
         double Frac(DateTime local) => Math.Clamp(
@@ -137,7 +169,7 @@ internal sealed class ActivityShape
             if (pr < IdleThreshold) bandFrom ??= f0;
             else if (bandFrom is { } open) { shape.AddBand(open, f0, w.WindowSeconds); bandFrom = null; }
 
-            double add = shape.RatePerActiveHour * pr * (end - cursor).TotalHours;
+            double add = shape.RatePerOrdinaryHour * pr * p.IntensityAt(cursor) * (end - cursor).TotalHours;
             if (cum < 1 && cum + add >= 1 && add > 0)
             {
                 shape.ExhaustFraction = f0 + (f1 - f0) * ((1 - cum) / add);
@@ -167,8 +199,8 @@ internal sealed class ActivityShape
 
     /// <summary>
     /// Turn "you run out 1d 6h before the reset" into something to do about it: the earliest hour work
-    /// could resume at and still close the week under the limit, assuming the same pace per active
-    /// hour once it does.
+    /// could resume at and still close the week under the limit, assuming the same pace per ordinary
+    /// active hour once it does.
     ///
     /// Only whole hours the user is normally working are offered — advice to resume at 03:00 is not
     /// advice — so the answer naturally lands on the start of a working stretch ("tomorrow at 09:00")
@@ -182,7 +214,7 @@ internal sealed class ActivityShape
         {
             if (p.At(probe) < IdleThreshold) continue;
 
-            double closes = w.Util + RatePerActiveHour * p.ExpectedActiveHours(probe, resetLocal);
+            double closes = w.Util + RatePerOrdinaryHour * p.ExpectedIntensityHours(probe, resetLocal);
             if (closes > AdviceTarget) continue;
 
             ResumeUnix = new DateTimeOffset(probe).ToUnixTimeSeconds();

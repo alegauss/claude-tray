@@ -27,6 +27,10 @@ namespace ClaudeTray;
 /// <para>A bucket is a probability, never a boolean. "Usually quiet but sometimes worked" has to
 /// degrade smoothly, or a single unusual evening flips a whole projection.</para>
 ///
+/// <para>Alongside it, <see cref="I"/> carries <em>how heavy</em> an active hour in each bucket is
+/// (T94) — presence alone paces a morning of agent work and an evening of one-line questions
+/// identically. That one comes from the folded store, never from the transcripts.</para>
+///
 /// <para><b>The sweep is incremental (T92).</b> A rebuild used to re-read every transcript in the
 /// window — 15s over 93k requests on the dev machine — although a session untouched since the last
 /// sweep produces exactly the counts it produced then. Each file is now reduced once to the local
@@ -60,6 +64,19 @@ internal sealed class ActivityProfile
     /// <summary>The cache is recomputed about once a day — a habit does not move faster than that.</summary>
     public const double RefreshHours = 20;
 
+    /// <summary>Strength of the flat intensity prior (i = 1), in equivalent weeks of *active*
+    /// observation of that hour. Deliberately larger than the evidence a rare hour ever accumulates:
+    /// a bucket seen working once must stay ordinary until it repeats.</summary>
+    public const double IntensityPriorWeeks = 2.0;
+
+    /// <summary>Intensity is clamped to [<see cref="MinIntensity"/>, <see cref="MaxIntensity"/>]. The
+    /// grid is a habit, and no habit means an hour of work costs four times another hour of work —
+    /// past this the number is one incident, not a pattern.</summary>
+    public const double MinIntensity = 0.5;
+
+    /// <inheritdoc cref="MinIntensity"/>
+    public const double MaxIntensity = 2.0;
+
     private const int CacheVersion = 1;
 
     /// <summary>Walk cap, mirroring <see cref="ContextScanner"/>: a pathological tree must not hang.</summary>
@@ -67,6 +84,22 @@ internal sealed class ActivityProfile
 
     /// <summary>p(active) per bucket, indexed by <see cref="Index(DayOfWeek,int)"/>.</summary>
     public double[] P = new double[Buckets];
+
+    /// <summary>
+    /// How <em>heavy</em> an active hour in that bucket is, relative to an ordinary active hour (T94).
+    /// Flat at 1 until the measured store has something to say, which is what makes it safe to
+    /// multiply into every projection: with no evidence the arithmetic is exactly the T87 one.
+    ///
+    /// <para><see cref="P"/> answers "is this hour worked"; this answers "how much does it cost when it
+    /// is". Without it a morning of agent work and an evening of one-line questions are both simply
+    /// "active", and the projection spends them identically — bounded error, but a systematic one, and
+    /// it under-projects exactly the week whose remaining hours are the heavy kind.</para>
+    /// </summary>
+    public double[] I = Flat();
+
+    /// <summary>The measured store had enough active hours to shape <see cref="I"/> at all. False
+    /// leaves every projection identical to the pre-T94 one, by construction.</summary>
+    public bool HasIntensity;
 
     /// <summary>Span of transcript coverage in weeks (capped at <see cref="MaxWeeks"/>).</summary>
     public double CoverageWeeks;
@@ -156,8 +189,50 @@ internal sealed class ActivityProfile
             Measured = m.P;
             MeasuredWeight = weight;
             MeasuredShare = share / Buckets;
+
+            BlendIntensity(m);
         }
         catch { /* the store is an improvement on the grid, never a precondition for having one */ }
+    }
+
+    /// <summary>
+    /// Fill <see cref="I"/> from the measured store's mean spend per active hour (T94).
+    ///
+    /// <para>Only the folded aggregate can supply this: the transcript sweep deliberately records
+    /// presence and nothing else (it never reads token counts), so "how heavy was that hour" is a
+    /// question it cannot answer. That is also why intensity is applied on every read rather than
+    /// cached — it moves with the store, not with the transcripts.</para>
+    ///
+    /// <para>Two guards, the same two the grid itself uses: shrink toward 1 by how many weeks that
+    /// bucket was actually observed <em>working</em>, then clamp. A single 3am incident would
+    /// otherwise create a "3am is 4× heavy" bucket out of one observation, and the projection would
+    /// inherit it for weeks.</para>
+    /// </summary>
+    private void BlendIntensity(HourlyUsage.MeasuredWeek m)
+    {
+        if (m.Intensity.Length != Buckets || m.Active.Length != Buckets) return;
+
+        var next = Flat();
+        bool any = false;
+        for (int b = 0; b < Buckets; b++)
+        {
+            double n = m.Active[b];
+            if (n <= 0 || m.Intensity[b] <= 0) continue;   // never seen working: ordinary, not light
+
+            double shrunk = (n * m.Intensity[b] + IntensityPriorWeeks) / (n + IntensityPriorWeeks);
+            next[b] = Math.Clamp(shrunk, MinIntensity, MaxIntensity);
+            any = true;
+        }
+
+        I = next;
+        HasIntensity = any;
+    }
+
+    private static double[] Flat()
+    {
+        var a = new double[Buckets];
+        Array.Fill(a, 1.0);
+        return a;
     }
 
     /// <summary>Weeks of evidence behind the shape, from whichever source has more of it. A machine
@@ -185,6 +260,8 @@ internal sealed class ActivityProfile
 
     public double At(DateTime local) => At(local.DayOfWeek, local.Hour);
 
+    public double IntensityAt(DateTime local) => I[Index(local.DayOfWeek, local.Hour)];
+
     /// <summary>
     /// Expected active hours in a local time span: Σ p over the hours it covers, pro-rating the
     /// partial hours at each end. This is the quantity the staircase projection spends quota against
@@ -194,6 +271,19 @@ internal sealed class ActivityProfile
     /// That is the intended reading: the grid is a habit expressed in clock time.
     /// </summary>
     public double ExpectedActiveHours(DateTime fromLocal, DateTime toLocal)
+        => Span(fromLocal, toLocal, weighted: false);
+
+    /// <summary>
+    /// The same span, in <em>ordinary-hour equivalents</em>: Σ p·i (T94). Three active hours that are
+    /// usually half again as heavy as normal cost the projection four and a half.
+    ///
+    /// Identical to <see cref="ExpectedActiveHours"/> whenever <see cref="I"/> is flat, which is what
+    /// keeps the pre-T94 arithmetic reachable — including on a machine with nothing folded yet.
+    /// </summary>
+    public double ExpectedIntensityHours(DateTime fromLocal, DateTime toLocal)
+        => Span(fromLocal, toLocal, weighted: true);
+
+    private double Span(DateTime fromLocal, DateTime toLocal, bool weighted)
     {
         if (toLocal <= fromLocal) return 0;
 
@@ -204,7 +294,7 @@ internal sealed class ActivityProfile
         {
             DateTime nextHour = cursor.Date.AddHours(cursor.Hour + 1);
             DateTime end = nextHour < toLocal ? nextHour : toLocal;
-            total += At(cursor) * (end - cursor).TotalHours;
+            total += At(cursor) * (weighted ? IntensityAt(cursor) : 1) * (end - cursor).TotalHours;
             cursor = end;
         }
         return total;

@@ -66,6 +66,28 @@ internal static class ActivityCli
         else
             Console.WriteLine("measured blend: none yet — the grid is entirely from local transcripts, " +
                               "which cannot see usage from another machine or claude.ai");
+
+        // What T94 added on top of presence. Printed even when flat, because "every hour costs the
+        // same" is a claim about the projection and silence would read as the feature being absent.
+        if (prof.HasIntensity)
+        {
+            int heavy = 0, light = 0;
+            for (int b = 0; b < ActivityProfile.Buckets; b++)
+            {
+                if (prof.I[b] > prof.I[heavy]) heavy = b;
+                if (prof.I[b] < prof.I[light]) light = b;
+            }
+            Console.WriteLine($"intensity: heaviest {(DayOfWeek)(heavy / 24)} {heavy % 24:00}:00 " +
+                              $"({prof.I[heavy]:0.00}×), lightest {(DayOfWeek)(light / 24)} {light % 24:00}:00 " +
+                              $"({prof.I[light]:0.00}×), clamped to " +
+                              $"[{ActivityProfile.MinIntensity:0.0}, {ActivityProfile.MaxIntensity:0.0}] and shrunk " +
+                              $"toward 1 by {ActivityProfile.IntensityPriorWeeks:0.0} weeks of prior");
+        }
+        else
+        {
+            Console.WriteLine("intensity: flat — no folded active hours to weigh yet, so every active hour " +
+                              "is paced at the same rate (the pre-T94 projection, exactly)");
+        }
         Console.WriteLine();
 
         if (prof.Samples == 0) { Console.WriteLine("no activity in the last 12 weeks — nothing to shape"); return; }
@@ -96,8 +118,10 @@ internal static class ActivityCli
     private static void PrintMeasuredActivity(ActivityProfile prof, DateTime nowLocal, bool numbers)
     {
         Console.WriteLine();
-        (double[] measured, double[] observed, double weeks, int days) =
-            HourlyUsage.MeasuredProfile(ProfileStore.Monitored, nowLocal);
+        HourlyUsage.MeasuredWeek m = HourlyUsage.MeasuredProfile(ProfileStore.Monitored, nowLocal);
+        double[] measured = m.P, observed = m.Observed;
+        double weeks = m.Weeks;
+        int days = m.Days;
         Console.WriteLine($"Measured profile — {days} folded days, {weeks:0.0} weeks");
         Console.WriteLine("store: " + HourlyUsage.FilePath(ProfileStore.Monitored));
 
@@ -140,7 +164,66 @@ internal static class ActivityCli
                               $"blended {prof.P[worstBucket] * 100:0}% " +
                               $"(measured weight {(prof.MeasuredWeight?[worstBucket] ?? 0) * 100:0}%, " +
                               $"{observed[worstBucket]:0.0} effective weeks observed)");
+
+        PrintIntensity(prof, m, numbers);
     }
+
+    // The intensity grid (T94): how heavy an *active* hour in each bucket is, relative to an ordinary
+    // one. Printed beside the measured grid because it comes from the same folded store and answers
+    // the question that one deliberately doesn't — p says whether the hour is worked, this says what
+    // it costs. Buckets never observed working are blank rather than 1.00: no evidence is not "an
+    // ordinary hour", even though the projection has to treat it as one.
+    private static void PrintIntensity(ActivityProfile prof, HourlyUsage.MeasuredWeek m, bool numbers)
+    {
+        Console.WriteLine();
+        Console.WriteLine("Intensity — mean spend per active hour, relative to an ordinary active hour");
+        if (!prof.HasIntensity)
+        {
+            Console.WriteLine("  (flat — nothing folded has been active yet, so every hour is paced at 1.00×)");
+            return;
+        }
+
+        Console.WriteLine();
+        DayOfWeek[] days = { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday,
+                             DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday };
+        int cell = numbers ? 5 : 1;
+        Console.Write("     ");
+        for (int h = 0; h < 24; h++) Console.Write((h >= 10 ? (h / 10).ToString() : " ").PadLeft(cell));
+        Console.WriteLine();
+        Console.Write("     ");
+        for (int h = 0; h < 24; h++) Console.Write((h % 10).ToString().PadLeft(cell));
+        Console.WriteLine("    mean");
+
+        foreach (DayOfWeek d in days)
+        {
+            Console.Write($" {d.ToString()[..3]} ");
+            double sum = 0;
+            int seen = 0;
+            for (int h = 0; h < 24; h++)
+            {
+                int b = ActivityProfile.Index(d, h);
+                bool known = m.Active[b] > 0;
+                if (known) { sum += prof.I[b]; seen++; }
+                Console.Write((!known ? "" : numbers ? $"{prof.I[b]:0.00}" : Weight(prof.I[b]).ToString())
+                    .PadLeft(cell));
+            }
+            Console.WriteLine($"   {(seen > 0 ? sum / seen : 1),5:0.00}×");
+        }
+
+        Console.WriteLine();
+        if (!numbers)
+            Console.WriteLine("legend: ' ' never active   – ≤0.8×   ± <1.2×   + <1.6×   ⁑ ≥1.6×   (1.00× = an ordinary hour)");
+    }
+
+    // Around 1 rather than from 0: the interesting reading is "heavier or lighter than usual", and a
+    // 0-based ramp would paint the whole grid the same shade of ordinary.
+    private static char Weight(double i) => i switch
+    {
+        <= 0.8 => '–',
+        < 1.2 => '±',
+        < 1.6 => '+',
+        _ => '⁑',
+    };
 
     // One 7×24 heatmap: Monday-first, one character per hour, with each day's expected active hours.
     private static void PrintGrid(double[] p, bool numbers)

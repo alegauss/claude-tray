@@ -129,7 +129,14 @@ internal static class HourlyUsage
     /// hour" — which is what T93 blends by, rather than by a single grid-wide number.</param>
     /// <param name="Weeks">Span of folded coverage in weeks.</param>
     /// <param name="Days">Folded days that contributed.</param>
-    internal readonly record struct MeasuredWeek(double[] P, double[] Observed, double Weeks, int Days);
+    /// <param name="Intensity">Mean spend per <em>active</em> hour in that bucket, divided by the mean
+    /// over every active hour — so 1 is "an ordinary working hour", 2 is "twice as heavy as usual".
+    /// 0 where the bucket has never been observed active, which is not an intensity of zero but an
+    /// absence of evidence; the caller (T94) shrinks toward 1 rather than reading it as light.</param>
+    /// <param name="Active">Decayed weeks in which that bucket was observed <em>active</em> — the
+    /// sample size behind <paramref name="Intensity"/>, and always ≤ <paramref name="Observed"/>.</param>
+    internal readonly record struct MeasuredWeek(double[] P, double[] Observed, double Weeks, int Days,
+        double[] Intensity, double[] Active);
 
     /// <returns>The grid, its per-bucket evidence, the number of weeks it draws on, and how many
     /// folded days were used.</returns>
@@ -138,9 +145,13 @@ internal static class HourlyUsage
         var p = new double[ActivityProfile.Buckets];
         var active = new double[ActivityProfile.Buckets];
         var observed = new double[ActivityProfile.Buckets];
+        // Quota spent in the hours that counted as active, so the mean below is per *active* hour:
+        // dividing by every observed hour would just re-measure p(active) a second time.
+        var spent = new double[ActivityProfile.Buckets];
+        var intensity = new double[ActivityProfile.Buckets];
 
         List<HourlyDay> days = Load(profileKey);
-        if (days.Count == 0) return new MeasuredWeek(p, observed, 0, 0);
+        if (days.Count == 0) return new MeasuredWeek(p, observed, 0, 0, intensity, active);
 
         int used = 0;
         double oldest = 0;
@@ -158,7 +169,7 @@ internal static class HourlyUsage
                 double weight = Math.Pow(ActivityProfile.WeekDecay, week);
                 int b = ActivityProfile.Index(at.DayOfWeek, h);
                 observed[b] += weight;
-                if (d.Spend[h] >= ActiveSpendThreshold) active[b] += weight;
+                if (d.Spend[h] >= ActiveSpendThreshold) { active[b] += weight; spent[b] += weight * d.Spend[h]; }
 
                 counted = true;
                 oldest = Math.Max(oldest, (nowLocal - at).TotalDays);
@@ -166,10 +177,23 @@ internal static class HourlyUsage
             if (counted) used++;
         }
 
+        // The reference is the mean over every active hour anywhere in the week, weighted the same
+        // way — so the grid is unitless and a week that simply spends more moves no bucket.
+        double totalSpent = 0, totalActive = 0;
         for (int b = 0; b < ActivityProfile.Buckets; b++)
+        {
             p[b] = observed[b] > 0 ? active[b] / observed[b] : 0;
+            totalSpent += spent[b];
+            totalActive += active[b];
+        }
 
-        return new MeasuredWeek(p, observed, Math.Min(oldest / 7.0, ActivityProfile.MaxWeeks), used);
+        double mean = totalActive > 0 ? totalSpent / totalActive : 0;
+        if (mean > 0)
+            for (int b = 0; b < ActivityProfile.Buckets; b++)
+                if (active[b] > 0) intensity[b] = spent[b] / active[b] / mean;
+
+        return new MeasuredWeek(p, observed, Math.Min(oldest / 7.0, ActivityProfile.MaxWeeks), used,
+            intensity, active);
     }
 
     /// <summary>Last week's burn-up, ready to draw behind this week's.</summary>

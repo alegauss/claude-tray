@@ -123,23 +123,6 @@ An activity-aware **tray notification** is explicitly *not* part of this block. 
 the wall-clock verdict and stays that way (T87 settled this); a second, softer notification channel
 would need its own justification.
 
-### §IV.10 Intensity, not just presence (T94)
-
-`projected = util + rate × Σ p` treats every active hour as costing the same. It does not: a morning
-of agent work and an evening of one-line questions are both "active", and the model spends them
-identically. The error is bounded (the rate is calibrated on this window's own average) but it is
-systematic — a week whose remaining hours are the heavy kind is under-projected exactly when the
-warning matters most.
-
-The folded store already holds what is needed: mean spend per *active* hour per bucket. Expressed
-relative to the overall mean it becomes a unitless intensity `i_h ≈ 1`, and the projection becomes
-`Σ p_h · i_h`. Deliberately sequenced after T93: intensity is only meaningful once the measured grid
-is trusted, and stacking two model changes at once would make a regression impossible to attribute.
-
-Guard against overfitting the same way the profile does: clamp `i_h` to something like [0.5, 2] and
-shrink it toward 1 by observation count, so a single 3am incident doesn't create a "3am is 4× heavy"
-bucket.
-
 ### §IV.11 Holidays shouldn't teach the model (T95)
 
 Every observed week votes with equal weight (times recency decay). A week on holiday therefore votes
