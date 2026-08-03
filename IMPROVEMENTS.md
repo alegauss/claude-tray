@@ -349,24 +349,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.6 The refusal is a precondition, not a failure
-
-`-Case Menu` refuses to launch while any ClaudeTray is alive: the single-instance mutex would make
-its own launch exit silently, and it would then read the *other* tray's menu and call that a pass.
-Refusing is right; reporting it with `Fail` is not, and it was only defensible before T193 because
-there was no third outcome to report it as.
-
-Now there is. An already-running tray is an absent **precondition** — the same shape as fewer than
-two profiles registered, or a report that never rendered, both of which became `Unchecked` and make
-the run DEGRADED at exit 2. The menu refusal did not, so a developer with the tray running gets exit
-1 from `-Case All`. That is every developer, because the app is meant to be resident, and what it
-teaches is that red means nothing.
-
-Which is the distinction T193 exists to draw. The change is small; what it protects is not, because
-T194 has just made CI depend on these codes. Worth settling at the same time whether `-UseRunning`
-should be implied rather than merely suggested, since driving the running tray is what the person
-almost always wants.
-
 ### XX.7 One list of ids is derived, the other is remembered
 
 `Check-Interaction.ps1` finds controls by string (`ById $win 'StatsStatusText'`), which no compiler

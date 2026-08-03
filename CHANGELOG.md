@@ -531,6 +531,8 @@
 
 ## Block AI — Verification — the checks that prove a change
 
+- **T202** — A tray already running makes the menu case Unchecked and the whole run DEGRADED, so exit 1 from a full run means a defect again on the one machine the loop is actually run from.
+
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block AB — What Block Z's own work left behind

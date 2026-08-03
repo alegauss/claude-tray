@@ -42,7 +42,8 @@
       0  every assertion ran and passed
       2  DEGRADED — everything that ran passed, but at least one assertion could not be evaluated on
          this machine or this run (one profile registered, no report rendered, a picker route that
-         needed more than one selection change). Named and listed in the summary, never an Info line:
+         needed more than one selection change, a tray already resident so the menu case must refuse).
+         Named and listed in the summary, never an Info line:
          a green tick over an assertion that silently stopped running is the defect T169 and T176 both
          name, and T166's switch-back timing had been dropped that way.
       1  at least one assertion FAILED
@@ -98,6 +99,17 @@
     Menu case only: drive the tray that is ALREADY running instead of launching `-Exe`. Convenient on
     a dev machine (the single-instance mutex makes a second launch exit silently), but it checks
     whatever binary is running, not the one you just built — so the script prints that path loudly.
+
+    Deliberately NOT implied when a tray is found (§XX.6 asked). Implying it would silently move the
+    check onto a binary nobody named — usually an installed release, while the point of the run is the
+    build under `-Exe` — and "the thing being looked at was not the thing being checked" is the defect
+    this file exists to catch, not one to automate. So the refusal stays, and it is `Unchecked`: the
+    run says what it did not check and why, and the flag remains the caller's word that a different
+    binary is what they meant.
+
+    `-Lang` does not survive it either, which is the same point measured: the language is a launch
+    argument, so a resident tray runs in its own saved one. Verifying T202 against a pt-BR tray with
+    the default `-Lang en` produced four FAILs for labels that were all present, in Portuguese.
 
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1
@@ -1301,8 +1313,13 @@ function Invoke-MenuCase {
     }
     elseif ($running.Count -gt 0) {
         # A second launch would exit silently on the single-instance mutex, and this check would then
-        # read the *other* tray's menu and call it a pass. Refuse instead.
-        Fail "a ClaudeTray is already running (pid $($running[0].Id)) - the single-instance mutex would make this launch exit silently. Quit it, or re-run with -UseRunning."
+        # read the *other* tray's menu and call it a pass. Refuse instead - but an absent precondition,
+        # not a defect (T202). The app is meant to be resident, so every developer's machine has one
+        # alive: reporting this with `Fail` made `-Case All` exit 1 on the one machine the loop is run
+        # from, which is how exit 1 stops meaning anything at all.
+        Unchecked "the tray icon's menu (T137, T148, T158)" `
+            ("a ClaudeTray is already running (pid $($running[0].Id)) and the single-instance mutex " +
+             "would make this launch exit silently. Quit it, or re-run with -UseRunning.")
         return
     }
     else {
@@ -1310,7 +1327,13 @@ function Invoke-MenuCase {
         $ownProcess = $true
         Start-Sleep -Milliseconds 1500
         $proc.Refresh()
-        if ($proc.HasExited) { Fail "the tray exited immediately after launch (single instance already held?)"; return }
+        # The same precondition arriving a moment later: a tray that started between the check above and
+        # this launch. Same reading, so the same outcome - otherwise the exit-1 hole survives as a race.
+        if ($proc.HasExited) {
+            Unchecked "the tray icon's menu (T137, T148, T158)" `
+                "the tray exited immediately after launch - a single instance was already held"
+            return
+        }
     }
 
     try {
