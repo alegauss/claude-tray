@@ -227,6 +227,7 @@
 ## Block AF — Six surfaces shipped, and what nothing was checking
 
 - **T185** — `--selftest` compares the five string tables against en: every key en has reaches all five files, no key exists in one file alone, and every {0}-style hole survives translation — and each failure names the offending keys rather than counting them.
+- **T186** — `--stats <variant>` and `--capture-stats <out> <variant>` read one table of previews (`src/Cli/StatsPreviews.cs`), so a preview added is a preview both flags gain, and a name neither knows is refused with the catalog printed instead of rendering the default sample as if it were the thing asked for.
 
 ## Block AE — Extra usage is money, and the tray is asleep for it
 

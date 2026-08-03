@@ -50,7 +50,6 @@
 >
 > Ordered by what can ship a defect to a user today, then by what misleads whoever builds here next.
 
-- 📋 **T186** (deps: —) **A preview added to --stats does not exist in --capture-stats, and the capture looks plausible without it** — The two flags parse their variants in separate branches, so 'overage' captured this machine's real week instead and only the numbers gave it away. → §XIX.2
 - 📋 **T187** (deps: —) **--capture-stats throws when its output directory does not exist** — SaveSnapshot calls File.Create on a path nothing creates, so a capture into a new folder dies with a stack trace after the window has already rendered. → §XIX.3
 - 📋 **T188** (deps: —) **Two toasts wear the same clay for opposite news** — Surprise says quota came back early and the new one says you started paying, because T184 took the colour the icon and the chart use for being past the quota. → §XIX.4
 - 📋 **T189** (deps: —) **The chart's own series-building is unreachable from --selftest** — FillCurve is private and the drawing is WPF, so the rule that an absent overage reading is not a plotted zero is held by one screenshot and nothing else. → §XIX.5

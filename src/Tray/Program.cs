@@ -318,122 +318,23 @@ internal static class Program
         }
 
         // Dev/preview helper: open just the Statistics page, standalone (no nav strip — see PageWindow),
-        // for the same launch-and-screenshot loop (see the preview-ui skill). Feeds a synthetic snapshot
-        // — a 5h session burning ahead of pace, a 7d week comfortably on track — so both verdicts render.
+        // for the launch-and-screenshot loop (see the preview-ui skill). Which synthetic reading it is fed
+        // is one row of StatsPreviews, the table --capture-stats reads too (T186).
         if (args.Length >= 1 && args[0] == "--stats")
         {
+            if (StatsPreviews.Resolve(Bare(args.Skip(1)), capturing: false) is not { } choice)
+            {
+                Environment.ExitCode = 1;
+                return;
+            }
             var previewApp = new System.Windows.Application();
-            // Every branch shows the same page in the same chrome; only what the page is fed differs.
-            static PageWindow Host(StatisticsPage page)
-                => new(page, L.T("stats.title"), 880, 948, 800, 740) { Topmost = true };
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            var sample = new PaceSnapshot(
-                Util5h: 0.72, Reset5h: now + 2 * 3600,      // 3h of 5h elapsed (60%), 72% used → ahead
-                Util7d: 0.38, Reset7d: now + 3 * 86400);    // 4d of 7d elapsed (57%), 38% used → on track
-            bool remaining = args.Length >= 2 && args[1].Equals("remaining", StringComparison.OrdinalIgnoreCase);
-            // "--stats error" previews the API-error state (e.g. a 403 payment-past-due): charts drawn
-            // from the last known local data, with an error banner. Any real gaps in the logged
-            // readings are drawn as red "unavailable" spans on the usage line.
-            // "--stats history" previews the offline fallback: no live reading, so the snapshot is
-            // rebuilt from the last reading persisted on disk (usage-history.jsonl) — exactly what
-            // TrayContext.CurrentSnapshot() does when signed out / the token expired at launch. Falls
-            // back to the "connect" hint only when there's genuinely no history yet.
-            if (args.Length >= 2 && args[1].Equals("history", StringComparison.OrdinalIgnoreCase))
-            {
-                PaceSnapshot? fromDisk = UsageHistory.Latest(ProfileStore.Monitored) is { } h
-                    ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d, h.Extra, h.ResetExtra)
-                    : null;
-                previewApp.Run(Host(new StatisticsPage(fromDisk, remaining)));
-            }
-            else if (args.Length >= 2 && args[1].Equals("error", StringComparison.OrdinalIgnoreCase))
-                previewApp.Run(Host(new StatisticsPage(sample, remaining,
-                    "Your subscription payment is past due. Please pay your overdue invoice to restore access, or reach out to your company admin.")));
-            else if (args.Length >= 2 && args[1].Equals("gapdemo", StringComparison.OrdinalIgnoreCase))
-            {
-                // Deterministic preview of the recovered state: a hand-built report with a past data gap
-                // that has since recovered — no error banner, but the outage still marked red on the
-                // curve. Pass "ongoing" to also show the error banner (mid-outage).
-                bool ongoing = args.Length >= 3 && args[2].Equals("ongoing", StringComparison.OrdinalIgnoreCase);
-                var page = new StatisticsPage(null);
-                page.Loaded += (_, _) => page.PreviewReport(PreviewCli.BuildGapDemoReport(now), ongoing
-                    ? "Your subscription payment is past due. Please pay your overdue invoice to restore access, or reach out to your company admin."
-                    : null);
-                previewApp.Run(Host(page));
-            }
-            else if (args.Length >= 2 && args[1].Equals("shape", StringComparison.OrdinalIgnoreCase))
-            {
-                // Preview the activity-aware weekly projection running out *before* the reset: the
-                // default sample lands comfortably below 100%, which draws the staircase but never its
-                // landing marker. The shape itself is real — it comes from this machine's own profile.
-                // An idle 5h session so the window opens straight on the weekly tab — the shaped
-                // projection is a weekly-only feature and shouldn't need a click to be looked at.
-                var heavy = new PaceSnapshot(
-                    Util5h: 0.0, Reset5h: now + 5 * 3600,
-                    Util7d: 0.74, Reset7d: now + 3 * 86400);    // 4d of 7d elapsed, 74% used → runs out early
-                // "--stats shape ghost" also draws a synthetic previous week behind it: the real ghost
-                // needs two weeks of folded history, which a fresh machine hasn't got.
-                previewApp.Run(Host(new StatisticsPage(heavy, remaining)
-                {
-                    PreviewDemoGhost = args.Any(a => a.Equals("ghost", StringComparison.OrdinalIgnoreCase)),
-                }));
-            }
-            // "--stats overage" previews the second axis (T183): a week whose included quota ran out
-            // part-way through and which kept working and billing. Synthetic, because putting a real
-            // account past its own limit is not something a screenshot can arrange.
-            else if (args.Length >= 2 && args[1].Equals("overage", StringComparison.OrdinalIgnoreCase))
-            {
-                var spent = new PaceSnapshot(
-                    Util5h: 0.0, Reset5h: now + 5 * 3600,
-                    Util7d: 1.0, Reset7d: now + 2 * 86400,      // the quota is gone; the clay line is what moves
-                    Extra: 0.47, ResetExtra: now + 2 * 86400);
-                previewApp.Run(Host(new StatisticsPage(spent, remaining) { PreviewDemoOverage = true }));
-            }
-            // "--stats live" feeds the throughput strip a deterministic synthetic three minutes
-            // instead of the real tail: the live row depends on whatever happens to be generating,
-            // which cannot be screenshotted twice the same way.
-            else if (args.Length >= 2 && args[1].Equals("live", StringComparison.OrdinalIgnoreCase))
-            {
-                previewApp.Run(Host(new StatisticsPage(sample, remaining) { PreviewDemoLive = true }));
-            }
-            // "--stats method" opens the window with the method popup already up. It is its own
-            // top-level window, so --capture-stats (RenderTargetBitmap over the content) cannot see it;
-            // this is the path that gets it on screen for the capture script.
-            else if (args.Length >= 2 && args[1].Equals("method", StringComparison.OrdinalIgnoreCase))
-            {
-                previewApp.Run(Host(new StatisticsPage(sample, remaining)
-                {
-                    PreviewDemoLive = true,
-                    PreviewMethodOpen = true,
-                }));
-            }
-            // "--stats thin" is the same popup, reporting as if the local history were still too thin to
-            // shape the projection (T163). Once a machine's profile is confident that paragraph can never
-            // be seen again on it, which is exactly the paragraph nobody had read.
-            else if (args.Length >= 2 && args[1].Equals("thin", StringComparison.OrdinalIgnoreCase))
-            {
-                previewApp.Run(Host(new StatisticsPage(sample, remaining)
-                {
-                    PreviewDemoLive = true,
-                    PreviewMethodOpen = true,
-                    PreviewDemoThin = true,
-                }));
-            }
-            else if (args.Length >= 2 && args[1].Equals("idle", StringComparison.OrdinalIgnoreCase))
-            {
-                // Preview the "not using Claude" state: the 5h session is idle (0% used → flat chart),
-                // while the week still carries accumulated usage. The window should open on the weekly
-                // tab, since the 5h chart has nothing interesting to show.
-                var idle = new PaceSnapshot(
-                    Util5h: 0.0, Reset5h: now + 5 * 3600,       // fresh/expired session, nothing used
-                    Util7d: 0.38, Reset7d: now + 3 * 86400);    // week still has accumulated usage
-                previewApp.Run(Host(new StatisticsPage(idle, remaining)));
-            }
-            else
-            {
-                var page = new StatisticsPage(sample, remaining);
+            StatisticsPage page = StatsPreviews.Build(choice, now);
+            // Only the default preview shows the real profile picker: every other one is a fixture, and a
+            // switch away from it would replace the very reading being looked at.
+            if (choice.Variant.Name.Length == 0)
                 page.SetProfiles(ClaudeAccount.Discover(Settings.Load().Profiles));
-                previewApp.Run(Host(page));
-            }
+            previewApp.Run(new PageWindow(page, L.T("stats.title"), 880, 948, 800, 740) { Topmost = true });
             return;
         }
 
@@ -484,29 +385,19 @@ internal static class Program
         if (args.Length >= 1 && args[0] == "--capture-stats")
         {
             string outBase = System.IO.Path.GetFullPath(args.Length >= 2 ? args[1] : @"docs\_preview\stats");
+            // The same table `--stats` reads, minus the output path, so a preview added there is captured
+            // here without a second edit and a name neither knows is refused rather than defaulted (T186).
+            if (StatsPreviews.Resolve(Bare(args.Skip(2)), capturing: true) is not { } choice)
+            {
+                Environment.ExitCode = 1;
+                return;
+            }
             var previewApp = new System.Windows.Application
             {
                 ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
             };
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            // A second argument of "shape" raises the weekly utilization until the activity-aware
-            // projection runs out before the reset, so the staircase's landing marker and the
-            // usually-idle bands are in the captured 7d tab (see `--stats shape`).
-            bool heavyWeek = args.Any(a => a.Equals("shape", StringComparison.OrdinalIgnoreCase));
-            // "overage" spends the week outright and draws the second axis (T183) — the state an account
-            // cannot be put into on demand, so the only way to look at that chart before shipping it.
-            bool overage = args.Any(a => a.Equals("overage", StringComparison.OrdinalIgnoreCase));
-            var sample = new PaceSnapshot(
-                Util5h: 0.72, Reset5h: now + 2 * 3600,
-                Util7d: overage ? 1.0 : heavyWeek ? 0.74 : 0.38, Reset7d: now + 3 * 86400,
-                Extra: overage ? 0.47 : null, ResetExtra: overage ? now + 3 * 86400 : 0);
-            var statsPage = new StatisticsPage(sample)
-            {
-                PreviewDemoGhost = args.Any(a => a.Equals("ghost", StringComparison.OrdinalIgnoreCase)),
-                PreviewDemoOverage = overage,
-                // Deterministic live strip, so the captured PNG is stable across runs.
-                PreviewDemoLive = args.Any(a => a.Equals("live", StringComparison.OrdinalIgnoreCase)),
-            };
+            StatisticsPage statsPage = StatsPreviews.Build(choice, now);
             var win = new PageWindow(statsPage, L.T("stats.title"), 880, 948, 800, 740)
             {
                 WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
@@ -529,11 +420,9 @@ internal static class Program
                 .Select(s => int.TryParse(s, out int n) ? n : -1)
                 .Where(n => n >= 0)
                 .ToArray();
-            // A fourth argument of "refresh" feeds a fresh reading in — the exact call the tray's poll
-            // loop makes — and snapshots *while the recomputation is still in flight*. That is the window
-            // a blanked pane would appear in, so the captured PNGs are the check for T118: content, not a
-            // "computing…" line.
-            bool refresh = args.Any(a => a.Equals("refresh", StringComparison.OrdinalIgnoreCase));
+            // The "refresh" modifier feeds a fresh reading in — the exact call the tray's poll loop makes —
+            // and snapshots *while the recomputation is still in flight*. That is the window a blanked pane
+            // would appear in, so the captured PNGs are the check for T118: content, not a "computing…" line.
 
             // Let the async pace computation finish and the charts render, then snapshot each tab.
             var settle = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(2.5) };
@@ -546,7 +435,7 @@ internal static class Program
                     return;
                 }
                 settle.Stop();
-                if (refresh) statsPage.UpdateSnapshot(sample);
+                if (choice.Refresh) statsPage.UpdateSnapshot(choice.Variant.Snapshot(now));
                 try { statsPage.SaveAllTabs(outBase); Console.WriteLine("wrote " + outBase + "-5h.png / -7d.png / -throughput.png"); }
                 finally { previewApp.Shutdown(); }
             };
@@ -566,6 +455,12 @@ internal static class Program
         WpfInputBridge.Install();
         Application.Run(new TrayContext());
     }
+
+    /// <summary>The words of a preview command that could name a variant: everything that is neither a
+    /// <c>--flag</c> nor a <c>name=value</c> pair, so those can be given in any order without one of them
+    /// being read as a preview name — and, for <c>--capture-stats</c>, without its output path.</summary>
+    private static IEnumerable<string> Bare(IEnumerable<string> args) =>
+        args.Where(a => !a.StartsWith("--") && !a.Contains('='));
 
     /// <summary>Value of a <c>name=value</c> dev-flag argument, or null.</summary>
     private static string? ArgValue(string[] args, string name) =>

@@ -283,15 +283,13 @@ dotnet run -- --activity --refresh    # ...forcing a rescan past the daily cache
 dotnet run -- --activity --root <dir> # ...against a stand-in for ~/.claude
 dotnet run -- --activity --measured   # ...plus the same week measured from the folded hourly store
 dotnet run -- --activity --fold       # fold every complete day of the raw log into that store now
-dotnet run -- --stats shape           # the Statistics window on the weekly tab, activity-aware
-                                      #   projection running out before the reset (bands + landing)
-dotnet run -- --stats shape ghost     # ...plus a synthetic previous-week ghost curve
-dotnet run -- --stats method          # ...with the "how these numbers are measured" popup already open
-                                      #   (it's a separate top-level window, so --capture-stats can't
-                                      #   see it — use scripts\Capture-Window.ps1 for this one)
-dotnet run -- --stats thin            # ...the same popup, reporting as if the local history were still
-                                      #   too thin to shape the projection (T163) — that paragraph is
-                                      #   unreachable on a machine whose profile is already confident
+dotnet run -- --stats shape ghost     # the Statistics window on a synthetic reading: here the weekly
+                                      #   projection running out early, plus a previous-week ghost.
+                                      #   Any name the table doesn't know is refused and prints every
+                                      #   variant and modifier — src\Cli\StatsPreviews.cs is the one
+                                      #   table --capture-stats reads too, so neither drifts (T186)
+dotnet run -- --stats method          # ...the method popup already open. Its own top-level window, so
+                                      #   --capture-stats refuses it: use scripts\Capture-Window.ps1
 dotnet run -- --capture-stats docs\_preview\shape shape   # ...all three tabs to PNG, off-screen
 dotnet run -- --capture-stats out shape profile=1     # ...rendered as another profile (T128)
 

@@ -401,26 +401,6 @@ checking it.** The capture crash surfaced because a directory happened not to ex
 divergence because a chart's numbers looked wrong; the colour collision because the same hex was typed
 twice in one afternoon. A verification loop nobody exercises is indistinguishable from one that passes.
 
-### XIX.2 Two flags, one preview, no overlap
-
-`--stats <variant>` and `--capture-stats <out> <variant>` are the interactive preview and the
-screenshot of the same window, and they parse their variants in two separate `if` chains. A variant
-added to one is not merely missing from the other: it is **ignored**, and the capture falls through
-to the default sample.
-
-Measured while building T183. `--capture-stats … overage` produced a chart of this machine's real
-38% week, correctly rendered, with no error and no warning. It was caught only because the number on
-the card was not the number the fixture specifies — had the synthetic value happened to resemble the
-real one, a screenshot of the wrong thing would have shipped as evidence of the right one.
-
-That is the sharp end: a crash is self-reporting, and this is a preview that lies quietly. Anything
-that captures the window for verification has to be showing what the flag names, or the loop this
-repository leans on for UI work is worth nothing on exactly the surfaces that are new.
-
-The shape is one variant table both entry points read, so adding a preview is one edit and the two
-cannot drift. A cheaper stopgap — refusing an unrecognised variant instead of silently defaulting —
-would have turned this into an error message rather than a wrong picture.
-
 ### XIX.3 A capture that dies after it has drawn
 
 `StatisticsPage.SaveSnapshot` calls `File.Create` on the path it is given, and nothing creates the
