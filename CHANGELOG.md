@@ -44,6 +44,7 @@
 | [Z](#block-z--what-the-app-knows-and-doesnt-say) | What the app knows and doesn't say — the read-back of Block V |
 | [AA](#block-aa--the-picker-switches-profiles-the-window-has-to-switch-with-it) | The picker switches profiles; the window has to switch with it (active — see ROADMAP) |
 | [AB](#block-ab--what-block-zs-own-work-left-behind) | What Block Z's own work left behind |
+| [AC](#block-ac--the-tray-reports-the-switch-it-performed-not-the-switch-the-machine-got) | The tray reports the switch it performed, not the switch the machine got (active — see ROADMAP) |
 | [AD](#block-ad--the-window-can-be-read-now-and-what-that-turned-up) | The window can be read now, and what that turned up |
 | [AE](#block-ae--extra-usage-is-money-and-the-tray-is-asleep-for-it) | Extra usage is money, and the tray is asleep for it |
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
@@ -553,3 +554,7 @@
 - **T168** — Which paragraphs the method note yields is a pure function of the report now, so Block Z's rules are twelve assertions instead of two screenshots — including the T163 one whose failure is a plausible sentence: telling somebody to keep the tray running another week when their projection is unshaped because they are at the limit.
 - **T169** — The two probe assertions over the slug encoding now run wherever `--selftest` runs: the temp root is resolved to the filesystem's own spelling, so a CI runner's 8.3 alias no longer skips them forever, and every skip that does happen is named beside the counts where the exit code is read.
 - **T170** — The method note reads as three headed sections — the numbers and the curve, the weekly projection, the Throughput charts — in the order the window shows them, so the paragraph about this machine's own evidence is found rather than read past, and a character budget asserted in all five languages keeps the next paragraph a decision.
+
+## Block AC — The tray reports the switch it performed, not the switch the machine got
+
+- **T171** — Picking a profile now states how far the pick reaches - the tray only, or the whole Windows user environment - and the machine-wide switch sits in the Profile submenu itself, so the half that did not happen is legible at the moment of the choice instead of buried in Settings.

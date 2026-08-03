@@ -80,6 +80,11 @@ internal static class ProfilesCli
                 ? $"Open Claude Code becomes a submenu with {profiles.Count} entries; the Profile submenu is shown."
                 : "Open Claude Code stays a plain command — the picked profile is the environment's, so every"
                   + " entry would open the same session (T146); the Profile submenu is shown.");
+        // What a pick in that submenu actually reaches, and the toggle the submenu now carries for the
+        // other half (T171) — printed so the scope the menu states can be read without hovering it.
+        Console.WriteLine($"a pick reaches: {(settings.SyncEnvironmentProfile ? "the tray and the Windows user environment" : "the tray only")}"
+                          + $"   \"{L.T("menu.profileEnvSync")}\" {(settings.SyncEnvironmentProfile ? "[x]" : "[ ]")}"
+                          + "   (sessions started from now on; running ones keep theirs)");
         Console.WriteLine($"icon follows: {monitored?.Label ?? "-"}  ({monitored?.ConfigDir ?? "-"})");
         Console.WriteLine($"polled every interval: {polled} of {profiles.Count}"
                           + (polled < profiles.Count

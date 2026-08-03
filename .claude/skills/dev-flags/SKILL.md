@@ -132,7 +132,8 @@ No window, no screen — the arithmetic and the readings as text.
 --profiles [dir …] [--check]          # every profile discovery finds, its auth, its config-dir action and
                                       #   its icon accent; extra dirs are treated as registered ones, and
                                       #   --check also asks `claude auth status --json` per profile. Also
-                                      #   prints each profile's last turn and where auto-follow points.
+                                      #   prints each profile's last turn, where auto-follow points, and
+                                      #   what a pick in the menu reaches — tray only, or Windows too (T171).
 --probe [--live] [--all]              # the rate-limit headers VERBATIM: the recorded capture log first,
                                       #   then one live call — which is itself recorded (T212), against
                                       #   the monitored profile and filed under its key. --live skips

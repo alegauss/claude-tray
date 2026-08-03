@@ -683,7 +683,12 @@ internal sealed class TrayContext : ApplicationContext
             var item = new ToolStripMenuItem($"{p.Label} — {reading}{suffix}")
             {
                 Checked = monitored,
-                ToolTipText = p.ConfigDir,
+                // What picking this actually reaches (T171). The icon moving reads as "the machine is
+                // now on this profile", and that is only true under the machine-wide switch below; with
+                // it off the pick moves the tray and nothing else. Said at the point of decision, and
+                // only ever about sessions started from now on — a running one cannot be moved (§I).
+                ToolTipText = p.ConfigDir + "\n"
+                              + L.T(_settings.SyncEnvironmentProfile ? "menu.profileScopeWindows" : "menu.profileScopeTray"),
             };
             ClaudeInfo captured = p;
             item.Click += (_, _) => SetMonitoredProfile(captured);
@@ -709,6 +714,17 @@ internal sealed class TrayContext : ApplicationContext
             unpin.Click += (_, _) => UnpinProfile();
             _profileMenu.DropDownItems.Add(unpin);
         }
+
+        // The other half of a pick, reachable from where the picking happens (T171). Settings owns the
+        // same switch, but a user who has just been told the pick stops at the tray must not have to go
+        // hunting through a page to find out the wider switch exists at all.
+        var envSync = new ToolStripMenuItem(L.T("menu.profileEnvSync"))
+        {
+            Checked = _settings.SyncEnvironmentProfile,
+            ToolTipText = L.T("menu.profileEnvSyncTip"),
+        };
+        envSync.Click += (_, _) => SetSyncEnvironmentProfile(!_settings.SyncEnvironmentProfile);
+        _profileMenu.DropDownItems.Add(envSync);
     }
 
     /// <summary>How long ago this profile's last turn landed, when auto-follow is what put the icon
@@ -775,6 +791,24 @@ internal sealed class TrayContext : ApplicationContext
         SaveSettingsQuietly();
         if (!on) _lastTurn.Clear();      // stale ages must not outlive the feature that fills them
         else _ = RefreshAsync();         // which begins by asking where the last turn landed
+    }
+
+    /// <summary>
+    /// Turn the machine-wide half of a pick on or off from the menu (T171), and reconcile at once — the
+    /// same two directions Save reconciles: switching it on hands the standing choice to the environment,
+    /// switching it off puts back whatever was there before the tray took the variable over (T145).
+    ///
+    /// <para>The Settings page owns the same field, so this is the auto-follow toggle's arrangement
+    /// exactly: the menu is a second way to reach one setting, not a second setting.</para>
+    /// </summary>
+    private void SetSyncEnvironmentProfile(bool on)
+    {
+        _settings.SyncEnvironmentProfile = on;
+        SyncEnvironmentToPin(DeliberateProfile());
+        SaveSettingsQuietly();   // the flag itself: the reconcile above saves only what it changed
+        // "Open Claude Code" collapses to a plain command once the environment carries the profile
+        // (T146), so the level the menu offers changes with this toggle and not at the next restart.
+        RefreshProfileMenu();
     }
 
     /// <summary>Point the icon at another profile *because the user said so*: the choice is saved and

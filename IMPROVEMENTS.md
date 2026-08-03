@@ -174,25 +174,6 @@ Three failure modes hide behind the one symptom, and separating them comes first
 C bounds the block: **no registry check proves the next process will see the value.** Hence §XVI.2
 displays the effective value continuously rather than asserting it once at the pick.
 
-### §XVI.1 A pick that does half its job and reports the whole (T171)
-
-`SetMonitoredProfile` does two independent things: `AdoptMonitored` (icon, stores, save — always) and
-`SyncEnvironmentToPin` (the machine-wide variable — only under a flag). The flag is off by default and
-should stay off: T145 chose that deliberately, and an update that silently rewrote somebody's environment
-would be a worse bug than this one. The defect is not the default, it is that the user is shown the half
-that happened and told nothing about the half that did not.
-
-The menu says "Profile ▸ Pessoal" and the icon changes, which reads as *the machine is now on Pessoal*. It
-means *the tray is now watching Pessoal*. Those coincide only when the flag is on, and the app has never
-said which regime it is in at the moment the choice is made.
-
-So the pick states its own scope. The design constraint is that this must not become a modal on every
-switch — the tray's whole manner is to stay out of the way, and §XIV's lesson about interrupting a menu
-click applies. What is wanted is the difference made legible at the point of decision (the submenu item
-itself can carry it) plus a route to the other half for somebody who wants it, without a trip through
-Settings to discover the switch exists. The "no switching a running session" non-goal supplies the exact
-claim the text may make: this applies to sessions started from now on.
-
 ### §XVI.2 The effective profile is not on screen anywhere (T172)
 
 Every profile indicator is fed by `MonitoredConfigDir`: the icon and its accent band (T147), the submenu

@@ -402,8 +402,14 @@ passes nothing — and if something on your machine points `CLAUDE_CONFIG_DIR` e
 the variable for that session instead, because pointing it *at* `~/.claude` would start Claude Code
 against a second, empty state file instead of your own project history.
 
+**A pick says how far it reaches.** Hovering a profile in the submenu tells you what choosing it does:
+move the tray only, or set the profile everywhere in Windows — and either way it is about sessions
+started from then on, never one already running.
+
 **Want the profile you pick to be the whole machine's?** Turn on **Use the chosen profile everywhere in
-Windows** in **Settings → Claude Code → All profiles**. Then picking a profile by hand writes
+Windows** — it sits right in the **Profile** submenu, below **Follow the active profile**, so the wider
+switch is where the picking happens and not something you have to go find; **Settings → Claude Code →
+All profiles** has the same switch with the variable's live value beside it. Then picking a profile by hand writes
 `CLAUDE_CONFIG_DIR` into your Windows user environment, so a terminal you open yourself, an editor
 started from the Start menu and anything else use that profile too — not only the sessions the tray
 launches. It follows the profile you **choose**, never the one auto-follow drifts to, and the row shows
