@@ -128,7 +128,11 @@ each default to their own **tracked** artifact, so the default means "regenerate
 No window, no screen — the arithmetic and the readings as text.
 
 ```
---selftest [--quick]                  # the whole self-check over synthetic inputs, exit 1 on failure.
+--selftest [--quick]                  # the whole self-check, exit 1 on failure. Two kinds of claim: an
+                                      #   invariant over synthetic inputs, and a document held against
+                                      #   the thing it documents — this catalogue included, so a flag
+                                      #   added here and nowhere else goes red (T243). The second kind
+                                      #   reads repository files, so an installed copy skips it by name.
                                       #   --quick skips the tail sections, which wait on real sweeps.
 --profiles [dir …] [--check]          # every profile discovery finds, its auth, its config-dir action and
                                       #   its icon accent; extra dirs are treated as registered ones, and

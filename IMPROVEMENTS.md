@@ -301,29 +301,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.7 What the suite is for, described from before it grew
-
-`AGENTS.md` heads its `--selftest` section *Arithmetic verification* and says a new invariant over
-the pacing, the stores, the grid, the tail, the live rate or the slug encoding is asserted there and
-nowhere else. That was true when it was written.
-
-It is now the smaller half. T223, T242, T243 and T244 assert nothing arithmetic: they read
-`CHANGELOG.md`, `ROADMAP.md`, the source tree and two skills, and compare a document against the
-thing it documents. T207 did it before them and T185 does it to the language files. The subject is
-not arithmetic, it is **one claim, two places** — and every one of those checks exists because the
-second place drifted.
-
-Why it matters in this file rather than in a skill. The sentence is a *routing* rule: it tells a
-reader where a new invariant goes, and its list is what they match their invariant against. A
-consistency rule finds nothing in that list, so it gets written as a paragraph — in the very file
-that is zero-sum, which is the loop T219 was meant to close.
-
-What it costs is bytes in the one file that has none spare, so the sentence has to get shorter as it
-gets truer, not longer: the six subjects were already a sample rather than a list, and naming the
-two kinds of claim the suite holds is fewer words than naming six of one kind.
-
-Worth settling with it: whether the section keeps the name *arithmetic* at all.
-
 ### XXII.8 A family of checks with one precondition and no name
 
 Five assertions in `--selftest` now read files out of the repository the build came from, and every

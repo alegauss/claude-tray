@@ -162,12 +162,15 @@ All five are below; listing *three* is how two stayed script-only (T201). The he
   Automation tree: unreadable to a screen reader and to every check, perfect in every screenshot, which
   is how it survived T111 → T165. Same trap for any templated control WPF looks up by name.
 
-## Arithmetic verification (`--selftest`)
+## Verification in code (`--selftest`)
 
 `src/Cli/SelfTestCli.cs` **is** this repo's test suite — there is no test project, because a
-third-party test framework would break the single-self-contained-`.exe` rule (§I.3). A new invariant
-over the pacing, the stores, the grid, the tail, the live rate or the slug encoding is asserted there,
-on synthetic inputs, and nowhere else.
+third-party test framework would break the single-self-contained-`.exe` rule (§I.3). It holds **two
+kinds of claim**, and a new one of either goes there rather than into prose: an **invariant** over
+synthetic inputs (pacing, stores, grid, tail, live rate, slug, numbers, languages), and **one claim
+in two places** — a document against the thing it documents, which is what holds up the ledger's
+index, the file map, the flag catalogue and the active marker (T223, T242–T244). The second kind
+reads repository files, so an installed copy has none and skips it by name.
 
 ```
 ClaudeTray.exe --selftest [--quick]      # exit 1 on failure — run it before committing
@@ -178,14 +181,12 @@ ClaudeTray.exe --selftest [--quick]      # exit 1 on failure — run it before c
 
 - It runs on **every push and PR** (`.github/workflows/check.yml`) and again against the packaged
   single-file `.exe` before an installer is built (`build.yml`). A red commit, not a blocked release.
-- Everything it touches is synthetic and removed: a temp transcript tree and a `selftest` profile dir.
-  A real profile's stores are never read or written.
+- Everything it **writes** is synthetic and removed: a temp transcript tree and a `selftest` profile
+  dir. A real profile's stores are never read or written, and the repository files above are only read.
 - **A check is not finished until it has been seen to fail.** Break the property deliberately, watch the
-  assertion go red, then revert — T153's new assertions were each confirmed that way against three
-  broken builds, and doing it is what showed *which* assertion catches what: the primed-cursor counts
-  catch priming being removed but are blind to the alignment flag being left set (the fragment is
-  rejected by the JSON parse either way), which is the whole reason the append-after-a-primed-read pair
-  exists. An assertion that has only ever passed is a comment.
+  assertion go red, then revert. Doing it is what shows *which* assertion catches what — T153's three
+  broken builds are why the append-after-a-primed-read pair exists at all. An assertion that has only
+  ever passed is a comment.
 - **A `Skip` must not hide the property it guards, and one that always fires is no check at all.** Gate on
   the *precondition*, never a weaker form of the claim — T161 gated on backtracking itself, so the build
   with backtracking removed went green. Then fix the environment: that guard still skipped both probe

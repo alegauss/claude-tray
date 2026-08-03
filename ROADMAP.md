@@ -68,7 +68,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T246** (deps: —) **The file loaded every turn calls the test suite arithmetic, and a third of it is not** — Four checks shipped in two days assert facts about repository files, and AGENTS.md still lists six arithmetic subjects, so the next consistency rule gets written as a paragraph. → §XXII.7
 - 📋 **T247** (deps: —) **One precondition is written five times, once per check that reads the repository** — Every check comparing a document to what it documents opens with the same guard and the same allowed-skip line, so the sixth inherits nothing and the policy is copied by hand. → §XXII.8
 
 ## Block G — Localization
