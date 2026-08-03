@@ -113,6 +113,12 @@ Preview popups are held open by `PageWindow` for every popup, not per call site.
                                       #   Variants are one table, src\Cli\ToastPreviews.cs, which
                                       #   --simulate-reset reads too; an unknown name prints the catalogue
                                       #   and exits 1.
+--check-toasts                        # every card, asked whether it FITS its own frame in the language
+                                      #   this process is in (T257). Exit 1 naming the card and the
+                                      #   rectangle. `--lang <code> --check-toasts`, five times, is the
+                                      #   whole sweep - the language is fixed per process - and check.yml
+                                      #   runs exactly that on every push. Reads a layout, not a picture,
+                                      #   so there is no settle wait and no window is activated.
 --render [dir]                        # tray-icon PNGs at 16/20/32 px, plus the accent mark sheet
 --makeicon [ClaudeTray.ico]           # regenerate the multi-resolution app icon
 --social [docs\social-preview.png]    # regenerate the social card

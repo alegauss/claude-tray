@@ -216,29 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.23 Forty questions, and nobody asking them
-
-T228 gave `--capture-toast` a refusal, and it earned it on its first run: the French extra-usage
-caption sat 7.6px under the card's bottom edge, clipped away by the inner grid, so the PNG showed
-nothing wrong and the flag exited 0. Every card grows for its own wording now.
-
-What is missing is the thing that asks. The refusal fires only where a capture is taken, and a
-capture is taken when somebody wants a picture — so the state that survived for a release is the
-state nobody was photographing. Eight cards in five languages is forty questions, and today the only
-asker is a shell loop typed by hand.
-
-`--selftest` cannot be it as things stand. The language is fixed for the process (`L.Apply` runs
-once, and `{local:Loc}` resolves at parse time), so five languages is five processes, and the fit is
-a property of a laid-out window rather than of a value a headless check can compute.
-
-Two shapes to weigh, and the cost is the deciding part. A flag that builds every card in the current
-language and reports overflow, run once per language, is five processes and no settle timer — layout
-is done at `Loaded`, and the settle wait exists for the animation a capture photographs, not for the
-measurement. Driving the existing capture forty times is ~70s of process starts for the same answer.
-
-Whichever it is, it has to be reachable from `check.yml` without a screen, or it is a second thing
-nobody runs.
-
 ### XX.24 The tray a failed case left behind
 
 Observed while working T234: `dotnet build` failed with `MSB3027 … apphost.exe -> ClaudeTray.exe …

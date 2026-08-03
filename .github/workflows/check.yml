@@ -123,3 +123,28 @@ jobs:
           $code = $LASTEXITCODE
           if ($code -eq 2) { throw "interaction check DEGRADED (exit 2) - an assertion did not run" }
           if ($code -ne 0) { throw "interaction check failed (exit $code)" }
+
+      # Every toast card, in every language, asked whether it fits its own frame (T257). On this job
+      # rather than `selftest`, because it needs the same thing this one does and that one does not: a
+      # desktop a WPF window can be laid out on.
+      #
+      # Five runs, because the display language is fixed for the process — `L.Apply` runs once and
+      # `{local:Loc}` resolves when a window is parsed — so a loop here is what one command per language
+      # looks like, and it beats a command that spawns itself five times. ~2s each; the cards are never
+      # activated, so they take no focus from the interaction check that just ran.
+      #
+      # The defect this exists for shipped: French's extra-usage caption sat 7.6px under the card's
+      # bottom edge, clipped away by the card's own grid, so the PNG showed nothing wrong (T228). The
+      # refusal T228 added fires only where somebody takes a capture, and nobody was capturing that one.
+      - name: Toast cards fit, in all five languages
+        shell: pwsh
+        run: |
+          $exe = 'bin\Release\net10.0-windows\win-x64\ClaudeTray.exe'
+          $bad = @()
+          foreach ($lang in 'en', 'pt-BR', 'pt-PT', 'fr', 'es') {
+            $p = Start-Process $exe -ArgumentList '--lang', $lang, '--check-toasts' -Wait -PassThru `
+                   -RedirectStandardOutput "toasts-$lang.log" -RedirectStandardError "toasts-$lang.err"
+            Get-Content "toasts-$lang.log", "toasts-$lang.err" -ErrorAction SilentlyContinue
+            if ($p.ExitCode -ne 0) { $bad += $lang }
+          }
+          if ($bad.Count -gt 0) { throw "a toast card does not fit in: $($bad -join ', ')" }

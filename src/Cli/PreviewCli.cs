@@ -74,6 +74,82 @@ internal static class PreviewCli
         app.Run();
     }
 
+    /// <summary>
+    /// Every toast card, asked whether it fits its own frame, in the language this process is in (T257).
+    ///
+    /// <para><b>Why this exists beside T228's refusal.</b> That refusal is in front of
+    /// <see cref="CaptureToast"/>, so it fires exactly where somebody wanted a picture — and the card that
+    /// shipped clipped for a release was the one nobody was photographing. Eight cards in five languages is
+    /// forty questions and the only asker was a shell loop typed by hand.</para>
+    ///
+    /// <para><b>Why not <c>--selftest</c>.</b> The display language is fixed for the process (<c>L.Apply</c>
+    /// runs once, and <c>{local:Loc}</c> resolves when a window is parsed), so five languages is five
+    /// processes however this is written — and fit is a property of a laid-out window, not of a value a
+    /// headless check can compute. So it is a flag, run once per language, and <c>check.yml</c> is what
+    /// loops it: one command per language beats one command that spawns itself five times.</para>
+    ///
+    /// <para><b>No settle timer.</b> <see cref="CaptureToast"/> waits 1700ms because it photographs an
+    /// animation; this reads a layout, which is done by <c>Loaded</c>. The short wait below is for the
+    /// dispatcher to get there, and the cards are never activated (<c>ShowActivated="False"</c>), so a run
+    /// takes no focus from whatever else is on the desktop — which matters, because T256 made a stolen
+    /// foreground a real reading elsewhere in this repository.</para>
+    /// </summary>
+    internal static void CheckToasts()
+    {
+        var app = new System.Windows.Application
+        {
+            ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
+        };
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        string lang = L.Codes.FirstOrDefault(c => L.Resolve(c) == L.Current) ?? "?";
+        var pending = new Queue<ToastPreviews.Variant>(ToastPreviews.Catalogue);
+        int spilled = 0;
+
+        Console.WriteLine($"Toast cards in {lang} — does each one fit its own frame? ({pending.Count} cards)");
+        Console.WriteLine();
+
+        void Ask()
+        {
+            if (pending.Count == 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine(spilled == 0
+                    ? $"all {ToastPreviews.Catalogue.Count} fit in {lang}."
+                    : $"{spilled} of {ToastPreviews.Catalogue.Count} do not fit in {lang} — a card that "
+                      + "overflows is clipped by its own grid, so a capture of it looks fine (T228).");
+                Environment.ExitCode = spilled == 0 ? 0 : 1;
+                app.Shutdown();
+                return;
+            }
+
+            ToastPreviews.Variant v = pending.Dequeue();
+            ToastWindow card = v.Build(now);
+            card.Show();
+            var settle = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(250),   // the dispatcher reaching Loaded, not an animation
+            };
+            settle.Tick += (_, _) =>
+            {
+                settle.Stop();
+                IReadOnlyList<string> over = card.Overflow();
+                if (over.Count == 0) Console.WriteLine($"  ok    {v.Name}");
+                else
+                {
+                    spilled++;
+                    Console.WriteLine($"  SPILL {v.Name}");
+                    foreach (string s in over) Console.WriteLine($"          {s}");
+                }
+                card.Close();
+                Ask();
+            };
+            settle.Start();
+        }
+
+        Ask();
+        app.Run();
+    }
+
     // Dev helper: dump sample icons as PNG at real tray sizes for visual inspection.
     internal static void RenderTest(string dir)
     {

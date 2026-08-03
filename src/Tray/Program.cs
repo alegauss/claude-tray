@@ -296,6 +296,15 @@ internal static class Program
             return;
         }
 
+        // Ask every card whether it fits, in the language this process is in (T257). The refusal T228 put
+        // in front of a capture only ever fires where somebody wanted a picture, so the card nobody was
+        // photographing is the one that shipped clipped — this is the thing that asks all of them.
+        if (args.Length >= 1 && args[0] == "--check-toasts")
+        {
+            PreviewCli.CheckToasts();
+            return;
+        }
+
         // Every Claude Code profile (config dir) this machine exposes, in discovery order. Any extra
         // arguments are treated as explicitly *registered* dirs — the source the Settings list will
         // feed once it exists — so discovery can be exercised without one.
