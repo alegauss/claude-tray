@@ -1,4 +1,4 @@
-# AGENTS.md — Claude Code Tray
+﻿# AGENTS.md — Claude Code Tray
 
 Foundation doc for working in this repo with maximum predictability and minimum friction.
 Read this before touching UI or build. Keep it current when conventions change.
@@ -61,7 +61,9 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 | `src/Cli/ActivityCli.cs` | `--activity`: the weekly activity profile as a 24×7 shaded grid, plus the measured-hours variant. |
 | `src/Cli/LiveCli.cs` | `--tail` and `--live`: each assistant turn as it lands, and the rolling tok/s with its per-project sparklines. |
 | `src/Cli/ProfilesCli.cs` | `--profiles [--check]`: every profile on the machine, its auth, its config-dir action and its icon accent band. |
-| `src/Cli/SelfTestCli.cs` | `--selftest [--quick]`: 80 assertions over the pacing, store, grid, tail and live-rate arithmetic, on synthetic inputs, exiting non-zero on failure — run on every push by `.github/workflows/check.yml` and again before an installer is packaged by `build.yml`. Writes only a temp tree and a `selftest` profile dir, both removed. This is the repo's test suite: there is no test project (a third-party framework would break §I.3), so a new invariant is asserted **here**. |
+| `src/Cli/SelfTestCli.cs` | `--selftest [--quick]`: 230+ assertions over the pacing, store, grid, tail, live-rate, series, language-table and palette rules, on synthetic inputs, exiting non-zero on failure — run on every push by `.github/workflows/check.yml` and again before an installer is packaged by `build.yml`. Writes only a temp tree and a `selftest` profile dir, both removed. This is the repo's test suite: there is no test project (a third-party framework would break §I.3), so a new invariant is asserted **here**. |
+| `src/Cli/ProbeCli.cs` | `--probe [--live] [--all]`: the rate-limit headers verbatim — the recorded capture log first, then one live call — because this app's reading of four of them is not the same thing as what the API said. The instrument for T181: what the overage percentage denominates, which only an account already in overage can answer. Quota metadata only, never a token. |
+| `src/Cli/StatsPreviews.cs` | The one table of Statistics previews `--stats` and `--capture-stats` both read (T186): a variant per row with what it feeds the page, the modifiers that compose with any of them, and the refusal — an unknown name prints the catalogue and exits 1 rather than rendering the default sample as if it were what was asked for. |
 | `src/Cli/PreviewCli.cs` | The deterministic previews behind the published images: `--simulate-reset`, `--capture-toast`, `--render` (icon contact sheet), `--makeicon`, and the gap-demo report `--stats gapdemo` feeds. |
 
 **`src/Usage/` — quota, spend and live throughput**
@@ -69,6 +71,8 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 | File | Responsibility |
 |---|---|
 | `src/Usage/ApiClient.cs` | Reads OAuth token from `~/.claude/.credentials.json`, calls the API, parses `anthropic-ratelimit-unified-*` headers. |
+| `src/Usage/HeaderProbe.cs` | The capture log behind `--probe`: every rate-limit response whose header *shape* has changed, appended per profile with the headers verbatim. Records a transition whenever it happens, so the reading T181 needs does not depend on somebody running a command at the right moment. |
+| `src/Usage/QuotaState.cs` | Which of three states an account is in — in the quota, past it and billing, or stopped — from the utilization, the extra-usage flag and the overage figure. The single answer the icon, the tooltip, the poll's idle and the toast all read, so they cannot disagree about whether work has stopped. |
 | `src/Usage/UsageReport.cs` | The pacing report over the two rate-limit windows (5h session, 7d week): the live headers say how much is used and when it resets, the transcripts give the *shape* of the burn, scaled to land on the live number. |
 | `src/Usage/UsageHistory.cs` | Append-only log of each successful poll's rate-limit reading (`usage-history.jsonl`, pruned at 8 days) so the burn-up charts draw *measured* utilization instead of inferring it from token counts. |
 | `src/Usage/BurnTracker.cs` | Utilization history → least-squares slope → projects exhaustion (`Projection.Ok/Danger/Unknown`). |
@@ -111,6 +115,7 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 | File | Responsibility |
 |---|---|
 | `src/Core/Localization.cs` | The dependency-free `L` / `{local:Loc key}` layer over the embedded `lang\<code>.json` files: language picked from Settings, else the OS UI language, English as the fallback for a missing key. |
+| `src/Core/OutFile.cs` | Creating a file a flag was told to write, directory and all (T187) — the rule every capture shares, stated once instead of at each call site. |
 | `src/Core/SampleRoot.cs` | Where a fixture is built: a directory whose path holds no user name (`%PUBLIC%`, temp as fallback), because fixture screenshots get published and an absolute path spells out the Windows account. Shared by `ContextFixture` and `AccountFixture`. |
 | `src/Core/ProjectSlug.cs` | The app's **only** reader and writer of the `projects/<slug>` encoding (T105): `Encode` (also what the fixture names its dirs with), `RootFor`/`NameFor`/`ShortNameFor` — exact, by walking a recorded `cwd` up to the ancestor that encodes to the slug — `TryProbe`, the filesystem guess for when no cwd exists, and `Literal`/`Tail` for reporting an unresolvable one. Also the **only** place that decides how a directory is *named on screen* (T154): `ShortName` = its last two segments (`turing/2026.3`), which both the Statistics legend and the Context project list go through, since the leaf alone labels three checkouts of a release folder identically. |
 | `src/Core/SafeWalk.cs` | The recursive `~/.claude` walk every scan goes through: per directory, so an unreadable one (untrusted junction, denied ACL, folder deleted mid-sweep) skips its subtree instead of aborting the sweep. Materializes each directory's entries — a `try` around a lazy `Enumerate*` catches nothing — and resolves a reparse point to its target before opening it. |
@@ -184,11 +189,8 @@ screenshot this repo ever took. `scripts\Check-Interaction.ps1` drives the real 
 Automation and asserts a pass/fail (exit 0 only if every check passed):
 
 ```
-powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1                    # both cases
-powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Keyboard     # typing/Tab/arrows
-powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Menu         # the tray menu
-powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Menu -UseRunning
-powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Lang pt-BR        # any shipped language
+powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 `
+  [-Case Keyboard|Menu|Profiles|Panes|Names] [-Lang pt-BR] [-UseRunning]   # no -Case runs every one
 ```
 
 - **Keyboard** launches `--settings-tray` (the WinForms pump), navigates by clicking the sidebar, types
@@ -222,10 +224,9 @@ over the pacing, the stores, the grid, the tail, the live rate or the slug encod
 on synthetic inputs, and nowhere else.
 
 ```
-dotnet build -c Release
-Start-Process bin\Release\net10.0-windows\win-x64\ClaudeTray.exe --selftest -Wait -PassThru `
-  -RedirectStandardOutput st.log -RedirectStandardError st.err   # a WinExe: redirect to read it
-ClaudeTray.exe --selftest --quick        # skips the sections that wait on real sweeps
+ClaudeTray.exe --selftest [--quick]      # --quick skips the sections that wait on real sweeps
+                                         # a WinExe writes to no console of its own: from PowerShell,
+                                         # Start-Process … -Wait -RedirectStandardOutput st.log
 ```
 
 - It runs on **every push and PR** (`.github/workflows/check.yml`) and again against the packaged
@@ -246,75 +247,35 @@ ClaudeTray.exe --selftest --quick        # skips the sections that wait on real 
 
 ## Build / run / dev helpers
 
+**The complete flag catalogue is the `dev-flags` skill** — every preview, capture, headless read-out
+and fixture, with what each is for. It is reference material, consulted rather than read, which is the
+last thing a per-turn budget should pay for (T191); a flag you add goes there. What stays here is the
+handful that carry a *rule*, because getting these wrong produces work that has to be redone.
+
 ```
 dotnet build -c Debug                 # fast compile check
 dotnet run -c Release                 # build + run the tray app
 dotnet publish -c Release             # single self-contained .exe -> bin\Release\net10.0-windows\win-x64\publish\
 
-dotnet run -- --main [dest]           # the WHOLE window as the tray opens it (nav strip + the
-                                      # destination: Statistics | Context | Settings), hosted under
-                                      # the WinForms pump like the tray does. Use this to look at
-                                      # the shell; the flags below show one page without it.
-dotnet run -- --settings              # open just the Settings page (preview; WPF pump)
-dotnet run -- --settings System       # ...opened on the System information page (any page name works)
+dotnet run -- --main [dest]           # the WHOLE window as the tray opens it (nav strip + destination:
+                                      #   Statistics | Context | Settings), under the WinForms pump the
+                                      #   tray uses. --settings / --stats / --context --window show one
+                                      #   page without the shell, and --settings-tray is the only preview
+                                      #   that can see a keyboard bug — see UI convention 6.
 dotnet run -- --settings System --sample [--reveal]
-                                      # ...over the synthetic AccountFixture profiles instead of this
-                                      # machine's, unmasked with --reveal. Any published shot of that
-                                      # page must use it; --capture-settings takes the same two flags.
-dotnet run -- --settings-tray [page]  # ...hosted the way the TRAY hosts it (WinForms pump). The only
-                                      # preview that can see a keyboard bug — see UI convention 6.
-dotnet run -- --profiles              # every Claude Code profile (config dir) discovery finds, in order
-dotnet run -- --profiles <dir> [dir]  # ...plus dirs treated as explicitly registered (the Settings list)
-dotnet run -- --profiles --check      # ...also asking `claude auth status --json` per profile
-                                      # --profiles also prints each profile's last turn and which one
-                                      # auto-follow would point the icon at (T126), with the probe cost
-dotnet run -- --capture-settings <out.png> [page] [scroll=<dip>] [profile=<n>]
-                                      # Settings window rendered OFF-SCREEN to PNG (RenderTargetBitmap).
-                                      # Prefer this over scripts\Capture-Window.ps1: that one copies the
-                                      # pixels on screen inside the window rect, so any app that steals
-                                      # focus or sits on top ends up in the file.
-dotnet run -- --lang es --context --window   # any command, rendered in another language (i18n check)
-dotnet run -- --render <dir>          # dump tray-icon PNGs at 16/20/32 px
-dotnet run -- --insights              # print the 24h usage breakdown to the console
-
-dotnet run -- --activity              # the weekly activity heatmap behind the projection
-dotnet run -- --activity --numbers    # ...as raw per-bucket percentages
-dotnet run -- --activity --refresh    # ...forcing a rescan past the daily cache
-dotnet run -- --activity --root <dir> # ...against a stand-in for ~/.claude
-dotnet run -- --activity --measured   # ...plus the same week measured from the folded hourly store
-dotnet run -- --activity --fold       # fold every complete day of the raw log into that store now
-dotnet run -- --stats shape ghost     # the Statistics window on a synthetic reading: here the weekly
-                                      #   projection running out early, plus a previous-week ghost.
-                                      #   Any name the table doesn't know is refused and prints every
-                                      #   variant and modifier — src\Cli\StatsPreviews.cs is the one
-                                      #   table --capture-stats reads too, so neither drifts (T186)
-dotnet run -- --stats method          # ...the method popup already open. Its own top-level window, so
-                                      #   --capture-stats refuses it: use scripts\Capture-Window.ps1
-dotnet run -- --capture-stats docs\_preview\shape shape   # ...all three tabs to PNG, off-screen
-dotnet run -- --capture-stats out shape profile=1     # ...rendered as another profile (T128)
-
-dotnet run -- --context               # what every session costs before you type: per-project table
-dotnet run -- --context <slug|name>   # one project, source by source (eager/lazy, bytes, ≈tokens)
-dotnet run -- --context --all         # every project in full detail
-dotnet run -- --context --calibrate   # estimate vs. transcript-measured session zero, and the fit
-dotnet run -- --context --check       # the rule engine's findings, grouped by severity
-dotnet run -- --context --usage       # which skills/agents were actually invoked (90d)
-dotnet run -- --context --prompt [project]  # the cleanup prompt the window copies
-dotnet run -- --context-report report.md   # the whole picture as one markdown file
-dotnet run -- --context --skills      # expand the folded skill/agent index instead of one summary row
-dotnet run -- --context --no-cache    # force a cold scan (skip %LocalAppData%\ClaudeTray cache)
-dotnet run -- --context --root <dir>  # scan a fixture tree instead of ~/.claude
-dotnet run -- --context --sample      # build + scan the bundled fixture (all rules fire)
-dotnet run -- --context --window      # open just the Context Load window (preview)
-dotnet run -- --context --window <slug|name>   # ...opened on one project
-dotnet run -- --context --window all   # ...opened on the cross-project overview
-dotnet run -- --context --window --sample --lang en  # the fixture, in English (for screenshots)
-dotnet run -- --context --window <slug> --scroll  # ...scrolled to the source table (for screenshots)
-dotnet run -- --context --window <slug> --simulate # ...with the 3 heaviest sources ticked (what-if)
-dotnet run -- --context --window <slug> --demo-history # ...with a synthetic drift series
-dotnet run -- --makeicon ClaudeTray.ico   # regenerate the multi-resolution app icon
-dotnet run -- --capture-toast context docs\_preview\toast-context.png  # the nudge toast
-dotnet run -- --social docs\social-preview.png  # regenerate the social card
+                                      # --sample feeds a surface its fixture instead of this machine's
+                                      #   data. ANY published screenshot of a page that shows an account,
+                                      #   a repo name or a project path must use it.
+dotnet run -- --capture-settings <out.png> [page] [scroll=<dip>]
+dotnet run -- --capture-stats [outBase] [variant]
+                                      # rendered OFF-SCREEN to PNG. Prefer these over
+                                      #   scripts\Capture-Window.ps1, which copies the pixels on screen
+                                      #   inside the window rect — so any app that steals focus or sits on
+                                      #   top ends up in the file. A popup is the exception: it is its own
+                                      #   window, which an off-screen capture cannot see.
+dotnet run -- --lang fr --settings    # any command in another language. Published shots are English; use
+                                      #   this to check a layout in the longest translation.
+dotnet run -- --selftest [--quick]    # the self-check, exit 1 on failure — run it before committing.
 ```
 
 ## Release process
@@ -393,6 +354,7 @@ costs to start one. [`last-task.md`](last-task.md) is no longer the counter — 
   walk to reconcile.
 - **Single instance** is enforced by a named mutex; a second launch exits silently.
 - The marketing page is `docs/index.html` (GitHub Pages, served from `/docs`).
-- **New user-visible strings go into all five `lang/*.json`**, not just `en`.
-  Verify with `--lang <code>` (process-only override, saved preference untouched) and screenshot at
-  least one non-English language before calling a UI change done.
+- **New user-visible strings go into all five `lang/*.json`**, not just `en`. `--selftest` now fails on a
+  key that reached one file, or a `{0}` that did not survive translation (T185), so what is left to you is
+  the part it cannot hold: `--lang <code>` (process-only override, saved preference untouched) and a
+  screenshot in at least one non-English language before calling a UI change done.

@@ -401,23 +401,6 @@ checking it.** The capture crash surfaced because a directory happened not to ex
 divergence because a chart's numbers looked wrong; the colour collision because the same hex was typed
 twice in one afternoon. A verification loop nobody exercises is indistinguishable from one that passes.
 
-### XIX.7 A map at its ceiling
-
-`AGENTS.md` carries a declared budget — 400 lines, 42,000 bytes — and sits at exactly 400. Block AE
-added `src/Usage/HeaderProbe.cs`, `src/Usage/QuotaState.cs` and `src/Cli/ProbeCli.cs`, plus
-`--probe`, `--stats overage` and `--capture-toast extra`. None is in the file map or the dev-helper
-list, because adding them costs lines the budget does not have.
-
-This was met head-on: correcting the plugin-scope sentence there had to be rewritten twice to land
-net-zero, and the operational detail moved to the `roadmap-docs` skill instead. That was the right
-trade for one sentence and it does not scale — the map now silently omits whatever ships next, and a
-map with holes is worse than a long one, because it is read as complete.
-
-`roadkeep.toml` calls the number "a ceiling to come down, not a target", so the answer is not
-raising it. The file's own §I.5 list, the release process and the flag catalogue are all candidates
-to move or compress — the flag list in particular is a reference, consulted rather than read, and
-reference material is what a per-turn budget is least willing to pay for.
-
 ## §XX — The interaction check grew two cases, and nobody runs it (Block AG)
 
 Block AD doubled what `Check-Interaction.ps1` asserts: `-Case Panes` and `-Case Names` are new, T166's

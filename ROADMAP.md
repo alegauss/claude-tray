@@ -50,8 +50,6 @@
 >
 > Ordered by what can ship a defect to a user today, then by what misleads whoever builds here next.
 
-- 📋 **T191** (deps: —) **AGENTS.md is at its line budget, so this block's new files and flags are on no map** — The budget is a ceiling meant to come down and the file sits at 400 of 400, so the repo's own map silently omits whatever ships next. → §XIX.7
-
 ## Block AE — Extra usage is money, and the tray is asleep for it
 
 > A field report against an account working past 100%: the overage reading is fetched, reaches one
