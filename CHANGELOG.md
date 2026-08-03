@@ -46,7 +46,8 @@
 | [AD](#block-ad--the-window-can-be-read-now-and-what-that-turned-up) | The window can be read now, and what that turned up |
 | [AE](#block-ae--extra-usage-is-money-and-the-tray-is-asleep-for-it) | Extra usage is money, and the tray is asleep for it (active — see ROADMAP) |
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
-| [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up (active — see ROADMAP) |
+| [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
+| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
 
 ## Block A — Foundation (tray, icon, API, projection)
 

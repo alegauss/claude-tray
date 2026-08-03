@@ -455,23 +455,68 @@ worth more than the check: a screen reader currently reads a flat run of labelle
 visual design is label↔control pairs. Then the sweep becomes per row, which is what §XX.5 asked for
 and this settled for less.
 
-## §XXI — What Block AF's own captures turned up (Block AH)
+### XX.9 The fixture is opt-in on the page that most needs it
 
-Block AF built five checks and repaired two capture flags, and every item here came out of *using*
-that tooling for a block rather than out of reviewing it. None was reported by anybody and none is a
-Block AF task.
+T197 stopped the Statistics picker naming a real account on a synthetic chart, and T200 stopped a
+`--sample` that could not be honoured from falling back to the real one. Neither touched the plain
+path: `--capture-settings System` with no `--sample` at all renders this machine's login, correctly,
+and nothing marks the result as unpublishable.
 
-Three are the capture surface misleading whoever runs it (§XXI.1, §XXI.2, §XXI.3), and they are
-ordered first because each produces a file: one that names a real account on a synthetic chart, one
-that lands in the working directory under a name nobody asked for, and one that returns a screenshot
-of a different application and reports success. A capture is evidence, so a capture that is quietly
-wrong is the one defect class this repository cannot afford — it is the same fault T186 was, found
-again in two more places once the flags were actually exercised.
+That is the shape of both fixed defects, one step earlier. The fixture exists *because* this page
+gets published — masking hides the holder's name and the local part of the address, but the
+organization name and the mail domain **are** the reading, and on a real machine the organization is
+somebody's client. AGENTS.md states the rule and nothing in the app enforces it.
 
-Two are gaps left by the block itself (§XXI.4, §XXI.5): the third branch of a row whose second
-branch T190 just made visible, and two interaction cases that exist in the script and on no list.
+Two shapes are worth weighing. The capture could **require** `--sample` for the System page, since
+no other caller has a reason to render a real account off-screen into a file; that is narrow and
+breaks nothing that exists. Or a capture of real data could carry a visible watermark, which is
+honest but costs a rendering path and makes the PNG useless for anything else.
 
-The pattern Block AF named still holds, and this is the evidence for it: **each was found by doing
-the task, not by checking it.** The picker leak surfaced because a fixture capture was read closely
-enough to notice the name above the chart; the toast path because a file appeared in the repo root;
-the window mix-up because the wrong window came back.
+The asymmetry that makes the first attractive: interactive `--settings System` *should* show the
+real account, because that is a person looking at their own machine. Only the path that writes a
+**file** has no such excuse.
+
+### XX.10 The copied rectangle is wider than the window
+
+`GetWindowRect` spans a WPF window's invisible resize border and drop-shadow margin, so the
+rectangle the screen copy reads is larger than the area the window paints. Every PNG the script
+produces therefore carries a strip of whatever is behind the window down its edges — measured while
+verifying T199, where the popup capture came back with slivers of the editor along the left, right
+and bottom.
+
+T199 asserted that nothing covers the window's *own* pixels, which is the assertion that matters and
+is what stops a wrong picture. This is the remainder: the border pixels do not belong to the window,
+so no ownership check can pass on them, and sampling deliberately stays 25% inside the rect for
+exactly that reason. The result looks fine at a glance and is wrong at the edges, which is the class
+of defect this repository keeps finding late.
+
+`DwmGetWindowAttribute(DWMWA_EXTENDED_FRAME_BOUNDS)` returns the visible frame instead and is the
+narrow fix; it is per-monitor-DPI-correct on the same terms the script already sets up. Worth
+checking against a maximized window and at 150–200%, since the margin is not symmetric.
+
+Worth noting what this does **not** affect: `--capture-settings` and `--capture-stats` render the
+page's content off-screen through a `RenderTargetBitmap`, so they have no border to include and no
+such edge. This is a defect of the screen-copy path alone, which is the popup case.
+
+### XX.11 The flag surface is the one thing no check asserts
+
+`--selftest` holds 240 assertions and not one of them is about a CLI flag. Everything it covers is
+arithmetic, stores and rules over synthetic inputs; the preview and capture surface — which is what
+every visual verification in this repository goes through — is protected only by somebody running it
+by hand and reading the result.
+
+Block AH added three refusals to that surface, and each is exactly the kind of thing that regresses
+in silence: `StatsPreviews` and `ToastPreviews` refusing an unknown name instead of rendering the
+default, `AccountFixture.ResolveWeek` refusing an unknown week, `--capture-toast` requiring its
+output path, and `--sample` that cannot be honoured stopping the run rather than falling back to
+this machine's real account. That last one is a privacy guard whose failure mode is a published PNG,
+and nothing would notice it being removed.
+
+All four are cheap to assert because they are **pure**: a table lookup and a resolver that return a
+value or null, no window and no file. `SelfTestCli` is the repo's test suite (§I.3 rules out a test
+project), so they belong there — one section, asserting that every documented variant resolves, that
+an invented name resolves to null, and that the two tables' rows match the names the skill catalogue
+prints.
+
+The last of those is the one with reach: it turns the "write it down in `dev-flags`" convention into
+something a build can check, which is the only version of that convention that survives.

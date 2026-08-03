@@ -24,16 +24,6 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block AH — What Block AF's own captures turned up
-
-> Block AF built five checks and repaired two capture flags, and every item here came out of *using*
-> that tooling for a block rather than out of reviewing it. Three are the capture surface misleading
-> whoever runs it, and each produces a file: one names a real account on a synthetic chart, one lands
-> where nobody asked, one photographs a different application. Two are gaps the block left behind.
-> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XXI — what each was found by, since none was reported.
->
-> Ordered by what can ship a defect to a user today, then by what misleads whoever builds here next.
-
 ## Block AG — The interaction check grew two cases, and nobody runs it
 
 > Block AD doubled what `Check-Interaction.ps1` asserts, and every item here came out of building or
@@ -88,6 +78,9 @@
 - 📋 **T202** (deps: —) **A full interaction run is red on any machine where the tray is running** — The menu case rightly refuses to drive a second instance but reports it as a failure, so exit 1 stops meaning a defect on the one machine the loop is run from. → §XX.6
 - 📋 **T203** (deps: —) **The ids the interaction check drives are held in two lists and only one of them is checked** — T192 put the fifteen it looks up into --selftest by hand, so a lookup added to the script afterwards is covered by nothing and a rename of it is found by a run, not a build. → §XX.7
 - 📋 **T204** (deps: —) **A settings row is not a group in the automation tree, so its controls cannot be checked against their own header** — T196 sweeps every panel but can only assert that a control announces something, because nothing in the tree says which row a control belongs to. → §XX.8
+- 📋 **T205** (deps: —) **A capture of the System page shows a real login unless a flag is remembered** — --capture-settings System without --sample renders this machine's own login, so the page that has a fixture because it gets published is a forgotten flag away from naming a real holder and org. → §XX.9
+- 📋 **T206** (deps: —) **A screen-copied PNG carries a strip of whatever is behind the window** — GetWindowRect spans the invisible resize border and drop shadow, so the copied rectangle is wider than the window paints and every capture the script makes has other pixels down its edges. → §XX.10
+- 📋 **T207** (deps: —) **Nothing asserts the preview and capture flags, only the arithmetic behind them** — All 240 self-check assertions are about stores and pacing, so the variant tables, the refusals and the output-path rules this block just added are held up by whoever next runs a flag by hand. → §XX.11
 
 ## Block AJ — Working here — the repo's own docs and flags
 
