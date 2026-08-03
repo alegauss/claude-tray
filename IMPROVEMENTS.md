@@ -216,6 +216,28 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
+### XX.20 A read-out flag whose whole promise is that it does nothing
+
+`--probe --recorded` promises to make no call, and `--probe --live --recorded` promises to refuse
+rather than silently pick a half. Both are rules, and both are held up today by whoever last ran the
+flag by hand.
+
+That is a shape this repository has already decided is worth a check. T186 and T198 assert that a
+preview flag refuses an unknown variant rather than rendering the default, because the failure is
+silent: a screenshot of the wrong thing looks exactly like a screenshot of the right one. The
+failure here is quieter still. A `--recorded` that made a call would print what it prints now with
+one extra block, and the only evidence would be a request spent against the very account the flag
+exists to stop spending against.
+
+The refusal is pure and can be asserted directly once the argument decision is separable from the
+run — today they are one method, and the first thing it does after the guard is load the settings
+file. Splitting the decision out is most of the work and is worth doing for its own sake: what
+`--probe` does with `--live`, `--recorded`, `--all` and with none of them is four outcomes decided
+by three booleans, and not one of them is a value anything can currently look at.
+
+Whether the no-call promise itself can be asserted without a seam in front of the network is the
+open part.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
@@ -255,6 +277,72 @@ work; the rest is deciding what it may find.
 
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
+
+### XXII.4 The map is a copy of the tree, and copies drift
+
+`AGENTS.md` now points at the `file-map` skill for the per-file detail (T219), which is the right
+place for it: reference material is consulted rather than read, and a per-turn budget should not pay
+for a table of contents. What moved with it is the failure mode. The map is a hand-written copy of
+`src/`, and the tree it copies is edited every day — a new file gets no row, a renamed one leaves a
+row naming nothing, and a file that changes subsystem leaves its row under the old heading.
+
+None of that is visible while reading the skill, which is the property that made T223 worth
+shipping: a reference with holes in it reads exactly like a complete one, and it is consulted
+precisely when the reader does not already know the answer. One drifted row was found while writing
+it — the `ThroughputFixture` entry sat under the Context heading for a file that lives in
+`src/Usage/`.
+
+The check is the same move again and cheaper than either predecessor, because both sides are already
+on disk: every `src/**/*.cs` must appear in a row, and every path a row names must exist. The two
+directions catch opposite mistakes — a file nobody documented, and a row documenting a file that was
+renamed or deleted.
+
+Two things to settle with it. Whether the folder table left in `AGENTS.md` is checked as well, or
+whether one list of folders is enough to keep; and what to do with the `.xaml` half of a page, which
+the map names as `Foo.xaml(.cs)` and a glob would see as two files.
+
+### XXII.5 The half of the flag surface no table can name
+
+`--recorded` shipped with an entry in `dev-flags` because the task remembered to write one. Nothing
+would have caught it if it had not.
+
+T207 turned *write the flag down* into something a build checks, and its reach is exactly the flags
+whose variants are a table in code: the toast cards, the tooltip variants, the `week=` names. Those
+already have a list to compare against. The rest of the surface — `--probe`'s three switches,
+`--activity`'s four, `--profiles --check`, `--sample-env` — are bare strings read out of `args` at
+the point they are used, so there is no list at all, and the catalogue is held up by whoever last
+edited it.
+
+The list can be derived, which is what makes this a task rather than a wish. Every one of them is a
+literal compared against an element of `args` in one of two shapes, `args.Contains("--x")` and
+`args[0] == "--x"`, and both are greppable from the sources the build already reads for other
+assertions. What follows is T207's, one direction each: a switch the sources accept and the
+catalogue does not name, and a switch the catalogue promises that no source reads.
+
+Worth settling: whether the second direction can be trusted, since a flag can be spelled in a
+`const` or composed from parts, and a check that reports a false positive against a correctly
+documented flag is a check somebody turns off.
+
+### XXII.6 The part of a row that is a claim about another file
+
+`CHANGELOG.md`'s index gives each block a row, and a row carries one thing that is not about the
+ledger at all: `(active — see ROADMAP)`, which claims that block still has open work.
+
+T223 asserted the two facts a row states about the ledger — that its letter has a heading, and that
+its anchor still resolves to that heading — and stopped there. The marker was left as it was found,
+and it was already wrong in both directions: `AE` and `AG` have nothing open and carry no marker,
+`AI` has nothing open and carries one, and `AJ` acquired one in T219 and kept it through the block
+emptying three tasks later.
+
+It is the smallest of the three and the one with the most direct consequence, because it is the only
+part of the index that answers *should I look here*. A row claiming a block is active when it is not
+sends the next reader to a heading with nothing under it; a row silent about an active block reads
+as a theme that finished, which is the habit the theme table exists to break.
+
+The reading is derivable from a file `--selftest` already opens: a block is active exactly when
+`ROADMAP.md` carries an open task line under its heading. What to settle is whether the check
+*requires* the marker or only refuses a wrong one — the older rows were written before the convention
+existed, and a check that rewrites history is a check that fails on arrival.
 
 ## XXIII What the API says about permission, and what the app infers instead (Block D)
 
