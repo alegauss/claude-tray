@@ -68,8 +68,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T251** (deps: —) **A precondition that proved the repository is followed by five proving one file each** — T247 named the family's guard and every body then opens by asserting its own file exists, so the shape it removed one level up is back one level down, five times. → §XXII.11
-
 ## Block G — Localization
 
 - 💭 **T216** (deps: —) **One machine, two number conventions: the page decides, not the app** — T167 picked invariant for one window, while the Context page, the tray toast and the System page format the same figures with L.Culture, and the sweep it added reaches neither. → §XXI.1

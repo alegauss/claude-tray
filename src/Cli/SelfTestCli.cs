@@ -163,7 +163,8 @@ internal static class SelfTestCli
         FlagCatalogue();
 
         Section("surfaces — what a stranger reads: the README and the page (Block AJ)");
-        Repo("the README and the published page point at things that exist", UserSurfaces);
+        Repo("the README and the published page point at things that exist", UserSurfaces,
+             "README.md", "docs/index.html", "docs");
 
         if (quick)
         {
@@ -1721,18 +1722,16 @@ internal static class SelfTestCli
                                        IReadOnlyList<TooltipCli.Variant> tips)
     {
         Repo("the dev-flags catalogue names what the tables declare",
-             root => SkillCatalogue(root, toasts, tips));
+             root => SkillCatalogue(root, toasts, tips), DevFlags);
     }
+
+    /// <summary>The catalogue two checks read, spelled once.</summary>
+    private const string DevFlags = ".claude/skills/dev-flags/SKILL.md";
 
     private static void SkillCatalogue(string root, IReadOnlyList<ToastPreviews.Variant> toasts,
                                        IReadOnlyList<TooltipCli.Variant> tips)
     {
-        string skill = Path.Combine(root, ".claude", "skills", "dev-flags", "SKILL.md");
-        if (!Check("the dev-flags catalogue is where this check expects it", File.Exists(skill),
-                   $"{skill} — in a checkout it is always there, so its absence is not a skip"))
-            return;
-
-        string[] lines = File.ReadAllLines(skill);
+        string[] lines = File.ReadAllLines(Path.Combine(root, DevFlags));
         string toastBlock = SkillBlock(lines, "--simulate-reset");
         string weekBlock = SkillBlock(lines, "--settings System --sample week=");
 
@@ -1854,16 +1853,15 @@ internal static class SelfTestCli
     /// no copy of the marker vocabulary to go stale beside <c>roadkeep.toml</c>'s.</para>
     /// </summary>
     private static void LedgerIndex() =>
-        Repo("the ledger's index of blocks lists every block it holds", LedgerIndex);
+        Repo("the ledger's index of blocks lists every block it holds", LedgerIndex,
+             "CHANGELOG.md", "ROADMAP.md", RoadmapDocs);
+
+    /// <summary>The skill whose theme table this check reads.</summary>
+    private const string RoadmapDocs = ".claude/skills/roadmap-docs/SKILL.md";
 
     private static void LedgerIndex(string root)
     {
-        string ledger = Path.Combine(root, "CHANGELOG.md");
-        if (!Check("the ledger is where this check expects it", File.Exists(ledger),
-                   $"{ledger} — in a checkout it is always there, so its absence is not a skip"))
-            return;
-
-        string[] lines = File.ReadAllLines(ledger);
+        string[] lines = File.ReadAllLines(Path.Combine(root, "CHANGELOG.md"));
         var headings = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (string line in lines)
         {
@@ -1921,10 +1919,7 @@ internal static class SelfTestCli
               mismarked.Length == 0,
               $"{string.Join(", ", mismarked)} — the index answers 'should I look here' and is wrong");
 
-        string skill = Path.Combine(root, ".claude", "skills", "roadmap-docs", "SKILL.md");
-        if (!Check("the roadmap-docs skill is where this check expects it", File.Exists(skill),
-                   $"{skill} — in a checkout it is always there, so its absence is not a skip"))
-            return;
+        string skill = Path.Combine(root, RoadmapDocs);
 
         // One direction only, and the doc comment says why the other would be wrong.
         string[] invented = Regex.Matches(File.ReadAllText(skill), @"^\|[^|]+\| \*\*([A-Z]+)\*\*", RegexOptions.Multiline)
@@ -1959,16 +1954,14 @@ internal static class SelfTestCli
     /// what a reader hits first, being in the file loaded every turn.</para>
     /// </summary>
     private static void FileMap() =>
-        Repo("the file map names every source file, and only files that exist", FileMap);
+        Repo("the file map names every source file, and only files that exist", FileMap,
+             ".claude/skills/file-map/SKILL.md", "AGENTS.md", "src");
 
     private static void FileMap(string root)
     {
-        string skill = Path.Combine(root, ".claude", "skills", "file-map", "SKILL.md");
+        string skill = Path.Combine(root, ".claude/skills/file-map/SKILL.md");
         string agents = Path.Combine(root, "AGENTS.md");
         string src = Path.Combine(root, "src");
-        if (!Check("the file map is where this check expects it", File.Exists(skill),
-                   $"{skill} — in a checkout it is always there, so its absence is not a skip"))
-            return;
         string[] files = Directory.Exists(src)
             ? Directory.GetFiles(src, "*.cs", SearchOption.AllDirectories)
                        .Select(f => Path.GetRelativePath(root, f).Replace('\\', '/')).ToArray()
@@ -2051,15 +2044,12 @@ internal static class SelfTestCli
     /// <c>Array.IndexOf</c> alike, because all three compare against a literal.</para>
     /// </summary>
     private static void FlagCatalogue() =>
-        Repo("every flag the sources accept is declared in dev-flags", FlagCatalogue);
+        Repo("every flag the sources accept is declared in dev-flags", FlagCatalogue, DevFlags, "src");
 
     private static void FlagCatalogue(string root)
     {
-        string skill = Path.Combine(root, ".claude", "skills", "dev-flags", "SKILL.md");
+        string skill = Path.Combine(root, DevFlags);
         string src = Path.Combine(root, "src");
-        if (!Check("the flag catalogue is where this check expects it", File.Exists(skill),
-                   $"{skill} — in a checkout it is always there, so its absence is not a skip"))
-            return;
         string[] accepted = (Directory.Exists(src)
                 ? Directory.GetFiles(src, "*.cs", SearchOption.AllDirectories)
                 : Array.Empty<string>())
@@ -2419,15 +2409,12 @@ internal static class SelfTestCli
     /// says which kind it is asserting, because the two have different failure modes.</para>
     /// </summary>
     private static void InteractionIds(Dictionary<string, List<string>> owners) =>
-        Repo("every id the interaction check drives still exists", root => InteractionIds(root, owners));
+        Repo("every id the interaction check drives still exists", root => InteractionIds(root, owners),
+             "scripts/Check-Interaction.ps1");
 
     private static void InteractionIds(string root, Dictionary<string, List<string>> owners)
     {
-        string script = Path.Combine(root, "scripts", "Check-Interaction.ps1");
-        if (!Check("the interaction script is where this check expects it", File.Exists(script),
-                   $"{script} — in a checkout it is always there, so its absence is not a skip"))
-            return;
-
+        string script = Path.Combine(root, "scripts/Check-Interaction.ps1");
         string text = File.ReadAllText(script);
         string[] derived = System.Text.RegularExpressions.Regex
             .Matches(text, @"(?:ById|ByIdNow|Assert-Name)\s+\$\w+\s+'([A-Za-z]\w*)'|Id\s*=\s*'([A-Za-z]\w*)'")
@@ -2486,13 +2473,8 @@ internal static class SelfTestCli
     private static void UserSurfaces(string root)
     {
         string readme = Path.Combine(root, "README.md");
-        string site = Path.Combine(root, "docs", "index.html");
+        string site = Path.Combine(root, "docs/index.html");
         string docs = Path.Combine(root, "docs");
-        if (!Check("the README and the published page are where this check expects them",
-                   File.Exists(readme) && File.Exists(site),
-                   $"{readme} / {site} — in a checkout both are always there"))
-            return;
-
         string readmeText = File.ReadAllText(readme);
         string siteText = File.ReadAllText(site);
 
@@ -2570,15 +2552,40 @@ internal static class SelfTestCli
     /// settle. <c>check.yml</c> runs the build from the checkout, so a repository skip there is
     /// <c>RepoFile</c> having broken — five checks lost in a run that stays green, which is the exact shape
     /// this file keeps naming. Under <c>CI</c> the allowance does not apply and the skip is unexpected.</para>
+    ///
+    /// <para><b><c>needs</c> is what the check reads (T251).</b> Naming the family's guard once left every
+    /// body opening with a guard of its own — combine a path, <c>Check</c> it exists, return — which is the
+    /// same shape one level down, seven times, and seven assertions that pass every run and have never
+    /// been seen to fail. Declared here they are proved in one place, and the assertion says which path is
+    /// missing rather than that some file was.</para>
+    ///
+    /// <para>§XXII.11 asked whether a governed file the checkout lacks should be red or the same skip as a
+    /// missing repository. <b>Red.</b> The two are not the same fact: an installed copy has no repository
+    /// and never will, while a checkout missing <c>CHANGELOG.md</c> is a repository somebody is halfway
+    /// through changing — and standing a check down for that is how coverage is lost to a state nobody
+    /// meant to leave behind.</para>
     /// </summary>
-    private static void Repo(string claim, Action<string> assert)
+    private static void Repo(string claim, Action<string> assert, params string[] needs)
     {
         string? agents = RepoFile("AGENTS.md");
-        if (agents is not null) { assert(Path.GetDirectoryName(agents)!); return; }
+        if (agents is null)
+        {
+            RepoSkipped.Add(claim);
+            Skip(claim, "no repository beside this build — a document and the thing it documents ship with " +
+                        "the source, and an installed copy has neither");
+            return;
+        }
 
-        RepoSkipped.Add(claim);
-        Skip(claim, "no repository beside this build — a document and the thing it documents ship with " +
-                    "the source, and an installed copy has neither");
+        string root = Path.GetDirectoryName(agents)!;
+        string[] missing = needs
+            .Where(n => !File.Exists(Path.Combine(root, n)) && !Directory.Exists(Path.Combine(root, n)))
+            .ToArray();
+        if (!Check($"{claim} — its files are in the checkout", missing.Length == 0,
+                   $"{string.Join(", ", missing)} — a checkout missing one of these is not an installed " +
+                   "copy, so it is red rather than a skip (T251)"))
+            return;
+
+        assert(root);
     }
 
     /// <summary>The claims <see cref="Repo"/> stood down this run, so the allowance is derived from the

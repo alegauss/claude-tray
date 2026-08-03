@@ -52,7 +52,7 @@
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
 | [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
-| [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags (active — see ROADMAP) |
+| [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 
 ## Block A — Foundation (tray, icon, API, projection)
 
@@ -574,6 +574,7 @@
 - **T247** — The seven checks that read the repository share one named precondition now: it hands over the root nothing had, and the allowance travels with the skip instead of being remembered in a second list where a name typed differently is a skip nobody can act on. Five of the seven sentences are gone and a missing file in a checkout is a red precondition rather than a skip, so the quiet-run report went from ten names to three. The allowance is for an installed copy only - under CI the checkout is here, so a repository skip there is five checks lost in a green run, and it exits 1.
 - **T249** — The fourth file describing the suite says what the other three now say, and the sentence that had become a rule went with it: check.yml ignored every markdown-only commit on the argument that prose cannot move arithmetic, which stopped being true the day four checks began reading CHANGELOG.md, ROADMAP.md, the source tree and two skills - so the commits those checks exist to catch were the ones being waved through. What is left ignored is read by nothing: the published site and the licence.
 - **T250** — The last surface pair on trust is checked: every image the README or the published page points at exists, every screenshot in docs is shown by one of them - a shot nobody displays is one nobody re-takes when the window moves - and the winget id a user types is spelled one way across both files and the manifest that publishes it. The wording is deliberately left alone: the site is marketing copy and the README is not, so a check demanding they agree would fail on every rewrite and be turned off.
+- **T251** — The precondition takes the paths the check reads, so the seven guards that opened each body are one assertion that names which path is missing instead of seven that pass every run and have never been seen to fail. A checkout lacking a governed file is red, not a skip - that is a repository somebody is halfway through changing, which is not the same fact as an installed copy having none, and standing a check down for it loses coverage to a state nobody meant to leave behind.
 
 ## Block AB — What Block Z's own work left behind
 

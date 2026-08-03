@@ -301,28 +301,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.11 One precondition, and then five more
-
-T247 gave the repository-reading checks one named precondition and the allowance that travels with
-it. Each body then opens the same way it always did, one level down: `Path.Combine` the file it
-wants, `Check` that it exists, `return` if not. Five copies, and the sentences are already drifting
-apart the way the seven skip reasons did.
-
-It is smaller than what T247 removed and it is the same mistake, which is the reason to name it
-rather than leave it. The assertion is also nearly content-free: in a checkout those five files are
-always there, so the check passes every time it runs and has never been seen to fail — which this
-file's own rule calls a comment.
-
-The shape is to let the precondition take what the check needs. `Repo` already answers *is there a
-repository*; taking the relative paths a body will read and proving them in the same place makes the
-body start at its subject, keeps one sentence for the family, and turns five always-green assertions
-into one that means something: *these files are the repository this check was written against*.
-
-Worth settling: whether a missing governed file should be red at all, or whether it should be the
-same skip as a missing repository. A checkout with no `CHANGELOG.md` is not an installed copy — it
-is a repository somebody is halfway through changing, and the honest answer may be that the run is
-red for a reason the person already knows.
-
 ## XXIII What the API says about permission, and what the app infers instead (Block D)
 
 Every signal this app has about whether an account may spend past its included quota is inferred
