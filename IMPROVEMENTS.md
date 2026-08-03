@@ -216,29 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.18 A named binary and a checked binary are not the same claim
-
-Executing this block, `-Case Menu -UseRunning` reported every assertion green against the tray
-resident on this machine. That tray had been published the previous afternoon, before T171 shipped,
-so the machine-wide toggle the submenu is supposed to carry did not exist in it — and the count
-check passed anyway, because its floor was *profiles + 1* and four entries clear a floor of three.
-
-The floor is now derived (T230), which closes that particular hole. What it does not close is the
-one underneath: the flag says "check the binary somebody else started", and nothing on the run
-compares that binary to the one under `-Exe`. The path is printed loudly, which was the whole of
-T202's answer, and a printed path is not a comparison — the run still says *"OK, every interaction
-check passed"* about a build that predates the feature being verified.
-
-`-UseRunning` should stay. It is the deliberate override on a machine where the tray is always
-resident, and implying it was already refused (§XX.6). But the same run that names the path can read
-both file versions and say when they differ, and *"the resident tray is 1.5.2, `-Exe` is 1.5.3"* is
-a DEGRADED run rather than a clean one: what ran passed, and it did not run against what was asked
-about.
-
-Worth settling with it whether the file version is the right key at all — a Debug build under `-Exe`
-and an installed Release carry the same `<Version>` between releases, so a same-version pair can
-still be days apart. The write timestamp answers that and nothing else does.
-
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of

@@ -287,6 +287,39 @@ function Start-App($appArgs) {
 }
 
 <#
+  How the tray being driven differs from the build the caller named (T236), as the sentence to report -
+  or null when they are the same file and there is nothing to say.
+
+  `-UseRunning` prints the path it attached to, which was the whole of T202's answer, and a printed path
+  is not a comparison. Executing Block AI this reported "OK - every interaction check passed" against a
+  tray published the previous afternoon, before T171 shipped: the submenu entry being verified did not
+  exist in that binary and the run was green about it.
+
+  Two keys, because one is not enough. The file version catches the ordinary case. It cannot catch the
+  one that actually happened - a Debug build and an installed Release carry the same `<Version>` between
+  releases - so when the versions agree the write time is the only thing left that can tell two builds
+  apart, and it is read second rather than instead: a version difference is the more useful sentence.
+#>
+function Binary-Drift($runningPath) {
+    if (-not (Test-Path $Exe)) { return "-Exe '$Exe' is not on disk, so there is nothing to compare it to" }
+    if (-not $runningPath)     { return "the running tray's path could not be read" }
+    if (-not (Test-Path -LiteralPath $runningPath)) { return "the running tray's binary is gone from disk" }
+
+    $mine = Get-Item -LiteralPath $Exe
+    $theirs = Get-Item -LiteralPath $runningPath
+    if ($mine.FullName -eq $theirs.FullName) { return $null }   # the same file: nothing can have drifted
+
+    $mv = [string]$mine.VersionInfo.FileVersion
+    $tv = [string]$theirs.VersionInfo.FileVersion
+    if ($mv -ne $tv) { return "it is version $tv and -Exe is $mv" }
+
+    $gap = [int][math]::Round(($mine.LastWriteTime - $theirs.LastWriteTime).TotalMinutes)
+    if ($gap -ge 1)  { return "both are version $mv, but it was built $gap minute(s) before -Exe" }
+    if ($gap -le -1) { return "both are version $mv, but it was built $([math]::Abs($gap)) minute(s) after -Exe" }
+    return $null
+}
+
+<#
   The `--main` window, launched once and lent to whichever of Panes/Profiles/Names run together (T195).
 
   Three of the five cases drive the same window and each used to own its own process, so `-Case All`
@@ -1668,6 +1701,18 @@ function Invoke-MenuCase {
         if ($running.Count -eq 0) { Fail "-UseRunning given but no ClaudeTray process is running"; return }
         $proc = $running[0]
         Info "driving the ALREADY RUNNING tray, not -Exe: $($proc.Path)"
+
+        # T236: named and compared, not just named. This does NOT return - every assertion below still
+        # runs and still has to pass, because a check of the installed copy is a real thing to want. What
+        # it cannot be is a clean run: the claim "the build under -Exe was checked" is the one that could
+        # not be evaluated here, so that is the claim marked Unchecked and the run comes out DEGRADED.
+        $drift = Binary-Drift $proc.Path
+        if ($drift) {
+            Unchecked "the menu of the build under -Exe (T236)" `
+                ("-UseRunning drove the resident tray and $drift. What ran passed, " +
+                 "and it did not run against what was asked about - a tray older than the feature being " +
+                 "verified passes a check for an entry it does not have. Quit it to check -Exe instead.")
+        }
 
         # T220: this is the one path with no command line, so `-Lang` never reached the process. Match the
         # labels against what the tray is actually in, or every one of them is compared to a translation

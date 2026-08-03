@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T236** (deps: —) **A run reports every check passed against a binary older than the feature it was checking** — -UseRunning drives whatever tray is resident and prints its path, but nothing compares it to -Exe, so a day-old build passed a submenu check for an entry it does not have. → §XX.18
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 - 💭 **T219** (deps: —) **The turn budget is full, so a new rule is paid for by deleting an old one nobody ranked** — Writing T169's rule took AGENTS.md 612 bytes over, and the bytes came back from a sentence that happened to be duplicated — a selector that runs out before the next rule does. → §XXII.1

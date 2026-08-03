@@ -202,7 +202,7 @@ All five are below; listing *three* is how two stayed script-only (T201). The he
   and reads it back through `ValuePattern`, Tabs out, drives a `Slider` with an arrow key. **`check.yml`
   runs it on every push** (T194): synthesised input reaches a hosted runner, and it needs no credentials.
 - **Panes** and **Names** (`--main`) need no second profile either, so with Keyboard they are what a
-  one-profile machine and CI can run. Panes asserts the report can be *read* — tab headers, and the pane's
+  one-profile machine and CI run. Panes asserts the report can be *read* — tab headers, and the pane's
   used %, reset caption and live headline in the accessibility tree — and is the only check that would
   notice `PART_SelectedContentHost` going missing again (T176). Names asserts what controls *announce*,
   rows labelled by a neighbouring element included (T175).
@@ -210,10 +210,10 @@ All five are below; listing *three* is how two stayed script-only (T201). The he
   `ComboBox`, reading the report at each stop — the same profile must read the same coming back, the middle
   must differ, the headline never "unavailable" at a settled stop (T165). Below two: **DEGRADED**, no skip.
 - **Menu** launches the tray, opens the notification icon's menu, reads its entries, then expands *Open
-  Claude Code* for the per-profile ones. Two refusals, one rule — **the check must look at what you
-  named**: it will not run while another tray is alive (the mutex would hand it that one), and under
-  `-UseRunning` no `-Lang` reaches the process, so labels match the language that tray itself resolved
-  and a `-Lang` typed anyway is `Unchecked`, never overridden (T202, T220).
+  Claude Code* for the per-profile ones. One rule, three refusals — **the check must look at what you
+  named**: it will not run while another tray is alive; under `-UseRunning` labels match the language
+  that tray resolved, not a `-Lang` it never got; and a resident binary that is not `-Exe` leaves the
+  run DEGRADED — an old tray passes a check for what it lacks (T202, T220, T236).
 - **An assertion that could have run and didn't is `Unchecked`, never an `Info` line.** T166's timing hung
   off `Combo-Select`'s UIA route alone, so the day `Select()` began throwing, the run would print a note and
   stay green (T193). Both halves are needed: a fallback reaching its target in **one selection change**
