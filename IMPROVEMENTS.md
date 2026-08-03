@@ -149,26 +149,6 @@ wrong locale, a paragraph that has quietly become twelve lines); two are in the 
 it (a decision that lives where no assertion can reach it, a skip that may never have run outside one
 machine). None was reported by anybody, and none of them would be.
 
-### §XV.3 A skip that fires every time is a check that does not exist (T169)
-
-T161 gated its two `TryProbe` assertions on a precondition — every segment of the temp path spelled in the
-alphabet the slug encoding preserves — after the first version of that guard turned a build with
-backtracking deliberately removed into two green skips instead of a red check. The rule it produced is in
-[AGENTS.md](AGENTS.md) and it is right. The guard is still one some machines fail *every single time*: a
-Windows CI runner's profile directory is an 8.3 short name (`RUNNER~1`), whose `~` the encoding maps to
-`-`, and no `RUNNER-1` exists. There, the two assertions over the app's lossiest function have never run.
-
-The fix removes the skip rather than documenting it: resolve the temp root to its **long** form before
-encoding (walk the path and take each segment's real name — `DirectoryInfo.FullName` does not expand 8.3
-and `GetLongPathName` is a P/Invoke this repo would rather avoid). The precondition guard stays for the
-genuinely unrepresentable case, because honesty about what a check covers is the point.
-
-The second half is about reading a green run. `Skip` prints its name and reason and the summary prints
-`N skipped`, but nothing distinguishes *"this run straddled a DST change"* from *"this environment skips
-these two checks forever"*. Naming the skipped checks beside the counts, where the exit code is read,
-costs three lines and makes lost coverage legible. Whether CI should **fail** on an unexpected skip is a
-judgement to make with the list in hand.
-
 ### §XV.4 The note is twelve lines behind a click (T170 — idea)
 
 Measured: the shaped branch of the method note is 238 + 352 + 422 = 1,012 characters, the mostly-measured

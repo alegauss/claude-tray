@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text;
 
 namespace ClaudeTray;
@@ -32,8 +32,13 @@ internal static class SelfTestCli
     /// can never collide with an account's directory.</summary>
     private const string ProfileKey = "selftest";
 
-    private static int _passed, _failed, _skipped;
+    private static int _passed, _failed;
     private static readonly List<string> Failures = new();
+
+    /// <summary>What did not run, by name (T169). The count alone cannot tell <em>"this run straddled a
+    /// DST change"</em> from <em>"this environment has skipped these two forever"</em>, and the second is
+    /// lost coverage that reads exactly like a clean run.</summary>
+    private static readonly List<string> Skipped = new();
 
     /// <returns>Process exit code: 0 when every check passed.</returns>
     public static int Run(string[] flags)
@@ -122,8 +127,11 @@ internal static class SelfTestCli
         double ms = (DateTime.UtcNow.Ticks - started) / (double)TimeSpan.TicksPerMillisecond;
         Console.WriteLine();
         foreach (string f in Failures) Console.WriteLine("FAILED  " + f);
+        // Beside the counts, where the exit code is read: a name is what makes lost coverage legible, and
+        // whether an unexpected one should be a red build is a judgement to make with this list in hand.
+        foreach (string s in Skipped) Console.WriteLine("SKIPPED " + s);
         Console.WriteLine($"{_passed} passed, {_failed} failed" +
-                          (_skipped > 0 ? $", {_skipped} skipped" : "") + $" — {ms:0}ms");
+                          (Skipped.Count > 0 ? $", {Skipped.Count} skipped" : "") + $" — {ms:0}ms");
         return _failed == 0 ? 0 : 1;
     }
 
@@ -1486,10 +1494,21 @@ internal static class SelfTestCli
         Directory.CreateDirectory(Path.Combine(root, "viglet-model-catalog"));
         File.WriteAllText(Path.Combine(root, "notadir"), "");
 
-        // The temp path itself has to survive the round trip, or nothing below it can be probed: a
-        // character that is neither alphanumeric nor a separator — an 8.3 short name's `~`, a space, a dot —
-        // encodes to a `-` that matches no directory on the way down. Tested on the path rather than by
-        // probing it, so a broken probe fails these checks instead of skipping them.
+        // `Temp` already handed this root back under the filesystem's own spelling, which is what stopped
+        // the 8.3 alias skipping both of these forever (T169). Assert the resolution rather than trust it:
+        // case is the same mechanism as an 8.3 alias — the name you ask by is not the name on disk — and
+        // unlike an alias it can be produced on any machine, including one with 8.3 creation disabled.
+        Directory.CreateDirectory(Path.Combine(root, "MixedCase"));
+        string resolved = LongPath(Path.Combine(root, "mixedcase"));
+        Check("a path resolves to the spelling the filesystem carries, not the one it was asked by",
+              Path.GetFileName(resolved) == "MixedCase", resolved);
+
+        // The temp path itself still has to survive the round trip, or nothing below it can be probed: a
+        // character that is neither alphanumeric nor a separator — a space, a dot, an alias that resolved
+        // to nothing — encodes to a `-` that matches no directory on the way down. The guard stays for
+        // that genuinely unrepresentable case, because honesty about what a check covers is the point.
+        // Tested on the path rather than by probing it, so a broken probe fails these checks instead of
+        // skipping them.
         if (!Probeable(root))
         {
             Skip("the probe backtracks past a shorter directory that exists",
@@ -1509,8 +1528,9 @@ internal static class SelfTestCli
     }
 
     /// <summary>Every segment of this path is spelled in the alphabet the slug encoding preserves, so a
-    /// probe starting at the drive can rebuild it. False on a CI runner whose temp path is an 8.3 short
-    /// name (<c>RUNNER~1</c>) — the directory exists as spelled, but <c>RUNNER-1</c> does not.</summary>
+    /// probe starting at the drive can rebuild it. The 8.3 alias that used to fail this on every CI run is
+    /// resolved away by <see cref="LongPath"/> before the check (T169); what is left is a temp path with a
+    /// space or a dot in it, which is unrepresentable however it is spelled.</summary>
     private static bool Probeable(string path)
     {
         foreach (string segment in path.Split('\\', '/'))
@@ -1858,9 +1878,53 @@ internal static class SelfTestCli
     {
         string root = Path.Combine(Path.GetTempPath(), "claude-tray-selftest-" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(root);
+        // Spelled the way the filesystem spells it rather than the way `%TEMP%` happens to (T169).
+        root = LongPath(root);
         try { body(root); }
         catch (Exception e) { Fail("the section threw", e.Message); }
         finally { Remove(root); }
+    }
+
+    /// <summary>
+    /// The same directory, segment by segment under the name the filesystem itself carries (T169).
+    /// </summary>
+    /// <remarks>
+    /// A Windows CI runner's profile directory is an 8.3 alias — <c>RUNNER~1</c> — and the slug encoding
+    /// maps that <c>~</c> to a <c>-</c> that matches no directory on the way down, so <see cref="Slug"/>'s
+    /// two <c>TryProbe</c> assertions skipped on <em>every single run</em> there: the app's lossiest
+    /// function, covered by nothing, reported as two green lines. Resolved here rather than documented,
+    /// because a skip that fires every time is a check that does not exist.
+    /// <para>What lets the alias through is that <see cref="Path.Combine(string, string)"/> is string
+    /// concatenation: <c>%TEMP%</c> arrives already spelled <c>RUNNER~1</c> and nothing normalizes the
+    /// result before it is handed to a section.</para>
+    /// <para>Each segment is then looked up in its parent, because matching an 8.3 alias returns the entry
+    /// under its real name. <b>Measured, against §XV.3's own premise:</b> .NET's path normalization
+    /// <em>does</em> expand a short name — <c>Path.GetFullPath("C:\PROGRA~1")</c> answers
+    /// <c>C:\Program Files</c> — so the design's "<c>FullName</c> does not expand 8.3" is not true on this
+    /// runtime, and <c>GetFullPath</c> alone would have closed the skip. The walk stays because that
+    /// expansion is an undocumented step conditional on the path containing a <c>~</c>, and because it
+    /// leaves case alone; asking the filesystem depends on neither.</para>
+    /// </remarks>
+    private static string LongPath(string path)
+    {
+        try
+        {
+            string full = Path.GetFullPath(path);
+            string root = Path.GetPathRoot(full) ?? "";
+            if (root.Length == 0) return full;
+
+            string rest = full[root.Length..].Trim('\\', '/');
+            if (rest.Length == 0) return full;
+
+            string built = root;
+            foreach (string segment in rest.Split('\\', '/'))
+            {
+                FileSystemInfo? real = new DirectoryInfo(built).EnumerateFileSystemInfos(segment).FirstOrDefault();
+                built = Path.Combine(built, real?.Name ?? segment);
+            }
+            return built;
+        }
+        catch { return path; }      // an unreadable ancestor is not this helper's problem to report
     }
 
     private static void Remove(string dir)
@@ -1893,7 +1957,7 @@ internal static class SelfTestCli
 
     private static void Skip(string name, string why)
     {
-        _skipped++;
+        Skipped.Add($"{name} — {why}");
         Console.WriteLine($"  skip  {name} — {why}");
     }
 

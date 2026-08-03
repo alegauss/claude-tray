@@ -61,7 +61,7 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 | `src/Cli/ActivityCli.cs` | `--activity`: the weekly activity profile as a 24×7 shaded grid, plus the measured-hours variant. |
 | `src/Cli/LiveCli.cs` | `--tail` and `--live`: each assistant turn as it lands, and the rolling tok/s with its per-project sparklines. |
 | `src/Cli/ProfilesCli.cs` | `--profiles [--check]`: every profile on the machine, its auth, its config-dir action and its icon accent band. |
-| `src/Cli/SelfTestCli.cs` | `--selftest [--quick]`: 270+ assertions over the pacing, store, grid, tail, live-rate, series, language-table, method-note, number-format and palette rules, on synthetic inputs, exiting non-zero on failure — run on every push by `.github/workflows/check.yml` and again before an installer is packaged by `build.yml`. Writes only a temp tree and a `selftest` profile dir, both removed. This is the repo's test suite: there is no test project (a third-party framework would break §I.3), so a new invariant is asserted **here**. |
+| `src/Cli/SelfTestCli.cs` | `--selftest [--quick]`: 270+ assertions over the pacing, store, grid, tail, live-rate, series, language-table, method-note, number-format and palette rules, on synthetic inputs, exiting non-zero on failure — run on every push by `.github/workflows/check.yml` and again before an installer is packaged by `build.yml`. Writes only a temp tree and a `selftest` profile dir, both removed. The repo's test suite — see below. |
 | `src/Cli/ProbeCli.cs` | `--probe [--live] [--all]`: the rate-limit headers verbatim — the recorded capture log first, then one live call, which is itself recorded against the monitored profile (T212) rather than printed and dropped. This app reads four of the fourteen, and its reading is not what the API said. Quota metadata only, never a token. |
 | `src/Cli/StatsPreviews.cs` | The one table of Statistics previews `--stats` and `--capture-stats` both read (T186): a variant per row with what it feeds the page, the modifiers that compose with any of them, and the refusal — an unknown name prints the catalogue and exits 1 rather than rendering the default sample as if it were what was asked for. |
 | `src/Cli/ToastPreviews.cs` | The same table for the toast cards, read by `--simulate-reset` and `--capture-toast` both (T198). Two rules it carries: an unknown variant is refused with the catalogue, and **a capture flag never defaults its output path** — `--capture-toast` requires one, and a default that is kept goes under git-ignored `docs\_preview\`, never the working directory. |
@@ -247,11 +247,11 @@ ClaudeTray.exe --selftest [--quick]      # --quick skips the sections that wait 
   catch priming being removed but are blind to the alignment flag being left set (the fragment is
   rejected by the JSON parse either way), which is the whole reason the append-after-a-primed-read pair
   exists. An assertion that has only ever passed is a comment.
-- **A `Skip` must not be able to hide the property it guards.** T161's probe checks were first gated on
-  "can this machine's temp path be probed at all?", which is itself backtracking — so the build with
-  backtracking deliberately removed reported two green skips instead of a red check. Gate on the
-  *precondition* (here: does every path segment survive the encoding's alphabet), never on a weaker form
-  of the thing being asserted.
+- **A `Skip` must not hide the property it guards, and one that always fires is no check at all.** Gate on
+  the *precondition*, never a weaker form of the claim — T161 gated on backtracking itself, so the build
+  with backtracking removed went green. Then fix the environment: that guard still skipped both probe
+  checks on every CI run, whose `%TEMP%` is an 8.3 alias the encoding cannot rebuild, so `Temp` resolves
+  the root (`LongPath`) and the summary **names each skip beside the counts** (T169).
 
 ## Build / run / dev helpers
 
