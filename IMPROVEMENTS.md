@@ -238,6 +238,29 @@ by three booleans, and not one of them is a value anything can currently look at
 Whether the no-call promise itself can be asserted without a seam in front of the network is the
 open part.
 
+### XX.21 The scanner and the paragraph describing it
+
+T243's check reads every `"--x"` literal under `src\` and holds the catalogue to it. Its first run
+failed on `--x` itself: the paragraph above the method quotes the two shapes it matches, and the
+scan read the example as a switch the catalogue had forgotten. The fix was to strip `//` to end of
+line before matching, which is right about comments and approximate about strings.
+
+That approximation is the task. A `//` inside a string literal — a URL, a UNC path, a regex — ends
+the line as far as the scan is concerned, and everything after it disappears: a real flag literal
+sharing a line with such a string would silently stop being seen. The failure is the one this file
+keeps naming, a check that stops asserting and stays green, and it is invisible in the check's own
+source because the check still passes.
+
+Two directions worth weighing. A comment stripper that tracks whether it is inside a string is
+thirty lines and correct, and would serve every future source-scanning check rather than this one.
+Or the scan narrows to what it actually means: a flag literal appears in a comparison, so matching
+`Contains("--x")` and `== "--x"` rather than the bare literal excludes prose by construction and
+does not care what a comment says.
+
+The second is smaller and asserts more. What it costs is that a new comparison shape has to be added
+to the pattern, which is the failure mode of every hardcoded list here — so whichever wins has to
+say what happens when a flag is read a way the pattern does not know.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
@@ -277,6 +300,51 @@ work; the rest is deciding what it may find.
 
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
+
+### XXII.7 What the suite is for, described from before it grew
+
+`AGENTS.md` heads its `--selftest` section *Arithmetic verification* and says a new invariant over
+the pacing, the stores, the grid, the tail, the live rate or the slug encoding is asserted there and
+nowhere else. That was true when it was written.
+
+It is now the smaller half. T223, T242, T243 and T244 assert nothing arithmetic: they read
+`CHANGELOG.md`, `ROADMAP.md`, the source tree and two skills, and compare a document against the
+thing it documents. T207 did it before them and T185 does it to the language files. The subject is
+not arithmetic, it is **one claim, two places** — and every one of those checks exists because the
+second place drifted.
+
+Why it matters in this file rather than in a skill. The sentence is a *routing* rule: it tells a
+reader where a new invariant goes, and its list is what they match their invariant against. A
+consistency rule finds nothing in that list, so it gets written as a paragraph — in the very file
+that is zero-sum, which is the loop T219 was meant to close.
+
+What it costs is bytes in the one file that has none spare, so the sentence has to get shorter as it
+gets truer, not longer: the six subjects were already a sample rather than a list, and naming the
+two kinds of claim the suite holds is fewer words than naming six of one kind.
+
+Worth settling with it: whether the section keeps the name *arithmetic* at all.
+
+### XXII.8 A family of checks with one precondition and no name
+
+Five assertions in `--selftest` now read files out of the repository the build came from, and every
+one of them opens the same way: call `RepoFile`, get null on an installed copy, `Skip` with a
+sentence saying there is no repository beside the build, and add a line to `AllowedSkips` so the
+skip is not red. Five copies of one policy.
+
+The cost is not the duplication, it is what a copy invites. Each sentence is written fresh, so the
+five now say the same thing five ways; the `AllowedSkips` entry is remembered separately from the
+`Skip` it excuses, and a name typed differently in the two places is a skip that goes red for a
+reason nobody can act on; and the sixth check inherits none of it. There is also no repository
+*root* anywhere — `RepoFile` finds files only, so the check that needed the `src\` directory derived
+it from where `AGENTS.md` happened to be found.
+
+The shape is a named precondition: one helper that answers *is there a repository beside this
+build*, returns its root, and carries the skip and its allowance with it, so a repo-reading check
+declares its subject and nothing else. `Temp` and `Quietly` are the precedent — both exist so a
+section states what it is about instead of how to set it up.
+
+Worth settling: whether these skips should stay allowed at all, or whether a build that CI runs
+should refuse to skip them, with the allowance narrowed to the packaged binary.
 
 ## XXIII What the API says about permission, and what the app infers instead (Block D)
 
