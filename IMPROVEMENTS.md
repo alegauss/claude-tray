@@ -216,6 +216,31 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
+### XX.16 Ask the directory, not the list of methods
+
+T239's promise is that a check run leaves the user's files alone. What `--selftest` asserts is
+narrower: it drives the writers it knows about — the five per-profile stores, the two shared caches,
+the settings file, the environment — and compares the tree around them. A store added later that
+this does not drive is a hole, and the doc comment on `ProfileStore.Observing` says so rather than
+closing it.
+
+The gap is not theoretical. The first five gates went in, the selftest went green, and an end-to-end
+run then changed `context-cache.json` — a writer the section had not thought to drive. It was caught
+by a PowerShell comparison typed by hand around the check run, which is not a thing that will happen
+again on its own.
+
+That comparison is the assertion worth having, and it belongs in `Check-Interaction.ps1` rather than
+in `--selftest`: fingerprint every file under `%LocalAppData%\ClaudeTray` before the Menu case and
+compare after. It covers every writer at once, including ones nobody remembered, because it asks
+about the directory instead of about a list of methods — the same move T221 made when nine sampled
+points became one question about a region.
+
+Two things to settle with it. The resident tray polls on its own cadence and writes on its own
+schedule, so a run that happens to span one of its polls would see a change that is nobody's fault:
+the comparison has to be about files the CHECK's trays could have touched, which probably means
+running it only when no other tray is alive, and saying so when it is skipped rather than passing
+quietly. And a failure has to name the file, since "something changed" sends the reader nowhere.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
