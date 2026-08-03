@@ -50,7 +50,6 @@
 >
 > Ordered by what can make a green run meaningless, then by what keeps the loop being run at all.
 
-- 📋 **T193** (deps: —) **A picker route that stops working turns an assertion into a note, and the run stays green** — T177's timing is observed only along `Combo-Select`'s UIA route, and the keyboard fallback exists precisely because that route can die. → §XX.2
 - 📋 **T194** (deps: —) **The check that caught the keyboard being dead in every window runs only when somebody remembers** — `-Case Keyboard` drives `--settings-tray`, which needs no credentials and no report, and CI runs `--selftest` alone on a runner that has a desktop. → §XX.3
 - 📋 **T195** (deps: —) **A full interaction run launches the app five times, three of them for the same read-only window** — `Panes`, `Profiles` and `Names` each start `--main`, wait out its first layout and first poll, and kill it, although none of them changes anything the next would see. → §XX.4
 - 📋 **T196** (deps: —) **The row rule now governs thirty-odd controls and is asserted on three of them** — `-Case Names` reads one ComboBox, one switch and one Slider on the Settings page's General panel, and five of its six panels are never visited. → §XX.5

@@ -511,3 +511,4 @@
 ## Block AG — The interaction check grew two cases, and nobody runs it
 
 - **T192** — Each named control now says which page it is on (StatsProfileCombo / CcProfileCombo / SysProfileCombo), and --selftest reflects over every IComponentConnector type to assert no x:Name is carried by two controls, plus that the fifteen ids Check-Interaction.ps1 drives still exist — the rename found the StatusText lookup behind T166's assertion, which a missing control would have made pass by seeing nothing.
+- **T193** — Combo-Select now anchors the keyboard fallback on Home/End so it reaches its target in one selection change, which makes T166's switch-back timing observable on either route — verified with the UIA route forced dead. The eight downgrades that were Info lines are now Unchecked, counted and named, and the summary has three outcomes: exit 0 every assertion ran and passed, 2 DEGRADED, 1 failed.

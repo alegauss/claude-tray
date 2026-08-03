@@ -162,13 +162,11 @@ would tie a window to its folder.
 5. **Verify by looking, every time.** See the workflow below. Do not report a UI change as done
    without a screenshot.
 6. **An `x:Name` is unique across the app, not per XAML file.** WPF scopes names per file, so two pages
-   can each name a control `ProfileCombo` and both code-behinds still compile — but an `x:Name` is the
-   control's identity to everything *outside* the compiler (UI Automation, a screen reader,
-   `Check-Interaction.ps1`), and an id lookup then returns whichever the tree reaches first. Since a page
-   is built on its first visit and then kept collapsed, that answer changes with the route a run took: a
-   check can silently drive the other control and go on passing (T192). Name a control for the page it is
-   on (`StatsProfileCombo` / `CcProfileCombo` / `SysProfileCombo`). `--selftest` asserts it by reflecting
-   over every `IComponentConnector` type, so a collision is a red build rather than a comment.
+   could each name a control `ProfileCombo` and both compile — but the name is the control's identity to
+   everything outside the compiler (UI Automation, screen readers, `Check-Interaction.ps1`), and an id
+   lookup returns whichever the tree reaches first, which depends on the pages a run happened to build:
+   a check can drive the other control and go on passing (T192). Name it for its page
+   (`StatsProfileCombo` / `CcProfileCombo`); `--selftest` asserts it, so a collision is a red build.
 7. **A screenshot cannot see a keyboard bug, and `--settings` cannot either.** The preview flags run a
    **WPF** `Application.Run`; the tray runs a **WinForms** pump, and the two are different *input*
    environments — that difference is how "no keyboard input in any window" (T135) survived every
@@ -194,7 +192,9 @@ tray-menu clicking is needed; the capture script is per-monitor-DPI-aware (requi
 
 A picture proves layout. It cannot prove a key press arrives — that is how T135 survived every
 screenshot this repo ever took. `scripts\Check-Interaction.ps1` drives the real UI through UI
-Automation and asserts a pass/fail (exit 0 only if every check passed):
+Automation and asserts a pass/fail. **Three exit codes (T193): `0` every assertion ran and passed, `2`
+DEGRADED — all that ran passed but something could not be evaluated, `1` a failure.** Read `2` as "this
+run proved less than it looks like"; the summary names what did not run.
 
 ```
 powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 `
@@ -202,21 +202,23 @@ powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 `
 ```
 
 - **Keyboard** launches `--settings-tray` (the WinForms pump), navigates by clicking the sidebar, types
-  into a `TextBox` and reads it back through `ValuePattern`, Tabs out, and drives a `Slider` with an
-  arrow key. Run it after anything that touches input, focus or hosting.
-- **Menu** launches the tray, opens the notification icon's menu and reads its entries, then expands
-  *Open Claude Code* and reads the per-profile ones. It **refuses** to run while another tray is alive
-  (the single-instance mutex would make its own launch exit silently, and it would then read the other
-  tray's menu and call that a pass) — quit that tray, or pass `-UseRunning` to drive it deliberately.
-- **Profiles** launches `--main` and walks the Statistics page's profile picker **0 → 1 → 0** through the
-  real `ComboBox`, reading the used %, the reset caption and the live headline at each stop: the same
-  profile must read the same on the way back, the middle one must differ, and the live headline must
-  never be "unavailable" at a settled stop (T165). It **skips out loud** with fewer than two profiles
-  registered. Run it after anything that touches the profile model, the picker or the live tail.
-- **Reading nothing is a FAIL, never a pass.** The script's header documents the four UIA traps
-  (no clickable point / overflow flyout, collapsed panes absent from the tree, the menu not always
-  opening, a profile switch legitimately emptying the panes while it recomputes) — read it before
-  writing any new check by hand.
+  into a `TextBox` and reads it back through `ValuePattern`, Tabs out, and drives a `Slider` with an arrow
+  key. Run it after anything that touches input, focus or hosting.
+- **Menu** launches the tray, opens the notification icon's menu, reads its entries, then expands *Open
+  Claude Code* for the per-profile ones. It **refuses** to run while another tray is alive (its own launch
+  would exit on the mutex and it would read that tray's menu as a pass) — `-UseRunning` drives that one.
+- **Profiles** launches `--main` and walks the Statistics picker **0 → 1 → 0** through the real
+  `ComboBox`, reading the used %, the reset caption and the live headline at each stop: the same profile
+  must read the same on the way back, the middle one must differ, and the headline must never be
+  "unavailable" at a settled stop (T165). Under two profiles it reports **DEGRADED**, not a skip.
+- **An assertion that could have run and didn't is `Unchecked`, never an `Info` line.** T166's timing was
+  wired to `Combo-Select`'s UIA route alone, so the day `Select()` began throwing the run would print a
+  note and stay green (T193). A new check needs both halves: the fallback reaches its target in **one
+  selection change** (`Home`/`End` anchor) so the observation holds on either route, and `Unchecked` counts
+  what did not run. Reserve it for an absent *precondition*: what can never run here stays `Info`.
+- **Reading nothing is a FAIL, never a pass.** The script's header documents the four UIA traps (no
+  clickable point / overflow flyout, collapsed panes absent from the tree, the menu not always opening, a
+  switch legitimately emptying the panes) — read it before writing any new check by hand.
 - **A custom `TabControl` template must name its content host `PART_SelectedContentHost`.** WPF finds
   the selected tab's content by that exact name, and the `TabItem` peer asks for it to attach the pane's
   children — so an unnamed `ContentPresenter` leaves the **whole body** of every tab out of the UI

@@ -37,8 +37,20 @@
                        see an accessible name, and an unnamed control is invisible to every other
                        check in this file.
 
-    Exit code is 0 only if every check passed; any failure exits 1. A check that could not observe
-    anything is a FAIL, never a pass — see "fail loudly" below.
+    Three outcomes, three exit codes (T193):
+
+      0  every assertion ran and passed
+      2  DEGRADED — everything that ran passed, but at least one assertion could not be evaluated on
+         this machine or this run (one profile registered, no report rendered, a picker route that
+         needed more than one selection change). Named and listed in the summary, never an Info line:
+         a green tick over an assertion that silently stopped running is the defect T169 and T176 both
+         name, and T166's switch-back timing had been dropped that way.
+      1  at least one assertion FAILED
+
+    A check that could not observe anything it was pointed at is a FAIL, never a pass — see "fail
+    loudly" below. `Unchecked` is for the narrower case where the *precondition* is absent, and it is
+    deliberately not available for an assertion that can never run here (the Settings window binds
+    nothing to Esc, so there is no Esc behaviour to lose).
 
 .NOTES
     Five traps, all met while writing these checks by hand, all encoded here:
@@ -148,15 +160,31 @@ public static class Native {
 [Native]::Dpi()
 
 $VK_APPS = 0x5D; $VK_DOWN = 0x28; $VK_RIGHT = 0x27; $VK_LEFT = 0x25; $VK_ESC = 0x1B; $VK_UP = 0x26
+$VK_HOME = 0x24; $VK_END = 0x23
 $AE   = [System.Windows.Automation.AutomationElement]
 $ANY  = [System.Windows.Automation.Condition]::TrueCondition
 $ROOT = $AE::RootElement
 
 $script:Failures = 0
+$script:Unchecked = @()
 function Pass($msg) { Write-Host "[PASS] $msg" -ForegroundColor Green }
 function Fail($msg) { Write-Host "[FAIL] $msg" -ForegroundColor Red; $script:Failures++ }
 function Info($msg) { Write-Host "       $msg" -ForegroundColor DarkGray }
 function Head($msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
+
+<#
+  An assertion that COULD have run on this machine and did not (T193). Every one of these used to be an
+  `Info` line, which is the defect: the run printed `OK - every interaction check passed` while one of the
+  properties it exists to protect had quietly gone unobserved, and T169 and T176 are both that same shape.
+  Named and counted here, and the summary refuses the word "every" when the list is non-empty.
+
+  This is NOT for an assertion that can never run — the Settings window binds nothing to Esc, so there is
+  no Esc behaviour to observe and nothing was lost. `Unchecked` means "should have been checked, wasn't".
+#>
+function Unchecked($what, $why) {
+    Write-Host "[----] $what NOT CHECKED - $why" -ForegroundColor Yellow
+    $script:Unchecked += $what
+}
 
 # ---------------------------------------------------------------- UIA helpers
 
@@ -390,11 +418,21 @@ function Watch-Status($win, $ms, $stepMs = 60) {
 
 <#
   Select an index through the control itself, never through `SelectProfileForPreview` — the preview seam
-  sets SelectedIndex directly, and it is the thing this case exists to stop trusting. Returns which route
-  worked, so a pass says how the switch was made instead of implying the first one.
+  sets SelectedIndex directly, and it is the thing this case exists to stop trusting. Returns the route
+  taken AND the number of selection changes it took, so a pass says how the switch was made instead of
+  implying the first one — and so T166's timing stays observable on either route (T193).
 
   `$win` is optional and only for the timing observation: given it, the post-selection settle is spent
   watching the status line rather than sleeping through the very interval it appears in.
+
+  **Why the hop count is part of the answer.** T166's claim is about *one* switch: coming back to a profile
+  seen seconds ago must not blank its panes. A route that walks the selection through every index on the
+  way makes each intermediate stop a switch of its own, so the status line that shows is some other
+  profile's and the observation is void. The old fallback did exactly that — `UP`×n to normalise to the top,
+  then `DOWN`×index — so the timing assertion was wired to the UIA route only and silently became a note
+  whenever `Select()` threw, which is the whole reason that fallback exists. `Home` reaches index 0 in one
+  keystroke and `End` the last one, so anchoring at whichever end is nearer costs at most one change for a
+  two-profile picker and the assertion holds on both routes.
 #>
 function Combo-Select($combo, [int]$index, $win = $null) {
     $ec = [System.Windows.Automation.ExpandCollapsePattern]::Pattern
@@ -409,7 +447,7 @@ function Combo-Select($combo, [int]$index, $win = $null) {
             $items[$index].GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
             if ($win) { Watch-Status $win 250 } else { Start-Sleep -Milliseconds 250 }
             try { $combo.GetCurrentPattern($ec).Collapse() } catch { }
-            return "UIA"
+            return @{ Route = 'UIA'; Hops = 1 }
         } catch { Info "SelectionItemPattern.Select threw - $($_.Exception.Message)" }
     }
     # Fallback, and a real user's route: a closed WPF ComboBox moves its selection with the arrow keys.
@@ -417,9 +455,35 @@ function Combo-Select($combo, [int]$index, $win = $null) {
     try { $combo.GetCurrentPattern($ec).Collapse() } catch { }
     try { $combo.SetFocus() } catch { Info "combo SetFocus threw - $($_.Exception.Message)" }
     Start-Sleep -Milliseconds 250
-    for ($i = 0; $i -lt ($items.Count + 4); $i++) { [Native]::Key($VK_UP) }
-    for ($i = 0; $i -lt $index; $i++) { [Native]::Key($VK_DOWN) }
-    return "keyboard"
+
+    # Where the selection is now, so the cheapest anchor can be chosen rather than assumed. Unknown (-1)
+    # when the label cannot be matched, and then the top anchor is the only safe one.
+    $count = $items.Count
+    $atText = Combo-SelectedText $combo
+    $at = -1
+    for ($i = 0; $i -lt $count; $i++) { if ([string]$items[$i].Current.Name -eq $atText) { $at = $i; break } }
+
+    # Three candidate routes, costed in selection changes; the arrow walk from where we already are is
+    # available only when that position is known.
+    $viaHome = if ($index -eq 0) { 1 } else { 1 + $index }
+    $viaEnd  = if ($index -eq $count - 1) { 1 } else { 1 + ($count - 1 - $index) }
+    $viaHere = if ($at -ge 0) { [Math]::Abs($index - $at) } else { [int]::MaxValue }
+
+    $hops = [Math]::Min($viaHere, [Math]::Min($viaHome, $viaEnd))
+    if ($hops -eq $viaHere) {
+        $key = if ($index -gt $at) { $VK_DOWN } else { $VK_UP }
+        for ($i = 0; $i -lt $viaHere; $i++) { [Native]::Key($key) }
+    }
+    elseif ($hops -eq $viaHome) {
+        [Native]::Key($VK_HOME)
+        for ($i = 0; $i -lt $index; $i++) { [Native]::Key($VK_DOWN) }
+    }
+    else {
+        [Native]::Key($VK_END)
+        for ($i = 0; $i -lt ($count - 1 - $index); $i++) { [Native]::Key($VK_UP) }
+    }
+    if ($win) { Watch-Status $win 250 } else { Start-Sleep -Milliseconds 250 }
+    return @{ Route = 'keyboard'; Hops = $hops }
 }
 
 <# "2h 00m" / "3d 4h" / "5m" as whole minutes. Dur() writes those unit letters itself, in every
@@ -585,9 +649,8 @@ function Invoke-ProfilesCase {
         # that does not say what it failed to check is worse than no check (T161). What it costs is now
         # only the switch — the readable-panes property this case used to carry with it moved to
         # `-Case Panes`, which needs no second profile (T176).
-        Info "SKIPPED - this check needs 2+ Claude Code profiles; --profiles reports $count."
-        Info "          Nothing about the profile switch (T164) was verified on this run."
-        Info "          The panes being readable at all is -Case Panes, which ran regardless."
+        Unchecked "the profile switch (T164, T166)" "this needs 2+ Claude Code profiles; --profiles reports $count"
+        Info "The panes being readable at all is -Case Panes, which ran regardless."
         return
     }
 
@@ -618,7 +681,7 @@ function Invoke-ProfilesCase {
             $route = $null
             if ($stops.Count -gt 0) {
                 $route = Combo-Select $combo $step $win
-                Info "selected index $step through the $route route"
+                Info "selected index $step through the $($route.Route) route, $($route.Hops) selection change(s)"
             }
             $stop = Read-ProfileStop $win $computing
             if ($stop.Kind -in @('working', 'blank')) {
@@ -627,7 +690,10 @@ function Invoke-ProfilesCase {
             }
             $stop | Add-Member -NotePropertyName Index -NotePropertyValue $step
             $stop | Add-Member -NotePropertyName Label -NotePropertyValue (Combo-SelectedText $combo)
-            $stop | Add-Member -NotePropertyName Route -NotePropertyValue $route
+            # Route and hop count flattened onto the stop: T166's guard below asks how many selection
+            # changes THIS switch took, and a nested hashtable would read as a property that is always set.
+            $stop | Add-Member -NotePropertyName Route -NotePropertyValue $(if ($route) { $route.Route } else { $null })
+            $stop | Add-Member -NotePropertyName Hops  -NotePropertyValue $(if ($route) { [int]$route.Hops } else { 0 })
             $stop | Add-Member -NotePropertyName SawStatus -NotePropertyValue $script:StatusSeen
             $stop | Add-Member -NotePropertyName SawStatusText -NotePropertyValue $script:StatusSeenText
             $stops += $stop
@@ -709,14 +775,15 @@ function Invoke-ProfilesCase {
         # within N ms": a deadline is the one assertion in this file that would go red on a slow machine
         # for a correct reason, and the property really is that the line is not shown at all.
         if ($stops[1].Kind -ne 'panes' -or $stops[2].Kind -ne 'panes') {
-            Info "the switch stops did not both show a report, so there was no cached one to put back -"
-            Info "  T166's timing was not checked on this run"
+            Unchecked "T166's switch-back timing" ("the switch stops did not both show a report, so there " +
+                      "was no cached one to put back")
         }
-        elseif ($stops[2].Route -ne 'UIA') {
-            # The keyboard fallback moves the selection through every index on the way to the target, so
-            # each one in between is a switch of its own and the line it shows is not the one under test.
-            Info "the return was made by the $($stops[2].Route) route, which selects through every index"
-            Info "  on the way - the status line that shows is not T166's, so the timing was not checked"
+        elseif ($stops[2].Hops -gt 1) {
+            # More than one selection change means the intermediate stops were switches of their own, so the
+            # line that showed is some other profile's. `Combo-Select` now anchors on Home/End to keep this
+            # at one hop on the keyboard route too (T193), so this is the genuinely-ambiguous case only.
+            Unchecked "T166's switch-back timing" ("the return took $($stops[2].Hops) selection changes by " +
+                      "the $($stops[2].Route) route, so the status line seen is not this switch's")
         }
         elseif ($stops[2].SawStatus) {
             Fail "coming back to '$($stops[0].Label)' showed the status line ('$($stops[2].SawStatusText)') - its report was not put back (T166)"
@@ -734,7 +801,8 @@ function Invoke-ProfilesCase {
         } else {
             $seen = @($stops | Where-Object { $_.Kind -eq 'panes' }).Count
             if ($seen -eq 0) {
-                Info "no stop showed the panes, so the live headline was never on screen to read"
+                Unchecked "the live headline following the switch (T164)" `
+                          "no stop showed the panes, so the headline was never on screen to read"
             } else {
                 Pass "the live headline is a reading, not 'unavailable', at all $seen pane stops"
             }
@@ -802,8 +870,8 @@ function Invoke-PanesCase {
             # Gated on the precondition, not on a weaker form of the assertion (T161): the pane is
             # Collapsed until a report renders, so with no report there is no body to look for. Said
             # out loud, with what went unchecked.
-            Info "SKIPPED - the window shows the status line, not a report: '$($stop.Status)'"
-            Info "          Nothing about the pane body being in the tree was verified on this run."
+            Unchecked "the pane body being in the tree (T165)" `
+                      "the window shows the status line, not a report: '$($stop.Status)'"
         }
         else {
             Report-NoReading $win $stop "the Statistics page"
@@ -883,7 +951,8 @@ function Invoke-NamesCase {
         elseif ($count -lt 2) {
             # Stated, not silent: the card is collapsed below two profiles, so there is no control to
             # read - but the check must say which of the two reasons it is reporting (T161).
-            Info "the profile card is collapsed ($count profile) - its picker was not read"
+            Unchecked "the profile picker's accessible name (T175)" `
+                      "the profile card is collapsed on a $count-profile machine"
         }
         else {
             Fail "the profile picker is not in the tree although --profiles found $count profiles"
@@ -893,8 +962,8 @@ function Invoke-NamesCase {
         if (Assert-Name $win 'MethodInfo' (Label 'stats.methodTitle') "the method-note button" 25000) {
             $read++
         } else {
-            Info "no report rendered within 25s (offline? cold transcript cache?) - the method button"
-            Info "  never left Collapsed, so its name was not read on this run"
+            Unchecked "the method-note button's accessible name (T175)" `
+                      "no report rendered within 25s (offline? cold transcript cache?), so it never left Collapsed"
         }
 
         # --- Settings: the SettingsRow shape, where the same defect repeats on every row.
@@ -1145,7 +1214,8 @@ function Invoke-MenuCase {
         $profileCount = Expected-ProfileCount
         $profLabel = Label 'menu.profiles'
         if ($profileCount -lt 2) {
-            Info "one profile: the Profile submenu is hidden, nothing to expand"
+            Unchecked "the Profile submenu expanding from the keyboard (T148)" `
+                      "one profile, so the submenu is hidden and there is nothing to expand"
         }
         elseif ($labels -notcontains $profLabel) {
             Fail "'$profLabel' is missing from the menu although $profileCount profiles were found"
@@ -1226,9 +1296,23 @@ if ($Case -in @('All', 'Names'))    { Invoke-NamesCase }
 if ($Case -in @('All', 'Menu'))     { Invoke-MenuCase }
 
 Write-Host ""
-if ($script:Failures -eq 0) {
-    Write-Host "OK - every interaction check passed." -ForegroundColor Green
-    exit 0
+if ($script:Failures -gt 0) {
+    Write-Host "FAILED - $($script:Failures) interaction check(s)." -ForegroundColor Red
+    if ($script:Unchecked.Count -gt 0) {
+        Write-Host "         and $($script:Unchecked.Count) more did not run: $($script:Unchecked -join '; ')" -ForegroundColor Yellow
+    }
+    exit 1
 }
-Write-Host "FAILED - $($script:Failures) interaction check(s)." -ForegroundColor Red
-exit 1
+
+# T193: the word "every" is earned, not the default. A run where an assertion could not be evaluated is
+# not the same run as one where all of them passed, and printing the same green line for both is how
+# T166's timing was dropped in an Info line nobody reads. Three outcomes, three exit codes, so whatever
+# runs this - a person or CI - can tell a degraded run from a clean one without parsing the output.
+if ($script:Unchecked.Count -gt 0) {
+    Write-Host "DEGRADED - everything that ran passed, but $($script:Unchecked.Count) assertion(s) did not run:" -ForegroundColor Yellow
+    foreach ($u in $script:Unchecked) { Write-Host "  - $u" -ForegroundColor Yellow }
+    Write-Host "This is not a failure and not a pass. Fix the reason above, or re-run where it can be observed." -ForegroundColor Yellow
+    exit 2
+}
+Write-Host "OK - every interaction check passed." -ForegroundColor Green
+exit 0

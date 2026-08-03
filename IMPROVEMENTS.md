@@ -400,24 +400,6 @@ times, three of them for the same read-only window (§XX.4), and nothing runs an
 even though the case that caught T135 needs no credentials at all (§XX.3). §XX.5 is the coverage the
 row rule actually has, which is three controls of the thirty-odd it now governs.
 
-### XX.2 The fallback route quietly un-asserts the switch-back timing
-
-`Combo-Select` tries `SelectionItemPattern.Select()` and falls back to arrow keys on a focused
-closed ComboBox. The fallback is deliberate — a dead UIA path would otherwise report a red build for
-a defect in the script — and T177's status-line observation is wired to the UIA route only, because
-the keyboard route walks the selection through every index on the way and each intermediate stop is
-a switch of its own.
-
-So the timing assertion is written to say *not checked* when the route was the fallback. That is
-honest, and it is also the exact shape T169 and T176 both name: on the day `Select()` starts
-throwing, the check reports a pass on everything else and drops T166 silently, in an Info line
-nobody reads.
-
-Two candidate answers. Make the keyboard route reach the target in one hop, so the observation is
-valid on both paths — `Home`/`End` plus a known count, or typing the label. Or keep the fallback and
-make the downgrade loud: count assertions that did not run and refuse to print `OK - every
-interaction check passed` when any did not.
-
 ### XX.3 The one case CI could run, and does not
 
 `check.yml` builds and runs `--selftest` on `windows-latest`. It runs no interaction case at all, so
