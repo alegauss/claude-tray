@@ -349,28 +349,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.10 The copied rectangle is wider than the window
-
-`GetWindowRect` spans a WPF window's invisible resize border and drop-shadow margin, so the
-rectangle the screen copy reads is larger than the area the window paints. Every PNG the script
-produces therefore carries a strip of whatever is behind the window down its edges — measured while
-verifying T199, where the popup capture came back with slivers of the editor along the left, right
-and bottom.
-
-T199 asserted that nothing covers the window's *own* pixels, which is the assertion that matters and
-is what stops a wrong picture. This is the remainder: the border pixels do not belong to the window,
-so no ownership check can pass on them, and sampling deliberately stays 25% inside the rect for
-exactly that reason. The result looks fine at a glance and is wrong at the edges, which is the class
-of defect this repository keeps finding late.
-
-`DwmGetWindowAttribute(DWMWA_EXTENDED_FRAME_BOUNDS)` returns the visible frame instead and is the
-narrow fix; it is per-monitor-DPI-correct on the same terms the script already sets up. Worth
-checking against a maximized window and at 150–200%, since the margin is not symmetric.
-
-Worth noting what this does **not** affect: `--capture-settings` and `--capture-stats` render the
-page's content off-screen through a `RenderTargetBitmap`, so they have no border to include and no
-such edge. This is a defect of the screen-copy path alone, which is the popup case.
-
 ### XX.11 The flag surface is the one thing no check asserts
 
 `--selftest` holds 240 assertions and not one of them is about a CLI flag. Everything it covers is

@@ -24,6 +24,11 @@
       2. no other ClaudeTray window is open, unless -IgnoreOtherInstances says to allow it;
       3. the pixels sampled across the window's own rectangle belong to that same process.
 
+    What it copies is the window's PAINTED frame (T206), not `GetWindowRect`: that one spans the
+    invisible resize border and the drop-shadow margin, so every PNG this script made carried a strip of
+    whatever was behind the window down its edges — measured while verifying T199, where slivers of the
+    editor came back along the left, right and bottom. The run prints how much it trimmed.
+
     (3) is the one that decides the file. Being in the foreground is only a proxy for it — a window can
     hold focus and still sit under a topmost one — and it is a proxy this script cannot even insist on,
     since Windows refuses SetForegroundWindow to a process that does not own focus (normally the editor
@@ -85,6 +90,28 @@ public static class Win {
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int n);
     [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
+
+    // T206: GetWindowRect spans a WPF window's INVISIBLE resize border and drop-shadow margin, so the
+    // rectangle it reports is wider than the area the window paints and a screen copy of it carries a
+    // strip of whatever is behind the window down its edges. DWMWA_EXTENDED_FRAME_BOUNDS is the visible
+    // frame, in the same physical-pixel space per-monitor-v2 awareness already put us in.
+    [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr h, int attr,
+        out RECT r, int size);
+    public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
+
+    /// <summary>The rectangle the window actually paints, or false when DWM will not say - in which case
+    /// the caller falls back to GetWindowRect and reports that it did, rather than silently going back
+    /// to the wider rect.</summary>
+    public static bool FrameRect(IntPtr h, out RECT r) {
+        r = new RECT();
+        try {
+            int hr = DwmGetWindowAttribute(h, DWMWA_EXTENDED_FRAME_BOUNDS, out r,
+                                           Marshal.SizeOf(typeof(RECT)));
+            if (hr == 0 && r.Right > r.Left && r.Bottom > r.Top) return true;
+        } catch {}
+        r = new RECT();
+        return false;
+    }
 
     // What the capture is checked against (T199): who owns a handle, what is actually in front, and
     // which window owns a given pixel.
@@ -185,16 +212,33 @@ try {
                             [Win]::SWP_NOMOVE_NOSIZE_NOACTIVATE) | Out-Null
         Start-Sleep -Milliseconds 400
 
-        [Win]::GetWindowRect($h, [ref]$r) | Out-Null
+        # The rectangle the window PAINTS, not the one it owns (T206). GetWindowRect is read too, only
+        # to say by how much the two differ - that difference is exactly the strip of desktop every
+        # capture used to carry. Measured here at 200%: 1760 x 1896 owned, 1738 x 1885 painted, so
+        # L11 T0 R11 B11 - asymmetric, since the top has no invisible border to spare.
+        # A maximized window needs no separate handling: SW_RESTORE above has already un-maximized it
+        # by the time either rectangle is read, so the case cannot reach the copy.
+        $outer = New-Object Win+RECT
+        [Win]::GetWindowRect($h, [ref]$outer) | Out-Null
+        $usedDwm = [Win]::FrameRect($h, [ref]$r)
+        if (-not $usedDwm) {
+            # Reported, never silent: falling back means the PNG has the old edges and whoever reads it
+            # should know which rectangle produced it.
+            Write-Host "  DWM would not give the extended frame bounds - falling back to GetWindowRect, so the edges may carry a strip of the desktop (T206)" -ForegroundColor Yellow
+            $r = $outer
+        }
         $w = $r.Right - $r.Left
         $hgt = $r.Bottom - $r.Top
         if ($w -le 0 -or $hgt -le 0) { throw "Bad window rect ($w x $hgt)" }
 
-        # (3) The pixels themselves — the assertion that decides the file. Sampled well inside the rect:
-        # the edges are the invisible resize border and the drop shadow, which belong to no window in
-        # particular.
+        # (3) The pixels themselves — the assertion that decides the file. The four fifths-of-the-way
+        # samples are what T199 had; the mid-edge ones became possible only once the rect stopped being
+        # the invisible border, because a pixel out there belonged to no window and could never pass an
+        # ownership check. Corners are still avoided - Windows 11 rounds them, so the extreme corner of
+        # even the painted frame is the desktop.
         $covered = $null
-        foreach ($f in @(@(0.5, 0.5), @(0.25, 0.25), @(0.75, 0.25), @(0.25, 0.75), @(0.75, 0.75))) {
+        foreach ($f in @(@(0.5, 0.5), @(0.25, 0.25), @(0.75, 0.25), @(0.25, 0.75), @(0.75, 0.75),
+                         @(0.02, 0.5), @(0.98, 0.5), @(0.5, 0.02), @(0.5, 0.98))) {
             $x = $r.Left + [int]($w * $f[0])
             $y = $r.Top + [int]($hgt * $f[1])
             $at = [Win]::RootAt($x, $y)
@@ -222,6 +266,14 @@ try {
     Write-Host ("Captured $w x $hgt -> $Out")
     Write-Host ("  window '{0}' (pid {1}, hwnd 0x{2:X}) <- {3} {4}" -f
                 [Win]::TitleOf($h), $proc.Id, [int64]$h, $Exe, $AppArgs)
+    if ($usedDwm) {
+        # Said out loud on every run, because the strip it names is what the picture used to include and
+        # nobody could see the difference by looking at one file.
+        Write-Host ("  painted frame, not the window rect: trimmed L{0} T{1} R{2} B{3} of invisible border ({4} x {5} -> {6} x {7})" -f
+                    ($r.Left - $outer.Left), ($r.Top - $outer.Top),
+                    ($outer.Right - $r.Right), ($outer.Bottom - $r.Bottom),
+                    ($outer.Right - $outer.Left), ($outer.Bottom - $outer.Top), $w, $hgt)
+    }
 }
 finally {
     if (-not $proc.HasExited) { $proc.Kill() }
