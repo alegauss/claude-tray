@@ -349,24 +349,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.7 One list of ids is derived, the other is remembered
-
-`Check-Interaction.ps1` finds controls by string (`ById $win 'StatsStatusText'`), which no compiler
-checks. T192 renamed three controls and broke one such lookup — the one behind T166's *"the status
-line must never be observed"* — and a lookup that finds nothing makes that assertion pass by seeing
-nothing. So `--selftest` now asserts that all fifteen ids the script drives still exist.
-
-Fifteen, written out by hand. The list is right today because it was read off the script today, and
-nothing keeps it that way: a new `ById` in a new case is absent from it, and its absence looks
-exactly like a list that is complete.
-
-The uniqueness half of that same check has the property this half lacks — it reflects over every
-`IComponentConnector` type, so a page added later is covered without an edit. The fix is the same
-move: derive the list rather than keep it. The script is a text file the check could read, and
-`ById`/`ByIdNow` calls with a literal argument are a one-line pattern to match. What that cannot see
-is an id built at runtime (`"Used$sfx"`), so those stay explicit and the check should say which kind
-it is asserting.
-
 ### XX.8 The sweep can see a name, not the right name
 
 `SettingsRow` gives its trailing control the row's header as an accessible name. T196 now reads

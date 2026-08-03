@@ -71,7 +71,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T203** (deps: —) **The ids the interaction check drives are held in two lists and only one of them is checked** — T192 put the fifteen it looks up into --selftest by hand, so a lookup added to the script afterwards is covered by nothing and a rename of it is found by a run, not a build. → §XX.7
 - 📋 **T204** (deps: —) **A settings row is not a group in the automation tree, so its controls cannot be checked against their own header** — T196 sweeps every panel but can only assert that a control announces something, because nothing in the tree says which row a control belongs to. → §XX.8
 - 📋 **T205** (deps: —) **A capture of the System page shows a real login unless a flag is remembered** — --capture-settings System without --sample renders this machine's own login, so the page that has a fixture because it gets published is a forgotten flag away from naming a real holder and org. → §XX.9
 - 📋 **T206** (deps: —) **A screen-copied PNG carries a strip of whatever is behind the window** — GetWindowRect spans the invisible resize border and drop shadow, so the copied rectangle is wider than the window paints and every capture the script makes has other pixels down its edges. → §XX.10

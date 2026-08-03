@@ -532,6 +532,7 @@
 ## Block AI — Verification — the checks that prove a change
 
 - **T202** — A tray already running makes the menu case Unchecked and the whole run DEGRADED, so exit 1 from a full run means a defect again on the one machine the loop is actually run from.
+- **T203** — The ids the interaction check drives are now read out of the script itself, in the three shapes that carry a literal one, so a lookup added later is covered with no edit here - it already found three the hand-written list had missed - and the six assembled per pane at runtime stay explicit and say which kind they are.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

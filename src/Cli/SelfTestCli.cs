@@ -1169,23 +1169,96 @@ internal static class SelfTestCli
               shared.Length == 0,
               shared.Length == 0 ? "" : $"{shared.Length} shared — {string.Join("; ", shared)}");
 
-        // Every id `Check-Interaction.ps1` looks a control up by, because that lookup is a *string* and no
-        // compiler checks it. Renaming `StatusText` while doing T192 broke the one behind T166's "the status
-        // line must never be observed at all" — and a lookup that finds nothing makes that assertion pass by
-        // seeing nothing, which is §XX.2's defect exactly. A rename is now a red `--selftest`, not a case
-        // that quietly stops asserting. Keep this list and the script's lookups in step.
-        string[] driven =
+        InteractionIds(owners);
+    }
+
+    /// <summary>
+    /// Every id <c>Check-Interaction.ps1</c> looks a control up by, because that lookup is a <em>string</em>
+    /// and no compiler checks it. Renaming <c>StatusText</c> while doing T192 broke the one behind T166's
+    /// "the status line must never be observed at all" — and a lookup that finds nothing makes that
+    /// assertion pass by seeing nothing, which is §XX.2's defect exactly.
+    ///
+    /// <para><b>Derived from the script, not remembered (T203).</b> T192 wrote the fifteen ids out by hand,
+    /// and a hand list is right on the day it is read off and decays silently after: by the time this was
+    /// written it had already missed three (<c>BrowseButton</c>, <c>ProfileAddButton</c>,
+    /// <c>ProfileRemoveButton</c>, all added with T196's row trio), and a list that is short looks exactly
+    /// like a list that is complete. The uniqueness half above has never had that problem because it
+    /// reflects over every <c>IComponentConnector</c>; this is the same move against a text file.</para>
+    ///
+    /// <para><b>Three shapes carry a literal id</b>, not one — deriving only from <c>ById</c> would have
+    /// reproduced the very gap this fixes, since the three missing ones arrive as table rows:
+    /// <c>ById</c>/<c>ByIdNow</c>/<c>Assert-Name</c> called with a quoted id, and <c>Id = '…'</c> in a
+    /// hashtable the case then walks. A lookup whose id is a <em>variable</em> is invisible to any regex,
+    /// so the ids built at runtime (<c>"Used$sfx"</c> and its two siblings) stay explicit — and the check
+    /// says which kind it is asserting, because the two have different failure modes.</para>
+    /// </summary>
+    private static void InteractionIds(Dictionary<string, List<string>> owners)
+    {
+        string? script = RepoFile(Path.Combine("scripts", "Check-Interaction.ps1"));
+        if (script is null)
         {
-            "DirectoryBox", "RetrySlider",                                   // -Case Keyboard
-            "StatsStatusText", "UsedS", "UsedW", "ResetS", "ResetW",          // -Case Panes / Profiles
-            "LiveHeadS", "LiveHeadW", "StatsProfileCombo",
-            "NavSettings", "MethodInfo",                                     // -Case Names
-            "LanguageCombo", "StartupCheck", "IntervalSlider",
-        };
-        string[] gone = driven.Where(id => !owners.ContainsKey(id)).ToArray();
-        Check($"every id the interaction check drives still exists ({driven.Length})", gone.Length == 0,
+            // A genuinely absent precondition: an installed copy carries no repo. Named, so it cannot be
+            // the silent nothing T169 is about — and CI runs the build from the checkout, where it is here.
+            Skip("every id the interaction check drives still exists",
+                 "scripts\\Check-Interaction.ps1 is not beside this build — no repo on disk");
+            return;
+        }
+
+        string text = File.ReadAllText(script);
+        string[] derived = System.Text.RegularExpressions.Regex
+            .Matches(text, @"(?:ById|ByIdNow|Assert-Name)\s+\$\w+\s+'([A-Za-z]\w*)'|Id\s*=\s*'([A-Za-z]\w*)'")
+            .Select(m => m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(s => s, StringComparer.Ordinal)
+            .ToArray();
+
+        // The guard on the precondition, not on a weaker form of the claim: a pattern that stopped matching
+        // yields an empty set, and "none of zero ids is gone" is a green tick over nothing.
+        if (!Check("the interaction script's id lookups are found by pattern", derived.Length >= 12,
+                   $"matched {derived.Length} in {Path.GetFileName(script)} — the lookup syntax changed " +
+                   "and this check is now asserting almost nothing"))
+            return;
+
+        string[] gone = derived.Where(id => !owners.ContainsKey(id)).ToArray();
+        Check($"every id the interaction check drives still exists ({derived.Length}, derived)",
+              gone.Length == 0,
               gone.Length == 0 ? "" : $"{gone.Length} gone — {string.Join(", ", gone)}: renamed without " +
                                       "updating scripts\\Check-Interaction.ps1, whose lookups are strings");
+
+        // The other kind: assembled per pane suffix, so no literal exists to match. Both halves are
+        // asserted — that the control is still named that, and that the script still builds it that way,
+        // since a rename of the *pattern* would leave this list pointing at ids nobody looks up any more.
+        string[] composed = { "UsedS", "UsedW", "ResetS", "ResetW", "LiveHeadS", "LiveHeadW" };
+        string[] lostControl = composed.Where(id => !owners.ContainsKey(id)).ToArray();
+        Check($"every id it builds per pane still exists ({composed.Length}, explicit)",
+              lostControl.Length == 0,
+              lostControl.Length == 0 ? "" : $"{lostControl.Length} gone — {string.Join(", ", lostControl)}");
+
+        string[] lostPattern = new[] { "Used", "Reset", "LiveHead" }
+            .Where(p => !text.Contains($"\"{p}$sfx\"", StringComparison.Ordinal)).ToArray();
+        Check("and the script still assembles them from $sfx", lostPattern.Length == 0,
+              lostPattern.Length == 0 ? "" : $"{string.Join(", ", lostPattern)} no longer built that way — " +
+                                             "the explicit list above is stale and asserts nothing");
+    }
+
+    /// <summary>
+    /// A file in the repository this build came out of, or null when there is no repository — an installed
+    /// copy has none. Walks up from the binary and from the working directory, because <c>dotnet build</c>
+    /// puts the exe four levels down while CI runs it with the checkout as the current directory.
+    /// </summary>
+    private static string? RepoFile(string relative)
+    {
+        foreach (string start in new[] { AppContext.BaseDirectory, Environment.CurrentDirectory })
+        {
+            DirectoryInfo? dir = new(start);
+            while (dir is not null)
+            {
+                string candidate = Path.Combine(dir.FullName, relative);
+                if (File.Exists(candidate)) return candidate;
+                dir = dir.Parent;
+            }
+        }
+        return null;
     }
 
     // ---------------------------------------------------------------- Block F: what the note says
