@@ -384,21 +384,76 @@ The alternative is tempting and wrong: shipping "Extra usage: 42% of your extra-
 plausible guess. A tray whose whole value proposition is *this number is trustworthy* cannot afford a
 label that turns out to name a different denominator.
 
-## §XX — The interaction check grew two cases, and nobody runs it (Block AG)
+## XX Verification — the checks that prove a change (Block AI)
 
-Block AD doubled what `Check-Interaction.ps1` asserts: `-Case Panes` and `-Case Names` are new, T166's
-timing moved out of a scratch file, and the timed-out read now says what it last saw. Five cases,
-roughly a thousand lines, and this file remains the only thing in the repository that reads the
-*running* UI. Everything below was found by building or running those cases, and none of it was
-reported by anybody.
+This project's checks are three loops with different reaches. `--selftest` asserts arithmetic on
+synthetic inputs and runs on every push. `Check-Interaction.ps1` is the only thing in the repository
+that reads the *running* UI, and since T194 one of its five cases runs on every push too. The
+previews and captures are pictures, and a picture cannot see a key press arrive.
 
-Two shapes recur. The first is a check that stays green after it has stopped asserting: an id lookup
-with two candidates that picks by tree order (§XX.1), and a fallback route that turns an assertion into
-a note (§XX.2). Both are T169's defect — a check that does not run — wearing a passing tick instead of
-a skip. The second is the cost of a loop a person has to remember: a full run launches the app five
-times, three of them for the same read-only window (§XX.4), and nothing runs any of it automatically
-even though the case that caught T135 needs no credentials at all (§XX.3). §XX.5 is the coverage the
-row rule actually has, which is three controls of the thirty-odd it now governs.
+Everything filed here was found by *using* those loops rather than by reviewing them, which is the
+pattern worth keeping: the defects a check has are not visible in its source, only in what it
+reports on a machine that is not the author's.
+
+One shape recurs and is worth naming once. A check does not usually break loudly — it stops
+asserting and stays green. T192 was an id lookup with two candidates that picked by tree order; T193
+was a fallback route that turned an assertion into a note; T196 was a rule governing thirty-odd
+controls asserted on three. None of them ever went red. That is why the exit codes now distinguish a
+degraded run from a clean one, and why an assertion that could have run and did not is named and
+counted rather than mentioned.
+
+### XX.6 The refusal is a precondition, not a failure
+
+`-Case Menu` refuses to launch while any ClaudeTray is alive: the single-instance mutex would make
+its own launch exit silently, and it would then read the *other* tray's menu and call that a pass.
+Refusing is right; reporting it with `Fail` is not, and it was only defensible before T193 because
+there was no third outcome to report it as.
+
+Now there is. An already-running tray is an absent **precondition** — the same shape as fewer than
+two profiles registered, or a report that never rendered, both of which became `Unchecked` and make
+the run DEGRADED at exit 2. The menu refusal did not, so a developer with the tray running gets exit
+1 from `-Case All`. That is every developer, because the app is meant to be resident, and what it
+teaches is that red means nothing.
+
+Which is the distinction T193 exists to draw. The change is small; what it protects is not, because
+T194 has just made CI depend on these codes. Worth settling at the same time whether `-UseRunning`
+should be implied rather than merely suggested, since driving the running tray is what the person
+almost always wants.
+
+### XX.7 One list of ids is derived, the other is remembered
+
+`Check-Interaction.ps1` finds controls by string (`ById $win 'StatsStatusText'`), which no compiler
+checks. T192 renamed three controls and broke one such lookup — the one behind T166's *"the status
+line must never be observed"* — and a lookup that finds nothing makes that assertion pass by seeing
+nothing. So `--selftest` now asserts that all fifteen ids the script drives still exist.
+
+Fifteen, written out by hand. The list is right today because it was read off the script today, and
+nothing keeps it that way: a new `ById` in a new case is absent from it, and its absence looks
+exactly like a list that is complete.
+
+The uniqueness half of that same check has the property this half lacks — it reflects over every
+`IComponentConnector` type, so a page added later is covered without an edit. The fix is the same
+move: derive the list rather than keep it. The script is a text file the check could read, and
+`ById`/`ByIdNow` calls with a literal argument are a one-line pattern to match. What that cannot see
+is an id built at runtime (`"Used$sfx"`), so those stay explicit and the check should say which kind
+it is asserting.
+
+### XX.8 The sweep can see a name, not the right name
+
+`SettingsRow` gives its trailing control the row's header as an accessible name. T196 now reads
+every control the rule is responsible for on all six panels — 23 of them — but asserts only that
+each announces a non-empty, printable string that is not its own automation id. Three controls still
+get an exact-label read, and those three are the only place the *correct* name is verified.
+
+The gap is structural, not lazy. `SettingsRow` is a lookless `ContentControl`, and it reaches UIA as
+nothing: there is no element between the panel and the control that says *this control and that text
+are one row*. So the check cannot pair a control with its header, and a rule that gave every control
+the **wrong** header would pass the sweep.
+
+Giving the row an automation peer — a `Group` carrying `Header` as its name — closes it, and it is
+worth more than the check: a screen reader currently reads a flat run of labelled controls where the
+visual design is label↔control pairs. Then the sweep becomes per row, which is what §XX.5 asked for
+and this settled for less.
 
 ## §XXI — What Block AF's own captures turned up (Block AH)
 

@@ -89,6 +89,14 @@
 - 📋 **T173** (deps: —) **`Adopt` returns "accepted", never "written", so no failure of the write is observable** — T149 settled the bookkeeping up front and queued the registry write, which is the right trade for the UI thread and leaves nothing that ever reads the result. → §XVI.3
 - 📋 **T174** (deps: T173) **A machine-wide write is the one action with no feedback at all** — The icon moving is feedback for the icon, and the effect of the write stays invisible until the next process starts. → §XVI.4
 
+## Block AI — Verification — the checks that prove a change
+
+- 📋 **T202** (deps: —) **A full interaction run is red on any machine where the tray is running** — The menu case rightly refuses to drive a second instance but reports it as a failure, so exit 1 stops meaning a defect on the one machine the loop is run from. → §XX.6
+- 📋 **T203** (deps: —) **The ids the interaction check drives are held in two lists and only one of them is checked** — T192 put the fifteen it looks up into --selftest by hand, so a lookup added to the script afterwards is covered by nothing and a rename of it is found by a run, not a build. → §XX.7
+- 📋 **T204** (deps: —) **A settings row is not a group in the automation tree, so its controls cannot be checked against their own header** — T196 sweeps every panel but can only assert that a control announces something, because nothing in the tree says which row a control belongs to. → §XX.8
+
+## Block AJ — Working here — the repo's own docs and flags
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
