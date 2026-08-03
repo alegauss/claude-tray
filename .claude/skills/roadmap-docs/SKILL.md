@@ -137,7 +137,10 @@ task, with the same title, marked `(active — see ROADMAP)` while tasks remain 
 
 **Forgetting it is now a red build (T223).** `--selftest` reads the ledger and asserts both directions —
 a heading with no row, a row naming no heading — plus that each row's `#anchor` still derives from the
-heading it points at, so rewording a heading without its row fails too. The theme table above is checked
+heading it points at, so rewording a heading without its row fails too. **The `(active — see ROADMAP)`
+marker is asserted with them (T244)**, and it is required rather than merely permitted: present exactly
+when the roadmap carries a task line under that block, so the commit that empties a block clears its
+marker and the commit that reopens one sets it. The theme table above is checked
 one way only: a letter it names must be declared in the ledger. It is deliberately **not** required to
 carry a row per heading, because it lists the themes meant to be *reused*, not every letter that ever
 shipped — demanding one would argue for the sprawl it exists to stop.

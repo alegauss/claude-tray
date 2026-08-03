@@ -23,15 +23,15 @@
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts (active — see ROADMAP) |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
-| [G](#block-g--localization) | Localization |
+| [G](#block-g--localization) | Localization (active — see ROADMAP) |
 | [H](#block-h--tray-display-options) | Tray display options |
-| [I](#block-i--context-load-inspector) | Context Load Inspector (active — see ROADMAP) |
-| [J](#block-j--activity-aware-pacing) | Activity-aware pacing (active — see ROADMAP) |
-| [K](#block-k--live-throughput) | Live throughput (active — see ROADMAP) |
+| [I](#block-i--context-load-inspector) | Context Load Inspector |
+| [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
+| [K](#block-k--live-throughput) | Live throughput |
 | [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app |
 | [M](#block-m--explain-on-demand) | Explain on demand — the method note behind an ⓘ |
 | [N](#block-n--system-information) | System information — your plan, your install, this machine (active — see ROADMAP) |
-| [O](#block-o--profiles) | Profiles — several Claude Code logins on one machine (active — see ROADMAP) |
+| [O](#block-o--profiles) | Profiles — several Claude Code logins on one machine |
 | [P](#block-p--project-layout) | Project layout — where a file lives |
 | [Q](#block-q--keyboard-input-in-the-windows) | Keyboard input in the windows (active — see ROADMAP) |
 | [R](#block-r--profiles-second-pass-what-a-real-second-login-exposed) | Profiles, second pass — what a real second login exposed |
@@ -43,7 +43,7 @@
 | [X](#block-x--each-control-says-what-it-changes) | Each control says what it changes — the Claude Code page's own scope |
 | [Y](#block-y--one-window-you-navigate-instead-of-three-you-open) | One window you navigate, instead of three you open |
 | [Z](#block-z--what-the-app-knows-and-doesnt-say) | What the app knows and doesn't say — the read-back of Block V |
-| [AA](#block-aa--the-picker-switches-profiles-the-window-has-to-switch-with-it) | The picker switches profiles; the window has to switch with it (active — see ROADMAP) |
+| [AA](#block-aa--the-picker-switches-profiles-the-window-has-to-switch-with-it) | The picker switches profiles; the window has to switch with it |
 | [AB](#block-ab--what-block-zs-own-work-left-behind) | What Block Z's own work left behind |
 | [AC](#block-ac--the-tray-reports-the-switch-it-performed-not-the-switch-the-machine-got) | The tray reports the switch it performed, not the switch the machine got |
 | [AD](#block-ad--the-window-can-be-read-now-and-what-that-turned-up) | The window can be read now, and what that turned up |
@@ -52,7 +52,7 @@
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
 | [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
-| [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags (active — see ROADMAP) |
+| [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 
 ## Block A — Foundation (tray, icon, API, projection)
 
@@ -569,6 +569,7 @@
 - **T226** — The probe grew the half that skips the call: --recorded reads the log only, so reviewing what was captured costs nothing against the account being measured - not the default, because a stale log read as current is how a wrong reading gets quoted, and passing it with --live refuses instead of picking one. Two things that sat with it are said out loud now: --all names the single profile its live call refreshes beside each column's last recorded time, and a kept reading points at --recorded, since the summaries printed above it were derived before it joined the log.
 - **T242** — The map is asserted against the tree it copies: every source file is named by a row or by its stem's, so one class in six files stays one row, and every path a row names is on disk. Eight files had no row and one sat under the wrong folder heading; AGENTS.md's folder table is held to the same both-ways rule, because a new subsystem folder is exactly when placement matters.
 - **T243** — Every "--x" literal the sources compare against is now held to the catalogue and back, so the half of the flag surface with no variant table in code is checked rather than remembered - --raw, unlisted since --live shipped, is the one it found. The second direction is read at declaration position only, left of the # inside a fence: over the whole document `claude auth status --json` reads as this app promising a flag it has never had, and a check that cries wolf is a check somebody turns off.
+- **T244** — A row's `(active - see ROADMAP)` is now derived rather than remembered: it must be present exactly when the roadmap carries a task line under that block's heading, which was wrong on six of thirty-six - five blocks marked with nothing open, and Localization open with no mark. Required in both directions, because unlike the entries under a heading the marker is not frozen prose about what shipped but a live reading of another file, and every drifted row could be corrected here.
 
 ## Block AB — What Block Z's own work left behind
 

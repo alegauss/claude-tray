@@ -67,8 +67,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T244** (deps: —) **A row of the ledger's index says its block is active with nothing open under it** — T223 asserted every heading has a row and every row a heading, and left the one part of a row that states a fact about the roadmap set by hand and cleared by nobody. → §XXII.6
-
 ## Block G — Localization
 
 - 💭 **T216** (deps: —) **One machine, two number conventions: the page decides, not the app** — T167 picked invariant for one window, while the Context page, the tray toast and the System page format the same figures with L.Culture, and the sweep it added reaches neither. → §XXI.1

@@ -82,6 +82,8 @@ internal static class SelfTestCli
          "the same absent repository - the map and the tree it maps both ship with the source (T242)"),
         ("every flag the sources accept is declared in dev-flags",
          "the same absent repository - the catalogue and the sources ship together (T243)"),
+        ("every row's active marker matches what the roadmap holds open",
+         "the same absent repository - the ledger's index reads the roadmap beside it (T244)"),
     };
 
     /// <returns>Process exit code: 0 when every check passed.</returns>
@@ -1834,6 +1836,21 @@ internal static class SelfTestCli
     /// batch letter, so demanding a row per heading there would argue for exactly the sprawl it exists to
     /// stop. Only the one direction that cannot be right — a letter the skill names and the ledger does
     /// not declare — is asserted.</para>
+    ///
+    /// <para><b>The one part of a row that is a claim about another file (T244).</b>
+    /// <c>(active — see ROADMAP)</c> says a block still has open work, and T223 checked everything about a
+    /// row except that. It was wrong in both directions on six of the thirty-six: five blocks carried the
+    /// marker with nothing open, and <c>G</c> had an open task and no marker. It is the only part of the
+    /// index that answers <em>should I look here</em> — a wrong marker sends the next reader to a heading
+    /// with nothing under it, or reads an active theme as a finished one, which is the habit that grew this
+    /// ledger a letter per batch of findings.</para>
+    ///
+    /// <para>§XXII.6 left open whether to require the marker or only refuse a wrong one. It is
+    /// <b>required</b>, both ways: unlike the entries under a heading, the marker is not frozen prose about
+    /// what shipped — it is a live reading of <c>ROADMAP.md</c>, and every row that had drifted could be
+    /// corrected in the commit that added this. Open is derived rather than spelled: the roadmap holds
+    /// unshipped work only, so <em>any</em> task line under a heading is an open one, and the check needs
+    /// no copy of the marker vocabulary to go stale beside <c>roadkeep.toml</c>'s.</para>
     /// </summary>
     private static void LedgerIndex()
     {
@@ -1854,10 +1871,13 @@ internal static class SelfTestCli
         }
 
         var rows = new Dictionary<string, string>(StringComparer.Ordinal);
+        var themes = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (string line in lines)
         {
-            Match m = Regex.Match(line, @"^\| \[([A-Z]+)\]\(#([^)]+)\) \|");
-            if (m.Success) rows[m.Groups[1].Value] = m.Groups[2].Value;
+            Match m = Regex.Match(line, @"^\| \[([A-Z]+)\]\(#([^)]+)\) \| (.+) \|$");
+            if (!m.Success) continue;
+            rows[m.Groups[1].Value] = m.Groups[2].Value;
+            themes[m.Groups[1].Value] = m.Groups[3].Value;
         }
 
         // The precondition, first: an unreadable file parses to two empty lists, over which every claim
@@ -1880,6 +1900,34 @@ internal static class SelfTestCli
                               .OrderBy(s => s, StringComparer.Ordinal).ToArray();
         Check("and every row's anchor still resolves to its heading", adrift.Length == 0,
               $"{string.Join(", ", adrift)} — the heading was reworded and the row was not");
+
+        string? roadmap = RepoFile("ROADMAP.md");
+        if (roadmap is null)
+        {
+            Skip("every row's active marker matches what the roadmap holds open",
+                 "ROADMAP.md is not beside this build");
+        }
+        else
+        {
+            // The roadmap holds unshipped work only, so a task line under a heading IS an open one — no
+            // copy of roadkeep.toml's marker vocabulary to drift out of step with it.
+            var open = new HashSet<string>(StringComparer.Ordinal);
+            string? block = null;
+            foreach (string line in File.ReadAllLines(roadmap))
+            {
+                Match head = Regex.Match(line, @"^## Block ([A-Z]+) ");
+                if (head.Success) { block = head.Groups[1].Value; continue; }
+                if (block is not null && Regex.IsMatch(line, @"^- .*\*\*T\d+\*\*")) open.Add(block);
+            }
+
+            string[] mismarked = themes
+                .Where(t => open.Contains(t.Key) != t.Value.Contains("(active", StringComparison.Ordinal))
+                .Select(t => open.Contains(t.Key) ? $"{t.Key} (open, unmarked)" : $"{t.Key} (marked, nothing open)")
+                .OrderBy(s => s, StringComparer.Ordinal).ToArray();
+            Check($"every row's active marker matches what the roadmap holds open ({open.Count} active)",
+                  mismarked.Length == 0,
+                  $"{string.Join(", ", mismarked)} — the index answers 'should I look here' and is wrong");
+        }
 
         string? skill = RepoFile(Path.Combine(".claude", "skills", "roadmap-docs", "SKILL.md"));
         if (skill is null)
@@ -2257,6 +2305,14 @@ internal static class SelfTestCli
     private static void ObservingTray()
     {
         string data = Settings.DataDir;
+        // Whether the tree could be READ — the one state that makes the comparison below vacuous, and so
+        // the one the precondition asks about. An empty tree is not that state: a machine that has never
+        // run the tray has nothing to fingerprint, and every file the calls below would create still
+        // shows up in the second snapshot and is still named. Asking for a non-empty baseline instead
+        // failed on exactly that machine — the runner's %LocalAppData%\ClaudeTray is created by the
+        // `stores` section above and emptied again by its own cleanup, leaving a directory that exists
+        // and holds nothing, which is a fine state to promise "nothing landed" about.
+        bool readable = true;
         // A fingerprint of every file the app owns: path, length and write time. Taken before the switch
         // is thrown, so the baseline is the state a check run must leave behind untouched.
         Dictionary<string, (long Len, DateTime When)> Snapshot()
@@ -2271,13 +2327,12 @@ internal static class SelfTestCli
                         map[f] = (fi.Length, fi.LastWriteTimeUtc);
                     }
             }
-            catch { /* an unreadable tree makes the comparison below vacuous, and Check says so */ }
+            catch { readable = false; }
             return map;
         }
 
         Dictionary<string, (long Len, DateTime When)> before = Snapshot();
-        Check("the store tree can be read at all, or the comparison below asserts nothing",
-              before.Count > 0 || !Directory.Exists(data));
+        Check("the store tree can be read at all, or the comparison below asserts nothing", readable);
 
         ProfileStore.Observe();
         Check("observing is one-way and the environment goes with it (T231's sampling, T239's promise)",
@@ -2312,10 +2367,12 @@ internal static class SelfTestCli
         foreach (KeyValuePair<string, (long Len, DateTime When)> kv in after)
             if (!before.TryGetValue(kv.Key, out (long Len, DateTime When) was) || was != kv.Value)
                 moved.Add(Path.GetFileName(kv.Key));
+        // `readable` covers the second snapshot too: a tree that became unreadable between the two reads
+        // produces an empty `after`, over which both comparisons would otherwise pass saying nothing.
         Check("no file under %LocalAppData%\\ClaudeTray was created or changed"
               + (moved.Count > 0 ? " — moved: " + string.Join(", ", moved.Distinct()) : ""),
-              moved.Count == 0);
-        Check("and nothing was deleted either", before.Keys.All(after.ContainsKey));
+              readable && moved.Count == 0);
+        Check("and nothing was deleted either", readable && before.Keys.All(after.ContainsKey));
     }
 
     private static void AutomationIds()

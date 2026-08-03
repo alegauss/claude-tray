@@ -278,27 +278,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.6 The part of a row that is a claim about another file
-
-`CHANGELOG.md`'s index gives each block a row, and a row carries one thing that is not about the
-ledger at all: `(active — see ROADMAP)`, which claims that block still has open work.
-
-T223 asserted the two facts a row states about the ledger — that its letter has a heading, and that
-its anchor still resolves to that heading — and stopped there. The marker was left as it was found,
-and it was already wrong in both directions: `AE` and `AG` have nothing open and carry no marker,
-`AI` has nothing open and carries one, and `AJ` acquired one in T219 and kept it through the block
-emptying three tasks later.
-
-It is the smallest of the three and the one with the most direct consequence, because it is the only
-part of the index that answers *should I look here*. A row claiming a block is active when it is not
-sends the next reader to a heading with nothing under it; a row silent about an active block reads
-as a theme that finished, which is the habit the theme table exists to break.
-
-The reading is derivable from a file `--selftest` already opens: a block is active exactly when
-`ROADMAP.md` carries an open task line under its heading. What to settle is whether the check
-*requires* the marker or only refuses a wrong one — the older rows were written before the convention
-existed, and a check that rewrites history is a check that fails on arrival.
-
 ## XXIII What the API says about permission, and what the app infers instead (Block D)
 
 Every signal this app has about whether an account may spend past its included quota is inferred
