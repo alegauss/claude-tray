@@ -192,18 +192,18 @@ tray-menu clicking is needed; the capture script is per-monitor-DPI-aware (requi
 
 A picture proves layout. It cannot prove a key press arrives — that is how T135 survived every
 screenshot this repo ever took. `scripts\Check-Interaction.ps1` drives the real UI through UI
-Automation and asserts a pass/fail. **Three exit codes (T193): `0` every assertion ran and passed, `2`
-DEGRADED — all that ran passed but something could not be evaluated, `1` a failure.** Read `2` as "this
-run proved less than it looks like"; the summary names what did not run.
+Automation and asserts a pass/fail. **Three exit codes (T193): `0` all ran and passed, `2` DEGRADED —
+what ran passed but something could not be evaluated, `1` a failure**, and the summary names what did not.
 
 ```
 powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 `
   [-Case Keyboard|Menu|Profiles|Panes|Names] [-Lang pt-BR] [-UseRunning]   # no -Case runs every one
 ```
 
-- **Keyboard** launches `--settings-tray` (the WinForms pump), navigates by clicking the sidebar, types
-  into a `TextBox` and reads it back through `ValuePattern`, Tabs out, and drives a `Slider` with an arrow
-  key. Run it after anything that touches input, focus or hosting.
+- **Keyboard** launches `--settings-tray` (the WinForms pump), clicks a sidebar item, types into a `TextBox`
+  and reads it back through `ValuePattern`, Tabs out, drives a `Slider` with an arrow key. **`check.yml`
+  runs this one on every push** (T194) — synthesised input does reach a hosted runner's desktop and it
+  needs no credentials; the other four still need a person.
 - **Menu** launches the tray, opens the notification icon's menu, reads its entries, then expands *Open
   Claude Code* for the per-profile ones. It **refuses** to run while another tray is alive (its own launch
   would exit on the mutex and it would read that tray's menu as a pass) — `-UseRunning` drives that one.

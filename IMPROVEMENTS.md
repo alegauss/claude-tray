@@ -400,23 +400,6 @@ times, three of them for the same read-only window (§XX.4), and nothing runs an
 even though the case that caught T135 needs no credentials at all (§XX.3). §XX.5 is the coverage the
 row rule actually has, which is three controls of the thirty-odd it now governs.
 
-### XX.3 The one case CI could run, and does not
-
-`check.yml` builds and runs `--selftest` on `windows-latest`. It runs no interaction case at all, so
-the loop that exists because T135 survived every screenshot ever taken depends on a person choosing
-to run it.
-
-Three of the five cases genuinely cannot go there: `Panes`, `Profiles` and `Names` need a rendered
-report, which needs credentials and this machine's transcripts. `Menu` needs the notification area.
-`Keyboard` needs none of it — it launches `--settings-tray`, clicks a sidebar item, types into a
-TextBox, Tabs, and drives a Slider with an arrow key, all against an unconfigured install.
-
-What has to be true for it to work on a runner: a desktop session exists (it does on the hosted
-Windows images), the synthesised input reaches a window on a headless-but-present desktop, and the
-run is bounded so a hang fails rather than burns the job. Worth measuring before committing to it —
-and if the input does not arrive, that answer is itself worth writing down where the next person
-will find it.
-
 ### XX.4 Three cases, one window, five launches
 
 Each case is self-contained by design — any one can be run alone, and `-UseRunning` aside, each owns

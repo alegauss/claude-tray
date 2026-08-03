@@ -66,3 +66,57 @@ jobs:
                  -RedirectStandardOutput selftest.log -RedirectStandardError selftest.err
           Get-Content selftest.log, selftest.err -ErrorAction SilentlyContinue
           if ($p.ExitCode -ne 0) { throw "self-check failed (exit $($p.ExitCode))" }
+
+  # The interaction loop, on the one case that can run unattended (T194). `--selftest` is arithmetic; this
+  # is the loop that exists because the WPF windows accepted no keyboard input at all from the day the
+  # first one shipped (T135) while every screenshot ever taken of them looked perfect. Until now it ran
+  # only when somebody chose to run it.
+  #
+  # Why only `-Case Keyboard`. `Panes`, `Profiles` and `Names` need a rendered report, which needs
+  # credentials and a machine's own transcripts; `Menu` needs the notification area. `Keyboard` needs
+  # none of it — it launches `--settings-tray` against an unconfigured install, clicks a sidebar item,
+  # types into a TextBox, Tabs, and drives a Slider with an arrow key. Adding a case here means first
+  # answering what it needs that a runner does not have.
+  #
+  # A separate job, not a step on `selftest`: this one depends on the runner having a desktop that
+  # synthesised input reaches, so a red here means something different from a red there, and the job
+  # name should say which at a glance.
+  #
+  # **Measured before it was committed to, because the answer was not obvious.** §XX.3 asked whether
+  # synthesised input arrives on a hosted runner's desktop at all — mouse via `mouse_event`, keys via
+  # `keybd_event`, against a WPF window under a WinForms pump. It does: on `windows-latest` all four
+  # assertions ran and passed (sidebar click, typing read back through `ValuePattern`, Tab, and an arrow
+  # key on a Slider), in ~11s of a 1m30s job that is otherwise the build. No display config, no
+  # `-UseRunning`, no credentials. If that ever stops being true the failure will look like an input
+  # that never arrives, and `Report-NoReading`'s control-view dump is what says so.
+  interaction:
+    runs-on: windows-latest
+    # The bound §XX.3 asked for. Every wait inside the script is already bounded, so this is the backstop
+    # for a hang outside them — a window that never appears, an input that never arrives — and it fails
+    # the job instead of burning the six-hour default.
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build
+        run: dotnet build -c Release --nologo
+
+      # Exit 2 is DEGRADED (T193): everything that ran passed, but an assertion could not be evaluated.
+      # Treated as a failure here on purpose — the whole point of running this in CI is that nobody is
+      # watching, so "proved less than it looks like" must not be a green tick.
+      - name: Interaction check (Keyboard)
+        shell: pwsh
+        run: |
+          $exe = 'bin\Release\net10.0-windows\win-x64\ClaudeTray.exe'
+          & powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 `
+              -Case Keyboard -Exe $exe
+          $code = $LASTEXITCODE
+          if ($code -eq 2) { throw "interaction check DEGRADED (exit 2) - an assertion did not run" }
+          if ($code -ne 0) { throw "interaction check failed (exit $code)" }
