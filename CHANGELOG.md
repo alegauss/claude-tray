@@ -21,7 +21,7 @@
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience |
-| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts (active — see ROADMAP) |
+| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
@@ -115,6 +115,7 @@
 - **T44** — Timestamped reset-event log at `%LocalAppData%\ClaudeTray\reset-events.log`, so an anomaly can be reported later with real before/after numbers. (`9050f4e`, `de12b7a`)
 - **T45** — The 5h session reset as its own opt-in toggle, separate from the weekly ones. (`a57d6b1`)
 - **T227** — Measured before fixing, and the premise did not survive: naming a colour font changes nothing, because WPF text and GDI+ both draw Segoe UI Emoji monochrome base layer - no coloured pixel in six glyphs under either, and a real captured card with the font named is the same black popper. What shipped is the half that is true: BodyFont and EmojiFont are fields the window binds with x:Static, so the glyph comes from a font carrying every codepoint the cards use instead of whatever font linking reached first, and --selftest asks the typeface for each one so a card that would draw a tofu box is a red build. Colour is now a non-goal with the measurement behind it.
+- **T228** — A capture now refuses rather than writing a picture of a clipped card: after the settle timer each text block is asked where it landed relative to the card, and the flag exits 1 naming the block and the rectangle. It found one on its first run - the French extra-usage caption, 7.6px under the bottom edge and clipped away by the inner grid, so the PNG showed nothing wrong - and every card now grows for its own wording, with a MinHeight of the designed height so all seven published screenshots come back at exactly the pixels they already are. Forty combinations, eight cards in five languages, fit.
 
 ## Block F — Statistics window (pace report)
 

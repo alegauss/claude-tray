@@ -290,21 +290,6 @@ therefore not this app's decision, and a count taken over them is a claim about 
 Two things the toasts got wrong that no capture ever objected to, both found by looking at a card
 rather than at the code that built it.
 
-### XXV.2 A capture certifies that a card rendered, not that it fits
-
-Found in the pt-BR capture of T174's card: the title wrapped to a second line, the caption slid
-under the bottom edge, and the flag reported success. T174 fixed that one card by sizing it to its
-content, which is a fix for that card and not for the class.
-
-The other six still carry a fixed Height picked against the English wording, and every string on
-them can be retranslated tomorrow. The clipping is invisible to everything the repo runs: the
-self-check never builds a window, and the capture writes whatever WPF arranged.
-
-What is missing is an assertion, not a layout. After the settle timer, ask each card whether any
-text block's desired size exceeds what it was given, and refuse the capture rather than writing a
-PNG of the defect. Cheap, because the window already exists by then, and it covers all five
-languages when driven with the language flag.
-
 ## XXVI One setting, two places that change it (Block S)
 
 The tray menu and the Settings page now both write fields the page believes it owns, and only one of

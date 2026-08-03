@@ -96,10 +96,19 @@ internal partial class ToastWindow : Window
         // the title wraps to two lines in every language here except English, and a fixed height that
         // fits one of them cuts the caption off in the others (caught in the pt-BR capture).
         if (theme == ToastTheme.Profile)
-        {
             QuotaBlock.Visibility = Visibility.Collapsed;
-            SizeToContent = SizeToContent.Height;
-        }
+
+        // And every card grows if its own wording needs it (T228). T174 sized the profile card to its
+        // content, which fixed that card and not the class: the other six kept a Height picked against the
+        // English strings, and French's extra-usage caption arrived 7.6px past the bottom edge — clipped
+        // away by the inner grid, so the PNG showed nothing wrong and `--capture-toast` exited 0.
+        //
+        // A MinHeight of the designed height rather than plain SizeToContent, so nothing that fits today
+        // moves: `SizeToContent` alone would shrink every card whose content is shorter than 200 and
+        // re-cut every published screenshot for a defect none of them has. Growth only, and only where a
+        // translation asks for it.
+        MinHeight = theme == ToastTheme.Profile ? 0 : Height;
+        SizeToContent = SizeToContent.Height;
 
         Loaded += OnLoaded;
     }
@@ -152,7 +161,9 @@ internal partial class ToastWindow : Window
     {
         // Settle the auto-sized card's height into the property before anything reads it: both the
         // parking below and SaveSnapshot work off Height, which SizeToContent leaves at its XAML value.
-        if (_theme == ToastTheme.Profile && ActualHeight > 0) Height = ActualHeight;
+        // Every card is auto-sized since T228, not only the profile one, so this is unconditional — a
+        // card that grew for its translation has to park and snapshot at the height it actually is.
+        if (ActualHeight > 0) Height = ActualHeight;
         PositionBottomRight();
         PlayEntrance();
         if (_theme != ToastTheme.Profile) FillTheBar();   // there is no bar on that card to fill
@@ -241,6 +252,75 @@ internal partial class ToastWindow : Window
             move.BeginAnimation(TranslateTransform.XProperty, drift);
             spin.BeginAnimation(RotateTransform.AngleProperty, rotate);
             piece.BeginAnimation(OpacityProperty, fade);
+        }
+    }
+
+    /// <summary>
+    /// Every line of text this card has arranged outside itself, or been given less room than it asked
+    /// for — empty when the card fits (T228).
+    ///
+    /// <para><b>Why a card can do that at all.</b> Six of the seven have a <c>Height</c> picked against the
+    /// English wording, and every string on them is retranslatable. Found in the pt-BR capture of T174's
+    /// card: the title wrapped to a second line, the caption slid under the bottom edge, and
+    /// <c>--capture-toast</c> printed <c>wrote</c> and exited 0. T174 sized <em>that</em> card to its
+    /// content, which fixes one card and not the class.</para>
+    ///
+    /// <para><b>Why geometry rather than a rendering.</b> The card's inner grid is
+    /// <c>ClipToBounds</c>, so an overflowing caption is not drawn at all — there is nothing in the PNG
+    /// to notice, which is exactly how it survived. Layout still <em>placed</em> it, so the question is
+    /// asked of where each block landed relative to the card, transformed rather than compared
+    /// coordinate by coordinate so a nested panel's offsets are included.</para>
+    ///
+    /// <para>Call it after the settle timer, when the window has laid out for real; before that every
+    /// block is at its startup size and the answer means nothing.</para>
+    /// </summary>
+    internal IReadOnlyList<string> Overflow()
+    {
+        var bad = new List<string>();
+        if (Card.ActualWidth <= 0 || Card.ActualHeight <= 0) return bad;
+        var inside = new Rect(0, 0, Card.ActualWidth, Card.ActualHeight);
+
+        foreach (TextBlock tb in Blocks(Card))
+        {
+            if (tb.Visibility != Visibility.Visible || tb.Text.Length == 0) continue;
+            if (tb.ActualWidth <= 0 || tb.ActualHeight <= 0) continue;
+
+            Rect r = tb.TransformToAncestor(Card)
+                       .TransformBounds(new Rect(0, 0, tb.ActualWidth, tb.ActualHeight));
+            // Half a pixel of tolerance: layout rounds, and a card is not broken by a rounding edge.
+            if (r.Bottom > inside.Bottom + 0.5 || r.Right > inside.Right + 0.5 ||
+                r.Top < -0.5 || r.Left < -0.5)
+            {
+                bad.Add($"{Label(tb)} lands at {Fmt(r)} outside the card's {Fmt(inside)}");
+                continue;
+            }
+
+            // The other half: arranged inside, but squeezed below what it asked for, which trims or
+            // clips the text in place. DesiredSize carries the margin; the actual size does not.
+            double wantW = tb.DesiredSize.Width - tb.Margin.Left - tb.Margin.Right;
+            double wantH = tb.DesiredSize.Height - tb.Margin.Top - tb.Margin.Bottom;
+            if (tb.ActualWidth + 0.5 < wantW || tb.ActualHeight + 0.5 < wantH)
+                bad.Add($"{Label(tb)} got {Nums.Of(tb.ActualWidth)}x{Nums.Of(tb.ActualHeight)} " +
+                        $"and wants {Nums.Of(wantW)}x{Nums.Of(wantH)}");
+        }
+        return bad;
+    }
+
+    private static string Fmt(Rect r) =>
+        $"({Nums.Of(r.Left)},{Nums.Of(r.Top)})-({Nums.Of(r.Right)},{Nums.Of(r.Bottom)})";
+
+    // The x:Name if it has one, so a failure names the block in the XAML rather than its text.
+    private static string Label(TextBlock tb) =>
+        tb.Name.Length > 0 ? tb.Name : $"\"{tb.Text[..Math.Min(24, tb.Text.Length)]}\"";
+
+    private static IEnumerable<TextBlock> Blocks(DependencyObject root)
+    {
+        int n = VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < n; i++)
+        {
+            DependencyObject child = VisualTreeHelper.GetChild(root, i);
+            if (child is TextBlock tb) yield return tb;
+            foreach (TextBlock nested in Blocks(child)) yield return nested;
         }
     }
 

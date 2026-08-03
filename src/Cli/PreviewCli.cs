@@ -50,7 +50,24 @@ internal static class PreviewCli
         settle.Tick += (_, _) =>
         {
             settle.Stop();
-            try { toast.SaveSnapshot(full); Console.WriteLine("wrote " + full); }
+            try
+            {
+                // A capture certifies that the card rendered, not that it fits (T228). The card's inner
+                // grid clips, so text arranged past the bottom edge is simply absent from the PNG — the
+                // flag printed "wrote" and exited 0 over the pt-BR card that was missing its caption.
+                // Refuse rather than write: a picture of the defect is worse than no picture, because it
+                // gets committed.
+                if (toast.Overflow() is { Count: > 0 } spilled)
+                {
+                    Console.WriteLine($"the '{variant}' card does not fit its own frame in " +
+                                      $"{L.Codes.First(c => L.Resolve(c) == L.Current)}, so nothing was written:");
+                    foreach (string s in spilled) Console.WriteLine("  " + s);
+                    Environment.ExitCode = 1;
+                    return;
+                }
+                toast.SaveSnapshot(full);
+                Console.WriteLine("wrote " + full);
+            }
             finally { app.Shutdown(); }
         };
         settle.Start();

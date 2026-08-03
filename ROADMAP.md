@@ -76,8 +76,6 @@
 
 ## Block E — Reset notifications & toasts
 
-- 📋 **T228** (deps: —) **A card can cut its own text off, and the capture is written anyway** — The card is a fixed height chosen against the English wording, so a longer translation pushed the caption past the bottom edge and --capture-toast wrote the clipped PNG out with 'wrote' and exit 0. → §XXV.2
-
 ## Block S — Settings round-trip
 
 - 📋 **T229** (deps: —) **A toggle flipped in the tray menu is undone by pressing Save in a window that was already open** — Two fields the menu writes have a control on the Claude Code page and no [TrayOwned] marker, so the page hands back the snapshot it was built with and the newer value loses. → §XXVI.1
