@@ -65,6 +65,8 @@
 
 - 📋 **T220** (deps: —) **A check driving the tray already running compares its labels against a language that tray is not in** — -Lang is a launch argument and -UseRunning does not launch, so the resident tray answers in its own saved language and four labels that were all present were reported missing. → §XX.16
 - 📋 **T221** (deps: —) **A capture is certified while another application's window sits in a corner of it** — The ownership check samples nine points across the window, so a foreign window covering a region between them passes - the run that verified T217 produced exactly that and reported success. → §XX.17
+- 📋 **T230** (deps: —) **The Profile submenu is the one menu nothing walks, and three tasks just added to it** — The Menu case reads the top-level entries and expands Open Claude Code, so the pinned marker, the scope tooltips, the environment mark and the machine-wide toggle are all asserted by nobody. → §XX.18
+- 💭 **T231** (deps: —) **The reading worth checking is the one this machine is never in, and no fixture puts it there** — The profile read-out answers agrees or DIFFERS off the real registry, so the disagreement it exists to report can only be reviewed by rewriting the developer's own environment. → §XX.19
 
 ## Block AJ — Working here — the repo's own docs and flags
 
@@ -83,6 +85,15 @@
 ## Block N — System information — your plan, your install, this machine
 
 - 📋 **T225** (deps: —) **One directory is counted twice when two entries differ only in the case of the drive letter** — The project count is the number of keys under projects, and Windows paths are case-insensitive, so d:/Git/x and D:/Git/x are one folder reported as two. → §XXIV.1
+
+## Block E — Reset notifications & toasts
+
+- 📋 **T227** (deps: —) **Every toast draws its emoji as a flat black glyph** — The Emoji TextBlock inherits the window's Segoe UI font stack, which has no colour glyphs, so the party popper the README prints in colour is a monochrome outline on the card itself. → §XXV.1
+- 📋 **T228** (deps: —) **A card can cut its own text off, and the capture is written anyway** — The card is a fixed height chosen against the English wording, so a longer translation pushed the caption past the bottom edge and --capture-toast wrote the clipped PNG out with 'wrote' and exit 0. → §XXV.2
+
+## Block S — Settings round-trip
+
+- 📋 **T229** (deps: —) **A toggle flipped in the tray menu is undone by pressing Save in a window that was already open** — Two fields the menu writes have a control on the Claude Code page and no [TrayOwned] marker, so the page hands back the snapshot it was built with and the newer value loses. → §XXVI.1
 
 ## Non-goals (do NOT add as tasks)
 

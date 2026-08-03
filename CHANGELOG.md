@@ -21,7 +21,7 @@
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
-| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
+| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts (active — see ROADMAP) |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
@@ -34,7 +34,7 @@
 | [O](#block-o--profiles) | Profiles — several Claude Code logins on one machine (active — see ROADMAP) |
 | [Q](#block-q--keyboard-input-in-the-windows) | Keyboard input in the windows (active — see ROADMAP) |
 | [R](#block-r--profiles-second-pass-what-a-real-second-login-exposed) | Profiles, second pass — what a real second login exposed |
-| [S](#block-s--settings-round-trip) | Settings round-trip — a field missing from the copy is a field reset |
+| [S](#block-s--settings-round-trip) | Settings round-trip — a field missing from the copy is a field reset (active — see ROADMAP) |
 | [T](#block-t--one-profile-the-whole-environment) | One profile, the whole environment — the tray writes the user-scope `CLAUDE_CONFIG_DIR` |
 | [U](#block-u--the-environment-write-stops-freezing-the-app) | The environment write stops freezing the app |
 | [V](#block-v--what-the-self-check-found) | What the self-check found — the four things writing the properties down exposed |

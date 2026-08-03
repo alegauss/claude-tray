@@ -266,6 +266,40 @@ Also worth settling: whether a foreign window overlapping the **edge** of a capt
 or crop it. T206 made the copied rectangle the painted frame, so an edge overlap is now inside real
 content rather than inside the border it used to be.
 
+### XX.18 The submenu the check stops one level short of
+
+Check-Interaction.ps1's Menu case opens the tray icon's menu, reads its entries, and expands Open
+Claude Code to count the per-profile launch items. It stops there. The Profile submenu beside it has
+never been walked, and it is where the profile work actually lives: the check mark, the pinned
+marker from T139, the active-ago suffix from T126, and now T171's scope tooltips and machine-wide
+toggle plus T172's environment mark.
+
+Every one of those is a string built in PopulateProfileMenu and shown to nobody but a person who
+opens that submenu. The headless read-out covers the decisions behind them, which is why they were
+verifiable at all this block, but not one word of the rendered menu is.
+
+Expanding it is the same move Expand-Item already makes one level up, so the cost is the walk plus
+deciding what to assert. The trap the existing cases document applies here twice over: a submenu
+that fails to expand reads as zero entries, and zero entries is how a check passes by seeing
+nothing. So the count comes first and the labels second, as the Open Claude Code arm already does.
+
+### XX.19 A read-out with a state nobody can ask it for
+
+T172 put the effective profile beside the monitored one and marks them when they differ; T173 made a
+write report whether it landed. Both were built and shipped without their interesting state ever
+appearing on screen, because this machine agrees with itself and the honest way to make it disagree
+is to write a different CLAUDE_CONFIG_DIR into the developer's own registry.
+
+The self-check covers the decisions - which profile a dir selects, whether an outcome counts as
+landed - by driving the seams with values handed in. What it cannot cover is the rendering: the mark
+on a submenu entry, the line naming a folder no profile covers, the failure card's wording.
+
+AccountFixture is the precedent, and the same shape fits: a sampled mode where the read-out and the
+menu are told what the environment says instead of asking it. Marked as an idea rather than designed
+because the seam is not obvious - the tray reads the variable through one helper, which is
+encouraging, but the menu also reads the live watch list, and a fixture that lies about one and not
+the other would certify a screen that cannot occur.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
@@ -434,3 +468,64 @@ Worth noting where this does *not* reach. `ProjectSlug` owns the `projects/<slug
 transcripts live in directories named by it, so a second spelling produces a second slug directory
 and the scans that walk those directories are counting real folders. This is the config file's own
 map, read once for one number on one page.
+
+## XXV Toast cards — what the card actually draws (Block E)
+
+Two things the toasts got wrong that no capture ever objected to, both found by looking at a card
+rather than at the code that built it.
+
+### XXV.1 A card's emoji is drawn by whichever font WPF reaches first
+
+Captured while adding T174's card: the new laptop glyph came out black, and so did the ones that
+shipped with Block E - docs/notify-surprise.png, committed long before, has the same monochrome
+popper. So this is not the new card, it is every card, and nobody ever looked at the glyph rather
+than the layout.
+
+The codepoints in use are emoji-default, which rules out the variation-selector explanation and
+points at the font instead: the Emoji TextBlock names none, so it inherits the window's Segoe UI
+stack, and neither family in it has colour glyphs. WPF resolves the run against Segoe UI Symbol and
+draws a perfectly good outline.
+
+The fix is a font on that one TextBlock, not a per-card exception list - the seven cards pick their
+emoji freely and every one should render the same way. Worth a check of its own, because the failure
+mode is a glyph that draws correctly and is simply the wrong one, which is exactly what a capture
+certifies without complaint.
+
+### XXV.2 A capture certifies that a card rendered, not that it fits
+
+Found in the pt-BR capture of T174's card: the title wrapped to a second line, the caption slid
+under the bottom edge, and the flag reported success. T174 fixed that one card by sizing it to its
+content, which is a fix for that card and not for the class.
+
+The other six still carry a fixed Height picked against the English wording, and every string on
+them can be retranslated tomorrow. The clipping is invisible to everything the repo runs: the
+self-check never builds a window, and the capture writes whatever WPF arranged.
+
+What is missing is an assertion, not a layout. After the settle timer, ask each card whether any
+text block's desired size exceeds what it was given, and refuse the capture rather than writing a
+PNG of the defect. Cheap, because the window already exists by then, and it covers all five
+languages when driven with the language flag.
+
+## XXVI One setting, two places that change it (Block S)
+
+The tray menu and the Settings page now both write fields the page believes it owns, and only one of
+the two knows the other exists.
+
+### XXVI.1 A field two surfaces write needs to say which write is newer
+
+T162 settled that the tray owns some fields and the page owns the rest, and marked the tray's with
+an attribute so no hand-written list could go stale. That split assumed each field has exactly one
+writer. Two do not.
+
+FollowActiveProfile has had a menu toggle since T126 and a page control since it shipped;
+SyncEnvironmentProfile joined it in T171, which put the machine-wide switch in the Profile submenu
+on purpose. Neither is TrayOwned, and neither can be: the page has a real control for each, and
+CarryTrayOwnedFrom would overwrite an edit the user just made there.
+
+So the revert is live in both directions and needs no unusual sequence - open Settings, flip the
+toggle in the menu, press Save. Measured against T171's switch this also silently un-writes the
+environment variable, because the reconcile runs off the value Save restored.
+
+The shape wanted is a decision about which write is newer, not another list. A per-field stamp, or
+the page reading the live model for exactly the fields it shares, are both plausible; what must not
+happen is a third category of ownership, since two were already one too many to keep straight.
