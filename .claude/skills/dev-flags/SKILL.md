@@ -68,6 +68,10 @@ popup — its own top-level window, which `RenderTargetBitmap` over a page's con
 
 ```
 --capture-settings <out.png> [page] [scroll=<dip>] [profile=<n>] [--sample] [--reveal]
+                                      # page System REQUIRES --sample and is refused without it (T205):
+                                      #   it renders this machine's real login, and a capture is a file
+                                      #   that gets published. Interactive --settings System still shows
+                                      #   the real account - only the path that writes a file is refused.
 --capture-stats [outBase] [variant] [modifiers] [profile=<n>[,<n>]] [--sample]
                                       # all three tabs -> <outBase>-5h.png / -7d.png / -throughput.png.
                                       #   profile=1,0 walks the picker one settle apart (the T164 round

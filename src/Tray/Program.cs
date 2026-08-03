@@ -370,6 +370,15 @@ internal static class Program
             if (!TrySampleProfiles(args, out List<ClaudeInfo>? captureSample)) return;
             string outPath = System.IO.Path.GetFullPath(args[1]);
             string? page = PageArg(args.Skip(1).ToArray());
+
+            // Before anything is rendered or any file is created: the one page whose content IS an
+            // account may not be written to a PNG off this machine's real login (T205).
+            if (AccountFixture.CaptureRefusal(page, args.Contains("--sample")) is { } refusal)
+            {
+                Console.WriteLine(refusal);
+                Environment.ExitCode = 1;
+                return;
+            }
             double scroll = ArgValue(args, "scroll") is { } s && double.TryParse(s, out double d) ? d : 0;
             int profile = ArgValue(args, "profile") is { } pi && int.TryParse(pi, out int n) ? n : -1;
 

@@ -349,27 +349,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.9 The fixture is opt-in on the page that most needs it
-
-T197 stopped the Statistics picker naming a real account on a synthetic chart, and T200 stopped a
-`--sample` that could not be honoured from falling back to the real one. Neither touched the plain
-path: `--capture-settings System` with no `--sample` at all renders this machine's login, correctly,
-and nothing marks the result as unpublishable.
-
-That is the shape of both fixed defects, one step earlier. The fixture exists *because* this page
-gets published — masking hides the holder's name and the local part of the address, but the
-organization name and the mail domain **are** the reading, and on a real machine the organization is
-somebody's client. AGENTS.md states the rule and nothing in the app enforces it.
-
-Two shapes are worth weighing. The capture could **require** `--sample` for the System page, since
-no other caller has a reason to render a real account off-screen into a file; that is narrow and
-breaks nothing that exists. Or a capture of real data could carry a visible watermark, which is
-honest but costs a rendering path and makes the PNG useless for anything else.
-
-The asymmetry that makes the first attractive: interactive `--settings System` *should* show the
-real account, because that is a person looking at their own machine. Only the path that writes a
-**file** has no such excuse.
-
 ### XX.10 The copied rectangle is wider than the window
 
 `GetWindowRect` spans a WPF window's invisible resize border and drop-shadow margin, so the

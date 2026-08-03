@@ -534,6 +534,7 @@
 - **T202** — A tray already running makes the menu case Unchecked and the whole run DEGRADED, so exit 1 from a full run means a defect again on the one machine the loop is actually run from.
 - **T203** — The ids the interaction check drives are now read out of the script itself, in the three shapes that carry a literal one, so a lookup added later is covered with no edit here - it already found three the hand-written list had missed - and the six assembled per pane at runtime stay explicit and say which kind they are.
 - **T204** — Every settings row is a named group in the automation tree, so a screen reader reads label-to-control pairs instead of a flat run of controls, and the sweep now checks each control against its OWN row's header on all five panels that carry one - a rule handing out the wrong header used to pass it.
+- **T205** — A capture of the System information page is refused without --sample and writes no file, so the one page whose content is an account can no longer be published off a real holder and organization by forgetting a flag - while interactive --settings System still shows the real login, which is the only place it belongs.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

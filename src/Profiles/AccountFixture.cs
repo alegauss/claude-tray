@@ -24,6 +24,32 @@ internal static class AccountFixture
     /// <summary>Where the fixture profiles are built. Wiped and rebuilt on every call.</summary>
     public static string Root => SampleRoot.For("ClaudeTray-sample-accounts");
 
+    /// <summary>
+    /// Why a capture of the System information page is refused without <c>--sample</c> (T205), as the
+    /// message to print — or null when the capture may proceed.
+    ///
+    /// <para>The asymmetry is the whole rule: interactive <c>--settings System</c> <em>should</em> render
+    /// the real login, because that is somebody looking at their own machine. Only the path that writes a
+    /// <b>file</b> has no such excuse, and this fixture exists precisely because that file gets published.
+    /// T197 stopped a real account naming itself on a synthetic chart and T200 stopped an unbuildable
+    /// <c>--sample</c> falling back to the real one; both left the plainest path alone — no flag at all,
+    /// which renders the true holder and organization correctly and marks the result as nothing.</para>
+    ///
+    /// <para>Narrow on purpose. It refuses one page on one flag, which breaks no caller that exists: no
+    /// other reason to render a real account off-screen into a PNG has ever come up. The same shape is
+    /// already precedent — <see cref="StatsPreviews"/> refuses a variant to <c>--capture-stats</c> that
+    /// <c>--stats</c> is allowed to show.</para>
+    /// </summary>
+    internal static string? CaptureRefusal(string? page, bool sampled)
+    {
+        if (sampled || !string.Equals(page, "System", StringComparison.OrdinalIgnoreCase)) return null;
+        return "--capture-settings System renders this machine's own Claude Code login, and a capture " +
+               "is a file that gets published. Refusing rather than writing it: masking hides the " +
+               "holder's name and the local part of the address, but the organization and the mail " +
+               "domain ARE the reading. Add --sample for the fixture account (--reveal to unmask it), " +
+               "or use --settings System to look at the real one on screen.";
+    }
+
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
 
     /// <summary>
