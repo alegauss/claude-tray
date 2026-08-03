@@ -211,9 +211,9 @@ All five are below; listing *three* is how two stayed script-only (T201). The he
   must differ, the headline never "unavailable" at a settled stop (T165). Below two: **DEGRADED**, no skip.
 - **Menu** launches the tray, opens the notification icon's menu, reads its entries, then expands *Open
   Claude Code* for the per-profile ones. One rule, three refusals — **the check must look at what you
-  named**: it will not run while another tray is alive; under `-UseRunning` labels match the language
-  that tray resolved, not a `-Lang` it never got; and a resident binary that is not `-Exe` leaves the
-  run DEGRADED — an old tray passes a check for what it lacks (T202, T220, T236).
+  named**: with a tray already resident it launches `-Exe --second-tray` beside it rather than refusing
+  (T237); under `-UseRunning` labels match the language that tray resolved, not a `-Lang` it never got;
+  and a resident binary that is not `-Exe` leaves the run DEGRADED (T220, T236).
 - **An assertion that could have run and didn't is `Unchecked`, never an `Info` line.** T166's timing hung
   off `Combo-Select`'s UIA route alone, so the day `Select()` began throwing, the run would print a note and
   stay green (T193). Both halves are needed: a fallback reaching its target in **one selection change**

@@ -1372,7 +1372,11 @@ internal sealed class TrayContext : ApplicationContext
                 : IconRenderer.Render(CurrentPct(), state, flash, size, verdict, _settings.ShowPercentage,
                     _settings.ShowRemaining, AccentSlot(), CurrentQuotaState() == QuotaState.Billing);
         SetTrayIcon(bmp);
-        _tray.Text = Truncate(BuildTooltip(), 127);
+        // Tagged at the FRONT under --second-tray (T237), so it survives the 127-character truncation and
+        // so a check can tell this icon from the resident tray's: the notification area's elements belong
+        // to the shell, not to us, and two ClaudeTray icons are otherwise the same string.
+        _tray.Text = Truncate(Program.SecondTray ? Program.SecondTrayTag + " " + BuildTooltip()
+                                                 : BuildTooltip(), 127);
     }
 
     private void SetTrayIcon(Bitmap bmp)

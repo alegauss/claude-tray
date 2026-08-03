@@ -69,6 +69,26 @@ internal static class Program
     // Held for the whole process lifetime so a second launch can't spawn a duplicate tray icon.
     private static Mutex? _instanceMutex;
 
+    /// <summary>
+    /// This process is a **second** tray, running beside a resident one on purpose (T237, `--second-tray`).
+    ///
+    /// <para>The single instance is a real feature and stays the default: two trays polling one profile is
+    /// not a state to ship. What it also does is make the menu check unrunnable against the build you just
+    /// compiled — the app is meant to be resident, so every developer machine holds the mutex permanently,
+    /// and the case either refuses (T202) or drives whatever binary is already there (T236). Verifying two
+    /// submenu tasks meant quitting the user's tray by hand three times.</para>
+    ///
+    /// <para>Read by <see cref="TrayContext"/> to tag its tooltip, because the notification-area icons
+    /// belong to the shell's process rather than to this one: pid cannot tell two ClaudeTray icons apart,
+    /// so the tooltip has to. Dev-only, so the tag is English and goes in no <c>lang</c> file.</para>
+    /// </summary>
+    internal static bool SecondTray { get; private set; }
+
+    /// <summary>What a second tray's tooltip starts with, so `Check-Interaction.ps1` can find that icon
+    /// and not the resident one. One constant rather than a string spelled out in two repositories'
+    /// worth of places — the script matches it as a regex.</summary>
+    internal const string SecondTrayTag = "[check]";
+
     [STAThread]
     private static void Main(string[] args)
     {
@@ -541,9 +561,12 @@ internal static class Program
             return;
         }
 
-        // Single instance: if the tray app is already running, just exit — don't add a second icon.
+        // Single instance: if the tray app is already running, just exit — don't add a second icon. The
+        // one exception is `--second-tray` (T237), which is asked for explicitly and never inferred: the
+        // mutex is still taken when it is free, so an ordinary launch after this one still finds it held.
+        SecondTray = args.Contains("--second-tray");
         _instanceMutex = new Mutex(initiallyOwned: true, @"Local\ClaudeTray.SingleInstance", out bool createdNew);
-        if (!createdNew)
+        if (!createdNew && !SecondTray)
             return;
 
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);

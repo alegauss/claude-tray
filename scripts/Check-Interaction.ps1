@@ -1697,6 +1697,10 @@ function Invoke-MenuCase {
     $running = @(Get-Process -Name ClaudeTray -ErrorAction SilentlyContinue)
     $proc = $null
     $ownProcess = $false
+    # Which notification-area icon is ours. "Claude Code" is the first half of every tooltip in every
+    # language, so it identifies the icon without pinning the check to one locale - and it identifies
+    # BOTH icons once a second tray is up, which is why the second-tray branch narrows it (T237).
+    $iconPattern = 'Claude Code'
     if ($UseRunning) {
         if ($running.Count -eq 0) { Fail "-UseRunning given but no ClaudeTray process is running"; return }
         $proc = $running[0]
@@ -1743,35 +1747,41 @@ function Invoke-MenuCase {
         $script:LangCode = $tray.Code
         Info "matching labels against $($script:LangCode), by $($tray.From) - -Lang cannot reach a running tray"
     }
-    elseif ($running.Count -gt 0) {
-        # A second launch would exit silently on the single-instance mutex, and this check would then
-        # read the *other* tray's menu and call it a pass. Refuse instead - but an absent precondition,
-        # not a defect (T202). The app is meant to be resident, so every developer's machine has one
-        # alive: reporting this with `Fail` made `-Case All` exit 1 on the one machine the loop is run
-        # from, which is how exit 1 stops meaning anything at all.
-        Unchecked "the tray icon's menu (T137, T148, T158)" `
-            ("a ClaudeTray is already running (pid $($running[0].Id)) and the single-instance mutex " +
-             "would make this launch exit silently. Quit it, or re-run with -UseRunning.")
-        return
-    }
     else {
-        $proc = Start-App "--lang $Lang $($script:EnvArgs -join ' ')"
+        # T237: a tray beside the resident one, when there is a resident one. This used to be `Unchecked`
+        # and a sentence asking the developer to quit their app - which, on a machine where the tray is
+        # meant to be resident, is every run. The case covering the menu is the one with the most tasks
+        # filed against it, and it was the one nobody could run against the build they had just compiled.
+        #
+        # Not the same move T202 refused. That was IMPLYING -UseRunning, which silently swaps the binary
+        # under test for whatever was already there; this launches -Exe, the binary the caller named, and
+        # the ambiguity T236 exists to catch cannot arise. What is added instead is a second icon, so the
+        # tray tags its tooltip and the pattern below is narrowed to it.
+        $second = $running.Count -gt 0
+        if ($second) {
+            Info ("a ClaudeTray is already running (pid $($running[0].Id)); launching -Exe beside it " +
+                  "with --second-tray rather than refusing (T237)")
+        }
+        # Unanchored on purpose: the shell's accessible name for an icon is the name it was REGISTERED
+        # with followed by the current tooltip ("Claude Code - connecting... [check] Profile: ..."), so
+        # anchoring to the start matches the tooltip the tray had at startup and never the live one.
+        if ($second) { $iconPattern = '\[check\]' }
+        $proc = Start-App ("--lang $Lang $($script:EnvArgs -join ' ')" + $(if ($second) { " --second-tray" }))
         $ownProcess = $true
         Start-Sleep -Milliseconds 1500
         $proc.Refresh()
-        # The same precondition arriving a moment later: a tray that started between the check above and
-        # this launch. Same reading, so the same outcome - otherwise the exit-1 hole survives as a race.
+        # A launch that died anyway. Without --second-tray that is the mutex, which is the precondition
+        # T202 named; with it, the tray refused for some other reason and the run has nothing to check.
         if ($proc.HasExited) {
             Unchecked "the tray icon's menu (T137, T148, T158)" `
-                "the tray exited immediately after launch - a single instance was already held"
+                ("the tray exited immediately after launch" +
+                 $(if ($second) { " even with --second-tray" } else { " - a single instance was already held" }))
             return
         }
     }
 
     try {
-        # "Claude Code" is the first half of every tooltip in every language, so it identifies the icon
-        # without pinning the check to one locale.
-        $menu = Open-TrayMenu 'Claude Code' $proc.Id
+        $menu = Open-TrayMenu $iconPattern $proc.Id
         if (-not $menu) { Fail "the tray menu never opened (5 attempts)"; return }
 
         $items = Menu-Items $menu
@@ -1845,7 +1855,7 @@ function Invoke-MenuCase {
             $menu = Find-TrayMenu $proc.Id
             # And if it closed anyway, re-open it rather than report a Profile submenu that was never
             # asked the question. Only a menu that will not open at all is a failure here.
-            if (-not $menu) { $menu = Open-TrayMenu 'Claude Code' $proc.Id }
+            if (-not $menu) { $menu = Open-TrayMenu $iconPattern $proc.Id }
             if (-not $menu) {
                 Fail "the menu would not reopen for the Profile submenu check"
             }
@@ -1876,7 +1886,7 @@ function Invoke-MenuCase {
         # directly, which is a different caller), and it is the one gesture most users make.
         [Native]::Key($VK_ESC); [Native]::Key($VK_ESC)   # the menu must be gone before clicking the icon
         Start-Sleep -Milliseconds 400
-        $icon = Get-TrayIcon 'Claude Code'
+        $icon = Get-TrayIcon $iconPattern
         if (-not $icon) {
             Fail "the tray icon could not be found for the left-click check"
         }
@@ -1890,7 +1900,7 @@ function Invoke-MenuCase {
             for ($try = 1; $try -le 3 -and -not $win; $try++) {
                 if ($try -gt 1) {
                     Info "attempt $try : no window from the left-click yet, clicking again"
-                    $icon = Get-TrayIcon 'Claude Code'      # the overflow flyout may have closed
+                    $icon = Get-TrayIcon $iconPattern      # the overflow flyout may have closed
                     if (-not $icon) { break }
                 }
                 ClickCentre $icon

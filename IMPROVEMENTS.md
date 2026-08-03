@@ -216,30 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.16 A check whose first step is quitting the app is one nobody runs
-
-The Menu case launches the tray. The tray holds a named mutex, so a second launch exits silently, so
-the case refuses to start while any ClaudeTray is alive (T202) — and the app is meant to be
-resident, which means every developer machine is in that state permanently. `-UseRunning` is the way
-out and it checks whichever binary happens to be running; T236 now says out loud when that is not
-the build under `-Exe`, which makes the run honest without making it useful.
-
-What is left has no path at all. Verifying the two submenu tasks in this block meant stopping the
-user's resident tray three times across two sessions and restarting it afterwards, by hand, because
-there is no other way to point the case at the thing just compiled. A verification loop whose first
-step is "quit the app you are developing" is one people stop running, and the case that goes unrun
-is the one covering the menu — the surface with the most tasks filed against it this year.
-
-The shape that fits is a dev-only escape from the single instance, so a second tray can be launched
-beside the resident one for the length of a check. Two things it must not become: reachable by
-accident from a normal launch, since the mutex is a real feature and two trays polling the same
-profile is not a state to ship; and implied by the script, which is T202's refusal again wearing a
-different hat.
-
-Worth settling with it what the second tray does about the icon — two identical icons in the
-notification area is exactly the ambiguity `Get-TrayIcon` resolves by tooltip prefix, and it matches
-on "Claude Code", which both would carry.
-
 ### XX.17 An assertion nothing routine reaches is coverage nobody has
 
 T231 built `--sample-env` so the environment mark could be looked at on a machine that agrees with

@@ -176,6 +176,23 @@ No window, no screen — the arithmetic and the readings as text.
 --context-report [out.md]             # the whole picture as one markdown file
 ```
 
+## Running a tray beside the resident one
+
+```
+--second-tray                         # skip the single-instance mutex and run a SECOND tray, so a check
+                                      #   can drive the build you just compiled without you quitting the
+                                      #   app first (T237). Explicit only — never inferred, and the mutex
+                                      #   is still taken when free, so ordinary launches keep exiting.
+                                      #   The tooltip is tagged `[check] …` because notification-area
+                                      #   icons belong to the shell, not to us: pid cannot tell two
+                                      #   ClaudeTray icons apart, so the tooltip has to. Match it
+                                      #   UNANCHORED — the shell's accessible name is the registration
+                                      #   name followed by the live tooltip, so the tag is mid-string.
+                                      #   `Check-Interaction.ps1 -Case Menu` uses this on its own when it
+                                      #   finds a tray already running. Two trays poll the same profile,
+                                      #   which is fine for the length of a check and not a way to run.
+```
+
 ## Three flags that go with anything
 
 ```
