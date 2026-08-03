@@ -398,6 +398,10 @@ internal sealed class TrayContext : ApplicationContext
             // are the poll's, and this runs immediately before display, so nothing is staler for it.
             PopulateProfileMenu();
             if (_profileMenu is not null) _profileMenu.Visible = _watched.Count > 1;
+            // Last, over whatever the three lines above just built: a tooltip that reaches no
+            // accessibility property is a sentence announced to nobody, and the ones in this menu are
+            // where the scope of a profile pick is stated (T234).
+            MenuAccess.Announce(menu.Items);
         };
 
         return menu;
@@ -761,7 +765,9 @@ internal sealed class TrayContext : ApplicationContext
             // The one the variable names, when that is not the one on the icon (T172).
             bool isEnv = envDiffers && envProfile is not null && ReferenceEquals(envProfile, p);
             if (isEnv) suffix += "  · " + L.T("menu.profileEnvSelects");
-            var item = new ToolStripMenuItem($"{p.Label} — {reading}{suffix}")
+            // Announcing, not plain: this entry's tooltip is where T171 says how far picking it reaches,
+            // and a plain item speaks its own text and nothing else (T234).
+            var item = new AnnouncingMenuItem($"{p.Label} — {reading}{suffix}")
             {
                 Checked = monitored,
                 // What picking this actually reaches (T171). The icon moving reads as "the machine is
@@ -783,7 +789,7 @@ internal sealed class TrayContext : ApplicationContext
         // The toggle lives where the switching does. Checked, the icon moves on its own to whichever
         // profile just had a turn (T126); unchecked, it stays wherever it was last put by hand.
         _profileMenu.DropDownItems.Add(new ToolStripSeparator());
-        var follow = new ToolStripMenuItem(L.T("menu.profileFollow"))
+        var follow = new SwitchMenuItem(L.T("menu.profileFollow"))
         {
             Checked = _settings.FollowActiveProfile,
             ToolTipText = L.T("menu.profileFollowTip"),
@@ -803,7 +809,7 @@ internal sealed class TrayContext : ApplicationContext
         // The other half of a pick, reachable from where the picking happens (T171). Settings owns the
         // same switch, but a user who has just been told the pick stops at the tray must not have to go
         // hunting through a page to find out the wider switch exists at all.
-        var envSync = new ToolStripMenuItem(L.T("menu.profileEnvSync"))
+        var envSync = new SwitchMenuItem(L.T("menu.profileEnvSync"))
         {
             Checked = _settings.SyncEnvironmentProfile,
             ToolTipText = L.T("menu.profileEnvSyncTip"),

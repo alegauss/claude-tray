@@ -300,28 +300,3 @@ the two knows the other exists.
 What a control ANNOUNCES, as against what it draws. A picture cannot see an accessible name and
 neither can any check, so this is the block where a surface that renders perfectly and tells
 assistive technology nothing gets filed.
-
-### XXVIII.1 A menu entry announces its text and nothing else
-
-Every entry in the Profile submenu was dumped through UI Automation while T230 was being written.
-`HelpText` is empty on all of them, and the only pattern an entry carries besides `Invoke` is
-`Toggle` — and that one only while the item is **checked**. An unchecked `ToolStripMenuItem` exposes
-no `TogglePattern` at all, so "off" and "not a toggle" are one reading.
-
-Two consequences, and the first is the one that matters. `ToolTipText` is where T171 says what a
-pick actually reaches — *"the tray only"* against *"the tray and the Windows user environment"* —
-and where T172 explains that a session already running keeps what it started with. Those sentences
-exist because the icon moving reads as "the machine is now on this profile" and that is only
-sometimes true. WinForms does not map `ToolTipText` to `accHelp`, so a screen reader announces the
-entry's text and nothing else: the person who most needs the sentence about scope is the one who
-cannot reach it.
-
-The second is smaller and follows from the same gap: a menu toggle's OFF position cannot be asserted
-by anything, so T230's checks are written to claim only which entry is On. A switch that stopped
-turning on is caught; one that stopped turning off is not.
-
-Both are one question — what a `ToolStripItem` tells UI Automation — and the answer is its
-`AccessibleObject`: `AccessibleDescription`/`Help` for the tooltip, and a toggle state that is
-reported in both positions. Block Q is where this lives rather than the profile blocks, because it
-is the same property `PART_SelectedContentHost` and T175's row names were: a control that renders
-correctly and announces nothing.

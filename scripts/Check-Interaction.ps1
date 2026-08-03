@@ -1583,18 +1583,61 @@ function Expected-ProfileState {
 }
 
 <#
+  A menu entry's toggle position: 'On', 'Off', or $null when it carries no toggle at all.
+
+  A plain `ToolStripMenuItem` exposes TogglePattern only WHILE IT IS CHECKED - an unchecked one carries
+  no pattern, so "off" and "not a toggle" were one reading and only On could be asserted. T234 gave the
+  two switches `AccessibleRole.CheckButton`, which reports the pattern in both positions; so $null now
+  means "this is not a switch", which is itself a failure for an entry that should be one.
+#>
+function Menu-Toggle($item) {
+    try {
+        return [string]$item.GetCurrentPattern(
+            [System.Windows.Automation.TogglePattern]::Pattern).Current.ToggleState
+    } catch { return $null }
+}
+
+<#
   Whether a menu entry is showing its check mark.
 
-  A `ToolStripMenuItem` exposes TogglePattern only WHILE IT IS CHECKED - an unchecked one carries no
-  pattern at all, so "off" and "not a toggle" are one reading and only "on" can be observed. Every
-  assertion below is therefore about which entry is On, never about which is Off: the state that can be
-  seen is the one the check is allowed to be wrong about.
+  Read off the announced description, not off TogglePattern. T234 gave the entries a custom accessible
+  object - the only way a sentence beside the name reaches a client at all - and that costs the pattern
+  the framework's own object supplies WHILE CHECKED. The state is announced as a word instead, in front,
+  which loses nothing: the pattern was never readable in the off position anyway, and now both are.
 #>
-function Menu-Checked($item) {
+function Menu-Checked($item) { return Menu-Announces $item (Label 'menu.itemChecked') }
+
+<#
+  Whether an entry announces a state word. Matched as a PREFIX and only as a prefix: the state is written
+  in front of the sentence for exactly this reason, since the sentence behind it is free text that can
+  contain either word ("Turning it off puts the variable back the way it was").
+#>
+function Menu-Announces($item, $word) {
+    $said = Menu-Description $item
+    if (-not $said) { return $false }
+    return $said.StartsWith($word, [System.StringComparison]::OrdinalIgnoreCase)
+}
+
+<# PowerShell 5.1 has no ternary; this keeps the two-branch label lookups on one line. #>
+function if-else($cond, $a, $b) { if ($cond) { return $a } else { return $b } }
+
+<#
+  What an entry says to a screen reader beyond its own text.
+
+  `ToolTipText` reaches no accessibility property, and it is where the Profile submenu states the SCOPE
+  of a pick - the tray only, or the tray and the Windows user environment (T171), and the line about a
+  running session keeping what it started with (T172). T234 mirrors it into `AccessibleDescription`,
+  which arrives here as the LegacyIAccessible description; HelpText is read first in case a future
+  framework maps it there instead.
+#>
+function Menu-Description($item) {
+    foreach ($prop in @([System.Windows.Automation.AutomationElement]::HelpTextProperty)) {
+        try { $v = [string]$item.GetCurrentPropertyValue($prop); if ($v) { return $v } } catch { }
+    }
     try {
-        return $item.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Current.ToggleState -eq
-               [System.Windows.Automation.ToggleState]::On
-    } catch { return $false }
+        return [string]$item.GetCurrentPattern(
+            [System.Windows.Automation.LegacyIAccessiblePattern]::Pattern).Current.Description
+    } catch { return '' }
 }
 
 <#
@@ -1665,13 +1708,41 @@ function Assert-ProfileSubmenu($subs) {
         $lab  = Label $t.Key
         $item = @($subs | Where-Object { $_.Current.Name -eq $lab }) | Select-Object -First 1
         if (-not $item) { Fail "'$lab' is missing from the Profile submenu - $($t.What)"; continue }
-        if ($t.On -and -not (Menu-Checked $item)) {
-            Fail "'$lab' shows no check mark, but --profiles reports $($t.What) as ON"
-        } elseif ($t.On) {
-            Pass "'$lab' is present and checked, matching --profiles - $($t.What)"
+        # Both positions, since T234. A `ToolStripMenuItem` announces a toggle only while checked, so the
+        # position is said in words in the description instead - which is the form a reader hears anyway.
+        # NOT $want: that name holds Expected-ProfileState for the whole function, and assigning it here
+        # left every check after this loop comparing against a string.
+        $wantState = Label (if-else $t.On 'menu.switchOn' 'menu.switchOff')
+        $said      = Menu-Description $item
+        if (-not $said) {
+            Fail "'$lab' announces nothing at all - $($t.What) is invisible to a reader (T234)"
+        } elseif (-not (Menu-Announces $item $wantState)) {
+            Fail "'$lab' announces '$said', but --profiles reports $($t.What) as '$wantState'"
         } else {
-            # Off is not observable (see Menu-Checked), so presence is the whole of what can be claimed.
-            Pass "'$lab' is present - $($t.What), reported off, which a menu item cannot be asked about"
+            Pass "'$lab' announces '$wantState' - $($t.What), and off is now a reading (T234)"
+        }
+    }
+
+    # T234. The sentence saying how far a pick reaches is the reason the tooltip exists: the icon moving
+    # reads as "the machine is now on this profile", and that is only true under the machine-wide switch.
+    # It lived in `ToolTipText`, which reaches no accessibility property at all, so the person who most
+    # needs it was the one who could not have it. Asserted on the icon's own entry, and against the
+    # scope --profiles reports, so a mirrored-but-stale sentence fails too.
+    $scopeKey = if ($want.SyncOn) { 'menu.profileScopeWindows' } else { 'menu.profileScopeTray' }
+    $scope    = Label $scopeKey
+    $entry    = if ($want.Icon) { $byLabel[$want.Icon] } else { $null }
+    if (-not $entry) {
+        Fail "no entry for the icon's profile, so the scope sentence has nothing to be read off (T234)"
+    } else {
+        $said = Menu-Description $entry
+        if (-not $said) {
+            Fail ("'$($want.Icon)' announces no description - T171's scope sentence is drawn in the " +
+                  "tooltip and reaches no screen reader (T234)")
+        } elseif ($said -notlike "*$scope*") {
+            Fail ("'$($want.Icon)' announces '$said', which does not carry the scope --profiles reports " +
+                  "('$scope')")
+        } else {
+            Pass "'$($want.Icon)' announces how far a pick reaches: '$scope' (T171, T234)"
         }
     }
 

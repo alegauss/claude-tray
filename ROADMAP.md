@@ -80,8 +80,6 @@
 
 ## Block Q — Keyboard input in the windows
 
-- 📋 **T234** (deps: —) **The sentence saying how far a profile pick reaches is announced to nobody** — A ToolStripMenuItem's ToolTipText reaches no UIA property, so T171's scope line and T172's tip are invisible to a screen reader and to every check. → §XXVIII.1
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
