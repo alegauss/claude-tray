@@ -356,17 +356,24 @@ $script:LangText = @{}
 #>
 $script:LangCode = $Lang
 
+<# One language file's raw text, read once. Asked for by code rather than reached for in the hashtable:
+   `Label` stops at the first file that defines the key, so a table nobody asked for by name is a table
+   that may never have been loaded - which is how the panel walk came to run over zero panels (T235). #>
+function Lang-Table($code) {
+    if (-not $script:LangText.ContainsKey($code)) {
+        $file = Join-Path (Split-Path -Parent $PSScriptRoot) "lang\$code.json"
+        if (-not (Test-Path $file)) { throw "no language file for '$code' ($file)" }
+        $script:LangText[$code] = Get-Content -LiteralPath $file -Encoding UTF8 -Raw
+    }
+    return $script:LangText[$code]
+}
+
 function Label($key) {
     # Read by regex, not ConvertFrom-Json: the lang files carry `//` section comments, which are not
     # JSON. Falls back to en.json for a missing key, exactly as the app does.
     foreach ($code in @($script:LangCode, 'en')) {
-        if (-not $script:LangText.ContainsKey($code)) {
-            $file = Join-Path (Split-Path -Parent $PSScriptRoot) "lang\$code.json"
-            if (-not (Test-Path $file)) { throw "no language file for '$code' ($file)" }
-            $script:LangText[$code] = Get-Content -LiteralPath $file -Encoding UTF8 -Raw
-        }
         $pattern = '"' + [regex]::Escape($key) + '"\s*:\s*"((?:[^"\\]|\\.)*)"'
-        if ($script:LangText[$code] -match $pattern) {
+        if ((Lang-Table $code) -match $pattern) {
             return ($Matches[1] -replace '\\"', '"' -replace '\\\\', '\')
         }
     }
@@ -431,9 +438,12 @@ function Resolve-TrayLang {
 #>
 function Settings-PanelKeys {
     if ($script:PanelKeys) { return $script:PanelKeys }
-    Label 'settings.nav.general' | Out-Null      # forces the language file to be read
+    # English by name, because English is the file that has every key - a translation may be missing one
+    # and the panel it names would silently drop out of the walk. Read through Lang-Table, not out of the
+    # hashtable: `Label 'settings.nav.general'` loads whatever -Lang asked for and returns before it ever
+    # touches `en`, so under a non-English run this used to read an unloaded table and derive nothing (T235).
     $keys = @()
-    foreach ($m in [regex]::Matches($script:LangText['en'], '"(settings\.nav\.[A-Za-z]+)"\s*:')) {
+    foreach ($m in [regex]::Matches((Lang-Table 'en'), '"(settings\.nav\.[A-Za-z]+)"\s*:')) {
         $keys += $m.Groups[1].Value
     }
     $script:PanelKeys = $keys
@@ -1205,9 +1215,19 @@ function Invoke-NamesCase {
             # responsible for is read, so a row added to a panel nobody checked is covered.
             # Opened and asserted counted apart: a panel with no row control was still visited, and
             # rolling the two together would report it as one that got away.
+            # T235: the guard on the precondition, before the walk rather than after it. A derived list
+            # that resolves to nothing makes every loop below run zero times and every assertion in them
+            # report nothing at all - a clean run over no panels, which is §XV.3's defect reached through
+            # the language flag instead of through a Skip. Gated on the list being empty, which is the
+            # precondition itself and not a weaker form of the rule the panels are walked for.
+            $panelKeys = @(Settings-PanelKeys)
+            if ($panelKeys.Count -eq 0) {
+                Fail ("no settings panel could be derived from lang\en.json - the walk below would " +
+                      "report a clean run over zero panels (T235)")
+            }
             $opened = 0
             $asserted = 0
-            foreach ($key in Settings-PanelKeys) {
+            foreach ($key in $panelKeys) {
                 $panel = Label $key
                 if (-not (Nav-Settings $win $panel)) {
                     Unchecked "the row rule on the '$panel' panel (T175)" `
@@ -1280,7 +1300,7 @@ function Invoke-NamesCase {
                 }
                 $asserted++
             }
-            Info "$opened of $((Settings-PanelKeys).Count) settings panel(s) opened, $asserted carried a row control"
+            Info "$opened of $($panelKeys.Count) settings panel(s) opened, $asserted carried a row control"
 
             # The branch that must NOT fire, and the reason the rule tests the content rather than the
             # type: a row holding a field with a labelled Button beside it must give the header to the

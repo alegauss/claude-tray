@@ -216,28 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.17 A derived list that resolves to nothing is a check with no steps
-
-`Label` walks `@($script:LangCode, 'en')` and returns on the first file that defines the key, so
-with `-Lang pt-BR` the English table is never loaded at all. `Settings-PanelKeys` then reads
-`$script:LangText['en']` directly — deliberately, because the panel list is derived from the
-`settings.nav.*` keys rather than typed out (T196) and English is the file that has all of them.
-Against an unloaded table the regex matches nothing, `$keys` comes back empty, and the walk over
-every settings panel runs over zero panels.
-
-Nothing fails. The Keyboard case reports what it did check and says nothing about the panels,
-because a loop over an empty list has nothing to say — which is the exact shape §XV.3 and T161 are
-about, arriving through the language flag instead of through a `Skip`.
-
-It has been latent since T196 and cannot fire in CI or in any default run, since both are English
-and `Label` loads `en` first there. It fires on exactly one path: a non-English `-Lang`, which is
-the flag whose whole purpose is checking the thing English runs cannot see.
-
-The fix is small — force the English table before reading it, the way `Settings-PanelKeys` already
-intends with its `Label 'settings.nav.general'` line, which loads `$script:LangCode` and not `en`.
-What the task is really for is the assertion beside it: the derived panel list must be non-empty
-before it is walked, so a list that resolves to nothing is a FAIL rather than a walk with no steps.
-
 ### XX.18 A named binary and a checked binary are not the same claim
 
 Executing this block, `-Case Menu -UseRunning` reported every assertion green against the tray

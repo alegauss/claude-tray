@@ -551,6 +551,7 @@
 - **T230** — The Menu case walks the Profile submenu and compares every entry to what --profiles says it should be: one entry per profile by name, the check mark on the icon's profile and no other, the pinned marker paired with its undo, and both toggles reading the position the app reports.
 - **T231** — --sample-env puts the process on a CLAUDE_CONFIG_DIR named rather than written, so the menu's environment mark, the outside-the-profiles line and the whole read-back path can be looked at and asserted without touching the machine's own registry.
 - **T233** — The left-click and the submenu expand each retry a bounded three times and name the attempt that worked, so a gesture the shell dropped no longer wears the wording of the defect the check exists to catch - and a gesture that stays broken still goes red.
+- **T235** — The panel list is derived from lang\en.json by name rather than from whichever table -Lang happened to load, and a list that resolves to nothing fails the run instead of being walked in zero steps - 6 panels and 23 row controls now checked under a non-English -Lang where 0 were.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

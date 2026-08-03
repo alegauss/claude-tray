@@ -63,7 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T235** (deps: —) **The settings-panel walk checks nothing at all under a non-English -Lang, and says so to nobody** — Label returns before loading en once the requested language defines the key, so Settings-PanelKeys reads an unloaded table, derives zero panels and walks them all successfully. → §XX.17
 - 📋 **T236** (deps: —) **A run reports every check passed against a binary older than the feature it was checking** — -UseRunning drives whatever tray is resident and prints its path, but nothing compares it to -Exe, so a day-old build passed a submenu check for an entry it does not have. → §XX.18
 
 ## Block AJ — Working here — the repo's own docs and flags
