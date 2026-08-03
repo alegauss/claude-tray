@@ -327,9 +327,10 @@ internal static class Program
         // opens with the holder unmasked — the pair behind the published System information shot (T121).
         if (args.Length >= 1 && args[0] == "--settings")
         {
+            if (!TrySampleProfiles(args, out List<ClaudeInfo>? settingsSample)) return;
             var previewApp = new System.Windows.Application();
             var page = new SettingsPage(Settings.Load(), _ => { }, PageArg(args),
-                SampleProfiles(args), args.Contains("--reveal"));
+                settingsSample, args.Contains("--reveal"));
             previewApp.Run(new PageWindow(page, L.T("settings.title"), 880, 600, 760, 560));
             return;
         }
@@ -351,7 +352,8 @@ internal static class Program
             // switch away from it would replace the very reading being looked at. `--sample` fills it from
             // `AccountFixture` instead, so this preview shows what `--capture-stats --sample` publishes
             // (T197) — the same rule, on the flag the eyeballing happens through.
-            if (SampleProfiles(args) is { } samplePicker)
+            if (!TrySampleProfiles(args, out List<ClaudeInfo>? statsSample)) return;
+            if (statsSample is { } samplePicker)
                 page.SetProfiles(samplePicker);
             else if (choice.Variant.Name.Length == 0)
                 page.SetProfiles(ClaudeAccount.Discover(Settings.Load().Profiles));
@@ -365,6 +367,7 @@ internal static class Program
         // the window's rectangle, so anything that steals focus or sits on top lands in the file.
         if (args.Length >= 2 && args[0] == "--capture-settings")
         {
+            if (!TrySampleProfiles(args, out List<ClaudeInfo>? captureSample)) return;
             string outPath = System.IO.Path.GetFullPath(args[1]);
             string? page = PageArg(args.Skip(1).ToArray());
             double scroll = ArgValue(args, "scroll") is { } s && double.TryParse(s, out double d) ? d : 0;
@@ -375,7 +378,7 @@ internal static class Program
                 ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
             };
             var settingsPage = new SettingsPage(Settings.Load(), _ => { }, page,
-                SampleProfiles(args), args.Contains("--reveal"));
+                captureSample, args.Contains("--reveal"));
             var win = new PageWindow(settingsPage, L.T("settings.title"), 880, 600, 760, 560)
             {
                 WindowStartupLocation = System.Windows.WindowStartupLocation.Manual,
@@ -423,17 +426,12 @@ internal static class Program
             // to keep a real name out of (T197). So it is filled from whatever the rest of the command is
             // about — `--sample` from `AccountFixture`, the default variant (the only one that *is* this
             // machine's reading) from discovery — and a synthetic variant on its own gets no picker.
-            bool sample = args.Contains("--sample");
-            List<ClaudeInfo>? pickerProfiles = sample
-                ? SampleProfiles(args)
-                : choice.Variant.Name.Length == 0 ? ClaudeAccount.Discover(Settings.Load().Profiles) : null;
-            // A fixture that failed to build must not fall back to discovery, which is the leak the whole
-            // task is about arriving through the error path instead of the happy one.
-            if (sample && pickerProfiles is null)
-            {
-                Environment.ExitCode = 1;
-                return;
-            }
+            // A fixture that failed to build must not fall back to discovery, which is the leak T197 is
+            // about arriving through the error path instead of the happy one — hence TrySampleProfiles.
+            if (!TrySampleProfiles(args, out List<ClaudeInfo>? pickerProfiles)) return;
+            pickerProfiles ??= choice.Variant.Name.Length == 0
+                ? ClaudeAccount.Discover(Settings.Load().Profiles)
+                : null;
 
             // `profile=<n>` renders the window as another profile (T128), so the switch path is captured
             // rather than only the picker sitting there. A **list** — `profile=1,0` — walks the picker
@@ -532,16 +530,41 @@ internal static class Program
     /// and a Team seat — read through the real <see cref="ClaudeAccount"/> path, so the System
     /// information page can be screenshotted without a real login on screen. Null without the flag,
     /// which is every non-preview run.
+    ///
+    /// <para><c>week=&lt;name&gt;</c> picks which stored week the personal profile gets (T200), which is
+    /// what decides the System page's extra-usage row; <see cref="AccountFixture.ResolveWeek"/> refuses a
+    /// name it does not know rather than building the default.</para>
     /// </summary>
     private static List<ClaudeInfo>? SampleProfiles(string[] args)
     {
         if (!args.Contains("--sample")) return null;
-        try { return AccountFixture.Build(DateTimeOffset.UtcNow.UtcDateTime); }
+        if (AccountFixture.ResolveWeek(ArgValue(args, "week")) is not { } week) return null;
+        try { return AccountFixture.Build(DateTimeOffset.UtcNow.UtcDateTime, week); }
         catch (Exception e)
         {
             Console.WriteLine("error building the sample account fixture: " + e.Message);
             return null;
         }
+    }
+
+    /// <summary>
+    /// <see cref="SampleProfiles"/>, plus the rule that makes it safe to call: when <c>--sample</c> was
+    /// asked for and could not be honoured, the run <b>stops</b> instead of continuing without it.
+    ///
+    /// <para>Every one of these previews renders this machine's real account when handed no fixture, so a
+    /// fixture that failed to build silently becomes the published-real-name leak the fixture exists to
+    /// prevent — reachable, before this guard, by a typo in <c>week=</c> (T200). Returns false having
+    /// already printed the reason and set a non-zero exit code.</para>
+    /// </summary>
+    private static bool TrySampleProfiles(string[] args, out List<ClaudeInfo>? profiles)
+    {
+        profiles = SampleProfiles(args);
+        if (profiles is null && args.Contains("--sample"))
+        {
+            Environment.ExitCode = 1;
+            return false;
+        }
+        return true;
     }
 
 

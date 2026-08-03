@@ -34,7 +34,6 @@
 >
 > Ordered by what can ship a defect to a user today, then by what misleads whoever builds here next.
 
-- 📋 **T200** (deps: T190 ✅) **One branch of the extra-usage row still cannot be shown** — The measured-zero reading needs extra usage enabled with nothing spent, and T190's fixture spends while the seat has the flag off, so 'Enabled — not in use' is rendered by nothing. → §XXI.4
 - 📋 **T201** (deps: —) **Two of the five interaction cases are described nowhere** — Panes and Names have no bullet in AGENTS.md's interaction section, so the two cases a single-profile machine can run are discoverable only by reading the script. → §XXI.5
 
 ## Block AG — The interaction check grew two cases, and nobody runs it

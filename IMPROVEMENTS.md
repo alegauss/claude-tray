@@ -476,29 +476,6 @@ the task, not by checking it.** The picker leak surfaced because a fixture captu
 enough to notice the name above the chart; the toast path because a file appeared in the repo root;
 the window mix-up because the wrong window came back.
 
-### XXI.4 The third branch of the same row
-
-`SettingsPage.System`'s extra-usage row has three branches. Absent — no stored reading, or one
-predating T179 — has always been on screen. T190 rendered the second: "Enabled — in use now (42%)",
-from a fixture week that spends past its included quota. The third, a **measured zero** reading
-"Enabled — not in use", still cannot be produced by anything.
-
-It needs a profile with extra usage enabled and nothing spent, and neither fixture profile is one:
-the personal account now carries a week that spends, and the Team seat has `hasExtraUsageEnabled =
-false`, so the row answers "Disabled" and never reaches the reading at all. That is T190's own
-shape, one branch along, and it is the branch that says the thing a worried user most wants to hear.
-
-Do not solve it by flipping the seat's flag. A seat with extra usage off is a real reading and the
-published `system-account.png` documents it; changing that to reach a branch would trade one
-unrendered state for another. Two options that do not: a third fixture profile — enabled, measured
-zero, no organization — which also gives the picker three entries and exercises a list longer than
-two; or a modifier on `--sample` that chooses which stored week the personal profile gets, the way
-`StatsPreviews`'s variants choose what the chart is fed.
-
-The second is smaller and composes with what T186 built. Whichever ships, the check is the same one
-T190 used: read the row at its rendered width, in English and in the longest translation, because
-"Enabled — not in use" is longer than the percentage form it replaces.
-
 ### XXI.5 Two cases the section does not mention
 
 `Check-Interaction.ps1` accepts `-Case Keyboard | Panes | Profiles | Menu | Names | All`, and its

@@ -230,6 +230,7 @@
 - **T197** — The Statistics picker is filled from whatever the command is about: --sample from AccountFixture, the default variant from this machine, and a synthetic variant on its own gets no picker — so a published fixture week carries no real account name, and profile= is refused where there is nothing to walk.
 - **T198** — The toast variants are one table both flags read, so an unknown name prints the catalogue instead of the early weekly reset, and --capture-toast requires its output path — with --render and --context-report moved under git-ignored docs\_preview\, no capture flag writes a file the caller never named.
 - **T199** — The screen-copy capture asserts that the handle, and the pixels sampled across its rectangle, belong to the process it launched — retrying the raise and refusing while another ClaudeTray window is open — and its success line names the window title and pid, so a wrong capture reports itself instead of being caught by a reader.
+- **T200** — week= beside --sample chooses which stored week the personal fixture profile gets, so all three extra-usage branches render — including the measured-zero 'Enabled — not in use' that nothing could produce — and a --sample that cannot be honoured now stops the run instead of quietly rendering this machine's real account.
 
 ## Block AF — Six surfaces shipped, and what nothing was checking
 
