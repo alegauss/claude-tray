@@ -360,6 +360,7 @@ internal static class Program
         if (args.Length >= 1 && args[0] == "--settings-tray")
         {
             ApplicationConfiguration.Initialize();
+            if (RefusedName(PageArg(args), SettingsPage.Pages, "settings page")) return;
             _ = new System.Windows.Application { ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown };
             WpfInputBridge.Install();
             var trayHosted = new PageWindow(
@@ -377,6 +378,7 @@ internal static class Program
         // does (see UI convention 7). `--main [Statistics|Context|Settings]` opens on a destination.
         if (args.Length >= 1 && args[0] == "--main")
         {
+            if (RefusedName(args.Length >= 2 ? args[1] : null, MainWindow.Destinations, "destination")) return;
             ApplicationConfiguration.Initialize();
             _ = new System.Windows.Application { ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown };
             WpfInputBridge.Install();
@@ -404,6 +406,7 @@ internal static class Program
         // opens with the holder unmasked — the pair behind the published System information shot (T121).
         if (args.Length >= 1 && args[0] == "--settings")
         {
+            if (RefusedName(PageArg(args), SettingsPage.Pages, "settings page")) return;
             if (!TrySampleProfiles(args, out List<ClaudeInfo>? settingsSample)) return;
             var previewApp = new System.Windows.Application();
             var page = new SettingsPage(Settings.Load(), (_, _) => { }, PageArg(args),
@@ -444,9 +447,12 @@ internal static class Program
         // the window's rectangle, so anything that steals focus or sits on top lands in the file.
         if (args.Length >= 2 && args[0] == "--capture-settings")
         {
+            string? page = PageArg(args.Skip(1).ToArray());
+            // First of all, and before the fixture is built: a name this build does not have would
+            // otherwise render General into the file the caller named and say `wrote` about it (T262).
+            if (RefusedName(page, SettingsPage.Pages, "settings page")) return;
             if (!TrySampleProfiles(args, out List<ClaudeInfo>? captureSample)) return;
             string outPath = System.IO.Path.GetFullPath(args[1]);
-            string? page = PageArg(args.Skip(1).ToArray());
 
             // Before anything is rendered or any file is created: the one page whose content IS an
             // account may not be written to a PNG off this machine's real login (T205).
@@ -617,6 +623,36 @@ internal static class Program
     /// them being read as a page name.</summary>
     private static string? PageArg(string[] args) =>
         args.Skip(1).FirstOrDefault(a => !a.StartsWith("--") && !a.Contains('='));
+
+    /// <summary>
+    /// Refuse a page or destination name this build does not have, printing what it does (T262) — the same
+    /// rule and the same shape as every other named token here: an unknown preview variant (T186), toast
+    /// (T198), <c>week=</c> (T200), <c>--sample-env</c> mode (T231), <c>--lang</c> code (T260).
+    ///
+    /// <para>This one was the last left guessing and the worst to have been: it is the only one that
+    /// <b>writes a file</b> while wrong. <c>--capture-settings &lt;out&gt; NoSuchPage --sample</c> printed
+    /// <c>wrote &lt;out&gt;</c>, exited 0, and left a picture of General under the name the caller chose,
+    /// with nothing in the output saying which page it was. <c>--main NoSuchDest</c> opened Statistics.</para>
+    ///
+    /// <para><c>null</c> - no name given at all - is not refused: naming nothing is a request for the
+    /// default, not a typo.</para>
+    /// </summary>
+    private static bool RefusedName(string? given, IReadOnlyList<string> known, string what)
+    {
+        if (given is null || known.Any(k => string.Equals(k, given, StringComparison.OrdinalIgnoreCase)))
+            return false;
+
+        // A WinExe's console starts on the OEM code page, which prints the dash below as '?' — the same
+        // reason ToastPreviews.PrintCatalog and the --lang refusal set this.
+        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected */ }
+        Console.WriteLine($"unknown {what} '{given}'. Refusing rather than opening the default one, which");
+        Console.WriteLine("is how a capture of the wrong page gets taken (T186, T198, T260 — same rule).");
+        Console.WriteLine();
+        Console.WriteLine($"{what}s:");
+        foreach (string k in known) Console.WriteLine("  " + k);
+        Environment.ExitCode = 1;
+        return true;
+    }
 
     /// <summary>
     /// The account fixture behind <c>--sample</c> (T121): two synthetic profiles — a personal Max 20x

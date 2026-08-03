@@ -168,6 +168,9 @@ internal static class SelfTestCli
         Section("map — every source file has a row, and every row a file (Block AJ)");
         FileMap();
 
+        Section("names — a page or destination this build does not have is refused (Block AI)");
+        PageNames();
+
         Section("read-out — a scan that could not start exits 1 (Block I)");
         ReadOutExit();
 
@@ -2097,6 +2100,63 @@ internal static class SelfTestCli
                               .OrderBy(f => f, StringComparer.Ordinal).ToArray();
         Check("and every folder it names is still there", gone.Length == 0,
               $"{string.Join(", ", gone)} — a placement rule for a folder that no longer exists");
+    }
+
+    /// <summary>
+    /// T262. The last named token in this app that guessed. <c>--capture-settings &lt;out&gt; NoSuchPage
+    /// --sample</c> wrote a picture of <em>General</em> under the name the caller gave, printed
+    /// <c>wrote</c> and exited 0; <c>--main NoSuchDest</c> opened Statistics. Both measured before the fix.
+    ///
+    /// <para>Swept over <see cref="SettingsPage.Pages"/> and <see cref="MainWindow.Destinations"/>
+    /// themselves, so a page or destination added later is covered by having been added — and in both
+    /// directions, since a resolver that resolved nothing would satisfy the refusal half and break every
+    /// flag that names one.</para>
+    ///
+    /// <para>The <b>sidebar's own tags are the other end of it</b>: the page names are what
+    /// <c>Nav_Click</c> reads off a clicked item, so a name here that the XAML does not carry would select
+    /// nothing at all. Asserted against the markup rather than against a second list.</para>
+    /// </summary>
+    private static void PageNames()
+    {
+        foreach ((string what, string[] known, Func<string?, string?> resolve) in
+                 new (string, string[], Func<string?, string?>)[]
+                 {
+                     ("settings page", SettingsPage.Pages, SettingsPage.Resolve),
+                     ("destination", MainWindow.Destinations, MainWindow.Resolve),
+                 })
+        {
+            Check($"every {what} this build has resolves ({known.Length})",
+                  known.All(k => resolve(k) == k),
+                  string.Join(", ", known.Where(k => resolve(k) != k)));
+
+            Check($"and it resolves however it was typed — a {what} is not case-sensitive",
+                  known.All(k => resolve(k.ToUpperInvariant()) == k && resolve(k.ToLowerInvariant()) == k));
+
+            foreach (string bad in new[] { "NoSuchPage", "Genera", "Sistema", "" })
+                Check($"'{bad}' is no {what}, so it resolves to nothing rather than the first one",
+                      resolve(bad) is null);
+
+            Check($"and naming no {what} at all is not a refusal — it is a request for the default",
+                  resolve(null) is null);
+        }
+
+        // The names are only worth anything if the sidebar answers to them.
+        Repo("every settings page name is a tag the sidebar carries", PageTags, "src/Ui/SettingsPage.xaml");
+    }
+
+    private static void PageTags(string root)
+    {
+        string xaml = File.ReadAllText(Path.Combine(root, "src/Ui/SettingsPage.xaml"));
+        string[] tags = Regex.Matches(xaml, @"Tag=""([A-Za-z]+)""").Select(m => m.Groups[1].Value)
+                             .Distinct(StringComparer.Ordinal).ToArray();
+
+        if (!Check("the settings markup is readable", tags.Length >= 6,
+                   $"{tags.Length} Tag= values — the check cannot read what it compares"))
+            return;
+
+        string[] missing = SettingsPage.Pages.Where(p => !tags.Contains(p, StringComparer.Ordinal)).ToArray();
+        Check($"every page name is a sidebar tag ({SettingsPage.Pages.Length})", missing.Length == 0,
+              $"{string.Join(", ", missing)} — nameable on the command line, and the sidebar selects nothing");
     }
 
     /// <summary>

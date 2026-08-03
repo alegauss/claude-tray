@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T262** (deps: —) **A page name the app does not know captures a different page under the name the caller gave** — capture-settings with an unknown page wrote General and exited 0, and main with an unknown destination opened Statistics - the last silent default, after five flags learned to refuse. → §XX.27
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization

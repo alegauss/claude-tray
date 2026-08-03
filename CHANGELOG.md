@@ -51,7 +51,7 @@
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
-| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
+| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 
 ## Block A — Foundation (tray, icon, API, projection)
@@ -576,6 +576,7 @@
 - **T258** — Every process the script starts goes through one launcher that remembers it, and a finally over the whole run stops whatever a case did not - named, because a tray left behind is a lock on the next build and that is a reading about the run. And the consequence the leak had is now its own reading: an -Exe older than the newest source under src is Unchecked, so a run that would report on the build BEFORE the edit comes out DEGRADED saying which file and when, instead of passing about code that is not in the tree. That is word for word what T236 refuses by flag, arrived at by accident.
 - **T259** — The five scripts carrying prose now carry a UTF-8 mark, so PowerShell 5.1 reads them as written instead of in the ANSI code page - where a dash inside a string arrives as a smart quote that closes it and the script does not parse at all. The rule is a check rather than a memory, and it is stated as the property and not as the fix: ASCII, or marked, which accepts a pure-ASCII script needing nothing and rejects the state that produced the defect - five of six files, every one with prose in it and none of them marked.
 - **T260** — A code this build does not ship is refused with the catalogue and exit 1, and so is the flag with no code after it - the same rule and the same shape as --sample-env ten lines below it, which has always had it. It is the flag the i18n verification loop rests on, so falling through to the machine language meant a capture of the wrong one under the name the caller gave, with nothing saying so. Matched exactly, so EN and pt_BR are refusals; auto is accepted, because asking for the OS language out loud is a request. The setting is untouched: an unknown saved preference still falls back, which is what IsValidPreference guards.
+- **T262** — A page or destination name this build does not have prints the ones it does and exits 1, at all four entry points that read one - so a capture no longer lands a picture of General under the name the caller chose while saying wrote about it, and the file is not created at all. Naming nothing still opens the default, because that is a request and not a typo. The names are declared once each and the checks sweep those declarations in both directions, plus the other end nobody had asserted: every page name is a tag the sidebar actually carries, or it would select nothing.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

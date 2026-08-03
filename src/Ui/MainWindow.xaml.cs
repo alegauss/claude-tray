@@ -25,6 +25,16 @@ internal partial class MainWindow : Window
     internal const string DestContext = "Context";
     internal const string DestSettings = "Settings";
 
+    /// <summary>The three destinations, in nav-strip order — derived from the constants above rather than
+    /// spelled a second time, so <c>--main</c> can refuse a name that is none of them (T262) instead of
+    /// opening Statistics in silence, which is what <see cref="Navigate"/>'s default arm did for it.</summary>
+    internal static readonly string[] Destinations = { DestStatistics, DestContext, DestSettings };
+
+    /// <summary>The canonical spelling of a destination, or null when there is no such one.</summary>
+    internal static string? Resolve(string? name) =>
+        name is null ? null
+        : Array.Find(Destinations, d => string.Equals(d, name, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>The live settings, read at the moment a settings page is built — never a snapshot taken
     /// when the window opened, which is how a menu pick made while the page sat open used to be written
     /// back over (T141, T155).</summary>

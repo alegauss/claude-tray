@@ -121,20 +121,29 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
         LoadProfiles();
         LoadSystemInfo();
 
-        SelectPage(initialPage switch
-        {
-            not null when string.Equals(initialPage, "About", StringComparison.OrdinalIgnoreCase) => "About",
-            not null when string.Equals(initialPage, "System", StringComparison.OrdinalIgnoreCase) => "System",
-            not null when string.Equals(initialPage, "Notifications", StringComparison.OrdinalIgnoreCase) => "Notifications",
-            not null when string.Equals(initialPage, "Display", StringComparison.OrdinalIgnoreCase) => "Display",
-            not null when string.Equals(initialPage, "ClaudeCode", StringComparison.OrdinalIgnoreCase) => "ClaudeCode",
-            _ => "General",
-        });
+        SelectPage(Resolve(initialPage) ?? "General");
         // …and again once the page is inside a window, because that is where the theme's brushes live:
         // a page built before it is shown resolves none of them (see SelectPage), so the highlight the
         // constructor's pass could not paint lands here.
         Loaded += (_, _) => SelectPage(_page);
     }
+
+    /// <summary>
+    /// The six sidebar pages, in the order the sidebar shows them, and the one place their names are
+    /// written (T262). The constructor used to carry them as a <c>switch</c> ending in
+    /// <c>_ =&gt; "General"</c>, so a name nothing here is called selected General in silence — and
+    /// <c>--capture-settings &lt;out&gt; NoSuchPage</c> then wrote a picture of General under the name the
+    /// caller gave, printed <c>wrote</c>, and exited 0.
+    /// </summary>
+    internal static readonly string[] Pages =
+        { "General", "Display", "ClaudeCode", "Notifications", "System", "About" };
+
+    /// <summary>The canonical spelling of a page name, or null when nothing here is called that. The
+    /// <em>flag</em> is what refuses (see <c>Program.RefusedName</c>); the page itself still falls back,
+    /// because a window that throws over a bad argument is a worse answer than one that opens.</summary>
+    internal static string? Resolve(string? name) =>
+        name is null ? null
+        : Array.Find(Pages, p => string.Equals(p, name, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>The sidebar page currently shown — re-applied on Loaded, see the constructor.</summary>
     private string _page = "General";

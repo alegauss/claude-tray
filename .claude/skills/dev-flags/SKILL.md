@@ -27,6 +27,11 @@ Three different hosts, and the difference matters — see UI convention 7 in AGE
 
 ```
 --main [dest]                         # the WHOLE window as the tray opens it: nav strip + destination
+                                      #   Statistics | Context | Settings, matched case-insensitively.
+                                      #   A name that is none of them prints the three and exits 1
+                                      #   (T262); naming none opens Statistics, which is not a typo.
+                                      #   The same refusal guards the [page] of --settings, --settings-
+                                      #   tray and --capture-settings, out of the six the sidebar has.
                                       #   (Statistics | Context | Settings), under the WinForms pump the
                                       #   tray uses. Use this to look at the shell.
 --settings [page]                     # just the Settings page, no nav strip, under a WPF pump. Any page
