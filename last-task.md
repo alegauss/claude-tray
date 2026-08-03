@@ -1,11 +1,11 @@
-# Block letter register — next is `AG`
+# Block letter register — next is `AH`
 
 > ⚠ **This file is no longer the task-number counter.** `roadkeep next-id` derives the next free
 > `T<n>` from `ROADMAP.md`, `CHANGELOG.md` and `AGENTS.md` themselves, and `roadkeep add` mints it —
 > so there is nothing here to bump and nothing that can drift. Do not re-add a counter line.
 >
-> **Next block letter — `AG`** (Block **AF** = Six surfaces shipped, and what nothing was checking;
-> created 2026-08-02). Block letters are the one thing roadkeep does not derive.
+> **Next block letter — `AH`** (Block **AG** = The interaction check grew two cases, and nobody runs
+> it; created 2026-08-02). Block letters are the one thing roadkeep does not derive.
 > Z was the last single letter, so the scheme continues **AA, AB, …** —
 > two letters, same ordering, and `CHANGELOG.md`'s table sorts them after Z. Nothing in the docs parses
 > a block letter, so this costs a wider column and nothing else.
@@ -174,6 +174,16 @@
   the one that redirected the whole investigation: **a spinner verifies the click, and what needs
   verifying is the result** — the first theory here was a race, and the race was measured at 87 ms while
   the real gap was three minutes of a write that never happened. Its design section is **§XVI**.
+- Block **AG** (T192–T196, created 2026-08-02) is the **read-back of Block AD**, opened in the same
+  session that closed it: five things found by building or running `-Case Panes` and `-Case Names`, none
+  of them reported by anybody and none a Block AD task. A block of its own rather than a Block AD second
+  pass because AD is closed and its §XVII pruned, and because the theme has moved — AD was *can the
+  window be read*, AG is *can the thing that reads it be trusted, and does anyone run it*. Its design
+  section is **§XX** (§XVII was retired with Block AD; §XIX belongs to Block AF). Two of its five are the
+  same shape as T169 and T176 arriving a third time: a check that is green while it has stopped
+  asserting — an id lookup with two candidates, and a fallback route that turns an assertion into a note.
+  Worth stating as the rule that keeps recurring: **an assertion that can be skipped must make the skip
+  cost the run**, not an Info line.
 - Block **AD** (T175–T178, created 2026-08-02) is the **read-back of Block AA**, and specifically of the
   half-hour in which the Statistics window was, for the first time, *read* rather than photographed. A
   block of its own because the theme is not profiles: it is that every verification loop this repo had was

@@ -19,6 +19,7 @@
 | [§XVI](#xvi--the-tray-reports-the-switch-it-performed-not-the-switch-the-machine-got-block-ac) | The tray reports the switch it performed, not the switch the machine got (Block AC) |
 | [§XVIII](#xviii--extra-usage-is-money-and-the-tray-is-asleep-for-it-block-ae) | Extra usage is money, and the tray is asleep for it (Block AE) |
 | [§XIX](#xix--six-surfaces-shipped-and-what-nothing-was-checking-block-af) | Six surfaces shipped, and what nothing was checking (Block AF) |
+| [§XX](#xx--the-interaction-check-grew-two-cases-and-nobody-runs-it-block-ag) | The interaction check grew two cases, and nobody runs it (Block AG) |
 
 > Block I's design sections (§II), Block J's (§IV), Block V's (§XII), Block Z's (§XIII), Block AA's
 > (§XIV) and Block AD's (§XVII) are gone: every one of them shipped, and `git log` plus
@@ -536,3 +537,101 @@ map with holes is worse than a long one, because it is read as complete.
 raising it. The file's own §I.5 list, the release process and the flag catalogue are all candidates
 to move or compress — the flag list in particular is a reference, consulted rather than read, and
 reference material is what a per-turn budget is least willing to pay for.
+
+## §XX — The interaction check grew two cases, and nobody runs it (Block AG)
+
+Block AD doubled what `Check-Interaction.ps1` asserts: `-Case Panes` and `-Case Names` are new, T166's
+timing moved out of a scratch file, and the timed-out read now says what it last saw. Five cases,
+roughly a thousand lines, and this file remains the only thing in the repository that reads the
+*running* UI. Everything below was found by building or running those cases, and none of it was
+reported by anybody.
+
+Two shapes recur. The first is a check that stays green after it has stopped asserting: an id lookup
+with two candidates that picks by tree order (§XX.1), and a fallback route that turns an assertion into
+a note (§XX.2). Both are T169's defect — a check that does not run — wearing a passing tick instead of
+a skip. The second is the cost of a loop a person has to remember: a full run launches the app five
+times, three of them for the same read-only window (§XX.4), and nothing runs any of it automatically
+even though the case that caught T135 needs no credentials at all (§XX.3). §XX.5 is the coverage the
+row rule actually has, which is three controls of the thirty-odd it now governs.
+
+### XX.1 Two ProfileCombos, and the check that reads the right one by luck
+
+`ById $win 'ProfileCombo'` has two candidates in `--main`: the Statistics page's picker and the one
+on the Settings page's Claude Code panel. `FindFirst` returns whichever the tree reaches first, so
+which control a check drives depends on which destinations have been built — and a page is built on
+its first visit and then kept collapsed, so the answer changes with the route a run took.
+
+Nothing is wrong today, and that is the defect: `-Case Names` reads the Statistics picker *before*
+it navigates to Settings, and a comment saying so is the whole guarantee. `-Case Profiles` is safe
+only because it never leaves Statistics. The first case that visits Settings and then looks the
+picker up by id will silently drive the other control and go on passing.
+
+Sharing an id is wrong on its own terms too — an automation id is a control's identity, and anything
+scripting the window has the same ambiguity a check does. Give each its own, update the lookups, and
+state the rule: an `x:Name` here is unique across the window, not per page.
+
+### XX.2 The fallback route quietly un-asserts the switch-back timing
+
+`Combo-Select` tries `SelectionItemPattern.Select()` and falls back to arrow keys on a focused
+closed ComboBox. The fallback is deliberate — a dead UIA path would otherwise report a red build for
+a defect in the script — and T177's status-line observation is wired to the UIA route only, because
+the keyboard route walks the selection through every index on the way and each intermediate stop is
+a switch of its own.
+
+So the timing assertion is written to say *not checked* when the route was the fallback. That is
+honest, and it is also the exact shape T169 and T176 both name: on the day `Select()` starts
+throwing, the check reports a pass on everything else and drops T166 silently, in an Info line
+nobody reads.
+
+Two candidate answers. Make the keyboard route reach the target in one hop, so the observation is
+valid on both paths — `Home`/`End` plus a known count, or typing the label. Or keep the fallback and
+make the downgrade loud: count assertions that did not run and refuse to print `OK - every
+interaction check passed` when any did not.
+
+### XX.3 The one case CI could run, and does not
+
+`check.yml` builds and runs `--selftest` on `windows-latest`. It runs no interaction case at all, so
+the loop that exists because T135 survived every screenshot ever taken depends on a person choosing
+to run it.
+
+Three of the five cases genuinely cannot go there: `Panes`, `Profiles` and `Names` need a rendered
+report, which needs credentials and this machine's transcripts. `Menu` needs the notification area.
+`Keyboard` needs none of it — it launches `--settings-tray`, clicks a sidebar item, types into a
+TextBox, Tabs, and drives a Slider with an arrow key, all against an unconfigured install.
+
+What has to be true for it to work on a runner: a desktop session exists (it does on the hosted
+Windows images), the synthesised input reaches a window on a headless-but-present desktop, and the
+run is bounded so a hang fails rather than burns the job. Worth measuring before committing to it —
+and if the input does not arrive, that answer is itself worth writing down where the next person
+will find it.
+
+### XX.4 Three cases, one window, five launches
+
+Each case is self-contained by design — any one can be run alone, and `-UseRunning` aside, each owns
+the process it drives. That was right at two cases. At five it means `-Case All` pays the launch,
+the first WPF layout pass and the wait for the first poll three times over for the *same* `--main`
+window, and each of those waits is seconds, not milliseconds.
+
+`Panes` and `Names` are strictly read-only: one reads numbers out of the tree, the other reads
+accessible names. `Profiles` drives the picker, which changes what is on screen but leaves the
+window in a state either of the others would accept. So one launch could serve all three.
+
+The constraint to keep is that a case must still be runnable alone — the value of `-Case Names` is
+partly that it is ten seconds when a name is what you changed. So this is a shared-window helper the
+cases opt into when several run together, not a merge of the three into one.
+
+### XX.5 The row rule's real coverage is one panel of six
+
+`SettingsRow` gives its trailing control the row's header as an accessible name unless the control
+already announces something. That rule now applies to every row on all six settings panels, and the
+check reads three controls on one of them.
+
+Two branches matter and neither is asserted. The one that must *not* fire: a row holding a field and
+a labelled Button beside it — `DirectoryBox` with `Browse…`, or the profile row with a ComboBox and
+two buttons — where the field takes the header and each button keeps its own text. Getting that
+wrong gives three controls the same name, which is worse for a screen reader than one unnamed. And
+the nesting branch: a StackPanel inside a StackPanel, which the walk handles and nothing exercises.
+
+Cheap to close: navigate the settings sidebar and assert per row rather than per named control,
+driving the panel list the page itself declares so a new panel is covered by existing code. The
+stated skip when a panel does not open belongs here too.

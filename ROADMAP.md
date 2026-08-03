@@ -24,6 +24,22 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
+## Block AG — The interaction check grew two cases, and nobody runs it
+
+> Block AD doubled what `Check-Interaction.ps1` asserts, and every item here came out of building or
+> running those cases rather than out of planning them: one is a latent id collision the new case only
+> avoids by the order it reads in, two are ways a check can quietly stop asserting, and two are the cost
+> of a loop that a person has to remember.
+> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XX.
+>
+> Ordered by what can make a green run meaningless, then by what keeps the loop being run at all.
+
+- 📋 **T192** (deps: —) **Two controls in one window carry the same automation id, so an id lookup picks by tree order** — The Statistics picker and the Settings one are both `ProfileCombo`, and the only reason the new name check reads the right one is that it reads before navigating. → §XX.1
+- 📋 **T193** (deps: —) **A picker route that stops working turns an assertion into a note, and the run stays green** — T177's timing is observed only along `Combo-Select`'s UIA route, and the keyboard fallback exists precisely because that route can die. → §XX.2
+- 📋 **T194** (deps: —) **The check that caught the keyboard being dead in every window runs only when somebody remembers** — `-Case Keyboard` drives `--settings-tray`, which needs no credentials and no report, and CI runs `--selftest` alone on a runner that has a desktop. → §XX.3
+- 📋 **T195** (deps: —) **A full interaction run launches the app five times, three of them for the same read-only window** — `Panes`, `Profiles` and `Names` each start `--main`, wait out its first layout and first poll, and kill it, although none of them changes anything the next would see. → §XX.4
+- 📋 **T196** (deps: —) **The row rule now governs thirty-odd controls and is asserted on three of them** — `-Case Names` reads one ComboBox, one switch and one Slider on the Settings page's General panel, and five of its six panels are never visited. → §XX.5
+
 ## Block AF — Six surfaces shipped, and what nothing was checking
 
 > Everything Block AE built came out of one session, and the recurring experience was that the tool
