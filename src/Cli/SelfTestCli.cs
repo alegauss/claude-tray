@@ -147,6 +147,9 @@ internal static class SelfTestCli
         Section("effective — which profile the environment selects (Block AC)");
         EffectiveProfile();
 
+        Section("probe — what the flag was asked to do, before it does any of it (Block AI)");
+        ProbePlanning();
+
         Section("glyphs — every card's emoji is in the font the card names (Block E)");
         ToastGlyphs();
 
@@ -2836,6 +2839,76 @@ internal static class SelfTestCli
             .First(p => p.Key == "stats.methodNote.thin");
         Check("the thin preview is short of its own bar",
               thinPart.Args is ["2.1", "3"], string.Join(" of ", thinPart.Args));
+    }
+
+    // ---------------------------------------------------------------- Block AI: what --probe was asked
+
+    /// <summary>
+    /// T245. <c>--probe --recorded</c> promises to make no call and <c>--probe --live --recorded</c>
+    /// promises to refuse rather than silently pick a half. Both were rules held up by whoever last ran the
+    /// flag by hand — the shape T186 and T198 already made assertable for the previews, and quieter than
+    /// theirs: a <c>--recorded</c> that made a call prints what it prints now plus one block, and the only
+    /// evidence is a request spent against the account the flag exists to stop spending against.
+    ///
+    /// <para><see cref="ProbeCli.Plan"/> is what made it assertable. The four outcomes are swept over every
+    /// combination of the three switches rather than listed, so the table cannot go stale, and both
+    /// directions are asserted: <c>--recorded</c> never yields a reading, and its absence always does.</para>
+    ///
+    /// <para><b>Where this stops, stated rather than implied.</b> The plan is pure, so what is held here is
+    /// the <em>decision</em>. That the run honours it rests on the single <c>if</c> in front of the one
+    /// call site — which is the reason the decision was pulled out of the method at all. Driving the run
+    /// itself would read a real profile's stores, which this suite does not do.</para>
+    /// </summary>
+    private static void ProbePlanning()
+    {
+        foreach (bool live in new[] { false, true })
+            foreach (bool recorded in new[] { false, true })
+                foreach (bool all in new[] { false, true })
+                {
+                    var args = new List<string>();
+                    if (live) args.Add("--live");
+                    if (recorded) args.Add("--recorded");
+                    if (all) args.Add("--all");
+                    string said = args.Count == 0 ? "(no switches)" : string.Join(" ", args);
+
+                    ProbeCli.ProbePlan p = ProbeCli.Plan(args);
+
+                    if (live && recorded)
+                    {
+                        Check($"{said}: refused, and a refusal does neither half",
+                              p.Refused && !p.ReadLog && !p.TakeReading,
+                              $"refused={p.Refused} readLog={p.ReadLog} takeReading={p.TakeReading}");
+                        Check($"{said}: the refusal says what to pass instead",
+                              (p.Refusal ?? "").Contains("--live") && (p.Refusal ?? "").Contains("--recorded"),
+                              p.Refusal ?? "<none>");
+                        continue;
+                    }
+
+                    Check($"{said}: reads the log unless --live, takes a reading unless --recorded",
+                          !p.Refused && p.ReadLog == !live && p.TakeReading == !recorded,
+                          $"refused={p.Refused} readLog={p.ReadLog} takeReading={p.TakeReading}");
+                    Check($"{said}: --all is carried through untouched", p.AllProfiles == all);
+                }
+
+        // The promise itself, over the whole sweep rather than one row of it: nothing carrying --recorded
+        // may come back asking for a reading, however it was spelled or ordered.
+        string[][] spellings =
+        {
+            new[] { "--recorded" },
+            new[] { "--recorded", "--all" },
+            new[] { "--all", "--recorded" },
+            new[] { "--RECORDED" },
+            new[] { "--recorded", "--live" },
+            new[] { "--live", "--recorded" },
+        };
+        string[] spends = spellings.Where(s => ProbeCli.Plan(s).TakeReading)
+                                   .Select(s => string.Join(" ", s)).ToArray();
+        Check($"no spelling of --recorded asks for a live call ({spellings.Length})", spends.Length == 0,
+              $"{string.Join("; ", spends)} — the one thing this flag exists to promise");
+
+        // And the opposite, or the check above is satisfied by a plan that never calls at all.
+        Check("while the bare flag does take one",
+              ProbeCli.Plan(Array.Empty<string>()) is { TakeReading: true, ReadLog: true, Refused: false });
     }
 
     // ---------------------------------------------------------------- Block E: the cards' glyphs

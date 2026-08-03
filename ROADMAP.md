@@ -63,7 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T245** (deps: —) **The probe's refusal and its no-call path are asserted by nobody** — T226 made --recorded the half that spends nothing and --live beside it a refusal, and both are held up by whoever last ran the flag - the shape T186 and T198 already check. → §XX.20
 - 📋 **T248** (deps: —) **A check that scans the sources reads its own prose as if it were code** — The flag check found a switch nothing accepts because a doc comment quotes the shape it matches, and stripping every // to end of line truncates any line whose string holds one. → §XX.21
 
 ## Block AJ — Working here — the repo's own docs and flags

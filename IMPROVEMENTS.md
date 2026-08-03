@@ -216,28 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.20 A read-out flag whose whole promise is that it does nothing
-
-`--probe --recorded` promises to make no call, and `--probe --live --recorded` promises to refuse
-rather than silently pick a half. Both are rules, and both are held up today by whoever last ran the
-flag by hand.
-
-That is a shape this repository has already decided is worth a check. T186 and T198 assert that a
-preview flag refuses an unknown variant rather than rendering the default, because the failure is
-silent: a screenshot of the wrong thing looks exactly like a screenshot of the right one. The
-failure here is quieter still. A `--recorded` that made a call would print what it prints now with
-one extra block, and the only evidence would be a request spent against the very account the flag
-exists to stop spending against.
-
-The refusal is pure and can be asserted directly once the argument decision is separable from the
-run — today they are one method, and the first thing it does after the guard is load the settings
-file. Splitting the decision out is most of the work and is worth doing for its own sake: what
-`--probe` does with `--live`, `--recorded`, `--all` and with none of them is four outcomes decided
-by three booleans, and not one of them is a value anything can currently look at.
-
-Whether the no-call promise itself can be asserted without a seam in front of the network is the
-open part.
-
 ### XX.21 The scanner and the paragraph describing it
 
 T243's check reads every `"--x"` literal under `src\` and holds the catalogue to it. Its first run

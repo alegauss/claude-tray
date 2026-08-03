@@ -568,6 +568,7 @@
 - **T239** — A tray launched with --second-tray reads normally and persists nothing - no store append, no cache, no settings save, and its environment reconcile lands on a sampled copy - asserted over the whole of %LocalAppData%\ClaudeTray.
 - **T240** — The check always launches with --second-tray, so whether a tray was resident a second ago decides nothing: the flag is free when the mutex is, the icon tag and the observer promise are unconditional, and the race that blamed the menu for a tray that never started is gone with the branch.
 - **T241** — The check fingerprints the whole of %LocalAppData%\ClaudeTray around the trays it launches, so a writer nobody listed is caught by the directory rather than by a list of methods - and because the check's own writes always show, no change observed is a sound pass even beside a resident tray.
+- **T245** — What --probe was asked to do is a value now - ProbePlan, decided from the arguments and nothing else - so both rules the flag carries are asserted instead of being held up by whoever last ran it: --recorded takes no reading, and --live --recorded refuses without doing either half. Swept over all eight combinations of the three switches rather than tabulated, in both directions, plus six spellings and casings of --recorded that must none of them ask for a call. Where it stops is stated: the plan is pure, so the run honouring it rests on the single if in front of the one call site, which is why the decision came out of the method at all.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

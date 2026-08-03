@@ -31,16 +31,57 @@ namespace ClaudeTray;
 /// </summary>
 internal static class ProbeCli
 {
-    public static async Task<int> RunAsync(string[] args)
+    /// <summary>
+    /// What <c>--probe</c> was asked to do, decided from the arguments and nothing else (T245).
+    ///
+    /// <para>Four outcomes out of three switches, and until this existed not one of them was a value
+    /// anything could look at: the decision was inlined at the top of a method whose next act is to load
+    /// the settings file, so both rules the flag carries — <c>--recorded</c> spends nothing,
+    /// <c>--live --recorded</c> refuses rather than silently picking a half — were held up by whoever last
+    /// ran it by hand. That is the shape T186 and T198 already made assertable for the preview flags, and
+    /// the failure here is quieter than theirs: a <c>--recorded</c> that made a call prints exactly what it
+    /// prints now plus one block, and the only evidence is a request spent against the account the flag
+    /// exists to stop spending against.</para>
+    ///
+    /// <para><b>Where the assertion stops.</b> This is pure, so what a check can hold is the decision:
+    /// no argument list carrying <c>--recorded</c> yields <see cref="TakeReading"/>. That the run then
+    /// honours it rests on the one <c>if</c> guarding the only call site below — a line, rather than a
+    /// promise spread through a method.</para>
+    /// </summary>
+    /// <param name="Refusal">Why the arguments were refused, or null. A refusal reads nothing and takes
+    /// nothing: the two halves it was handed are opposites and no precedence between them is obvious.</param>
+    internal readonly record struct ProbePlan(bool ReadLog, bool TakeReading, bool AllProfiles, string? Refusal)
     {
-        bool liveOnly = args.Contains("--live");
-        bool recordedOnly = args.Contains("--recorded");
-        bool all = args.Contains("--all");
+        public bool Refused => Refusal is not null;
+    }
+
+    /// <summary>The plan for one argument list. Order-insensitive, and unknown arguments are ignored —
+    /// this flag takes no positional value, so there is nothing an unknown token could be mistaken for.</summary>
+    internal static ProbePlan Plan(IEnumerable<string> args)
+    {
+        var given = new HashSet<string>(args, StringComparer.OrdinalIgnoreCase);
+        bool liveOnly = given.Contains("--live");
+        bool recordedOnly = given.Contains("--recorded");
+        bool all = given.Contains("--all");
 
         if (liveOnly && recordedOnly)
+            return new ProbePlan(ReadLog: false, TakeReading: false, AllProfiles: all,
+                Refusal: "--live and --recorded are opposite halves of this command: --live skips reading\n"
+                         + "the log, --recorded skips taking a reading. Pass one, or neither for both halves.");
+
+        return new ProbePlan(ReadLog: !liveOnly, TakeReading: !recordedOnly, AllProfiles: all, Refusal: null);
+    }
+
+    public static async Task<int> RunAsync(string[] args)
+    {
+        ProbePlan plan = Plan(args);
+        bool liveOnly = !plan.ReadLog;
+        bool recordedOnly = !plan.TakeReading;
+        bool all = plan.AllProfiles;
+
+        if (plan.Refusal is { } refusal)
         {
-            Console.WriteLine("--live and --recorded are opposite halves of this command: --live skips reading");
-            Console.WriteLine("the log, --recorded skips taking a reading. Pass one, or neither for both halves.");
+            Console.WriteLine(refusal);
             return 1;
         }
 
@@ -89,10 +130,11 @@ internal static class ProbeCli
             Spread(spread, indent: "   ", live: all && !recordedOnly ? target.Label ?? targetKey : null);
         }
 
-        if (recordedOnly)
+        // The one guard in front of the only call this command can make, and the whole of what
+        // `TakeReading` means (T245). Said out loud where the live block would have been: silence here
+        // would read exactly like a call that returned nothing.
+        if (!plan.TakeReading)
         {
-            // The whole point of the flag, said where the live block would have been: silence here would
-            // read exactly like a call that returned nothing.
             Console.WriteLine("== recorded only — no live call was made, so nothing was spent and nothing filed.");
             Console.WriteLine("   Drop --recorded for a reading of right now, which is also filed.");
             return 0;
