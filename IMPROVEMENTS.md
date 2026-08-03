@@ -216,6 +216,29 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
+### XX.28 The screenshot nobody can re-take
+
+Found while regenerating the published captures for T263, which changed what every date on that
+chart reads like. Three of the four re-took cleanly with the documented command. The fourth did not:
+`docs/statistics-overage.png` shows `actual usage - even pace - projection - extra usage (right-hand
+scale)`, and `--capture-stats <base> overage --sample` and `--capture-stats <base> overage` both
+produce the same chart with three legend entries and no right-hand scale. Same size, same layout,
+one legend entry short.
+
+So the state T183 published is one nothing in the catalogue reproduces. It was not overwritten with
+a picture of a different state, which leaves the repository with a published screenshot whose day
+dividers still read 3/8 for 3 August - the defect T263 fixed everywhere it could re-take.
+
+This is the gap next to T250, which asserts that every image either surface points at exists and
+that every screenshot in `docs/` is shown by one of them. Existing is not the same as being
+reproducible, and a screenshot nobody can re-take is one that silently ages past whatever it
+documents - which is exactly the argument T214 made for `--capture-tooltip` when `docs/tooltip.png`
+had gone a release out of date.
+
+Two things to find out, in order: which flag combination or reading actually produces the overage
+series on that chart, and then whether a capture whose command is not recoverable should be a red
+build the way an absent image already is.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
