@@ -515,3 +515,116 @@ definition of a rule held up by whoever next hovers an icon.
 Assert the interesting cases once extracted: that the profile label survives when the projection
 cannot, that the compact form is chosen rather than the line dropped whenever it fits, that no
 composed tooltip in any of the five languages exceeds 127 characters before `Truncate` sees it.
+
+### XX.14 A capture that succeeds and shows nothing
+
+Verifying T170 cost three captures and a full-screen grab before the cause was visible, and none of
+the three failed. The script reported success and named the right window each time; the PNG simply
+did not contain the note the flag exists to show.
+
+Two causes, both general. A `Popup` is its own top-level window, so it is **not inside the rectangle
+the script copies** unless it happens to overlap it — and it closes on its own: `StaysOpen="False"`
+is right for a person (click anywhere and the note goes away) and fatal for a capture, because the
+script brings the window to the foreground, the popup loses mouse capture and is gone before the
+copy. T170 worked around the second by having the preview set `StaysOpen = true` on that one popup.
+Nothing stops the next popup preview from rediscovering both.
+
+The gap is one level up, and it is what makes this a task rather than another workaround: **nothing
+notices that a capture is missing the thing it was taken for.** T199 taught the script to verify
+*whose* window it copied, which is why the failure was silent rather than wrong — it honestly
+reported a correct copy of a window with no popup in it. A flag that names a surface should assert
+that surface is in the pixels; the honest version is the flag telling the script what it drew.
+
+Worth settling in the same pass: whether preview flags hold every popup open by construction rather
+than one call site at a time, and whether a popup belongs to `Capture-Window.ps1` at all or to a
+variant that copies the whole virtual desktop and crops — which is what actually produced the
+evidence here.
+
+### XX.15 What a skip should cost in CI
+
+T169 removed the cause of the one skip that fired on every CI run and made the rest legible: the summary
+now prints each skip by name, beside the counts. It left the policy open on purpose — "whether CI should
+**fail** on an unexpected skip is a judgement to make with the list in hand" — and the list now exists.
+
+What is true today: `--selftest` exits 0 with any number of skips, and `check.yml` reads only the
+exit code. A green run and a green run that checked two fewer things are the same colour, which is
+precisely the shape T169 called a check that does not exist, moved from one guard to the whole
+suite.
+
+The blunt fix is wrong. Two of the skips here are legitimately conditional on the machine and the
+moment — `Pacing` skips a flat-profile case the synthetic data cannot always produce, and one probe
+guard survives for a temp path that genuinely cannot be encoded — so failing on any skip makes the
+suite flaky, and a flaky suite gets ignored, which costs more coverage than the skips did.
+
+What is worth designing is the middle: an **expected** set, so an unexpected skip is red and a known
+one is not. The cheap form is a count (`--max-skips`), a number nobody maintains; the better one
+names them, the way `AutomationIds`' driven-id list is named, so a skip that stops happening is as
+visible as one that starts. Either way CI should report the names, not just the count.
+
+And where the judgement lands: a skip that is *always* expected on CI is a check CI does not have,
+and the honest response is to say so rather than to allow it quietly.
+
+## XXI Numbers in prose — one convention, or a stated split (Block G)
+
+Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
+them. What files here is the rule that picks a convention, and the check that holds every surface to
+it.
+
+### XXI.1 Two conventions, and no rule that picks one
+
+T167 settled the question for one window and, in settling it, showed the app answers it both ways.
+Grepped over every surface that puts a number in a sentence:
+
+- **Invariant** — `StatisticsPage` (through `Num`), `SettingsPage.General`'s four projections,
+  `TokenEstimate.Format`.
+- **`L.Culture`** — `ContextPage.Gauge` and `ContextPage.xaml.cs` (per-request cost, scan elapsed),
+  `ContextText` (every file size), `TrayContext`'s context toast, and `SettingsPage.System`'s
+  extra-usage percentage.
+
+So on a pt-BR machine the Statistics window says `4.7` and the Context page says `0,336` — each
+right by its own file's rule, and the app has none. Not a translation bug: the strings are correct
+in five languages.
+
+Two things make it a task rather than a sweep. **Which convention is not obvious**, and T167's
+reasoning does not settle it: invariant won there because twelve neighbouring formatters already
+were, and because a published chart screenshot has to mean the same thing anywhere. Neither argument
+reaches a file size in a sentence of Portuguese prose, where a reader has better claim to a decimal
+comma than a screenshot has to portability — and `L.Culture` is already what the dates use. The
+likely answer is not "invariant everywhere" but a stated split: **invariant for anything read
+against a chart or published, `L.Culture` for prose**, written down once so a new call site has
+somewhere to look.
+
+And the check reaches one page. `--selftest` runs `StatisticsPage`'s twelve formatters under two
+cultures; the surfaces above are swept by nothing, so whichever rule is chosen is held up by nobody.
+That sweep already derives its formatters by reflection, so pointing it at more types is most of the
+work; the rest is deciding what it may find.
+
+## XXII Working here — what earns a byte of AGENTS.md (Block AJ)
+
+AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
+displaces something, and nothing records which rules have earned the bytes they cost.
+
+### XXII.1 What earns a byte of a file read every turn
+
+Hit while shipping T169. Its rule belongs in `AGENTS.md` — a skip that fires every run is a check
+that does not exist — and writing it took the file to 41,612 bytes against a 41,000 budget. The rule
+went in at three drafts instead of one, and the bytes were found by deleting a sentence duplicated
+between the file map and the *Arithmetic verification* section. That deletion was free. The next one
+will not be.
+
+The budget is right and is not the problem: the file is loaded every turn, and roadkeep enforcing it is
+the only reason anyone noticed. The problem is what a full budget does to the incentive. The file is
+**zero-sum**, so every new rule is a negotiation against an old one, and nothing records which rules have
+earned their bytes. The cheapest thing to cut is whatever the editor has not needed lately, which is a
+worse selector than "what has caused a defect".
+
+Two candidates the block turned up. **Reference material is still in here**: the `src/` file map is
+the largest section and reads like a table of contents, while T191 already moved the flag catalogue
+out to `dev-flags` for that reason. And several rules carry their whole discovery story where the
+rule alone would do.
+
+What would settle it is a stated test for what stays: a rule earns its bytes if getting it wrong has
+produced a defect **and** the rule cannot be asserted in `--selftest` instead. T167's
+number-convention rule is now a check, not a paragraph; T192's id-uniqueness rule is a check. That
+test predicts a smaller file, and it says which paragraphs go to a skill rather than which ones go
+away.
