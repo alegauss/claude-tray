@@ -401,25 +401,6 @@ checking it.** The capture crash surfaced because a directory happened not to ex
 divergence because a chart's numbers looked wrong; the colour collision because the same hex was typed
 twice in one afternoon. A verification loop nobody exercises is indistinguishable from one that passes.
 
-### XIX.6 The branch that shipped unseen
-
-T182 appends to the System page's extra-usage row whether the allowance is *in use* — "Enabled — in
-use now (42%)" — read from the profile's own stored history rather than a live call.
-
-Only the empty branch has ever been rendered. Showing the percentage needs a profile whose
-`usage-history.jsonl` carries an overage figure, and there is none: this machine's accounts are
-`org_level_disabled`, and the work profile's history predates the field, so it takes the null path.
-`AccountFixture` builds two config directories and no stores at all, so `--settings System --sample`
-cannot reach it either.
-
-The layout risk is small — the string is about as long as the token-expiry value in the row three
-below it — and small is not the same as checked. This repository's own rule is that a UI change is
-not done without a screenshot, and this branch has none.
-
-What it actually asks for is the missing half of `AccountFixture`: a fixture that writes a short
-`usage-history.jsonl` for the profile it invents. That unlocks this row, and also gives `--stats` a
-deterministic overage series without the `PreviewDemoOverage` seam T183 had to add to the page.
-
 ### XIX.7 A map at its ceiling
 
 `AGENTS.md` carries a declared budget — 400 lines, 42,000 bytes — and sits at exactly 400. Block AE

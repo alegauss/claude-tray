@@ -44,7 +44,52 @@ internal static class AccountFixture
 
         var found = new List<ClaudeInfo> { ClaudeAccount.Read(personal), ClaudeAccount.Read(work) };
         found[0].IsDefault = true;
+        WriteHistory(found[0], nowUtc);
         return found;
+    }
+
+    /// <summary>
+    /// A week of stored readings for the personal profile, which is the missing half of this fixture
+    /// (T190): the System page's extra-usage row says whether the allowance is *in use* by reading the
+    /// profile's own <c>usage-history.jsonl</c>, and with no store to read it always took the absent path.
+    /// The branch that shows a percentage — "Enabled — in use now (42%)" — had therefore never been
+    /// rendered, on a page whose whole reason for having a fixture is that it gets published.
+    ///
+    /// <para>The series is also the store's own <c>absent ≠ zero</c> rule (T179) made visible: it runs from
+    /// readings carrying no overage figure at all, through one measured zero, to a figure that climbs. So a
+    /// chart drawn from it shows a second series that starts where the measurements start, not a floor
+    /// along the bottom of the week.</para>
+    ///
+    /// <para>Written by <see cref="UsageHistory.Append"/> itself, for the same reason the config dirs are
+    /// read back through <see cref="ClaudeAccount.Read(string)"/>: a fixture that formats the lines itself
+    /// is a second implementation of the format, free to drift from the one that matters. It lands under
+    /// the fixture profile's own key — a hash of an invented account uuid — so no real profile's series is
+    /// touched, and it is cleared first so a rebuild is a rewrite rather than a longer week.</para>
+    /// </summary>
+    private static void WriteHistory(ClaudeInfo personal, DateTime nowUtc)
+    {
+        string key = ProfileStore.KeyFor(personal);
+        UsageHistory.Clear(key);
+
+        long now = new DateTimeOffset(nowUtc, TimeSpan.Zero).ToUnixTimeSeconds();
+        long reset7d = now + 3 * 86400;         // 4 days of the week gone, 3 to go
+        long reset5h = now + 2 * 3600;
+
+        // A week that spent its included quota and kept working. `null` for the readings before the
+        // account was ever past its limit, because that is what the API sent: no figure, not a zero.
+        (double hoursAgo, double u7, double u5, double? extra)[] week =
+        {
+            (96, 0.10, 0.20, null),
+            (72, 0.28, 0.55, null),
+            (48, 0.51, 0.30, null),
+            (24, 0.78, 0.62, null),
+            (8,  0.96, 0.44, 0.0),              // measured, and nothing spent past the quota yet
+            (3,  1.00, 0.58, 0.18),             // the quota is gone; the overage clock starts
+            (0,  1.00, 0.72, 0.42),             // what the row reports: in use now, at 42%
+        };
+        foreach ((double hoursAgo, double u7, double u5, double? extra) in week)
+            UsageHistory.Append(key, now - (long)(hoursAgo * 3600), u5, reset5h, u7, reset7d,
+                                extra, extra is null ? 0 : reset7d);
     }
 
     /// <summary>A personal Max 20x subscription: no organization, so the org row collapses.</summary>

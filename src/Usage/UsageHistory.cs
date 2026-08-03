@@ -43,6 +43,15 @@ internal static class UsageHistory
     private static string FilePath(string profileKey) =>
         ProfileStore.PathFor(profileKey, "usage-history.jsonl");
 
+    /// <summary>Drop a profile's whole series, so a fixture can write a deterministic one with
+    /// <see cref="Append"/> rather than a private copy of the line format (T190). Only ever called for an
+    /// invented profile — <see cref="AccountFixture"/>'s — whose key is a hash of an invented account uuid
+    /// and so cannot be a real login's.</summary>
+    internal static void Clear(string profileKey)
+    {
+        try { File.Delete(FilePath(profileKey)); } catch { /* a fixture rebuild is best-effort too */ }
+    }
+
     /// <summary>Append one reading. Best-effort; prunes stale lines lazily.</summary>
     /// <param name="extraUtil">The overage utilization, or null when this response carried none. Null
     /// omits the field entirely rather than writing a zero — see <see cref="UsageSample"/>.</param>

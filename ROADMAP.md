@@ -50,7 +50,6 @@
 >
 > Ordered by what can ship a defect to a user today, then by what misleads whoever builds here next.
 
-- 📋 **T190** (deps: —) **The Settings row that reports extra usage in use has never been rendered** — It needs a profile carrying an overage reading and no fixture builds one, so the only branch of that row which shows a percentage shipped unseen. → §XIX.6
 - 📋 **T191** (deps: —) **AGENTS.md is at its line budget, so this block's new files and flags are on no map** — The budget is a ceiling meant to come down and the file sits at 400 of 400, so the repo's own map silently omits whatever ships next. → §XIX.7
 
 ## Block AE — Extra usage is money, and the tray is asleep for it
