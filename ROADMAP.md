@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T238** (deps: —) **The fixture built so an assertion could run is not used by any run that does not name it** — The environment mark is still NOT CHECKED on every unattended run, because -SampleEnv is offered rather than driven - so T231's fixture and T230's assertion never meet unless somebody types it. → §XX.17
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 - 💭 **T219** (deps: —) **The turn budget is full, so a new rule is paid for by deleting an old one nobody ranked** — Writing T169's rule took AGENTS.md 612 bytes over, and the bytes came back from a sentence that happened to be duplicated — a selector that runs out before the next rule does. → §XXII.1

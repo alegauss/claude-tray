@@ -216,8 +216,11 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   unknown one prints the catalogue and exits 1. Sampling is one-way
                                       #   for the process — that is what makes "writes nothing" true — and
                                       #   `--profiles` says out loud that it is answering off a fixture.
-                                      #   `Check-Interaction.ps1 -SampleEnv <mode>` drives the tray and the
-                                      #   read-out with the same mode; it is refused with -UseRunning.
+                                      #   `Check-Interaction.ps1 -Case Menu` SWEEPS `other` and `outside`
+                                      #   on its own, one tray each, so T172's mark and line are asserted
+                                      #   with no flag typed (T238) — a fixture nothing routine reaches is
+                                      #   coverage nobody has. `-SampleEnv <mode>` pins the run to one
+                                      #   instead; both it and the sweep are refused with -UseRunning.
 ```
 
 ## Adding a flag

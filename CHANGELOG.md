@@ -554,6 +554,7 @@
 - **T235** — The panel list is derived from lang\en.json by name rather than from whichever table -Lang happened to load, and a list that resolves to nothing fails the run instead of being walked in zero steps - 6 panels and 23 row controls now checked under a non-English -Lang where 0 were.
 - **T236** — -UseRunning compares the resident binary to -Exe by version and, when those agree, by build time, so driving a tray that is not the build under test comes out DEGRADED instead of clean.
 - **T237** — --second-tray runs a tray beside the resident one, so the menu case launches the build under -Exe instead of refusing - the check covering the menu is runnable on the machine it is developed on, without quitting the app.
+- **T238** — The Menu case sweeps the sampled environments itself, one tray per mode, so T172's mark and its outside-the-profiles line are asserted on a run with no flag typed instead of waiting for somebody to remember one.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

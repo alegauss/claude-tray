@@ -216,30 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.17 An assertion nothing routine reaches is coverage nobody has
-
-T231 built `--sample-env` so the environment mark could be looked at on a machine that agrees with
-itself, and T230's check asserts it. Run the suite with no flags — which is what `check.yml` does
-and what anybody debugging runs — and the line is still *"the environment mark on a profile entry
-(T172) NOT CHECKED"*. The fixture exists, the assertion exists, and nothing brings them together
-unless a person remembers `-SampleEnv other` and types it.
-
-That is most of the way back to where the task started. The reason T231 was filed was that T172 had
-shipped without its interesting state ever being rendered; an assertion that is Unchecked on every
-unattended run has the same coverage as no assertion, and now carries a green tick's worth of
-reassurance on top.
-
-The move is for the Menu case to drive the fixture itself rather than offer it: after the ordinary
-pass against the real environment, relaunch on `--sample-env other` and assert the mark, then on
-`outside` and assert the line. Both are cheap — the tray launch is the cost, and the case already
-pays it once.
-
-Two things to settle. `-SampleEnv` given explicitly should still pin the whole run to one mode, or a
-person looking at one state loses it to the sweep. And `other` is refused on a one-profile machine,
-which is CI: that arm stays `Unchecked` there with the reason it already prints, so the sweep must
-not turn a legitimate absence into a failure — which is the same rule the profile picker's
-two-profile skip follows.
-
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of

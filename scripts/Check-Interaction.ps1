@@ -227,7 +227,11 @@ function Head($msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
 #>
 function Unchecked($what, $why) {
     Write-Host "[----] $what NOT CHECKED - $why" -ForegroundColor Yellow
-    $script:Unchecked += $what
+    # Deduped by name in the SUMMARY only: the line above is printed every time, because where an
+    # assertion did not run is part of the reading. The tally is a list of what is not covered, and the
+    # environment sweep walks one submenu per mode (T238), so an assertion absent in all of them was
+    # being counted three times and reading as three holes.
+    if ($script:Unchecked -notcontains $what) { $script:Unchecked += $what }
 }
 
 # ---------------------------------------------------------------- UIA helpers
@@ -1518,15 +1522,20 @@ function Expand-Item($menu, $label, $attempts = 3) {
   them - the auto-follow probe alone can repoint the icon between two reads, and then the count and the
   check mark are being compared against two different states. The prose is hardcoded English in
   ProfilesCli, so it is read in English whatever language the menu is rendered in.
+
+  Cached PER environment, because the sweep below drives several (T238). `$script:EnvArgs` is the one
+  variable that decides both what the tray is launched with and what this is read with, so the two
+  cannot be given different modes - which is the whole reason the expectations are derived at all.
 #>
-$script:ProfilesOut = $null
+$script:ProfilesOut = @{}
 function Profiles-ReadOut {
-    if ($null -eq $script:ProfilesOut) {
-        # The same --sample-env the tray was launched with, or the expectations would describe the real
-        # environment while the menu renders a sampled one (T231).
-        $script:ProfilesOut = & $Exe "--lang" "en" @script:EnvArgs "--profiles" 2>&1 | Out-String
+    # The same --sample-env the tray was launched with, or the expectations would describe the real
+    # environment while the menu renders a sampled one (T231).
+    $key = ($script:EnvArgs -join ' ')
+    if (-not $script:ProfilesOut.ContainsKey($key)) {
+        $script:ProfilesOut[$key] = & $Exe "--lang" "en" @script:EnvArgs "--profiles" 2>&1 | Out-String
     }
-    return $script:ProfilesOut
+    return $script:ProfilesOut[$key]
 }
 
 <# What the app itself says the menu should contain, so the check has something to be wrong about. #>
@@ -1670,9 +1679,17 @@ function Assert-ProfileSubmenu($subs) {
     # on the icon. Nothing to assert while they agree - which is the state this machine is always in, and
     # the gap T231 names.
     if ($want.EnvAgrees) {
-        Unchecked "the environment mark on a profile entry (T172)" `
-                  ("the environment and the icon both select '$($want.Icon)' here, so the mark this " +
-                   "asserts is not rendered - it needs a machine, or a fixture, where they differ (T231)")
+        if ($script:EnvSweepWillRun) {
+            # Covered a moment later on the fixture, so calling it Unchecked here would be a hole in the
+            # tally that is not one - and a DEGRADED exit code the run does not deserve (T238). Said as
+            # Info rather than passed over: the mark genuinely is not rendered in THIS environment.
+            Info ("the environment and the icon both select '$($want.Icon)' here, so no mark is drawn - " +
+                  "the fixture sweep below is what asserts it (T172)")
+        } else {
+            Unchecked "the environment mark on a profile entry (T172)" `
+                      ("the environment and the icon both select '$($want.Icon)' here, so the mark this " +
+                       "asserts is not rendered - re-run without -SampleEnv/-UseRunning for the sweep (T238)")
+        }
     } elseif ($want.EnvOutside) {
         # The label is a format string; only the part before {0} is fixed text to match on.
         $stem = ((Label 'menu.profileEnvOutside') -split '\{0\}')[0].TrimEnd()
@@ -1688,6 +1705,50 @@ function Assert-ProfileSubmenu($subs) {
         } else {
             Fail "the environment selects '$($want.Env)' but its entry carries no '$envMark' mark (T172)"
         }
+    }
+}
+
+<#
+  A tray of our own, launched from `-Exe` and carrying whatever `$script:EnvArgs` currently says (T237).
+
+  Beside a resident one when there is one. This used to be `Unchecked` and a sentence asking the
+  developer to quit their app - which, on a machine where the tray is meant to be resident, is every
+  run: the case covering the menu was the one nobody could point at the build they had just compiled.
+
+  Not the move T202 refused. That was IMPLYING `-UseRunning`, which silently swaps the binary under test
+  for whatever was already there; this launches `-Exe`, the binary the caller named, so the ambiguity
+  T236 exists to catch cannot arise. What it does add is a second icon, which is why the tray tags its
+  tooltip and why the returned pattern is narrowed to it.
+
+  Returns the process and the pattern that finds ITS icon, or null with the reason in
+  `$script:TrayStartError`.
+#>
+$script:TrayStartError = $null
+function Start-CheckTray {
+    $running = @(Get-Process -Name ClaudeTray -ErrorAction SilentlyContinue)
+    $second = $running.Count -gt 0
+    if ($second) {
+        Info ("a ClaudeTray is already running (pid $($running[0].Id)); launching -Exe beside it " +
+              "with --second-tray rather than refusing (T237)")
+    }
+    $proc = Start-App ("--lang $Lang $($script:EnvArgs -join ' ')" + $(if ($second) { " --second-tray" }))
+    Start-Sleep -Milliseconds 1500
+    $proc.Refresh()
+    # A launch that died anyway. Without --second-tray that is the mutex, which is the precondition T202
+    # named; with it, the tray refused for some other reason - a --sample-env mode this machine cannot
+    # produce is the one that actually happens - and the run has nothing to check.
+    if ($proc.HasExited) {
+        $script:TrayStartError = "the tray exited immediately after launch" +
+            $(if ($second) { " even with --second-tray" } else { " - a single instance was already held" }) +
+            $(if ($script:EnvArgs.Count) { " (launched with $($script:EnvArgs -join ' '))" })
+        return $null
+    }
+    return [pscustomobject]@{
+        Proc = $proc
+        # Unanchored on purpose: the shell's accessible name for an icon is the name it was REGISTERED
+        # with followed by the current tooltip ("Claude Code - connecting... [check] Profile: ..."), so
+        # anchoring to the start matches the tooltip the tray had at startup and never the live one.
+        IconPattern = if ($second) { '\[check\]' } else { 'Claude Code' }
     }
 }
 
@@ -1748,36 +1809,14 @@ function Invoke-MenuCase {
         Info "matching labels against $($script:LangCode), by $($tray.From) - -Lang cannot reach a running tray"
     }
     else {
-        # T237: a tray beside the resident one, when there is a resident one. This used to be `Unchecked`
-        # and a sentence asking the developer to quit their app - which, on a machine where the tray is
-        # meant to be resident, is every run. The case covering the menu is the one with the most tasks
-        # filed against it, and it was the one nobody could run against the build they had just compiled.
-        #
-        # Not the same move T202 refused. That was IMPLYING -UseRunning, which silently swaps the binary
-        # under test for whatever was already there; this launches -Exe, the binary the caller named, and
-        # the ambiguity T236 exists to catch cannot arise. What is added instead is a second icon, so the
-        # tray tags its tooltip and the pattern below is narrowed to it.
-        $second = $running.Count -gt 0
-        if ($second) {
-            Info ("a ClaudeTray is already running (pid $($running[0].Id)); launching -Exe beside it " +
-                  "with --second-tray rather than refusing (T237)")
-        }
-        # Unanchored on purpose: the shell's accessible name for an icon is the name it was REGISTERED
-        # with followed by the current tooltip ("Claude Code - connecting... [check] Profile: ..."), so
-        # anchoring to the start matches the tooltip the tray had at startup and never the live one.
-        if ($second) { $iconPattern = '\[check\]' }
-        $proc = Start-App ("--lang $Lang $($script:EnvArgs -join ' ')" + $(if ($second) { " --second-tray" }))
-        $ownProcess = $true
-        Start-Sleep -Milliseconds 1500
-        $proc.Refresh()
-        # A launch that died anyway. Without --second-tray that is the mutex, which is the precondition
-        # T202 named; with it, the tray refused for some other reason and the run has nothing to check.
-        if ($proc.HasExited) {
-            Unchecked "the tray icon's menu (T137, T148, T158)" `
-                ("the tray exited immediately after launch" +
-                 $(if ($second) { " even with --second-tray" } else { " - a single instance was already held" }))
+        $tray = Start-CheckTray
+        if (-not $tray) {
+            Unchecked "the tray icon's menu (T137, T148, T158)" $script:TrayStartError
             return
         }
+        $proc = $tray.Proc
+        $iconPattern = $tray.IconPattern
+        $ownProcess = $true
     }
 
     try {
@@ -1929,6 +1968,77 @@ function Invoke-MenuCase {
     }
 }
 
+<#
+  The environment states this machine is never in, driven rather than offered (T238).
+
+  T231 built `--sample-env` so T172's mark could be rendered, and T230 wrote the assertion for it. An
+  unattended run reached neither: the mark stayed `NOT CHECKED` unless somebody remembered to type
+  `-SampleEnv`, which is most of the way back to the gap those two tasks were filed to close. An
+  assertion nothing routine reaches is coverage nobody has, with a green tick's worth of reassurance on
+  top of it.
+
+  So the modes are swept here, one tray each. `agrees` is deliberately not swept: it is the state the
+  ordinary pass above already ran in, and paying a launch to see it twice buys nothing.
+#>
+function Invoke-EnvFixtureSweep {
+    if ($SampleEnv) {
+        Info "-SampleEnv $SampleEnv pins this run to one mode, so the sweep is the run itself (T238)"
+        return
+    }
+    if ($UseRunning) {
+        # Launching our own tray here would contradict the flag: the caller asked for the resident one,
+        # and a sampled environment is a launch argument no resident tray was given (T231).
+        Unchecked "the environment states behind --sample-env (T172, T238)" `
+                  "-UseRunning asked for the resident tray, and the fixture only reaches a launched one"
+        return
+    }
+
+    Head "Environment fixture - the states CLAUDE_CONFIG_DIR is never in here (T231, T238)"
+    $saved = $script:EnvArgs
+    try {
+        foreach ($mode in @('other', 'outside')) {
+            $script:EnvArgs = @('--sample-env', $mode)
+
+            # `other` needs a second profile for the variable to name, and inventing one would put the
+            # menu in a state it cannot reach - EnvironmentFixture refuses it rather than pretend. That
+            # refusal is a legitimate absence on a one-profile machine, which is what CI is, so it is
+            # Unchecked and never a failure: the same rule the profile picker's two-profile skip follows.
+            if ($mode -eq 'other' -and (Expected-ProfileCount) -lt 2) {
+                Unchecked "the environment mark on a profile entry (T172, --sample-env other)" `
+                          "one profile here, so the variable has no second profile to name"
+                continue
+            }
+
+            $tray = Start-CheckTray
+            if (-not $tray) {
+                Unchecked "the Profile submenu on --sample-env $mode (T172)" $script:TrayStartError
+                continue
+            }
+            try {
+                $menu = Open-TrayMenu $tray.IconPattern $tray.Proc.Id
+                if (-not $menu) { Fail "the tray menu never opened on --sample-env $mode"; continue }
+                $profSubs = Expand-Item $menu (Label 'menu.profiles')
+                if (-not $profSubs) {
+                    Fail "'$(Label 'menu.profiles')' did not expand on --sample-env $mode"
+                    continue
+                }
+                Info "--sample-env $mode :"
+                foreach ($s in $profSubs) { Info "- $($s.Current.Name)" }
+                # The whole submenu, not just the environment arm: a sampled variable moves what the
+                # check mark and the toggles are supposed to say too, and asserting only the mark would
+                # let the fixture certify a submenu that is wrong everywhere else.
+                Assert-ProfileSubmenu $profSubs
+            }
+            finally {
+                [Native]::Key($VK_ESC); [Native]::Key($VK_ESC)
+                if (-not $tray.Proc.HasExited) { $tray.Proc.Kill() }
+                Start-Sleep -Milliseconds 500
+            }
+        }
+    }
+    finally { $script:EnvArgs = $saved }
+}
+
 # ---------------------------------------------------------------- run
 
 Write-Host "Check-Interaction - $Exe (lang $Lang)" -ForegroundColor White
@@ -1937,6 +2047,11 @@ Write-Host "Check-Interaction - $Exe (lang $Lang)" -ForegroundColor White
 # own when run alone. Opted into for the whole invocation rather than decided per case, so `Release-Main`
 # has one rule to follow and no case has to know which others are running.
 $script:ShareMain = ($Case -eq 'All')
+
+# Whether the fixture sweep is going to run (T238), decided once and here rather than by each assertion
+# guessing: the submenu walk reports the environment mark differently when something downstream is about
+# to cover it. Same conditions Invoke-EnvFixtureSweep returns early on.
+$script:EnvSweepWillRun = ($Case -in @('All', 'Menu')) -and -not $SampleEnv -and -not $UseRunning
 
 if ($Case -in @('All', 'Keyboard')) { Invoke-KeyboardCase }
 if ($Case -in @('All', 'Panes'))    { Invoke-PanesCase }
@@ -1947,7 +2062,7 @@ if ($Case -in @('All', 'Names'))    { Invoke-NamesCase }
 # now shared across three cases this is the single place it gets closed. `Close-Main` waits for the exit,
 # because a still-dying `--main` looks like the tray to it.
 Close-Main
-if ($Case -in @('All', 'Menu'))     { Invoke-MenuCase }
+if ($Case -in @('All', 'Menu'))     { Invoke-MenuCase; Invoke-EnvFixtureSweep }
 
 if ($script:MainAcquires -gt 0) {
     Info "$($script:MainAcquires) case(s) drove --main on $($script:MainLaunches) launch(es)"
