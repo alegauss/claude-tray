@@ -23,7 +23,7 @@
 | [D](#block-d--auth--api-resilience) | Auth & API resilience |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
-| [G](#block-g--localization) | Localization (active — see ROADMAP) |
+| [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
 | [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
@@ -138,6 +138,7 @@
 - **T59** — Embedded JSON language resources for five languages: `en`, `pt-BR`, `pt-PT`, `fr`, `es`. (`efd5acf`)
 - **T60** — Language selection in Settings (`auto` = follow the OS) with a restart prompt, since localized strings resolve when a window is parsed. (`304b9ca`)
 - **T216** — Numbers are invariant everywhere and dates follow the display language, stated once in Nums and named into L.DateCulture; the split between chart and prose was refused because one context row carries a size beside a token estimate, so wherever its line fell it cut through a sentence. The format sweep now runs every static formatter on all six surfaces, not twelve on one page.
+- **T263** — A date takes the order of its fields from the culture and not from a pattern in the source, through Dates - the other half of the rule Nums states for numbers. The Statistics axis put the month first in French, where all four non-English cultures put the day first, and its day dividers read 3/8 for 3 August to an American whose short date is month-first, on the chart the published screenshots are of. Checked over every shipped language against that culture own MonthDayPattern and ShortDatePattern, with the precondition that they disagree, so the sweep is not vacuous. The three published stats captures are regenerated.
 
 ## Block H — Tray display options
 

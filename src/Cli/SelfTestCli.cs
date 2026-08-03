@@ -168,6 +168,9 @@ internal static class SelfTestCli
         Section("map — every source file has a row, and every row a file (Block AJ)");
         FileMap();
 
+        Section("dates — the fields are in the order the culture puts them (Block G)");
+        DateOrder();
+
         Section("names — a page or destination this build does not have is refused (Block AI)");
         PageNames();
 
@@ -2100,6 +2103,76 @@ internal static class SelfTestCli
                               .OrderBy(f => f, StringComparer.Ordinal).ToArray();
         Check("and every folder it names is still there", gone.Length == 0,
               $"{string.Join(", ", gone)} — a placement rule for a folder that no longer exists");
+    }
+
+    /// <summary>
+    /// T263. A date's <b>order</b> comes from the culture, not from a pattern written in the source. It did
+    /// not: <c>"MMM d"</c> rendered <em>"août 3"</em> in French — where all four non-English cultures put
+    /// the day first — and <c>"d/M"</c> rendered <c>3/8</c> to an American, whose short date is <c>M/d</c>,
+    /// on the very chart the published screenshots are of.
+    ///
+    /// <para><b>Asserted against each culture's own patterns</b>, over every language this build ships, so
+    /// a language added later is covered by having been added. The claim is the one §XXX.1 named: whichever
+    /// of day and month comes first in what the page renders is the one that comes first in that culture's
+    /// <c>MonthDayPattern</c> — read off the rendered string by where the two numbers land, which is what
+    /// makes this a check about output rather than about the pattern the code happens to hold.</para>
+    ///
+    /// <para>T167's number sweep cannot reach this and was never meant to: it varies
+    /// <c>CurrentCulture</c> and demands the answer not move, while a date is the one thing that must.</para>
+    /// </summary>
+    private static void DateOrder()
+    {
+        System.Globalization.CultureInfo before = System.Globalization.CultureInfo.CurrentCulture;
+        string beforeLang = L.Codes.FirstOrDefault(c => L.Resolve(c) == L.Current) ?? "en";
+        try
+        {
+            // A day and a month that cannot be confused for each other, or "3/8" and "8/3" read the same.
+            var when = new DateTime(2026, 8, 23, 16, 26, 0);
+            foreach (string code in L.Codes)
+            {
+                L.Apply(code);
+                var culture = L.DateCulture;
+                bool monthFirstInCulture =
+                    culture.DateTimeFormat.MonthDayPattern.IndexOf('M', StringComparison.Ordinal)
+                    < culture.DateTimeFormat.MonthDayPattern.IndexOf('d', StringComparison.Ordinal);
+
+                string named = Dates.MonthDay(when);
+                bool monthFirstAsRendered = named.IndexOf("23", StringComparison.Ordinal) > 0;
+                Check($"{code}: the named month sits where this culture puts it ('{named}')",
+                      monthFirstAsRendered == monthFirstInCulture,
+                      $"culture wants month-first={monthFirstInCulture}, rendered '{named}'");
+
+                string digits = Dates.DayMonthDigits(when);
+                bool monthFirstInShort =
+                    culture.DateTimeFormat.ShortDatePattern.IndexOf('M', StringComparison.Ordinal)
+                    < culture.DateTimeFormat.ShortDatePattern.IndexOf('d', StringComparison.Ordinal);
+                Check($"{code}: and so do the digits ('{digits}')",
+                      digits.StartsWith(monthFirstInShort ? "8" : "23", StringComparison.Ordinal),
+                      $"short date is '{culture.DateTimeFormat.ShortDatePattern}', rendered '{digits}'");
+
+                Check($"{code}: both fields are actually there",
+                      named.Contains("23", StringComparison.Ordinal)
+                      && digits.Contains("23", StringComparison.Ordinal)
+                      && digits.Contains('8', StringComparison.Ordinal), $"'{named}' / '{digits}'");
+            }
+
+            // The precondition: if every shipped culture agreed on the order, the sweep above would pass
+            // over a hardcoded pattern too and prove nothing.
+            string[] orders = L.Codes.Select(c =>
+            {
+                L.Apply(c);
+                return L.DateCulture.DateTimeFormat.MonthDayPattern.IndexOf('M', StringComparison.Ordinal)
+                       < L.DateCulture.DateTimeFormat.MonthDayPattern.IndexOf('d', StringComparison.Ordinal)
+                           ? "month" : "day";
+            }).Distinct(StringComparer.Ordinal).ToArray();
+            Check("the shipped languages disagree about the order — so the sweep above is not vacuous",
+                  orders.Length > 1, $"all of them put the {orders.FirstOrDefault()} first");
+        }
+        finally
+        {
+            L.Apply(beforeLang);
+            System.Globalization.CultureInfo.CurrentCulture = before;
+        }
     }
 
     /// <summary>

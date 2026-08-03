@@ -164,9 +164,12 @@ internal partial class StatisticsPage
                 });
                 // Date of the division, centered under its line on the bottom axis — unless it would
                 // overlap the start/reset labels sharing that strip.
-                double dw = MeasureText(day.ToString("d/M", DateFmt), 9);
+                // Measured and drawn from one string, and that string in the culture's own field order:
+                // "d/M" everywhere read 3/8 for 3 August to an American, whose short date is M/d (T263).
+                string dayLabel = Dates.DayMonthDigits(day);
+                double dw = MeasureText(dayLabel, 9);
                 if (x - dw / 2 < startRight + 4 || x + dw / 2 > resetLeft - 4) continue;
-                var dl = new TextBlock { Text = day.ToString("d/M", DateFmt), FontSize = 9, Foreground = axisFg };
+                var dl = new TextBlock { Text = dayLabel, FontSize = 9, Foreground = axisFg };
                 Canvas.SetLeft(dl, x - dw / 2);
                 Canvas.SetTop(dl, top + ph + 4);
                 c.Children.Add(dl);

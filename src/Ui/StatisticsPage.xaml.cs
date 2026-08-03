@@ -385,7 +385,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
 
     private void Render(PaceReport r)
     {
-        ComputedText.Text = L.T("stats.updated", r.ComputedLocal.ToString("MMM d, HH:mm", DateFmt));
+        ComputedText.Text = L.T("stats.updated", Dates.MonthDayTime(r.ComputedLocal));
 
         if (r.Error != null)
         {

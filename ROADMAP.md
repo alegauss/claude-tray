@@ -67,8 +67,6 @@
 
 ## Block G — Localization
 
-- 📋 **T263** (deps: —) **The month name is translated and the order around it is not, so a French axis reads August 3** — The month-day pattern puts the month first in French and Portuguese, where all four non-English cultures want the day first, and the numeric one renders 3/8 to an American reader. → §XXX.1
-
 ## Block D — Auth & API resilience
 
 ## Block N — System information — your plan, your install, this machine

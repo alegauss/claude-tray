@@ -74,23 +74,24 @@ internal partial class StatisticsPage
         return true;
     }
 
+    // Through Dates, not a pattern written here: a custom pattern pins the ORDER of the fields while the
+    // culture supplies only the words, which is how this line read "début août 3" in French (T263).
     private static string LocalTime(double unix)
     {
         if (unix <= 0) return "—";
-        DateTime local = DateTimeOffset.FromUnixTimeSeconds((long)unix).LocalDateTime;
-        return local.ToString("MMM d, HH:mm", DateFmt);
+        return Dates.MonthDayTime(DateTimeOffset.FromUnixTimeSeconds((long)unix).LocalDateTime);
     }
 
     // Clock time for a label drawn inside the plot, where space is tight: just "18:40" in a window that
     // can't span days (the 5-hour session), with the date prefixed on the multi-day weekly chart — same
-    // "d/M" form as its day dividers — where the time alone wouldn't say which day.
+    // digits form as its day dividers — where the time alone wouldn't say which day.
     private static string ShortTime(double unix, double windowSeconds)
     {
         if (unix <= 0) return "—";
         DateTime local = DateTimeOffset.FromUnixTimeSeconds((long)unix).LocalDateTime;
         return windowSeconds >= 2 * 86400
-            ? local.ToString("d/M HH:mm", DateFmt)
-            : local.ToString("HH:mm", DateFmt);
+            ? Dates.DayMonthDigits(local) + " " + Dates.Time(local)
+            : Dates.Time(local);
     }
 
     // Compact duration, matching the tray tooltip's style: "2d 4h", "3h 20m", "45m", "now".
