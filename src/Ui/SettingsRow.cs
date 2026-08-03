@@ -1,5 +1,11 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
+
+// Both UI stacks are referenced (see AGENTS.md), so these bare names are ambiguous with their
+// System.Windows.Forms twins. Nothing WinForms belongs in a WPF row.
+using Control = System.Windows.Controls.Control;
+using Panel = System.Windows.Controls.Panel;
 
 namespace ClaudeTray;
 
@@ -11,9 +17,17 @@ namespace ClaudeTray;
 ///
 /// It is a lookless control: the visual tree lives in the implicit Style for this type in
 /// <c>SettingsPage.xaml</c>. The trailing control is just this control's XAML child.
+///
+/// Because the label is a *neighbour* rather than the control's own content, the automation tree has
+/// no way to associate the two — so a screen reader reads "combo box", "slider", "edit" down the
+/// whole page. That is the shape T175 found on the Statistics page's picker, and this row is where it
+/// repeats thirty-odd times, so the row fixes it for every one of them: see
+/// <see cref="NameTrailingControls"/>.
 /// </summary>
 internal sealed class SettingsRow : ContentControl
 {
+    public SettingsRow() => Loaded += (_, _) => NameTrailingControls();
+
     public static readonly DependencyProperty HeaderProperty =
         DependencyProperty.Register(nameof(Header), typeof(string), typeof(SettingsRow),
             new PropertyMetadata(string.Empty));
@@ -34,5 +48,46 @@ internal sealed class SettingsRow : ContentControl
     {
         get => (string)GetValue(DescriptionProperty);
         set => SetValue(DescriptionProperty, value);
+    }
+
+    /// <summary>
+    /// Gives the trailing control this row's <see cref="Header"/> as its accessible name, and only
+    /// where it would otherwise announce nothing at all: a <c>ComboBox</c>, <c>Slider</c>,
+    /// <c>TextBox</c> or glyphless <c>ToggleButton</c> has no content a name can be derived from,
+    /// while a <c>Button</c> carrying text already reads and keeps its own label — which is what makes
+    /// this safe on the rows holding a field *and* a "Browse…" beside it.
+    ///
+    /// Run on <c>Loaded</c> rather than when the content is set, because <c>Header</c> and the content
+    /// child are assigned in whichever order the parser reaches them and this needs both.
+    /// </summary>
+    private void NameTrailingControls()
+    {
+        if (string.IsNullOrEmpty(Header)) return;
+        Label(Content, 0);
+    }
+
+    private void Label(object? node, int depth)
+    {
+        // The deepest shape in the page today is a StackPanel inside a StackPanel; the cap is only so a
+        // future nesting cannot turn this into an unbounded walk on every page load.
+        if (depth > 3) return;
+
+        if (node is Control control)
+        {
+            if (NeedsName(control)) AutomationProperties.SetName(control, Header);
+            return;
+        }
+        if (node is Panel panel)
+        {
+            foreach (object? child in panel.Children) Label(child, depth + 1);
+        }
+    }
+
+    private static bool NeedsName(Control control)
+    {
+        if (!string.IsNullOrEmpty(AutomationProperties.GetName(control))) return false;
+        if (AutomationProperties.GetLabeledBy(control) is not null) return false;
+        // A ContentControl whose content is text is already named by WPF from that text.
+        return control is not ContentControl { Content: string { Length: > 0 } };
     }
 }

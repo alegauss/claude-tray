@@ -43,6 +43,7 @@
 | [Y](#block-y--one-window-you-navigate-instead-of-three-you-open) | One window you navigate, instead of three you open |
 | [Z](#block-z--what-the-app-knows-and-doesnt-say) | What the app knows and doesn't say — the read-back of Block V |
 | [AA](#block-aa--the-picker-switches-profiles-the-window-has-to-switch-with-it) | The picker switches profiles; the window has to switch with it (active — see ROADMAP) |
+| [AD](#block-ad--the-window-can-be-read-now-and-what-that-turned-up) | The window can be read now, and what that turned up (active — see ROADMAP) |
 | [AE](#block-ae--extra-usage-is-money-and-the-tray-is-asleep-for-it) | Extra usage is money, and the tray is asleep for it (active — see ROADMAP) |
 
 ## Block A — Foundation (tray, icon, API, projection)
@@ -229,6 +230,10 @@
 - **T182** — Reaching 100% is drawn as one of three things: the bar goes clay rather than the alarming red when extra usage is paying, the tooltip says which kind of maxed, and the System row says whether the allowance is in use or merely enabled.
 - **T183** — The weekly chart draws the overage series in clay on a right-hand scale of its own, with the legend and the projection sentence saying so, rather than laying an uncapped figure over the axis that means 'of your included quota'.
 - **T184** — The first reading that finds the account spending past its included quota raises one clay toast, on by default and off in Settings, that states the fact and the reset and names no account, no alternative and no action.
+
+## Block AD — The window can be read now, and what that turned up
+
+- **T175** — The Statistics picker announces the label beside it and the method-note button announces the note's own title, and every settings row hands its header to a trailing control that would otherwise announce nothing — so the two controls the T165 tree dump found unnamed, and the thirty-odd rows carrying the same shape, all read.
 
 ## Block AA — The picker switches profiles; the window has to switch with it
 

@@ -24,6 +24,11 @@
       -Case Menu       Launch the real tray, open the notification-area icon's menu, read its entries,
                        and expand "Open Claude Code" to read the per-profile entries (this is what
                        verified T137).
+      -Case Names      Launch `--main` and read back what the controls ANNOUNCE: the Statistics
+                       picker, the method-note button, and the settings rows whose label is a
+                       neighbouring element rather than their own content (T175). A picture cannot
+                       see an accessible name, and an unnamed control is invisible to every other
+                       check in this file.
 
     Exit code is 0 only if every check passed; any failure exits 1. A check that could not observe
     anything is a FAIL, never a pass — see "fail loudly" below.
@@ -54,7 +59,7 @@
     opened the way a keyboard user opens them (Down to the item, Right to expand), and read.
 
 .PARAMETER Case
-    Keyboard, Profiles, Menu, or All (default).
+    Keyboard, Profiles, Menu, Names, or All (default).
 
 .PARAMETER Exe
     The build under test. Defaults to the Debug build.
@@ -72,10 +77,11 @@
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Keyboard
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Profiles
+    powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Names
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Menu -UseRunning
 #>
 param(
-    [ValidateSet('All', 'Keyboard', 'Profiles', 'Menu')]
+    [ValidateSet('All', 'Keyboard', 'Profiles', 'Menu', 'Names')]
     [string]$Case = 'All',
     [string]$Exe = "bin\Debug\net10.0-windows\win-x64\ClaudeTray.exe",
     [string]$Lang = "en",
@@ -573,6 +579,125 @@ function Invoke-ProfilesCase {
     }
 }
 
+# ---------------------------------------------------------------- names case
+
+<#
+  Assert one control's accessible name IS its label, not merely that it has one: a placeholder, an
+  automation id echoed back, or the glyph codepoint itself would all satisfy "non-empty" and none of
+  them is what a screen reader should say. Returns whether the control was in the tree at all, so the
+  caller decides what an absence means - some of these are legitimately collapsed.
+#>
+function Assert-Name($win, $id, $expected, $what, $timeoutMs = 6000) {
+    $el = ById $win $id $timeoutMs
+    if (-not $el) { return $false }
+    $name = [string]$el.Current.Name
+    if ($name -eq $expected)  { Pass "$what announces '$name'" }
+    elseif ($name)            { Fail "$what announces '$(Printable $name)', expected its label '$expected'" }
+    else                      { Fail "$what announces NOTHING - unnamed in the automation tree (T175)" }
+    return $true
+}
+
+<#
+  A name the console cannot draw, drawn anyway. Without this the worst case in this whole check —
+  a glyph-only button announcing its Segoe MDL2 codepoint, which is what T175 actually found — is
+  reported as `announces ''` and reads as the empty case it is not.
+#>
+function Printable($text) {
+    $out = ""
+    foreach ($ch in $text.ToCharArray()) {
+        if ([char]::IsControl($ch) -or [int]$ch -ge 0xE000) {
+            $out += ('\u{0:X4}' -f [int]$ch)
+        } else { $out += $ch }
+    }
+    return $out
+}
+
+<#
+  What the window says it is, control by control. This is the one property in this file that no
+  screenshot and no other case can observe: the T165 control-view dump found `ProfileCombo` and
+  `MethodInfo` carrying empty names while every neighbouring button read fine, because a WPF control
+  derives its name from its own content and both of these have none - one's label is a separate
+  TextBlock, the other's content is a Segoe MDL2 codepoint.
+
+  The settings rows are the same shape thirty-odd times over (`SettingsRow` = label left, control
+  right), so two of them are read here as the witness for the rule the row now applies to all.
+
+  `--main`, not `--settings`: one launch reaches both pages, and it is the shell the tray opens.
+#>
+function Invoke-NamesCase {
+    Head "Names - what the controls announce to a screen reader"
+
+    $read = 0
+    $proc = Start-App "--lang $Lang --main"
+    try {
+        $win = WindowOfProcess $proc.Id
+        if (-not $win) { Fail "the main window never appeared"; return }
+        Start-Sleep -Milliseconds 1200
+        [Native]::Topmost([IntPtr]$win.Current.NativeWindowHandle)
+        try { $win.SetFocus() } catch { Info "window SetFocus threw - $($_.Exception.Message)" }
+
+        # --- Statistics, read BEFORE navigating: the Settings page carries a `ProfileCombo` of its
+        # own, and once that pane is built an id lookup would have two candidates to choose between.
+        $count = Expected-ProfileCount
+        if (Assert-Name $win 'ProfileCombo' (Label 'stats.profile') "the Statistics profile picker" 8000) {
+            $read++
+        }
+        elseif ($count -lt 2) {
+            # Stated, not silent: the card is collapsed below two profiles, so there is no control to
+            # read - but the check must say which of the two reasons it is reporting (T161).
+            Info "the profile card is collapsed ($count profile) - its picker was not read"
+        }
+        else {
+            Fail "the profile picker is not in the tree although --profiles found $count profiles"
+        }
+
+        # The method button is collapsed until a report renders, so this waits out the first poll.
+        if (Assert-Name $win 'MethodInfo' (Label 'stats.methodTitle') "the method-note button" 25000) {
+            $read++
+        } else {
+            Info "no report rendered within 25s (offline? cold transcript cache?) - the method button"
+            Info "  never left Collapsed, so its name was not read on this run"
+        }
+
+        # --- Settings: the SettingsRow shape, where the same defect repeats on every row.
+        $navSettings = ById $win 'NavSettings'
+        if (-not $navSettings) {
+            Fail "the nav strip has no Settings destination - the row names were not read"
+        }
+        else {
+            try { $navSettings.GetCurrentPattern(
+                    [System.Windows.Automation.SelectionItemPattern]::Pattern).Select() }
+            catch { ClickCentre $navSettings }
+            Start-Sleep -Milliseconds 1200
+
+            # All three live on the Settings page's own default sidebar page (General), so no second
+            # navigation is needed - and they are one of each shape the row rule has to handle: an
+            # ItemsControl, a contentless ToggleButton, and a Slider inside a StackPanel.
+            $rows = @(
+                @{ Id = 'LanguageCombo'; Key = 'settings.general.appLanguage';    What = "the language picker" }
+                @{ Id = 'StartupCheck';  Key = 'settings.general.startWithWindows'; What = "the start-with-Windows switch" }
+                @{ Id = 'IntervalSlider'; Key = 'settings.general.interval';      What = "the refresh-interval slider" }
+            )
+            foreach ($row in $rows) {
+                if (Assert-Name $win $row.Id (Label $row.Key) $row.What) { $read++ }
+                else { Fail "$($row.What) ($($row.Id)) is not in the tree after navigating to Settings" }
+            }
+        }
+
+        # The founding trap (T142): a green tick over an empty read is worse than no check at all.
+        if ($read -eq 0) {
+            Fail "not one accessible name was read - this case observed nothing, so it passes nothing"
+        } else {
+            Info "$read control name(s) read"
+        }
+    }
+    finally {
+        # WaitForExit, not just Kill: the menu case that may run next refuses to start while any
+        # ClaudeTray process is alive.
+        if ($proc -and -not $proc.HasExited) { $proc.Kill(); $proc.WaitForExit(5000) | Out-Null }
+    }
+}
+
 # ---------------------------------------------------------------- menu case
 
 <# The tray icon in the notification area, opening the overflow flyout first if it is hidden there. #>
@@ -858,6 +983,7 @@ Write-Host "Check-Interaction - $Exe (lang $Lang)" -ForegroundColor White
 if ($Case -in @('All', 'Keyboard')) { Invoke-KeyboardCase }
 # Before the menu case, and killed with WaitForExit: that one refuses to run while any ClaudeTray is alive.
 if ($Case -in @('All', 'Profiles')) { Invoke-ProfilesCase }
+if ($Case -in @('All', 'Names'))    { Invoke-NamesCase }
 if ($Case -in @('All', 'Menu'))     { Invoke-MenuCase }
 
 Write-Host ""

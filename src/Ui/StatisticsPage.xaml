@@ -160,13 +160,19 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{local:Loc stats.profile}" VerticalAlignment="Center"
+                    <TextBlock x:Name="ProfileLabel" Grid.Column="0" Text="{local:Loc stats.profile}"
+                               VerticalAlignment="Center"
                                Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     <TextBlock Grid.Column="1" Text="{local:Loc stats.profileHint}" TextWrapping="Wrap"
                                VerticalAlignment="Center" Margin="12,0,12,0" FontSize="12"
                                Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                    <!-- LabeledBy, not a second copy of the string (T175): the picker's label is the
+                         TextBlock beside it, which the automation tree cannot associate on its own, so
+                         without this the control that decides what the whole report is about announces
+                         itself as "combo box" and nothing else. -->
                     <ComboBox Grid.Column="2" x:Name="ProfileCombo" MinWidth="180"
-                              VerticalAlignment="Center" />
+                              VerticalAlignment="Center"
+                              AutomationProperties.LabeledBy="{Binding ElementName=ProfileLabel}" />
                 </Grid>
             </Border>
 
@@ -475,9 +481,13 @@
                 <TextBlock x:Name="ComputedText"
                            VerticalAlignment="Center"
                            Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                <!-- Its content is a Segoe MDL2 codepoint, so there is no text to derive a name from
+                     (T175) — the button that explains every number in this window announced itself as
+                     "button". The tooltip's string is the note's own title; the name is the same one. -->
                 <ToggleButton x:Name="MethodInfo" Margin="10,0,0,0" Visibility="Collapsed"
                               Style="{StaticResource InfoDot}"
                               ToolTip="{local:Loc stats.methodTitle}"
+                              AutomationProperties.Name="{local:Loc stats.methodTitle}"
                               Content="&#xE946;" />
                 <Popup IsOpen="{Binding IsChecked, ElementName=MethodInfo, Mode=TwoWay}"
                        PlacementTarget="{Binding ElementName=MethodInfo}" Placement="Top"

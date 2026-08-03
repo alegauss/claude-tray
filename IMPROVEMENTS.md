@@ -356,33 +356,6 @@ pane was absent from the UI Automation tree. Every number, chart legend, project
 headline. It shipped in T111 and survived to T165 because a screenshot does not use that tree, and neither
 did anything else in this repo. What follows is the same lesson at three smaller scales.
 
-### §XVII.1 Two unnamed controls, and they are the two that matter (T175)
-
-The control-view dump taken while building T165 reads, verbatim:
-
-```
-ProfileCombo   ComboBox   off=False  ''
-PanesBody      Tab        off=False  ''
-MethodInfo     Button     off=False  ''
-RefreshButton  Button     off=False  'Refresh'
-CloseButton    Button     off=False  'Close'
-```
-
-`RefreshButton` and `CloseButton` announce themselves because a WPF `Button` derives its accessible name
-from its `Content`. `ProfileCombo` has no content to derive from — its label is a *separate* `TextBlock`
-sitting beside it in the card, which the automation tree has no way to associate — and `MethodInfo` is a
-glyph-only `ToggleButton` whose content is the Segoe MDL2 codepoint for ⓘ. So the control that switches
-which account the entire report is about, and the control that opens the note explaining every number in
-it, both announce as *"combo box"* and *"button"*.
-
-`PanesBody` is not the same problem: a `TabControl`'s name is carried by its items, and those read
-correctly (*"5-hour session"*, *"Week (7 days)"*, *"Throughput"*).
-
-This is `AutomationProperties.Name`, not new copy — `stats.profile` already exists in all five languages
-and the method note already has a header string. The task is to bind them, and to decide whether the rule
-generalises: a control whose label lives in a *neighbouring* element is the pattern to look for, and the
-Settings page is full of exactly that shape (`SettingsRow` puts a label and a control side by side).
-
 ### §XVII.2 The pane-in-the-tree check is trapped behind a two-profile precondition (T176)
 
 `-Case Profiles` is now the only thing in the repo that would notice the tab body leaving the accessibility
