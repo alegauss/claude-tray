@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Launch a window and capture it to a PNG — the visual feedback loop for UI work.
 

@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 # update-winget.ps1 - Regenera os manifestos winget a partir da versao unica
 # definida em ClaudeTray.csproj (<Version>) e do instalador ja gerado em
 # dist\ClaudeTray-Setup.exe.

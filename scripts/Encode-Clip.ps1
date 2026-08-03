@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Turn a folder of frame_*.png (from Capture-Frames.ps1) into a promo MP4 and/or GIF.
 

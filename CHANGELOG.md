@@ -51,7 +51,7 @@
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
-| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
+| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 
 ## Block A — Foundation (tray, icon, API, projection)
@@ -573,6 +573,7 @@
 - **T256** — A busy desktop is now a precondition the Keyboard case asks about and reports as Unchecked, so the run comes out DEGRADED naming the window and pid that holds the foreground instead of FAILED naming a control it could not reach. Deliberately not a retry: a case that passes on the second attempt cannot tell a busy desktop from a broken build. A SetFocus that throws mid-run asks the same question, and owning the foreground while still being refused stays a failure. What CI sees is unmeasured and said so: a hosted runner has no competing foreground, so this either changes nothing there or reports a condition that was being suffered quietly.
 - **T257** — Every card is asked whether it fits, by --check-toasts, and check.yml runs it in all five languages on every push - twenty seconds for forty questions that until now only a hand-typed loop asked. It reads a laid-out window rather than a picture, so there is no settle wait, and no card is ever activated, which keeps it out of the way of the interaction check beside it. One command per language because the display language is fixed per process; a command that spawned itself five times was the alternative.
 - **T258** — Every process the script starts goes through one launcher that remembers it, and a finally over the whole run stops whatever a case did not - named, because a tray left behind is a lock on the next build and that is a reading about the run. And the consequence the leak had is now its own reading: an -Exe older than the newest source under src is Unchecked, so a run that would report on the build BEFORE the edit comes out DEGRADED saying which file and when, instead of passing about code that is not in the tree. That is word for word what T236 refuses by flag, arrived at by accident.
+- **T259** — The five scripts carrying prose now carry a UTF-8 mark, so PowerShell 5.1 reads them as written instead of in the ANSI code page - where a dash inside a string arrives as a smart quote that closes it and the script does not parse at all. The rule is a check rather than a memory, and it is stated as the property and not as the fix: ASCII, or marked, which accepts a pure-ASCII script needing nothing and rejects the state that produced the defect - five of six files, every one with prose in it and none of them marked.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

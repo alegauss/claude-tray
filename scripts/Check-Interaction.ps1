@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     The interaction loop: what a screenshot cannot see. Drives the real UI through UI Automation and
     asserts a pass/fail — keyboard input into a WPF window hosted the way the tray hosts it, and the

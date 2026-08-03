@@ -168,6 +168,9 @@ internal static class SelfTestCli
         Section("map — every source file has a row, and every row a file (Block AJ)");
         FileMap();
 
+        Section("scripts — every .ps1 is one PowerShell 5.1 can read (Block AI)");
+        ScriptEncoding();
+
         Section("scanning — the flag scan reads code, not the prose about it (Block AI)");
         FlagScanning();
 
@@ -2088,6 +2091,59 @@ internal static class SelfTestCli
                               .OrderBy(f => f, StringComparer.Ordinal).ToArray();
         Check("and every folder it names is still there", gone.Length == 0,
               $"{string.Join(", ", gone)} — a placement rule for a folder that no longer exists");
+    }
+
+    /// <summary>
+    /// T259. Every <c>.ps1</c> this repository carries is one PowerShell 5.1 will read the way it was
+    /// written — because the version that ships in Windows reads a script with no byte-order mark in the
+    /// <b>ANSI code page</b>, not as UTF-8.
+    ///
+    /// <para><b>What that does, measured on two reduced files.</b> The three UTF-8 bytes of an em dash
+    /// arrive as three CP1252 characters whose last one is a right double quotation mark. Inside a
+    /// double-quoted string that closes the string mid-expression and the whole script fails to parse, so
+    /// <em>no</em> assertion runs; inside a comment it is merely mojibake. Both were hit in one session:
+    /// the loud one adding a message to the interaction check, and the quiet one in T234, where a
+    /// <c>-split</c> on a middle dot compared against a character the parser had read as something else,
+    /// never matched, and asserted nothing while passing.</para>
+    ///
+    /// <para><b>The predicate is the property, not the fix.</b> A file that is pure ASCII has nothing to
+    /// misread and needs no mark; a file carrying any character above 127 needs one. So the rule is "ASCII,
+    /// or marked", which accepts both answers the task weighed and rejects the state that produced the
+    /// defect — five of the six scripts, every one of them carrying prose and none of them marked.</para>
+    /// </summary>
+    private static void ScriptEncoding() =>
+        Repo("every .ps1 is one PowerShell 5.1 reads as written", ScriptEncoding, "scripts", "build");
+
+    private static void ScriptEncoding(string root)
+    {
+        string[] scripts = new[] { "scripts", "build" }
+            .Select(d => Path.Combine(root, d))
+            .Where(Directory.Exists)
+            .SelectMany(d => Directory.GetFiles(d, "*.ps1", SearchOption.AllDirectories))
+            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (!Check("the scripts are readable", scripts.Length >= 4,
+                   $"found {scripts.Length} .ps1 — the check cannot read what it compares"))
+            return;
+
+        var unreadable = new List<string>();
+        foreach (string path in scripts)
+        {
+            byte[] bytes = File.ReadAllBytes(path);
+            bool marked = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
+            if (marked) continue;
+
+            // Byte-wise, deliberately: this is a question about what a *decoder* will do with the file,
+            // and reading it as text first would answer with the decoder this check happens to use.
+            int high = bytes.Count(b => b > 0x7F);
+            if (high > 0)
+                unreadable.Add($"{Path.GetFileName(path)} ({high} byte(s) over 127, and no mark)");
+        }
+
+        Check($"every .ps1 is ASCII or carries a UTF-8 mark ({scripts.Length})", unreadable.Count == 0,
+              $"{string.Join(", ", unreadable)} — 5.1 reads these in the ANSI code page, so a dash inside a "
+              + "string closes it and the script does not parse");
     }
 
     /// <summary>

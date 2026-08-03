@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Capture a live window's animation as a numbered PNG frame sequence — the raw material for a
     promo GIF/MP4.
