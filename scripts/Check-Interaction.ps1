@@ -41,7 +41,7 @@
     anything is a FAIL, never a pass — see "fail loudly" below.
 
 .NOTES
-    Three traps, all met while writing these checks by hand, all encoded here:
+    Five traps, all met while writing these checks by hand, all encoded here:
 
     1. The notification-area icon has NO CLICKABLE POINT — `GetClickablePoint()` throws
        `NoClickablePointException`. Use `Current.BoundingRectangle`. It may also sit inside the
@@ -61,6 +61,13 @@
        the last-rendered pace on the way out, and T118's keep-it-up rule is about a refresh of the
        *same* profile). So a reading taken right after a switch is the "computing…" line, or worse the
        *previous* profile's numbers still on screen — the Profiles case waits that out before it reads.
+    5. "READ NOTHING" MUST NOT BE SAID OF A WINDOW THAT WAS TALKING. The first version of the timed-out
+       read reported *"no panes and no status line after 25s"* while the status line had been up for the
+       whole 25 seconds saying "Computing your consumption pace…", and the real fault was elsewhere
+       entirely (the missing `PART_SelectedContentHost`) — so the message pointed at timing and cost a
+       throwaway tree-dumping script to get past. `Read-ProfileStop` now separates *working* (the line
+       was up and nothing finished) from *blank* (nothing was ever in the tree), reports what it last
+       saw and on how many polls, and prints the control view itself (T178).
 
     A menu item is never Invoked: invoking "Open Claude Code" would launch a terminal. Submenus are
     opened the way a keyboard user opens them (Down to the item, Right to expand), and read.
@@ -428,9 +435,20 @@ function Reset-Minutes($text) {
 }
 
 <#
-  What the window says about the profile now on screen, once it has settled. Two legitimate outcomes:
-  the panes (a report), or the status line (a profile with no stored readings yet). Reading NEITHER is
-  the failure this script exists to prevent, so it is reported as one by the caller.
+  What the window says about the profile now on screen, once it has settled. Four outcomes, and the
+  last two are the point of T178:
+
+    panes    a report - the pane body is in the tree and a used % came out of it
+    status   a settled status line, e.g. a profile with no stored readings yet
+    working  neither, but the window was TALKING the whole time: the status line said "Computing…"
+             for the full timeout. A slow machine, a cold transcript cache - or a report that built
+             and could not be read, which is what the missing PART_SelectedContentHost looked like.
+    blank    neither, and nothing was ever in the tree to read. The window is not being read at all.
+
+  It used to collapse the last two into one `nothing`, which the caller reported as "no panes and no
+  status line after 25s" - and on the first real run of the Profiles case that sentence was false in
+  the way that costs the most time: the line had been up for all 25 seconds saying "Computing your
+  consumption pace…". So the read now carries what it last saw and how many of its polls saw it.
 
   The tab matters: a TabControl only realizes the selected tab, so the 5h pane's controls are absent
   while the weekly one is up. Whichever is there is read, and the suffix is returned - the default tab
@@ -438,7 +456,9 @@ function Reset-Minutes($text) {
 #>
 function Read-ProfileStop($win, $computing, $timeoutSec = 25) {
     $deadline = (Get-Date).AddSeconds($timeoutSec)
+    $polls = 0; $statusPolls = 0; $lastStatus = $null
     do {
+        $polls++
         # The status line first, and recorded rather than acted on (T177): whether it was EVER up on the
         # way to the panes is the property, so it has to be sampled on every turn of this loop, not
         # looked at once the panes failed to appear.
@@ -446,7 +466,10 @@ function Read-ProfileStop($win, $computing, $timeoutSec = 25) {
         $statusText = $null
         if ($status) {
             $statusText = [string]$status.Current.Name
-            if ($statusText) { $script:StatusSeen = $true; $script:StatusSeenText = $statusText }
+            if ($statusText) {
+                $script:StatusSeen = $true; $script:StatusSeenText = $statusText
+                $statusPolls++; $lastStatus = $statusText
+            }
         }
 
         foreach ($sfx in @('S', 'W')) {
@@ -459,25 +482,88 @@ function Read-ProfileStop($win, $computing, $timeoutSec = 25) {
                 $resetText = $null; if ($reset) { $resetText = [string]$reset.Current.Name }
                 $liveText  = $null; if ($live)  { $liveText  = [string]$live.Current.Name }
                 return [pscustomobject]@{
-                    Kind   = 'panes'
-                    Suffix = $sfx
-                    Used   = [string]$used.Current.Name
-                    Reset  = $resetText
-                    Live   = $liveText
-                    Status = $null
+                    Kind        = 'panes'
+                    Suffix      = $sfx
+                    Used        = [string]$used.Current.Name
+                    Reset       = $resetText
+                    Live        = $liveText
+                    Status      = $null
+                    Polls       = $polls
+                    StatusPolls = $statusPolls
+                    WaitedSec   = $timeoutSec
                 }
             }
         }
         # "Computing…" is the switch still in flight, not an answer - keep waiting for one.
         if ($statusText -and $statusText -ne $computing) {
             return [pscustomobject]@{
-                Kind = 'status'; Suffix = $null; Used = $null; Reset = $null; Live = $null; Status = $statusText
+                Kind        = 'status'
+                Suffix      = $null
+                Used        = $null
+                Reset       = $null
+                Live        = $null
+                Status      = $statusText
+                Polls       = $polls
+                StatusPolls = $statusPolls
+                WaitedSec   = $timeoutSec
             }
         }
         Start-Sleep -Milliseconds 80
     } while ((Get-Date) -lt $deadline)
+
+    # Expired. Which of the two it was is the whole difference between a re-run and a defect hunt.
     return [pscustomobject]@{
-        Kind = 'nothing'; Suffix = $null; Used = $null; Reset = $null; Live = $null; Status = $null
+        Kind        = $(if ($lastStatus) { 'working' } else { 'blank' })
+        Suffix      = $null
+        Used        = $null
+        Reset       = $null
+        Live        = $null
+        Status      = $lastStatus
+        Polls       = $polls
+        StatusPolls = $statusPolls
+        WaitedSec   = $timeoutSec
+    }
+}
+
+<#
+  What a timed-out read means, said the same way for both callers (T178), with the tree it failed to
+  read printed underneath. Diagnosing the missing PART_SelectedContentHost took a throwaway script that
+  dumped exactly this, which is work the check is supposed to have already done.
+#>
+function Report-NoReading($win, $stop, $where) {
+    if ($stop.Kind -eq 'working') {
+        Fail "$where did not finish in $($stop.WaitedSec)s - but the window was TALKING the whole time"
+        Info "last seen: '$($stop.Status)' on $($stop.StatusPolls) of $($stop.Polls) polls."
+        Info "So this is NOT a blank window. Either the report build has not finished (a slow machine, a"
+        Info "cold transcript cache - re-run first), or it finished and its pane never entered the tree,"
+        Info "which is what a template part going missing looks like (T165)."
+    } else {
+        Fail "$where read NOTHING in $($stop.WaitedSec)s - no pane body and no status line, ever"
+        Info "$($stop.Polls) polls, none of which found anything to read. The window is not being read at"
+        Info "all: this is the empty-read failure this script exists for (T142), not a timing problem."
+    }
+    Dump-ControlView $win
+}
+
+<#
+  The window's control view, printed - id, type and name per element, which is the dump that made
+  T165's defect obvious the moment somebody looked at it.
+#>
+function Dump-ControlView($win, $limit = 80) {
+    $all = @()
+    try { $all = @($win.FindAll('Descendants', $ANY)) }
+    catch { Info "the tree could not be walked at all - $($_.Exception.Message)"; return }
+
+    Info "control view: $($all.Count) element(s), first $([Math]::Min($limit, $all.Count)) below"
+    $i = 0
+    foreach ($el in $all) {
+        if ($i -ge $limit) { Info "  ... $($all.Count - $limit) more"; break }
+        $i++
+        $id = [string]$el.Current.AutomationId; if (-not $id) { $id = '-' }
+        $type = $el.Current.ControlType.ProgrammaticName -replace '^ControlType\.', ''
+        $name = Printable ([string]$el.Current.Name)
+        if ($name.Length -gt 58) { $name = $name.Substring(0, 55) + '...' }
+        Info ("  {0,-22} {1,-12} '{2}'" -f $id, $type, $name)
     }
 }
 
@@ -535,8 +621,8 @@ function Invoke-ProfilesCase {
                 Info "selected index $step through the $route route"
             }
             $stop = Read-ProfileStop $win $computing
-            if ($stop.Kind -eq 'nothing') {
-                Fail "stop $($stops.Count + 1) (index $step) read NOTHING - no panes and no status line after 25s"
+            if ($stop.Kind -in @('working', 'blank')) {
+                Report-NoReading $win $stop "stop $($stops.Count + 1) (index $step)"
                 return
             }
             $stop | Add-Member -NotePropertyName Index -NotePropertyValue $step
@@ -720,7 +806,7 @@ function Invoke-PanesCase {
             Info "          Nothing about the pane body being in the tree was verified on this run."
         }
         else {
-            Fail "the window rendered no readable report - no pane body and no settled status line (T165)"
+            Report-NoReading $win $stop "the Statistics page"
         }
     }
     finally {

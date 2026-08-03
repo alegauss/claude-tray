@@ -43,7 +43,7 @@
 | [Y](#block-y--one-window-you-navigate-instead-of-three-you-open) | One window you navigate, instead of three you open |
 | [Z](#block-z--what-the-app-knows-and-doesnt-say) | What the app knows and doesn't say — the read-back of Block V |
 | [AA](#block-aa--the-picker-switches-profiles-the-window-has-to-switch-with-it) | The picker switches profiles; the window has to switch with it (active — see ROADMAP) |
-| [AD](#block-ad--the-window-can-be-read-now-and-what-that-turned-up) | The window can be read now, and what that turned up (active — see ROADMAP) |
+| [AD](#block-ad--the-window-can-be-read-now-and-what-that-turned-up) | The window can be read now, and what that turned up |
 | [AE](#block-ae--extra-usage-is-money-and-the-tray-is-asleep-for-it) | Extra usage is money, and the tray is asleep for it (active — see ROADMAP) |
 
 ## Block A — Foundation (tray, icon, API, projection)
@@ -236,6 +236,7 @@
 - **T175** — The Statistics picker announces the label beside it and the method-note button announces the note's own title, and every settings row hands its header to a trailing control that would otherwise announce nothing — so the two controls the T165 tree dump found unnamed, and the thirty-odd rows carrying the same shape, all read.
 - **T176** — The three tab headers and the selected pane's body — a used %, a reset caption, a live headline — are asserted by a case of their own that needs no second profile, so the property T165 restored is checked on the single-profile machines where -Case Profiles only ever skipped, and that skip now costs the switch alone.
 - **T177** — The round trip asserts T166's timing where it is made: on the way back to a profile seen seconds ago the status line must never be observed at all, watched continuously from the instant the selection changes rather than sampled once the switch has settled — and stated as a sighting, not a deadline, so a slow machine cannot make it red for a correct reason.
+- **T178** — A timed-out read says what it last saw: 'working' when the status line was up and names it with the poll count, 'blank' when nothing was ever in the tree, and either way it prints the control view — so the dump that diagnosed T165 is the check's own output instead of the next throwaway script.
 
 ## Block AA — The picker switches profiles; the window has to switch with it
 

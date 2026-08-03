@@ -17,18 +17,17 @@
 | [§III](#iii--measured-baseline-context-load) | Measured baseline for the context feature (kept: it is data, not design) |
 | [§XV](#xv--what-block-zs-own-work-left-behind-block-ab) | What Block Z's own work left behind (Block AB) |
 | [§XVI](#xvi--the-tray-reports-the-switch-it-performed-not-the-switch-the-machine-got-block-ac) | The tray reports the switch it performed, not the switch the machine got (Block AC) |
-| [§XVII](#xvii--the-window-can-be-read-now-and-what-that-turned-up-block-ad) | The window can be read now, and what that turned up (Block AD) |
 | [§XVIII](#xviii--extra-usage-is-money-and-the-tray-is-asleep-for-it-block-ae) | Extra usage is money, and the tray is asleep for it (Block AE) |
 | [§XIX](#xix--six-surfaces-shipped-and-what-nothing-was-checking-block-af) | Six surfaces shipped, and what nothing was checking (Block AF) |
 
-> Block I's design sections (§II), Block J's (§IV), Block V's (§XII), Block Z's (§XIII) and Block AA's
-> (§XIV) are gone: every one of them shipped, and `git log` plus [CHANGELOG.md](CHANGELOG.md) are the
-> history. §III stays because it is a **measurement** — the numbers the rule thresholds and the
-> base-overhead constant were calibrated against.
+> Block I's design sections (§II), Block J's (§IV), Block V's (§XII), Block Z's (§XIII), Block AA's
+> (§XIV) and Block AD's (§XVII) are gone: every one of them shipped, and `git log` plus
+> [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a **measurement** — the
+> numbers the rule thresholds and the base-overhead constant were calibrated against.
 >
-> Section numbers are **never reused**: §II, §IV–§XIV have all been retired, so a new block takes the
-> next unused numeral rather than the next free-looking one. A `→ §V` in an old commit message must
-> keep pointing at what it pointed at.
+> Section numbers are **never reused**: §II, §IV–§XIV and §XVII have all been retired, so a new block
+> takes the next unused numeral rather than the next free-looking one. A `→ §V` in an old commit
+> message must keep pointing at what it pointed at.
 
 ---
 
@@ -340,39 +339,6 @@ Per the T87 non-goal it needs its own justification rather than an inherited one
 on an explicit user action, once per action, only to confirm a change otherwise unobservable.
 
 ---
-
-## §XVII — The window can be read now, and what that turned up (Block AD)
-
-Every verification loop this repo had before T165 was a **picture**: `Capture-Window.ps1`,
-`--capture-settings`, `--capture-stats`, the `preview-ui` skill. T142 added one that *drives* the UI, and
-T165 added the first that drives the **Statistics window** and reads its numbers back. Half an hour of
-doing that turned up more than the task was about, and the four items here share a cause: a picture can
-only be wrong about what it shows, while the accessibility tree can be wrong about *whether the window
-exists at all* — and nothing had ever asked it.
-
-The headline finding is already fixed: the segmented-tab `ControlTemplate` never named its content host,
-WPF looks it up by `GetTemplateChild("PART_SelectedContentHost")`, and without the name the entire selected
-pane was absent from the UI Automation tree. Every number, chart legend, projection sentence and the live
-headline. It shipped in T111 and survived to T165 because a screenshot does not use that tree, and neither
-did anything else in this repo. What follows is the same lesson at three smaller scales.
-
-### §XVII.4 A timeout that reports the opposite of what it saw (T178)
-
-`Read-ProfileStop` polls for either the panes or a settled status line, treating `stats.computing` as
-"still in flight", and on expiry returns `nothing` — which the caller reports as
-*"read NOTHING - no panes and no status line after 25s"*.
-
-On the first real run of the case that message was false in the way that costs the most time. The status
-line was up for the whole 25 seconds, saying *"Computing your consumption pace…"*, and the actual fault was
-the missing `PART_SelectedContentHost` — nothing to do with timing, and nothing the message pointed at.
-Diagnosing it took a separate throwaway script to dump the tree, which is precisely the work the script is
-supposed to have already done.
-
-Two things to fix, and they are one task because the second without the first is still misleading: the
-timeout must report **what it last saw** (the status text, or that the tree held neither), and it must
-distinguish *the window was working and did not finish in time* from *the window showed nothing at all*.
-The first is a slow machine or a cold transcript cache; the second is the failure this script exists for.
-Only the second should read as the same kind of failure as an empty menu read (T142's founding trap).
 
 ## §XVIII — Extra usage is money, and the tray is asleep for it (Block AE)
 

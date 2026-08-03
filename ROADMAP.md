@@ -54,17 +54,6 @@
 
 - ⏳ **T181** (deps: —) **Nobody has established what the overage percentage is a percentage of** — It is printed beside two figures meaning *of your included window*, and no reading of a real account mid-overage exists to settle what 100% of this one would be. → §XVIII.3
 
-## Block AD — The window can be read now, and what that turned up
-
-> The first check that *reads* the Statistics window instead of photographing it found the whole tab
-> body outside the accessibility tree (fixed in T165). Four things came out of that half-hour, all of
-> them because nobody had ever asked the window what it was showing.
-> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XVII.
->
-> Ordered by what a user is affected by today, then by what protects the rest.
-
-- 📋 **T178** (deps: T165 ✅) **"Read NOTHING" is reported for a window that was talking the whole time** — `Read-ProfileStop` reports no panes and no status line after 25s without saying what it last saw, so a window that was slow and one that was blank fail alike. → §XVII.4
-
 ## Block AB — What Block Z's own work left behind
 
 > Four things surfaced *while building* Block Z that are part of none of its tasks and were reported by

@@ -183,6 +183,14 @@
   behind `-Case Profiles`'s two-profile skip, so it never runs on a one-profile machine or in CI), and two
   are ways the new check misleads whoever runs it next. Its design section is **§XVII**: §XIV was retired
   with Block AA and §XVI belongs to Block AC.
+  **Closed with T178** (2026-08-02), so the block is out of `ROADMAP.md` and §XVII is out of
+  `IMPROVEMENTS.md`; see [CHANGELOG.md](CHANGELOG.md) Block AD. It ran T175 → T176 → T177 → T178, one
+  task per commit. Two rules it leaves behind. **A control whose label is a neighbouring element has no
+  accessible name** — WPF derives one from a control's own content and there is none, so `LabeledBy` (or
+  the row's own header, which `SettingsRow` now hands down) is the fix, and the shape to look for is a
+  label and a control side by side. And **a skip is allowed to cost only what it is about**: `-Case
+  Profiles` had swallowed the readable-panes assertion along with the round trip, which is T169's defect
+  from the other direction — the check that survives on the machine everybody has is the one that runs.
 - Block **AA** (T164–T166, created 2026-08-02) is a **field report against shipped Block O**, on the
   Block R / U / W precedent: O is closed and pruned, and this is a defect found by *using* the feature.
   The first two-letter block — Z was the last single letter, and nothing in the docs parses one.
