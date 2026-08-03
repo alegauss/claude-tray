@@ -68,8 +68,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T247** (deps: —) **One precondition is written five times, once per check that reads the repository** — Every check comparing a document to what it documents opens with the same guard and the same allowed-skip line, so the sixth inherits nothing and the policy is copied by hand. → §XXII.8
-
 ## Block G — Localization
 
 - 💭 **T216** (deps: —) **One machine, two number conventions: the page decides, not the app** — T167 picked invariant for one window, while the Context page, the tray toast and the System page format the same figures with L.Culture, and the sweep it added reaches neither. → §XXI.1

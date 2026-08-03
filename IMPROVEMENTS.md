@@ -301,28 +301,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.8 A family of checks with one precondition and no name
-
-Five assertions in `--selftest` now read files out of the repository the build came from, and every
-one of them opens the same way: call `RepoFile`, get null on an installed copy, `Skip` with a
-sentence saying there is no repository beside the build, and add a line to `AllowedSkips` so the
-skip is not red. Five copies of one policy.
-
-The cost is not the duplication, it is what a copy invites. Each sentence is written fresh, so the
-five now say the same thing five ways; the `AllowedSkips` entry is remembered separately from the
-`Skip` it excuses, and a name typed differently in the two places is a skip that goes red for a
-reason nobody can act on; and the sixth check inherits none of it. There is also no repository
-*root* anywhere — `RepoFile` finds files only, so the check that needed the `src\` directory derived
-it from where `AGENTS.md` happened to be found.
-
-The shape is a named precondition: one helper that answers *is there a repository beside this
-build*, returns its root, and carries the skip and its allowance with it, so a repo-reading check
-declares its subject and nothing else. `Temp` and `Quietly` are the precedent — both exist so a
-section states what it is about instead of how to set it up.
-
-Worth settling: whether these skips should stay allowed at all, or whether a build that CI runs
-should refuse to skip them, with the allowance narrowed to the packaged binary.
-
 ## XXIII What the API says about permission, and what the app infers instead (Block D)
 
 Every signal this app has about whether an account may spend past its included quota is inferred

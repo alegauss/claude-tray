@@ -70,20 +70,8 @@ internal static class SelfTestCli
          "a temp path whose encoding cannot be rebuilt - unrepresentable, not an unwritten case (T169)"),
         ("the probe returns only directories that exist",
          "the same temp path, in the same run"),
-        ("every id the interaction check drives still exists",
-         "no repository beside the build, which is every installed copy (T203)"),
-        ("the dev-flags catalogue names what the tables declare",
-         "the same absent repository (T207)"),
-        ("the ledger's index of blocks lists every block it holds",
-         "the same absent repository - CHANGELOG.md ships with the source, not with the app (T223)"),
-        ("the theme table names only blocks the ledger declares",
-         "the same absent repository, and the skill is not installed beside a released binary (T223)"),
-        ("the file map names every source file, and only files that exist",
-         "the same absent repository - the map and the tree it maps both ship with the source (T242)"),
-        ("every flag the sources accept is declared in dev-flags",
-         "the same absent repository - the catalogue and the sources ship together (T243)"),
-        ("every row's active marker matches what the roadmap holds open",
-         "the same absent repository - the ledger's index reads the roadmap beside it (T244)"),
+        // The repository family is not here on purpose (T247): `Repo` carries its own allowance, so the
+        // seven sentences that used to sit in this list are one, and the eighth check inherits it.
     };
 
     /// <returns>Process exit code: 0 when every check passed.</returns>
@@ -206,16 +194,22 @@ internal static class SelfTestCli
         // Each one says what allowing it costs, so the line is a decision and not a note (T218).
         foreach ((string name, string why) in Skipped)
         {
-            string allowed = AllowedSkips.FirstOrDefault(a => a.Name == name).Why;
+            string? allowed = AllowedSkips.FirstOrDefault(a => a.Name == name).Why
+                              ?? (RepoSkipped.Contains(name) && !OnCi ? "an installed copy carries no repository (T247)" : null);
             Console.WriteLine($"SKIPPED {name} — {why}");
             if (allowed is not null) Console.WriteLine($"        allowed: {allowed}");
         }
 
-        (string Name, string Why)[] unexpected =
-            Skipped.Where(s => AllowedSkips.All(a => a.Name != s.Name)).ToArray();
+        (string Name, string Why)[] unexpected = Skipped
+            .Where(s => AllowedSkips.All(a => a.Name != s.Name))
+            .Where(s => !RepoSkipped.Contains(s.Name) || OnCi)   // allowed off a checkout, never on CI (T247)
+            .ToArray();
         foreach ((string name, string why) in unexpected)
-            Console.WriteLine($"UNEXPECTED SKIP  {name} — {why}: nobody decided to lose this one. Fix the " +
-                              "reason, or add it to AllowedSkips with what allowing it costs.");
+            Console.WriteLine($"UNEXPECTED SKIP  {name} — {why}: nobody decided to lose this one. " +
+                              (RepoSkipped.Contains(name)
+                                  ? "CI runs this build from the checkout, so the repository is here and " +
+                                    "RepoFile stopped finding it (T247)."
+                                  : "Fix the reason, or add it to AllowedSkips with what allowing it costs."));
 
         // The other direction, and the reason this is a list of names rather than a number: an allowed
         // skip that has stopped happening is coverage regained, or a check that has quietly been renamed
@@ -1723,13 +1717,17 @@ internal static class SelfTestCli
     private static void SkillCatalogue(IReadOnlyList<ToastPreviews.Variant> toasts,
                                        IReadOnlyList<TooltipCli.Variant> tips)
     {
-        string? skill = RepoFile(Path.Combine(".claude", "skills", "dev-flags", "SKILL.md"));
-        if (skill is null)
-        {
-            Skip("the dev-flags catalogue names what the tables declare",
-                 ".claude\\skills\\dev-flags\\SKILL.md is not beside this build — no repo on disk");
+        Repo("the dev-flags catalogue names what the tables declare",
+             root => SkillCatalogue(root, toasts, tips));
+    }
+
+    private static void SkillCatalogue(string root, IReadOnlyList<ToastPreviews.Variant> toasts,
+                                       IReadOnlyList<TooltipCli.Variant> tips)
+    {
+        string skill = Path.Combine(root, ".claude", "skills", "dev-flags", "SKILL.md");
+        if (!Check("the dev-flags catalogue is where this check expects it", File.Exists(skill),
+                   $"{skill} — in a checkout it is always there, so its absence is not a skip"))
             return;
-        }
 
         string[] lines = File.ReadAllLines(skill);
         string toastBlock = SkillBlock(lines, "--simulate-reset");
@@ -1852,15 +1850,15 @@ internal static class SelfTestCli
     /// unshipped work only, so <em>any</em> task line under a heading is an open one, and the check needs
     /// no copy of the marker vocabulary to go stale beside <c>roadkeep.toml</c>'s.</para>
     /// </summary>
-    private static void LedgerIndex()
+    private static void LedgerIndex() =>
+        Repo("the ledger's index of blocks lists every block it holds", LedgerIndex);
+
+    private static void LedgerIndex(string root)
     {
-        string? ledger = RepoFile("CHANGELOG.md");
-        if (ledger is null)
-        {
-            Skip("the ledger's index of blocks lists every block it holds",
-                 "CHANGELOG.md is not beside this build — no repo on disk");
+        string ledger = Path.Combine(root, "CHANGELOG.md");
+        if (!Check("the ledger is where this check expects it", File.Exists(ledger),
+                   $"{ledger} — in a checkout it is always there, so its absence is not a skip"))
             return;
-        }
 
         string[] lines = File.ReadAllLines(ledger);
         var headings = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -1901,41 +1899,29 @@ internal static class SelfTestCli
         Check("and every row's anchor still resolves to its heading", adrift.Length == 0,
               $"{string.Join(", ", adrift)} — the heading was reworded and the row was not");
 
-        string? roadmap = RepoFile("ROADMAP.md");
-        if (roadmap is null)
+        // The roadmap holds unshipped work only, so a task line under a heading IS an open one — no copy
+        // of roadkeep.toml's marker vocabulary to drift out of step with it.
+        var open = new HashSet<string>(StringComparer.Ordinal);
+        string? block = null;
+        foreach (string line in File.ReadAllLines(Path.Combine(root, "ROADMAP.md")))
         {
-            Skip("every row's active marker matches what the roadmap holds open",
-                 "ROADMAP.md is not beside this build");
-        }
-        else
-        {
-            // The roadmap holds unshipped work only, so a task line under a heading IS an open one — no
-            // copy of roadkeep.toml's marker vocabulary to drift out of step with it.
-            var open = new HashSet<string>(StringComparer.Ordinal);
-            string? block = null;
-            foreach (string line in File.ReadAllLines(roadmap))
-            {
-                Match head = Regex.Match(line, @"^## Block ([A-Z]+) ");
-                if (head.Success) { block = head.Groups[1].Value; continue; }
-                if (block is not null && Regex.IsMatch(line, @"^- .*\*\*T\d+\*\*")) open.Add(block);
-            }
-
-            string[] mismarked = themes
-                .Where(t => open.Contains(t.Key) != t.Value.Contains("(active", StringComparison.Ordinal))
-                .Select(t => open.Contains(t.Key) ? $"{t.Key} (open, unmarked)" : $"{t.Key} (marked, nothing open)")
-                .OrderBy(s => s, StringComparer.Ordinal).ToArray();
-            Check($"every row's active marker matches what the roadmap holds open ({open.Count} active)",
-                  mismarked.Length == 0,
-                  $"{string.Join(", ", mismarked)} — the index answers 'should I look here' and is wrong");
+            Match head = Regex.Match(line, @"^## Block ([A-Z]+) ");
+            if (head.Success) { block = head.Groups[1].Value; continue; }
+            if (block is not null && Regex.IsMatch(line, @"^- .*\*\*T\d+\*\*")) open.Add(block);
         }
 
-        string? skill = RepoFile(Path.Combine(".claude", "skills", "roadmap-docs", "SKILL.md"));
-        if (skill is null)
-        {
-            Skip("the theme table names only blocks the ledger declares",
-                 "the roadmap-docs skill is not beside this build");
+        string[] mismarked = themes
+            .Where(t => open.Contains(t.Key) != t.Value.Contains("(active", StringComparison.Ordinal))
+            .Select(t => open.Contains(t.Key) ? $"{t.Key} (open, unmarked)" : $"{t.Key} (marked, nothing open)")
+            .OrderBy(s => s, StringComparer.Ordinal).ToArray();
+        Check($"every row's active marker matches what the roadmap holds open ({open.Count} active)",
+              mismarked.Length == 0,
+              $"{string.Join(", ", mismarked)} — the index answers 'should I look here' and is wrong");
+
+        string skill = Path.Combine(root, ".claude", "skills", "roadmap-docs", "SKILL.md");
+        if (!Check("the roadmap-docs skill is where this check expects it", File.Exists(skill),
+                   $"{skill} — in a checkout it is always there, so its absence is not a skip"))
             return;
-        }
 
         // One direction only, and the doc comment says why the other would be wrong.
         string[] invented = Regex.Matches(File.ReadAllText(skill), @"^\|[^|]+\| \*\*([A-Z]+)\*\*", RegexOptions.Multiline)
@@ -1969,19 +1955,17 @@ internal static class SelfTestCli
     /// new subsystem folder is precisely the moment placement matters, and that table — not the skill — is
     /// what a reader hits first, being in the file loaded every turn.</para>
     /// </summary>
-    private static void FileMap()
-    {
-        string? skill = RepoFile(Path.Combine(".claude", "skills", "file-map", "SKILL.md"));
-        string? agents = RepoFile("AGENTS.md");
-        if (skill is null || agents is null)
-        {
-            Skip("the file map names every source file, and only files that exist",
-                 "no repository beside the build — the map and the tree it maps both ship with the source");
-            return;
-        }
+    private static void FileMap() =>
+        Repo("the file map names every source file, and only files that exist", FileMap);
 
-        string root = Path.GetDirectoryName(agents)!;
+    private static void FileMap(string root)
+    {
+        string skill = Path.Combine(root, ".claude", "skills", "file-map", "SKILL.md");
+        string agents = Path.Combine(root, "AGENTS.md");
         string src = Path.Combine(root, "src");
+        if (!Check("the file map is where this check expects it", File.Exists(skill),
+                   $"{skill} — in a checkout it is always there, so its absence is not a skip"))
+            return;
         string[] files = Directory.Exists(src)
             ? Directory.GetFiles(src, "*.cs", SearchOption.AllDirectories)
                        .Select(f => Path.GetRelativePath(root, f).Replace('\\', '/')).ToArray()
@@ -2063,18 +2047,16 @@ internal static class SelfTestCli
     /// derivable at all — one shape covers <c>args.Contains</c>, <c>args[0] ==</c> and
     /// <c>Array.IndexOf</c> alike, because all three compare against a literal.</para>
     /// </summary>
-    private static void FlagCatalogue()
-    {
-        string? skill = RepoFile(Path.Combine(".claude", "skills", "dev-flags", "SKILL.md"));
-        string? agents = RepoFile("AGENTS.md");
-        if (skill is null || agents is null)
-        {
-            Skip("every flag the sources accept is declared in dev-flags",
-                 "no repository beside the build — the catalogue and the sources ship together");
-            return;
-        }
+    private static void FlagCatalogue() =>
+        Repo("every flag the sources accept is declared in dev-flags", FlagCatalogue);
 
-        string src = Path.Combine(Path.GetDirectoryName(agents)!, "src");
+    private static void FlagCatalogue(string root)
+    {
+        string skill = Path.Combine(root, ".claude", "skills", "dev-flags", "SKILL.md");
+        string src = Path.Combine(root, "src");
+        if (!Check("the flag catalogue is where this check expects it", File.Exists(skill),
+                   $"{skill} — in a checkout it is always there, so its absence is not a skip"))
+            return;
         string[] accepted = (Directory.Exists(src)
                 ? Directory.GetFiles(src, "*.cs", SearchOption.AllDirectories)
                 : Array.Empty<string>())
@@ -2433,17 +2415,15 @@ internal static class SelfTestCli
     /// so the ids built at runtime (<c>"Used$sfx"</c> and its two siblings) stay explicit — and the check
     /// says which kind it is asserting, because the two have different failure modes.</para>
     /// </summary>
-    private static void InteractionIds(Dictionary<string, List<string>> owners)
+    private static void InteractionIds(Dictionary<string, List<string>> owners) =>
+        Repo("every id the interaction check drives still exists", root => InteractionIds(root, owners));
+
+    private static void InteractionIds(string root, Dictionary<string, List<string>> owners)
     {
-        string? script = RepoFile(Path.Combine("scripts", "Check-Interaction.ps1"));
-        if (script is null)
-        {
-            // A genuinely absent precondition: an installed copy carries no repo. Named, so it cannot be
-            // the silent nothing T169 is about — and CI runs the build from the checkout, where it is here.
-            Skip("every id the interaction check drives still exists",
-                 "scripts\\Check-Interaction.ps1 is not beside this build — no repo on disk");
+        string script = Path.Combine(root, "scripts", "Check-Interaction.ps1");
+        if (!Check("the interaction script is where this check expects it", File.Exists(script),
+                   $"{script} — in a checkout it is always there, so its absence is not a skip"))
             return;
-        }
 
         string text = File.ReadAllText(script);
         string[] derived = System.Text.RegularExpressions.Regex
@@ -2481,6 +2461,46 @@ internal static class SelfTestCli
               lostPattern.Length == 0 ? "" : $"{string.Join(", ", lostPattern)} no longer built that way — " +
                                              "the explicit list above is stale and asserts nothing");
     }
+
+    /// <summary>
+    /// The precondition every *one claim, two places* check shares, named once (T247).
+    ///
+    /// <para>Seven assertions had grown the same four lines each — call <see cref="RepoFile"/>, get null on
+    /// an installed copy, <c>Skip</c> with a freshly written sentence, and remember to add a matching line
+    /// to <see cref="AllowedSkips"/> so the skip is not red. The duplication was not the cost. Seven
+    /// sentences said one thing seven ways; the allowance was remembered in a second place, where a name
+    /// typed differently is a skip that goes red for a reason nobody can act on; and the eighth check would
+    /// inherit none of it. Here the allowance travels <em>with</em> the skip, so a check declares its
+    /// subject and nothing else, and the family is one sentence.</para>
+    ///
+    /// <para>It also hands over the repository <b>root</b>, which nothing had: <c>RepoFile</c> answers about
+    /// files, so the check that needed the <c>src\</c> directory derived it from wherever <c>AGENTS.md</c>
+    /// happened to be found. A file the checkout is missing is now a red precondition inside the body
+    /// rather than a skip — in a repository those files are always there, and pretending otherwise is how a
+    /// check quietly stops asserting.</para>
+    ///
+    /// <para><b>The allowance is for an installed copy and nowhere else</b>, which is what §XXII.8 left to
+    /// settle. <c>check.yml</c> runs the build from the checkout, so a repository skip there is
+    /// <c>RepoFile</c> having broken — five checks lost in a run that stays green, which is the exact shape
+    /// this file keeps naming. Under <c>CI</c> the allowance does not apply and the skip is unexpected.</para>
+    /// </summary>
+    private static void Repo(string claim, Action<string> assert)
+    {
+        string? agents = RepoFile("AGENTS.md");
+        if (agents is not null) { assert(Path.GetDirectoryName(agents)!); return; }
+
+        RepoSkipped.Add(claim);
+        Skip(claim, "no repository beside this build — a document and the thing it documents ship with " +
+                    "the source, and an installed copy has neither");
+    }
+
+    /// <summary>The claims <see cref="Repo"/> stood down this run, so the allowance is derived from the
+    /// skip that happened rather than remembered beside it.</summary>
+    private static readonly List<string> RepoSkipped = new();
+
+    /// <summary>Whether this is a run that had no business skipping the repository family — GitHub Actions
+    /// sets <c>CI</c>, and the checkout is the working directory there.</summary>
+    private static bool OnCi => Environment.GetEnvironmentVariable("CI") is { Length: > 0 };
 
     /// <summary>
     /// A file in the repository this build came out of, or null when there is no repository — an installed

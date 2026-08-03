@@ -52,7 +52,7 @@
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
 | [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
-| [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags (active — see ROADMAP) |
+| [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 
 ## Block A — Foundation (tray, icon, API, projection)
 
@@ -571,6 +571,7 @@
 - **T243** — Every "--x" literal the sources compare against is now held to the catalogue and back, so the half of the flag surface with no variant table in code is checked rather than remembered - --raw, unlisted since --live shipped, is the one it found. The second direction is read at declaration position only, left of the # inside a fence: over the whole document `claude auth status --json` reads as this app promising a flag it has never had, and a check that cries wolf is a check somebody turns off.
 - **T244** — A row's `(active - see ROADMAP)` is now derived rather than remembered: it must be present exactly when the roadmap carries a task line under that block's heading, which was wrong on six of thirty-six - five blocks marked with nothing open, and Localization open with no mark. Required in both directions, because unlike the entries under a heading the marker is not frozen prose about what shipped but a live reading of another file, and every drifted row could be corrected here.
 - **T246** — The routing sentence in the file loaded every turn now names the two kinds of claim the suite holds - an invariant over synthetic inputs, and a document against the thing it documents - so a consistency rule has somewhere to be filed instead of becoming a paragraph in the one file that is zero-sum. The section is renamed off arithmetic, the synthetic-inputs promise says written rather than touched now that four checks read repository files, and the trim of one discovery story paid for all but 143 bytes of it.
+- **T247** — The seven checks that read the repository share one named precondition now: it hands over the root nothing had, and the allowance travels with the skip instead of being remembered in a second list where a name typed differently is a skip nobody can act on. Five of the seven sentences are gone and a missing file in a checkout is a red precondition rather than a skip, so the quiet-run report went from ten names to three. The allowance is for an installed copy only - under CI the checkout is here, so a repository skip there is five checks lost in a green run, and it exits 1.
 
 ## Block AB — What Block Z's own work left behind
 
