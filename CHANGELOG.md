@@ -546,6 +546,7 @@
 - **T217** — A capture can be asked to prove it contains the surface it was taken for: the preview prints what it drew and where, -Expect makes Capture-Window.ps1 demand that line and check the rectangle is inside the copy, and neither a surface that went unreported nor one that landed outside the window writes a file - while holding preview popups open moved from one page's call site to the host every preview shares.
 - **T218** — An unexpected skip is now a red run: --selftest carries a named list of the skips it is allowed to have, each with what allowing it costs, so losing a check in CI costs the exit code instead of nothing - and a skip that stops happening is reported too, which a count could never say.
 - **T220** — The Menu case matches the tray's labels against the language that tray actually resolved when -UseRunning attached to it, and refuses a -Lang that was typed alongside instead of quietly checking a different one.
+- **T221** — The capture asks whether anything covers the region it is about to copy, by walking the Z order above the window and intersecting each frame, so a foreign window between the old sample points is named and the file is not written.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

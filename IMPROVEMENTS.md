@@ -216,31 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.17 Nine points cannot cover a window
-
-T199 decides what lands in the file by asking who owns the pixels, which is the right property:
-being in the foreground is a proxy the script cannot even insist on. It asks at nine points — the
-centre, the four quarter positions, and since T206 four more a fifth of the way in from each edge's
-midpoint.
-
-Nine points is a sample, not a cover, and the gap is not theoretical. The capture taken to verify
-T217 — the one the script certified, named the right window for, and reported as a correct copy —
-carries two windows of another process across its lower-right corner. Every sample missed them.
-
-What makes this worth a task rather than more samples: adding points moves the threshold without
-changing the shape, and the number that finally covers a window is the number of pixels in it. The
-property is about a region, and it is being asked about coordinates.
-
-Cheaper answers exist. The **z-order** above the target can be enumerated — walk the windows in
-front of it and intersect their rectangles with the one about to be copied, which answers for the
-whole area in one pass and names the intruder. Or the copy can be compared against an off-screen
-render of the same window where one exists, which is a different guarantee and only available for a
-page.
-
-Also worth settling: whether a foreign window overlapping the **edge** of a capture should fail it
-or crop it. T206 made the copied rectangle the painted frame, so an edge overlap is now inside real
-content rather than inside the border it used to be.
-
 ### XX.18 The submenu the check stops one level short of
 
 Check-Interaction.ps1's Menu case opens the tray icon's menu, reads its entries, and expands Open

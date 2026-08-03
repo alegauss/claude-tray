@@ -22,7 +22,14 @@
 
       1. the window handle belongs to the process this script launched;
       2. no other ClaudeTray window is open, unless -IgnoreOtherInstances says to allow it;
-      3. the pixels sampled across the window's own rectangle belong to that same process.
+      3. no foreign window in front of it overlaps the rectangle about to be copied.
+
+    (3) was nine sampled points until T221, and nine points cannot cover a window: the capture taken to
+    verify T217 passed all of them while carrying two windows of another process across its lower-right
+    corner. More points only move the threshold — the number that finally covers a window is the number
+    of pixels in it — so the question is now asked about the region. The Z order above the window is
+    enumerated and each frame intersected with the copy rectangle, which answers for the whole area in
+    one pass and names the intruder, its pid and the rectangle it covers.
 
     What it copies is the window's PAINTED frame (T206), not `GetWindowRect`: that one spans the
     invisible resize border and the drop-shadow margin, so every PNG this script made carried a strip of
@@ -32,8 +39,10 @@
     (3) is the one that decides the file. Being in the foreground is only a proxy for it — a window can
     hold focus and still sit under a topmost one — and it is a proxy this script cannot even insist on,
     since Windows refuses SetForegroundWindow to a process that does not own focus (normally the editor
-    this was launched from). So the window is raised *and* pushed topmost as best effort, and then the
-    pixels are checked directly. Nothing is written if that check fails.
+    this was launched from). So the window is raised *and* pushed topmost as best effort, and then what
+    is in front of it is checked directly. An overlap FAILS rather than cropping the copy around it:
+    nothing is written, because a file quietly trimmed to dodge an intruder is a picture of something
+    nobody asked for.
 
 .PARAMETER Exe
     Path to the executable to launch. Defaults to the Debug build's ClaudeTray.exe.
@@ -74,6 +83,7 @@ Add-Type -AssemblyName System.Drawing
 
 $src = @"
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 public static class Win {
@@ -146,6 +156,50 @@ public static class Win {
         if (h == IntPtr.Zero) return IntPtr.Zero;
         IntPtr root = GetAncestor(h, 2);
         return root == IntPtr.Zero ? h : root;
+    }
+
+    // T221: what it takes to ask about a REGION instead of a handful of coordinates. GW_HWNDPREV walks
+    // one step up the Z order among top-level siblings, so from the target it enumerates exactly the
+    // windows in front of it - and nothing below, which is the whole set that can cover a pixel.
+    [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr h, uint cmd);
+    public const uint GW_HWNDPREV = 3;
+    [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
+
+    // A window can be visible by WS_VISIBLE and painted by nothing: DWM cloaks suspended UWP apps, the
+    // shell's hidden host windows and a virtual desktop's other windows. Without this every run on a
+    // stock Windows 11 reports a screenful of intruders that are not on screen.
+    [DllImport("dwmapi.dll")] public static extern int DwmGetWindowAttribute(IntPtr h, int attr,
+        out int v, int size);
+    public const int DWMWA_CLOAKED = 14;
+    public static bool Cloaked(IntPtr h) {
+        try { int v; if (DwmGetWindowAttribute(h, DWMWA_CLOAKED, out v, sizeof(int)) == 0) return v != 0; }
+        catch {}
+        return false;
+    }
+
+    /// <summary>Every foreign window in front of <c>target</c> whose painted frame overlaps <c>area</c>,
+    /// nearest first, each named with the rectangle it covers. Empty means the region is clear - which is
+    /// an answer about the whole area, not about the points somebody thought to sample.
+    ///
+    /// Own-process windows are skipped deliberately: a popup is its own top-level window and being in
+    /// front of the page that opened it is what `-Expect` exists to require (T217).</summary>
+    public static string[] Intruders(IntPtr target, RECT area, uint ownPid) {
+        var found = new List<string>();
+        for (IntPtr h = GetWindow(target, GW_HWNDPREV); h != IntPtr.Zero; h = GetWindow(h, GW_HWNDPREV)) {
+            if (!IsWindowVisible(h) || IsIconic(h) || Cloaked(h)) continue;
+            if (PidOf(h) == ownPid) continue;
+            RECT r;
+            // The painted frame for the intruder too: its invisible resize border overlaps things it does
+            // not cover, and failing a capture on a drop shadow is the false red of this same shape.
+            if (!FrameRect(h, out r) && !GetWindowRect(h, out r)) continue;
+            int l = Math.Max(r.Left, area.Left), t = Math.Max(r.Top, area.Top);
+            int rt = Math.Min(r.Right, area.Right), b = Math.Min(r.Bottom, area.Bottom);
+            if (rt <= l || b <= t) continue;
+            found.Add(string.Format("'{0}' (pid {1}) covers ({2},{3})-({4},{5}), {6} x {7} px",
+                                    TitleOf(h), PidOf(h), l, t, rt, b, rt - l, b - t));
+        }
+        return found.ToArray();
     }
 }
 "@
@@ -241,29 +295,21 @@ try {
         $hgt = $r.Bottom - $r.Top
         if ($w -le 0 -or $hgt -le 0) { throw "Bad window rect ($w x $hgt)" }
 
-        # (3) The pixels themselves — the assertion that decides the file. The four fifths-of-the-way
-        # samples are what T199 had; the mid-edge ones became possible only once the rect stopped being
-        # the invisible border, because a pixel out there belonged to no window and could never pass an
-        # ownership check. Corners are still avoided - Windows 11 rounds them, so the extreme corner of
-        # even the painted frame is the desktop.
-        $covered = $null
-        foreach ($f in @(@(0.5, 0.5), @(0.25, 0.25), @(0.75, 0.25), @(0.25, 0.75), @(0.75, 0.75),
-                         @(0.02, 0.5), @(0.98, 0.5), @(0.5, 0.02), @(0.5, 0.98))) {
-            $x = $r.Left + [int]($w * $f[0])
-            $y = $r.Top + [int]($hgt * $f[1])
-            $at = [Win]::RootAt($x, $y)
-            $atPid = if ($at -eq [IntPtr]::Zero) { 0 } else { [Win]::PidOf($at) }
-            if ($atPid -ne $proc.Id) {
-                $covered = [pscustomobject]@{ X = $x; Y = $y; Title = [Win]::TitleOf($at); Pid = $atPid }
-                break
-            }
-        }
-    } while ($covered -and (Get-Date) -lt $raiseDeadline)
+        # (3) The region — the assertion that decides the file. It used to be nine sampled points, and a
+        # sample is not a cover: the capture taken to verify T217 was certified, named the right window
+        # and carried two windows of another process across its lower-right corner, missed by every one
+        # of them (T221). Adding points only moves the threshold — the number that finally covers a
+        # window is the number of pixels in it — so the question is asked about the area instead: walk
+        # the Z order above this window and intersect. One pass, and it names the intruder.
+        $covered = @([Win]::Intruders($h, $r, [uint32]$proc.Id))
+    } while ($covered.Count -gt 0 -and (Get-Date) -lt $raiseDeadline)
 
-    if ($covered) {
-        throw (("({0}, {1}) inside the window belongs to '{2}' (pid {3}), not to the launched pid {4} - " +
-                "it stayed covered after 4s of raising it, and the copy would be a picture of that") -f
-               $covered.X, $covered.Y, $covered.Title, $covered.Pid, $proc.Id)
+    if ($covered.Count -gt 0) {
+        # Fail, never crop. An overlap on the edge is now inside real content — T206 made the copied
+        # rectangle the painted frame, so there is no border left for a foreign window to hide in — and
+        # a file quietly trimmed to dodge it is a picture of something nobody asked for.
+        throw (("{0} window(s) in front of the one being captured overlap it, after 4s of raising it - " +
+                "the copy would photograph them: {1}") -f $covered.Count, ($covered -join '; '))
     }
 
     # (4) The surface the flag was invoked FOR is inside what is about to be copied (T217). Three
