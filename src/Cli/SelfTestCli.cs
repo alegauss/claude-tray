@@ -78,6 +78,8 @@ internal static class SelfTestCli
          "the same absent repository - CHANGELOG.md ships with the source, not with the app (T223)"),
         ("the theme table names only blocks the ledger declares",
          "the same absent repository, and the skill is not installed beside a released binary (T223)"),
+        ("the file map names every source file, and only files that exist",
+         "the same absent repository - the map and the tree it maps both ship with the source (T242)"),
     };
 
     /// <returns>Process exit code: 0 when every check passed.</returns>
@@ -161,6 +163,9 @@ internal static class SelfTestCli
 
         Section("ledger — every block heading has a row in its own index (Block AJ)");
         LedgerIndex();
+
+        Section("map — every source file has a row, and every row a file (Block AJ)");
+        FileMap();
 
         if (quick)
         {
@@ -1887,6 +1892,111 @@ internal static class SelfTestCli
             .OrderBy(b => b, StringComparer.Ordinal).ToArray();
         Check("the theme table names only blocks the ledger declares", invented.Length == 0,
               $"{string.Join(", ", invented)} — a theme filed under a letter no block heading declares");
+    }
+
+    /// <summary>
+    /// The per-file map against the tree it maps (T242). T219 moved it to the <c>file-map</c> skill on the
+    /// argument that reference material is consulted rather than read — which is exactly when a hole in it
+    /// costs something, because it is opened by a reader who does not already know the answer.
+    ///
+    /// <para>The map is a hand-written copy of <c>src\</c> and the tree is edited daily, so it drifts in
+    /// three ways nothing would report: a new file with no row, a row naming a file that was renamed or
+    /// deleted, and a row left under the folder a file has since moved out of. One of each was already
+    /// there when this was written — eight undocumented files, and <c>ThroughputFixture</c> filed under the
+    /// Context heading for a file that lives in <c>src\Usage\</c>.</para>
+    ///
+    /// <para><b>What counts as documented.</b> A row names one type, and this repository deliberately
+    /// spreads one class over several files — <c>StatisticsPage.{Throughput,Chart,…}.cs</c> is one class in
+    /// six files (T133–T134), and a XAML page is a pair. So a file is covered by its own row <em>or</em> by
+    /// the row for its stem, everything before the first dot; a page's row is written
+    /// <c>Foo.xaml(.cs)</c> and both halves of the pair must exist. Requiring a row per file would make the
+    /// map longer than the tree and would argue against the partial-file convention.</para>
+    ///
+    /// <para>The folder table left in <c>AGENTS.md</c> is checked the same way and for a sharper reason: a
+    /// new subsystem folder is precisely the moment placement matters, and that table — not the skill — is
+    /// what a reader hits first, being in the file loaded every turn.</para>
+    /// </summary>
+    private static void FileMap()
+    {
+        string? skill = RepoFile(Path.Combine(".claude", "skills", "file-map", "SKILL.md"));
+        string? agents = RepoFile("AGENTS.md");
+        if (skill is null || agents is null)
+        {
+            Skip("the file map names every source file, and only files that exist",
+                 "no repository beside the build — the map and the tree it maps both ship with the source");
+            return;
+        }
+
+        string root = Path.GetDirectoryName(agents)!;
+        string src = Path.Combine(root, "src");
+        string[] files = Directory.Exists(src)
+            ? Directory.GetFiles(src, "*.cs", SearchOption.AllDirectories)
+                       .Select(f => Path.GetRelativePath(root, f).Replace('\\', '/')).ToArray()
+            : Array.Empty<string>();
+
+        string[] rows = Regex.Matches(File.ReadAllText(skill), @"^\| `(src/[^`]+)`", RegexOptions.Multiline)
+            .Select(m => m.Groups[1].Value)
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
+        // The precondition, first: an unreadable file or a renamed folder parses to two empty lists, over
+        // which both claims below hold vacuously.
+        if (!Check("the file map and the source tree are both readable",
+                   files.Length >= 40 && rows.Length >= 40,
+                   $"{files.Length} .cs files, {rows.Length} rows — the check cannot read what it compares"))
+            return;
+
+        // `Foo.xaml(.cs)` is the pair; every other row is one path. Both halves have to be on disk, or the
+        // shorthand is hiding half a page that no longer exists.
+        string[] absent = rows
+            .SelectMany(r => r.EndsWith(".xaml(.cs)", StringComparison.Ordinal)
+                ? new[] { r[..^"(.cs)".Length], r[..^"(.cs)".Length] + ".cs" }
+                : new[] { r })
+            .Where(p => !File.Exists(Path.Combine(root, p.Replace('/', Path.DirectorySeparatorChar))))
+            .OrderBy(p => p, StringComparer.Ordinal).ToArray();
+        Check($"every path the file map names exists ({rows.Length} rows)", absent.Length == 0,
+              $"{string.Join(", ", absent)} — documented, and renamed or deleted since");
+
+        var covered = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string row in rows)
+        {
+            string path = row.Replace(".xaml(.cs)", ".xaml.cs");
+            covered.Add(path);
+            covered.Add(Stem(path));   // so a page's row covers the `partial` files spread beside it
+        }
+        string[] undocumented = files.Where(f => !covered.Contains(f) && !covered.Contains(Stem(f)))
+                                     .OrderBy(f => f, StringComparer.Ordinal).ToArray();
+        Check($"every source file is named by a row or by its stem's ({files.Length} files)",
+              undocumented.Length == 0,
+              $"{string.Join(", ", undocumented)} — in the tree and in no row of the map");
+
+        string[] folders = Directory.Exists(src)
+            ? Directory.GetDirectories(src).Select(d => "src/" + Path.GetFileName(d) + "/")
+                       .OrderBy(d => d, StringComparer.Ordinal).ToArray()
+            : Array.Empty<string>();
+        string[] listed = Regex.Matches(File.ReadAllText(agents), @"^\| `(src/[A-Za-z]+/)` \|",
+                                        RegexOptions.Multiline)
+            .Select(m => m.Groups[1].Value).Distinct(StringComparer.Ordinal).ToArray();
+
+        string[] unplaced = folders.Where(f => !listed.Contains(f, StringComparer.Ordinal)).ToArray();
+        Check($"AGENTS.md's folder table names every subsystem folder ({folders.Length})", unplaced.Length == 0,
+              $"{string.Join(", ", unplaced)} — a folder with no stated place for a new file in it");
+
+        string[] gone = listed.Where(f => !folders.Contains(f, StringComparer.Ordinal))
+                              .OrderBy(f => f, StringComparer.Ordinal).ToArray();
+        Check("and every folder it names is still there", gone.Length == 0,
+              $"{string.Join(", ", gone)} — a placement rule for a folder that no longer exists");
+    }
+
+    /// <summary>A file's stem row: everything before the first dot, plus <c>.cs</c> — so
+    /// <c>StatisticsPage.Throughput.cs</c> and <c>MainWindow.xaml.cs</c> both resolve to the row that names
+    /// the type they are part of. One class in several files is this repository's convention (T133–T134),
+    /// not an omission from the map.</summary>
+    private static string Stem(string relative)
+    {
+        string dir = relative[..(relative.LastIndexOf('/') + 1)];
+        string name = relative[dir.Length..];
+        int dot = name.IndexOf('.');
+        return dot < 0 ? relative : dir + name[..dot] + ".cs";
     }
 
     /// <summary>A heading's GitHub anchor: lowercased, everything that is not a letter, a digit, a space

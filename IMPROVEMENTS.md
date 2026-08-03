@@ -278,29 +278,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.4 The map is a copy of the tree, and copies drift
-
-`AGENTS.md` now points at the `file-map` skill for the per-file detail (T219), which is the right
-place for it: reference material is consulted rather than read, and a per-turn budget should not pay
-for a table of contents. What moved with it is the failure mode. The map is a hand-written copy of
-`src/`, and the tree it copies is edited every day — a new file gets no row, a renamed one leaves a
-row naming nothing, and a file that changes subsystem leaves its row under the old heading.
-
-None of that is visible while reading the skill, which is the property that made T223 worth
-shipping: a reference with holes in it reads exactly like a complete one, and it is consulted
-precisely when the reader does not already know the answer. One drifted row was found while writing
-it — the `ThroughputFixture` entry sat under the Context heading for a file that lives in
-`src/Usage/`.
-
-The check is the same move again and cheaper than either predecessor, because both sides are already
-on disk: every `src/**/*.cs` must appear in a row, and every path a row names must exist. The two
-directions catch opposite mistakes — a file nobody documented, and a row documenting a file that was
-renamed or deleted.
-
-Two things to settle with it. Whether the folder table left in `AGENTS.md` is checked as well, or
-whether one list of folders is enough to keep; and what to do with the `.xaml` half of a page, which
-the map names as `Foo.xaml(.cs)` and a glob would see as two files.
-
 ### XXII.5 The half of the flag surface no table can name
 
 `--recorded` shipped with an entry in `dev-flags` because the task remembered to write one. Nothing

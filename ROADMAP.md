@@ -67,7 +67,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T242** (deps: —) **The per-file map is a second copy of the source tree, kept by hand** — A file added under src/ gets no row and a renamed one leaves a row naming nothing, so the map T219 moved to a skill drifts whenever it is not the file being edited. → §XXII.4
 - 📋 **T243** (deps: —) **A flag with no variant table in code is documented by hand and checked by nobody** — T207 asserts the catalogue against the two tables it can read, so --recorded reached dev-flags because somebody remembered - the guarantee that assertion exists to replace. → §XXII.5
 - 📋 **T244** (deps: —) **A row of the ledger's index says its block is active with nothing open under it** — T223 asserted every heading has a row and every row a heading, and left the one part of a row that states a fact about the roadmap set by hand and cleared by nobody. → §XXII.6
 

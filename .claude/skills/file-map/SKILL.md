@@ -24,6 +24,7 @@ AGENTS.md states all three, because getting them wrong costs a redo.
 | `src/Tray/TrayContext.cs` | The resident app: tray icon, menu, poll/flash/update timers plus the 6h `_backgroundSample` one (context scan + activity-grid warm-up), `ApplySettings`, tooltip, icon render, the watched-profile list and `OpenMain` — the **one** entry point to the **one** window (T158), from a left-click on the icon or the menu's bold *Open*. |
 | `src/Tray/IconRenderer.cs` | GDI+ icon (vector number + outline + fill bar + projection color) at the real size; also the app `.ico` and social image. |
 | `src/Tray/Updater.cs` | Checks GitHub Releases; downloads/runs the installer for in-app self-update. `CurrentVersion`. |
+| `src/Tray/TooltipText.cs` | What the tooltip says, composed from an explicit `Input` rather than from a live tray (T214) — it is `NOTIFYICONDATA.szTip`, drawn by the shell, so there is nothing to screenshot and nothing in the accessibility tree, and composing it away from the tray is the only way the surface can be reviewed at all. Owns `Cap`, the 127 characters that survive the Windows limit and decide whether the projection sentence appears in full, compact or not at all. |
 
 ## `src/Cli/` — the headless printers
 
@@ -40,6 +41,8 @@ One file per flag family; `Main` dispatches, these run and exit.
 | `src/Cli/StatsPreviews.cs` | The one table of Statistics previews `--stats` and `--capture-stats` both read (T186): a variant per row with what it feeds the page, the modifiers that compose with any of them, and the refusal — an unknown name prints the catalogue and exits 1 rather than rendering the default sample as if it were what was asked for. |
 | `src/Cli/ToastPreviews.cs` | The same table for the toast cards, read by `--simulate-reset` and `--capture-toast` both (T198). Two rules it carries: an unknown variant is refused with the catalogue, and **a capture flag never defaults its output path** — `--capture-toast` requires one, and a default that is kept goes under git-ignored `docs\_preview\`, never the working directory. |
 | `src/Cli/PreviewCli.cs` | The deterministic previews behind the published images: `--simulate-reset`, `--capture-toast`, `--render` (icon contact sheet), `--makeicon`, and the gap-demo report `--stats gapdemo` feeds. |
+| `src/Cli/PreviewSurface.cs` | What a preview tells `Capture-Window.ps1` it drew, on stdout, as a rectangle the script asserts against (T217). Only the app knows what it drew and where, so a capture that honestly reports a correct copy of a window with no popup in it — the silent failure that cost three captures verifying T170 — is caught by the app naming its own surface rather than by the picture. |
+| `src/Cli/TooltipCli.cs` | `--tooltip [variant]`: the tray tooltip's text for a synthetic reading, printed with each row's character count against `TooltipText.Cap` (T214). The read-out for the one surface no flag can photograph, in every state and any language. |
 
 ## `src/Usage/` — quota, spend and live throughput
 
@@ -110,3 +113,8 @@ is a defect somebody already shipped. What is here is which file is which.
 | `src/Ui/StatisticsPage.xaml(.cs)` | The Statistics page and its tabs, one `partial` file per surface: `.{Throughput,Chart,Profiles,Format,Note}.cs`. |
 | `src/Ui/ToastWindow.xaml(.cs)` | The second window: the reset/context cards, deterministic under `--simulate-reset` and `--capture-toast`. |
 | `src/Ui/PageWindow.cs` | The code-only host that shows a single page for the previews and captures, which are about the page rather than the shell. `--main` opens the real shell. |
+| `src/Ui/SettingsRow.cs` | The Fluent `SettingsCard` row every settings page is built from: leading title and optional wrapping description, trailing control right-aligned. A lookless control whose visual tree is the implicit style in `SettingsPage.xaml`, and whose label is a *neighbour* of the control rather than its content — which is what the automation tree has to be told about (T175). |
+| `src/Ui/ProjectRow.cs` | One row of the Context page's project list. `public`, like the view models beside it, because WPF resolves a `{Binding}` path by reflection over public types only — an internal one binds to nothing, silently. |
+| `src/Ui/SourceRows.cs` | `SourceGroup` and the rows under it: one kind of context source — Instructions, Memory, Skills, Agents — and its files, with the count carried in the header rather than in a string that would need a plural rule. |
+| `src/Ui/RowStyle.cs` | How rows inside a group are ordered and drawn: `SourceSort` (the order the sort picker offers) and the per-row style the gauge and the list share. |
+| `src/Ui/ContextText.cs` | The display words the Context page's view models share — one `L.T` lookup per `ContextKind`, so a kind is spelled the same wherever it appears. |
