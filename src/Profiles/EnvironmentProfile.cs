@@ -209,7 +209,9 @@ internal static class EnvironmentProfile
                 // A sampled environment is written to instead of the machine's (T231), so a pick made
                 // under the fixture moves the fixture and the read-back below observes it — the whole
                 // T173/T174 path runs, off the registry rather than through it. The one line that must
-                // never be reached under sampling is the next one.
+                // never be reached under sampling is the next one. An observing tray gets here the same
+                // way: ProfileStore.Observe() samples the variable's real value at startup (T239), so its
+                // reads stay truthful and its writes land on the copy.
                 if (_sampling) _sampled = value;
                 else
                 {

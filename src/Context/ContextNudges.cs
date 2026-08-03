@@ -32,6 +32,8 @@ internal static class ContextNudges
     /// <summary>Record that it was nudged, so the cooldown starts.</summary>
     public static void Mark(string profileKey, string slug, DateTime nowUtc)
     {
+        // T239: an observing tray reads this store and adds nothing to it.
+        if (ProfileStore.Observing) return;
         try
         {
             Dictionary<string, long> seen = Load(profileKey);

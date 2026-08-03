@@ -347,6 +347,10 @@ internal static class ContextUsage
 
     private static void SaveCache(List<CacheEntry> entries)
     {
+        // T239: an observing tray writes NOTHING - caches included. They are shared and rewritten
+        // whole, so two processes doing it at once can tear one; and "writes nothing" is a promise
+        // that can be checked, while "nothing except caches" is a list that grows a hole.
+        if (ProfileStore.Observing) return;
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(CachePath)!);

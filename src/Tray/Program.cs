@@ -565,6 +565,10 @@ internal static class Program
         // one exception is `--second-tray` (T237), which is asked for explicitly and never inferred: the
         // mutex is still taken when it is free, so an ordinary launch after this one still finds it held.
         SecondTray = args.Contains("--second-tray");
+        // A tray launched beside the user's own is a check driving the build, not a second copy of the
+        // app entitled to keep books (T239). Before Application.Run, so nothing it does on startup —
+        // the first poll, the environment reconcile, an auto-follow save — reaches their files.
+        if (SecondTray) ProfileStore.Observe();
         _instanceMutex = new Mutex(initiallyOwned: true, @"Local\ClaudeTray.SingleInstance", out bool createdNew);
         if (!createdNew && !SecondTray)
             return;

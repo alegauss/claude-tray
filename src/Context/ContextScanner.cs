@@ -1098,6 +1098,10 @@ internal static class ContextScanner
 
     private static void SaveCache(Plan plan, ContextScan scan)
     {
+        // T239: an observing tray writes NOTHING - caches included. They are shared and rewritten
+        // whole, so two processes doing it at once can tear one; and "writes nothing" is a promise
+        // that can be checked, while "nothing except caches" is a list that grows a hole.
+        if (ProfileStore.Observing) return;
         try
         {
             var cache = new CacheFile

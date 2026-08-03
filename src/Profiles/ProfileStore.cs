@@ -24,6 +24,42 @@ internal static class ProfileStore
     private static string Root => Path.Combine(Settings.DataDir, "profiles");
 
     /// <summary>
+    /// This process **reads** the stores and adds nothing to them (T239).
+    ///
+    /// <para>Set for a tray launched with <c>--second-tray</c> beside a resident one (T237), which is a
+    /// check driving the build under test — not a second copy of the app entitled to keep books. Without
+    /// it a check run leaves a second reading per profile in <c>usage-history.jsonl</c>, written by a
+    /// different process at nearly the same instant, in a store whose whole design assumes one writer per
+    /// key; the burn-up charts and the week-over-week comparison read what that folds into.</para>
+    ///
+    /// <para>Reads are deliberately untouched. Pointing an observing tray at an empty store would make it
+    /// render numbers no user's tray would render, which is the "screen that cannot occur" this block
+    /// exists to rule out — it polls, it draws, it just does not persist.</para>
+    ///
+    /// <para><b>A store that writes a file must consult this.</b> The gate is here rather than at the
+    /// tray's call sites because the call sites are a list with no owner, and the one it forgets is the
+    /// one that keeps writing. <c>--selftest</c> asserts each known write is a no-op while it is set.</para>
+    /// </summary>
+    internal static bool Observing { get; private set; }
+
+    /// <summary>
+    /// Make this process an observer, for the rest of its life. One-way, like
+    /// <see cref="EnvironmentProfile.Sample"/> and for the same reason: a switch that could be turned
+    /// back off is a process that can still write after promising not to.
+    ///
+    /// <para>Sampling the environment is part of observing rather than a second thing to remember.
+    /// <c>CLAUDE_CONFIG_DIR</c> is the one value this app writes outside its own files, and it is seeded
+    /// with what the machine actually says — so an observing tray reads the truth, and the reconcile it
+    /// runs on startup lands on the copy instead of the user's registry. Skipping the write alone would
+    /// leave it reading back the real value and reporting its own write as failed (T173).</para>
+    /// </summary>
+    internal static void Observe()
+    {
+        Observing = true;
+        if (!EnvironmentProfile.IsSampled) EnvironmentProfile.Sample(EnvironmentProfile.Current());
+    }
+
+    /// <summary>
     /// The files that belong to one profile and were, until now, one per machine.
     ///
     /// <para>Two stores are deliberately **not** here. <c>context-cache.json</c> and

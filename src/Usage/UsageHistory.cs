@@ -58,6 +58,8 @@ internal static class UsageHistory
     public static void Append(string profileKey, long nowUnix, double util5h, double reset5h, double util7d, double reset7d,
                               double? extraUtil = null, double extraReset = 0)
     {
+        // T239: an observing tray reads this store and adds nothing to it.
+        if (ProfileStore.Observing) return;
         try
         {
             string path = FilePath(profileKey);

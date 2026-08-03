@@ -279,6 +279,10 @@ internal sealed class Settings
 
     public void Save()
     {
+        // T239: an observing tray must not write the settings file either. Auto-follow moves
+        // MonitoredConfigDir on its own and saves, so a check run beside the user's tray could repoint
+        // the icon their tray follows — the settings file is one per machine, not one per process.
+        if (ProfileStore.Observing) return;
         Clamp();
         Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
         File.WriteAllText(FilePath,

@@ -54,6 +54,8 @@ internal static class ContextHistory
     /// </summary>
     public static void Record(string profileKey, ContextScan scan, DateTime nowUtc)
     {
+        // T239: an observing tray reads this store and adds nothing to it.
+        if (ProfileStore.Observing) return;
         try
         {
             long now = new DateTimeOffset(nowUtc, TimeSpan.Zero).ToUnixTimeSeconds();

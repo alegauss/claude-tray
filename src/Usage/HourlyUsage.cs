@@ -77,6 +77,8 @@ internal static class HourlyUsage
     /// </summary>
     public static void Fold(string profileKey, List<UsageSample> samples, long nowUnix)
     {
+        // T239: an observing tray reads this store and adds nothing to it.
+        if (ProfileStore.Observing) return;
         try
         {
             if (samples.Count < 2) return;

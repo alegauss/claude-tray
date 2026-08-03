@@ -173,6 +173,11 @@ internal static class SelfTestCli
         Section("sampled environment — the states this machine is never in (Block AI)");
         SampledEnvironment();
 
+        // After the sampling section and after everything else: Observe() is one-way too, and it is the
+        // stricter of the two — from here on this process writes nothing at all (T239).
+        Section("observing tray — a check that adds nothing to the user's files (Block AI)");
+        ObservingTray();
+
         double ms = (DateTime.UtcNow.Ticks - started) / (double)TimeSpan.TicksPerMillisecond;
         Console.WriteLine();
         foreach (string f in Failures) Console.WriteLine("FAILED  " + f);
@@ -1931,6 +1936,82 @@ internal static class SelfTestCli
               EnvironmentProfile.Last is { Landed: true, Wrote: true });
         Check("and the machine's own variable is untouched",
               Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR", EnvironmentVariableTarget.User) == real);
+    }
+
+    /// <summary>
+    /// An observing tray adds nothing to the user's files (T239) — asserted against the real
+    /// <c>%LocalAppData%\ClaudeTray</c>, because that is the thing being promised.
+    ///
+    /// <para>Every write entry point is driven with arguments that WOULD write, and the whole tree is
+    /// compared before and after: not "the gate is present" — which is what reading the source would
+    /// tell you — but "nothing landed", which is the property. A store added later without the gate
+    /// fails here the moment this drives it, and a store added later that this does not drive is the
+    /// hole the doc comment on <c>ProfileStore.Observing</c> names.</para>
+    ///
+    /// <para>Runs last for the same reason as the section above: <c>Observe()</c> is one-way.</para>
+    /// </summary>
+    private static void ObservingTray()
+    {
+        string data = Settings.DataDir;
+        // A fingerprint of every file the app owns: path, length and write time. Taken before the switch
+        // is thrown, so the baseline is the state a check run must leave behind untouched.
+        Dictionary<string, (long Len, DateTime When)> Snapshot()
+        {
+            var map = new Dictionary<string, (long, DateTime)>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                if (Directory.Exists(data))
+                    foreach (string f in Directory.EnumerateFiles(data, "*", SearchOption.AllDirectories))
+                    {
+                        var fi = new FileInfo(f);
+                        map[f] = (fi.Length, fi.LastWriteTimeUtc);
+                    }
+            }
+            catch { /* an unreadable tree makes the comparison below vacuous, and Check says so */ }
+            return map;
+        }
+
+        Dictionary<string, (long Len, DateTime When)> before = Snapshot();
+        Check("the store tree can be read at all, or the comparison below asserts nothing",
+              before.Count > 0 || !Directory.Exists(data));
+
+        ProfileStore.Observe();
+        Check("observing is one-way and the environment goes with it (T231's sampling, T239's promise)",
+              ProfileStore.Observing && EnvironmentProfile.IsSampled);
+
+        // Real keys and real arguments: the point is that these calls would otherwise land on the files
+        // fingerprinted above. `Monitored` is this machine's own profile key, which is the one a second
+        // tray polls and the one a check run would have appended to.
+        string key = ProfileStore.Monitored;
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        UsageHistory.Append(key, now, 0.42, now + 3600, 0.21, now + 86400, 0.1, now + 7200);
+        HourlyUsage.Fold(key, new List<UsageSample>
+        {
+            new(now - 7200, 0.10, 0, 0.05, 0, null, 0),
+            new(now - 3600, 0.20, 0, 0.10, 0, null, 0),
+            new(now,        0.30, 0, 0.15, 0, null, 0),
+        }, now);
+        ContextNudges.Mark(key, "selftest-observing", DateTime.UtcNow);
+        // The two SHARED caches, which the per-profile list above does not reach and which an end-to-end
+        // run caught changing after the first five gates were in (T239). Driven through the scan and the
+        // usage pass, because their writers are private: what is being asserted is that a scan an
+        // observing tray runs leaves the cache alone, not that a method exists.
+        ContextScanner.Scan(DateTime.UtcNow);
+        ContextUsage.Compute(DateTime.UtcNow);
+        new Settings().Save();
+        var settings = new Settings();
+        EnvironmentProfile.Adopt(settings, @"C:\Users\nobody\.claude-observing");
+        EnvironmentProfile.Drain();
+
+        Dictionary<string, (long Len, DateTime When)> after = Snapshot();
+        var moved = new List<string>();
+        foreach (KeyValuePair<string, (long Len, DateTime When)> kv in after)
+            if (!before.TryGetValue(kv.Key, out (long Len, DateTime When) was) || was != kv.Value)
+                moved.Add(Path.GetFileName(kv.Key));
+        Check("no file under %LocalAppData%\\ClaudeTray was created or changed"
+              + (moved.Count > 0 ? " — moved: " + string.Join(", ", moved.Distinct()) : ""),
+              moved.Count == 0);
+        Check("and nothing was deleted either", before.Keys.All(after.ContainsKey));
     }
 
     private static void AutomationIds()

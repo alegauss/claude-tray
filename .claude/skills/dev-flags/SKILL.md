@@ -189,8 +189,13 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   UNANCHORED — the shell's accessible name is the registration
                                       #   name followed by the live tooltip, so the tag is mid-string.
                                       #   `Check-Interaction.ps1 -Case Menu` uses this on its own when it
-                                      #   finds a tray already running. Two trays poll the same profile,
-                                      #   which is fine for the length of a check and not a way to run.
+                                      #   finds a tray already running.
+                                      #   It POLLS AND DRAWS but WRITES NOTHING (T239): no store append,
+                                      #   no cache, no settings save, and CLAUDE_CONFIG_DIR is sampled so
+                                      #   the reconcile lands on a copy. Reads are untouched, or it would
+                                      #   render numbers no user's tray renders. `--selftest` asserts the
+                                      #   whole of %LocalAppData%\ClaudeTray is unchanged after driving
+                                      #   every writer — a new store must consult `ProfileStore.Observing`.
 ```
 
 ## Three flags that go with anything

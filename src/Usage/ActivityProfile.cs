@@ -740,6 +740,8 @@ internal sealed class ActivityProfile
 
     private static void WriteSweep(Dictionary<string, SweepEntry> entries)
     {
+        // T239: an observing tray reads this store and adds nothing to it.
+        if (ProfileStore.Observing) return;
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(SweepCachePath)!);
@@ -785,6 +787,8 @@ internal sealed class ActivityProfile
     // on a UI path.
     private static void WriteCache(string profileKey, ActivityProfile p)
     {
+        // T239: an observing tray reads this store and adds nothing to it.
+        if (ProfileStore.Observing) return;
         try
         {
             var sb = new StringBuilder(2048);

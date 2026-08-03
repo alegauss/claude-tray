@@ -216,30 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.16 A second tray is not a read-only observer
-
-`--second-tray` (T237) skips the mutex so the menu check can drive the build under test. What it
-does not skip is everything a tray does while it is up: it polls, and every successful poll runs
-`UsageHistory.Append(key, …)` against the profile store — the same `profiles\<key>\` directory the
-resident tray is appending to on its own cadence. `HourlyUsage.Fold` reads that file, and the
-burn-up charts and the week-over-week comparison read what it folds.
-
-So a check run leaves two readings of the same profile at nearly the same instant, written by two
-processes, in a store whose whole design assumes one writer per key. Nothing observed has gone wrong
-— the window is seconds and the file is append-only — but "nothing observed" is the standard this
-block exists to reject, and the store is the one thing here that outlives the check by weeks.
-
-It reaches further than the store. A second tray also reconciles `CLAUDE_CONFIG_DIR` through
-`SyncEnvironmentToPin`, which is the one thing this app writes outside its own settings file. The
-sweep is safe by accident — `--sample-env` makes those writes land on the fixture (T231) — but a
-bare `--second-tray` has the live write path, and two trays reconciling one variable is a race with
-the user's environment as the loser.
-
-The shape wanted is a second tray that observes and does not accumulate: no store append, no
-environment write, no settings save. Worth settling whether that is a separate flag or simply what
-`--second-tray` means, and the second reads better — nobody launching a tray beside their own wants
-it keeping books.
-
 ### XX.17 A snapshot of the process list is not the state at launch
 
 `Start-CheckTray` reads `Get-Process -Name ClaudeTray` once and decides everything from that one
