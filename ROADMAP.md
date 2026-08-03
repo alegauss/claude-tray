@@ -63,7 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T233** (deps: —) **Two checks in the Menu case go red on a gesture the shell dropped, and name a defect that is not there** — The left-click and the submenu expand each drive one synthesised input and read once, so three of ten runs failed against a binary nothing was wrong with. → §XX.16
 - 📋 **T235** (deps: —) **The settings-panel walk checks nothing at all under a non-English -Lang, and says so to nobody** — Label returns before loading en once the requested language defines the key, so Settings-PanelKeys reads an unloaded table, derives zero panels and walks them all successfully. → §XX.17
 - 📋 **T236** (deps: —) **A run reports every check passed against a binary older than the feature it was checking** — -UseRunning drives whatever tray is resident and prints its path, but nothing compares it to -Exe, so a day-old build passed a submenu check for an entry it does not have. → §XX.18
 

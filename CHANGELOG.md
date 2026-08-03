@@ -550,6 +550,7 @@
 - **T221** — The capture asks whether anything covers the region it is about to copy, by walking the Z order above the window and intersecting each frame, so a foreign window between the old sample points is named and the file is not written.
 - **T230** — The Menu case walks the Profile submenu and compares every entry to what --profiles says it should be: one entry per profile by name, the check mark on the icon's profile and no other, the pinned marker paired with its undo, and both toggles reading the position the app reports.
 - **T231** — --sample-env puts the process on a CLAUDE_CONFIG_DIR named rather than written, so the menu's environment mark, the outside-the-profiles line and the whole read-back path can be looked at and asserted without touching the machine's own registry.
+- **T233** — The left-click and the submenu expand each retry a bounded three times and name the attempt that worked, so a gesture the shell dropped no longer wears the wording of the defect the check exists to catch - and a gesture that stays broken still goes red.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

@@ -1408,20 +1408,51 @@ function Open-TrayMenu($namePattern, $processId, $attempts = 5) {
   Expand a submenu the way a keyboard user does - Down until the item has focus, then Right. Never
   Invoke(): invoking "Open Claude Code" launches a terminal, and invoking "Quit" ends the run.
 #>
-function Expand-Item($menu, $label) {
+function Expand-Item($menu, $label, $attempts = 3) {
     $items = Menu-Items $menu
     $target = $items | Where-Object { $_.Current.Name -eq $label } | Select-Object -First 1
     if (-not $target) { return $null }
-    for ($i = 1; $i -le ($items.Count + 2); $i++) {
-        [Native]::Key($VK_DOWN)
-        $focused = Menu-Items $menu | Where-Object { $_.Current.HasKeyboardFocus } | Select-Object -First 1
-        if ($focused -and $focused.Current.Name -eq $label) {
-            [Native]::Key($VK_RIGHT)
-            Start-Sleep -Milliseconds 700
-            $cond = New-Object System.Windows.Automation.PropertyCondition(
-                $AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::MenuItem)
-            # WinForms nests an opened submenu under the parent item, not as a second top-level menu.
-            return @($target.FindAll('Descendants', $cond))
+    $cond = New-Object System.Windows.Automation.PropertyCondition(
+        $AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::MenuItem)
+
+    # T233: bounded attempts, and the count is said out loud. One Down-walk and one read is a coin toss
+    # against a shell that drops synthesised input - three of ten runs here reported '$label did not
+    # expand' against a build with nothing wrong with it, wearing the wording of the T148 defect. What
+    # is deliberately NOT done is retrying until it passes: the attempts are capped, so a submenu that
+    # genuinely stopped expanding still goes red, it just no longer does so at random.
+    for ($try = 1; $try -le $attempts; $try++) {
+        for ($i = 1; $i -le ($items.Count + 2); $i++) {
+            [Native]::Key($VK_DOWN)
+            $focused = Menu-Items $menu | Where-Object { $_.Current.HasKeyboardFocus } | Select-Object -First 1
+            if ($focused -and $focused.Current.Name -eq $label) {
+                [Native]::Key($VK_RIGHT)
+                # Polled to a deadline rather than slept at for a fixed 700ms: the submenu appearing in
+                # the tree is an event, and a sleep long enough to be safe is a sleep paid on every run.
+                # WinForms nests an opened submenu under the parent item, not as a second top-level menu.
+                $deadline = (Get-Date).AddMilliseconds(2500)
+                do {
+                    $subs = @($target.FindAll('Descendants', $cond))
+                    if ($subs.Count -gt 0) {
+                        if ($try -gt 1) { Info "'$label' expanded on attempt $try of $attempts" }
+                        return $subs
+                    }
+                    Start-Sleep -Milliseconds 150
+                } while ((Get-Date) -lt $deadline)
+                break   # Right landed and nothing came up: start the walk over rather than press on
+            }
+        }
+        if ($try -lt $attempts) {
+            # Nothing is pressed to "reset" between attempts, and that is deliberate: reaching here means
+            # the poll above saw no submenu, so there is none to close - and Left on a top-level entry
+            # dismisses the WHOLE menu, the same way the header records Right doing. Measured: retrying
+            # after a Left walked a menu that was no longer there, and all three attempts failed.
+            # The Down-walk wraps, so it re-targets on its own.
+            if ((Menu-Items $menu).Count -eq 0) {
+                Info "attempt $try : the menu closed under the walk, so there is nothing left to expand"
+                return $null
+            }
+            Info "attempt $try : '$label' did not expand, retrying"
+            Start-Sleep -Milliseconds 300
         }
     }
     return $null
@@ -1785,10 +1816,24 @@ function Invoke-MenuCase {
             Fail "the tray icon could not be found for the left-click check"
         }
         else {
-            ClickCentre $icon
-            $win = WindowOfProcess $proc.Id 12000
+            # T233: bounded attempts on the gesture, not a longer wait on its result. WindowOfProcess
+            # already polls for twelve seconds, so a run that timed out was one where the CLICK never
+            # arrived - twice in ten runs here, reported as "opened no window", which is the wording of
+            # T158 being broken. A second click on the icon is harmless by construction: OpenMain
+            # activates the window it already has rather than stacking another (T158's own rule).
+            $win = $null
+            for ($try = 1; $try -le 3 -and -not $win; $try++) {
+                if ($try -gt 1) {
+                    Info "attempt $try : no window from the left-click yet, clicking again"
+                    $icon = Get-TrayIcon 'Claude Code'      # the overflow flyout may have closed
+                    if (-not $icon) { break }
+                }
+                ClickCentre $icon
+                $win = WindowOfProcess $proc.Id 5000
+                if ($win -and $try -gt 1) { Info "the window opened on attempt $try of 3" }
+            }
             if (-not $win) {
-                Fail "a left-click on the icon opened no window (T158)"
+                Fail "a left-click on the icon opened no window after 3 attempts (T158)"
             }
             else {
                 # The nav strip's three destinations are the window's identity: a window with the right

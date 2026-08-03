@@ -216,30 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.16 A red run that means nothing is the failure this file is about
-
-Ten runs of `-Case Menu` while T230 and T231 were being written, and three of them went red on
-something nobody had broken: twice *"a left-click on the icon opened no window (T158)"* and once
-*"'Profile' did not expand from the keyboard - empty when the menu opened? (T148)"*. Re-running
-immediately passed each time, against the same binary and the same machine.
-
-Both are synthesised input against a shell that does not always take it — the same reason
-`Open-TrayMenu` retries five times and says so in the header's first trap. The two checks below it
-do not retry at all: one click, one deadline, and a FAIL whose wording names a defect that is not
-there.
-
-This is worse than a missing check. A red run is meant to mean the thing under it stopped working,
-and the file's own rule is that an exit code has to keep meaning something — T202 turned a `Fail`
-into an `Unchecked` for precisely that reason, because a case that goes red on a machine where the
-loop is run is a case people learn to ignore. A flake that fires one run in three teaches the same
-lesson faster.
-
-What the remedy has to avoid is the shape it is fixing: a retry that keeps going until it passes
-turns a real regression into a slow pass, so the attempts are bounded and the count is reported, the
-way the menu open already reports which attempt produced it. Worth settling with it whether the
-left-click and the expand should share one "drive it until the tree changes" helper, since both are
-the same gesture-then-observe pair.
-
 ### XX.17 A derived list that resolves to nothing is a check with no steps
 
 `Label` walks `@($script:LangCode, 'en')` and returns on the first file that defines the key, so
