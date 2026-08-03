@@ -418,6 +418,10 @@ internal static class SelfTestCli
         const string Util5 = "anthropic-ratelimit-unified-5h-utilization";
         const string Over = "anthropic-ratelimit-unified-overage-utilization";
         const string Status = "anthropic-ratelimit-unified-5h-status";
+        // The three headers the first real reading turned up that no name-by-name rule was watching.
+        const string OverStatus = "anthropic-ratelimit-unified-overage-status";
+        const string Reset5 = "anthropic-ratelimit-unified-5h-reset";
+        const string Fallback = "anthropic-ratelimit-unified-fallback";
 
         static Dictionary<string, string> H(params string[] kv)
         {
@@ -443,6 +447,19 @@ internal static class SelfTestCli
               == HeaderProbe.Shape(H(Util5, "1.0", Over, "0.83")));
         Check("header order is not a change",
               HeaderProbe.Shape(H(Util5, "1.0", Over, "0")) == HeaderProbe.Shape(H(Over, "0", Util5, "1.0")));
+
+        // The half of the question still open is what the overage window says while it is being spent, and
+        // the account that can answer it sends a status of its own beside the two already watched. A rule
+        // that names 5h alone reads that transition as no change at all.
+        Check("a changed overage status is a change",
+              HeaderProbe.Shape(H(Over, "0.02", OverStatus, "allowed"))
+              != HeaderProbe.Shape(H(Over, "0.02", OverStatus, "allowed_warning")));
+        Check("a fallback flag changing is a change",
+              HeaderProbe.Shape(H(Util5, "1.0", Fallback, "available"))
+              != HeaderProbe.Shape(H(Util5, "1.0", Fallback, "unavailable")));
+        Check("a reset moving is not a change — it is a clock, not a state",
+              HeaderProbe.Shape(H(Util5, "0.10", Reset5, "1785768000"))
+              == HeaderProbe.Shape(H(Util5, "0.10", Reset5, "1785786000")));
 
         // And the same rule through the file, which is where a restart could quietly break it.
         Check("the first reading is always kept", HeaderProbe.Record(ProfileKey, (long)Now, H(Util5, "0.10")));

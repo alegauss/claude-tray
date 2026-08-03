@@ -365,25 +365,6 @@ Two constraints bind. The **privacy promise** is not in tension: rate-limit head
 overage more visible, and the next sentence, *this account is out, the other has room*, is the one the
 roadmap forbids. §XVIII.6 binds hardest; §XVI.4 found the answer's shape: a receipt, not a reward.
 
-### §XVIII.3 Nobody has established what the number denominates (T181)
-
-The tooltip prints `Extra: 42%` beside `Session 5h: 42%` and `Week 7d: 42%`, and the two neighbours mean
-"of the quota included in your plan". Nobody here has confirmed what the third means, and the plausible
-readings differ materially: a fraction of a spend cap the user configured, of some policy ceiling, or of
-nothing at all — in which case a percentage is the wrong presentation and the honest display is an amount.
-
-The same applies to `anthropic-ratelimit-unified-5h-status`, which is read, stored on `UsageData`, printed
-raw in the tooltip and consulted by no logic. Whatever it says while an account consumes overage is likely
-the cleanest signal in the block, and it is unmeasured.
-
-Hence a probe before any wording: capture the unified headers verbatim from a real account across the
-transition, names and values only. It costs nothing (the call is already made), risks nothing against §I.1
-(no message content), and it is the difference between the app explaining a number and inventing one.
-
-The alternative is tempting and wrong: shipping "Extra usage: 42% of your extra-usage limit" on a
-plausible guess. A tray whose whole value proposition is *this number is trustworthy* cannot afford a
-label that turns out to name a different denominator.
-
 ## XX Verification — the checks that prove a change (Block AI)
 
 This project's checks are three loops with different reaches. `--selftest` asserts arithmetic on

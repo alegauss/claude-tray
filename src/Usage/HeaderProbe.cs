@@ -19,9 +19,18 @@ internal readonly record struct ProbeEntry(double T, IReadOnlyDictionary<string,
 /// tray records instead, and the transition is caught whenever it happens.</para>
 ///
 /// <para><b>Why only on a change.</b> At the default cadence a week of polling is thousands of identical
-/// lines. A line is written only when the <em>shape</em> moves — a header name appears or disappears, the
-/// status string changes, or the overage figure crosses zero — which is precisely the set of moments the
-/// question is about. The first reading is always kept, as the baseline the rest are changes from.</para>
+/// lines. A line is written only when the <em>shape</em> moves — a header name appears or disappears, a
+/// categorical value changes, or the overage figure crosses zero — which is precisely the set of moments
+/// the question is about. The first reading is always kept, as the baseline the rest are changes from.</para>
+///
+/// <para><b>What one real account sends.</b> The first reading taken (2026-08-03, a subscription account
+/// inside its quota) carried fourteen headers, and the set is what settled T181: <c>5h</c>, <c>7d</c> and
+/// <c>overage</c> each send the same triple — <c>-utilization</c>, <c>-reset</c>, <c>-status</c> — so the
+/// overage figure is a window's utilization like its two neighbours, not a stray number. What separates it
+/// is its reset: <c>1788220800</c>, exactly <c>2026-09-01T00:00:00Z</c>, a calendar-month boundary, while
+/// the other two roll. Four more headers — <c>unified-status</c>, <c>unified-reset</c>,
+/// <c>unified-representative-claim</c> (<c>five_hour</c>) and the <c>unified-fallback</c> pair — are sent
+/// and read by nothing here.</para>
 ///
 /// <para><b>What it may hold.</b> Quota metadata: header names and values. No message content, no token —
 /// a credential never appears in a response header. This is the same material the tooltip already shows,
@@ -85,22 +94,40 @@ internal static class HeaderProbe
         return list;
     }
 
-    /// <summary>What makes one reading materially different from the one before it. Not the values: the
-    /// utilizations move on every poll and would make every line a "change", which is the log this is
-    /// designed not to be. The names, the status and whether overage is being consumed at all.</summary>
+    /// <summary>What makes one reading materially different from the one before it: the header names, the
+    /// value of every header that is not a moving number, and whether overage is being consumed at all.
+    ///
+    /// <para>The split is by suffix rather than by a list of names, because the account that can answer the
+    /// remaining half of the question is not this one and its headers are not known in advance. Anything
+    /// ending <c>-utilization</c> or <c>-reset</c> is a figure that moves on its own every poll, and keying
+    /// on those would make every line a "change" — the log this is designed not to be. Everything else is
+    /// categorical: three <c>-status</c> strings, the fallback pair, the representative claim, and whatever
+    /// is sent next. A change in any of them is a transition worth a line, and a header nobody here has
+    /// seen yet needs no code to be noticed.</para></summary>
     public static string Shape(IReadOnlyDictionary<string, string> headers)
     {
         var names = new List<string>(headers.Keys);
         names.Sort(StringComparer.OrdinalIgnoreCase);
 
-        string status = headers.TryGetValue("anthropic-ratelimit-unified-5h-status", out string? s) ? s : "";
         bool overage = headers.TryGetValue("anthropic-ratelimit-unified-overage-utilization", out string? o)
                        && double.TryParse(o, System.Globalization.NumberStyles.Float,
                                           System.Globalization.CultureInfo.InvariantCulture, out double v)
                        && v > 0;
 
-        return string.Join(",", names) + "|" + status + "|" + (overage ? "1" : "0");
+        var buf = new System.Text.StringBuilder();
+        foreach (string n in names)
+        {
+            buf.Append(n);
+            if (!Moves(n)) buf.Append('=').Append(headers[n]);
+            buf.Append(',');
+        }
+        return buf.Append('|').Append(overage ? '1' : '0').ToString();
     }
+
+    /// <summary>A header whose value is a figure that moves on its own, so only its presence is shape.</summary>
+    private static bool Moves(string name) =>
+        name.EndsWith("-utilization", StringComparison.OrdinalIgnoreCase)
+        || name.EndsWith("-reset", StringComparison.OrdinalIgnoreCase);
 
     private static string? LastRecordedShape(string profileKey)
     {

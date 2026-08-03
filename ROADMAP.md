@@ -44,8 +44,6 @@
 > Ordered by what is losing data today, then by what every string here is waiting on, then by what a
 > user would actually see.
 
-- ⏳ **T181** (deps: —) **Nobody has established what the overage percentage is a percentage of** — It is printed beside two figures meaning *of your included window*, and no reading of a real account mid-overage exists to settle what 100% of this one would be. → §XVIII.3
-
 ## Block AB — What Block Z's own work left behind
 
 > Four things surfaced *while building* Block Z that are part of none of its tasks and were reported by
