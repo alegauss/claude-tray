@@ -8,6 +8,13 @@ setlocal
 REM Este script vive em build\; o projeto (ClaudeTray.csproj) esta na pasta acima.
 cd /d "%~dp0.."
 
+REM --- 0) Nada rodando de dentro da pasta que o publish vai sobrescrever (T266) -------------
+REM Sem isto o SDK falha dentro do proprio bundler, com UnauthorizedAccessException e quatro
+REM linhas de MSBuild, para um estado que nao e bug: quem instalou compilando roda a bandeja
+REM exatamente dali. O guard nomeia o pid e o caminho, e nao encerra nada por conta propria.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0guard-publish.ps1"
+if errorlevel 1 exit /b 1
+
 echo.
 echo === Publicando ClaudeTray (Release, win-x64, self-contained) ===
 echo.

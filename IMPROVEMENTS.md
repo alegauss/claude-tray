@@ -269,26 +269,3 @@ What a date reads like once the month name is French and the arrangement is stil
 
 What cutting a release costs on a developer machine, as opposed to on a runner that has nothing else
 installed.
-
-### XXXI.1 The build that cannot say what is in its way
-
-Measured, and from the second of two independent causes. T258 fixed a check script that leaked trays
-and locked the next build; this one is nobody leaking anything - the resident tray IS
-`bin\Release\...\publish\ClaudeTray.exe`, which is where a developer who installed by building runs
-it from. `dotnet publish` then fails at `GenerateBundle` with a raw
-`System.UnauthorizedAccessException: Access to the path ... is denied` and four frames of MSBuild.
-
-That is the release path. `build-installer.cmd` step 1 is the publish, with no check in front of it,
-so the one command that matters at release time fails with a stack trace about a bundler instead of
-the sentence a person can act on: quit the tray, or run it from somewhere else.
-
-T258 named this question and deferred it - whether a build whose output is locked should say so as
-itself rather than as ten retries of a copy - on the grounds that the leak was the fixable half. The
-leak is fixed and the question outlived it, which is the argument for answering it now: the
-remaining cause is not a bug to remove but a normal state a person is in.
-
-The shape is small, and there is precedent for a refusal that names what is in the way (T199 names
-the window it copied, T205 names the page it will not capture): before the publish, if a process is
-running from the path about to be written, say which pid and which path, and stop. What has to be
-decided with it is whether the script offers to stop that process. It should not - the tray is the
-user own running app, and a build script that kills applications is worse than one that asks.

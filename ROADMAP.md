@@ -81,8 +81,6 @@
 
 ## Block B — Packaging, self-update, CI
 
-- 📋 **T266** (deps: —) **The release script dies with a bundler stack trace when the tray it is about to replace is running** — dotnet publish failed inside GenerateBundle because the published exe is the resident tray, and build-installer runs that publish with nothing in front of it. → §XXXI.1
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

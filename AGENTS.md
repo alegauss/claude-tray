@@ -225,9 +225,11 @@ dotnet run -- --lang fr --settings    # any command in another language. Publish
 
 Version lives in **one place**: `<Version>` in `ClaudeTray.csproj`. Everything derives from it.
 
-Everything that exists to *ship* the app lives in `build\` (T131) — the installer script, the four
+Everything that exists to *ship* the app lives in `build\` (T131) — the installer script, the
 build/release scripts and the winget manifests. Each resolves the repo root itself, so it can be run
 from anywhere; `scripts\` is a different thing (the screenshot/capture dev tools) and stays put.
+`build.cmd` refuses the publish when something is running from the folder it would overwrite, naming
+the pid rather than letting the SDK fail inside its bundler (T266) — it never stops that process.
 
 ```
 # bump <Version>, then:

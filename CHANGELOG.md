@@ -18,7 +18,7 @@
 | Block | Theme |
 |---|---|
 | [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
-| [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI (active — see ROADMAP) |
+| [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
@@ -77,6 +77,7 @@
 - **T16** — GitHub Actions build/release workflow. (`f8f8836`, `1d032f3`)
 - **T17** — CI extension: winget manifests updated automatically on release. (`28641af`)
 - **T18** — Dependabot action bumps (checkout 5→7, setup-dotnet 4→5, upload-artifact 5→7). (`76eee87`, `d5cbe34`, `4bcbb64`)
+- **T266** — The publish refuses when something is running from the folder it would overwrite, naming the pid and the path, instead of failing inside the SDK bundler with UnauthorizedAccessException and four frames of MSBuild - which is what the release path did for a state that is not a bug, since whoever installed by building runs the tray from exactly that folder. Matched on the path and not the process name, so a Debug tray does not block a Release publish. It never stops that process: the tray is the user own running app, and a build script that kills applications is worse than one that asks. Demonstrated on the real tray, both directions.
 
 ## Block C — Settings window (WPF Fluent)
 
