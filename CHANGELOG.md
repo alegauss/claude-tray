@@ -252,6 +252,7 @@
 - **T183** — The weekly chart draws the overage series in clay on a right-hand scale of its own, with the legend and the projection sentence saying so, rather than laying an uncapped figure over the axis that means 'of your included quota'.
 - **T184** — The first reading that finds the account spending past its included quota raises one clay toast, on by default and off in Settings, that states the fact and the reset and names no account, no alternative and no action.
 - **T181** — A reading from a real account settles it: overage sends the same triple as 5h and 7d — utilization, reset, status — so the figure is a window's own utilization, and its reset falls on a calendar-month boundary while the other two roll. The probe now keys on every categorical header rather than 5h's status alone.
+- **T208** — The overage window's own status reaches code: a stated 'allowed' is a third reason the poll never idles, while the display goes on inferring — one reading cannot tell a permission apart from a value every response carries, so only the direction that costs an API call may believe it.
 
 ## Block AD — The window can be read now, and what that turned up
 

@@ -406,6 +406,36 @@ internal static class SelfTestCli
                 Check($"idle and state agree (extra={x?.ToString() ?? "absent"}, flag={f?.ToString() ?? "unknown"})",
                       (QuotaStates.Resolve(1.00, x, f) == QuotaState.Billing)
                       == (TrayContext.BlockedUntilUnix(1.00, Now + 60, 0.10, Now + 600, x, f, (long)Now) == 0));
+
+        // T208. The overage window's own status is the response stating what the flag and the figure infer,
+        // and the observed family is a prefix: `allowed`, `allowed_warning`. Everything else must fail to
+        // affirm rather than be guessed at — including a refusal whose spelling nobody here has seen.
+        Check("the permitted family is a prefix, not a literal",
+              QuotaStates.Allows("allowed") && QuotaStates.Allows("allowed_warning"));
+        Check("and nothing else affirms — not unknown, not blank, not absent, not a refusal",
+              !QuotaStates.Allows("unknown") && !QuotaStates.Allows("") && !QuotaStates.Allows(null)
+              && !QuotaStates.Allows("rejected") && !QuotaStates.Allows("blocked"));
+
+        // The asymmetry is the whole point and must be asserted in both halves, or the next reader
+        // "fixes" it into agreement. One reading cannot tell a permission apart from a value every
+        // response carries, so the status may buy a poll and may not paint a screen.
+        Check("an allowed overage status alone keeps the poll awake",
+              TrayContext.BlockedUntilUnix(1.00, Now + 60, 0.10, Now + 600, null, false, (long)Now,
+                                           "allowed") == 0);
+        Check("and without it the same reading idles, as before",
+              TrayContext.BlockedUntilUnix(1.00, Now + 60, 0.10, Now + 600, null, false, (long)Now) > 0);
+        Check("a refusal does not keep it awake",
+              TrayContext.BlockedUntilUnix(1.00, Now + 60, 0.10, Now + 600, null, false, (long)Now,
+                                           "rejected") > 0);
+        Check("but the display is unmoved: the status alone never says billing",
+              QuotaStates.Resolve(1.00, null, false) == QuotaState.Stopped);
+
+        // Three windows, three status strings, one keyed accessor — and a `_ =>` default arm is how a
+        // fourth key would silently read as 5h's.
+        var statuses = new UsageData { Status = "a", Status7d = "b", StatusExtra = "c" };
+        Check("each window's status is reached by its own key",
+              statuses.StatusOf("5h") == "a" && statuses.StatusOf("7d") == "b"
+              && statuses.StatusOf("extra") == "c");
     }
 
     // ---------------------------------------------------------------- Block AE: the header probe

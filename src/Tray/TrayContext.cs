@@ -990,7 +990,8 @@ internal sealed class TrayContext : ApplicationContext
         // The monitored profile is _watched[0] (RefreshWatched keeps it first), and its account flag is
         // the one that says whether hitting 100% stops the work or starts charging for it.
         bool? extraEnabled = _watched.Count > 0 ? _watched[0].ExtraUsage : null;
-        return BlockedUntilUnix(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d, d.ExtraUtil, extraEnabled, now);
+        return BlockedUntilUnix(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d, d.ExtraUtil, extraEnabled, now,
+                                d.StatusExtra);
     }
 
     /// <summary>
@@ -1006,11 +1007,13 @@ internal sealed class TrayContext : ApplicationContext
     /// the history is the poll, so sleeping through the overage leaves no points at all across the one
     /// stretch where money was spent, and later it reads as the app having been closed.</para>
     ///
-    /// <para>So the gate is the premise itself: an account that can still spend is never blocked. Two
-    /// things say it can — the account's own <c>hasExtraUsageEnabled</c>, and an overage figure already
-    /// above zero, which is the account demonstrably doing it whatever the flag says. Either is enough,
-    /// deliberately: idling wrongly loses readings nothing can recover, while polling wrongly costs one
-    /// API call per interval, and only for an account already past 100%.</para>
+    /// <para>So the gate is the premise itself: an account that can still spend is never blocked. Three
+    /// things say it can — the account's own <c>hasExtraUsageEnabled</c>, an overage figure already above
+    /// zero, which is the account demonstrably doing it whatever the flag says, and since T208 the overage
+    /// window's own status header, which is the response stating what the other two infer. Any one is
+    /// enough, deliberately: idling wrongly loses readings nothing can recover, while polling wrongly costs
+    /// one API call per interval, and only for an account already past 100%. That asymmetry is also why
+    /// this is the one caller that passes the status — <c>QuotaStates.Allows</c> has the rest.</para>
     ///
     /// <para>What this does <b>not</b> try to decide is whether the extra-usage allowance is itself
     /// exhausted — the third state, where the account really has stopped. Nothing established yet says
@@ -1019,9 +1022,10 @@ internal sealed class TrayContext : ApplicationContext
     /// </summary>
     /// <returns>The unix second to idle until, or 0 when the poll should keep its normal cadence.</returns>
     internal static double BlockedUntilUnix(double util5h, double reset5h, double util7d, double reset7d,
-                                            double? extraUtil, bool? extraUsageEnabled, long now)
+                                            double? extraUtil, bool? extraUsageEnabled, long now,
+                                            string? extraStatus = null)
     {
-        if (QuotaStates.CanSpendPastQuota(extraUtil, extraUsageEnabled)) return 0;
+        if (QuotaStates.CanSpendPastQuota(extraUtil, extraUsageEnabled, extraStatus)) return 0;
 
         double soonest = double.PositiveInfinity;
         bool atLimit = false;

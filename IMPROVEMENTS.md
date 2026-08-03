@@ -365,25 +365,6 @@ Two constraints bind. The **privacy promise** is not in tension: rate-limit head
 overage more visible, and the next sentence, *this account is out, the other has room*, is the one the
 roadmap forbids. §XVIII.6 binds hardest; §XVI.4 found the answer's shape: a receipt, not a reward.
 
-### XVIII.7 The overage window sends a status, and nothing catches it
-
-T181's reading showed the three windows are symmetric: `5h`, `7d` and `overage` each send a
-`-utilization`, a `-reset` and a `-status`. `ApiClient.FetchAsync` lifts one of the three statuses —
-5h's — onto `UsageData.Status`, and the other two are dropped where the response is parsed.
-
-Overage's is the one worth having. Every decision this app makes about extra usage is currently
-inferred from a number: `QuotaStates.CanSpendPastQuota` combines a utilization above zero with
-`hasExtraUsageEnabled` read out of `.claude.json`, which is an answer assembled from two places
-about a fact the response states in one word. A utilization of `0.0` cannot separate an allowance
-that is available and untouched from one that is spent or was never granted. A status can.
-
-So lift it beside `Status`, and let the code that already asks *can this account spend past its
-quota* prefer the stated answer over the derived one.
-
-What this does not do is put the word on screen. Every status value seen so far is API vocabulary
-(`allowed`), not user vocabulary, and no reading exists of an account that says anything else — the
-probe records the moment one does. Read it, act on it, display nothing.
-
 ### XVIII.8 Four strings hedge a number that is no longer unmeasured
 
 While T181 was open the app was careful, and the care is visible: `stats.legend.extra` says "extra

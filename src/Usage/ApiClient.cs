@@ -18,6 +18,13 @@ internal sealed class UsageData
     public double ResetExtra;
     public string Status = "unknown";
 
+    /// <summary>The other two windows' status strings, which T181's reading found are sent exactly like
+    /// 5h's: every window sends a <c>-utilization</c>, a <c>-reset</c> and a <c>-status</c>. Kept because
+    /// the overage one is the only signal on the response that could state — rather than let this app infer
+    /// from two places — whether an account may keep working past its included quota (T208).</summary>
+    public string Status7d = "unknown";
+    public string StatusExtra = "unknown";
+
     /// <summary>Every <c>anthropic-ratelimit-*</c> response header, verbatim, exactly as the API sent it
     /// (T181). The parsed fields above are this app's *reading* of four of them; this is the reading
     /// nobody has made yet — what the overage percentage denominates, and what the status header says
@@ -51,6 +58,13 @@ internal sealed class UsageData
         "7d" => Reset7d,
         "extra" => ResetExtra,
         _ => Reset5h,
+    };
+
+    public string StatusOf(string key) => key switch
+    {
+        "7d" => Status7d,
+        "extra" => StatusExtra,
+        _ => Status,
     };
 }
 
@@ -104,6 +118,8 @@ internal sealed class ApiClient
                 Reset7d   = H(resp, "anthropic-ratelimit-unified-7d-reset"),
                 ResetExtra = H(resp, "anthropic-ratelimit-unified-overage-reset"),
                 Status    = S(resp, "anthropic-ratelimit-unified-5h-status") ?? "unknown",
+                Status7d  = S(resp, "anthropic-ratelimit-unified-7d-status") ?? "unknown",
+                StatusExtra = S(resp, "anthropic-ratelimit-unified-overage-status") ?? "unknown",
             };
             // Read the presence separately from the value: an account without extra usage sends no
             // overage header, and one that has it enabled but has spent nothing sends 0. H() collapses

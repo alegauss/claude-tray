@@ -41,12 +41,36 @@ internal static class QuotaStates
     /// spend" wrongly costs one API call per interval, believing "stopped" wrongly loses readings across
     /// the exact stretch that cost money, and nothing recovers those (T180).</para>
     ///
+    /// <para>A third thing says it can, and only one caller is allowed to believe it:
+    /// <paramref name="extraStatus"/>, the overage window's own status header. It is the response *stating*
+    /// what the two other signals infer — the flag is read out of a second file, and a utilization above
+    /// zero is evidence after the fact. See <see cref="Allows"/> for why passing it is a caller's decision
+    /// rather than this method's default.</para>
+    ///
     /// <para>Note what is <em>not</em> decided here: whether the extra-usage allowance is itself spent.
-    /// Nothing has yet established what the overage percentage is a percentage of, so reading 1.0 as
-    /// "stopped again" would invent the denominator T181 exists to go and measure.</para>
+    /// T181 established the window — its own utilization, resetting on a calendar month — and not the
+    /// amount, so reading 1.0 as "stopped again" would still invent a denominator nothing has measured.</para>
     /// </summary>
-    public static bool CanSpendPastQuota(double? extraUtil, bool? extraUsageEnabled)
-        => extraUtil > 0 || extraUsageEnabled == true;
+    public static bool CanSpendPastQuota(double? extraUtil, bool? extraUsageEnabled, string? extraStatus = null)
+        => extraUtil > 0 || extraUsageEnabled == true || Allows(extraStatus);
+
+    /// <summary>
+    /// Whether a window's status string is one of the permitted ones. The observed family is
+    /// <c>allowed</c> and <c>allowed_warning</c>, so the prefix is the rule and every other value — an
+    /// absent header, <c>unknown</c>, or a refusal whose spelling nobody here has seen — simply fails to
+    /// affirm and leaves the older two signals to answer.
+    ///
+    /// <para><b>Why this can only ever add a "yes".</b> One reading of one account, inside its quota, sent
+    /// <c>overage-status: allowed</c> — and that account has <c>hasExtraUsageEnabled</c> set, so the reading
+    /// cannot distinguish "you are permitted" from a value every response carries regardless. Believing it
+    /// wrongly must therefore cost only what the cheap direction costs. For the poll's idle that is one API
+    /// call per interval on an account already past 100% (T180), which is the trade that block chose
+    /// deliberately. For <see cref="Resolve"/> it would be a sentence on screen — a clay bar and "extra
+    /// usage is paying" shown to somebody whose work has actually stopped — so the display keeps inferring
+    /// until a reading exists that tells the two apart. The probe records the moment one arrives.</para>
+    /// </summary>
+    public static bool Allows(string? status)
+        => status != null && status.StartsWith("allowed", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Whether this pair of consecutive readings is the moment the meter started (T184).
@@ -60,7 +84,9 @@ internal static class QuotaStates
     public static bool StartsSpending(double? previous, double? current)
         => current > 0 && previous is { } was && was <= 0;
 
-    /// <summary>Which state a reading puts the account in.</summary>
+    /// <summary>Which state a reading puts the account in. Deliberately does not take the overage status —
+    /// what this returns becomes a colour and a sentence, and <see cref="Allows"/> says why an unmeasured
+    /// affirmative may not reach either.</summary>
     public static QuotaState Resolve(double util, double? extraUtil, bool? extraUsageEnabled)
         => util < AtLimitThreshold ? QuotaState.InQuota
          : CanSpendPastQuota(extraUtil, extraUsageEnabled) ? QuotaState.Billing
