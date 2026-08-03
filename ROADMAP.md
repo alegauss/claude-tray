@@ -63,7 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T230** (deps: —) **The Profile submenu is the one menu nothing walks, and three tasks just added to it** — The Menu case reads the top-level entries and expands Open Claude Code, so the pinned marker, the scope tooltips, the environment mark and the machine-wide toggle are all asserted by nobody. → §XX.18
 - 💭 **T231** (deps: —) **The reading worth checking is the one this machine is never in, and no fixture puts it there** — The profile read-out answers agrees or DIFFERS off the real registry, so the disagreement it exists to report can only be reviewed by rewriting the developer's own environment. → §XX.19
 
 ## Block AJ — Working here — the repo's own docs and flags

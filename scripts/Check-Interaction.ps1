@@ -1411,9 +1411,23 @@ function Expand-Item($menu, $label) {
     return $null
 }
 
+<#
+  The app's own account of the menu, read ONCE and shared by every expectation below (T230).
+
+  It used to be a launch of `--profiles` per question, which is a chance for the machine to move between
+  them - the auto-follow probe alone can repoint the icon between two reads, and then the count and the
+  check mark are being compared against two different states. The prose is hardcoded English in
+  ProfilesCli, so it is read in English whatever language the menu is rendered in.
+#>
+$script:ProfilesOut = $null
+function Profiles-ReadOut {
+    if ($null -eq $script:ProfilesOut) { $script:ProfilesOut = & $Exe "--lang" "en" "--profiles" 2>&1 | Out-String }
+    return $script:ProfilesOut
+}
+
 <# What the app itself says the menu should contain, so the check has something to be wrong about. #>
 function Expected-ProfileEntries {
-    $out = & $Exe "--lang" $Lang "--profiles" 2>&1 | Out-String
+    $out = Profiles-ReadOut
     if ($out -match 'submenu with (\d+) entries') {
         return [pscustomobject]@{ Count = [int]$Matches[1]; Why = "several profiles" }
     }
@@ -1427,9 +1441,150 @@ function Expected-ProfileEntries {
 
 <# How many profiles the app sees at all - the Profile submenu is shown, and expandable, above one. #>
 function Expected-ProfileCount {
-    $out = & $Exe "--lang" $Lang "--profiles" 2>&1 | Out-String
-    if ($out -match 'polled every interval:\s*\d+\s+of\s+(\d+)') { return [int]$Matches[1] }
+    if ((Profiles-ReadOut) -match 'polled every interval:\s*\d+\s+of\s+(\d+)') { return [int]$Matches[1] }
     return 0
+}
+
+<#
+  The state the Profile submenu is supposed to be RENDERING (T230), every field of it derived from the
+  app rather than typed here: which profile the icon follows, which one the environment selects and
+  whether those two agree, and the two toggles' positions. A hardcoded expectation would be a second
+  source of truth for the thing being checked, and the one that drifts silently.
+#>
+function Expected-ProfileState {
+    $out = Profiles-ReadOut
+    # `menu     "Personal" -> claude` - the profile's own Label, which is an account or org name and so
+    # is the same string in every language, unlike everything else on the entry.
+    $labels = @([regex]::Matches($out, '(?m)^\s*menu\s+"([^"]+)"\s*->') | ForEach-Object { $_.Groups[1].Value })
+    $icon   = if ($out -match '(?m)^icon follows:\s+(.+?)\s\s')        { $Matches[1] } else { $null }
+    $env    = if ($out -match '(?m)^environment selects:\s+(.+?)\s\s') { $Matches[1] } else { $null }
+    return [pscustomobject]@{
+        Labels     = $labels
+        Icon       = $icon
+        Env        = $env
+        EnvAgrees  = [bool]($out -match '- agrees with the icon')
+        EnvOutside = ($env -eq 'none of these')
+        SyncOn     = [bool]($out -match 'a pick reaches:.*\[x\]')
+        FollowOn   = [bool]($out -match '(?m)^auto-follow:\s+on')
+    }
+}
+
+<#
+  Whether a menu entry is showing its check mark.
+
+  A `ToolStripMenuItem` exposes TogglePattern only WHILE IT IS CHECKED - an unchecked one carries no
+  pattern at all, so "off" and "not a toggle" are one reading and only "on" can be observed. Every
+  assertion below is therefore about which entry is On, never about which is Off: the state that can be
+  seen is the one the check is allowed to be wrong about.
+#>
+function Menu-Checked($item) {
+    try {
+        return $item.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern).Current.ToggleState -eq
+               [System.Windows.Automation.ToggleState]::On
+    } catch { return $false }
+}
+
+<#
+  The Profile submenu's contents, against what the app says they should be (T230).
+
+  This submenu is where the profile work lives - the check mark, T139's pinned marker, T126's active-ago
+  suffix, T171's machine-wide toggle, T172's environment mark - and until now the walk stopped at
+  counting its entries. Every one of those is a string built in PopulateProfileMenu and shown to nobody
+  but a person who opens the submenu, so the headless read-out covering the decisions behind them is not
+  the same thing as this covering the rendering.
+
+  The caller has already asserted the count, which is the order that matters: a submenu that failed to
+  expand reads as zero entries, and zero entries is how a check passes by seeing nothing.
+#>
+function Assert-ProfileSubmenu($subs) {
+    $want = Expected-ProfileState
+    if ($want.Labels.Count -eq 0) {
+        Fail "--profiles named no profile labels, so the submenu's entries can be compared to nothing"
+        return
+    }
+
+    # One entry per profile, matched by the label the app itself printed. Identity, not arithmetic: the
+    # count already passed above, and a count is satisfied by any N entries including the wrong ones.
+    $byLabel = @{}
+    foreach ($lab in $want.Labels) {
+        $hit = @($subs | Where-Object { $_.Current.Name -like "$lab *" })
+        if ($hit.Count -eq 0)     { Fail "no Profile submenu entry for '$lab', which --profiles lists" }
+        elseif ($hit.Count -gt 1) { Fail "'$lab' has $($hit.Count) entries in the Profile submenu" }
+        else                      { $byLabel[$lab] = $hit[0] }
+    }
+    if ($byLabel.Count -ne $want.Labels.Count) { return }
+    Pass "every profile --profiles lists has one entry: $($want.Labels -join ', ')"
+
+    # The check mark, on the profile the icon follows and on no other (T126/T139). Reading zero checks is
+    # a FAIL and not a quiet pass - it is exactly what a Checked that stopped being set would look like.
+    $checked = @($want.Labels | Where-Object { Menu-Checked $byLabel[$_] })
+    if ($checked.Count -ne 1) {
+        Fail ("$($checked.Count) of $($want.Labels.Count) profile entries carry the check mark, expected " +
+              "exactly one - the icon's profile is '$($want.Icon)'")
+    } elseif ($checked[0] -ne $want.Icon) {
+        Fail "the check mark is on '$($checked[0])', but the icon follows '$($want.Icon)'"
+    } else {
+        Pass "the check mark is on '$($want.Icon)', the profile the icon follows, and on no other"
+    }
+
+    # T139's pinned marker and the entry that undoes it are one state rendered twice: PopulateProfileMenu
+    # shows "resume following" exactly when the icon is pinned AND auto-follow is on. So they are checked
+    # against each other - the only two-sided reading available, since --profiles does not print the pin.
+    $pinMark = Label 'menu.profilePinned'
+    $pinned  = ($want.Icon -and $byLabel[$want.Icon].Current.Name -like "*$pinMark*")
+    $resume  = @($subs | Where-Object { $_.Current.Name -eq (Label 'menu.profileUnpin') })
+    if ($pinned -and $resume.Count -eq 0) {
+        Fail "'$($want.Icon)' is marked '$pinMark' but the submenu offers no way to undo it (T139)"
+    } elseif (-not $pinned -and $resume.Count -gt 0) {
+        Fail "the submenu offers '$(Label 'menu.profileUnpin')' while no entry carries '$pinMark' (T139)"
+    } elseif ($pinned) {
+        Pass "'$($want.Icon)' is marked '$pinMark' and the submenu offers the way back (T139)"
+    } else {
+        Unchecked "the pinned marker and its undo (T139)" `
+                  "no profile is pinned here, so neither is rendered and there is nothing to compare"
+    }
+
+    # The two toggles, each present and each reading the position --profiles reports (T126, T171). The
+    # machine-wide one is the half of a pick that is NOT the tray, and the reason it sits here at all is
+    # that a user just told the pick stops at the tray must not have to go hunting for it.
+    foreach ($t in @(@{ Key = 'menu.profileFollow';  On = $want.FollowOn; What = 'auto-follow (T126)' },
+                     @{ Key = 'menu.profileEnvSync'; On = $want.SyncOn;   What = 'the machine-wide switch (T171)' })) {
+        $lab  = Label $t.Key
+        $item = @($subs | Where-Object { $_.Current.Name -eq $lab }) | Select-Object -First 1
+        if (-not $item) { Fail "'$lab' is missing from the Profile submenu - $($t.What)"; continue }
+        if ($t.On -and -not (Menu-Checked $item)) {
+            Fail "'$lab' shows no check mark, but --profiles reports $($t.What) as ON"
+        } elseif ($t.On) {
+            Pass "'$lab' is present and checked, matching --profiles - $($t.What)"
+        } else {
+            # Off is not observable (see Menu-Checked), so presence is the whole of what can be claimed.
+            Pass "'$lab' is present - $($t.What), reported off, which a menu item cannot be asked about"
+        }
+    }
+
+    # T172's environment mark: the submenu says so when the profile the variable selects is not the one
+    # on the icon. Nothing to assert while they agree - which is the state this machine is always in, and
+    # the gap T231 names.
+    if ($want.EnvAgrees) {
+        Unchecked "the environment mark on a profile entry (T172)" `
+                  ("the environment and the icon both select '$($want.Icon)' here, so the mark this " +
+                   "asserts is not rendered - it needs a machine, or a fixture, where they differ (T231)")
+    } elseif ($want.EnvOutside) {
+        # The label is a format string; only the part before {0} is fixed text to match on.
+        $stem = ((Label 'menu.profileEnvOutside') -split '\{0\}')[0].TrimEnd()
+        $line = @($subs | Where-Object { $_.Current.Name -like "$stem*" })
+        if ($line.Count -gt 0) { Pass "the variable names a folder no profile covers, and the submenu says so (T172)" }
+        else { Fail "--profiles says the environment selects none of these, but no submenu line reports it (T172)" }
+    } else {
+        $envMark = Label 'menu.profileEnvSelects'
+        if (-not $want.Env -or -not $byLabel.ContainsKey($want.Env)) {
+            Fail "--profiles says the environment selects '$($want.Env)', which has no submenu entry (T172)"
+        } elseif ($byLabel[$want.Env].Current.Name -like "*$envMark*") {
+            Pass "'$($want.Env)' carries '$envMark' - the environment's profile is not the icon's (T172)"
+        } else {
+            Fail "the environment selects '$($want.Env)' but its entry carries no '$envMark' mark (T172)"
+        }
+    }
 }
 
 function Invoke-MenuCase {
@@ -1569,7 +1724,12 @@ function Invoke-MenuCase {
             }
             else {
                 $profSubs = Expand-Item $menu $profLabel
-                $least = $profileCount + 1   # one entry per profile, plus the auto-follow toggle
+                # One entry per profile, plus the two toggles the submenu carries: auto-follow (T126) and
+                # the machine-wide switch (T171). A floor, because the pinned undo and the
+                # environment-outside line are both conditional - Assert-ProfileSubmenu is what asks about
+                # those by identity. The floor comes first all the same: an unexpanded submenu reads as
+                # zero entries, and zero entries is how a check passes by seeing nothing.
+                $least = $profileCount + 2
                 if (-not $profSubs) {
                     Fail "'$profLabel' did not expand from the keyboard - empty when the menu opened? (T148)"
                 }
@@ -1579,7 +1739,8 @@ function Invoke-MenuCase {
                 else {
                     Pass "'$profLabel' expands from the keyboard with $($profSubs.Count) entries"
                     foreach ($s in $profSubs) { Info "- $($s.Current.Name)" }
-                }
+                    Assert-ProfileSubmenu $profSubs
+}
             }
         }
 

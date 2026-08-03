@@ -548,6 +548,7 @@
 - **T218** — An unexpected skip is now a red run: --selftest carries a named list of the skips it is allowed to have, each with what allowing it costs, so losing a check in CI costs the exit code instead of nothing - and a skip that stops happening is reported too, which a count could never say.
 - **T220** — The Menu case matches the tray's labels against the language that tray actually resolved when -UseRunning attached to it, and refuses a -Lang that was typed alongside instead of quietly checking a different one.
 - **T221** — The capture asks whether anything covers the region it is about to copy, by walking the Z order above the window and intersecting each frame, so a foreign window between the old sample points is named and the file is not written.
+- **T230** — The Menu case walks the Profile submenu and compares every entry to what --profiles says it should be: one entry per profile by name, the check mark on the icon's profile and no other, the pinned marker paired with its undo, and both toggles reading the position the app reports.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

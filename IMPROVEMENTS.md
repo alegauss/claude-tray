@@ -216,23 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.18 The submenu the check stops one level short of
-
-Check-Interaction.ps1's Menu case opens the tray icon's menu, reads its entries, and expands Open
-Claude Code to count the per-profile launch items. It stops there. The Profile submenu beside it has
-never been walked, and it is where the profile work actually lives: the check mark, the pinned
-marker from T139, the active-ago suffix from T126, and now T171's scope tooltips and machine-wide
-toggle plus T172's environment mark.
-
-Every one of those is a string built in PopulateProfileMenu and shown to nobody but a person who
-opens that submenu. The headless read-out covers the decisions behind them, which is why they were
-verifiable at all this block, but not one word of the rendered menu is.
-
-Expanding it is the same move Expand-Item already makes one level up, so the cost is the walk plus
-deciding what to assert. The trap the existing cases document applies here twice over: a submenu
-that fails to expand reads as zero entries, and zero entries is how a check passes by seeing
-nothing. So the count comes first and the labels second, as the Open Claude Code arm already does.
-
 ### XX.19 A read-out with a state nobody can ask it for
 
 T172 put the effective profile beside the monitored one and marks them when they differ; T173 made a
