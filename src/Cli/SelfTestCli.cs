@@ -1430,6 +1430,58 @@ internal static class SelfTestCli
                   overflowing.Contains(L.T("tip.week"), StringComparison.Ordinal) &&
                   !overflowing.Contains(L.T("tip.session"), StringComparison.Ordinal),
                   $"kept the wrong line: {overflowing.Replace("\n", " | ")}");
+
+            // T222. The state where extra usage is paying is the only state whose news was never on
+            // screen: its overage reading exists *only* there and cost about what its one sentence needed,
+            // so in all five languages `atlimit` rendered a sentence and this rendered none — the two
+            // opposite pieces of news T182 split apart looked identical. The property is not that a
+            // particular line exists; it is that the news arrives, in every language, whatever the budget.
+            var mute = new List<string>();
+            foreach (string code in codes)
+            {
+                L.Apply(code);
+                string billing = TooltipText.Compose(Overflowing(Now));
+                if (!billing.Contains(L.T("tip.extraPaying", "47%"), StringComparison.Ordinal))
+                    mute.Add($"{code} ({billing.Length}/{TooltipText.Cap})");
+            }
+            Check("the state where extra usage is paying says so, in every language", mute.Count == 0,
+                  $"{string.Join(", ", mute)} — the one state whose news never reached the screen");
+
+            // And it must arrive *once*: the merge exists because the reading and the sentence were the
+            // same fact twice. At the real cap this cannot be tested — there is no room for both, so a
+            // composition emitting both would still render one, and the assertion would pass on a broken
+            // rule. Given room, what keeps it single has to be the rule itself, so the room is asserted
+            // first rather than assumed.
+            L.Apply("en");
+            string roomy = TooltipText.Compose(Roomy(Now));
+            string sentence = L.T("tip.billingCompact");
+            // Measured over the readings rather than over the output: a composition that wrongly emitted
+            // the sentence has already spent the room, and judging it by what is left would fail the
+            // precondition instead of the property — the guard reporting that it could not look, when what
+            // it is looking at is exactly the defect.
+            int spare = TooltipText.Cap - roomy.Length
+                        + (roomy.Contains(sentence, StringComparison.Ordinal) ? sentence.Length + 1 : 0);
+            if (Check($"a billing reading with room to spare has room for a second sentence",
+                      spare >= sentence.Length + 1, $"{spare} spare < {sentence.Length + 1} needed"))
+                Check("and the news is still said once, on the reading it is about",
+                      !roomy.Contains(sentence, StringComparison.Ordinal)
+                      && roomy.Contains(L.T("tip.extraPaying", "47%"), StringComparison.Ordinal),
+                      roomy.Replace("\n", " | "));
+
+            // The other half of the same state, and the reason the sentence is kept rather than deleted:
+            // extra usage enabled with nothing spent yet is billing with no overage reading to merge into.
+            // Nothing else in the tooltip would say so, and here the sentence is affordable.
+            var silent = new List<string>();
+            foreach (string code in codes)
+            {
+                L.Apply(code);
+                string unspent = TooltipText.Compose(Unspent(Now));
+                if (!unspent.Contains(L.T("tip.billingCompact"), StringComparison.Ordinal)
+                    && !unspent.Contains(L.T("tip.billingFull", L.T("tip.week")), StringComparison.Ordinal))
+                    silent.Add(code);
+            }
+            Check("billing with nothing spent yet still has a sentence to say it with", silent.Count == 0,
+                  $"{string.Join(", ", silent)} — merged away the line that had nothing to merge into");
         }
         finally { L.Apply(L.Codes[(int)saved]); }
     }
@@ -1460,6 +1512,33 @@ internal static class SelfTestCli
         Verdict = Projection.Unknown,
         Eta = 0,
         State = QuotaState.Billing,
+    };
+
+    /// <summary>The billing state with the budget deliberately slack — no refresh time, no known resets —
+    /// so there is room for a second sentence and the rule, not the cap, is what keeps the news single.
+    /// </summary>
+    private static TooltipText.Input Roomy(long now) => Overflowing(now) with
+    {
+        Updated = "",
+        Data = new UsageData
+        {
+            Session5h = 0.40, Week7d = 1.0, Extra = 0.47, HasExtra = true,
+            Reset5h = 0, Reset7d = 0, ResetExtra = 0,
+            Status = "allowed", Status7d = "allowed", StatusExtra = "allowed",
+        },
+    };
+
+    /// <summary>The same state before a cent of the allowance is spent: billing, and no overage reading to
+    /// carry the news — so the sentence T222 merges away everywhere else is the only thing that says it.
+    /// Asserted because the merge would otherwise have made this state mute (T222).</summary>
+    private static TooltipText.Input Unspent(long now) => Overflowing(now) with
+    {
+        Data = new UsageData
+        {
+            Session5h = 0.40, Week7d = 1.0, Extra = 0, HasExtra = false,
+            Reset5h = now + 2 * 3600, Reset7d = now + 3 * 86400,
+            Status = "allowed", Status7d = "allowed", StatusExtra = "unknown",
+        },
     };
 
     // ---------------------------------------------------------------- Block AI: the flag surface

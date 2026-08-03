@@ -286,30 +286,6 @@ Two constraints bind. The **privacy promise** is not in tension: rate-limit head
 overage more visible, and the next sentence, *this account is out, the other has room*, is the one the
 roadmap forbids. §XVIII.6 binds hardest; §XVI.4 found the answer's shape: a receipt, not a reward.
 
-### XVIII.11 The sentence that never fits is the one that matters most
-
-Measured with the read-out T214 added, in all five languages. In the billing state the tooltip
-carries four readings — profile or session, week, extra usage, status — and the fourth is the one
-that only exists here. It costs about 26 characters in English and 34 in French, and it is spent
-before any sentence is considered.
-
-What is left is 17 characters in English against a compact form of 23, and 25 in French against 29.
-Neither form fits anywhere. T182 split this line in two on purpose, because 'you have stopped' and
-'you are paying to carry on' are opposite pieces of news and the tooltip used to give the first for
-both — and the second of those two is the one that is now never shown at all. `atlimit` renders its
-sentence; `extra` renders none, and the difference between them on screen is a percentage that reads
-the same.
-
-T215 made the budget an assertable property and shed the unwatched window when the readings alone
-overrun, which bought French 27 characters and still was not enough. So this is not budget
-mechanics, which is why it is filed rather than fixed there.
-
-Three shapes, and they trade differently. The compact form can get **shorter** — 'extra usage is
-paying' has fewer words in it than 23 characters, but the words are T182's and shortening them is a
-decision about what the news is. The overage line and the sentence can **merge**, since both are
-about the same fact. Or the sentence can outrank the window the icon is not about, which the
-shedding order already has a place for.
-
 ## XX Verification — the checks that prove a change (Block AI)
 
 This project's checks are three loops with different reaches. `--selftest` asserts arithmetic on

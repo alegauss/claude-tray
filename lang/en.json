@@ -55,6 +55,7 @@
   "tip.session": "Session 5h",
   "tip.week": "Week 7d",
   "tip.extra": "Extra usage",
+  "tip.extraPaying": "• Extra usage is paying: {0}",
   "tip.leftSuffix": " left",
   "tip.status": "{0} status: {1}{2}",
   "tip.atLimitFull": "⚠ {0}: at limit ({1})",

@@ -43,10 +43,15 @@ internal static class TooltipCli
             now => Reading(now, 0.72, 0.38, metric: "5h", verdict: Projection.Ok, eta: 4 * 3600)
                    with { ProfileLabel = "Personal" }),
 
-        new("extra", "past the included quota and billing: the overage line, and the sentence that says " +
-                     "work is continuing rather than stopped (T182)",
+        new("extra", "past the included quota and billing: the overage reading, carrying the news that " +
+                     "work is continuing rather than stopped (T182, merged onto it by T222)",
             now => Reading(now, 0.40, 1.0, metric: "7d", verdict: Projection.Unknown, eta: 0,
                            extra: 0.47, state: QuotaState.Billing)),
+
+        new("extraunspent", "extra usage enabled and not a cent of it spent: no overage reading to carry " +
+                            "the news, so the sentence stands on its own",
+            now => Reading(now, 0.40, 1.0, metric: "7d", verdict: Projection.Unknown, eta: 0,
+                           state: QuotaState.Billing)),
 
         new("atlimit", "the week's quota reached with no extra usage: work has stopped",
             now => Reading(now, 0.40, 1.0, metric: "7d", verdict: Projection.Unknown, eta: 0,
@@ -81,7 +86,10 @@ internal static class TooltipCli
                 Reset7d = now + 3 * 86400,
                 ResetExtra = extra > 0 ? now + 3 * 86400 : 0,
                 Status = "allowed",
-                Status7d = week >= 1.0 ? (extra > 0 ? "allowed" : "rejected") : "allowed",
+                // Keyed on the state, not on the figure: an account that is billing has a weekly window
+                // that still permits work whether or not a cent of the allowance has been spent yet, and
+                // keying on `extra` alone made that one row read as refused while it says it is paying.
+                Status7d = week >= 1.0 ? (state == QuotaState.Billing ? "allowed" : "rejected") : "allowed",
                 StatusExtra = extra > 0 ? "allowed" : "unknown",
             },
             Metric: metric,

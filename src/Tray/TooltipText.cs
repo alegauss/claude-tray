@@ -79,10 +79,20 @@ internal static class TooltipText
         string week = $"{L.T("tip.week")}{leftSuffix}: {TrayContext.PctShown(data.Week7d, i.ShowRemaining)}  ⟳ {r7}";
         lines.Add(session);
         lines.Add(week);
+        // The overage line and the billing sentence are the same fact twice, and having both is why
+        // neither fitted (T222). The reading only exists while overage is being spent, and it cost about
+        // what the one sentence about that state needed — so in all five languages `atlimit` rendered its
+        // sentence and `extra` rendered none, leaving the two opposite pieces of news T182 split apart
+        // looking identical on screen. Merged, the sentence becomes the reading's own label: T182's words
+        // are kept verbatim rather than shortened, because what they say is a decision, not a length.
+        bool payingOnItsOwnLine = i.State == QuotaState.Billing && data.Extra > 0.001;
         if (data.Extra > 0.001)
         {
             string re = data.ResetExtra > 0 ? TrayContext.FmtDays(data.ResetExtra - i.Now) : "--";
-            lines.Add($"{L.T("tip.extra")}: {TrayContext.Pct(data.Extra)}  ⟳ {re}");
+            string spent = TrayContext.Pct(data.Extra);
+            lines.Add(payingOnItsOwnLine
+                ? $"{L.T("tip.extraPaying", spent)}  ⟳ {re}"
+                : $"{L.T("tip.extra")}: {spent}  ⟳ {re}");
         }
 
         string scope = TrayContext.MetricLabel(i.Metric); // make clear which window the projection is about
@@ -102,7 +112,12 @@ internal static class TooltipText
             // *which* kind of maxed, because "you have stopped" and "you are paying to carry on" are
             // opposite pieces of news and this line used to give the first for both (T182).
             ? i.State == QuotaState.Billing
-                ? (L.T("tip.billingFull", scope), L.T("tip.billingCompact"))
+                // Already said, on the reading above. Billing without a figure to show it on — extra usage
+                // enabled and not yet spent — has no line to merge into, and there the sentence is both
+                // affordable and the only thing that would say so at all.
+                ? payingOnItsOwnLine
+                    ? null
+                    : (L.T("tip.billingFull", scope), L.T("tip.billingCompact"))
                 : (L.T("tip.atLimitFull", scope, limit), L.T("tip.atLimitCompact", limit))
             : i.Verdict switch
             {

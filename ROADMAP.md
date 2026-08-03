@@ -44,8 +44,6 @@
 > Ordered by what is losing data today, then by what every string here is waiting on, then by what a
 > user would actually see.
 
-- 📋 **T222** (deps: —) **The one state where extra usage is paying is the one state whose tooltip cannot say so** — The overage line only exists while overage is being spent, and it costs the room the sentence needed: neither the full nor the compact form fits, in any of the five languages. → §XVIII.11
-
 ## Block AB — What Block Z's own work left behind
 
 > Four things surfaced *while building* Block Z that are part of none of its tasks and were reported by
