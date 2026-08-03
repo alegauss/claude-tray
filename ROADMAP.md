@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T241** (deps: —) **That a check run leaves the user's files untouched is asserted only for the writers somebody listed** — The selftest drives the stores it knows, so a writer nobody added to it is invisible - which is how context-cache.json survived the first five gates and was caught by hand. → §XX.16
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 - 💭 **T219** (deps: —) **The turn budget is full, so a new rule is paid for by deleting an old one nobody ranked** — Writing T169's rule took AGENTS.md 612 bytes over, and the bytes came back from a sentence that happened to be duplicated — a selector that runs out before the next rule does. → §XXII.1

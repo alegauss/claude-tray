@@ -2042,6 +2042,64 @@ function Invoke-EnvFixtureSweep {
     finally { $script:EnvArgs = $saved }
 }
 
+<#
+  Every file the app owns, by size and write time (T241).
+
+  The backstop under T239's promise. `--selftest` asserts it for the writers somebody listed, and the
+  list is the weakness: five gates went in, the section went green, and a real run still changed
+  `context-cache.json` because nobody had thought to drive the context scan. This asks the DIRECTORY
+  instead - one question about a region rather than a list of methods, which is the move T221 made when
+  nine sampled points stopped being a cover.
+#>
+function Store-Fingerprint {
+    $dir = Join-Path $env:LOCALAPPDATA 'ClaudeTray'
+    $map = @{}
+    if (Test-Path -LiteralPath $dir) {
+        foreach ($f in Get-ChildItem -LiteralPath $dir -Recurse -File -ErrorAction SilentlyContinue) {
+            $map[$f.FullName] = "$($f.Length)|$($f.LastWriteTimeUtc.Ticks)"
+        }
+    }
+    return $map
+}
+
+<#
+  What the check's own trays left behind, compared against `$before` (T241).
+
+  The reading is asymmetric, and that is what makes it worth running on a machine where the tray is
+  resident - which is every developer's, and the reason gating this on "no other tray alive" would have
+  made it an assertion that never runs (T238's lesson, one task along).
+
+    nothing moved  -> the check wrote nothing. Sound whoever else is running: a write by the check's
+                      trays would be in this comparison no matter what the resident one is doing.
+    something moved -> ambiguous ONLY when another tray is alive, because it polls on its own cadence
+                      and writes on its own schedule. With none alive there is nobody else it could
+                      have been, so it is a failure; with one alive it is Unchecked, naming the files,
+                      because "something changed" sends the reader nowhere.
+#>
+function Assert-StoreUntouched($before) {
+    if ($null -eq $before) { return }
+    $after = Store-Fingerprint
+    $moved = @()
+    foreach ($k in $after.Keys)  { if ($before[$k] -ne $after[$k]) { $moved += (Split-Path -Leaf $k) } }
+    foreach ($k in $before.Keys) { if (-not $after.ContainsKey($k)) { $moved += "(gone) " + (Split-Path -Leaf $k) } }
+    $moved = @($moved | Sort-Object -Unique)
+
+    if ($moved.Count -eq 0) {
+        Pass "the check's trays left all $($before.Count) file(s) under %LocalAppData%\ClaudeTray untouched (T239)"
+        return
+    }
+    $others = @(Get-Process -Name ClaudeTray -ErrorAction SilentlyContinue)
+    if ($others.Count -gt 0) {
+        Unchecked "that the check's trays wrote nothing (T239, T241)" `
+            ("$($moved.Count) file(s) moved - $($moved -join ', ') - but a ClaudeTray is resident " +
+             "(pid $($others[0].Id)) and polls on its own cadence, so this cannot be pinned on the " +
+             "check. Re-run with no other tray alive to get an answer.")
+    } else {
+        Fail ("the check's trays changed $($moved.Count) file(s) under %LocalAppData%\ClaudeTray with " +
+              "no other tray alive to blame: $($moved -join ', ') - an observing tray persists nothing (T239)")
+    }
+}
+
 # ---------------------------------------------------------------- run
 
 Write-Host "Check-Interaction - $Exe (lang $Lang)" -ForegroundColor White
@@ -2065,7 +2123,15 @@ if ($Case -in @('All', 'Names'))    { Invoke-NamesCase }
 # now shared across three cases this is the single place it gets closed. `Close-Main` waits for the exit,
 # because a still-dying `--main` looks like the tray to it.
 Close-Main
-if ($Case -in @('All', 'Menu'))     { Invoke-MenuCase; Invoke-EnvFixtureSweep }
+if ($Case -in @('All', 'Menu')) {
+    # Taken here rather than at the top of the run: the cases above drive `--main`, which is not an
+    # observing process and is not what T239 promised anything about. What is being measured is the
+    # trays this script LAUNCHES as trays - the Menu case's and the sweep's, all of them --second-tray.
+    $storeBefore = Store-Fingerprint
+    Invoke-MenuCase
+    Invoke-EnvFixtureSweep
+    Assert-StoreUntouched $storeBefore
+}
 
 if ($script:MainAcquires -gt 0) {
     Info "$($script:MainAcquires) case(s) drove --main on $($script:MainLaunches) launch(es)"

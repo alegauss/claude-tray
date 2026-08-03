@@ -557,6 +557,7 @@
 - **T238** — The Menu case sweeps the sampled environments itself, one tray per mode, so T172's mark and its outside-the-profiles line are asserted on a run with no flag typed instead of waiting for somebody to remember one.
 - **T239** — A tray launched with --second-tray reads normally and persists nothing - no store append, no cache, no settings save, and its environment reconcile lands on a sampled copy - asserted over the whole of %LocalAppData%\ClaudeTray.
 - **T240** — The check always launches with --second-tray, so whether a tray was resident a second ago decides nothing: the flag is free when the mutex is, the icon tag and the observer promise are unconditional, and the race that blamed the menu for a tray that never started is gone with the branch.
+- **T241** — The check fingerprints the whole of %LocalAppData%\ClaudeTray around the trays it launches, so a writer nobody listed is caught by the directory rather than by a list of methods - and because the check's own writes always show, no change observed is a sound pass even beside a resident tray.
 
 ## Block AJ — Working here — the repo's own docs and flags
 
