@@ -24,6 +24,22 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
+## Block AH — What Block AF's own captures turned up
+
+> Block AF built five checks and repaired two capture flags, and every item here came out of *using*
+> that tooling for a block rather than out of reviewing it. Three are the capture surface misleading
+> whoever runs it, and each produces a file: one names a real account on a synthetic chart, one lands
+> where nobody asked, one photographs a different application. Two are gaps the block left behind.
+> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XXI — what each was found by, since none was reported.
+>
+> Ordered by what can ship a defect to a user today, then by what misleads whoever builds here next.
+
+- 📋 **T197** (deps: —) **A synthetic capture carries a real account's name** — The capture path calls SetProfiles for every variant, so a published PNG of a fixture week names whichever account this machine monitors, in the one place a fixture exists to prevent that. → §XXI.1
+- 📋 **T198** (deps: —) **A capture flag writes a PNG the caller never named** — --capture-toast reads a lone argument as the variant, so a path given as the only argument selects the default toast and lands it in the working directory, which here is the repository root. → §XXI.2
+- 📋 **T199** (deps: —) **The capture script photographs another app's window** — It never verifies the window it copies belongs to the process it launched, so a request for the Statistics window returned another instance's Settings window and reported success. → §XXI.3
+- 📋 **T200** (deps: T190 ✅) **One branch of the extra-usage row still cannot be shown** — The measured-zero reading needs extra usage enabled with nothing spent, and T190's fixture spends while the seat has the flag off, so 'Enabled — not in use' is rendered by nothing. → §XXI.4
+- 📋 **T201** (deps: —) **Two of the five interaction cases are described nowhere** — Panes and Names have no bullet in AGENTS.md's interaction section, so the two cases a single-profile machine can run are discoverable only by reading the script. → §XXI.5
+
 ## Block AG — The interaction check grew two cases, and nobody runs it
 
 > Block AD doubled what `Check-Interaction.ps1` asserts, and every item here came out of building or
@@ -39,16 +55,6 @@
 - 📋 **T194** (deps: —) **The check that caught the keyboard being dead in every window runs only when somebody remembers** — `-Case Keyboard` drives `--settings-tray`, which needs no credentials and no report, and CI runs `--selftest` alone on a runner that has a desktop. → §XX.3
 - 📋 **T195** (deps: —) **A full interaction run launches the app five times, three of them for the same read-only window** — `Panes`, `Profiles` and `Names` each start `--main`, wait out its first layout and first poll, and kill it, although none of them changes anything the next would see. → §XX.4
 - 📋 **T196** (deps: —) **The row rule now governs thirty-odd controls and is asserted on three of them** — `-Case Names` reads one ComboBox, one switch and one Slider on the Settings page's General panel, and five of its six panels are never visited. → §XX.5
-
-## Block AF — Six surfaces shipped, and what nothing was checking
-
-> Everything Block AE built came out of one session, and the recurring experience was that the tool
-> which should have caught a mistake was either absent, broken, or quietly disagreeing with its twin.
-> Three are gaps in verification, two are the preview tooling itself, and two are what six new
-> surfaces cost a colour vocabulary and a file at its budget.
-> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XIX — what each was found by, since none was reported.
->
-> Ordered by what can ship a defect to a user today, then by what misleads whoever builds here next.
 
 ## Block AE — Extra usage is money, and the tray is asleep for it
 

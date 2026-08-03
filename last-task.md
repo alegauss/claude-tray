@@ -1,11 +1,11 @@
-# Block letter register — next is `AH`
+# Block letter register — next is `AI`
 
 > ⚠ **This file is no longer the task-number counter.** `roadkeep next-id` derives the next free
 > `T<n>` from `ROADMAP.md`, `CHANGELOG.md` and `AGENTS.md` themselves, and `roadkeep add` mints it —
 > so there is nothing here to bump and nothing that can drift. Do not re-add a counter line.
 >
-> **Next block letter — `AH`** (Block **AG** = The interaction check grew two cases, and nobody runs
-> it; created 2026-08-02). Block letters are the one thing roadkeep does not derive.
+> **Next block letter — `AI`** (Block **AH** = What Block AF's own captures turned up; created
+> 2026-08-02). Block letters are the one thing roadkeep does not derive.
 > Z was the last single letter, so the scheme continues **AA, AB, …** —
 > two letters, same ordering, and `CHANGELOG.md`'s table sorts them after Z. Nothing in the docs parses
 > a block letter, so this costs a wider column and nothing else.

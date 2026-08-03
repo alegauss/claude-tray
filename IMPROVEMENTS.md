@@ -18,15 +18,15 @@
 | [§XV](#xv--what-block-zs-own-work-left-behind-block-ab) | What Block Z's own work left behind (Block AB) |
 | [§XVI](#xvi--the-tray-reports-the-switch-it-performed-not-the-switch-the-machine-got-block-ac) | The tray reports the switch it performed, not the switch the machine got (Block AC) |
 | [§XVIII](#xviii--extra-usage-is-money-and-the-tray-is-asleep-for-it-block-ae) | Extra usage is money, and the tray is asleep for it (Block AE) |
-| [§XIX](#xix--six-surfaces-shipped-and-what-nothing-was-checking-block-af) | Six surfaces shipped, and what nothing was checking (Block AF) |
 | [§XX](#xx--the-interaction-check-grew-two-cases-and-nobody-runs-it-block-ag) | The interaction check grew two cases, and nobody runs it (Block AG) |
+| [§XXI](#xxi--what-block-afs-own-captures-turned-up-block-ah) | What Block AF's own captures turned up (Block AH) |
 
 > Block I's design sections (§II), Block J's (§IV), Block V's (§XII), Block Z's (§XIII), Block AA's
-> (§XIV) and Block AD's (§XVII) are gone: every one of them shipped, and `git log` plus
+> (§XIV), Block AD's (§XVII) and Block AF's (§XIX) are gone: every one of them shipped, and `git log` plus
 > [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a **measurement** — the
 > numbers the rule thresholds and the base-overhead constant were calibrated against.
 >
-> Section numbers are **never reused**: §II, §IV–§XIV and §XVII have all been retired, so a new block
+> Section numbers are **never reused**: §II, §IV–§XIV, §XVII and §XIX have all been retired, so a new block
 > takes the next unused numeral rather than the next free-looking one. A `→ §V` in an old commit
 > message must keep pointing at what it pointed at.
 
@@ -384,23 +384,6 @@ The alternative is tempting and wrong: shipping "Extra usage: 42% of your extra-
 plausible guess. A tray whose whole value proposition is *this number is trustworthy* cannot afford a
 label that turns out to name a different denominator.
 
-## §XIX — Six surfaces shipped, and what nothing was checking (Block AF)
-
-Block AE was built in one session, and the same thing kept happening: the tool that should have caught
-a mistake was absent, broken, or disagreeing with its twin. None of these was reported by anybody, and
-none is a Block AE task — they are what building it cost.
-
-Three are gaps where a rule exists and nothing holds it (§XIX.1, §XIX.5, §XIX.6): a string reaching
-one language, a chart rule held by a screenshot, a Settings branch never rendered. Two are the preview
-tooling misleading whoever runs it (§XIX.2, §XIX.3) — and one of those produced a plausible-looking
-capture of the wrong thing, which is worse than a crash. Two are what six new surfaces cost the things
-around them (§XIX.4, §XIX.7): a colour that now means two opposite things, and a map at its ceiling.
-
-The pattern worth naming, because it is the one that recurs: **each was found by doing the task, not by
-checking it.** The capture crash surfaced because a directory happened not to exist; the argument
-divergence because a chart's numbers looked wrong; the colour collision because the same hex was typed
-twice in one afternoon. A verification loop nobody exercises is indistinguishable from one that passes.
-
 ## §XX — The interaction check grew two cases, and nobody runs it (Block AG)
 
 Block AD doubled what `Check-Interaction.ps1` asserts: `-Case Panes` and `-Case Names` are new, T166's
@@ -498,3 +481,140 @@ the nesting branch: a StackPanel inside a StackPanel, which the walk handles and
 Cheap to close: navigate the settings sidebar and assert per row rather than per named control,
 driving the panel list the page itself declares so a new panel is covered by existing code. The
 stated skip when a panel does not open belongs here too.
+
+## §XXI — What Block AF's own captures turned up (Block AH)
+
+Block AF built five checks and repaired two capture flags, and every item here came out of *using*
+that tooling for a block rather than out of reviewing it. None was reported by anybody and none is a
+Block AF task.
+
+Three are the capture surface misleading whoever runs it (§XXI.1, §XXI.2, §XXI.3), and they are
+ordered first because each produces a file: one that names a real account on a synthetic chart, one
+that lands in the working directory under a name nobody asked for, and one that returns a screenshot
+of a different application and reports success. A capture is evidence, so a capture that is quietly
+wrong is the one defect class this repository cannot afford — it is the same fault T186 was, found
+again in two more places once the flags were actually exercised.
+
+Two are gaps left by the block itself (§XXI.4, §XXI.5): the third branch of a row whose second
+branch T190 just made visible, and two interaction cases that exist in the script and on no list.
+
+The pattern Block AF named still holds, and this is the evidence for it: **each was found by doing
+the task, not by checking it.** The picker leak surfaced because a fixture capture was read closely
+enough to notice the name above the chart; the toast path because a file appeared in the repo root;
+the window mix-up because the wrong window came back.
+
+### XXI.1 The picker on a fixture is not a fixture
+
+`--capture-stats` runs `statsPage.SetProfiles(ClaudeAccount.Discover(...))` for every variant, the
+synthetic ones included, and the picker it fills is the real one. On the captures taken while
+shipping T186 it named this machine's monitored account above a chart of an invented week.
+
+That is the exact substitution `AccountFixture` and `ContextFixture` exist to prevent — a published
+image is where a real organization name becomes somebody's client's name on a marketing page — and
+here the fixture and the leak are in the same PNG. Nothing caught it, because the picker is chrome
+around the thing being looked at, and the thing being looked at was correct.
+
+The picker is there for a reason: `profile=1,0` walks it, and that is the T164 round trip. So the
+question is not whether to fill it but what it should say, and three shapes are worth weighing. The
+interactive `--stats` already does the simplest thing — fill it only for the default variant, since
+every other one is a fixture that a switch would replace. `--sample` could fill it from
+`AccountFixture` instead, which is what the Settings captures do and the only option that keeps a
+two-entry picker in a published shot. Or the capture could refuse `profile=` on a synthetic variant,
+which is the narrowest of the three and fixes the least.
+
+Worth checking the other direction while here: `--capture-settings` without `--sample` renders this
+machine's real System page, and nothing stops that PNG from being committed either.
+
+### XXI.2 An output path read as a variant
+
+`--capture-toast` takes `<variant> <outPath>`, and with one argument the path is read as the
+variant: `--capture-toast D:\tmp\out.png` renders the default toast — an unrecognised variant falls
+through to the early-reset one — and writes it to `toast.png` in the current directory. Measured
+while checking T187: the file appeared in the repository root, where `run-commit.cmd` stages
+everything, one commit away from being published.
+
+Two separate faults, and the second is the one that costs. Reading a path as a variant is the same
+defect T186 fixed for `--stats`: a positional argument that means one thing when it is recognised
+and something else when it is not, with no error either way. And defaulting the *output* is worse
+than defaulting the input, because the input only makes the picture wrong while the output decides
+where it lands — a capture flag that writes somewhere the caller did not name is a flag that can
+dirty a tree.
+
+The shape T186 already established covers the first half: one table of variants, and a name it does
+not know is refused with the catalogue printed. The second half is its own decision. Requiring the
+output path is the honest option and breaks nothing that exists, since every caller in `AGENTS.md`,
+the `dev-flags` skill and `scripts\` passes one. If a default is kept it belongs under
+`docs\_preview\`, which is git-ignored, and never in the working directory.
+
+Worth auditing the family while here: `--render`, `--makeicon`, `--social` and `--context-report`
+all default an output path, and only `docs\_preview\` is ignored by git.
+
+### XXI.3 A capture that does not say what it captured
+
+`scripts\Capture-Window.ps1 -Args "--stats","overage"` returned a PNG of the **Settings** window
+belonging to a different instance that happened to be open on the desktop, printed `Captured 1760 x
+1200 -> …` and exited 0. Measured while shipping T186, and the only reason it was caught is that the
+picture was read.
+
+This is the same class as the defect T186 repaired, on the surface that is supposed to verify the
+repair. Worse, it is the path `AGENTS.md` sends people to for the one case the off-screen capture
+cannot serve — a popup is its own top-level window, so `--stats method` plus this script is the
+*only* way to photograph the method note. The check that catches a lying capture is the reader
+noticing, which is exactly the assumption Block AF spent seven tasks removing elsewhere.
+
+What it has to do is name what it captured. The script launches a process; the window it photographs
+must be one that process owns, and if the wait for that window times out it must fail rather than
+fall back to whatever is in front. Printing the window's title and its owning process id in the
+success line is worth as much as the assertion, because it makes the next wrong capture
+self-reporting instead of silent.
+
+Two adjacent facts belong here. `Check-Interaction.ps1` already refuses to run while another tray is
+alive, for precisely this reason, and its `-UseRunning` escape is the shape a deliberate override
+should take. And whatever this grows, `--capture-settings` and `--capture-stats` stay the default:
+the value of this script is the popup case, not convenience.
+
+### XXI.4 The third branch of the same row
+
+`SettingsPage.System`'s extra-usage row has three branches. Absent — no stored reading, or one
+predating T179 — has always been on screen. T190 rendered the second: "Enabled — in use now (42%)",
+from a fixture week that spends past its included quota. The third, a **measured zero** reading
+"Enabled — not in use", still cannot be produced by anything.
+
+It needs a profile with extra usage enabled and nothing spent, and neither fixture profile is one:
+the personal account now carries a week that spends, and the Team seat has `hasExtraUsageEnabled =
+false`, so the row answers "Disabled" and never reaches the reading at all. That is T190's own
+shape, one branch along, and it is the branch that says the thing a worried user most wants to hear.
+
+Do not solve it by flipping the seat's flag. A seat with extra usage off is a real reading and the
+published `system-account.png` documents it; changing that to reach a branch would trade one
+unrendered state for another. Two options that do not: a third fixture profile — enabled, measured
+zero, no organization — which also gives the picker three entries and exercises a list longer than
+two; or a modifier on `--sample` that chooses which stored week the personal profile gets, the way
+`StatsPreviews`'s variants choose what the chart is fed.
+
+The second is smaller and composes with what T186 built. Whichever ships, the check is the same one
+T190 used: read the row at its rendered width, in English and in the longest translation, because
+"Enabled — not in use" is longer than the percentage form it replaces.
+
+### XXI.5 Two cases the section does not mention
+
+`Check-Interaction.ps1` accepts `-Case Keyboard | Panes | Profiles | Menu | Names | All`, and its
+own header documents all five. AGENTS.md's interaction section describes three: Keyboard, Menu and
+Profiles. Panes (T176) and Names (T175) are named nowhere outside the script.
+
+The invocation list beside them had gone stale in the same way — it said "both cases" and offered
+two of the five — which T191 fixed by collapsing it to one parameterised line, so that half can no
+longer drift. The bullets did not get the same treatment, because a bullet is not a list of names:
+each one states what its case *asserts* and when to run it, and two of them were simply never
+written.
+
+That matters more than it looks, because these bullets are how a case gets run at all. A check
+nobody invokes is the premise of Block AG's own first task, and the two undocumented cases are the
+two that need no second profile — the ones a single-profile machine can actually run.
+
+The cheap version is two bullets in the shape of the existing three: what the case reads, and what
+change should send you to it. The version worth considering instead is whether that section should
+hold the per-case detail at all, now that the script's header does and the file is at a budget T191
+lowered deliberately: the same argument that moved the flag catalogue to a skill applies to five
+case descriptions. If it moves, what stays behind is the rule — reading nothing is a FAIL, and a
+picture cannot prove a key press arrives.
