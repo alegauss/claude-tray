@@ -556,6 +556,7 @@
 - **T237** — --second-tray runs a tray beside the resident one, so the menu case launches the build under -Exe instead of refusing - the check covering the menu is runnable on the machine it is developed on, without quitting the app.
 - **T238** — The Menu case sweeps the sampled environments itself, one tray per mode, so T172's mark and its outside-the-profiles line are asserted on a run with no flag typed instead of waiting for somebody to remember one.
 - **T239** — A tray launched with --second-tray reads normally and persists nothing - no store append, no cache, no settings save, and its environment reconcile lands on a sampled copy - asserted over the whole of %LocalAppData%\ClaudeTray.
+- **T240** — The check always launches with --second-tray, so whether a tray was resident a second ago decides nothing: the flag is free when the mutex is, the icon tag and the observer promise are unconditional, and the race that blamed the menu for a tray that never started is gone with the branch.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

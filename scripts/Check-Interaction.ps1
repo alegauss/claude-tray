@@ -1711,35 +1711,35 @@ function Assert-ProfileSubmenu($subs) {
 <#
   A tray of our own, launched from `-Exe` and carrying whatever `$script:EnvArgs` currently says (T237).
 
-  Beside a resident one when there is one. This used to be `Unchecked` and a sentence asking the
-  developer to quit their app - which, on a machine where the tray is meant to be resident, is every
-  run: the case covering the menu was the one nobody could point at the build they had just compiled.
+  It is ALWAYS `--second-tray`, and that is the whole of T240. Passing it conditionally meant deciding
+  from a `Get-Process` reading taken a second earlier: a tray that starts in that gap, or one still
+  holding the mutex while it exits, is not in the reading, so the launch went without the flag, exited
+  silently, and the run reported "the tray menu never opened" - a FAIL naming the menu for a tray that
+  never came up. That happened once while T237 was being verified, and it is the hazard this file
+  already records one function along, where `Close-Main` waits for the exit rather than trusting the
+  kill "because a still-dying `--main` looks like the tray to it".
+
+  Unconditional costs nothing: the mutex is taken when it is free either way, so a run on a machine with
+  no resident tray behaves exactly as before. What it buys, besides the race, is that the icon tag and
+  the observer promise (T239) no longer depend on a guess about the machine - every tray a check starts
+  writes nothing and is found by the same pattern.
 
   Not the move T202 refused. That was IMPLYING `-UseRunning`, which silently swaps the binary under test
   for whatever was already there; this launches `-Exe`, the binary the caller named, so the ambiguity
-  T236 exists to catch cannot arise. What it does add is a second icon, which is why the tray tags its
-  tooltip and why the returned pattern is narrowed to it.
+  T236 exists to catch cannot arise.
 
   Returns the process and the pattern that finds ITS icon, or null with the reason in
   `$script:TrayStartError`.
 #>
 $script:TrayStartError = $null
 function Start-CheckTray {
-    $running = @(Get-Process -Name ClaudeTray -ErrorAction SilentlyContinue)
-    $second = $running.Count -gt 0
-    if ($second) {
-        Info ("a ClaudeTray is already running (pid $($running[0].Id)); launching -Exe beside it " +
-              "with --second-tray rather than refusing (T237)")
-    }
-    $proc = Start-App ("--lang $Lang $($script:EnvArgs -join ' ')" + $(if ($second) { " --second-tray" }))
+    $proc = Start-App "--lang $Lang $($script:EnvArgs -join ' ') --second-tray"
     Start-Sleep -Milliseconds 1500
     $proc.Refresh()
-    # A launch that died anyway. Without --second-tray that is the mutex, which is the precondition T202
-    # named; with it, the tray refused for some other reason - a --sample-env mode this machine cannot
-    # produce is the one that actually happens - and the run has nothing to check.
+    # The mutex can no longer be the reason, so this is the tray refusing on its own - a --sample-env
+    # mode this machine cannot produce is the one that actually happens (T231's catalogue refusal).
     if ($proc.HasExited) {
         $script:TrayStartError = "the tray exited immediately after launch" +
-            $(if ($second) { " even with --second-tray" } else { " - a single instance was already held" }) +
             $(if ($script:EnvArgs.Count) { " (launched with $($script:EnvArgs -join ' '))" })
         return $null
     }
@@ -1748,21 +1748,24 @@ function Start-CheckTray {
         # Unanchored on purpose: the shell's accessible name for an icon is the name it was REGISTERED
         # with followed by the current tooltip ("Claude Code - connecting... [check] Profile: ..."), so
         # anchoring to the start matches the tooltip the tray had at startup and never the live one.
-        IconPattern = if ($second) { '\[check\]' } else { 'Claude Code' }
+        IconPattern = '\[check\]'
     }
 }
 
 function Invoke-MenuCase {
     Head "Menu - the tray icon's menu as it is when it opens"
 
-    $running = @(Get-Process -Name ClaudeTray -ErrorAction SilentlyContinue)
     $proc = $null
     $ownProcess = $false
-    # Which notification-area icon is ours. "Claude Code" is the first half of every tooltip in every
-    # language, so it identifies the icon without pinning the check to one locale - and it identifies
-    # BOTH icons once a second tray is up, which is why the second-tray branch narrows it (T237).
+    # Which notification-area icon is ours. Only `-UseRunning` needs this value: it attaches to a tray
+    # that carries no tag, and "Claude Code" is the first half of every tooltip in every language, so it
+    # identifies that icon without pinning the check to one locale. A tray this script LAUNCHES is always
+    # tagged (T240), and Start-CheckTray returns the pattern for it.
     $iconPattern = 'Claude Code'
     if ($UseRunning) {
+        # Read here and not at the top of the function: the only question this answers is "which process
+        # did the caller mean", and asking it a second earlier is what T240 is about.
+        $running = @(Get-Process -Name ClaudeTray -ErrorAction SilentlyContinue)
         if ($running.Count -eq 0) { Fail "-UseRunning given but no ClaudeTray process is running"; return }
         $proc = $running[0]
         Info "driving the ALREADY RUNNING tray, not -Exe: $($proc.Path)"

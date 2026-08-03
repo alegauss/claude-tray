@@ -216,29 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.17 A snapshot of the process list is not the state at launch
-
-`Start-CheckTray` reads `Get-Process -Name ClaudeTray` once and decides everything from that one
-reading: whether to pass `--second-tray`, and which icon pattern will find the tray it is about to
-launch.
-
-A tray that is *dying* still appears in the list, so the launch is given the flag and the icon
-looked for under the `[check]` tag — harmless, since the flag only skips a mutex that is now free.
-The broken direction is the other one: a tray that *starts* in that gap, or one still holding the
-mutex while it exits, is not in the reading, so the launch goes without the flag, exits silently on
-the mutex, and the run reports what it can see — which was "the tray menu never opened (5
-attempts)", a FAIL naming the menu for a launch that never happened.
-
-One run during T237 did exactly that, two seconds after a tray had been killed, and it is the only
-reading of that run that fits. It is the hazard this file already records one function along:
-`Close-Main` waits for the exit rather than trusting the kill, *"because a still-dying `--main`
-looks like the tray to it"*.
-
-The fix is to stop deciding from a snapshot. `--second-tray` costs nothing when no tray is resident
-— the mutex is taken when free either way — so it can simply always be passed, which makes the tag
-unconditional and the branch disappear. What that trades is the tag appearing in the notification
-area on a machine with no resident tray, which is a state nobody is looking at.
-
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
