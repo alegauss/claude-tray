@@ -227,6 +227,8 @@
 
 ## Block AH — What Block AF's own captures turned up
 
+- **T197** — The Statistics picker is filled from whatever the command is about: --sample from AccountFixture, the default variant from this machine, and a synthetic variant on its own gets no picker — so a published fixture week carries no real account name, and profile= is refused where there is nothing to walk.
+
 ## Block AF — Six surfaces shipped, and what nothing was checking
 
 - **T185** — `--selftest` compares the five string tables against en: every key en has reaches all five files, no key exists in one file alone, and every {0}-style hole survives translation — and each failure names the offending keys rather than counting them.

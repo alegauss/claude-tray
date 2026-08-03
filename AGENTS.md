@@ -277,7 +277,7 @@ dotnet run -- --settings System --sample [--reveal]
                                       #   data. ANY published screenshot of a page that shows an account,
                                       #   a repo name or a project path must use it.
 dotnet run -- --capture-settings <out.png> [page] [scroll=<dip>]
-dotnet run -- --capture-stats [outBase] [variant]
+dotnet run -- --capture-stats [outBase] [variant] [--sample]
                                       # rendered OFF-SCREEN to PNG. Prefer these over
                                       #   scripts\Capture-Window.ps1, which copies the pixels on screen
                                       #   inside the window rect — so any app that steals focus or sits on

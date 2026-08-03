@@ -476,28 +476,6 @@ the task, not by checking it.** The picker leak surfaced because a fixture captu
 enough to notice the name above the chart; the toast path because a file appeared in the repo root;
 the window mix-up because the wrong window came back.
 
-### XXI.1 The picker on a fixture is not a fixture
-
-`--capture-stats` runs `statsPage.SetProfiles(ClaudeAccount.Discover(...))` for every variant, the
-synthetic ones included, and the picker it fills is the real one. On the captures taken while
-shipping T186 it named this machine's monitored account above a chart of an invented week.
-
-That is the exact substitution `AccountFixture` and `ContextFixture` exist to prevent — a published
-image is where a real organization name becomes somebody's client's name on a marketing page — and
-here the fixture and the leak are in the same PNG. Nothing caught it, because the picker is chrome
-around the thing being looked at, and the thing being looked at was correct.
-
-The picker is there for a reason: `profile=1,0` walks it, and that is the T164 round trip. So the
-question is not whether to fill it but what it should say, and three shapes are worth weighing. The
-interactive `--stats` already does the simplest thing — fill it only for the default variant, since
-every other one is a fixture that a switch would replace. `--sample` could fill it from
-`AccountFixture` instead, which is what the Settings captures do and the only option that keeps a
-two-entry picker in a published shot. Or the capture could refuse `profile=` on a synthetic variant,
-which is the narrowest of the three and fixes the least.
-
-Worth checking the other direction while here: `--capture-settings` without `--sample` renders this
-machine's real System page, and nothing stops that PNG from being committed either.
-
 ### XXI.2 An output path read as a variant
 
 `--capture-toast` takes `<variant> <outPath>`, and with one argument the path is read as the

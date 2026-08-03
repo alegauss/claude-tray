@@ -41,6 +41,8 @@ Three different hosts, and the difference matters — see UI convention 7 in AGE
                                       #   modifiers are one table, src\Cli\StatsPreviews.cs, which
                                       #   --capture-stats reads too; pass a name it does not know and it
                                       #   prints the whole catalogue and exits 1 (T186).
+--stats [variant] --sample            # ...with the profile picker filled from AccountFixture instead of
+                                      #   this machine, which is what --capture-stats --sample publishes.
 --context --window [slug|name|all]    # just the Context Load page, optionally opened on one project
 --context --window --sample --lang en # ...over the bundled fixture, in English (for screenshots)
 --context --window <slug> --scroll    # ...scrolled to the source table
@@ -58,11 +60,16 @@ popup — its own top-level window, which `RenderTargetBitmap` over a page's con
 
 ```
 --capture-settings <out.png> [page] [scroll=<dip>] [profile=<n>] [--sample] [--reveal]
---capture-stats [outBase] [variant] [modifiers] [profile=<n>[,<n>]]
+--capture-stats [outBase] [variant] [modifiers] [profile=<n>[,<n>]] [--sample]
                                       # all three tabs -> <outBase>-5h.png / -7d.png / -throughput.png.
                                       #   profile=1,0 walks the picker one settle apart (the T164 round
                                       #   trip). Refuses a variant it cannot show rather than capturing
                                       #   the default one (T186).
+                                      #   Whose name sits above the chart (T197): --sample fills the picker
+                                      #   from AccountFixture, the default variant from this machine, and
+                                      #   a synthetic variant on its own gets no picker at all. So any
+                                      #   PUBLISHED capture of a fixture week needs --sample, and profile=
+                                      #   is refused where there is no picker to walk.
 --capture-toast <variant> <out.png>   # one toast card + shadow + confetti, transparent background
 --render <dir>                        # tray-icon PNGs at 16/20/32 px, plus the accent mark sheet
 --makeicon ClaudeTray.ico             # regenerate the multi-resolution app icon

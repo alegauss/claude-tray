@@ -331,8 +331,12 @@ internal static class Program
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             StatisticsPage page = StatsPreviews.Build(choice, now);
             // Only the default preview shows the real profile picker: every other one is a fixture, and a
-            // switch away from it would replace the very reading being looked at.
-            if (choice.Variant.Name.Length == 0)
+            // switch away from it would replace the very reading being looked at. `--sample` fills it from
+            // `AccountFixture` instead, so this preview shows what `--capture-stats --sample` publishes
+            // (T197) — the same rule, on the flag the eyeballing happens through.
+            if (SampleProfiles(args) is { } samplePicker)
+                page.SetProfiles(samplePicker);
+            else if (choice.Variant.Name.Length == 0)
                 page.SetProfiles(ClaudeAccount.Discover(Settings.Load().Profiles));
             previewApp.Run(new PageWindow(page, L.T("stats.title"), 880, 948, 800, 740) { Topmost = true });
             return;
@@ -384,14 +388,59 @@ internal static class Program
         // window another app covers. Args: [outBase] (default docs\_preview\stats → -5h.png/-7d.png).
         if (args.Length >= 1 && args[0] == "--capture-stats")
         {
-            string outBase = System.IO.Path.GetFullPath(args.Length >= 2 ? args[1] : @"docs\_preview\stats");
+            // Both positionals are bare words, so read them as such rather than by index: `args[1]` made
+            // `--capture-stats --sample` write to a file called `--sample`, which is T198's defect in the
+            // flag next door.
+            string[] bare = Bare(args.Skip(1)).ToArray();
+            string outBase = System.IO.Path.GetFullPath(bare.Length >= 1 ? bare[0] : @"docs\_preview\stats");
             // The same table `--stats` reads, minus the output path, so a preview added there is captured
             // here without a second edit and a name neither knows is refused rather than defaulted (T186).
-            if (StatsPreviews.Resolve(Bare(args.Skip(2)), capturing: true) is not { } choice)
+            if (StatsPreviews.Resolve(bare.Skip(1), capturing: true) is not { } choice)
             {
                 Environment.ExitCode = 1;
                 return;
             }
+            // Whose name sits above the chart. The picker is chrome around the reading, which is why
+            // nothing caught it filling from real discovery on **every** variant: a fixture week was
+            // published captioned with this machine's monitored account, in the one image a fixture exists
+            // to keep a real name out of (T197). So it is filled from whatever the rest of the command is
+            // about — `--sample` from `AccountFixture`, the default variant (the only one that *is* this
+            // machine's reading) from discovery — and a synthetic variant on its own gets no picker.
+            bool sample = args.Contains("--sample");
+            List<ClaudeInfo>? pickerProfiles = sample
+                ? SampleProfiles(args)
+                : choice.Variant.Name.Length == 0 ? ClaudeAccount.Discover(Settings.Load().Profiles) : null;
+            // A fixture that failed to build must not fall back to discovery, which is the leak the whole
+            // task is about arriving through the error path instead of the happy one.
+            if (sample && pickerProfiles is null)
+            {
+                Environment.ExitCode = 1;
+                return;
+            }
+
+            // `profile=<n>` renders the window as another profile (T128), so the switch path is captured
+            // rather than only the picker sitting there. A **list** — `profile=1,0` — walks the picker
+            // through each index in turn, one full settle apart: that is the round trip the report has to
+            // survive (T164), and the check is that its PNGs match a plain capture of the profile it
+            // lands on. One selection at a time is what makes it a check: a switch that is still
+            // computing when the next one arrives would prove nothing about either.
+            int[] profileSteps = (ArgValue(args, "profile") ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(s => int.TryParse(s, out int n) ? n : -1)
+                .Where(n => n >= 0)
+                .ToArray();
+            // Refused rather than ignored, on T186's rule: with no picker there is nothing to walk, and a
+            // silent no-op here would hand back PNGs that look exactly like the round trip passing.
+            if (profileSteps.Length > 0 && pickerProfiles is null)
+            {
+                Console.WriteLine($"profile= has no picker to walk: '{choice.Variant.Name}' is a synthetic " +
+                                  "reading, and filling the picker from this machine would caption it with " +
+                                  "a real account (T197). Add --sample to walk the two fixture profiles, " +
+                                  "or drop the variant to walk this machine's.");
+                Environment.ExitCode = 1;
+                return;
+            }
+
             var previewApp = new System.Windows.Application
             {
                 ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
@@ -407,19 +456,8 @@ internal static class Program
                 // so without this the snapshot renders dark-theme text over an unpainted background.
                 ThemeMode = System.Windows.ThemeMode.Dark,
             };
-            statsPage.SetProfiles(ClaudeAccount.Discover(Settings.Load().Profiles));
+            if (pickerProfiles is not null) statsPage.SetProfiles(pickerProfiles);
             win.Show();
-            // `profile=<n>` renders the window as another profile (T128), so the switch path is captured
-            // rather than only the picker sitting there. A **list** — `profile=1,0` — walks the picker
-            // through each index in turn, one full settle apart: that is the round trip the report has to
-            // survive (T164), and the check is that its PNGs match a plain capture of the profile it
-            // lands on. One selection at a time is what makes it a check: a switch that is still
-            // computing when the next one arrives would prove nothing about either.
-            int[] profileSteps = (ArgValue(args, "profile") ?? string.Empty)
-                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(s => int.TryParse(s, out int n) ? n : -1)
-                .Where(n => n >= 0)
-                .ToArray();
             // The "refresh" modifier feeds a fresh reading in — the exact call the tray's poll loop makes —
             // and snapshots *while the recomputation is still in flight*. That is the window a blanked pane
             // would appear in, so the captured PNGs are the check for T118: content, not a "computing…" line.
@@ -460,7 +498,7 @@ internal static class Program
     /// <c>--flag</c> nor a <c>name=value</c> pair, so those can be given in any order without one of them
     /// being read as a preview name — and, for <c>--capture-stats</c>, without its output path.</summary>
     private static IEnumerable<string> Bare(IEnumerable<string> args) =>
-        args.Where(a => !a.StartsWith("--") && !a.Contains('='));
+        args.Where(a => a.Length > 0 && !a.StartsWith("--") && !a.Contains('='));
 
     /// <summary>Value of a <c>name=value</c> dev-flag argument, or null.</summary>
     private static string? ArgValue(string[] args, string name) =>
