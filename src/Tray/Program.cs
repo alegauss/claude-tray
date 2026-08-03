@@ -89,6 +89,25 @@ internal static class Program
         // resolve strings at parse time): honor the saved Settings preference, falling back to the OS.
         L.Apply(langOverride ?? Settings.Load().Language);
 
+        // `--sample-env <mode>` puts this process on a sampled CLAUDE_CONFIG_DIR (T231), so the states
+        // the menu and the read-out exist to report — the variable naming another profile, or a folder
+        // no profile covers — can be looked at without rewriting the developer's own registry. Stripped
+        // the same way `--lang` is, and applied here: before anything below reads the variable, and
+        // before any window is built. A bad mode refuses with the catalogue rather than falling through
+        // to the real environment, which would render the ordinary state under a flag asking for another.
+        int envAt = Array.IndexOf(args, "--sample-env");
+        if (envAt >= 0)
+        {
+            string? mode = envAt + 1 < args.Length ? args[envAt + 1] : null;
+            args = args.Take(envAt).Concat(args.Skip(envAt + (mode is null ? 1 : 2))).ToArray();
+            if (EnvironmentFixture.Apply(mode) is { } refusal)
+            {
+                Console.Error.WriteLine(refusal);
+                Environment.Exit(1);
+                return;
+            }
+        }
+
         // Adopt the profile whose numbers this process reads and writes, before any store is touched —
         // every one of them is keyed by it now (T125). The default config dir is the profile a bare
         // `claude` uses, which is the single series every installation has today; the first call also

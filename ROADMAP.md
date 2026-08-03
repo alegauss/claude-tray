@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 💭 **T231** (deps: —) **The reading worth checking is the one this machine is never in, and no fixture puts it there** — The profile read-out answers agrees or DIFFERS off the real registry, so the disagreement it exists to report can only be reviewed by rewriting the developer's own environment. → §XX.19
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 - 💭 **T219** (deps: —) **The turn budget is full, so a new rule is paid for by deleting an old one nobody ranked** — Writing T169's rule took AGENTS.md 612 bytes over, and the bytes came back from a sentence that happened to be duplicated — a selector that runs out before the next rule does. → §XXII.1

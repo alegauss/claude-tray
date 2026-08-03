@@ -176,7 +176,7 @@ No window, no screen — the arithmetic and the readings as text.
 --context-report [out.md]             # the whole picture as one markdown file
 ```
 
-## Two flags that go with anything
+## Three flags that go with anything
 
 ```
 --lang <code>                         # render this run in en | pt-BR | pt-PT | fr | es, whatever the
@@ -186,6 +186,21 @@ No window, no screen — the arithmetic and the readings as text.
 --sample                              # feed a surface its fixture instead of this machine's data. Any
                                       #   published screenshot of a page that shows an account, a repo
                                       #   name or a project path must use it.
+--sample-env <mode>                   # answer as if CLAUDE_CONFIG_DIR said this, and WRITE NOTHING (T231).
+                                      #   agrees  | it names the profile the icon follows — the ordinary
+                                      #             state, which this machine is always in anyway
+                                      #   other   | it names a REGISTERED profile that is not the icon's,
+                                      #             which is the only way to see T172's "set in Windows"
+                                      #   outside | it names a folder no profile covers — T172's own line
+                                      #   unset   | no variable at all, so the default ~/.claude applies
+                                      #   Stripped like --lang, applied before anything reads the variable.
+                                      #   The mode picks from the profiles really registered here, so the
+                                      #   fixture cannot produce a menu state that could not occur; an
+                                      #   unknown one prints the catalogue and exits 1. Sampling is one-way
+                                      #   for the process — that is what makes "writes nothing" true — and
+                                      #   `--profiles` says out loud that it is answering off a fixture.
+                                      #   `Check-Interaction.ps1 -SampleEnv <mode>` drives the tray and the
+                                      #   read-out with the same mode; it is refused with -UseRunning.
 ```
 
 ## Adding a flag

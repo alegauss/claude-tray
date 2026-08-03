@@ -216,23 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.19 A read-out with a state nobody can ask it for
-
-T172 put the effective profile beside the monitored one and marks them when they differ; T173 made a
-write report whether it landed. Both were built and shipped without their interesting state ever
-appearing on screen, because this machine agrees with itself and the honest way to make it disagree
-is to write a different CLAUDE_CONFIG_DIR into the developer's own registry.
-
-The self-check covers the decisions - which profile a dir selects, whether an outcome counts as
-landed - by driving the seams with values handed in. What it cannot cover is the rendering: the mark
-on a submenu entry, the line naming a folder no profile covers, the failure card's wording.
-
-AccountFixture is the precedent, and the same shape fits: a sampled mode where the read-out and the
-menu are told what the environment says instead of asking it. Marked as an idea rather than designed
-because the seam is not obvious - the tray reads the variable through one helper, which is
-encouraging, but the menu also reads the live watch list, and a fixture that lies about one and not
-the other would certify a screen that cannot occur.
-
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of

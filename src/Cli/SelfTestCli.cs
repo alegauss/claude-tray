@@ -168,6 +168,11 @@ internal static class SelfTestCli
             Temp(Primed);
         }
 
+        // Last, and nothing may be added after it: sampling the environment is one-way for the process
+        // (T231), so every section that reads the machine's real CLAUDE_CONFIG_DIR has to be above.
+        Section("sampled environment — the states this machine is never in (Block AI)");
+        SampledEnvironment();
+
         double ms = (DateTime.UtcNow.Ticks - started) / (double)TimeSpan.TicksPerMillisecond;
         Console.WriteLine();
         foreach (string f in Failures) Console.WriteLine("FAILED  " + f);
@@ -1869,6 +1874,63 @@ internal static class SelfTestCli
         // asking "did my choice reach the machine?" is never met with silence.
         Check("nothing to write is still an answer, and a landed one",
               new EnvironmentProfile.WriteOutcome(work, work, null, false) is { Wrote: false, Landed: true });
+    }
+
+    /// <summary>
+    /// The sampled environment (T231), and the one promise it has to keep: a process answering off a
+    /// fixture writes nothing to the machine.
+    ///
+    /// <para><b>Runs last, and nothing may follow it.</b> <see cref="EnvironmentProfile.Sample"/> is
+    /// one-way on purpose — a fixture that could be switched back off would let a later caller write the
+    /// real <c>CLAUDE_CONFIG_DIR</c> in a process that has already been lying about it — so every
+    /// assertion above that reads the true variable has to have run by now.</para>
+    /// </summary>
+    private static void SampledEnvironment()
+    {
+        // Read the machine's own value BEFORE anything is sampled: it is the control the write below is
+        // measured against, and after Sample() there is no way left to ask for it.
+        string? real = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR", EnvironmentVariableTarget.User);
+
+        // The catalogue is the refusal (T186's rule): an unknown mode names what is on offer rather than
+        // rendering the ordinary state under a flag that asked for another.
+        string? refusal = EnvironmentFixture.Apply("no-such-mode");
+        Check("an unknown --sample-env mode is refused, not silently ignored", refusal is { Length: > 0 });
+        Check("and the refusal names every mode there is",
+              refusal is { } r && EnvironmentFixture.Modes.All(m => r.Contains(m.Name, StringComparison.Ordinal)));
+        Check("a refused mode samples nothing", !EnvironmentProfile.IsSampled);
+
+        const string fake = @"C:\Users\nobody\.claude-sampled";
+        EnvironmentProfile.Sample(fake);
+        Check("a sampled variable is what every reader sees",
+              EnvironmentProfile.IsSampled
+              && EnvironmentProfile.Current() == fake
+              && EnvironmentProfile.EffectiveConfigDir() == fake);
+
+        // The whole variable, not one caller's answer: the menu asks Selected, the read-out asks
+        // EffectiveConfigDir, and a fixture that moved one without the other would certify a screen that
+        // cannot occur — which is the objection T231 was filed carrying.
+        var profiles = new List<ClaudeInfo>
+        {
+            new() { Label = "Personal", ConfigDir = ClaudeAccount.HomeConfigDir },
+            new() { Label = "Work", ConfigDir = fake },
+        };
+        Check("and the selection follows it, so the menu and the read-out cannot disagree",
+              EnvironmentProfile.SelectedIn(profiles, EnvironmentProfile.EffectiveConfigDir())?.Label == "Work");
+
+        EnvironmentProfile.Sample(null);
+        Check("a sampled-absent variable reads as the default config dir, as a real absent one does",
+              ClaudeAccount.SamePath(EnvironmentProfile.EffectiveConfigDir(), ClaudeAccount.HomeConfigDir));
+
+        // The promise. Adopt goes through the real queue, the real read-back and the real outcome — the
+        // only thing it does not go through is the registry.
+        var settings = new Settings();
+        EnvironmentProfile.Adopt(settings, fake);
+        EnvironmentProfile.Drain();
+        Check("a write under the fixture moves the fixture", EnvironmentProfile.Current() == fake);
+        Check("and reports itself landed, so T173's whole path is exercised off the machine",
+              EnvironmentProfile.Last is { Landed: true, Wrote: true });
+        Check("and the machine's own variable is untouched",
+              Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR", EnvironmentVariableTarget.User) == real);
     }
 
     private static void AutomationIds()

@@ -37,9 +37,46 @@ internal static class EnvironmentProfile
     /// <summary>The user-scope value as it stands now (null when the variable is not set).</summary>
     internal static string? Current()
     {
+        if (_sampling) return _sampled;
         try { return Environment.GetEnvironmentVariable(Var, EnvironmentVariableTarget.User); }
         catch { return null; }
     }
+
+    // ---- the sampled environment (T231) ----
+
+    private static bool _sampling;
+    private static string? _sampled;
+
+    /// <summary>
+    /// Answer every question below as if the user environment said <paramref name="configDir"/> — and
+    /// never touch the registry again for the rest of the process.
+    ///
+    /// <para>The states worth looking at are the ones this machine is never in. T172 marks the profile
+    /// the variable names when it is not the one on the icon, and T173/T174 report whether a write
+    /// landed; both were built and shipped without their interesting state ever appearing on screen,
+    /// because a developer's machine agrees with itself and the honest way to make it disagree is to
+    /// write a different <c>CLAUDE_CONFIG_DIR</c> into that developer's own registry.</para>
+    ///
+    /// <para>Deliberately the *whole* variable rather than a lie told to one caller. The menu asks
+    /// <see cref="Selected"/>, the read-out asks <see cref="EffectiveConfigDir"/>, the write path asks
+    /// <see cref="Current"/> to decide whether there is anything to do — a fixture that answered one of
+    /// them and not the others would certify a screen that cannot occur, which is the objection this
+    /// idea carried. There is one variable, so there is one place to sample it.</para>
+    ///
+    /// <para>Which dir is a coherent one to name is <see cref="EnvironmentFixture"/>'s job, not this
+    /// one's: it picks from the profiles actually on the machine, so the sampled environment can only
+    /// select something the watch list can render.</para>
+    /// </summary>
+    internal static void Sample(string? configDir)
+    {
+        _sampling = true;
+        _sampled = configDir;
+    }
+
+    /// <summary>Whether this process is answering off a sampled environment. Every surface that reports
+    /// the variable says so — a read-out that quietly described a fixture would be the defect the
+    /// fixture exists to catch, one level up.</summary>
+    internal static bool IsSampled => _sampling;
 
     /// <summary>
     /// The config dir the **persistent environment** selects: the variable's value, or <c>~/.claude</c>
@@ -169,10 +206,18 @@ internal static class EnvironmentProfile
         {
             try
             {
-                // .NET removes the variable when the value is null or empty — which is exactly the
-                // "select ~/.claude" case, not an error.
-                Environment.SetEnvironmentVariable(Var, value, EnvironmentVariableTarget.User);
-                Broadcast();
+                // A sampled environment is written to instead of the machine's (T231), so a pick made
+                // under the fixture moves the fixture and the read-back below observes it — the whole
+                // T173/T174 path runs, off the registry rather than through it. The one line that must
+                // never be reached under sampling is the next one.
+                if (_sampling) _sampled = value;
+                else
+                {
+                    // .NET removes the variable when the value is null or empty — which is exactly the
+                    // "select ~/.claude" case, not an error.
+                    Environment.SetEnvironmentVariable(Var, value, EnvironmentVariableTarget.User);
+                    Broadcast();
+                }
             }
             // Still swallowed as far as the *click* is concerned — nothing the user is waiting on
             // depends on this — but no longer discarded: the reason is what the outcome below carries.

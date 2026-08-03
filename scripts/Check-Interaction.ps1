@@ -99,6 +99,16 @@
     line, so the labels are matched against the language the resident tray actually resolved instead
     (T220). An explicitly given `-Lang` is refused there rather than overridden — see `-UseRunning`.
 
+.PARAMETER SampleEnv
+    Drive the run against a SAMPLED `CLAUDE_CONFIG_DIR` (`--sample-env`, T231) instead of this machine's:
+    `agrees`, `other`, `outside` or `unset`. The states the Profile submenu exists to report are the ones
+    where the variable disagrees with the icon, and on a developer's machine it never does — so without
+    this the environment mark (T172) is an assertion that is only ever `Unchecked`.
+
+    Both the tray and the `--profiles` read-out the expectations come from are launched with it, or the
+    check would compare a sampled menu against the real environment. Refused with `-UseRunning` for the
+    reason `-Lang` is: it is a launch argument, and a resident tray did not get one.
+
 .PARAMETER UseRunning
     Menu case only: drive the tray that is ALREADY running instead of launching `-Exe`. Convenient on
     a dev machine (the single-instance mutex makes a second launch exit silently), but it checks
@@ -134,7 +144,9 @@ param(
     [string]$Case = 'All',
     [string]$Exe = "bin\Debug\net10.0-windows\win-x64\ClaudeTray.exe",
     [string]$Lang = "en",
-    [switch]$UseRunning
+    [switch]$UseRunning,
+    [ValidateSet('agrees', 'other', 'outside', 'unset')]
+    [string]$SampleEnv
 )
 
 $ErrorActionPreference = "Stop"
@@ -143,6 +155,10 @@ $ErrorActionPreference = "Stop"
 # function $PSBoundParameters is that function's own, so asking there reads an empty table and the
 # refusal below never fires - which is exactly how it first shipped.
 $script:LangGiven = $PSBoundParameters.ContainsKey('Lang')
+
+# The sampled-environment flag as it is passed to every launch, and to the read-out the expectations are
+# derived from (T231). One string, so the two can never be given different modes.
+$script:EnvArgs = if ($SampleEnv) { @('--sample-env', $SampleEnv) } else { @() }
 
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Windows.Forms
 
@@ -1421,7 +1437,11 @@ function Expand-Item($menu, $label) {
 #>
 $script:ProfilesOut = $null
 function Profiles-ReadOut {
-    if ($null -eq $script:ProfilesOut) { $script:ProfilesOut = & $Exe "--lang" "en" "--profiles" 2>&1 | Out-String }
+    if ($null -eq $script:ProfilesOut) {
+        # The same --sample-env the tray was launched with, or the expectations would describe the real
+        # environment while the menu renders a sampled one (T231).
+        $script:ProfilesOut = & $Exe "--lang" "en" @script:EnvArgs "--profiles" 2>&1 | Out-String
+    }
     return $script:ProfilesOut
 }
 
@@ -1601,6 +1621,17 @@ function Invoke-MenuCase {
         # T220: this is the one path with no command line, so `-Lang` never reached the process. Match the
         # labels against what the tray is actually in, or every one of them is compared to a translation
         # nobody is looking at - four FAILs for entries that were all on screen, in Portuguese.
+        # T231's flag is a launch argument too, so it cannot reach this process either - and unlike the
+        # language there is nothing to read back off the machine, because the whole point of a sampled
+        # environment is that the machine is not in it.
+        if ($SampleEnv) {
+            Unchecked "the tray icon's menu on a sampled environment (T231)" `
+                ("-SampleEnv $SampleEnv was given with -UseRunning, but --sample-env is a launch " +
+                 "argument and this tray was launched without it: it is reading the real variable. " +
+                 "Drop -UseRunning so the check launches its own tray on the fixture.")
+            return
+        }
+
         $tray = Resolve-TrayLang
         if ($script:LangGiven -and $Lang -ne $tray.Code) {
             # Explicit and unhonourable: refuse rather than override, the shape T205 settled on. A default
@@ -1628,7 +1659,7 @@ function Invoke-MenuCase {
         return
     }
     else {
-        $proc = Start-App "--lang $Lang"
+        $proc = Start-App "--lang $Lang $($script:EnvArgs -join ' ')"
         $ownProcess = $true
         Start-Sleep -Milliseconds 1500
         $proc.Refresh()

@@ -101,6 +101,11 @@ internal static class ProfilesCli
         string envDir = EnvironmentProfile.EffectiveConfigDir();
         bool agrees = envProfile is not null && monitored is not null
                       && ClaudeAccount.SamePath(envProfile.ConfigDir, monitored.ConfigDir);
+        // Said before the reading it qualifies, not after: a read-out describing a fixture without
+        // saying so is the same defect the fixture exists to expose, one level up (T231).
+        if (EnvironmentProfile.IsSampled)
+            Console.WriteLine("SAMPLED ENVIRONMENT (--sample-env): the three lines below answer off a "
+                              + "fixture, and this process writes no variable.");
         Console.WriteLine($"environment selects: {envProfile?.Label ?? "none of these"}  ({envDir})"
                           + (EnvironmentProfile.Current() is null ? "   CLAUDE_CONFIG_DIR not set - the default applies" : "")
                           + (agrees ? "   - agrees with the icon" : "   !! DIFFERS from the icon"));
