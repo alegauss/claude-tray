@@ -29,7 +29,7 @@ internal partial class MainWindow : Window
     /// when the window opened, which is how a menu pick made while the page sat open used to be written
     /// back over (T141, T155).</summary>
     private readonly Func<Settings> _currentSettings;
-    private readonly Action<Settings> _onSave;
+    private readonly Action<Settings, Settings> _onSave;
 
     private ContextPage? _context;
     private SettingsPage? _settings;
@@ -41,7 +41,7 @@ internal partial class MainWindow : Window
     /// <param name="currentSettings">Reads the tray's live settings model (see the field).</param>
     /// <param name="onSave">Applied when the settings page saves — the tray's <c>ApplySettings</c>.</param>
     internal MainWindow(PaceSnapshot? snapshot, bool showRemaining, string? error,
-                        Func<Settings> currentSettings, Action<Settings> onSave)
+                        Func<Settings> currentSettings, Action<Settings, Settings> onSave)
     {
         _currentSettings = currentSettings;
         _onSave = onSave;

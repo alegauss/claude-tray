@@ -4,20 +4,6 @@ using System.Text.Json;
 namespace ClaudeTray;
 
 /// <summary>
-/// Marks a setting the <b>tray</b> owns rather than the Settings page: it is changed from the menu (or by
-/// the tray's own bookkeeping) and has no control on any page, so the window's snapshot of it is always
-/// the older value.
-///
-/// <para>The declaration lives on the property because the alternative — a list of field names in
-/// <c>ApplySettings</c>, four lines long and a file away from the fields it named — has shipped the same
-/// defect twice: a tray-owned field missing from that list is written back stale on every Save (T126 lost
-/// the monitored config dir, T155 the icon's profile). Marking the field and carrying by the declaration
-/// makes the carry total for the same reason <see cref="Settings.Clone"/> makes the copy total (T162).</para>
-/// </summary>
-[AttributeUsage(AttributeTargets.Property)]
-internal sealed class TrayOwnedAttribute : Attribute;
-
-/// <summary>
 /// User-configurable settings, persisted as JSON in %LocalAppData%\ClaudeTray\settings.json.
 /// Deliberately small for now — more fields will land here over time and the Settings dialog
 /// grows with them. Any missing, corrupt, or out-of-range value falls back to its default, so
@@ -125,9 +111,9 @@ internal sealed class Settings
     /// </summary>
     public int ScheduledResetMinPercent { get; set; } = DefaultScheduledResetMinPercent;
 
-    /// <summary>Which usage window the tray displays: "5h", "7d", or "extra". Set from the tray menu,
-    /// nowhere else — see <see cref="TrayOwnedAttribute"/>.</summary>
-    [TrayOwned]
+    /// <summary>Which usage window the tray displays: "5h", "7d", or "extra". Set from the tray menu and
+    /// nowhere else, so a window never changes it and <see cref="CarryUnchangedFrom"/> always keeps the
+    /// menu's.</summary>
     public string Metric { get; set; } = DefaultMetric;
 
     /// <summary>
@@ -174,11 +160,10 @@ internal sealed class Settings
     /// two, so one profile owns it; the rest are read in the Profile submenu. Empty — the default —
     /// means the profile a bare <c>claude</c> would use, which is the only one most machines have.
     ///
-    /// <para>Moved by the Profile submenu only, since T155 took the page's "Icon profile" row out — so the
-    /// tray owns it (<see cref="TrayOwnedAttribute"/>). This is the field whose missing carry-over line
-    /// <em>was</em> T155's defect.</para>
+    /// <para>Moved by the Profile submenu only, since T155 took the page's "Icon profile" row out, so no
+    /// window ever changes it and <see cref="CarryUnchangedFrom"/> always keeps the menu's. This is the
+    /// field whose missing carry-over line <em>was</em> T155's defect.</para>
     /// </summary>
-    [TrayOwned]
     public string MonitoredConfigDir { get; set; } = "";
 
     /// <summary>
@@ -204,15 +189,13 @@ internal sealed class Settings
     /// <summary>Whether the tray currently owns the user-scope <c>CLAUDE_CONFIG_DIR</c>. Distinguishes
     /// "not managing it" from "managing it, and there was nothing there before" — which
     /// <see cref="EnvironmentProfileRestore"/> alone cannot, since both are null. The tray's own
-    /// bookkeeping, with no control on any page (<see cref="TrayOwnedAttribute"/>).</summary>
-    [TrayOwned]
+    /// bookkeeping, with no control on any page, so no window ever changes it.</summary>
     public bool EnvironmentProfileOwned { get; set; } = false;
 
     /// <summary>What the user-scope <c>CLAUDE_CONFIG_DIR</c> said before the tray first took it over,
     /// so switching the feature off puts it back instead of abandoning a value the app no longer
-    /// manages. Null means there was none. Tray-owned, for the same reason as
+    /// manages. Null means there was none. The tray's own bookkeeping, for the same reason as
     /// <see cref="EnvironmentProfileOwned"/>.</summary>
-    [TrayOwned]
     public string? EnvironmentProfileRestore { get; set; }
 
     /// <summary>Where the app keeps its own state — <c>%LocalAppData%\ClaudeTray</c>: this file, the
@@ -255,27 +238,53 @@ internal sealed class Settings
         return copy;
     }
 
-    /// <summary>Every property marked <see cref="TrayOwnedAttribute"/>, by declaration. Computed once —
-    /// the set is fixed at compile time — and public so <c>--selftest</c> can assert the round trip over
-    /// the same list the tray carries by, rather than over a copy of it.</summary>
-    public static readonly IReadOnlyList<PropertyInfo> TrayOwned =
+    /// <summary>Every field a window hands back, by declaration. Computed once — the set is fixed at
+    /// compile time — and public so <c>--selftest</c> can assert the round trip over the same set the merge
+    /// below walks, rather than over a copy of it.</summary>
+    public static readonly IReadOnlyList<PropertyInfo> Fields =
         typeof(Settings).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                        .Where(p => p.IsDefined(typeof(TrayOwnedAttribute)) && p.CanRead && p.CanWrite)
+                        .Where(p => p.CanRead && p.CanWrite)
                         .ToList();
 
     /// <summary>
-    /// Carry the tray-owned fields over from the live model onto this (edited) one. The other end of
-    /// <see cref="Clone"/>'s round trip: the window hands back a total copy of the model it was given, so
-    /// everything it does not edit is already right — <em>except</em> the fields the tray moved while the
-    /// window sat open, whose snapshot in that copy is stale.
+    /// Merge this (edited) model onto the live one by <b>which write is newer</b>, field by field: a field
+    /// the page did not touch takes whatever the live model says <em>now</em>; one the page did touch keeps
+    /// the page's value. Called on Save, with the snapshot the window was built from.
     ///
-    /// <para>By the declaration and not by a list, so a new tray-owned field is carried the day it is
-    /// marked rather than the day somebody notices it resetting (T162).</para>
+    /// <para><b>What this replaced, and why</b> (T229). T162 split the model in two — fields the tray owns,
+    /// fields the page owns — and marked the tray's on the property so no hand-written list could go stale.
+    /// The split assumed each field has exactly one writer, and two do not:
+    /// <see cref="FollowActiveProfile"/> has had a menu toggle since T126 and a page control since it
+    /// shipped, and <see cref="SyncEnvironmentProfile"/> joined it in T171, which put the machine-wide
+    /// switch in the Profile submenu on purpose. Neither could be marked — the page has a real control for
+    /// each, and carrying would overwrite an edit the user had just made there — so flipping either in the
+    /// menu with Settings already open and then pressing Save silently put it back, and with it un-wrote
+    /// the environment variable T171 reconciles off that value.</para>
+    ///
+    /// <para><b>Why comparing, rather than a third category of ownership.</b> "The page did not change it"
+    /// is what the attribute was approximating all along: a field with no control on any page can never
+    /// differ from the snapshot, so every field it used to mark is still carried — by a rule instead of a
+    /// marking. What the rule adds is the two fields nothing could mark, and it cannot go stale, because
+    /// there is nothing left to remember to write down. T126 and T155 were each a field missing from a
+    /// list; there is no list.</para>
+    ///
+    /// <para>A page edit that lands back on the value it started from reads as no edit, and the live value
+    /// wins. That is the intended reading rather than a gap in it: the last write that changed anything was
+    /// the menu's.</para>
     /// </summary>
-    public void CarryTrayOwnedFrom(Settings live)
+    /// <param name="live">The tray's model as it stands now — which the menu may have moved since.</param>
+    /// <param name="opened">The copy the window was built from: what the page started with.</param>
+    public void CarryUnchangedFrom(Settings live, Settings opened)
     {
-        foreach (PropertyInfo p in TrayOwned) p.SetValue(this, p.GetValue(live));
+        foreach (PropertyInfo p in Fields)
+            if (Same(p.GetValue(this), p.GetValue(opened)))
+                p.SetValue(this, p.GetValue(live));
     }
+
+    // Compared as JSON, through the serializer that already defines what one of these values *is* —
+    // `Clone` is a round trip through it. A field whose type is a list needs value equality, not reference.
+    private static bool Same(object? a, object? b) =>
+        JsonSerializer.Serialize(a) == JsonSerializer.Serialize(b);
 
     public void Save()
     {

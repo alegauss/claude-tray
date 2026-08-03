@@ -1059,61 +1059,78 @@ internal static class SelfTestCli
     // ---------------------------------------------------------------- Blocks S/Z: the settings round trip
 
     /// <summary>
-    /// The Settings round trip, one check per property: the window is handed a total copy
-    /// (<see cref="Settings.Clone"/>), hands one back, and the tray carries its own fields over
-    /// (<see cref="Settings.CarryTrayOwnedFrom"/>). For every property, exactly one of two things must
-    /// happen — the page's value survives, or, if the tray owns it, the live value does.
+    /// The Settings round trip, <b>two</b> checks per property: the window is handed a total copy
+    /// (<see cref="Settings.Clone"/>), hands back that copy and the untouched one it opened with, and the
+    /// tray merges by which write is newer (<see cref="Settings.CarryUnchangedFrom"/>). Every property has
+    /// to answer both ways — the page edited it and its value survives, or the page left it alone and a
+    /// value the menu moved meanwhile survives.
     ///
-    /// <para>Driven by reflection over the property list rather than by a list written here, which is the
-    /// whole point of T162: a field added tomorrow is covered tomorrow. A property whose type has no
-    /// varying rule below <b>fails</b> rather than being skipped, so adding one that this cannot vary is a
-    /// red check and not a quiet gap.</para>
+    /// <para><b>Both directions, per field, is what T229 needed.</b> T162's sweep asked one question per
+    /// property and read the answer off the attribute, so an unmarked field was asserted to keep the page's
+    /// value — which is what happened, including for the two fields with a control on <em>both</em>
+    /// surfaces, whose menu edit was silently reverted. Nothing here knows which controls a page has, and
+    /// it no longer has to: a field the page did not touch is indistinguishable from one it cannot touch,
+    /// and both want the live value.</para>
     ///
-    /// <para><b>Where this stops.</b> The sweep reads the attribute, so it cannot tell that a field
-    /// <em>should</em> have been marked — for an unmarked field it asserts the page's value survives, which
-    /// is exactly what happens. Nothing here knows which controls the page has. The four named checks above
-    /// are therefore not redundant: they pin the fields whose omission has actually shipped a defect, and a
-    /// genuinely new tray-owned field still depends on the author marking it (a rule in AGENTS.md).</para>
+    /// <para>Driven by reflection over <see cref="Settings.Fields"/> rather than a list written here: a
+    /// field added tomorrow is covered tomorrow. A property whose type has no varying rule below
+    /// <b>fails</b> rather than being skipped, so adding one this cannot vary is a red check, not a gap.</para>
     /// </summary>
     private static void SettingsRoundTrip()
     {
-        // The two shipped defects this replaces, named: both were a tray-owned field with no line in the
-        // hand-maintained list, written back stale on every Save.
-        foreach (string owned in new[] { nameof(Settings.MonitoredConfigDir), nameof(Settings.Metric),
-                                         nameof(Settings.EnvironmentProfileOwned),
-                                         nameof(Settings.EnvironmentProfileRestore) })
-            Check($"{owned} is declared tray-owned",
-                  Settings.TrayOwned.Any(p => p.Name == owned),
-                  "T126 and T155 were both this field missing from the carry-over list");
-
-        foreach (PropertyInfo p in typeof(Settings)
-                     .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                     .Where(p => p.CanRead && p.CanWrite))
+        foreach (PropertyInfo p in Settings.Fields)
         {
-            bool trayOwned = p.IsDefined(typeof(TrayOwnedAttribute));
-            string what = trayOwned ? "the tray's value survives an older window snapshot"
-                                    : "the page's edit survives the carry";
-
             if (Vary(p) is not { } varied)
             {
-                Fail($"{p.Name}: {what}", "no varying rule for this property's type — add one");
+                Fail($"{p.Name}: the merge decides which write is newer",
+                     "no varying rule for this property's type — add one");
                 continue;
             }
             (object? edited, object? moved) = varied;
 
-            // The window opened, so it holds a copy; then the *menu* moved the tray-owned fields, so the
-            // live model and that copy disagree; then Save applies the copy.
+            // One shape, both directions. The window opened over `opened`; the menu then moved the field
+            // to `moved` in the live model; Save hands back what the page holds plus what it opened with.
+            static Settings Merge(PropertyInfo p, object? opened, object? onPage, object? live)
+            {
+                var liveModel = new Settings();
+                p.SetValue(liveModel, live);
+                var openedCopy = new Settings();
+                p.SetValue(openedCopy, opened);
+                Settings edited = openedCopy.Clone();
+                p.SetValue(edited, onPage);
+
+                Settings applied = edited.Clone();
+                applied.CarryUnchangedFrom(liveModel, openedCopy.Clone());
+                return applied;
+            }
+
+            // The page left it where it found it, and the menu moved it meanwhile: the menu's value wins.
+            // This is every field T162 marked, plus the two it could not — and it is T126 and T155.
+            object? untouched = p.GetValue(Merge(p, opened: edited, onPage: edited, live: moved));
+            Check($"{p.Name}: a value the menu moved survives a window that did not touch it",
+                  Json(untouched) == Json(moved), $"{Json(untouched)} vs {Json(moved)}");
+
+            // The page edited it: the page's value wins, whatever the live model holds.
+            object? touched = p.GetValue(Merge(p, opened: moved, onPage: edited, live: moved));
+            Check($"{p.Name}: and an edit made on the page is not carried away",
+                  Json(touched) == Json(edited), $"{Json(touched)} vs {Json(edited)}");
+        }
+
+        // The two fields the ownership split could not express, named, because they are the defect: a
+        // control on the Claude Code page *and* a toggle in the menu. If either loses its page control the
+        // merge still holds — this is here so the case that produced T229 is pinned by name.
+        foreach (string shared in new[] { nameof(Settings.FollowActiveProfile),
+                                          nameof(Settings.SyncEnvironmentProfile) })
+        {
+            PropertyInfo p = Settings.Fields.First(f => f.Name == shared);
             var live = new Settings();
-            p.SetValue(live, moved);
-            Settings snapshot = live.Clone();
-            p.SetValue(snapshot, edited);          // whatever the page did to it, edit or not
-
-            Settings applied = snapshot.Clone();
-            applied.CarryTrayOwnedFrom(live);
-
-            object? expected = trayOwned ? moved : edited;
-            Check($"{p.Name}: {what}", Json(p.GetValue(applied)) == Json(expected),
-                  $"{Json(p.GetValue(applied))} vs {Json(expected)}");
+            p.SetValue(live, true);                       // the menu turned it on
+            var opened = new Settings();                  // the window was built before that: false
+            Settings applied = opened.Clone();
+            applied.CarryUnchangedFrom(live, opened.Clone());
+            Check($"{shared}: flipped in the menu, Save in an open window does not undo it",
+                  Equals(p.GetValue(applied), true),
+                  $"got {Json(p.GetValue(applied))} — T171's environment write reconciles off this");
         }
     }
 

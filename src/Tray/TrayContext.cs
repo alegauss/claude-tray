@@ -493,7 +493,7 @@ internal sealed class TrayContext : ApplicationContext
         => _data is { Error: { } e, Unauthorized: false } ? e : null;
 
     // Persist the edited settings and apply the new values immediately.
-    private void ApplySettings(Settings updated)
+    private void ApplySettings(Settings updated, Settings opened)
     {
         // Read what the swap below will overwrite, while it is still the live model: because a language
         // change only takes effect after a restart, since localized strings resolve when a window is
@@ -502,17 +502,12 @@ internal sealed class TrayContext : ApplicationContext
 
         // Take the edited model whole rather than field by field: the window handed back a total copy
         // of what it was given, so anything it doesn't edit is already the live value, and no field can
-        // be forgotten here and silently reset (T141). The exceptions are the fields the *tray* owns —
-        // the icon's chosen window and its profile, and the bookkeeping for the environment variable —
-        // which have no control on any page, so a value the menu moved while the window sat open must
-        // not be undone by that window's older snapshot.
-        //
-        // Which fields those are is declared on the fields themselves ([TrayOwned]) and carried by the
-        // declaration, because the four lines that used to stand here were a list with no owner: it lived
-        // in this file while the fields lived in `Settings`, and a field missing from it was a silent
-        // revert on every Save — T126 and T155 both (T162).
+        // be forgotten here and silently reset (T141). What that copy cannot know is which fields the
+        // *menu* moved while it sat open — so the merge asks, per field, which write is newer: anything
+        // the page left at the value it opened with takes the live one (T229, replacing T162's ownership
+        // split, which two fields with a control on both surfaces did not fit).
         Settings applied = updated.Clone();
-        applied.CarryTrayOwnedFrom(_settings);
+        applied.CarryUnchangedFrom(_settings, opened);
         _settings = applied;
 
         // What is left are the genuine side effects — the things a copy cannot do on its own.

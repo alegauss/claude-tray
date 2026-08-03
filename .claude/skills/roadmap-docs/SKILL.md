@@ -91,7 +91,7 @@ next*.
 | Tray icon, tooltip, the poll loop, the projection | **A** | `IconRenderer`, `TrayContext`, `BurnTracker` |
 | What the icon and the menu are allowed to show | **H** | the tray display options |
 | Packaging, installer, self-update, CI | **B** | `build\`, `.github\workflows\`, `Updater` |
-| The Settings page, and what a control claims to change | **C** | `SettingsPage.*`, `Settings`, `[TrayOwned]` |
+| The Settings page, and what a control claims to change | **C** | `SettingsPage.*`, `Settings`, `CarryUnchangedFrom` |
 | Auth, the API, and what a quota header means | **D** | `ApiClient`, `HeaderProbe`, `QuotaState`, extra usage |
 | Notifications and toasts | **E** | `ToastWindow`, `ContextNudges` |
 | The Statistics page and the pace report | **F** | `StatisticsPage.*`, `UsageReport`, `UsageHistory` |

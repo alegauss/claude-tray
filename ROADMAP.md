@@ -78,8 +78,6 @@
 
 ## Block S — Settings round-trip
 
-- 📋 **T229** (deps: —) **A toggle flipped in the tray menu is undone by pressing Save in a window that was already open** — Two fields the menu writes have a control on the Claude Code page and no [TrayOwned] marker, so the page hands back the snapshot it was built with and the newer value loses. → §XXVI.1
-
 ## Block Q — Keyboard input in the windows
 
 - 📋 **T234** (deps: —) **The sentence saying how far a profile pick reaches is announced to nobody** — A ToolStripMenuItem's ToolTipText reaches no UIA property, so T171's scope line and T172's tip are invisible to a screen reader and to every check. → §XXVIII.1

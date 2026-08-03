@@ -19,7 +19,13 @@ namespace ClaudeTray;
 internal partial class SettingsPage : System.Windows.Controls.UserControl
 {
     private readonly Settings _settings;
-    private readonly Action<Settings> _onSave;
+
+    /// <summary>What this page was built from, kept untouched beside the copy it edits. Save hands both
+    /// back, because "which write is newer" is a comparison and needs the before as well as the after —
+    /// see <see cref="Settings.CarryUnchangedFrom"/> (T229).</summary>
+    private readonly Settings _opened;
+
+    private readonly Action<Settings, Settings> _onSave;
 
     /// <summary>Raised when the user discards the edits. The shell replaces this page with a new one
     /// over the live settings — see the class summary.</summary>
@@ -33,7 +39,7 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
     /// of this machine's, so the page can be screenshotted for the README and the site.</param>
     /// <param name="revealIdentity">Preview-only: open with the holder and the paths already revealed.
     /// Safe to publish only together with <paramref name="sampleProfiles"/>.</param>
-    public SettingsPage(Settings current, Action<Settings> onSave, string? initialPage = null,
+    public SettingsPage(Settings current, Action<Settings, Settings> onSave, string? initialPage = null,
                           List<ClaudeInfo>? sampleProfiles = null, bool revealIdentity = false)
     {
         _onSave = onSave;
@@ -47,6 +53,7 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
         // list is deep-copied by the same round-trip, so the editor mutating rows in place can't reach
         // the caller's.
         _settings = current.Clone();
+        _opened = current.Clone();   // a second, never-edited copy: the "before" of the comparison
 
         InitializeComponent();
 
@@ -250,7 +257,7 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
                 L.T("dialog.appName"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
-        _onSave(_settings);
+        _onSave(_settings, _opened);
         ConfirmSaved();
     }
 

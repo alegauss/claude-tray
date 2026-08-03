@@ -295,25 +295,6 @@ rather than at the code that built it.
 The tray menu and the Settings page now both write fields the page believes it owns, and only one of
 the two knows the other exists.
 
-### XXVI.1 A field two surfaces write needs to say which write is newer
-
-T162 settled that the tray owns some fields and the page owns the rest, and marked the tray's with
-an attribute so no hand-written list could go stale. That split assumed each field has exactly one
-writer. Two do not.
-
-FollowActiveProfile has had a menu toggle since T126 and a page control since it shipped;
-SyncEnvironmentProfile joined it in T171, which put the machine-wide switch in the Profile submenu
-on purpose. Neither is TrayOwned, and neither can be: the page has a real control for each, and
-CarryTrayOwnedFrom would overwrite an edit the user just made there.
-
-So the revert is live in both directions and needs no unusual sequence - open Settings, flip the
-toggle in the menu, press Save. Measured against T171's switch this also silently un-writes the
-environment variable, because the reconcile runs off the value Save restored.
-
-The shape wanted is a decision about which write is newer, not another list. A per-field stamp, or
-the page reading the live model for exactly the fields it shares, are both plausible; what must not
-happen is a third category of ownership, since two were already one too many to keep straight.
-
 ## XXVIII Input, focus, and being readable (Block Q)
 
 What a control ANNOUNCES, as against what it draws. A picture cannot see an accessible name and

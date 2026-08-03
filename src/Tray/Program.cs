@@ -341,7 +341,7 @@ internal static class Program
             _ = new System.Windows.Application { ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown };
             WpfInputBridge.Install();
             var trayHosted = new PageWindow(
-                new SettingsPage(Settings.Load(), _ => { }, PageArg(args),
+                new SettingsPage(Settings.Load(), (_, _) => { }, PageArg(args),
                     SampleProfiles(args), args.Contains("--reveal")),
                 L.T("settings.title"), 880, 600, 760, 560);
             trayHosted.Show();
@@ -366,7 +366,7 @@ internal static class Program
                 Util7d: 0.38, Reset7d: mainNow + 3 * 86400);
             Settings mainSettings = Settings.Load();
             var shell = new MainWindow(mainSample, mainSettings.ShowRemaining, null,
-                () => mainSettings, _ => { });
+                () => mainSettings, (_, _) => { });
             shell.Statistics.SetProfiles(ClaudeAccount.Discover(mainSettings.Profiles));
             shell.Navigate(args.Length >= 2 ? args[1] : MainWindow.DestStatistics);
             shell.Show();
@@ -384,7 +384,7 @@ internal static class Program
         {
             if (!TrySampleProfiles(args, out List<ClaudeInfo>? settingsSample)) return;
             var previewApp = new System.Windows.Application();
-            var page = new SettingsPage(Settings.Load(), _ => { }, PageArg(args),
+            var page = new SettingsPage(Settings.Load(), (_, _) => { }, PageArg(args),
                 settingsSample, args.Contains("--reveal"));
             previewApp.Run(new PageWindow(page, L.T("settings.title"), 880, 600, 760, 560));
             return;
@@ -441,7 +441,7 @@ internal static class Program
             {
                 ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
             };
-            var settingsPage = new SettingsPage(Settings.Load(), _ => { }, page,
+            var settingsPage = new SettingsPage(Settings.Load(), (_, _) => { }, page,
                 captureSample, args.Contains("--reveal"));
             var win = new PageWindow(settingsPage, L.T("settings.title"), 880, 600, 760, 560)
             {
