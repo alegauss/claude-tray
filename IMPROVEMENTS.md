@@ -546,3 +546,51 @@ prints.
 
 The last of those is the one with reach: it turns the "write it down in `dev-flags`" convention into
 something a build can check, which is the only version of that convention that survives.
+
+### XX.12 The most-seen surface is the one nothing can photograph
+
+Every published picture in `docs/` comes from a flag: `--capture-stats`, `--capture-settings`,
+`--capture-toast`, `--render`, `--social`. One does not. `docs/tooltip.png` is a hand-taken
+photograph of the real Windows notification area — this machine's taskbar, this machine's icons —
+and it is the README's hero image, second only to the icon itself.
+
+So it drifts silently. T213 changed the last line of the tooltip in five languages and that picture
+still says `Status: allowed`, a form the app no longer produces. Nothing failed, because nothing
+looks.
+
+The obstacle is real and worth naming, because it is why this was never built. A tray tooltip is not
+a window: it is `NOTIFYICONDATA.szTip`, drawn by the shell, and it appears only when a pointer rests
+over an icon that may itself be inside the overflow flyout. There is nothing to `SaveSnapshot`. Two
+routes exist, and they answer different questions. A **read-out** — print the composed text for a
+synthetic reading and a given metric — is cheap, needs no screen, and is what a check should assert;
+it does not produce a picture. A **render** — draw the same text into the same rounded card the
+shell draws — produces a publishable picture that is honest about the words while admitting it is a
+mock-up of the chrome.
+
+The read-out is the one that pays for itself: it makes the tooltip's own composition reviewable at
+all, which §XX.13 is about, and it makes the picture's staleness detectable by comparison instead of
+by someone remembering. Take it first, and take the render only if the README still wants a
+photograph.
+
+### XX.13 The tooltip's own composition is decided where no check can see it
+
+`BuildTooltip` is 80 lines of real decisions on an instance method: which lines are added and in what order,
+whether the profile label is present, which of three at-limit forms the verdict takes, and — the one that
+actually rations — a 127-character budget that admits the projection in its **full** form, else its
+**compact** form, else not at all, with a `Truncate(…, 127)` behind it as a backstop.
+
+None of it is reachable by `--selftest`, because a `TrayContext` cannot be constructed headlessly.
+That is the same shape as T182 (a three-state verdict living on the tray until `QuotaStates` was
+extracted), T189 (the chart's series-building) and T168 (the method note's paragraphs) — and the fix
+is the same one: the composition becomes a static over a reading, and the assertions follow.
+
+T213 is why this is filed now rather than noted. It lengthened the status line by roughly eight
+characters in five languages, which pushes the projection from its full form to its compact one at
+some threshold nobody can name, in some languages before others. The German-style worst case does
+not exist here, but French and Portuguese are the longest of the five and neither was measured. A
+budget that decides what a user sees, spent by a task that could not check what it spent, is the
+definition of a rule held up by whoever next hovers an icon.
+
+Assert the interesting cases once extracted: that the profile label survives when the projection
+cannot, that the compact form is chosen rather than the line dropped whenever it fits, that no
+composed tooltip in any of the five languages exceeds 127 characters before `Truncate` sees it.
