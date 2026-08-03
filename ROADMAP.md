@@ -79,8 +79,6 @@
 
 ## Block I — Context Load Inspector
 
-- 📋 **T261** (deps: —) **A scan that found nothing to scan reports an error and exits 0** — Pointing --context --root at a directory that does not exist prints an error line and returns success, so a script driving it reads the run as a scan that simply found no projects. → §XXIX.1
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

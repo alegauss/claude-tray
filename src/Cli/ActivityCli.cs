@@ -36,7 +36,7 @@ internal static class ActivityCli
         }
 
         ActivityProfile prof = ActivityProfile.Load(nowUtc, flags.Contains("--refresh"), root);
-        if (prof.Error != null) { Console.WriteLine("error: " + prof.Error); return; }
+        if (ReadOut.Failed(prof.Error)) return;
 
         string source = prof.FromCache
             ? $"cached, built {prof.ComputedUtc.ToLocalTime():yyyy-MM-dd HH:mm}"

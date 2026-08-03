@@ -176,7 +176,7 @@ internal static class Program
         if (args.Length >= 1 && args[0] == "--insights")
         {
             var d = UsageInsights.Compute(DateTimeOffset.UtcNow.UtcDateTime);
-            if (d.Error != null) { Console.WriteLine("error: " + d.Error); return; }
+            if (ReadOut.Failed(d.Error)) return;
             Console.WriteLine($"24h: {d.Requests} reqs  {d.Sessions} sessions");
             Console.WriteLine($"subagents: {d.SubagentPct:P0}   >150k ctx: {d.HeavyContextPct:P0}");
             foreach (var (model, pct) in d.ByModel)

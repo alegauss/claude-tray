@@ -168,6 +168,9 @@ internal static class SelfTestCli
         Section("map — every source file has a row, and every row a file (Block AJ)");
         FileMap();
 
+        Section("read-out — a scan that could not start exits 1 (Block I)");
+        ReadOutExit();
+
         Section("lang — a code this build does not ship is refused, not defaulted (Block AI)");
         LangOverride();
 
@@ -2094,6 +2097,45 @@ internal static class SelfTestCli
                               .OrderBy(f => f, StringComparer.Ordinal).ToArray();
         Check("and every folder it names is still there", gone.Length == 0,
               $"{string.Join(", ", gone)} — a placement rule for a folder that no longer exists");
+    }
+
+    /// <summary>
+    /// T261. A read-out that could not start says so <em>and</em> exits 1 — it used to say so and exit 0,
+    /// which a script driving it reads as a scan that simply found nothing.
+    ///
+    /// <para>The interesting half is the boundary, and it is asserted here because it is what makes the
+    /// rule safe to apply at all: a partial answer must NOT become a refusal. Measured on the types
+    /// themselves — <see cref="ContextScan.Error"/> is only ever set on a scan that returned immediately,
+    /// while <see cref="UsageEvidence"/> carries <c>Complete</c> beside its <c>Error</c> precisely because
+    /// it can finish with holes, and <c>ContextCli</c> prints that one as a note and carries on.</para>
+    ///
+    /// <para>The exit code is restored afterwards: this runs inside a suite whose own exit code is the
+    /// thing being reported, and a check that fails the run by demonstrating a failure is a check that
+    /// cannot pass.</para>
+    /// </summary>
+    private static void ReadOutExit()
+    {
+        int before = Environment.ExitCode;
+        try
+        {
+            Environment.ExitCode = 0;
+            Check("a read-out with nothing wrong neither prints nor marks the run",
+                  !ReadOut.Failed(null) && Environment.ExitCode == 0);
+
+            Environment.ExitCode = 0;
+            bool said = ReadOut.Failed("not found: D:\\nope");
+            Check("and one that could not start says so and exits 1",
+                  said && Environment.ExitCode == 1, $"said={said} code={Environment.ExitCode}");
+        }
+        finally { Environment.ExitCode = before; }
+
+        // The boundary, on the types rather than on a promise about them. A scan carries no way to be
+        // partial, so treating its Error as a refusal is total; evidence does, so its Error is a note.
+        Check("a scan has no partial form, so its error is always a refusal",
+              typeof(ContextScan).GetProperty("Complete") is null
+              && new ContextScan { Error = "x" }.Projects.Count == 0);
+        Check("and evidence does have one, which is why its error stays a note",
+              typeof(UsageEvidence).GetProperty("Complete") is not null);
     }
 
     /// <summary>

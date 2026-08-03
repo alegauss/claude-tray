@@ -52,7 +52,7 @@ internal static class ContextCli
             UseCache = !noCache && root == null,   // a fixture scan must never poison the real cache
             ClaudeRoot = root ?? ContextScanner.DefaultClaudeRoot,
         });
-        if (scan.Error != null) { Console.WriteLine("error: " + scan.Error); return; }
+        if (ReadOut.Failed(scan.Error)) return;
 
         Console.WriteLine($"Context load — {scan.Projects.Count} projects, {scan.FilesWalked} files, " +
                           $"{scan.ElapsedMs:0}ms {(scan.FromCache ? "(cached)" : "(fresh scan)")}");
@@ -189,7 +189,7 @@ internal static class ContextCli
         DateTime now = DateTimeOffset.UtcNow.UtcDateTime;
 
         ContextScan scan = ContextScanner.Scan(now);
-        if (scan.Error != null) { Console.WriteLine("error: " + scan.Error); return; }
+        if (ReadOut.Failed(scan.Error)) return;
 
         UsageEvidence evidence = ContextUsage.Compute(now);
         List<Finding> findings = ContextRules.Evaluate(scan, now, evidence);

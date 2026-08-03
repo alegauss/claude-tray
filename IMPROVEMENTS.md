@@ -260,26 +260,3 @@ assistive technology nothing gets filed.
 
 The headless side of the inspector: what a script driving it can tell about a run, as opposed to
 what a person reading the output can.
-
-### XXIX.1 The read-out that says error and returns success
-
-Measured: `--context --root D:\nope-does-not-exist` printed `error: not found:
-D:\nope-does-not-exist` and exited **0**. The scanner is right - `ContextScan.Error` is set and the
-read-out prints it - and the process then tells its caller the run succeeded.
-
-Every other refusal on this surface exits 1 and was made to: an unknown preview variant (T186), an
-unknown toast (T198), a `--capture-toast` missing its output path (T198), `--probe --live
---recorded` (T226, asserted by T245). This is the same class of answer with the opposite exit code,
-and the difference is that the others refuse *arguments* while this one fails at *work* - which is
-exactly the case a script cannot see by reading the output, because the output is what it was going
-to print anyway.
-
-`--root` exists for the fixture loop, so the caller is usually a script: `--context --root
-<fixture>` after building one, and a fixture path that moved reads as a project list that is simply
-empty. The same is true of `ContextUsage`'s own not-found for a missing `projects` directory.
-
-What has to be decided is how wide the rule goes. Every read-out here can end with `Error` set, and
-treating any of them as exit 1 is one line and possibly too blunt: a scan that walked most of a tree
-and hit one unreadable directory is a partial answer rather than a refusal, and `SafeWalk` exists
-precisely so that case keeps going. The distinction to look for is between a scan that could not
-start and one that finished with holes.
