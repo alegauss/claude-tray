@@ -63,6 +63,10 @@
 
 ## Block AI — Verification — the checks that prove a change
 
+- 📋 **T256** (deps: —) **A check that runs on every push fails for reasons that are not the code** — Keyboard failed three times running at three different points, then passed twice unchanged, and the build before the change under test passed too - so the run reported the desktop, not the diff. → §XX.22
+- 📋 **T257** (deps: —) **The sweep that would catch a clipped card is a loop somebody types** — T228 refuses a capture that does not fit, and the only thing asking all eight cards in all five languages is a person running the flag forty times - which is how the French caption reached the repo. → §XX.23
+- 📋 **T258** (deps: —) **A check that fails part-way leaves its tray running, and the next build cannot write the exe** — Two trays the Menu case had launched were still alive after it failed, so the next dotnet build died on MSB3027 naming both pids - and the run after that measured the previous binary. → §XX.24
+
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization

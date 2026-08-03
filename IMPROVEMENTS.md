@@ -216,6 +216,75 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
+### XX.22 The check that reported the desktop
+
+Measured while verifying T229, and isolated rather than assumed: the same case failed at
+`DirectoryBox not found after navigating to the Claude Code page`, then at `SetFocus` throwing
+`InvalidOperationException`, then at the first point again. A `git stash` of the change under test
+made it pass, and putting the change back kept it passing. So the run was reporting the state of the
+desktop, not the state of the code.
+
+That matters more here than in a script somebody runs by hand: `check.yml` runs this case on every
+push (T194), and the whole argument for it is that synthesised input reaches a hosted runner. A
+check that fails for reasons unrelated to the diff is one people learn to re-run, and re-running is
+how a real failure gets waved through.
+
+The mechanism is not in doubt in kind - UIA drives a foreground window, `SetFocus` is refused to a
+process that does not own the foreground, and this machine had an editor and a browser competing.
+What is not measured is whether CI sees it at all, which is the first thing to find out: a hosted
+runner has no competing foreground, so the honest possibilities are that this is a developer-machine
+condition worth naming in the script's own header and failing differently for, or that CI has been
+re-running quietly.
+
+What must not happen is a blanket retry. A check that passes on the second attempt cannot tell a
+flaky read from a broken build, which is the failure this file keeps naming.
+
+### XX.23 Forty questions, and nobody asking them
+
+T228 gave `--capture-toast` a refusal, and it earned it on its first run: the French extra-usage
+caption sat 7.6px under the card's bottom edge, clipped away by the inner grid, so the PNG showed
+nothing wrong and the flag exited 0. Every card grows for its own wording now.
+
+What is missing is the thing that asks. The refusal fires only where a capture is taken, and a
+capture is taken when somebody wants a picture — so the state that survived for a release is the
+state nobody was photographing. Eight cards in five languages is forty questions, and today the only
+asker is a shell loop typed by hand.
+
+`--selftest` cannot be it as things stand. The language is fixed for the process (`L.Apply` runs
+once, and `{local:Loc}` resolves at parse time), so five languages is five processes, and the fit is
+a property of a laid-out window rather than of a value a headless check can compute.
+
+Two shapes to weigh, and the cost is the deciding part. A flag that builds every card in the current
+language and reports overflow, run once per language, is five processes and no settle timer — layout
+is done at `Loaded`, and the settle wait exists for the animation a capture photographs, not for the
+measurement. Driving the existing capture forty times is ~70s of process starts for the same answer.
+
+Whichever it is, it has to be reachable from `check.yml` without a screen, or it is a second thing
+nobody runs.
+
+### XX.24 The tray a failed case left behind
+
+Observed while working T234: `dotnet build` failed with `MSB3027 … apphost.exe -> ClaudeTray.exe …
+locked by: ClaudeTray (29700), ClaudeTray (49892)`, both of them trays the Menu case had started and
+not stopped when it returned early.
+
+The lock itself is a nuisance. What makes it a check problem is the run after it. A build that fails
+this way leaves the previous exe in place, so the next command runs the **old binary** and reports
+on code that is not in the tree — which is exactly the reading T236 refuses for `-UseRunning`,
+arrived at by accident instead of by a flag. It happened here: a dump taken to decide a design was
+taken from the build before the change, and only the pids in the error said so.
+
+The script already knows how to be careful about this — `Start-CheckTray` tags what it launches
+(T240) and the store check proves the trays it owns wrote nothing (T239) — so the ownership is
+recorded and only the stopping is missing on the paths that return early. A `finally` per case, over
+the processes that case started, is the shape.
+
+Worth deciding at the same time: whether a build whose output is locked should say so as itself
+rather than as ten retries of a copy. The neighbouring sighting is unmeasured and is not this —
+twice in one session, `BG1002 … ToastWindow.baml cannot be found` on the first build after an edit,
+passing on retry, cause unknown — but if the answer here is a guard in front of the build, it is the
+same one.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
