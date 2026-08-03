@@ -254,6 +254,7 @@
 - **T181** — A reading from a real account settles it: overage sends the same triple as 5h and 7d — utilization, reset, status — so the figure is a window's own utilization, and its reset falls on a calendar-month boundary while the other two roll. The probe now keys on every categorical header rather than 5h's status alone.
 - **T208** — The overage window's own status reaches code: a stated 'allowed' is a third reason the poll never idles, while the display goes on inferring — one reading cannot tell a permission apart from a value every response carries, so only the direction that costs an API call may believe it.
 - **T209** — Every surface that shows the extra figure names what it is a percentage of — your extra-usage allowance, a window with its own limit and its own reset — in all five languages, and the chart hover no longer points at a method-note paragraph that was never written. The weekly chart past the quota is published rather than described.
+- **T212** — The live reading is kept: --probe records what it fetched, against the profile whose log it printed and under that profile's key, so a reading survives the console scrolling — and an empty log now says nothing has polled this profile rather than blaming a change that has not come.
 
 ## Block AD — The window can be read now, and what that turned up
 

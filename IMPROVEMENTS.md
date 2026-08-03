@@ -410,27 +410,6 @@ What is cheap and already done: the probe keys on both — neither ends in `-uti
 so a change in either writes a line without a name being added anywhere. Nothing to build for the
 measurement; this task begins when a log has something to read.
 
-### XVIII.11 The read-out takes the reading and throws it away
-
-`--probe` prints the recorded log, then makes one live call and prints those headers in full. The
-live call is a real reading of a real account, and `HeaderProbe.Record` is never invoked on it — the
-only two call sites are in `TrayContext`'s two poll paths. So the flag whose whole purpose is
-capturing what the API said discards what it just captured.
-
-This was found by running it: the first `--probe` on this machine printed fourteen headers verbatim
-and reported `0 recorded reading(s)` in the same output. That reading is what settled T181, and it
-survives only because a human copied it into a commit.
-
-The empty-log line makes it worse by explaining it away: *"nothing yet: the tray records a reading
-when the header shape first moves"*. That is not the rule — the first reading is always kept,
-deliberately, as the baseline. An empty log therefore means the tray has not polled at all since the
-instrument shipped, which is a different fact and the actionable one. As written it tells the reader
-to keep waiting for a change that already happened.
-
-Both are one fix: record the live reading under the profile it was taken from, and say what an empty
-log actually means. `--live` skips reading the log, not writing to it — a flag asking for the
-freshest reading is the last one that should drop it.
-
 ### XVIII.12 The tooltip's status line is about a window nobody chose
 
 Every line of the tooltip is scoped to `_metric`, the window the user picked from the menu: the two

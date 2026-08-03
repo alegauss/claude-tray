@@ -109,10 +109,12 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   --check also asks `claude auth status --json` per profile. Also
                                       #   prints each profile's last turn and where auto-follow points.
 --probe [--live] [--all]              # the rate-limit headers VERBATIM: the recorded capture log first,
-                                      #   then one live call. --live skips the log, --all reads every
-                                      #   profile's. The instrument for T181 — what the overage
-                                      #   percentage denominates — which only an account in overage can
-                                      #   answer. Quota metadata only: no message content, no token.
+                                      #   then one live call — which is itself recorded (T212), against
+                                      #   the monitored profile and filed under its key. --live skips
+                                      #   *reading* the log, not writing to it; --all reads every
+                                      #   profile's. The instrument for T181's other half — what 100% of
+                                      #   the overage window amounts to, which only an account in overage
+                                      #   can answer. Quota metadata only: no message content, no token.
 --insights                            # the 24h usage breakdown: requests, sessions, per-model share
 --tail                                # every assistant turn as it lands, with what the sweep cost
 --live                                # the rolling tok/s with its per-project sparklines

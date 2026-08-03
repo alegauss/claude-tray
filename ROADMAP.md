@@ -46,7 +46,6 @@
 
 - 💭 **T210** (deps: —) **The API names which window is binding and three files work it out again** — Three of them are read by nothing, and what reading representative-claim would unlock needs a second value first: five_hour from one account is a mapping whose default arm nobody has seen. → §XVIII.9
 - 💭 **T211** (deps: —) **Nothing here knows the API is offering a fallback** — unified-fallback reads available and unified-fallback-percentage 0.5 on every response, and what either governs is unmeasured, so no string can say what happens at the limit. → §XVIII.10
-- 📋 **T212** (deps: —) **The header read-out prints a real reading and records none of it** — Record is called from the two poll paths only, so --probe discards the response it just fetched, and its empty-log line blames a change that has not come rather than a tray that never polled. → §XVIII.11
 - 📋 **T213** (deps: —) **The tooltip's status line reports one window whatever window it is about** — Every other line is scoped to the metric the user picked, and this one is filled from 5h's status under a label that names no window, so watching the week reports the session. → §XVIII.12
 
 ## Block AB — What Block Z's own work left behind
