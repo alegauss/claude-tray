@@ -99,6 +99,9 @@ internal static class SelfTestCli
         Section("names — one automation id, one control (Block AG)");
         AutomationIds();
 
+        Section("note — which paragraphs the method note yields (Block F)");
+        MethodNote();
+
         Section("format — one number convention per window (Block F)");
         Formatting();
 
@@ -1175,6 +1178,122 @@ internal static class SelfTestCli
         Check($"every id the interaction check drives still exists ({driven.Length})", gone.Length == 0,
               gone.Length == 0 ? "" : $"{gone.Length} gone — {string.Join(", ", gone)}: renamed without " +
                                       "updating scripts\\Check-Interaction.ps1, whose lookups are strings");
+    }
+
+    // ---------------------------------------------------------------- Block F: what the note says
+
+    /// <summary>
+    /// T168: which paragraphs the method note yields, over the four inputs that decide it. The rules are
+    /// Block Z's, most of them written in one week, and until this task the only verification any of them
+    /// ever had was that somebody looked at two screenshots.
+    ///
+    /// <para>The T163 rule is pinned hardest on purpose. Getting it wrong produces a sentence that is
+    /// <em>plausible</em> — "shaping it takes about 3 weeks of local history and there are 2.1 so far" —
+    /// told to somebody whose projection is unshaped because they are already at the limit. Nothing on
+    /// screen would look broken, which is exactly the class of defect a screenshot cannot catch.</para>
+    /// </summary>
+    private static void MethodNote()
+    {
+        static ActivityProfile Profile(double coverageWeeks, int excluded = 0,
+                                       double measuredWeeks = 0, int measuredExcluded = 0, double share = 0)
+            => new()
+            {
+                CoverageWeeks = coverageWeeks, ExcludedWeeks = excluded,
+                MeasuredWeeks = measuredWeeks, MeasuredExcludedWeeks = measuredExcluded, MeasuredShare = share,
+            };
+
+        static PaceReport Report(ActivityShape? shape, ActivityProfile? activity, bool hasWindow = true)
+        {
+            var r = new PaceReport { Activity = activity };
+            r.Weekly.HasWindow = hasWindow;
+            r.Weekly.Shape = shape;
+            return r;
+        }
+
+        static string[] Keys(PaceReport r, bool demoThin = false)
+            => StatisticsPage.MethodNoteParts(r, demoThin).Select(p => p.Key).ToArray();
+
+        // The two paragraphs that are not a decision: the report is always described, and the live strip's
+        // blind spot is always disclosed, whatever the middle turns out to be.
+        var cases = new (string What, PaceReport R, bool Thin)[]
+        {
+            ("nothing measured", Report(null, null, hasWindow: false), false),
+            ("no shape, confident", Report(null, Profile(5)), false),
+            ("no shape, thin history", Report(null, Profile(1)), false),
+            ("shaped", Report(new ActivityShape { EffectiveWeeks = 4.7 }, Profile(4.7)), false),
+            ("shaped and measured", Report(new ActivityShape { EffectiveWeeks = 4.7 },
+                                           Profile(4.7, measuredWeeks: 4.7, share: 0.8)), false),
+            ("the thin preview", Report(new ActivityShape { EffectiveWeeks = 4.7 }, Profile(4.7)), true),
+        };
+        string[] misframed = cases
+            .Where(c => Keys(c.R, c.Thin) is not [ "stats.methodNote", .., "stats.methodNote.live" ])
+            .Select(c => $"{c.What} → {string.Join(" + ", Keys(c.R, c.Thin))}").ToArray();
+        Check($"the note always opens on the report and closes on the live strip ({cases.Length} shapes)",
+              misframed.Length == 0, string.Join("; ", misframed));
+
+        // Mutually exclusive by construction, and the check says so rather than the comment.
+        string[] both = cases.Select(c => Keys(c.R, c.Thin))
+            .Where(k => k.Contains("stats.methodNote.thin") &&
+                        (k.Contains("stats.methodNote.shape") || k.Contains("stats.methodNote.shapeMeasured")))
+            .Select(k => string.Join(" + ", k)).ToArray();
+        Check("shaped and thin never appear together", both.Length == 0, string.Join("; ", both));
+
+        // T163, the one that produces a plausible lie. `ActivityShape.Build` returns null for three
+        // different reasons and only one of them is "not enough history": at the limit and with nothing
+        // spent it also declines, and telling either of those to keep the tray running another week is
+        // advice about a problem they do not have.
+        Check("a confident profile with no shape is not told its history is thin",
+              !Keys(Report(null, Profile(5))).Contains("stats.methodNote.thin"),
+              string.Join(" + ", Keys(Report(null, Profile(5)))));
+        Check("and neither is a window that has no reading at all",
+              !Keys(Report(null, Profile(1), hasWindow: false)).Contains("stats.methodNote.thin"),
+              string.Join(" + ", Keys(Report(null, Profile(1), hasWindow: false))));
+        Check("an unconfident profile with a live window is",
+              Keys(Report(null, Profile(1))).Contains("stats.methodNote.thin"),
+              string.Join(" + ", Keys(Report(null, Profile(1)))));
+
+        // Which of the two shaped paragraphs, on the half-the-grid line T93 drew.
+        Check("past half the grid the note credits the measurement, not the transcripts",
+              Keys(Report(new ActivityShape(), Profile(4, measuredWeeks: 4, share: 0.5)))
+                  .Contains("stats.methodNote.shapeMeasured"));
+        Check("and just under it, the transcripts",
+              Keys(Report(new ActivityShape(), Profile(4, measuredWeeks: 4, share: 0.49)))
+                  .Contains("stats.methodNote.shape"));
+
+        // T159: the away clause is a nested fragment, so its *absence* is an empty argument rather than a
+        // "(0 excluded)" nobody reads. Both halves are asserted — a clause that never appears would pass
+        // half of this on its own.
+        static object? Away(PaceReport r) =>
+            StatisticsPage.MethodNoteParts(r, false)
+                          .First(p => p.Key.StartsWith("stats.methodNote.shape", StringComparison.Ordinal))
+                          .Args.LastOrDefault();
+
+        Check("no week dropped, no away clause",
+              Away(Report(new ActivityShape { EffectiveWeeks = 4.7, ExcludedWeeks = 0 }, Profile(4.7))) is "",
+              $"{Away(Report(new ActivityShape { EffectiveWeeks = 4.7 }, Profile(4.7)))}");
+        Check("one week dropped says so in the singular",
+              Away(Report(new ActivityShape { EffectiveWeeks = 4.7, ExcludedWeeks = 1 }, Profile(4.7)))
+                  is NoteFragment { Key: "stats.methodNote.away.one", Args.Length: 0 });
+        Check("two says so in the plural, with the count",
+              Away(Report(new ActivityShape { EffectiveWeeks = 4.7, ExcludedWeeks = 2 }, Profile(4.7)))
+                  is NoteFragment { Key: "stats.methodNote.away.many", Args: ["2"] });
+
+        // And the numbers in it are the *effective* weeks, through `Num` (T167): the span minus the weeks
+        // away, because that is the figure the confidence gate acted on. A note that quotes the span
+        // overstates the evidence every time a week was dropped.
+        NoteFragment shapePart = StatisticsPage
+            .MethodNoteParts(Report(new ActivityShape { EffectiveWeeks = 4.7, ExcludedWeeks = 2 }, Profile(6.7)), false)
+            .First(p => p.Key == "stats.methodNote.shape");
+        Check("the shaped paragraph quotes the effective weeks, not the span",
+              shapePart.Args is ["4.7", _], string.Join(", ", shapePart.Args));
+
+        // The thin preview poses as a machine short of the bar. It used to read "4.7 of 3" — a sentence
+        // the string is never shown with — because the preview took the real machine's own figure.
+        NoteFragment thinPart = StatisticsPage
+            .MethodNoteParts(Report(new ActivityShape { EffectiveWeeks = 4.7 }, Profile(4.7)), demoThin: true)
+            .First(p => p.Key == "stats.methodNote.thin");
+        Check("the thin preview is short of its own bar",
+              thinPart.Args is ["2.1", "3"], string.Join(" of ", thinPart.Args));
     }
 
     // ---------------------------------------------------------------- Block F: one number convention

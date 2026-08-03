@@ -437,64 +437,21 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         Populate(r.Weekly, ChipW, ChipTextW, UsedW, IdealW, ResetW, ProjectionW, ChartW, TpsHeadW, TpsLegendW);
         PopulateThroughputTab();
 
-        // The weekly projection changes meaning when it follows the activity shape, so the method note
-        // has to say so — including the part that can't be measured locally: usage from another
-        // machine or from claude.ai spends the same quota while leaving no transcript here.
-        //
-        // That disclaimer stops being true to the degree the measured grid takes over (T93), so past
-        // half the grid the note says where the shape actually came from instead. A stale disclaimer
-        // is its own kind of wrong: it would keep apologising for a blind spot the projection no
-        // longer has.
-        //
-        // The live strip has the same blind spot the shaped projection discloses, and it needs saying
-        // separately: a rate built from local transcripts cannot see another machine or claude.ai, so
-        // an empty strip is "no local turn landed", never proof that nothing is running.
-        // Both week figures in the note are the *effective* weeks — the span minus the weeks the grid
-        // dropped as time away — because that is the number the confidence gate acted on (T159). Where a
-        // week was dropped the note says so, and where none was it says nothing: a parenthetical that
-        // always reads "(0 excluded)" trains people to stop reading the note.
-        //
-        // The straight-line case says which line it is and why (T163). The shaped paragraph explains
-        // itself and the fallback said nothing at all, so the one reading a user could act on — this
-        // sharpens by itself, it is weeks and not a setting — was the one never made. It is stated *here*,
-        // in a note behind a deliberate click, and not on the chart or in a notification: a permanent
-        // caveat beside the line is the second nagging channel the T87 non-goal already refused. Only when
-        // the shape was declined for **thinness** — `Build` also returns null at the limit or with nothing
-        // spent, and "keep the tray running another week" would be a lie about either.
+        // Which paragraphs the note yields is a real decision over four inputs, and it lives in
+        // `MethodNoteParts` where `--selftest` can call it (T168). What is left here is the rendering:
+        // `L.T` and a space between the paragraphs, and nothing that could be wrong on screen without
+        // being wrong in an assertion first.
+        MethodNote.Text = string.Join(" ", MethodNoteParts(r, PreviewDemoThin).Select(Say));
+
+        // The idle bands are the *chart's* legend rather than the note's, but they turn on the same
+        // question the note's first branch asks, so it is asked the same way.
         bool shaped = r.Weekly.Shape is not null && !PreviewDemoThin;
-        ActivityProfile? activity = r.Activity;
-        bool mostlyMeasured = activity is { MeasuredShare: >= 0.5 };
-        bool thin = !shaped && r.Weekly.HasWindow &&
-                    (PreviewDemoThin || activity is { Confident: false });
-        // Under the preview the machine's own figure is past the bar, which would print "4.7 of 3" — a
-        // sentence the string is never shown with. Show a figure short of the bar instead.
-        double weeksSoFar = PreviewDemoThin
-            ? ActivityProfile.ConfidentWeeks - 0.9
-            : activity?.EffectiveWeeks ?? 0;
-        MethodNote.Text = (shaped
-            ? L.T("stats.methodNote") + " " + (mostlyMeasured
-                ? L.T("stats.methodNote.shapeMeasured", Num(activity!.MeasuredShare * 100, "0"),
-                      Num(activity.EffectiveMeasuredWeeks),
-                      WeeksAway(activity.MeasuredExcludedWeeks))
-                : L.T("stats.methodNote.shape", Num(r.Weekly.Shape!.EffectiveWeeks),
-                      WeeksAway(r.Weekly.Shape!.ExcludedWeeks)))
-            : thin
-                ? L.T("stats.methodNote") + " " + L.T("stats.methodNote.thin",
-                      Num(weeksSoFar), Num(ActivityProfile.ConfidentWeeks))
-                : L.T("stats.methodNote")) + " " + L.T("stats.methodNote.live");
         LegendIdleW.Visibility = shaped && r.Weekly.Shape!.IdleBands.Count > 0
             ? Visibility.Visible : Visibility.Collapsed;
         LegendGhostW.Visibility = r.Weekly.Ghost is not null ? Visibility.Visible : Visibility.Collapsed;
         LegendExtraW.Visibility = r.Weekly.ExtraCurve.Count >= 2 && r.Weekly.ExtraMax > 0
             ? Visibility.Visible : Visibility.Collapsed;
     }
-
-    // The "why the figure is smaller than the history" clause, or nothing when no week was dropped.
-    // Localized as a clause rather than assembled from words, because where it can sit inside the
-    // sentence is a property of the language, not of the count.
-    private static string WeeksAway(int weeks) => weeks <= 0
-        ? string.Empty
-        : L.T(weeks == 1 ? "stats.methodNote.away.one" : "stats.methodNote.away.many", Num(weeks, "0"));
 
     // The static captions/legend labels that change wording between "used" and "remaining" framing.
     private void ApplyModeLabels()

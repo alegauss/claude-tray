@@ -149,26 +149,6 @@ wrong locale, a paragraph that has quietly become twelve lines); two are in the 
 it (a decision that lives where no assertion can reach it, a skip that may never have run outside one
 machine). None was reported by anybody, and none of them would be.
 
-### §XV.2 A note whose composition no assertion can reach (T168)
-
-Which paragraphs the method note contains stopped being a formatting detail during Block Z. There are now
-four inputs (shaped or not, mostly-measured or not, thin or not, weeks excluded or not) and a real rule
-over them, most of it written *this week*: thin appears only when the shape was declined for **thinness**
-and never at the limit or with nothing spent (T163); the away clause appears only when a week was actually
-dropped (T159); shaped and thin are mutually exclusive by construction. All of it is inline in
-`Render`, in a WPF page, behind a `PaceReport` — so `--selftest` cannot see any of it, and the only
-verification these rules have ever had is that somebody looked at two screenshots.
-
-The seam is small: a pure function from `(PaceReport, ActivityProfile?)` to the ordered list of resource
-keys (plus their arguments), with `Render` doing nothing but `L.T` and concatenation. Then every rule above
-is a check of the kind T161 and T162 just added — cheap, and each one confirmed to fail first. The T163
-rule is the one worth pinning hardest, because getting it wrong produces a *plausible* sentence: telling
-somebody to keep the tray running another week when the real reason there is no shaped projection is that
-they are already at the limit.
-
-This is also where §XV.1's rule would live: a note assembled by one function is a note whose numbers go
-through one formatter.
-
 ### §XV.3 A skip that fires every time is a check that does not exist (T169)
 
 T161 gated its two `TryProbe` assertions on a precondition — every segment of the temp path spelled in the

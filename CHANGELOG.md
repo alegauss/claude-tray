@@ -536,3 +536,4 @@
 ## Block AB — What Block Z's own work left behind
 
 - **T167** — Every number the Statistics page writes now goes through one invariant formatter — the method note's five interpolations included — and `--selftest` runs each of the page's twelve formatters under two cultures, so a sixth that reads the OS is a red build rather than something to be noticed in a screenshot.
+- **T168** — Which paragraphs the method note yields is a pure function of the report now, so Block Z's rules are twelve assertions instead of two screenshots — including the T163 one whose failure is a plausible sentence: telling somebody to keep the tray running another week when their projection is unshaped because they are at the limit.
