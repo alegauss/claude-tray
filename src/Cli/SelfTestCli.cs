@@ -603,6 +603,80 @@ internal static class SelfTestCli
         // every API outage and make the file a record of the network instead of the account.
         Check("a header-less response is never recorded",
               !HeaderProbe.Record(ProfileKey, (long)Now + 180, new Dictionary<string, string>()));
+
+        Vocabulary();
+    }
+
+    /// <summary>T210. Three headers here are read by nothing because their vocabulary is one value from one
+    /// account, and "has a second value arrived?" was a question answered by eye across up to 500 readings.
+    /// The read-out only replaces that eye if it collapses a value repeated every poll, keeps a value seen
+    /// once, and refuses to summarise the figures that take a new value every poll — which would bury the
+    /// four entries it exists to show under the log's own length.</summary>
+    private static void Vocabulary()
+    {
+        const string Claim = "anthropic-ratelimit-unified-representative-claim";
+        const string Util5 = "anthropic-ratelimit-unified-5h-utilization";
+        const string Reset5 = "anthropic-ratelimit-unified-5h-reset";
+        const string Fallback = "anthropic-ratelimit-unified-fallback";
+
+        static ProbeEntry E(double t, params string[] kv)
+        {
+            var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i + 1 < kv.Length; i += 2) d[kv[i]] = kv[i + 1];
+            return new ProbeEntry(t, d);
+        }
+
+        // The state one real account is in: the same claim on every reading, while the utilization moves.
+        var oneAccount = new List<ProbeEntry>
+        {
+            E(Now,       Claim, "five_hour", Util5, "0.10", Reset5, "1785768000", Fallback, "available"),
+            E(Now + 60,  Claim, "five_hour", Util5, "0.55", Reset5, "1785768000", Fallback, "available"),
+            E(Now + 120, Claim, "five_hour", Util5, "0.97", Reset5, "1785786000", Fallback, "available"),
+        };
+        List<HeaderVocab> v = HeaderProbe.Vocabulary(oneAccount);
+
+        Check("a utilization has no vocabulary — it takes a new value every poll",
+              v.All(h => h.Name != Util5));
+        Check("nor does a reset, for the same reason", v.All(h => h.Name != Reset5));
+        Check("the categorical headers all have one", v.Count == 2, $"{v.Count}");
+
+        HeaderVocab claim = v.First(h => h.Name == Claim);
+        Check("one value repeated on every reading is one entry, not three",
+              claim.Values.Count == 1, $"{claim.Values.Count}");
+        Check("and it has not moved — the state that keeps three headers unparsed", !claim.Moved);
+        if (Check("counted over every reading it appeared in", claim.Values[0].Count == 3,
+                  $"{claim.Values[0].Count}"))
+        {
+            Check("spanning first sighting to last",
+                  Math.Abs(claim.Values[0].First - Now) < 1
+                  && Math.Abs(claim.Values[0].Last - (Now + 120)) < 1);
+            Check("with the value kept verbatim", claim.Values[0].Value == "five_hour");
+        }
+
+        // The reading the whole instrument is for: a second value, arriving once, late.
+        var moved = new List<ProbeEntry>(oneAccount) { E(Now + 180, Claim, "seven_day", Util5, "1.00") };
+        HeaderVocab after = HeaderProbe.Vocabulary(moved).First(h => h.Name == Claim);
+        Check("a second value is reported rather than averaged away",
+              after.Values.Count == 2, $"{after.Values.Count}");
+        Check("and the header says it has moved", after.Moved);
+        Check("oldest first sighting first, so the newcomer reads last",
+              after.Values[0].Value == "five_hour" && after.Values[1].Value == "seven_day");
+        Check("a value seen once is kept, not rounded off", after.Values[1].Count == 1);
+
+        // Order of the readings is the log's, not the caller's: Load sorts, but nothing else promises to.
+        var shuffled = new List<ProbeEntry> { moved[3], moved[1], moved[0], moved[2] };
+        HeaderVocab unsorted = HeaderProbe.Vocabulary(shuffled).First(h => h.Name == Claim);
+        Check("an unsorted log yields the same first sighting",
+              Math.Abs(unsorted.Values[0].First - Now) < 1
+              && unsorted.Values[0].Value == "five_hour");
+
+        // A header absent from a reading is absent from its own count, or "seen on every reading" would be
+        // indistinguishable from "seen once and never again" — the difference the whole question rests on.
+        var partial = new List<ProbeEntry> { E(Now, Claim, "five_hour"), E(Now + 60, Util5, "0.55") };
+        Check("a reading that carried no value adds nothing to the count",
+              HeaderProbe.Vocabulary(partial).First(h => h.Name == Claim).Values[0].Count == 1);
+        Check("an empty log has no vocabulary at all",
+              HeaderProbe.Vocabulary(new List<ProbeEntry>()).Count == 0);
     }
 
     // ---------------------------------------------------------------- Block AE: the overage column

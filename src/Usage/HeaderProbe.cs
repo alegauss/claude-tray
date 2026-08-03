@@ -8,6 +8,17 @@ internal readonly record struct ProbeEntry(double T, IReadOnlyDictionary<string,
     public string? Get(string name) => Headers.TryGetValue(name, out string? v) ? v : null;
 }
 
+/// <summary>One value a categorical header has taken, and the span over which it was seen.</summary>
+internal readonly record struct VocabValue(string Value, int Count, double First, double Last);
+
+/// <summary>Every value one categorical header has taken across a log, oldest first sighting first.</summary>
+internal readonly record struct HeaderVocab(string Name, IReadOnlyList<VocabValue> Values)
+{
+    /// <summary>More than one value on file — the header has been seen to move, so its vocabulary is
+    /// measured rather than assumed from a single sample.</summary>
+    public bool Moved => Values.Count > 1;
+}
+
 /// <summary>
 /// The instrument behind T181: a verbatim record of the <c>anthropic-ratelimit-*</c> headers, written to
 /// <c>header-probe.jsonl</c> in the profile's own store.
@@ -122,6 +133,48 @@ internal static class HeaderProbe
             buf.Append(',');
         }
         return buf.Append('|').Append(overage ? '1' : '0').ToString();
+    }
+
+    /// <summary>Every value each categorical header has taken across a log — the read-out T210 needed.
+    ///
+    /// <para><b>Why a summary over a log that is already printed verbatim.</b> The three unsuffixed headers
+    /// (<c>unified-status</c>, <c>unified-reset</c>, <c>unified-representative-claim</c>) and the fallback
+    /// pair are read by nothing here, and the reason is the same for all of them: their vocabulary is one
+    /// value from one account. <c>representative-claim</c> reads <c>five_hour</c>; a mapping written against
+    /// that alone has a default arm nobody has seen, which is the guess T181 spent a whole task refusing.
+    /// The probe has recorded every one of them since it shipped — but "has a second value ever arrived?"
+    /// was a question a person answered by eye, across up to <see cref="MaxEntries"/> readings of fourteen
+    /// headers each. This states it: one line per value, and a header that has moved says so.</para>
+    ///
+    /// <para>Categorical headers only, by the same suffix rule <see cref="Shape"/> keys on — a utilization
+    /// or a reset takes a new value every poll, so its "vocabulary" would be the log's length and would
+    /// bury the four entries this exists to show. First and last sighting come from the readings
+    /// themselves, so an unsorted log yields the same answer as a sorted one.</para></summary>
+    public static List<HeaderVocab> Vocabulary(IEnumerable<ProbeEntry> log)
+    {
+        var seen = new Dictionary<string, Dictionary<string, VocabValue>>(StringComparer.OrdinalIgnoreCase);
+        foreach (ProbeEntry e in log)
+            foreach (var kv in e.Headers)
+            {
+                if (Moves(kv.Key)) continue;
+                if (!seen.TryGetValue(kv.Key, out var values))
+                    seen[kv.Key] = values = new Dictionary<string, VocabValue>(StringComparer.Ordinal);
+                values[kv.Value] = values.TryGetValue(kv.Value, out VocabValue v)
+                    ? v with { Count = v.Count + 1, First = Math.Min(v.First, e.T), Last = Math.Max(v.Last, e.T) }
+                    : new VocabValue(kv.Value, 1, e.T, e.T);
+            }
+
+        var result = new List<HeaderVocab>();
+        foreach (var kv in seen)
+        {
+            var values = new List<VocabValue>(kv.Value.Values);
+            values.Sort((a, b) => a.First != b.First
+                ? a.First.CompareTo(b.First)
+                : string.CompareOrdinal(a.Value, b.Value));
+            result.Add(new HeaderVocab(kv.Key, values));
+        }
+        result.Sort((a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name));
+        return result;
     }
 
     /// <summary>A header whose value is a figure that moves on its own, so only its presence is shape.</summary>

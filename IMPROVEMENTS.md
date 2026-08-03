@@ -286,31 +286,6 @@ Two constraints bind. The **privacy promise** is not in tension: rate-limit head
 overage more visible, and the next sentence, *this account is out, the other has room*, is the one the
 roadmap forbids. §XVIII.6 binds hardest; §XVI.4 found the answer's shape: a receipt, not a reward.
 
-### XVIII.9 Three top-level headers nobody reads, and one premise that was wrong (idea)
-
-Beside the three window triples the response carries a fourth, unsuffixed set:
-`anthropic-ratelimit-unified-status`, `-reset` and `-representative-claim`, reading `allowed`, the
-5h reset and `five_hour`. Nothing parses any of them. That much is measured and still true.
-
-What this section originally claimed — that the projection, the icon and the tooltip each re-derive
-which window is binding by comparing 5h against 7d — is false, and reading the call sites is what
-settled it. There is no such derivation anywhere. Every surface is scoped to `_metric`, the window
-the user picked from the tray menu: the two utilization lines, the at-limit and billing sentences,
-the projection, which names its own scope out loud, and `CurrentQuotaState`, whose comment states
-the choice — *the metric, not the worst window*, so that a sentence never captions a figure the user
-is not looking at. `BlockedUntilUnix` tests both windows against the threshold, which is not the
-same question. So there was nothing to unify.
-
-What is left is an idea, and it needs the measurement before the design. `representative-claim`
-would let a surface say which limit the API itself considers binding — an answer this app currently
-never asks for, and a feature rather than a fix. The vocabulary is one value from one account:
-`five_hour`. A mapping written against one sample has a default arm nobody has seen, and T181 spent
-a whole task refusing exactly that. The probe records every one of these three, so a second value
-arrives as a log line rather than as a guess.
-
-Reading the call sites did turn up a real mismatch one line below the ones checked — §XVIII.12 has
-it.
-
 ### XVIII.10 A fallback is on offer and nothing here knows the word (idea)
 
 Two headers on every response are entirely outside this app's vocabulary: `unified-fallback`,

@@ -58,6 +58,7 @@ internal static class ProbeCli
                     Console.WriteLine();
                     continue;
                 }
+                Vocabulary(log, indent: "   ");
                 foreach (ProbeEntry e in log) Dump(e.T, e.Headers, indent: "   ");
                 Console.WriteLine();
             }
@@ -86,6 +87,45 @@ internal static class ProbeCli
             : "   No overage header on this response, so this account has no extra-usage window to read.");
         return 0;
     }
+
+    /// <summary>What each categorical header has ever said, before the readings it was derived from (T210).
+    ///
+    /// <para>The dump below it is the evidence and stays verbatim; this is the question actually being
+    /// asked of it. Three headers here are parsed by nothing — <c>unified-status</c>, <c>unified-reset</c>
+    /// and <c>unified-representative-claim</c> — and the reason is that their vocabulary is one value from
+    /// one account, so any mapping written now has a default arm nobody has seen. Whether that is still
+    /// true is a fact about the log, and it belongs at the top of the log rather than in a person's
+    /// eyesight across five hundred readings of fourteen headers.</para></summary>
+    private static void Vocabulary(List<ProbeEntry> log, string indent)
+    {
+        List<HeaderVocab> vocab = HeaderProbe.Vocabulary(log);
+        if (vocab.Count == 0) return;
+
+        int moved = vocab.Count(v => v.Moved);
+        Console.WriteLine($"{indent}vocabulary — every value each categorical header has taken across "
+                          + $"{log.Count} reading(s)");
+        int width = vocab.Max(v => v.Values.Max(x => x.Value.Length));
+        foreach (HeaderVocab h in vocab)
+        {
+            Console.WriteLine($"{indent}  {h.Name}{(h.Moved ? $"   ** {h.Values.Count} values **" : "")}");
+            foreach (VocabValue v in h.Values)
+                Console.WriteLine($"{indent}    {v.Value.PadRight(width)}  {v.Count,4}x   "
+                                  + $"{When(v.First)}{(v.Last > v.First ? $" -> {When(v.Last)}" : "")}");
+        }
+        Console.WriteLine();
+        // Naming what a single value costs is the point: it is not a shortage of readings, it is the reason
+        // three headers stay unparsed, and the line has to say which of the two states the log is in.
+        Console.WriteLine(moved > 0
+            ? $"{indent}  {moved} header(s) have taken more than one value — the second reading\n"
+              + $"{indent}  IMPROVEMENTS §XVIII.9 and §XVIII.10 are waiting on. Read them beside the design."
+            : $"{indent}  Every categorical header has exactly one value on file, so its vocabulary is still\n"
+              + $"{indent}  one sample from one account. A mapping written now would have a default arm\n"
+              + $"{indent}  nobody has seen — see IMPROVEMENTS §XVIII.9.");
+        Console.WriteLine();
+    }
+
+    private static string When(double t) =>
+        DateTimeOffset.FromUnixTimeSeconds((long)t).ToLocalTime().ToString("yyyy-MM-dd HH:mm");
 
     private static void Dump(double t, IReadOnlyDictionary<string, string> headers, string indent)
     {

@@ -137,7 +137,11 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   *reading* the log, not writing to it; --all reads every
                                       #   profile's. The instrument for T181's other half — what 100% of
                                       #   the overage window amounts to, which only an account in overage
-                                      #   can answer. Quota metadata only: no message content, no token.
+                                      #   can answer. Each profile's log opens with its VOCABULARY (T210):
+                                      #   every value each categorical header has taken, counted and dated,
+                                      #   so "has a second value arrived?" — the question §XVIII.9 and
+                                      #   §XVIII.10 are blocked on — is read rather than eyeballed across
+                                      #   500 readings. Quota metadata only: no message content, no token.
 --insights                            # the 24h usage breakdown: requests, sessions, per-model share
 --tail                                # every assistant turn as it lands, with what the sweep cost
 --live                                # the rolling tok/s with its per-project sparklines

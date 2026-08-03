@@ -257,6 +257,7 @@
 - **T209** — Every surface that shows the extra figure names what it is a percentage of — your extra-usage allowance, a window with its own limit and its own reset — in all five languages, and the chart hover no longer points at a method-note paragraph that was never written. The weekly chart past the quota is published rather than described.
 - **T212** — The live reading is kept: --probe records what it fetched, against the profile whose log it printed and under that profile's key, so a reading survives the console scrolling — and an empty log now says nothing has polled this profile rather than blaming a change that has not come.
 - **T213** — The tooltip's last line is about the window the icon is about: the metric's own status, under a label that names it, so watching the week no longer reports the session — and --selftest holds the pairing on a static, the tray around it never having been constructible headlessly.
+- **T210** — `--probe` opens each profile's log with every value its categorical headers have taken, counted and dated, so the second reading the three unparsed headers are blocked on announces itself instead of being eyeballed across five hundred readings of fourteen headers.
 
 ## Block AD — The window can be read now, and what that turned up
 
