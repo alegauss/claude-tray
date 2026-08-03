@@ -365,6 +365,110 @@ Two constraints bind. The **privacy promise** is not in tension: rate-limit head
 overage more visible, and the next sentence, *this account is out, the other has room*, is the one the
 roadmap forbids. §XVIII.6 binds hardest; §XVI.4 found the answer's shape: a receipt, not a reward.
 
+### XVIII.7 The overage window sends a status, and nothing catches it
+
+T181's reading showed the three windows are symmetric: `5h`, `7d` and `overage` each send a
+`-utilization`, a `-reset` and a `-status`. `ApiClient.FetchAsync` lifts one of the three statuses —
+5h's — onto `UsageData.Status`, and the other two are dropped where the response is parsed.
+
+Overage's is the one worth having. Every decision this app makes about extra usage is currently
+inferred from a number: `QuotaStates.CanSpendPastQuota` combines a utilization above zero with
+`hasExtraUsageEnabled` read out of `.claude.json`, which is an answer assembled from two places
+about a fact the response states in one word. A utilization of `0.0` cannot separate an allowance
+that is available and untouched from one that is spent or was never granted. A status can.
+
+So lift it beside `Status`, and let the code that already asks *can this account spend past its
+quota* prefer the stated answer over the derived one.
+
+What this does not do is put the word on screen. Every status value seen so far is API vocabulary
+(`allowed`), not user vocabulary, and no reading exists of an account that says anything else — the
+probe records the moment one does. Read it, act on it, display nothing.
+
+### XVIII.8 Four strings hedge a number that is no longer unmeasured
+
+While T181 was open the app was careful, and the care is visible: `stats.legend.extra` says "extra
+usage (own scale)", `stats.chart.extraNow` and `stats.proj.billing` say "its own scale — see the
+method note", and the tooltip's `tip.extra` says only "Extra". None of them names what 100% would
+be, because nobody knew.
+
+Now something is known, and it is narrower than a guess would have been. The overage triple is a
+window like the other two, and its reset is a calendar-month boundary — `2026-09-01T00:00:00Z` on
+the reading taken — while 5h and 7d roll. So the figure is a utilization of the extra-usage
+allowance for the current month. What no header states is the *amount* of that allowance, and
+nothing here needs it: a percentage of a monthly window is a complete sentence.
+
+Which is the whole shape of this task: replace "its own scale" with the window, in all five language
+files, and leave the number alone. "Extra usage: 42% of this month's allowance" is what the
+measurement supports. "42% of your spend cap" is not — no header says whether the ceiling is one the
+user set or one the plan imposes, and the two read very differently to somebody deciding whether to
+keep working.
+
+§I.7 binds hardest here, because a clearer overage reading is a better invitation to switch
+accounts. The month is a receipt: this is what has been spent and when the slate clears.
+
+### XVIII.9 The API names the binding window, and the app works it out again
+
+Beside the three window triples the response carries a fourth, unsuffixed set:
+`anthropic-ratelimit-unified-status`, `-reset`, and `-representative-claim`, which read `allowed`,
+the 5h reset, and `five_hour` on the reading taken. The API is stating which claim its top-level
+answer is about.
+
+This app answers the same question by hand, repeatedly. The projection compares 5h against 7d to
+decide which window the sentence should be about; the icon picks a metric to draw; the tooltip
+orders three lines. Each derivation is small and each is a place where this app's opinion of what
+binds can differ from the one the account is actually being limited by — most obviously
+mid-transition, when the two windows are close and the value flips between polls.
+
+The win is not saving arithmetic. It is that "which limit is stopping me?" gets one answer with a
+source, instead of three computed independently in three files. `representative-claim` is also the
+only header that would name a window this app does not model at all, if one is ever added — so
+reading it is how a fourth window announces itself rather than silently not existing.
+
+Unknown, and the reason this is designed rather than done: the vocabulary. `five_hour` is the only
+value observed. What an account in overage reports here is exactly what the probe now records, and a
+mapping written against one sample is a mapping with a default arm nobody has seen.
+
+### XVIII.10 A fallback is on offer and nothing here knows the word (idea)
+
+Two headers on every response are entirely outside this app's vocabulary: `unified-fallback`,
+reading `available`, and `unified-fallback-percentage`, reading `0.5`. Nothing parses either.
+
+The plausible reading is the interesting one: that past some point a request is served by a smaller
+model rather than refused, and that `0.5` is the threshold or the share involved. If that is what it
+means, it matters to the one sentence this app exists to get right — *what happens when I hit the
+limit* — because the answer would be neither "you stop" nor "you pay", but a third thing the tray
+has no state for. That would sit beside the clay bar T182 shipped, not replace it.
+
+It is an idea and not a design because both readings are guesses. `available` and `0.5` are one
+sample from one account inside its quota, and a percentage with no stated denominator is the exact
+mistake T181 spent a whole task refusing to make. Two headers whose meaning is inferred from their
+names is how an app ends up explaining something that was never true.
+
+What is cheap and already done: the probe keys on both — neither ends in `-utilization` or `-reset`,
+so a change in either writes a line without a name being added anywhere. Nothing to build for the
+measurement; this task begins when a log has something to read.
+
+### XVIII.11 The read-out takes the reading and throws it away
+
+`--probe` prints the recorded log, then makes one live call and prints those headers in full. The
+live call is a real reading of a real account, and `HeaderProbe.Record` is never invoked on it — the
+only two call sites are in `TrayContext`'s two poll paths. So the flag whose whole purpose is
+capturing what the API said discards what it just captured.
+
+This was found by running it: the first `--probe` on this machine printed fourteen headers verbatim
+and reported `0 recorded reading(s)` in the same output. That reading is what settled T181, and it
+survives only because a human copied it into a commit.
+
+The empty-log line makes it worse by explaining it away: *"nothing yet: the tray records a reading
+when the header shape first moves"*. That is not the rule — the first reading is always kept,
+deliberately, as the baseline. An empty log therefore means the tray has not polled at all since the
+instrument shipped, which is a different fact and the actionable one. As written it tells the reader
+to keep waiting for a change that already happened.
+
+Both are one fix: record the live reading under the profile it was taken from, and say what an empty
+log actually means. `--live` skips reading the log, not writing to it — a flag asking for the
+freshest reading is the last one that should drop it.
+
 ## XX Verification — the checks that prove a change (Block AI)
 
 This project's checks are three loops with different reaches. `--selftest` asserts arithmetic on
