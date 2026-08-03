@@ -55,7 +55,6 @@
 >
 > Ordered by what is wrong on screen today, then by what protects the rest.
 
-- 📋 **T167** (deps: —) **Numbers interpolated into localized strings bypass the window's own invariant formatter** — Thirteen call sites route through `Fmt` and the method note's five interpolations take the OS culture, so one window states its numbers in two conventions. → §XV.1
 - 📋 **T168** (deps: —) **The method note's composition is UI code, so the rules T159 and T163 added cannot be asserted** — Which paragraphs a report yields is now a real decision living inline in `Render`, where `--selftest` cannot reach it and two screenshots are the verification. → §XV.2
 - 📋 **T169** (deps: —) **A skip that fires on every run is a check that does not exist** — T161's guard skips wherever the temp path holds a character the encoding cannot reconstruct, which is every CI runner whose profile is an 8.3 short name. → §XV.3
 - 💭 **T170** (deps: —) **The method note is ~1,000 characters of 12px prose in one unstructured paragraph** — T113 moved it behind an information glyph because six lines under the panes was a lot of screen, and it is now twelve lines behind a click and still growing. → §XV.4

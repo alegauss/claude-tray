@@ -99,6 +99,9 @@ internal static class SelfTestCli
         Section("names — one automation id, one control (Block AG)");
         AutomationIds();
 
+        Section("format — one number convention per window (Block F)");
+        Formatting();
+
         if (quick)
         {
             Console.WriteLine();
@@ -1172,6 +1175,105 @@ internal static class SelfTestCli
         Check($"every id the interaction check drives still exists ({driven.Length})", gone.Length == 0,
               gone.Length == 0 ? "" : $"{gone.Length} gone — {string.Join(", ", gone)}: renamed without " +
                                       "updating scripts\\Check-Interaction.ps1, whose lookups are strings");
+    }
+
+    // ---------------------------------------------------------------- Block F: one number convention
+
+    /// <summary>
+    /// T167: the Statistics page states its numbers in one convention, whatever the machine's locale is.
+    /// Thirteen formatters ended in <c>Fmt</c> and the method note's five interpolations did not, so on a
+    /// pt-BR machine the English popup read <em>"4,7 weeks of local transcripts"</em> eight lines above
+    /// <c>≈ 1,319 tok/s</c> and <c>40%</c> — in both verification screenshots of T159 and T163, unseen.
+    ///
+    /// <para>The formatters are <b>derived, never listed</b>, for the same reason the automation-id sweep
+    /// derives its pages: a hardcoded list stops covering whatever is written next, which is the defect
+    /// the note itself was. Every static method on the page that turns numbers into a string is run
+    /// twice, once under each culture, and any that answers differently has read the OS.</para>
+    ///
+    /// <para>What this cannot reach is an interpolation written <em>inline</em> in <c>Render</c> rather
+    /// than in a formatter — the note's own shape until this task, and the reason §XV.2 (T168) wants that
+    /// composition out of UI code where an assertion can call it.</para>
+    /// </summary>
+    private static void Formatting()
+    {
+        System.Globalization.CultureInfo before = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            // Cloned from invariant so *only* the number conventions differ: a real locale would also
+            // change month names, which `DateFmt` owns deliberately and this sweep is not about.
+            var hostile = (System.Globalization.CultureInfo)
+                System.Globalization.CultureInfo.InvariantCulture.Clone();
+            hostile.NumberFormat.NumberDecimalSeparator = ",";
+            hostile.NumberFormat.NumberGroupSeparator = ".";
+            hostile.NumberFormat.NegativeSign = "~";
+
+            // Gate on the precondition, not on a weaker form of the property (§XV.3): a clone that did not
+            // take would leave every comparison below invariant against invariant, passing by asserting
+            // nothing at all.
+            string probe = 4.7.ToString("0.#", hostile);
+            if (!Check("the probe culture really writes numbers differently", probe == "4,7", $"got \"{probe}\""))
+                return;
+
+            static bool Numeric(Type t) => t == typeof(double) || t == typeof(int) || t == typeof(long);
+
+            MethodInfo[] formatters = typeof(StatisticsPage)
+                .GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public |
+                            BindingFlags.DeclaredOnly)
+                .Where(m => m.ReturnType == typeof(string) && !m.Name.Contains('<') &&
+                            m.GetParameters().Length > 0 &&
+                            m.GetParameters().All(p => Numeric(p.ParameterType) || p.HasDefaultValue))
+                .OrderBy(m => m.Name, StringComparer.Ordinal)
+                .ToArray();
+
+            if (!Check("the page's own number formatters are reachable by reflection", formatters.Length >= 10,
+                       $"found {formatters.Length}: {string.Join(", ", formatters.Select(m => m.Name))}"))
+                return;
+
+            // Spread across every branch these have: under a k, under a M, a fraction, a whole, a unix
+            // second. A single value would exercise one arm of a ternary and call the rest checked.
+            double[] values = { 0, 0.5, 1.5, 4.7, 42, 99.5, 1234.5, 1_500_000, 1_700_000_000 };
+            List<string> leaked = new(), threw = new();
+            int compared = 0;
+
+            foreach (MethodInfo m in formatters)
+                foreach (double v in values)
+                {
+                    object?[] args = m.GetParameters()
+                        .Select(p => Numeric(p.ParameterType)
+                            ? Convert.ChangeType(v, p.ParameterType)
+                            : p.DefaultValue)
+                        .ToArray();
+                    try
+                    {
+                        System.Globalization.CultureInfo.CurrentCulture =
+                            System.Globalization.CultureInfo.InvariantCulture;
+                        string a = (string)m.Invoke(null, args)!;
+                        System.Globalization.CultureInfo.CurrentCulture = hostile;
+                        string b = (string)m.Invoke(null, args)!;
+                        compared++;
+                        if (a != b) leaked.Add($"{m.Name}({v:0.###}) → \"{a}\" / \"{b}\"");
+                    }
+                    catch (Exception e) { threw.Add($"{m.Name}({v:0.###}): {(e.InnerException ?? e).Message}"); }
+                }
+
+            System.Globalization.CultureInfo.CurrentCulture =
+                System.Globalization.CultureInfo.InvariantCulture;
+
+            // A throw is not a pass. A formatter that blew up on a probe was never compared, and counting
+            // it as clean is the same silence as a Skip that hides what it guards.
+            Check($"every formatter answered both cultures ({formatters.Length} × {values.Length})",
+                  threw.Count == 0, string.Join("; ", threw.Take(4)));
+            Check($"no formatter on the page reads the OS number format ({compared} comparisons)",
+                  leaked.Count == 0,
+                  leaked.Count == 0 ? "" : $"{leaked.Count} leaked — {string.Join("; ", leaked.Take(6))}");
+
+            // And the helper itself, by name, since everything above only says the page agrees with itself.
+            System.Globalization.CultureInfo.CurrentCulture = hostile;
+            Check("Num keeps the decimal point a point", StatisticsPage.Num(4.7) == "4.7", StatisticsPage.Num(4.7));
+            Check("Num's whole form takes no group separator", StatisticsPage.Num(1234, "0") == "1234",
+                  StatisticsPage.Num(1234, "0"));
+        }
+        finally { System.Globalization.CultureInfo.CurrentCulture = before; }
     }
 
     // ---------------------------------------------------------------- Blocks K/W: the slug encoding

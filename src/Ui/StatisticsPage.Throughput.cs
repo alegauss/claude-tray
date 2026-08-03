@@ -311,10 +311,13 @@ internal partial class StatisticsPage
     private const double MinWorkForRatio = 1.0;
 
     // A multiplier reads as a magnitude, so it is rounded like one — "200×", not "197.4×".
+    // Through `Num` like everything else (T167): the two rounded arms concatenated a bare `double`, which
+    // is `CurrentCulture` formatting that happens to be invisible only because a rounded magnitude has no
+    // decimals to separate. An invariant that holds by luck is the next defect waiting for a decimal.
     private static string Ratio(double x)
-        => x >= 100 ? Math.Round(x / 10) * 10 + "×"
-        : x >= 10 ? Math.Round(x) + "×"
-        : x.ToString("0.0", Fmt) + "×";
+        => x >= 100 ? Num(Math.Round(x / 10) * 10, "0") + "×"
+        : x >= 10 ? Num(Math.Round(x), "0") + "×"
+        : Num(x, "0.0") + "×";
 
     // The second chart's legend: the same three token types the window average is split by, but at the
     // live rate — the last point of each line, which is what the chart above ends on.

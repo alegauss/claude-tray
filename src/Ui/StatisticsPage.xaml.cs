@@ -30,6 +30,8 @@ namespace ClaudeTray;
 internal partial class StatisticsPage : System.Windows.Controls.UserControl
 {
     // Invariant formatting for numbers/percentages, kept consistent regardless of the OS locale.
+    // Read by exactly one method — `Num` in StatisticsPage.Format.cs — and that is the invariant (T167):
+    // a second reference here is a second convention this window can state its numbers in.
     private static readonly CultureInfo Fmt = CultureInfo.InvariantCulture;
 
     // Dates read more naturally in the display language (localized month names), so format them with
@@ -471,14 +473,14 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
             : activity?.EffectiveWeeks ?? 0;
         MethodNote.Text = (shaped
             ? L.T("stats.methodNote") + " " + (mostlyMeasured
-                ? L.T("stats.methodNote.shapeMeasured", $"{activity!.MeasuredShare * 100:0}",
-                      $"{activity.EffectiveMeasuredWeeks:0.#}",
+                ? L.T("stats.methodNote.shapeMeasured", Num(activity!.MeasuredShare * 100, "0"),
+                      Num(activity.EffectiveMeasuredWeeks),
                       WeeksAway(activity.MeasuredExcludedWeeks))
-                : L.T("stats.methodNote.shape", $"{r.Weekly.Shape!.EffectiveWeeks:0.#}",
+                : L.T("stats.methodNote.shape", Num(r.Weekly.Shape!.EffectiveWeeks),
                       WeeksAway(r.Weekly.Shape!.ExcludedWeeks)))
             : thin
                 ? L.T("stats.methodNote") + " " + L.T("stats.methodNote.thin",
-                      $"{weeksSoFar:0.#}", $"{ActivityProfile.ConfidentWeeks:0.#}")
+                      Num(weeksSoFar), Num(ActivityProfile.ConfidentWeeks))
                 : L.T("stats.methodNote")) + " " + L.T("stats.methodNote.live");
         LegendIdleW.Visibility = shaped && r.Weekly.Shape!.IdleBands.Count > 0
             ? Visibility.Visible : Visibility.Collapsed;
@@ -492,7 +494,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     // sentence is a property of the language, not of the count.
     private static string WeeksAway(int weeks) => weeks <= 0
         ? string.Empty
-        : L.T(weeks == 1 ? "stats.methodNote.away.one" : "stats.methodNote.away.many", $"{weeks}");
+        : L.T(weeks == 1 ? "stats.methodNote.away.one" : "stats.methodNote.away.many", Num(weeks, "0"));
 
     // The static captions/legend labels that change wording between "used" and "remaining" framing.
     private void ApplyModeLabels()

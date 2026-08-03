@@ -149,25 +149,6 @@ wrong locale, a paragraph that has quietly become twelve lines); two are in the 
 it (a decision that lives where no assertion can reach it, a skip that may never have run outside one
 machine). None was reported by anybody, and none of them would be.
 
-### §XV.1 One window, two number conventions (T167)
-
-`StatisticsPage.Format.cs` exists to make the report locale-independent: `Pct`, `Tps`, the token and byte
-helpers all end in `.ToString(…, Fmt)` with `Fmt = CultureInfo.InvariantCulture`, thirteen call sites of
-deliberate consistency. The method note's five interpolations do not go through any of them — they are
-bare `$"{value:0.#}"`, which formats with `CurrentCulture`.
-
-It was sitting in both verification screenshots of T159 and T163: on a pt-BR machine run with `--lang en`,
-the English popup reads *"4,7 weeks of local transcripts, 2 weeks away excluded"* and *"there are 2,1 so
-far"*, eight lines above `≈ 1,319 tok/s` and `40%`. Not a localization bug — the *strings* are correct in
-five languages — but the one place the window's own rule was not applied.
-
-Two things make it a task rather than a two-line patch. The fix has to pick the rule deliberately: `Fmt`
-everywhere is what the rest of the window does and what keeps a screenshot comparable across locales, but
-a decimal point in a Portuguese sentence is *also* wrong to a reader, and the app has no precedent for a
-per-language numeric culture (`L.Culture` is used only for dates). Either way it should be one helper the
-note cannot bypass, not five call sites corrected once. And nothing prevents the sixth interpolation: the
-rule belongs where the compiler or `--selftest` can point at it, which is §XV.2's argument as well.
-
 ### §XV.2 A note whose composition no assertion can reach (T168)
 
 Which paragraphs the method note contains stopped being a formatting detail during Block Z. There are now

@@ -43,6 +43,7 @@
 | [Y](#block-y--one-window-you-navigate-instead-of-three-you-open) | One window you navigate, instead of three you open |
 | [Z](#block-z--what-the-app-knows-and-doesnt-say) | What the app knows and doesn't say — the read-back of Block V |
 | [AA](#block-aa--the-picker-switches-profiles-the-window-has-to-switch-with-it) | The picker switches profiles; the window has to switch with it (active — see ROADMAP) |
+| [AB](#block-ab--what-block-zs-own-work-left-behind) | What Block Z's own work left behind (active — see ROADMAP) |
 | [AD](#block-ad--the-window-can-be-read-now-and-what-that-turned-up) | The window can be read now, and what that turned up |
 | [AE](#block-ae--extra-usage-is-money-and-the-tray-is-asleep-for-it) | Extra usage is money, and the tray is asleep for it (active — see ROADMAP) |
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
@@ -532,3 +533,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
+## Block AB — What Block Z's own work left behind
+
+- **T167** — Every number the Statistics page writes now goes through one invariant formatter — the method note's five interpolations included — and `--selftest` runs each of the page's twelve formatters under two cultures, so a sixth that reads the OS is a red build rather than something to be noticed in a screenshot.

@@ -16,14 +16,34 @@ namespace ClaudeTray;
 /// <summary>Part of <see cref="StatisticsPage"/> — split out by T133, moved verbatim.</summary>
 internal partial class StatisticsPage
 {
+    /// <summary>
+    /// A number as this window writes it: the caller picks the shape, <see cref="Fmt"/> picks the
+    /// conventions — and this is the <b>only</b> place that names a culture for a number, so there is
+    /// nothing left to bypass (T167).
+    /// </summary>
+    /// <remarks>
+    /// The rest of this file was already invariant. The method note's five interpolations were bare
+    /// <c>$"{value:0.#}"</c>, which formats with <c>CurrentCulture</c>: on a pt-BR machine run with
+    /// <c>--lang en</c> the English popup read <em>"4,7 weeks of local transcripts"</em> eight lines
+    /// above <c>≈ 1,319 tok/s</c> and <c>40%</c>. One window, two number conventions — and it was sitting
+    /// in both verification screenshots of T159 and T163 without being seen.
+    /// <para><b>Invariant is a decision, not the status quo winning.</b> A decimal comma inside a
+    /// Portuguese sentence is what a Portuguese reader expects, and choosing it would not be wrong. It is
+    /// refused because the app has no per-language numeric culture at all — <see cref="DateFmt"/> is
+    /// <c>L.Culture</c> and formats dates and nothing else — and because a published screenshot has to
+    /// mean the same thing on any machine it was taken on. Changing that rule is now an edit to one line
+    /// here, which is the other half of the point.</para>
+    /// </remarks>
+    internal static string Num(double n, string format = "0.#") => n.ToString(format, Fmt);
+
     // "72%" — no space, matching the tray's percentage style.
-    private static string Pct(double frac) => Math.Round(Math.Clamp(frac, 0, 1) * 100).ToString("0", Fmt) + "%";
+    private static string Pct(double frac) => Num(Math.Round(Math.Clamp(frac, 0, 1) * 100), "0") + "%";
 
     // A token rate: whole numbers once it's fast, a decimal or two when it's a trickle.
     private static string Rate(double tps) =>
-        tps >= 100 ? tps.ToString("#,##0", Fmt)
-        : tps >= 10 ? tps.ToString("0.0", Fmt)
-        : tps.ToString("0.00", Fmt);
+        tps >= 100 ? Num(tps, "#,##0")
+        : tps >= 10 ? Num(tps, "0.0")
+        : Num(tps, "0.00");
 
     // The live strip's axis (T110): a mark's value, and the hover that says what full height means.
     // "20k/s" rather than Big()'s "20.0k" — a scale label is read at a glance, and a trailing .0 on a
@@ -40,15 +60,15 @@ internal partial class StatisticsPage
                   Tick(ceiling), clipped, Tick(peak));
 
     private static string Tick(double n) =>
-        n >= 1_000_000 ? (n / 1e6).ToString("0.##", Fmt) + "M"
-        : n >= 1_000 ? (n / 1e3).ToString("0.##", Fmt) + "k"
-        : n.ToString("0.##", Fmt);
+        n >= 1_000_000 ? Num(n / 1e6, "0.##") + "M"
+        : n >= 1_000 ? Num(n / 1e3, "0.##") + "k"
+        : Num(n, "0.##");
 
     // Compact token count: 3.1M / 42k / 517.
     private static string Big(long n) =>
-        n >= 1_000_000 ? (n / 1e6).ToString("0.0", Fmt) + "M"
-        : n >= 1_000 ? (n / 1e3).ToString("0.0", Fmt) + "k"
-        : n.ToString(Fmt);
+        n >= 1_000_000 ? Num(n / 1e6, "0.0") + "M"
+        : n >= 1_000 ? Num(n / 1e3, "0.0") + "k"
+        : Num(n, "0");
 
     // Dark theme when the primary text ink is light — used to pick the categorical bar hues (the
     // palette has a light and a dark step per series; the theme brushes only cover text/surfaces).
@@ -84,9 +104,9 @@ internal partial class StatisticsPage
         if (double.IsInfinity(seconds) || seconds <= 0) return seconds <= 0 ? L.T("dur.now") : "—";
         int s = (int)Math.Round(seconds);
         int d = s / 86400, h = s % 86400 / 3600, m = s % 3600 / 60;
-        if (d > 0) return $"{d}d {h}h";
-        if (h > 0) return $"{h}h {m:00}m";
-        return $"{Math.Max(1, m)}m";
+        if (d > 0) return $"{Num(d, "0")}d {Num(h, "0")}h";
+        if (h > 0) return $"{Num(h, "0")}h {Num(m, "00")}m";
+        return $"{Num(Math.Max(1, m), "0")}m";
     }
 
     private static Brush Freeze(Brush b) { b.Freeze(); return b; }
