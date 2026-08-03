@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T258** (deps: —) **A check that fails part-way leaves its tray running, and the next build cannot write the exe** — Two trays the Menu case had launched were still alive after it failed, so the next dotnet build died on MSB3027 naming both pids - and the run after that measured the previous binary. → §XX.24
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization

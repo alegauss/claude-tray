@@ -230,6 +230,8 @@ $ROOT = $AE::RootElement
 
 $script:Failures = 0
 $script:Unchecked = @()
+# Every process Start-App creates, so nothing this run started can outlive it (T258).
+$script:Launched = @()
 function Pass($msg) { Write-Host "[PASS] $msg" -ForegroundColor Green }
 function Fail($msg) { Write-Host "[FAIL] $msg" -ForegroundColor Red; $script:Failures++ }
 function Info($msg) { Write-Host "       $msg" -ForegroundColor DarkGray }
@@ -336,9 +338,33 @@ function ClickCentre($element, [switch]$Right) {
     [Native]::Click([int]($r.X + $r.Width / 2), [int]($r.Y + $r.Height / 2), $Right.IsPresent)
 }
 
+<#
+  Launch the binary under test, and REMEMBER having done it (T258).
+
+  Every process this script creates comes through here, so the register is total by construction - there
+  is no per-case list to keep, and a case that returns early down a path nobody thought about still has
+  its tray stopped by `Stop-Launched` at the end of the run. The defect was the other shape: two trays a
+  failing case had started were still alive afterwards, the next `dotnet build` died on
+  `MSB3027 ... locked by: ClaudeTray (29700), ClaudeTray (49892)`, and - the part that matters - the
+  command after THAT ran the previous .exe and reported on code that was not in the tree.
+#>
 function Start-App($appArgs) {
     if (-not (Test-Path $Exe)) { throw "$Exe not found - run: dotnet build -c Debug" }
-    Start-Process -FilePath $Exe -ArgumentList $appArgs -PassThru
+    $p = Start-Process -FilePath $Exe -ArgumentList $appArgs -PassThru
+    $script:Launched += $p
+    return $p
+}
+
+<#
+  Stop whatever is still running, whichever way the run ended. Named rather than silent: a tray left
+  behind is a lock on the next build, so which ones were still up is a reading about this run and not
+  housekeeping. A case that stopped its own process leaves nothing to do here, which is the ordinary case.
+#>
+function Stop-Launched {
+    $alive = @($script:Launched | Where-Object { $_ -and -not $_.HasExited })
+    if ($alive.Count -eq 0) { return }
+    Info "stopping $($alive.Count) process(es) this run launched and a case did not: $(($alive | ForEach-Object { $_.Id }) -join ', ')"
+    foreach ($p in $alive) { try { $p.Kill() } catch { } }
 }
 
 <#
@@ -2254,6 +2280,37 @@ $script:ShareMain = ($Case -eq 'All')
 # to cover it. Same conditions Invoke-EnvFixtureSweep returns early on.
 $script:EnvSweepWillRun = ($Case -in @('All', 'Menu')) -and -not $SampleEnv -and -not $UseRunning
 
+<#
+  Whether `-Exe` is older than the code it is supposed to be (T258).
+
+  The same reading T236 refuses by flag, arrived at by accident: a build that fails leaves the previous
+  .exe in place, so the next command drives a binary that predates the change and passes about code that
+  is not there. It happened here - a build died on a file lock, and the dump taken from the run after it
+  was of the build before the edit, with only the pids in the error saying so.
+
+  `Unchecked`, not `Fail`: everything that ran did run and did pass, on *a* binary. What could not be
+  evaluated is the claim the caller came for - that the build under `-Exe` was checked - which is word for
+  word what T236 marks for `-UseRunning`. Skipped under `-UseRunning`, which has its own comparison and
+  says so more precisely.
+#>
+if (-not $UseRunning -and (Test-Path $Exe)) {
+    $built = (Get-Item -LiteralPath $Exe).LastWriteTimeUtc
+    $srcDir = Join-Path (Split-Path -Parent $PSScriptRoot) 'src'
+    $newest = if (Test-Path $srcDir) {
+        Get-ChildItem -LiteralPath $srcDir -Recurse -File -Include *.cs, *.xaml -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+    } else { $null }
+    if ($newest -and $newest.LastWriteTimeUtc -gt $built) {
+        Unchecked "the build under -Exe (T258)" `
+            ("$Exe was written $($built.ToLocalTime().ToString('HH:mm:ss')) and " +
+             "$($newest.Name) was edited $($newest.LastWriteTimeUtc.ToLocalTime().ToString('HH:mm:ss')) - " +
+             "this run is about the PREVIOUS build. A build that fails leaves the old .exe in place; " +
+             "rebuild and re-run.")
+    }
+}
+
+try {
+
 if ($Case -in @('All', 'Keyboard')) { Invoke-KeyboardCase }
 if ($Case -in @('All', 'Panes'))    { Invoke-PanesCase }
 if ($Case -in @('All', 'Profiles')) { Invoke-ProfilesCase }
@@ -2275,6 +2332,13 @@ if ($Case -in @('All', 'Menu')) {
 
 if ($script:MainAcquires -gt 0) {
     Info "$($script:MainAcquires) case(s) drove --main on $($script:MainLaunches) launch(es)"
+}
+
+}
+finally {
+    # Whichever way the run ended — a case that returned early, a terminating error, Ctrl-C. The summary
+    # below still prints, because this is the end of the body and not of the script (T258).
+    Stop-Launched
 }
 
 Write-Host ""

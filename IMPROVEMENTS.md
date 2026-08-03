@@ -216,29 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.24 The tray a failed case left behind
-
-Observed while working T234: `dotnet build` failed with `MSB3027 … apphost.exe -> ClaudeTray.exe …
-locked by: ClaudeTray (29700), ClaudeTray (49892)`, both of them trays the Menu case had started and
-not stopped when it returned early.
-
-The lock itself is a nuisance. What makes it a check problem is the run after it. A build that fails
-this way leaves the previous exe in place, so the next command runs the **old binary** and reports
-on code that is not in the tree — which is exactly the reading T236 refuses for `-UseRunning`,
-arrived at by accident instead of by a flag. It happened here: a dump taken to decide a design was
-taken from the build before the change, and only the pids in the error said so.
-
-The script already knows how to be careful about this — `Start-CheckTray` tags what it launches
-(T240) and the store check proves the trays it owns wrote nothing (T239) — so the ownership is
-recorded and only the stopping is missing on the paths that return early. A `finally` per case, over
-the processes that case started, is the shape.
-
-Worth deciding at the same time: whether a build whose output is locked should say so as itself
-rather than as ten retries of a copy. The neighbouring sighting is unmeasured and is not this —
-twice in one session, `BG1002 … ToastWindow.baml cannot be found` on the first build after an edit,
-passing on retry, cause unknown — but if the answer here is a guard in front of the build, it is the
-same one.
-
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
