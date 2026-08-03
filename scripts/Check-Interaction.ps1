@@ -243,6 +243,61 @@ function Start-App($appArgs) {
 }
 
 <#
+  The `--main` window, launched once and lent to whichever of Panes/Profiles/Names run together (T195).
+
+  Three of the five cases drive the same window and each used to own its own process, so `-Case All`
+  paid the launch, the first WPF layout pass and the wait for the first poll three times over - seconds
+  each, for a window none of them leaves in a state the next would reject. `Panes` and `Names` only
+  read (numbers out of the tree, accessible names); `Profiles` drives the picker but walks it 0 -> 1 -> 0,
+  so it hands back the profile it was given.
+
+  What is deliberately kept: a case run ALONE still owns its process, because the value of `-Case Names`
+  is partly that it is ten seconds when a name is what you changed. Sharing is opt-in per invocation
+  ($script:ShareMain), not a merge of the three cases into one.
+#>
+$script:ShareMain = $false
+$script:MainProc  = $null
+$script:MainWin   = $null
+$script:MainLaunches = 0   # processes started
+$script:MainAcquires = 0   # cases that asked for the window; the saving is the difference
+
+<# The window, ready to read: launched if nothing is up, re-focused if something is. Null if it never
+   appeared, and the caller Fails - an absent window is never a pass. #>
+function Acquire-Main {
+    $script:MainAcquires++
+    if ($script:MainProc -and -not $script:MainProc.HasExited -and $script:MainWin) {
+        Info "reusing the --main window from an earlier case (no launch, no first-poll wait)"
+        [Native]::Topmost([IntPtr]$script:MainWin.Current.NativeWindowHandle)
+        try { $script:MainWin.SetFocus() } catch { Info "window SetFocus threw - $($_.Exception.Message)" }
+        return $script:MainWin
+    }
+    $script:MainLaunches++
+    $script:MainProc = Start-App "--lang $Lang --main"
+    $win = WindowOfProcess $script:MainProc.Id
+    if (-not $win) { return $null }
+    Start-Sleep -Milliseconds 1200
+    [Native]::Topmost([IntPtr]$win.Current.NativeWindowHandle)
+    try { $win.SetFocus() } catch { Info "window SetFocus threw - $($_.Exception.Message)" }
+    $script:MainWin = $win
+    return $win
+}
+
+<# End of one case. Keeps the window for the next one in a shared run; the runner closes it once. #>
+function Release-Main {
+    if (-not $script:ShareMain) { Close-Main }
+}
+
+<# WaitForExit, not just Kill: the menu case refuses to start while any ClaudeTray process is alive, and
+   a still-dying `--main` would look like the tray to it. #>
+function Close-Main {
+    if ($script:MainProc -and -not $script:MainProc.HasExited) {
+        $script:MainProc.Kill(); $script:MainProc.WaitForExit(5000) | Out-Null
+    }
+    $script:MainProc = $null
+    $script:MainWin  = $null
+}
+
+<#
   The label a control actually carries, read from the same lang\<code>.json the app reads, so the
   checks are not pinned to English and cannot drift from the shipped strings.
 #>
@@ -657,13 +712,9 @@ function Invoke-ProfilesCase {
     $computing = Label 'stats.computing'
     $liveOff   = Label 'stats.live.off'
 
-    $proc = Start-App "--lang $Lang --main"
     try {
-        $win = WindowOfProcess $proc.Id
+        $win = Acquire-Main
         if (-not $win) { Fail "the main window never appeared"; return }
-        Start-Sleep -Milliseconds 1200
-        [Native]::Topmost([IntPtr]$win.Current.NativeWindowHandle)
-        try { $win.SetFocus() } catch { Info "window SetFocus threw - $($_.Exception.Message)" }
 
         $combo = ById $win 'StatsProfileCombo' 8000
         if (-not $combo) {
@@ -808,11 +859,7 @@ function Invoke-ProfilesCase {
             }
         }
     }
-    finally {
-        # WaitForExit, not just Kill: the menu case refuses to start while any ClaudeTray process is alive,
-        # and a still-dying `--main` would look like the tray to it.
-        if ($proc -and -not $proc.HasExited) { $proc.Kill(); $proc.WaitForExit(5000) | Out-Null }
-    }
+    finally { Release-Main }
 }
 
 # ---------------------------------------------------------------- panes case
@@ -835,13 +882,9 @@ function Invoke-PanesCase {
 
     $computing = Label 'stats.computing'
 
-    $proc = Start-App "--lang $Lang --main"
     try {
-        $win = WindowOfProcess $proc.Id
+        $win = Acquire-Main
         if (-not $win) { Fail "the main window never appeared"; return }
-        Start-Sleep -Milliseconds 1200
-        [Native]::Topmost([IntPtr]$win.Current.NativeWindowHandle)
-        try { $win.SetFocus() } catch { Info "window SetFocus threw - $($_.Exception.Message)" }
 
         # The headers first, and separately: T165's defect left all three of these perfectly readable
         # and took the whole body with them, so "headers but no body" is the exact shape to name.
@@ -877,11 +920,7 @@ function Invoke-PanesCase {
             Report-NoReading $win $stop "the Statistics page"
         }
     }
-    finally {
-        # WaitForExit, not just Kill: the menu case that may run later refuses to start while any
-        # ClaudeTray process is alive.
-        if ($proc -and -not $proc.HasExited) { $proc.Kill(); $proc.WaitForExit(5000) | Out-Null }
-    }
+    finally { Release-Main }
 }
 
 # ---------------------------------------------------------------- names case
@@ -933,13 +972,9 @@ function Invoke-NamesCase {
     Head "Names - what the controls announce to a screen reader"
 
     $read = 0
-    $proc = Start-App "--lang $Lang --main"
     try {
-        $win = WindowOfProcess $proc.Id
+        $win = Acquire-Main
         if (-not $win) { Fail "the main window never appeared"; return }
-        Start-Sleep -Milliseconds 1200
-        [Native]::Topmost([IntPtr]$win.Current.NativeWindowHandle)
-        try { $win.SetFocus() } catch { Info "window SetFocus threw - $($_.Exception.Message)" }
 
         # --- Statistics. The read order no longer decides which control this finds: every `x:Name` in
         # the shell is unique across the window (T192), asserted by `--selftest`, so `StatsProfileCombo`
@@ -998,11 +1033,7 @@ function Invoke-NamesCase {
             Info "$read control name(s) read"
         }
     }
-    finally {
-        # WaitForExit, not just Kill: the menu case that may run next refuses to start while any
-        # ClaudeTray process is alive.
-        if ($proc -and -not $proc.HasExited) { $proc.Kill(); $proc.WaitForExit(5000) | Out-Null }
-    }
+    finally { Release-Main }
 }
 
 # ---------------------------------------------------------------- menu case
@@ -1288,12 +1319,26 @@ function Invoke-MenuCase {
 # ---------------------------------------------------------------- run
 
 Write-Host "Check-Interaction - $Exe (lang $Lang)" -ForegroundColor White
+
+# T195: the three cases that drive `--main` share one launch when several of them run here, and own their
+# own when run alone. Opted into for the whole invocation rather than decided per case, so `Release-Main`
+# has one rule to follow and no case has to know which others are running.
+$script:ShareMain = ($Case -eq 'All')
+
 if ($Case -in @('All', 'Keyboard')) { Invoke-KeyboardCase }
-# Before the menu case, and killed with WaitForExit: that one refuses to run while any ClaudeTray is alive.
 if ($Case -in @('All', 'Panes'))    { Invoke-PanesCase }
 if ($Case -in @('All', 'Profiles')) { Invoke-ProfilesCase }
 if ($Case -in @('All', 'Names'))    { Invoke-NamesCase }
+
+# Before the menu case, always: that one refuses to run while any ClaudeTray is alive, and with the window
+# now shared across three cases this is the single place it gets closed. `Close-Main` waits for the exit,
+# because a still-dying `--main` looks like the tray to it.
+Close-Main
 if ($Case -in @('All', 'Menu'))     { Invoke-MenuCase }
+
+if ($script:MainAcquires -gt 0) {
+    Info "$($script:MainAcquires) case(s) drove --main on $($script:MainLaunches) launch(es)"
+}
 
 Write-Host ""
 if ($script:Failures -gt 0) {

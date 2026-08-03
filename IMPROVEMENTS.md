@@ -400,21 +400,6 @@ times, three of them for the same read-only window (§XX.4), and nothing runs an
 even though the case that caught T135 needs no credentials at all (§XX.3). §XX.5 is the coverage the
 row rule actually has, which is three controls of the thirty-odd it now governs.
 
-### XX.4 Three cases, one window, five launches
-
-Each case is self-contained by design — any one can be run alone, and `-UseRunning` aside, each owns
-the process it drives. That was right at two cases. At five it means `-Case All` pays the launch,
-the first WPF layout pass and the wait for the first poll three times over for the *same* `--main`
-window, and each of those waits is seconds, not milliseconds.
-
-`Panes` and `Names` are strictly read-only: one reads numbers out of the tree, the other reads
-accessible names. `Profiles` drives the picker, which changes what is on screen but leaves the
-window in a state either of the others would accept. So one launch could serve all three.
-
-The constraint to keep is that a case must still be runnable alone — the value of `-Case Names` is
-partly that it is ten seconds when a name is what you changed. So this is a shared-window helper the
-cases opt into when several run together, not a merge of the three into one.
-
 ### XX.5 The row rule's real coverage is one panel of six
 
 `SettingsRow` gives its trailing control the row's header as an accessible name unless the control

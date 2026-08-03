@@ -50,7 +50,6 @@
 >
 > Ordered by what can make a green run meaningless, then by what keeps the loop being run at all.
 
-- 📋 **T195** (deps: —) **A full interaction run launches the app five times, three of them for the same read-only window** — `Panes`, `Profiles` and `Names` each start `--main`, wait out its first layout and first poll, and kill it, although none of them changes anything the next would see. → §XX.4
 - 📋 **T196** (deps: —) **The row rule now governs thirty-odd controls and is asserted on three of them** — `-Case Names` reads one ComboBox, one switch and one Slider on the Settings page's General panel, and five of its six panels are never visited. → §XX.5
 
 ## Block AE — Extra usage is money, and the tray is asleep for it
