@@ -34,8 +34,6 @@
 >
 > Ordered by what can ship a defect to a user today, then by what misleads whoever builds here next.
 
-- 📋 **T201** (deps: —) **Two of the five interaction cases are described nowhere** — Panes and Names have no bullet in AGENTS.md's interaction section, so the two cases a single-profile machine can run are discoverable only by reading the script. → §XXI.5
-
 ## Block AG — The interaction check grew two cases, and nobody runs it
 
 > Block AD doubled what `Check-Interaction.ps1` asserts, and every item here came out of building or

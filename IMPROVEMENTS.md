@@ -475,26 +475,3 @@ The pattern Block AF named still holds, and this is the evidence for it: **each 
 the task, not by checking it.** The picker leak surfaced because a fixture capture was read closely
 enough to notice the name above the chart; the toast path because a file appeared in the repo root;
 the window mix-up because the wrong window came back.
-
-### XXI.5 Two cases the section does not mention
-
-`Check-Interaction.ps1` accepts `-Case Keyboard | Panes | Profiles | Menu | Names | All`, and its
-own header documents all five. AGENTS.md's interaction section describes three: Keyboard, Menu and
-Profiles. Panes (T176) and Names (T175) are named nowhere outside the script.
-
-The invocation list beside them had gone stale in the same way — it said "both cases" and offered
-two of the five — which T191 fixed by collapsing it to one parameterised line, so that half can no
-longer drift. The bullets did not get the same treatment, because a bullet is not a list of names:
-each one states what its case *asserts* and when to run it, and two of them were simply never
-written.
-
-That matters more than it looks, because these bullets are how a case gets run at all. A check
-nobody invokes is the premise of Block AG's own first task, and the two undocumented cases are the
-two that need no second profile — the ones a single-profile machine can actually run.
-
-The cheap version is two bullets in the shape of the existing three: what the case reads, and what
-change should send you to it. The version worth considering instead is whether that section should
-hold the per-case detail at all, now that the script's header does and the file is at a budget T191
-lowered deliberately: the same argument that moved the flag catalogue to a skill applies to five
-case descriptions. If it moves, what stays behind is the rule — reading nothing is a FAIL, and a
-picture cannot prove a key press arrives.

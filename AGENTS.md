@@ -178,16 +178,10 @@ would tie a window to its folder.
 
 ## Visual verification workflow (the predictability loop)
 
-Use the **`preview-ui`** skill, or directly:
-
-```
-dotnet build -c Debug
-powershell -ExecutionPolicy Bypass -File scripts\Capture-Window.ps1   # -> docs\_preview\settings.png
-```
-
-Then Read `docs\_preview\settings.png` and judge it. `--settings` opens the window standalone; the
-script is per-monitor-DPI-aware (required at 150–200%) and `docs\_preview\` is git-ignored. **It is a
-screen copy, so it names whose window it copied and writes nothing when that is not ours (T199).
+Use the **`preview-ui`** skill, which carries the commands: `dotnet build -c Debug`, then
+`scripts\Capture-Window.ps1` (→ git-ignored `docs\_preview\settings.png`), then **Read that PNG and judge
+it**. The script is per-monitor-DPI-aware (required at 150–200%) and, being a screen copy, it **names whose
+window it copied and writes nothing when that window is not ours** (T199).
 
 ## Interaction verification (the loop a capture cannot close)
 
@@ -201,25 +195,29 @@ powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 `
   [-Case Keyboard|Menu|Profiles|Panes|Names] [-Lang pt-BR] [-UseRunning]   # no -Case runs every one
 ```
 
+All five are below; listing *three* is how two stayed script-only (T201). The header is the full text.
+
 - **Keyboard** launches `--settings-tray` (the WinForms pump), clicks a sidebar item, types into a `TextBox`
   and reads it back through `ValuePattern`, Tabs out, drives a `Slider` with an arrow key. **`check.yml`
-  runs this one on every push** (T194) — synthesised input does reach a hosted runner's desktop and it
-  needs no credentials; the other four still need a person.
+  runs it on every push** (T194): synthesised input reaches a hosted runner, and it needs no credentials.
+- **Panes** and **Names** (`--main`) need no second profile either, so with Keyboard they are what a
+  one-profile machine and CI can run. Panes asserts the report can be *read* — tab headers, and the pane's
+  used %, reset caption and live headline in the accessibility tree — and is the only check that would
+  notice `PART_SelectedContentHost` going missing again (T176). Names asserts what controls *announce*,
+  rows labelled by a neighbouring element included (T175).
+- **Profiles** (`--main`) is the only thing that *drives* the picker: **0 → 1 → 0** through the real
+  `ComboBox`, reading the report at each stop — the same profile must read the same coming back, the middle
+  must differ, the headline never "unavailable" at a settled stop (T165). Below two: **DEGRADED**, no skip.
 - **Menu** launches the tray, opens the notification icon's menu, reads its entries, then expands *Open
-  Claude Code* for the per-profile ones. It **refuses** to run while another tray is alive (its own launch
-  would exit on the mutex and it would read that tray's menu as a pass) — `-UseRunning` drives that one.
-- **Profiles** launches `--main` and walks the Statistics picker **0 → 1 → 0** through the real
-  `ComboBox`, reading the used %, the reset caption and the live headline at each stop: the same profile
-  must read the same on the way back, the middle one must differ, and the headline must never be
-  "unavailable" at a settled stop (T165). Under two profiles it reports **DEGRADED**, not a skip.
-- **An assertion that could have run and didn't is `Unchecked`, never an `Info` line.** T166's timing was
-  wired to `Combo-Select`'s UIA route alone, so the day `Select()` began throwing the run would print a
-  note and stay green (T193). A new check needs both halves: the fallback reaches its target in **one
-  selection change** (`Home`/`End` anchor) so the observation holds on either route, and `Unchecked` counts
-  what did not run. Reserve it for an absent *precondition*: what can never run here stays `Info`.
-- **Reading nothing is a FAIL, never a pass.** The script's header documents the four UIA traps (no
-  clickable point / overflow flyout, collapsed panes absent from the tree, the menu not always opening, a
-  switch legitimately emptying the panes) — read it before writing any new check by hand.
+  Claude Code* for the per-profile ones. It **refuses** while another tray is alive (its launch would exit
+  on the mutex and read that tray's menu as a pass) — `-UseRunning` drives that one.
+- **An assertion that could have run and didn't is `Unchecked`, never an `Info` line.** T166's timing hung
+  off `Combo-Select`'s UIA route alone, so the day `Select()` began throwing, the run would print a note and
+  stay green (T193). Both halves are needed: a fallback reaching its target in **one selection change**
+  (`Home`/`End` anchor), so the observation holds on either route, and `Unchecked` counting what did not
+  run. An absent *precondition* — what can never run here — stays `Info`.
+- **Reading nothing is a FAIL, never a pass.** The script's header lists the four UIA traps behind that —
+  read it before writing any new check by hand.
 - **A custom `TabControl` template must name its content host `PART_SelectedContentHost`.** WPF finds
   the selected tab's content by that exact name, and the `TabItem` peer asks for it to attach the pane's
   children — so an unnamed `ContentPresenter` leaves the **whole body** of every tab out of the UI
