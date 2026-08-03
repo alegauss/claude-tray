@@ -432,10 +432,27 @@ internal static class SelfTestCli
 
         // Three windows, three status strings, one keyed accessor — and a `_ =>` default arm is how a
         // fourth key would silently read as 5h's.
-        var statuses = new UsageData { Status = "a", Status7d = "b", StatusExtra = "c" };
+        // The sentinels are deliberately unpronounceable: a one-letter value collides with the localized
+        // window labels the line is built from, which passed for 5h and failed the other two for a reason
+        // that had nothing to do with the code under test.
+        var statuses = new UsageData { Status = "STAT-5H", Status7d = "STAT-7D", StatusExtra = "STAT-EX" };
         Check("each window's status is reached by its own key",
-              statuses.StatusOf("5h") == "a" && statuses.StatusOf("7d") == "b"
-              && statuses.StatusOf("extra") == "c");
+              statuses.StatusOf("5h") == "STAT-5H" && statuses.StatusOf("7d") == "STAT-7D"
+              && statuses.StatusOf("extra") == "STAT-EX");
+
+        // T213. The tooltip's last line must be about the window the rest of the tooltip is about. The
+        // three statuses are distinct on purpose: the defect was one window's word shown for another, and
+        // only a value that could only have come from the wrong header catches it.
+        foreach ((string metric, string want, string wrong) in new[]
+                 { ("5h", "STAT-5H", "STAT-7D"), ("7d", "STAT-7D", "STAT-5H"),
+                   ("extra", "STAT-EX", "STAT-5H") })
+        {
+            string line = TrayContext.StatusLine(statuses, metric, "");
+            Check($"the status line for {metric} reports {metric}'s own status",
+                  line.Contains(want) && !line.Contains(wrong), line);
+        }
+        Check("and it names the window, so the word is attributed even when the projection is dropped",
+              TrayContext.StatusLine(statuses, "7d", "").Contains(L.T("menu.metric.7d")));
     }
 
     // ---------------------------------------------------------------- Block AE: the header probe

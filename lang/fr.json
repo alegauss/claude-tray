@@ -52,7 +52,7 @@
   "tip.week": "Semaine 7 j",
   "tip.extra": "Usage supplémentaire",
   "tip.leftSuffix": " restant",
-  "tip.status": "État : {0}{1}",
+  "tip.status": "Statut {0} : {1}{2}",
   "tip.atLimitFull": "⚠ {0} : limite atteinte ({1})",
   "tip.atLimitCompact": "⚠ limite atteinte ({0})",
   "tip.billingFull": "• {0} : au-delà de votre quota inclus — l’usage supplémentaire paie",

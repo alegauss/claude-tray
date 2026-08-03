@@ -53,7 +53,7 @@
   "tip.week": "Semana 7d",
   "tip.extra": "Uso extra",
   "tip.leftSuffix": " restante",
-  "tip.status": "Estado: {0}{1}",
+  "tip.status": "Estado {0}: {1}{2}",
   "tip.atLimitFull": "⚠ {0}: no limite ({1})",
   "tip.atLimitCompact": "⚠ no limite ({0})",
   "tip.billingFull": "• {0}: além da quota incluída — o uso extra está a pagar",

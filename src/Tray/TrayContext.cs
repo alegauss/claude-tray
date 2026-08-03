@@ -1326,7 +1326,7 @@ internal sealed class TrayContext : ApplicationContext
             };
 
         string updated = _lastRefresh is { } t ? $"  ⟳ {t:HH:mm:ss}" : "";
-        string statusLine = L.T("tip.status", _data.Status, updated);
+        string statusLine = StatusLine(_data, _metric, updated);
 
         // The Windows tray tooltip is capped at 127 chars (NOTIFYICONDATA.szTip). The refresh
         // time sits on the last line, so a blind end-truncation would chop it mid-value. Keep the
@@ -1340,6 +1340,34 @@ internal sealed class TrayContext : ApplicationContext
         lines.Add(statusLine);
         return string.Join("\n", lines);
     }
+
+    /// <summary>
+    /// The tooltip's last line: what the API says about the window the icon is about, and when the reading
+    /// was taken (T213).
+    ///
+    /// <para>Every other line of the tooltip is scoped to the chosen metric — the two utilizations, the
+    /// at-limit and billing sentences, the projection, which names its scope out loud. This one used to be
+    /// filled from <c>UsageData.Status</c>, which is 5h's and only ever 5h's, under a label naming no
+    /// window at all: watching the week, it reported the session. T208 lifted the other two statuses, so
+    /// the correction is <see cref="UsageData.StatusOf"/> and the same label the sentence above it uses.</para>
+    ///
+    /// <para><b>Why the label now names the window, at a cost.</b> The 127-char cap means eight more
+    /// characters here can push the projection line from its full form to its compact one. That is the
+    /// trade this tooltip already makes — the profile label is kept for the same reason — because a
+    /// percentage without an owner is a lie and so is a status without a window. Relying on the projection
+    /// line to establish the scope would not work anyway: it is the line the cap drops first.</para>
+    ///
+    /// <para><b>Why <c>extra</c> is not special-cased.</b> Its status vocabulary is unobserved, and T208
+    /// ruled that an unmeasured affirmative may buy a poll and may not paint a screen. This is neither: the
+    /// value is echoed verbatim, attributed to the window it came from, and interpreted by nothing. Showing
+    /// the word the API used is what makes a surprising word visible instead of swallowed.</para>
+    ///
+    /// <para>Static so <c>--selftest</c> can assert the pairing; the tray around it cannot be constructed
+    /// headlessly, which is how the old line went unchecked through every run.</para>
+    /// </summary>
+    internal static string StatusLine(UsageData d, string metric, string updated)
+        => L.T("tip.status", Labels.TryGetValue(metric, out string? l) ? l : metric,
+               d.StatusOf(metric), updated);
 
     private static string Pct(double v) => $"{(int)Math.Round(Math.Min(v, 1.0) * 100)}%";
 

@@ -62,7 +62,9 @@ The **app icon** (`.exe`, installer, shortcuts) is the same clay tile with a whi
 generated as a multi-resolution `.ico` from the same GDI+ renderer (`ClaudeTray.ico`).
 
 Tooltip (hover): 5h session, 7d week, extra usage, countdown to reset, the **projected
-time to 100%** (labelled with the active window, e.g. *Week 7d projection*), and status.
+time to 100%** (labelled with the active window, e.g. *Week 7d projection*), and the status the
+rate limit reports **for that same window** — *Week 7d status: allowed*, never a word about a
+window you aren't watching.
 
 ## Projection (observability)
 

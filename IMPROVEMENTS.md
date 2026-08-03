@@ -410,29 +410,6 @@ What is cheap and already done: the probe keys on both — neither ends in `-uti
 so a change in either writes a line without a name being added anywhere. Nothing to build for the
 measurement; this task begins when a log has something to read.
 
-### XVIII.12 The tooltip's status line is about a window nobody chose
-
-Every line of the tooltip is scoped to `_metric`, the window the user picked from the menu: the two
-utilization lines, the at-limit and billing sentences, and the projection, which names its scope out
-loud so the figure cannot be misread. The last line is not. `Status: {0}` is filled from
-`_data.Status`, which is 5h's status and only ever 5h's — so somebody watching the week reads a word
-about the session, under a label that names no window at all.
-
-T208 makes the correction one expression: `_data.StatusOf(_metric)` beside the `Labels[_metric]` the
-sentence above it already uses. Nothing else moves, and no string changes, which matters because the
-Windows tooltip is capped at 127 characters and this line is the one the cap protects.
-
-Two decisions belong to whoever takes it. **Whether the label names the window.** Every neighbour
-does, and `Status: allowed` attributed to nothing is how this defect survived; against that, a
-longer label spends characters the cap is already rationing, and the line directly above it
-establishes the scope.
-
-**What to do when the chosen window is `extra`.** Echoing a status verbatim makes no claim, which is why
-this line was always safe — but `allowed` sitting under "Extra usage: 42%" will be read as a verdict on the
-extra usage, and no reading of that header from an account actually in overage exists. T208's rule was that
-an unmeasured affirmative may buy a poll and may not paint a screen. A verbatim echo is arguably neither;
-deciding it is part of the task, not a detail of it.
-
 ## XX Verification — the checks that prove a change (Block AI)
 
 This project's checks are three loops with different reaches. `--selftest` asserts arithmetic on
