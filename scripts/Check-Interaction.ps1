@@ -193,6 +193,25 @@ public static class Native {
         System.Threading.Thread.Sleep(80);
         mouse_event(right ? 0x0010u : 0x0004u, 0, 0, 0, IntPtr.Zero);
     }
+    // Who owns the foreground, which is the precondition every synthesised input rests on: a key press
+    // goes to the foreground window and a click lands on whatever is drawn at the point (T256).
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] public static extern int GetWindowThreadProcessId(IntPtr h, out int pid);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern int GetWindowTextW(IntPtr h, System.Text.StringBuilder s, int n);
+
+    public static int ForegroundPid() {
+        IntPtr h = GetForegroundWindow();
+        if (h == IntPtr.Zero) return 0;
+        int pid; GetWindowThreadProcessId(h, out pid); return pid;
+    }
+    public static string ForegroundTitle() {
+        IntPtr h = GetForegroundWindow();
+        if (h == IntPtr.Zero) return "";
+        var s = new System.Text.StringBuilder(512);
+        GetWindowTextW(h, s, s.Capacity);
+        return s.ToString();
+    }
+
     public static void Key(byte vk) {
         keybd_event(vk, 0, 0, IntPtr.Zero);
         System.Threading.Thread.Sleep(40);
@@ -225,6 +244,38 @@ function Head($msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
   This is NOT for an assertion that can never run — the Settings window binds nothing to Esc, so there is
   no Esc behaviour to observe and nothing was lost. `Unchecked` means "should have been checked, wasn't".
 #>
+<#
+  Whether this run owns the desktop it is about to type into (T256).
+
+  Every assertion below rests on one thing the script does not control: a synthesised key press goes to
+  the FOREGROUND window and a synthesised click lands on whatever is drawn at the point. Windows refuses
+  `SetForegroundWindow` to a process that does not already own the foreground, so a run started from an
+  editor that keeps focus drives somebody else's window - and the failures that produces are ordinary
+  ones. Measured while verifying T229: the same case failed at `DirectoryBox not found after navigating`,
+  then at `SetFocus` throwing, then at the first point again, and passed unchanged either side of a
+  `git stash` of the code under test.
+
+  So it is asked as a PRECONDITION and answered as `Unchecked`, not as a `Fail`. That is this script's
+  own vocabulary for "should have been checked, wasn't" (T193), and it is deliberately not a retry: a
+  case that passes on the second attempt cannot tell a busy desktop from a broken build, which is the
+  reading this whole file exists to refuse. The intruder is named the way `Capture-Window.ps1` names the
+  window it copied (T199), because "something else had focus" is not actionable and a title and a pid are.
+
+  A hosted runner has no competing foreground, so on CI this either changes nothing or reports a
+  condition that was being suffered silently. Which of the two is a reading nobody has taken.
+#>
+function Owns-Foreground($proc, $what) {
+    $pid_ = [Native]::ForegroundPid()
+    if ($pid_ -eq $proc.Id) { return $true }
+
+    $who = try { (Get-Process -Id $pid_ -ErrorAction Stop).ProcessName } catch { "pid $pid_" }
+    $title = [Native]::ForegroundTitle()
+    Unchecked $what ("this run does not own the foreground, so a key press goes elsewhere and a click " +
+                     "lands on whatever is drawn at the point: '$title' ($who, pid $pid_) has it. " +
+                     "Nothing here is about the code - re-run with nothing else taking focus.")
+    return $false
+}
+
 function Unchecked($what, $why) {
     Write-Host "[----] $what NOT CHECKED - $why" -ForegroundColor Yellow
     # Deduped by name in the SUMMARY only: the line above is printed every time, because where an
@@ -556,6 +607,11 @@ function Invoke-KeyboardCase {
         try { $win.SetFocus() } catch { Info "window SetFocus threw - $($_.Exception.Message)" }
         Start-Sleep -Milliseconds 500
 
+        # Before anything is driven, and only here: every assertion below is about synthesised input, and
+        # input goes to the foreground whoever owns it (T256). Asked after the raise, so what it reports
+        # is a window that would not yield rather than one that had not been asked yet.
+        if (-not (Owns-Foreground $proc "the keyboard path under the tray's own pump (T135)")) { return }
+
         # Trap 2, stated as an observation rather than an assertion: the window opens on General, so
         # the Claude Code pane is collapsed and none of its controls exist in the tree yet.
         if (ById $win 'DirectoryBox' 600) {
@@ -577,7 +633,15 @@ function Invoke-KeyboardCase {
         $vp = [System.Windows.Automation.ValuePattern]::Pattern
         $wasText = [string]$box.GetCurrentPattern($vp).Current.Value
         $marker = "T142check"
-        $box.SetFocus()
+        # A SetFocus that throws mid-run is the same precondition failing later, not a different defect:
+        # something took the foreground while this was driving. Ask, and let the answer decide which of
+        # the two readings it is — owning the foreground and still being refused IS a failure (T256).
+        try { $box.SetFocus() }
+        catch {
+            if (-not (Owns-Foreground $proc "typing under the tray's own pump (T135)")) { return }
+            Fail "SetFocus on DirectoryBox threw while this run owned the foreground - $($_.Exception.Message)"
+            return
+        }
         Start-Sleep -Milliseconds 250
         [System.Windows.Forms.SendKeys]::SendWait("^a")
         [System.Windows.Forms.SendKeys]::SendWait($marker)
@@ -612,7 +676,12 @@ function Invoke-KeyboardCase {
             $before = [double]$slider.GetCurrentPattern($rvp).Current.Value
             $max    = [double]$slider.GetCurrentPattern($rvp).Current.Maximum
             $min    = [double]$slider.GetCurrentPattern($rvp).Current.Minimum
-            $slider.SetFocus()
+            try { $slider.SetFocus() }
+            catch {
+                if (-not (Owns-Foreground $proc "an arrow key driving a Slider (T135)")) { return }
+                Fail "SetFocus on RetrySlider threw while this run owned the foreground - $($_.Exception.Message)"
+                return
+            }
             Start-Sleep -Milliseconds 300
             $focusedId = $AE::FocusedElement.Current.AutomationId
             if ($focusedId -ne 'RetrySlider') { Info "focus is on '$focusedId', not the slider" }

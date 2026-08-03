@@ -216,29 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.22 The check that reported the desktop
-
-Measured while verifying T229, and isolated rather than assumed: the same case failed at
-`DirectoryBox not found after navigating to the Claude Code page`, then at `SetFocus` throwing
-`InvalidOperationException`, then at the first point again. A `git stash` of the change under test
-made it pass, and putting the change back kept it passing. So the run was reporting the state of the
-desktop, not the state of the code.
-
-That matters more here than in a script somebody runs by hand: `check.yml` runs this case on every
-push (T194), and the whole argument for it is that synthesised input reaches a hosted runner. A
-check that fails for reasons unrelated to the diff is one people learn to re-run, and re-running is
-how a real failure gets waved through.
-
-The mechanism is not in doubt in kind - UIA drives a foreground window, `SetFocus` is refused to a
-process that does not own the foreground, and this machine had an editor and a browser competing.
-What is not measured is whether CI sees it at all, which is the first thing to find out: a hosted
-runner has no competing foreground, so the honest possibilities are that this is a developer-machine
-condition worth naming in the script's own header and failing differently for, or that CI has been
-re-running quietly.
-
-What must not happen is a blanket retry. A check that passes on the second attempt cannot tell a
-flaky read from a broken build, which is the failure this file keeps naming.
-
 ### XX.23 Forty questions, and nobody asking them
 
 T228 gave `--capture-toast` a refusal, and it earned it on its first run: the French extra-usage
