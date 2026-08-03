@@ -230,10 +230,16 @@ No window, no screen — the arithmetic and the readings as text.
 ## Three flags that go with anything
 
 ```
---lang <code>                         # render this run in en | pt-BR | pt-PT | fr | es, whatever the
-                                      #   saved preference is. Both tokens are stripped before anything
-                                      #   else parses, so it can go anywhere. Published screenshots are
-                                      #   English; use it to check a layout in the longest translation.
+--lang <code>                         # render this run in en | pt-BR | pt-PT | fr | es | auto, whatever
+                                      #   the saved preference is. Both tokens are stripped before
+                                      #   anything else parses, so it can go anywhere. Published
+                                      #   screenshots are English; use it to check a layout in the
+                                      #   longest translation. A code this build does not ship prints
+                                      #   the catalogue and exits 1, and so does the flag with no code
+                                      #   after it (T260) - it is the flag the whole i18n loop rests on,
+                                      #   so falling through to the machine's language would write a
+                                      #   capture of the wrong one under the name the caller gave.
+                                      #   Matched exactly: `EN` and `pt_BR` are refusals, not pt-BR.
 --sample                              # feed a surface its fixture instead of this machine's data. Any
                                       #   published screenshot of a page that shows an account, a repo
                                       #   name or a project path must use it.

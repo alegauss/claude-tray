@@ -168,6 +168,9 @@ internal static class SelfTestCli
         Section("map — every source file has a row, and every row a file (Block AJ)");
         FileMap();
 
+        Section("lang — a code this build does not ship is refused, not defaulted (Block AI)");
+        LangOverride();
+
         Section("scripts — every .ps1 is one PowerShell 5.1 can read (Block AI)");
         ScriptEncoding();
 
@@ -2091,6 +2094,44 @@ internal static class SelfTestCli
                               .OrderBy(f => f, StringComparer.Ordinal).ToArray();
         Check("and every folder it names is still there", gone.Length == 0,
               $"{string.Join(", ", gone)} — a placement rule for a folder that no longer exists");
+    }
+
+    /// <summary>
+    /// T260. <c>--lang</c> is the flag the i18n verification loop is built on, and it used to honour a
+    /// code this build does not ship by quietly using the machine's own language instead: <c>--lang zz
+    /// --tooltip</c> printed a tooltip in <c>PtBr</c> and exited 0. So a typo in
+    /// <c>--lang fr --capture-toast extra out.png</c> wrote the card in Portuguese into the file the
+    /// caller named, and nothing said so — a screenshot of the wrong thing looking exactly like a
+    /// screenshot of the right one, which is what T186, T198, T200 and T231 each refuse.
+    ///
+    /// <para>Swept over <see cref="L.Codes"/> rather than a list written here, so a language added
+    /// tomorrow is covered tomorrow — and asserted in both directions, because a refusal that refuses
+    /// everything would satisfy half of this and break the flag.</para>
+    /// </summary>
+    private static void LangOverride()
+    {
+        string[] refusedShipped = L.Codes.Where(c => L.RefuseOverride(c) is not null).ToArray();
+        Check($"every language this build ships is accepted ({L.Codes.Count})", refusedShipped.Length == 0,
+              $"{string.Join(", ", refusedShipped)} — refused by the flag that exists to select them");
+
+        Check("and so is auto, which asks for the OS language out loud",
+              L.RefuseOverride("auto") is null);
+
+        // The other direction. A near-miss and a wrong case are the typos that actually happen, and the
+        // codes are matched exactly (`L.Resolve` is ordinal), so both must be refused rather than resolved.
+        foreach (string bad in new[] { "zz", "de", "pt_BR", "EN", "en-GB", "" })
+            Check($"'{bad}' is refused rather than becoming the machine's language",
+                  L.RefuseOverride(bad) is not null);
+
+        Check("the flag with no code after it is refused too — it was typed, and cannot be honoured",
+              L.RefuseOverride(null) is not null);
+
+        // A refusal nobody can act on is the reason these flags print a catalogue (T186).
+        string refusal = L.RefuseOverride("zz") ?? "";
+        string[] unlisted = L.Codes.Where(c => !refusal.Contains(c, StringComparison.Ordinal)).ToArray();
+        Check($"and the refusal prints every code it would have accepted ({L.Codes.Count})",
+              unlisted.Length == 0 && refusal.Contains("auto", StringComparison.Ordinal),
+              $"missing from the catalogue: {string.Join(", ", unlisted)}");
     }
 
     /// <summary>

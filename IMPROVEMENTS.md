@@ -216,28 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.26 The flag the screenshot loop trusts
-
-Measured: `--lang zz --tooltip` printed the tooltip in `PtBr`, this machine's OS language, said
-nothing and exited 0. `--tooltip --lang` - the flag with its value missing - left the token in the
-argument list for something else to read and applied no override at all.
-
-This is the defect four tasks in this repository already have names for. T186 refuses an unknown
-preview variant, T198 an unknown toast, T200 an unknown week= name, T231 an unknown `--sample-env`
-mode, and every one of them refuses for the same stated reason: a token that is not understood must
-not quietly select the default, because a screenshot of the wrong thing looks exactly like a
-screenshot of the right one. `--sample-env` is parsed ten lines below `--lang` in `Main`, and its
-own comment says so, in the words this line would otherwise quote back at it.
-
-`--lang` is worse placed than any of them, because it is the flag the i18n verification loop is
-built on. `--lang fr --capture-toast extra out.png` with the code mistyped writes the card in the
-machine's language into the file the caller named, and the person believes they checked French.
-T257's sweep is safe because it passes codes from a list; a person typing one is not.
-
-What must not change is the *setting*. `L.Resolve` falling back to the OS for an unknown saved
-preference is correct, and `IsValidPreference` is what guards that. The argument is the other case:
-it was typed, on purpose, now. `L.Codes` is already the catalogue such a refusal would print.
-
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of

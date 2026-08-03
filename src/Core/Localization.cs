@@ -68,6 +68,39 @@ internal static class L
     public static bool IsValidPreference(string? pref) =>
         pref == "auto" || Languages.Any(li => li.Code == pref);
 
+    /// <summary>
+    /// Why a <c>--lang &lt;code&gt;</c> argument cannot be honoured, or null when it can (T260).
+    ///
+    /// <para><b>An argument is not a setting, and this is the whole difference.</b> A saved preference
+    /// that names no shipped language falls back to the OS, which is right: it may predate a language
+    /// being removed, and <see cref="IsValidPreference"/> is what guards the value the page writes. An
+    /// argument was typed, on purpose, now — so falling back to the machine's own language means
+    /// <c>--lang fr --capture-toast extra out.png</c> writes the card in Portuguese into the file the
+    /// caller named, and the person believes they checked French. Measured before this: <c>--lang zz</c>
+    /// printed a tooltip in the OS language, said nothing, and exited 0.</para>
+    ///
+    /// <para>The same refusal four other flags here already make — an unknown preview variant (T186), an
+    /// unknown toast (T198), an unknown <c>week=</c> (T200), an unknown <c>--sample-env</c> mode (T231) —
+    /// for the same stated reason: a token that is not understood must not quietly select the default,
+    /// because a screenshot of the wrong thing looks exactly like a screenshot of the right one.</para>
+    ///
+    /// <para><c>null</c> is the flag given with its value missing, which is refused too: it was typed and
+    /// it cannot be honoured. <c>auto</c> is accepted — asking for the OS language out loud is a request,
+    /// not a fall-through.</para>
+    /// </summary>
+    public static string? RefuseOverride(string? code) =>
+        IsValidPreference(code)
+            ? null
+            : (code is null
+                  ? "--lang was given with no code after it."
+                  : $"unknown language '{code}'.")
+              + " Refusing rather than falling through to this machine's own language,\n"
+              + "which is how a capture of the wrong one gets taken (T186, T198, T231 — same rule).\n"
+              + "\n"
+              + "languages (--lang <code>):\n"
+              + string.Join("\n", PickerLanguages.Select(l => $"  {l.Code,-7} {l.Name}"))
+              + "\n  auto    follow the OS display language";
+
     /// <summary>The languages offered in the Settings picker, each as (code, own-language name).</summary>
     public static IReadOnlyList<(string Code, string Name)> PickerLanguages =>
         Languages.Select(li => (li.Code, li.Endonym)).ToArray();

@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T260** (deps: —) **A mistyped language is honoured as the machine one, so a capture is of a language nobody asked for** — --lang zz prints the tooltip in the OS language and exits 0, while --sample-env, ten lines below it in the same method, refuses a bad mode with the catalogue. → §XX.26
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization

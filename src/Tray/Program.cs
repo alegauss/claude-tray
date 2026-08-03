@@ -97,12 +97,25 @@ internal static class Program
         // that a window still fits in Spanish should not mean editing the user's settings and
         // restarting. Both tokens are removed before anything else parses the arguments, or a stray
         // "es" would be read as a project name.
+        // A code this build does not ship is REFUSED rather than allowed to fall through to the machine's
+        // own language (T260): this is the flag the i18n verification loop is built on, so a typo in it
+        // writes a capture of the wrong language into the file the caller named and nothing says so. The
+        // same rule and the same shape as `--sample-env` below, which has always had it.
         string? langOverride = null;
         int langAt = Array.IndexOf(args, "--lang");
-        if (langAt >= 0 && langAt + 1 < args.Length)
+        if (langAt >= 0)
         {
-            langOverride = args[langAt + 1];
-            args = args.Take(langAt).Concat(args.Skip(langAt + 2)).ToArray();
+            langOverride = langAt + 1 < args.Length ? args[langAt + 1] : null;
+            args = args.Take(langAt).Concat(args.Skip(langAt + (langOverride is null ? 1 : 2))).ToArray();
+            if (L.RefuseOverride(langOverride) is { } refusal)
+            {
+                // The endonyms carry accents, and a WinExe's console starts on the OEM code page, which
+                // prints them as '?' — same reason ToastPreviews.PrintCatalog sets this.
+                try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected */ }
+                Console.WriteLine(refusal);
+                Environment.Exit(1);
+                return;
+            }
         }
 
         // Pick the UI language before anything localized is built (menus, dialogs, and XAML windows all
