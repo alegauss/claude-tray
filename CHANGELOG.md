@@ -114,6 +114,7 @@
 - **T43** — `--simulate-reset` and `--capture-toast` dev previews, sharing the live notifier's display strings so the wording can't drift. (`de12b7a`)
 - **T44** — Timestamped reset-event log at `%LocalAppData%\ClaudeTray\reset-events.log`, so an anomaly can be reported later with real before/after numbers. (`9050f4e`, `de12b7a`)
 - **T45** — The 5h session reset as its own opt-in toggle, separate from the weekly ones. (`a57d6b1`)
+- **T227** — Measured before fixing, and the premise did not survive: naming a colour font changes nothing, because WPF text and GDI+ both draw Segoe UI Emoji monochrome base layer - no coloured pixel in six glyphs under either, and a real captured card with the font named is the same black popper. What shipped is the half that is true: BodyFont and EmojiFont are fields the window binds with x:Static, so the glyph comes from a font carrying every codepoint the cards use instead of whatever font linking reached first, and --selftest asks the typeface for each one so a card that would draw a tofu box is a red build. Colour is now a non-goal with the measurement behind it.
 
 ## Block F — Statistics window (pace report)
 

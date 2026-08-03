@@ -290,23 +290,6 @@ therefore not this app's decision, and a count taken over them is a claim about 
 Two things the toasts got wrong that no capture ever objected to, both found by looking at a card
 rather than at the code that built it.
 
-### XXV.1 A card's emoji is drawn by whichever font WPF reaches first
-
-Captured while adding T174's card: the new laptop glyph came out black, and so did the ones that
-shipped with Block E - docs/notify-surprise.png, committed long before, has the same monochrome
-popper. So this is not the new card, it is every card, and nobody ever looked at the glyph rather
-than the layout.
-
-The codepoints in use are emoji-default, which rules out the variation-selector explanation and
-points at the font instead: the Emoji TextBlock names none, so it inherits the window's Segoe UI
-stack, and neither family in it has colour glyphs. WPF resolves the run against Segoe UI Symbol and
-draws a perfectly good outline.
-
-The fix is a font on that one TextBlock, not a per-card exception list - the seven cards pick their
-emoji freely and every one should render the same way. Worth a check of its own, because the failure
-mode is a glyph that draws correctly and is simply the wrong one, which is exactly what a capture
-certifies without complaint.
-
 ### XXV.2 A capture certifies that a card rendered, not that it fits
 
 Found in the pt-BR capture of T174's card: the title wrapped to a second line, the caption slid

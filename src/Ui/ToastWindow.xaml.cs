@@ -8,6 +8,7 @@ using System.Windows.Threading;
 // System.Drawing (WinForms) is in the global usings, so disambiguate the WPF types.
 using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
+using FontFamily = System.Windows.Media.FontFamily;
 using Point = System.Windows.Point;
 using Rectangle = System.Windows.Shapes.Rectangle;
 
@@ -24,6 +25,35 @@ internal partial class ToastWindow : Window
 {
     /// <summary>Color theme per notification type, so each is identifiable at a glance.</summary>
     internal enum ToastTheme { Surprise, Bonus, Weekly, Session, Context, ExtraUsage, Profile }
+
+    /// <summary>
+    /// The card's text stack, and the one every card's <b>glyph</b> is drawn in — separately, because they
+    /// have to be different families and were not (T227).
+    ///
+    /// <para>Neither family in <see cref="BodyFont"/> carries these codepoints at all, so the run fell
+    /// through font linking to whatever WPF reached first and drew a perfectly good monochrome outline: the
+    /// popper on <c>docs/notify-surprise.png</c>, committed long before anybody noticed, is black.</para>
+    ///
+    /// <para><b>Naming the emoji font does not make it colourful, and T227 measured that rather than
+    /// assuming it.</b> WPF's text pipeline has no colour-font support — nor has GDI+ — so both draw
+    /// <c>Segoe UI Emoji</c>'s own monochrome base layer, and a capture of the real card with this font
+    /// named comes back identical. What naming it does buy is that the glyph is no longer whichever family
+    /// font linking happened to land on: it comes from one that carries every codepoint the cards use, so a
+    /// card cannot draw a tofu box on a machine whose fallback differs. Colour would need Direct2D interop
+    /// or seven shipped raster assets, and both are non-goals.</para>
+    ///
+    /// <para>Here rather than in the XAML so nothing has to read markup to know what the answer is: the
+    /// window binds both with <c>{x:Static}</c>, and <c>--selftest</c> asks these same two fields — the
+    /// fix and the check cannot name different fonts. One <c>TextBlock</c> carries every card's emoji, so
+    /// this covers the seven that exist and whatever the eighth picks.</para>
+    /// </summary>
+    /// <remarks><b>Public, on an internal class</b> — <c>{x:Static}</c> resolves through reflection that an
+    /// internal field is not visible to, and the failure is a <c>XamlParseException</c> at construction, so
+    /// every toast throws. Assembly-internal either way, since the type is.</remarks>
+    public static readonly FontFamily BodyFont = new("Segoe UI Variable Text, Segoe UI");
+
+    /// <inheritdoc cref="BodyFont"/>
+    public static readonly FontFamily EmojiFont = new("Segoe UI Emoji");
 
     private bool _closing;
     private double _targetScale = 1.0; // available quota after the event; the bar animates to this

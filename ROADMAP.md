@@ -76,7 +76,6 @@
 
 ## Block E — Reset notifications & toasts
 
-- 📋 **T227** (deps: —) **Every toast draws its emoji as a flat black glyph** — The Emoji TextBlock inherits the window's Segoe UI font stack, which has no colour glyphs, so the party popper the README prints in colour is a monochrome outline on the card itself. → §XXV.1
 - 📋 **T228** (deps: —) **A card can cut its own text off, and the capture is written anyway** — The card is a fixed height chosen against the English wording, so a longer translation pushed the caption past the bottom edge and --capture-toast wrote the clipped PNG out with 'wrote' and exit 0. → §XXV.2
 
 ## Block S — Settings round-trip
@@ -122,3 +121,6 @@ Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full 
 - **No check outside the binary** --selftest is the suite because a test project would break the
   single-exe rule, and moving a document check out to save a measured 10s compile buys a second
   reader of the thing it compares.
+- **No colour emoji on the cards** WPF text and GDI+ both draw Segoe UI Emoji monochrome base layer
+  - measured on six glyphs and on a real captured card - so colour needs Direct2D interop or seven
+  shipped raster assets (T227).

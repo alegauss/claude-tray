@@ -147,6 +147,9 @@ internal static class SelfTestCli
         Section("effective — which profile the environment selects (Block AC)");
         EffectiveProfile();
 
+        Section("glyphs — every card's emoji is in the font the card names (Block E)");
+        ToastGlyphs();
+
         Section("projects — a count of directories, not of keys (Block N)");
         ProjectCount();
 
@@ -2816,6 +2819,74 @@ internal static class SelfTestCli
             .First(p => p.Key == "stats.methodNote.thin");
         Check("the thin preview is short of its own bar",
               thinPart.Args is ["2.1", "3"], string.Join(" of ", thinPart.Args));
+    }
+
+    // ---------------------------------------------------------------- Block E: the cards' glyphs
+
+    /// <summary>
+    /// T227. Every toast draws its emoji as a flat black outline, and the task was to fix that with a font
+    /// on the one <c>TextBlock</c> that carries them. <b>Measured, that fix does not exist.</b> Rendering the
+    /// six glyphs the cards use under WPF's own text stack and under GDI+, in <c>Segoe UI Emoji</c> itself,
+    /// produced no coloured pixel in any of the twelve — and a real <c>--capture-toast unexpected</c> with the
+    /// font named came back with the same black popper. WPF draws the font's monochrome base layer because
+    /// its text pipeline has no colour-font support at all, and GDI+ has none either; colour would need
+    /// Direct2D interop or seven raster assets, which is a non-goal.
+    ///
+    /// <para><b>What is left is worth keeping, and it is what this checks.</b> Naming the family takes font
+    /// <em>linking</em> out of the picture: the run used to resolve against whichever family WPF reached
+    /// first from a stack containing none of these codepoints, and now comes from one that carries all of
+    /// them. So the property is that every card's glyph is really in the font the card names — a card that
+    /// picks a codepoint <c>Segoe UI Emoji</c> lacks would draw a tofu box, which is the same kind of defect
+    /// as the black popper and the same kind a capture certifies without complaint.</para>
+    ///
+    /// <para>Asked of the typeface rather than of pixels, because a missing glyph and a present one both
+    /// render ink. The precondition is the other half: the family the glyph used to inherit must still be
+    /// missing them, or naming the emoji font is doing nothing and this would pass either way.</para>
+    /// </summary>
+    private static void ToastGlyphs()
+    {
+        // From the live notifier's own content, not from a literal here: the reset cards pick their glyph
+        // per event kind, and probing one no card uses would answer about the wrong codepoint.
+        string[] glyphs = new[] { "7d", "5h" }
+            .SelectMany(k => Enum.GetValues<BurnTracker.ResetKind>()
+                .Select(kind => TrayContext.ResetToastContent(
+                    k, new BurnTracker.ResetEvent(kind, 0.8, 0.0, (long)Now, (long)Now + 3600), (long)Now).emoji))
+            .Concat(new[] { "📇", "🧾", "💻", "🚫" })   // the four cards that name theirs at the call site
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        if (!Check($"the cards' glyphs are reachable ({glyphs.Length} distinct)", glyphs.Length >= 5,
+                   string.Join(" ", glyphs)))
+            return;
+
+        string[] inherited = glyphs.Where(g => Maps(ToastWindow.BodyFont, g)).ToArray();
+        if (!Check("the card's text font still carries none of them — so naming the emoji font does something",
+                   inherited.Length == 0,
+                   $"{string.Join(" ", inherited)} — already covered, and the fallback was never the issue"))
+            return;
+
+        string[] missing = glyphs.Where(g => !Maps(ToastWindow.EmojiFont, g)).ToArray();
+        Check($"and the font the card names carries every one of them ({glyphs.Length})", missing.Length == 0,
+              $"{string.Join(" ", missing)} — would draw as a tofu box, and a capture would not say so");
+    }
+
+    /// <summary>Whether a family has a real glyph for every codepoint in <paramref name="text"/>. Asked of
+    /// the typeface, not of a rendering: a missing glyph draws a box, which is ink like any other.</summary>
+    private static bool Maps(System.Windows.Media.FontFamily family, string text)
+    {
+        foreach (System.Windows.Media.Typeface tf in family.GetTypefaces())
+        {
+            if (!tf.TryGetGlyphTypeface(out System.Windows.Media.GlyphTypeface? gt)) continue;
+            bool all = true;
+            for (int i = 0; i < text.Length && all;)
+            {
+                int cp = char.ConvertToUtf32(text, i);
+                i += char.IsSurrogatePair(text, i) ? 2 : 1;
+                all = gt.CharacterToGlyphMap.ContainsKey(cp);
+            }
+            if (all) return true;
+        }
+        return false;
     }
 
     // ---------------------------------------------------------------- Block N: what "9 projects" counts

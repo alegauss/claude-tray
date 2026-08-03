@@ -1,12 +1,13 @@
 <Window x:Class="ClaudeTray.ToastWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ClaudeTray"
         x:ClassModifier="internal"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" ShowActivated="False" Topmost="True"
         ResizeMode="NoResize" WindowStartupLocation="Manual"
         Width="400" Height="200"
-        FontFamily="Segoe UI Variable Text, Segoe UI">
+        FontFamily="{x:Static local:ToastWindow.BodyFont}">
 
     <Window.Resources>
         <!-- Round close affordance in the corner. -->
@@ -53,7 +54,10 @@
                     <!-- Header: party emoji + headline, close button pinned right. -->
                     <Grid Grid.Row="0">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="Emoji" FontSize="32" VerticalAlignment="Center" />
+                            <!-- Named, not inherited: the window's stack has no colour glyphs and WPF
+                                 falls through to a monochrome outline that looks fine (T227). -->
+                            <TextBlock x:Name="Emoji" FontSize="32" VerticalAlignment="Center"
+                                       FontFamily="{x:Static local:ToastWindow.EmojiFont}" />
                             <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
                                 <!-- Bounded like the subtitle: the close button sits at the same top-right
                                      corner, and an unbounded title runs straight under it in any language
