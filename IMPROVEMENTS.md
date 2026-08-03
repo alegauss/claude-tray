@@ -256,31 +256,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.1 What earns a byte of a file read every turn
-
-Hit while shipping T169. Its rule belongs in `AGENTS.md` — a skip that fires every run is a check
-that does not exist — and writing it took the file to 41,612 bytes against a 41,000 budget. The rule
-went in at three drafts instead of one, and the bytes were found by deleting a sentence duplicated
-between the file map and the *Arithmetic verification* section. That deletion was free. The next one
-will not be.
-
-The budget is right and is not the problem: the file is loaded every turn, and roadkeep enforcing it is
-the only reason anyone noticed. The problem is what a full budget does to the incentive. The file is
-**zero-sum**, so every new rule is a negotiation against an old one, and nothing records which rules have
-earned their bytes. The cheapest thing to cut is whatever the editor has not needed lately, which is a
-worse selector than "what has caused a defect".
-
-Two candidates the block turned up. **Reference material is still in here**: the `src/` file map is
-the largest section and reads like a table of contents, while T191 already moved the flag catalogue
-out to `dev-flags` for that reason. And several rules carry their whole discovery story where the
-rule alone would do.
-
-What would settle it is a stated test for what stays: a rule earns its bytes if getting it wrong has
-produced a defect **and** the rule cannot be asserted in `--selftest` instead. T167's
-number-convention rule is now a check, not a paragraph; T192's id-uniqueness rule is a check. That
-test predicts a smaller file, and it says which paragraphs go to a skill rather than which ones go
-away.
-
 ### XXII.2 The index of themes is the one thing nothing checks
 
 `CHANGELOG.md` opens with a table mapping every block letter to its theme, and the `roadmap-docs`

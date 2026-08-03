@@ -101,12 +101,12 @@ next*.
 | Input, focus, and being readable | **Q** | `WpfInputBridge`, keyboard, UI Automation names |
 | The window shell and its navigation | **Y** | `MainWindow`, page hosting, `PageWindow` |
 | Verification — the checks that prove a change | **AI** | `--selftest`, `Check-Interaction.ps1`, previews, captures, fixtures |
-| Working here — the repo's own docs and flags | **AJ** *(reserved)* | `AGENTS.md`, the skills, `dev-flags`, the budgets |
+| Working here — the repo's own docs and flags | **AJ** | `AGENTS.md`, the skills, `dev-flags`, `file-map`, the budgets |
 
 Verification and the repo's own docs are this project's two most active themes and had no row of their
-own, which is the gap the batch letters were filling. **`AI` is declared** — T202 was its first task to
-ship, so the letter is live and every check, capture or fixture task files under it. `AJ` is still
-**reserved**: declare it the way any new block is declared (below), in the commit its first task ships.
+own, which is the gap the batch letters were filling. **Both letters are now declared** — T202 was
+`AI`'s first task to ship and T219 was `AJ`'s — so every check, capture or fixture task files under
+`AI`, and every task about this repo's own docs, skills, flags or budgets under `AJ`.
 
 **A block empties; it does not close.** `roadkeep pick --block I` answering *"nothing is open in Block
 I"* means that theme is quiet today, not finished — the next context task reopens it. Two consequences,

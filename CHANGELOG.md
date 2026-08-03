@@ -50,6 +50,7 @@
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
 | [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
+| [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags (active — see ROADMAP) |
 
 ## Block A — Foundation (tray, icon, API, projection)
 
@@ -560,6 +561,8 @@
 - **T241** — The check fingerprints the whole of %LocalAppData%\ClaudeTray around the trays it launches, so a writer nobody listed is caught by the directory rather than by a list of methods - and because the check's own writes always show, no change observed is a sound pass even beside a resident tray.
 
 ## Block AJ — Working here — the repo's own docs and flags
+
+- **T219** — AGENTS.md now states the test it is kept by - a rule earns its bytes if getting it wrong has produced a defect and --selftest cannot assert it instead - and the per-file map left on that test for the new `file-map` skill, reference material consulted rather than read. 40,981 bytes against a 41,000 ceiling became 23,359 against 24,200, so the next rule is written instead of negotiated against whichever paragraph was least recently needed.
 
 ## Block AB — What Block Z's own work left behind
 

@@ -82,9 +82,11 @@ why = 200
 # the budget lives in the file's own prose is what let Viglet Shio's reach 186 KB.
 # 400/42000 until T191, where it sat at exactly 400 and so silently omitted whatever shipped next. The
 # flag catalogue moved to the `dev-flags` skill — reference material, consulted rather than read — and
-# the ceiling came down with it rather than the room being spent. The file is at 360/39.3 KB, so the
-# headroom is about ten lines: enough for the next block's map rows, not enough to stop compressing.
-"AGENTS.md" = { lines = 370, bytes = 41000 }
+# the ceiling came down with it rather than the room being spent. 370/41000 until T219, which stated
+# the test the file is now kept by — a rule earns its bytes if getting it wrong produced a defect and
+# `--selftest` cannot assert it — and moved the per-file map to the `file-map` skill on it. The file is
+# at 302 lines / 22.8 KB, so the headroom is about ten lines again: room for a rule, not for a table.
+"AGENTS.md" = { lines = 312, bytes = 24200 }
 
 [markers]
 open = ["📋", "💭", "⏳", "🛠"]
