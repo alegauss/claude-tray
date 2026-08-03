@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T264** (deps: —) **A published screenshot cannot be regenerated from the flags the catalogue documents** — statistics-overage.png carries a legend entry - the right-hand extra-usage scale - that the overage variant produces neither with the fixture nor without, so a change to it cannot be re-taken. → §XX.28
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization

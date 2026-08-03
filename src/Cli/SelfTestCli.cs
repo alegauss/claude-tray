@@ -168,6 +168,9 @@ internal static class SelfTestCli
         Section("map — every source file has a row, and every row a file (Block AJ)");
         FileMap();
 
+        Section("fixture — the overage preview produces the state it exists for (Block AI)");
+        OveragePreview();
+
         Section("dates — the fields are in the order the culture puts them (Block G)");
         DateOrder();
 
@@ -2103,6 +2106,55 @@ internal static class SelfTestCli
                               .OrderBy(f => f, StringComparer.Ordinal).ToArray();
         Check("and every folder it names is still there", gone.Length == 0,
               $"{string.Join(", ", gone)} — a placement rule for a folder that no longer exists");
+    }
+
+    /// <summary>
+    /// T264. The overage preview exists because an account past its included quota is a state no machine can
+    /// be put into on demand — so a preview that quietly declines to produce it is worse than none, and that
+    /// is what it had become. Its guard was <c>ExtraCurve.Count &gt; 0</c>, and the list is non-empty on any
+    /// machine whose history holds a <b>measured zero</b> for overage, which is most of them (T179 writes one
+    /// whenever the header was present). So the demo bailed, the real series scaled to nothing, the chart's
+    /// <c>hasExtra</c> was false, and <c>--stats overage</c> drew an ordinary week with no second axis. It is
+    /// why <c>docs/statistics-overage.png</c> could not be re-taken: it was captured before that history
+    /// existed.
+    ///
+    /// <para>Asserted on the seam itself rather than through a rendered page: the three states it has to
+    /// tell apart are a curve of measured zeros, a curve with a real maximum, and no window at all — and
+    /// the first is the one every machine is in and the one that was wrong.</para>
+    /// </summary>
+    private static void OveragePreview()
+    {
+        static WindowPace Week()
+        {
+            var w = new WindowPace { HasWindow = true, WindowSeconds = 7 * 86400, ElapsedSeconds = 4 * 86400 };
+            w.Util = 1.0;
+            return w;
+        }
+
+        // The state every machine with overage headers is in: readings on file, every one of them zero.
+        WindowPace measuredZeros = Week();
+        for (int i = 0; i <= 10; i++) measuredZeros.ExtraCurve.Add((i / 10.0 * 0.57, 0.0));
+        StatisticsPage.FillDemoOverage(measuredZeros);
+        Check("a curve of measured zeros is filled, so the preview draws the state it is for",
+              measuredZeros.ExtraMax > 0, $"ExtraMax {measuredZeros.ExtraMax}, {measuredZeros.ExtraCurve.Count} points");
+        Check("and the zeros are replaced rather than drawn under it",
+              measuredZeros.ExtraCurve.All(p => p.val > 0 || p.frac > 0),
+              "a flat line of real zeros left in front of the demo climb means two things at once");
+
+        // A real spell must be left exactly alone — the seam is for the absence, not for overwriting.
+        WindowPace real = Week();
+        real.ExtraCurve.Add((0.30, 0.10));
+        real.ExtraCurve.Add((0.60, 0.42));
+        real.ExtraMax = 0.42;
+        StatisticsPage.FillDemoOverage(real);
+        Check("a real overage series is untouched", real.ExtraCurve.Count == 2 && real.ExtraMax == 0.42,
+              $"{real.ExtraCurve.Count} points, max {real.ExtraMax}");
+
+        // No window is nothing to draw on, and inventing a series over it would be a chart about nothing.
+        var noWindow = new WindowPace();
+        StatisticsPage.FillDemoOverage(noWindow);
+        Check("and a window that does not exist gets no series",
+              noWindow.ExtraCurve.Count == 0 && noWindow.ExtraMax == 0);
     }
 
     /// <summary>

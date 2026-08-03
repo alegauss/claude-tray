@@ -367,9 +367,22 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
 
     /// <summary>The shape of a week that ran out mid-way and kept working: flat nothing until the quota is
     /// spent, then a climb that does not stop at the ceiling because it is not measured against one.</summary>
-    private static void FillDemoOverage(WindowPace w)
+    /// <remarks>
+    /// <b>Gated on there being nothing to scale, not on the list being empty</b> (T264). The list is
+    /// non-empty on any machine whose history holds a <em>measured zero</em> for overage — which is most of
+    /// them, since <c>UsageHistory</c> writes <c>ux</c> whenever the header was present and 0 is a reading
+    /// (T179). So the old guard bailed, the real series had <c>ExtraMax == 0</c>, the chart's own
+    /// <c>hasExtra</c> was false, and <c>--stats overage</c> drew a week with no second axis and no clay
+    /// series: the preview whose entire reason for existing is a state no machine can be put into, silently
+    /// showing the state every machine is already in. It is how <c>docs/statistics-overage.png</c> became a
+    /// picture nothing could re-take — it was captured where that history did not exist yet.
+    /// <para>An all-zero curve is also replaced rather than appended to, or the demo would draw its climb
+    /// on top of a flat line of real zeros and mean two things at once.</para>
+    /// </remarks>
+    internal static void FillDemoOverage(WindowPace w)
     {
-        if (!w.HasWindow || w.ExtraCurve.Count > 0) return;
+        if (!w.HasWindow || w.ExtraMax > 0) return;
+        w.ExtraCurve.Clear();
         // Relative to how much of the window has actually elapsed, not an absolute fraction: the preview
         // is only ever as wide as "now", so a fixed onset past it produces an empty series and a chart
         // that silently draws nothing.
