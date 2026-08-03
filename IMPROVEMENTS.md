@@ -301,6 +301,51 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
+### XXII.14 The gate that only passes where somebody has built
+
+`roadkeep lint` checks that a path a governed line names is in the repository. `CHANGELOG.md`'s T151
+entry names `bin/Release/net10.0-windows/win-x64/ClaudeTray.exe`. `bin/` is the first line of
+`.gitignore`, and `roadkeep.yml` is `actions/checkout` followed by the action — no build, ever.
+
+So the gate passes on a developer's machine, where that file is sitting there from the last build,
+and fails in CI, where it can never exist. Reproduced by renaming the one file: `lint` exits 1 with
+`path.missing`. It is not a flake and not new; it is standing on every push, and the whole contract
+of that workflow is its exit code.
+
+Two things make it worth a task rather than an edit. The line is **shipped**, and `amend` refuses a
+shipped id by design — the ledger is history — so correcting the wording is not a door that is open,
+and `record drop` only removes the later of two entries for one id. And the rule may be the thing
+that is wrong: a build output is a path a sentence may legitimately name, and demanding it be
+committed is demanding the wrong thing.
+
+Three ways out, and they are not equivalent. The workflow's own comment offers `baseline:
+origin/main`, which stops a branch failing on standing debt — green CI with the path still wrong,
+which is a workaround wearing a fix's clothes. `record drop` then `record add` rewrites the entry if
+roadkeep permits the pair. Or the path rule learns what `.gitignore` says, which is roadkeep's own
+backlog and not this one's.
+
+### XXII.15 The door the ledger's own shape closed
+
+`roadkeep retire` writes the entry for a task that leaves without shipping — the door T85 and T101
+both went through. It refuses here: `[ledger] marker = false` says this file's entries carry no ✅,
+which was a true and deliberate statement about 163 reconstructed lines, and it means a 🗑 cannot be
+told from a ✅ either. The command writes nothing and says so.
+
+The refusal is right. The consequence is that a task which should be abandoned has no recorded exit
+in this repository, and the alternative reached for under time pressure is to ship it — a ✅ against
+work that was decided against rather than done, which is exactly the ledger lying that `marker =
+false` was declared to avoid.
+
+It cost a step this session and will cost the next one the same, because nothing says it in advance:
+the `roadmap-docs` skill sends the reader to roadkeep for the write path, roadkeep's skill names
+`retire` among the verbs, and neither mentions that this project cannot use it. A rule that is
+discovered by being refused is a rule nobody planned around.
+
+Two ways, and the choice is editorial. Turn the marker on, which means every one of 170-odd existing
+lines is now a line without a ✅ that used to be fine — declared history becoming visible debt. Or
+write down, where the discipline lives, that a task here leaves by shipping with an outcome that
+says it was decided against, and say what that entry should read like.
+
 ## XXIII What the API says about permission, and what the app infers instead (Block D)
 
 Every signal this app has about whether an account may spend past its included quota is inferred
