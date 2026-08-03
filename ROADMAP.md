@@ -67,7 +67,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T243** (deps: —) **A flag with no variant table in code is documented by hand and checked by nobody** — T207 asserts the catalogue against the two tables it can read, so --recorded reached dev-flags because somebody remembered - the guarantee that assertion exists to replace. → §XXII.5
 - 📋 **T244** (deps: —) **A row of the ledger's index says its block is active with nothing open under it** — T223 asserted every heading has a row and every row a heading, and left the one part of a row that states a fact about the roadmap set by hand and cleared by nobody. → §XXII.6
 
 ## Block G — Localization

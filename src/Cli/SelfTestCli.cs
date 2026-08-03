@@ -80,6 +80,8 @@ internal static class SelfTestCli
          "the same absent repository, and the skill is not installed beside a released binary (T223)"),
         ("the file map names every source file, and only files that exist",
          "the same absent repository - the map and the tree it maps both ship with the source (T242)"),
+        ("every flag the sources accept is declared in dev-flags",
+         "the same absent repository - the catalogue and the sources ship together (T243)"),
     };
 
     /// <returns>Process exit code: 0 when every check passed.</returns>
@@ -166,6 +168,9 @@ internal static class SelfTestCli
 
         Section("map — every source file has a row, and every row a file (Block AJ)");
         FileMap();
+
+        Section("catalogue — every flag the sources accept is declared (Block AJ)");
+        FlagCatalogue();
 
         if (quick)
         {
@@ -1985,6 +1990,83 @@ internal static class SelfTestCli
                               .OrderBy(f => f, StringComparer.Ordinal).ToArray();
         Check("and every folder it names is still there", gone.Length == 0,
               $"{string.Join(", ", gone)} — a placement rule for a folder that no longer exists");
+    }
+
+    /// <summary>
+    /// The other half of the flag surface (T243): the switches that are a bare string read out of
+    /// <c>args</c> where they are used, with no table in code for T207's assertion to compare against.
+    ///
+    /// <para>T207 reaches exactly the flags whose variants <em>are</em> a list a build can enumerate — the
+    /// toast cards, the tooltip variants, the <c>week=</c> names. Everything else — <c>--probe</c>'s three
+    /// switches, <c>--activity</c>'s four, <c>--raw</c>, <c>--sample-env</c> — was documented because
+    /// somebody remembered, which is the guarantee that assertion exists to replace. <c>--recorded</c>
+    /// reached the catalogue that way one task ago; <c>--raw</c> did not reach it at all, and had been
+    /// unlisted since <c>--live</c> shipped.</para>
+    ///
+    /// <para><b>Where the catalogue is read matters, and this is what §XXII.5 left to settle.</b> Taken
+    /// over the whole document the second direction cannot be trusted: the prose explains other programs'
+    /// flags, and <c>claude auth status --json</c> reads as this app promising a <c>--json</c> it has never
+    /// had. So a flag counts as documented only where the catalogue <em>declares</em> it — inside a fenced
+    /// block, left of the <c>#</c> that opens the description — which is the same position
+    /// <see cref="SkillBlock"/> already keys on. Measured over the file as it stands: 45 declared, 46
+    /// mentioned, and the difference is somebody else's flag.</para>
+    ///
+    /// <para>The source side is every <c>"--x"</c> literal under <c>src\</c>, which is what makes this
+    /// derivable at all — one shape covers <c>args.Contains</c>, <c>args[0] ==</c> and
+    /// <c>Array.IndexOf</c> alike, because all three compare against a literal.</para>
+    /// </summary>
+    private static void FlagCatalogue()
+    {
+        string? skill = RepoFile(Path.Combine(".claude", "skills", "dev-flags", "SKILL.md"));
+        string? agents = RepoFile("AGENTS.md");
+        if (skill is null || agents is null)
+        {
+            Skip("every flag the sources accept is declared in dev-flags",
+                 "no repository beside the build — the catalogue and the sources ship together");
+            return;
+        }
+
+        string src = Path.Combine(Path.GetDirectoryName(agents)!, "src");
+        string[] accepted = (Directory.Exists(src)
+                ? Directory.GetFiles(src, "*.cs", SearchOption.AllDirectories)
+                : Array.Empty<string>())
+            // Comments first, and this file is why: the paragraph above quotes `"--x"` to show the shape
+            // being matched, and the scan read it as a switch the catalogue had failed to document. A
+            // doc comment is prose about code, so it is the one place a flag-shaped literal means nothing.
+            .SelectMany(f => Regex.Matches(Regex.Replace(File.ReadAllText(f), @"//[^\r\n]*", ""),
+                                           @"""(--[a-z][a-z0-9-]*)""")
+                                  .Select(m => m.Groups[1].Value))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(f => f, StringComparer.Ordinal).ToArray();
+
+        // Declaration position only: left of the `#`, inside a fence. The prose above and below names
+        // flags belonging to other programs, and a check that calls one of those a broken promise is a
+        // check somebody turns off.
+        var declared = new HashSet<string>(StringComparer.Ordinal);
+        bool fenced = false;
+        foreach (string line in File.ReadAllLines(skill))
+        {
+            if (line.StartsWith("```", StringComparison.Ordinal)) { fenced = !fenced; continue; }
+            if (!fenced) continue;
+            int hash = line.IndexOf('#');
+            foreach (Match m in Regex.Matches(hash < 0 ? line : line[..hash], @"--[a-z][a-z0-9-]*"))
+                declared.Add(m.Value);
+        }
+
+        if (!Check("the flag catalogue and the sources are both readable",
+                   accepted.Length >= 30 && declared.Count >= 30,
+                   $"{accepted.Length} accepted, {declared.Count} declared — the check cannot read what it compares"))
+            return;
+
+        string[] undocumented = accepted.Where(f => !declared.Contains(f)).ToArray();
+        Check($"every flag the sources accept is declared in dev-flags ({accepted.Length})",
+              undocumented.Length == 0,
+              $"{string.Join(", ", undocumented)} — the .exe answers to it and the catalogue does not name it");
+
+        string[] promised = declared.Where(f => !accepted.Contains(f, StringComparer.Ordinal))
+                                    .OrderBy(f => f, StringComparer.Ordinal).ToArray();
+        Check($"and every flag it declares is read by something ({declared.Count})", promised.Length == 0,
+              $"{string.Join(", ", promised)} — documented, and no source compares against it");
     }
 
     /// <summary>A file's stem row: everything before the first dot, plus <c>.cs</c> — so

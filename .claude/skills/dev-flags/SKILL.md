@@ -168,7 +168,12 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   universal. Quota metadata only: no message content, no token.
 --insights                            # the 24h usage breakdown: requests, sessions, per-model share
 --tail                                # every assistant turn as it lands, with what the sweep cost
---live                                # the rolling tok/s with its per-project sparklines
+--live [seconds] [--root <dir>] [--raw]
+                                      # the rolling tok/s with its per-project sparklines, one line a
+                                      #   second so the metric can be watched against real work;
+                                      #   seconds bounds the run (default 90), and --raw prints the
+                                      #   unsmoothed box filter beside it, which is what the attack-only
+                                      #   smoothing is judged against
 --activity [--numbers|--refresh|--measured|--fold] [--root <dir>]
                                       # the weekly activity shape behind the projection as a 24x7 grid;
                                       #   --measured is the same week out of the folded hourly store and

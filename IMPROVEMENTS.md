@@ -278,28 +278,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.5 The half of the flag surface no table can name
-
-`--recorded` shipped with an entry in `dev-flags` because the task remembered to write one. Nothing
-would have caught it if it had not.
-
-T207 turned *write the flag down* into something a build checks, and its reach is exactly the flags
-whose variants are a table in code: the toast cards, the tooltip variants, the `week=` names. Those
-already have a list to compare against. The rest of the surface — `--probe`'s three switches,
-`--activity`'s four, `--profiles --check`, `--sample-env` — are bare strings read out of `args` at
-the point they are used, so there is no list at all, and the catalogue is held up by whoever last
-edited it.
-
-The list can be derived, which is what makes this a task rather than a wish. Every one of them is a
-literal compared against an element of `args` in one of two shapes, `args.Contains("--x")` and
-`args[0] == "--x"`, and both are greppable from the sources the build already reads for other
-assertions. What follows is T207's, one direction each: a switch the sources accept and the
-catalogue does not name, and a switch the catalogue promises that no source reads.
-
-Worth settling: whether the second direction can be trusted, since a flag can be spelled in a
-`const` or composed from parts, and a check that reports a false positive against a correctly
-documented flag is a check somebody turns off.
-
 ### XXII.6 The part of a row that is a claim about another file
 
 `CHANGELOG.md`'s index gives each block a row, and a row carries one thing that is not about the
