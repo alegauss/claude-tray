@@ -450,12 +450,17 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         if (PreviewMethodOpen)
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
             {
-                // `StaysOpen=False` is right for a person — a click anywhere dismisses the note — and
-                // wrong for a capture: `Capture-Window.ps1` brings the window to the foreground, the popup
-                // loses mouse capture and closes, and the PNG is of a window with no note in it. Held open
-                // for the preview only, which is the one caller that has no hand to click with.
-                MethodPopup.StaysOpen = true;
+                // Holding it open is `PageWindow`'s job now, for every popup rather than this one (T217).
                 MethodInfo.IsChecked = true;
+
+                // ...and once it is open and measured, say where it landed, so the capture script can
+                // assert the note is inside the pixels it copies instead of reporting a correct copy of a
+                // window with no note in it (T217). Render priority: the popup places itself on open.
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render, () =>
+                {
+                    if (MethodPopup.Child is FrameworkElement note)
+                        PreviewSurface.Report("method-note", note);
+                });
             });
 
         // The idle bands are the *chart's* legend rather than the note's, but they turn on the same

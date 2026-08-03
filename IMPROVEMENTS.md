@@ -349,30 +349,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.14 A capture that succeeds and shows nothing
-
-Verifying T170 cost three captures and a full-screen grab before the cause was visible, and none of
-the three failed. The script reported success and named the right window each time; the PNG simply
-did not contain the note the flag exists to show.
-
-Two causes, both general. A `Popup` is its own top-level window, so it is **not inside the rectangle
-the script copies** unless it happens to overlap it — and it closes on its own: `StaysOpen="False"`
-is right for a person (click anywhere and the note goes away) and fatal for a capture, because the
-script brings the window to the foreground, the popup loses mouse capture and is gone before the
-copy. T170 worked around the second by having the preview set `StaysOpen = true` on that one popup.
-Nothing stops the next popup preview from rediscovering both.
-
-The gap is one level up, and it is what makes this a task rather than another workaround: **nothing
-notices that a capture is missing the thing it was taken for.** T199 taught the script to verify
-*whose* window it copied, which is why the failure was silent rather than wrong — it honestly
-reported a correct copy of a window with no popup in it. A flag that names a surface should assert
-that surface is in the pixels; the honest version is the flag telling the script what it drew.
-
-Worth settling in the same pass: whether preview flags hold every popup open by construction rather
-than one call site at a time, and whether a popup belongs to `Capture-Window.ps1` at all or to a
-variant that copies the whole virtual desktop and crops — which is what actually produced the
-evidence here.
-
 ### XX.15 What a skip should cost in CI
 
 T169 removed the cause of the one skip that fired on every CI run and made the rest legible: the summary

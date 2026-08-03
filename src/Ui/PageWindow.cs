@@ -36,5 +36,11 @@ internal sealed class PageWindow : Window
                 new Uri(Environment.ProcessPath ?? System.Windows.Forms.Application.ExecutablePath));
         }
         catch { /* fall back to the default window icon */ }
+
+        // Every popup under a preview stays open, by construction (T217). This host is the one thing all
+        // the preview flags share, and a rule kept at one page's call site is a rule the next popup
+        // preview gets to rediscover — which is how three captures of the method note came back correct,
+        // green, and empty. Re-run on Loaded too: a page builds its popups as it is laid out.
+        Loaded += (_, _) => PreviewSurface.HoldPopupsOpen(this);
     }
 }

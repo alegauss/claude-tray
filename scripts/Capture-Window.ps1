@@ -65,7 +65,8 @@ param(
     [string]$AppArgs = "--settings",
     [string]$Out = "docs\_preview\settings.png",
     [int]$WaitMs = 1500,
-    [switch]$IgnoreOtherInstances
+    [switch]$IgnoreOtherInstances,
+    [string]$Expect
 )
 
 $ErrorActionPreference = "Stop"
@@ -169,7 +170,16 @@ if ($others.Count -gt 0 -and -not $IgnoreOtherInstances) {
            "Close it, or re-run with -IgnoreOtherInstances.")
 }
 
-$proc = Start-Process -FilePath $Exe -ArgumentList $AppArgs -PassThru
+# The app's own account of what it drew (T217). Only redirected when something is expected, so the
+# ordinary capture keeps behaving exactly as before and leaves no file behind.
+$surfaceLog = $null
+if ($Expect) { $surfaceLog = Join-Path ([IO.Path]::GetTempPath()) ("capture-surface-" + [guid]::NewGuid() + ".log") }
+
+$proc = if ($surfaceLog) {
+    Start-Process -FilePath $Exe -ArgumentList $AppArgs -PassThru -RedirectStandardOutput $surfaceLog
+} else {
+    Start-Process -FilePath $Exe -ArgumentList $AppArgs -PassThru
+}
 try {
     # Wait for a non-zero main window handle. A timeout FAILS: falling through to whatever is in front
     # is how a capture of another application gets reported as a success.
@@ -256,6 +266,41 @@ try {
                $covered.X, $covered.Y, $covered.Title, $covered.Pid, $proc.Id)
     }
 
+    # (4) The surface the flag was invoked FOR is inside what is about to be copied (T217). Three
+    # captures of the method note came back green, named the right window, and showed no note: the
+    # popup is its own top-level window, so nothing about copying the right window says the note is in
+    # it. Only the app knows what it drew, so the app says so and this checks the claim.
+    if ($Expect) {
+        $rect = $null
+        $deadline = (Get-Date).AddMilliseconds(6000)
+        do {
+            $line = @(Get-Content $surfaceLog -ErrorAction SilentlyContinue |
+                      Where-Object { $_ -match "^preview-surface:\s+$([regex]::Escape($Expect))\s" }) |
+                    Select-Object -Last 1
+            if ($line) {
+                $f = ($line -split '\s+')
+                $rect = [pscustomobject]@{ L=[int]$f[2]; T=[int]$f[3]; W=[int]$f[4]; H=[int]$f[5] }
+                break
+            }
+            Start-Sleep -Milliseconds 200
+        } while ((Get-Date) -lt $deadline)
+
+        if (-not $rect) {
+            throw ("'$Expect' was never reported by $Exe $AppArgs - the preview drew no such surface, " +
+                   "or it drew one and did not say so. Nothing is written: a capture that cannot prove " +
+                   "it contains what it was taken for is the silent pass T217 is about.")
+        }
+        $inside = $rect.L -ge $r.Left -and $rect.T -ge $r.Top -and
+                  ($rect.L + $rect.W) -le $r.Right -and ($rect.T + $rect.H) -le $r.Bottom
+        if (-not $inside) {
+            throw ("'$Expect' rendered at ($($rect.L),$($rect.T)) $($rect.W)x$($rect.H), outside the " +
+                   "window being copied ($($r.Left),$($r.Top))-($($r.Right),$($r.Bottom)) - a popup is " +
+                   "its own top-level window and this one does not overlap. The PNG would have been a " +
+                   "correct copy of a window without it.")
+        }
+        Write-Host ("  '$Expect' is inside the copy: ($($rect.L),$($rect.T)) $($rect.W)x$($rect.H)") -ForegroundColor Green
+    }
+
     $bmp = New-Object System.Drawing.Bitmap $w, $hgt
     $g = [System.Drawing.Graphics]::FromImage($bmp)
     $g.CopyFromScreen($r.Left, $r.Top, 0, 0, (New-Object System.Drawing.Size $w, $hgt))
@@ -277,4 +322,5 @@ try {
 }
 finally {
     if (-not $proc.HasExited) { $proc.Kill() }
+    if ($surfaceLog) { Remove-Item $surfaceLog -ErrorAction SilentlyContinue }
 }

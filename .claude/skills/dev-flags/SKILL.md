@@ -72,6 +72,13 @@ Prefer these over `scripts\Capture-Window.ps1`: that one copies the pixels **on 
 window's rectangle, so any app that steals focus or sits on top lands in the file. The exception is a
 popup — its own top-level window, which `RenderTargetBitmap` over a page's content cannot see.
 
+**Capturing a popup: pass `-Expect <surface>`** (T217). A popup is its own top-level window, so copying
+the right window proves nothing about the popup being in it — three captures of the method note came
+back green, named the right window, and showed no note. The preview prints a `preview-surface:` line
+saying what it drew and where; `-Expect` makes the script demand that line and prove the rectangle is
+inside the copy, writing nothing if either fails. The surface for `--stats method` is `method-note`.
+Preview popups are held open by `PageWindow` for every popup, not per call site.
+
 ```
 --capture-settings <out.png> [page] [scroll=<dip>] [profile=<n>] [--sample] [--reveal]
                                       # page System REQUIRES --sample and is refused without it (T205):
