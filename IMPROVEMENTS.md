@@ -216,6 +216,29 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
+### XX.29 The question with no sheet to ask it
+
+`--render` writes `icon_stopped_16.png` and `icon_billing_16.png` beside each other on disk, and
+`IconRenderer` own comment says why they exist: the only question worth asking of this colour is
+whether the two are tellable apart at 16px without either reading as an alarm. That question cannot
+be asked of two 16px PNGs viewed at 16px - which is the exact argument T147 made when it built
+`mark_sheet.png` for the accent band: a 16px PNG viewed at 16px cannot be judged at all.
+
+So the repository has a magnifying contact sheet for the accent question and none for the billing
+one, though the source names the second as the question worth asking. Measured by paying it:
+answering it took composing a sheet by hand - two states, three sizes, both backdrops,
+nearest-neighbour at 8x - and the answer was yes, they are tellable apart. The cost is not the
+answer, it is that the next person pays it again or does not ask.
+
+The shape is the one next door. `SaveMarkSheet` already lays cases out at 8x on a light and a dark
+strip; what is missing is a sheet over the pair of renders at 16, 20 and 32 with `billing` false and
+true.
+
+Worth deciding with it: whether the two sheets are one file. The accent question is about a band a
+glance has to notice; the billing question is about two fills a glance must not confuse. Same
+technique, different claim - and one image asserting two claims is how a reader stops knowing which
+failed.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
