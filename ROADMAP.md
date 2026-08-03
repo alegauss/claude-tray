@@ -65,7 +65,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T223** (deps: —) **Three block headings in the ledger have no row in the ledger's own table of blocks** — That table is the only index of what each block is about and it is written by hand, so Block AG carries five shipped tasks under a letter the index does not list at all. → §XXII.2
 - 📋 **T226** (deps: —) **Reading the log the probe already recorded costs a live API call, every time** — --probe --live skips reading the log and nothing skips the call, so reviewing what was captured spends a request against the account being measured. → §XXII.3
 
 ## Block G — Localization

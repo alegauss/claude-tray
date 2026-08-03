@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ClaudeTray;
 
@@ -73,6 +74,10 @@ internal static class SelfTestCli
          "no repository beside the build, which is every installed copy (T203)"),
         ("the dev-flags catalogue names what the tables declare",
          "the same absent repository (T207)"),
+        ("the ledger's index of blocks lists every block it holds",
+         "the same absent repository - CHANGELOG.md ships with the source, not with the app (T223)"),
+        ("the theme table names only blocks the ledger declares",
+         "the same absent repository, and the skill is not installed beside a released binary (T223)"),
     };
 
     /// <returns>Process exit code: 0 when every check passed.</returns>
@@ -153,6 +158,9 @@ internal static class SelfTestCli
 
         Section("format — one number convention per window (Block F)");
         Formatting();
+
+        Section("ledger — every block heading has a row in its own index (Block AJ)");
+        LedgerIndex();
 
         if (quick)
         {
@@ -1789,6 +1797,110 @@ internal static class SelfTestCli
         TextWriter saved = Console.Out;
         try { Console.SetOut(TextWriter.Null); return f(); }
         finally { Console.SetOut(saved); }
+    }
+
+    // ---------------------------------------------------------------- Block AJ: the ledger's own index
+
+    /// <summary>
+    /// <c>CHANGELOG.md</c> opens with a table mapping every block letter to its theme, and that table is
+    /// what the next task is filed against — a letter missing from it reads exactly like a letter that
+    /// does not exist, which is how this repository reached AH by opening a block per batch of findings
+    /// instead of reusing the theme (T223).
+    ///
+    /// <para>The rule was already written down: the row is added by hand in the same commit as the
+    /// block's first task, and the <c>roadmap-docs</c> skill calls it the one hand-edit to a governed
+    /// file the discipline allows. What was missing is anything that notices when it is not done —
+    /// <c>roadkeep lint</c> passes, because the table is prose to it. Two of the thirty-six headings had
+    /// no row when this was written, one of them carrying five shipped tasks.</para>
+    ///
+    /// <para>Both directions are asserted, because they catch opposite mistakes: a heading with no row
+    /// (the block shipped and the index never learned) and a row naming no heading (a letter renamed or
+    /// retired, leaving the index pointing at nothing). The <b>anchor</b> is asserted too — it is
+    /// derived from the heading exactly as GitHub derives it, so a heading reworded without its row is a
+    /// link that lands on the top of the page rather than on the block.</para>
+    ///
+    /// <para>The <c>roadmap-docs</c> skill's own theme table is deliberately <em>not</em> a third source
+    /// to check for completeness: it lists the themes that are meant to be reused, not every historical
+    /// batch letter, so demanding a row per heading there would argue for exactly the sprawl it exists to
+    /// stop. Only the one direction that cannot be right — a letter the skill names and the ledger does
+    /// not declare — is asserted.</para>
+    /// </summary>
+    private static void LedgerIndex()
+    {
+        string? ledger = RepoFile("CHANGELOG.md");
+        if (ledger is null)
+        {
+            Skip("the ledger's index of blocks lists every block it holds",
+                 "CHANGELOG.md is not beside this build — no repo on disk");
+            return;
+        }
+
+        string[] lines = File.ReadAllLines(ledger);
+        var headings = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (string line in lines)
+        {
+            Match m = Regex.Match(line, @"^## Block ([A-Z]+) [—-] .+$");
+            if (m.Success) headings[m.Groups[1].Value] = Anchor(line[3..]);
+        }
+
+        var rows = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (string line in lines)
+        {
+            Match m = Regex.Match(line, @"^\| \[([A-Z]+)\]\(#([^)]+)\) \|");
+            if (m.Success) rows[m.Groups[1].Value] = m.Groups[2].Value;
+        }
+
+        // The precondition, first: an unreadable file parses to two empty lists, over which every claim
+        // below holds vacuously — the failure mode this whole section exists to refuse.
+        if (!Check("the ledger still has block headings and an index table",
+                   headings.Count >= 30 && rows.Count >= 30,
+                   $"{headings.Count} headings, {rows.Count} rows — the check cannot read what it compares"))
+            return;
+
+        string[] unlisted = headings.Keys.Where(b => !rows.ContainsKey(b)).OrderBy(b => b, StringComparer.Ordinal).ToArray();
+        Check($"every block heading has a row in the ledger's index ({headings.Count})", unlisted.Length == 0,
+              $"{string.Join(", ", unlisted)} — shipped under a letter the index does not list at all");
+
+        string[] phantom = rows.Keys.Where(b => !headings.ContainsKey(b)).OrderBy(b => b, StringComparer.Ordinal).ToArray();
+        Check("and every row in the index names a heading that exists", phantom.Length == 0,
+              $"{string.Join(", ", phantom)} — indexed, and the link lands nowhere");
+
+        string[] adrift = rows.Where(r => headings.TryGetValue(r.Key, out string? a) && a != r.Value)
+                              .Select(r => $"{r.Key} (#{r.Value} → #{headings[r.Key]})")
+                              .OrderBy(s => s, StringComparer.Ordinal).ToArray();
+        Check("and every row's anchor still resolves to its heading", adrift.Length == 0,
+              $"{string.Join(", ", adrift)} — the heading was reworded and the row was not");
+
+        string? skill = RepoFile(Path.Combine(".claude", "skills", "roadmap-docs", "SKILL.md"));
+        if (skill is null)
+        {
+            Skip("the theme table names only blocks the ledger declares",
+                 "the roadmap-docs skill is not beside this build");
+            return;
+        }
+
+        // One direction only, and the doc comment says why the other would be wrong.
+        string[] invented = Regex.Matches(File.ReadAllText(skill), @"^\|[^|]+\| \*\*([A-Z]+)\*\*", RegexOptions.Multiline)
+            .Select(m => m.Groups[1].Value)
+            .Distinct(StringComparer.Ordinal)
+            .Where(b => !headings.ContainsKey(b))
+            .OrderBy(b => b, StringComparer.Ordinal).ToArray();
+        Check("the theme table names only blocks the ledger declares", invented.Length == 0,
+              $"{string.Join(", ", invented)} — a theme filed under a letter no block heading declares");
+    }
+
+    /// <summary>A heading's GitHub anchor: lowercased, everything that is not a letter, a digit, a space
+    /// or a hyphen dropped, then spaces to hyphens. Verified against all thirty-six rows the ledger
+    /// already carries, em dashes and apostrophes included.</summary>
+    private static string Anchor(string heading)
+    {
+        var sb = new StringBuilder();
+        foreach (char c in heading.ToLowerInvariant())
+        {
+            if (char.IsLetterOrDigit(c)) sb.Append(c);
+            else if (c is ' ' or '-') sb.Append('-');
+        }
+        return sb.ToString();
     }
 
     // ---------------------------------------------------------------- Block AG: one id, one control

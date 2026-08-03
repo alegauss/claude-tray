@@ -32,6 +32,7 @@
 | [M](#block-m--explain-on-demand) | Explain on demand — the method note behind an ⓘ |
 | [N](#block-n--system-information) | System information — your plan, your install, this machine (active — see ROADMAP) |
 | [O](#block-o--profiles) | Profiles — several Claude Code logins on one machine (active — see ROADMAP) |
+| [P](#block-p--project-layout) | Project layout — where a file lives |
 | [Q](#block-q--keyboard-input-in-the-windows) | Keyboard input in the windows (active — see ROADMAP) |
 | [R](#block-r--profiles-second-pass-what-a-real-second-login-exposed) | Profiles, second pass — what a real second login exposed |
 | [S](#block-s--settings-round-trip) | Settings round-trip — a field missing from the copy is a field reset (active — see ROADMAP) |
@@ -48,6 +49,7 @@
 | [AD](#block-ad--the-window-can-be-read-now-and-what-that-turned-up) | The window can be read now, and what that turned up |
 | [AE](#block-ae--extra-usage-is-money-and-the-tray-is-asleep-for-it) | Extra usage is money, and the tray is asleep for it |
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
+| [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
 | [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags (active — see ROADMAP) |
@@ -563,6 +565,7 @@
 ## Block AJ — Working here — the repo's own docs and flags
 
 - **T219** — AGENTS.md now states the test it is kept by - a rule earns its bytes if getting it wrong has produced a defect and --selftest cannot assert it instead - and the per-file map left on that test for the new `file-map` skill, reference material consulted rather than read. 40,981 bytes against a 41,000 ceiling became 23,359 against 24,200, so the next rule is written instead of negotiated against whichever paragraph was least recently needed.
+- **T223** — The ledger's index of blocks is asserted against the ledger's own headings, both directions and the anchor with them, so a block that ships under a letter the index never learned is a red build - the two that had drifted, P and AG, are listed, and AG's five shipped tasks are findable from the table again. The roadmap-docs theme table is checked one way only, since it lists the themes meant to be reused rather than every letter that ever shipped.
 
 ## Block AB — What Block Z's own work left behind
 

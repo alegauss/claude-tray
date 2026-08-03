@@ -256,30 +256,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.2 The index of themes is the one thing nothing checks
-
-`CHANGELOG.md` opens with a table mapping every block letter to its theme, and the `roadmap-docs`
-skill carries the same mapping for choosing where new work files. Blocks **AC**, **AG** and **AJ**
-have headings in the ledger and no row in that table; AG has five shipped tasks under it.
-
-The rule exists and is written down — the skill says the row is added by hand in the same commit as
-the block's first task, and calls it the one hand-edit to a governed file the discipline allows.
-What is missing is anything that notices when it is not done. `roadkeep lint` passes: the table is
-prose to it.
-
-Why it matters more than tidiness. That table is what the next task is filed against. A letter that
-is missing from it reads exactly like a letter that does not exist, which is how this repository
-reached AH by opening a block per batch of findings instead of reusing the theme — the habit the
-skill's own table was written to stop. An index with holes in it argues for a new letter every time.
-
-The check is the same move T207 made against `dev-flags`: the ledger is a file in the repository,
-its block headings are derivable, and its table rows are a list. Both directions are cheap — a
-heading with no row, and a row naming no heading — and `--selftest` already reads repository files
-for exactly this kind of claim.
-
-Worth settling with it: whether the skill's theme table is a third source to check against, or
-whether it should point at the ledger's rather than repeat it.
-
 ### XXII.3 A read-out that cannot be run without taking a reading
 
 `--probe` prints the recorded log and then makes one live call, which T212 made it record rather

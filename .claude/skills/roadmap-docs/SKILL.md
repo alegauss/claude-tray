@@ -135,6 +135,13 @@ write is the row in `CHANGELOG.md`'s block table: add that by hand in the same c
 task, with the same title, marked `(active — see ROADMAP)` while tasks remain open. That row is the
 **one** hand-edit to a governed file the discipline allows, and `roadkeep lint` must pass after.
 
+**Forgetting it is now a red build (T223).** `--selftest` reads the ledger and asserts both directions —
+a heading with no row, a row naming no heading — plus that each row's `#anchor` still derives from the
+heading it points at, so rewording a heading without its row fails too. The theme table above is checked
+one way only: a letter it names must be declared in the ledger. It is deliberately **not** required to
+carry a row per heading, because it lists the themes meant to be *reused*, not every letter that ever
+shipped — demanding one would argue for the sprawl it exists to stop.
+
 ## `ship --why`, or live with it
 
 `ship` copies the roadmap line's `why` into the ledger by default — and that line states a **problem**,
