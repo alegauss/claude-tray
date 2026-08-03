@@ -63,7 +63,7 @@ internal static class ToastPreviews
                 // a real repo name here puts a client's name on the marketing page.
                 L.T("toast.context.subtitle", "acme/atlas/2026.2"),
                 0.27, 0.27,
-                L.T("toast.context.caption", TokenEstimate.Format(54_000), (0.336).ToString("0.000", L.Culture)),
+                ContextText.NudgeCaption(54_000, 0.336),
                 L.T("toast.context.quotaLabel"), ToastWindow.ToastTheme.Context)),
 
         new("extra", "the extra-usage card (T184), which can only be seen this way: the state it " +

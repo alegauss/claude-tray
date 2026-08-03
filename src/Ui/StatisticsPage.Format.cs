@@ -17,27 +17,22 @@ namespace ClaudeTray;
 internal partial class StatisticsPage
 {
     /// <summary>
-    /// A number as this window writes it: the caller picks the shape, <see cref="Fmt"/> picks the
-    /// conventions — and this is the <b>only</b> place that names a culture for a number, so there is
-    /// nothing left to bypass (T167).
+    /// A number as this window writes it: the caller picks the shape, <see cref="Nums"/> picks the
+    /// conventions. This page names no culture of its own (T216) — the rule and the reasoning behind it
+    /// live in one place for the whole app now, not one per window.
     /// </summary>
     /// <remarks>
     /// The rest of this file was already invariant. The method note's five interpolations were bare
     /// <c>$"{value:0.#}"</c>, which formats with <c>CurrentCulture</c>: on a pt-BR machine run with
     /// <c>--lang en</c> the English popup read <em>"4,7 weeks of local transcripts"</em> eight lines
     /// above <c>≈ 1,319 tok/s</c> and <c>40%</c>. One window, two number conventions — and it was sitting
-    /// in both verification screenshots of T159 and T163 without being seen.
-    /// <para><b>Invariant is a decision, not the status quo winning.</b> A decimal comma inside a
-    /// Portuguese sentence is what a Portuguese reader expects, and choosing it would not be wrong. It is
-    /// refused because the app has no per-language numeric culture at all — <see cref="DateFmt"/> is
-    /// <c>L.Culture</c> and formats dates and nothing else — and because a published screenshot has to
-    /// mean the same thing on any machine it was taken on. Changing that rule is now an edit to one line
-    /// here, which is the other half of the point.</para>
+    /// in both verification screenshots of T159 and T163 without being seen (T167).
     /// </remarks>
-    internal static string Num(double n, string format = "0.#") => n.ToString(format, Fmt);
+    internal static string Num(double n, string format = "0.#") => Nums.Of(n, format);
 
-    // "72%" — no space, matching the tray's percentage style.
-    private static string Pct(double frac) => Num(Math.Round(Math.Clamp(frac, 0, 1) * 100), "0") + "%";
+    // "72%" — no space, matching the tray's percentage style. Clamped, unlike Nums.Pct: a utilization
+    // is a share of a quota, and there is no reading above it to preserve.
+    private static string Pct(double frac) => Nums.Pct(Math.Clamp(frac, 0, 1));
 
     // A token rate: whole numbers once it's fast, a decimal or two when it's a trickle.
     private static string Rate(double tps) =>

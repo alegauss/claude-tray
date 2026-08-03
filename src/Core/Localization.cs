@@ -27,7 +27,7 @@ internal static class L
     internal enum Lang { En, PtBr, PtPt, Fr, Es }
 
     /// <summary>One shipped language. <c>Code</c> is the value stored in Settings; <c>Culture</c> formats
-    /// dates/numbers (empty = invariant, i.e. English); <c>Endonym</c> names it in the picker (in its own
+    /// dates (empty = invariant, i.e. English); <c>Endonym</c> names it in the picker (in its own
     /// language); <c>Matches</c> auto-detects it from the OS UI culture (matchers are mutually exclusive,
     /// so their order is irrelevant). Strings live in the embedded <c>lang\{Code}.json</c>.</summary>
     private sealed record LangInfo(Lang Lang, string Code, string Culture, string Endonym, Func<CultureInfo, bool> Matches);
@@ -88,8 +88,10 @@ internal static class L
         return new Dictionary<string, string>();
     }
 
-    /// <summary>The culture to format dates/numbers in for the active language (invariant for English).</summary>
-    public static CultureInfo Culture
+    /// <summary>The culture to format <b>dates and clock times</b> in for the active language (invariant
+    /// for English). Named for what it is allowed to reach: numbers are invariant everywhere and go
+    /// through <see cref="Nums"/>, so a call site naming this one for a figure is visibly wrong (T216).</summary>
+    public static CultureInfo DateCulture
     {
         get
         {

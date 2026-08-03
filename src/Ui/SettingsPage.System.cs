@@ -55,7 +55,7 @@ internal partial class SettingsPage
     private void RenderSystemInfo()
     {
         ClaudeInfo c = _profiles[Math.Clamp(_profile, 0, _profiles.Count - 1)];
-        var culture = L.Culture;
+        var culture = L.DateCulture;
 
         // ---- Claude account ----
         bool hasAccount = c.HasAccount;
@@ -134,7 +134,7 @@ internal partial class SettingsPage
                 return extra switch
                 {
                     null => "",
-                    > 0.001 => L.T("settings.sys.extraInUse", (extra.Value * 100).ToString("0.#", L.Culture)),
+                    > 0.001 => ExtraInUseText(extra.Value),
                     _ => L.T("settings.sys.extraIdle"),
                 };
             }
@@ -190,6 +190,11 @@ internal partial class SettingsPage
         SysOpenData.Tag = Settings.DataDir;
         SysOpenData.IsEnabled = System.IO.Directory.Exists(Settings.DataDir);
     }
+
+    // "12.5% of the allowance in use" — the one figure this page states, out of the nested local function
+    // so the number sweep can call it (T216). A fraction of the extra-usage allowance, not of a quota.
+    private static string ExtraInUseText(double extra) =>
+        L.T("settings.sys.extraInUse", Nums.Of(extra * 100));
 
     // A value line is hidden rather than left blank, so a row with nothing to qualify stays compact.
     private static Visibility Shown(string text) =>

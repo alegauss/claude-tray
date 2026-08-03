@@ -267,35 +267,6 @@ Two surfaces of this app answer the same question differently, and T167's sweep 
 them. What files here is the rule that picks a convention, and the check that holds every surface to
 it.
 
-### XXI.1 Two conventions, and no rule that picks one
-
-T167 settled the question for one window and, in settling it, showed the app answers it both ways.
-Grepped over every surface that puts a number in a sentence:
-
-- **Invariant** — `StatisticsPage` (through `Num`), `SettingsPage.General`'s four projections,
-  `TokenEstimate.Format`.
-- **`L.Culture`** — `ContextPage.Gauge` and `ContextPage.xaml.cs` (per-request cost, scan elapsed),
-  `ContextText` (every file size), `TrayContext`'s context toast, and `SettingsPage.System`'s
-  extra-usage percentage.
-
-So on a pt-BR machine the Statistics window says `4.7` and the Context page says `0,336` — each
-right by its own file's rule, and the app has none. Not a translation bug: the strings are correct
-in five languages.
-
-Two things make it a task rather than a sweep. **Which convention is not obvious**, and T167's
-reasoning does not settle it: invariant won there because twelve neighbouring formatters already
-were, and because a published chart screenshot has to mean the same thing anywhere. Neither argument
-reaches a file size in a sentence of Portuguese prose, where a reader has better claim to a decimal
-comma than a screenshot has to portability — and `L.Culture` is already what the dates use. The
-likely answer is not "invariant everywhere" but a stated split: **invariant for anything read
-against a chart or published, `L.Culture` for prose**, written down once so a new call site has
-somewhere to look.
-
-And the check reaches one page. `--selftest` runs `StatisticsPage`'s twelve formatters under two
-cultures; the surfaces above are swept by nothing, so whichever rule is chosen is held up by nobody.
-That sweep already derives its formatters by reflection, so pointing it at more types is most of the
-work; the rest is deciding what it may find.
-
 ## XXII Working here — what earns a byte of AGENTS.md (Block AJ)
 
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now

@@ -150,7 +150,7 @@ internal static class SelfTestCli
         Section("note — which paragraphs the method note yields (Block F)");
         MethodNote();
 
-        Section("format — one number convention per window (Block F)");
+        Section("format — one number convention, on every surface that states one (Blocks F and G)");
         Formatting();
 
         Section("ledger — every block heading has a row in its own index (Block AJ)");
@@ -2774,7 +2774,7 @@ internal static class SelfTestCli
               thinPart.Args is ["2.1", "3"], string.Join(" of ", thinPart.Args));
     }
 
-    // ---------------------------------------------------------------- Block F: one number convention
+    // ---------------------------------------------------------------- Blocks F and G: one number convention
 
     /// <summary>
     /// T167: the Statistics page states its numbers in one convention, whatever the machine's locale is.
@@ -2782,14 +2782,22 @@ internal static class SelfTestCli
     /// pt-BR machine the English popup read <em>"4,7 weeks of local transcripts"</em> eight lines above
     /// <c>≈ 1,319 tok/s</c> and <c>40%</c> — in both verification screenshots of T159 and T163, unseen.
     ///
+    /// <para><b>T216 pointed it at the rest of the app.</b> The sweep reached one window while four other
+    /// surfaces stated the same kinds of figure, so whichever convention the app had chosen was held up on
+    /// one page and nowhere else. <see cref="Nums"/> now carries the rule — numbers invariant, dates in the
+    /// display language — and <see cref="Surfaces"/> lists the types that put a number in front of a reader:
+    /// every static formatter on each is swept, so a <em>type</em> is what has to be remembered, not a
+    /// method. Adding a formatter to a surface already here costs nothing.</para>
+    ///
     /// <para>The formatters are <b>derived, never listed</b>, for the same reason the automation-id sweep
     /// derives its pages: a hardcoded list stops covering whatever is written next, which is the defect
-    /// the note itself was. Every static method on the page that turns numbers into a string is run
+    /// the note itself was. Every static method on those types that turns numbers into a string is run
     /// twice, once under each culture, and any that answers differently has read the OS.</para>
     ///
-    /// <para>What this cannot reach is an interpolation written <em>inline</em> in <c>Render</c> rather
-    /// than in a formatter — the note's own shape until this task, and the reason §XV.2 (T168) wants that
-    /// composition out of UI code where an assertion can call it.</para>
+    /// <para>What this cannot reach is an interpolation written <em>inline</em> in a render method rather
+    /// than in a formatter — the note's own shape until T167, and the shape every surface T216 converted
+    /// was in. Pulling one out into a static formatter is what puts it inside this sweep; leaving it inline
+    /// is what keeps it out, which is the cost §XV.2 (T168) is about.</para>
     /// </summary>
     private static void Formatting()
     {
@@ -2813,7 +2821,7 @@ internal static class SelfTestCli
 
             static bool Numeric(Type t) => t == typeof(double) || t == typeof(int) || t == typeof(long);
 
-            MethodInfo[] formatters = typeof(StatisticsPage)
+            static MethodInfo[] FormattersOf(Type t) => t
                 .GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public |
                             BindingFlags.DeclaredOnly)
                 .Where(m => m.ReturnType == typeof(string) && !m.Name.Contains('<') &&
@@ -2822,8 +2830,19 @@ internal static class SelfTestCli
                 .OrderBy(m => m.Name, StringComparer.Ordinal)
                 .ToArray();
 
-            if (!Check("the page's own number formatters are reachable by reflection", formatters.Length >= 10,
-                       $"found {formatters.Length}: {string.Join(", ", formatters.Select(m => m.Name))}"))
+            // Every formatter, with the surface it belongs to, so a failure names the file to open. Each
+            // surface must still have one: a type that stops answering is a sweep that silently shrank.
+            var found = Surfaces.ToDictionary(t => t, FormattersOf);
+            string[] mute = found.Where(kv => kv.Value.Length == 0)
+                                 .Select(kv => kv.Key.Name).OrderBy(n => n, StringComparer.Ordinal).ToArray();
+            MethodInfo[] formatters = found.SelectMany(kv => kv.Value).ToArray();
+
+            if (!Check($"every surface that states a number has formatters reachable by reflection " +
+                       $"({Surfaces.Length} types, {formatters.Length} formatters)",
+                       mute.Length == 0 && formatters.Length >= 20,
+                       mute.Length > 0
+                           ? $"{string.Join(", ", mute)} — no static formatter left to sweep"
+                           : $"found only {formatters.Length}"))
                 return;
 
             // Spread across every branch these have: under a k, under a M, a fraction, a whole, a unix
@@ -2832,26 +2851,28 @@ internal static class SelfTestCli
             List<string> leaked = new(), threw = new();
             int compared = 0;
 
-            foreach (MethodInfo m in formatters)
-                foreach (double v in values)
-                {
-                    object?[] args = m.GetParameters()
-                        .Select(p => Numeric(p.ParameterType)
-                            ? Convert.ChangeType(v, p.ParameterType)
-                            : p.DefaultValue)
-                        .ToArray();
-                    try
+            foreach ((Type surface, MethodInfo[] ms) in found.Select(kv => (kv.Key, kv.Value)))
+                foreach (MethodInfo m in ms)
+                    foreach (double v in values)
                     {
-                        System.Globalization.CultureInfo.CurrentCulture =
-                            System.Globalization.CultureInfo.InvariantCulture;
-                        string a = (string)m.Invoke(null, args)!;
-                        System.Globalization.CultureInfo.CurrentCulture = hostile;
-                        string b = (string)m.Invoke(null, args)!;
-                        compared++;
-                        if (a != b) leaked.Add($"{m.Name}({v:0.###}) → \"{a}\" / \"{b}\"");
+                        object?[] args = m.GetParameters()
+                            .Select(p => Numeric(p.ParameterType)
+                                ? Convert.ChangeType(v, p.ParameterType)
+                                : p.DefaultValue)
+                            .ToArray();
+                        string where = $"{surface.Name}.{m.Name}";
+                        try
+                        {
+                            System.Globalization.CultureInfo.CurrentCulture =
+                                System.Globalization.CultureInfo.InvariantCulture;
+                            string a = (string)m.Invoke(null, args)!;
+                            System.Globalization.CultureInfo.CurrentCulture = hostile;
+                            string b = (string)m.Invoke(null, args)!;
+                            compared++;
+                            if (a != b) leaked.Add($"{where}({v:0.###}) → \"{a}\" / \"{b}\"");
+                        }
+                        catch (Exception e) { threw.Add($"{where}({v:0.###}): {(e.InnerException ?? e).Message}"); }
                     }
-                    catch (Exception e) { threw.Add($"{m.Name}({v:0.###}): {(e.InnerException ?? e).Message}"); }
-                }
 
             System.Globalization.CultureInfo.CurrentCulture =
                 System.Globalization.CultureInfo.InvariantCulture;
@@ -2860,18 +2881,40 @@ internal static class SelfTestCli
             // it as clean is the same silence as a Skip that hides what it guards.
             Check($"every formatter answered both cultures ({formatters.Length} × {values.Length})",
                   threw.Count == 0, string.Join("; ", threw.Take(4)));
-            Check($"no formatter on the page reads the OS number format ({compared} comparisons)",
+            Check($"no formatter on any surface reads the OS number format ({compared} comparisons)",
                   leaked.Count == 0,
                   leaked.Count == 0 ? "" : $"{leaked.Count} leaked — {string.Join("; ", leaked.Take(6))}");
 
-            // And the helper itself, by name, since everything above only says the page agrees with itself.
+            // And the helper itself, by name, since everything above only says the surfaces agree with
+            // themselves — they would all agree on the wrong convention just as quietly.
             System.Globalization.CultureInfo.CurrentCulture = hostile;
-            Check("Num keeps the decimal point a point", StatisticsPage.Num(4.7) == "4.7", StatisticsPage.Num(4.7));
-            Check("Num's whole form takes no group separator", StatisticsPage.Num(1234, "0") == "1234",
-                  StatisticsPage.Num(1234, "0"));
+            Check("Nums keeps the decimal point a point", Nums.Of(4.7) == "4.7", Nums.Of(4.7));
+            Check("Nums' whole form takes no group separator", Nums.Of(1234, "0") == "1234",
+                  Nums.Of(1234, "0"));
+            Check("Nums states a share without the space an invariant \"P0\" inserts",
+                  Nums.Pct(0.271) == "27%", Nums.Pct(0.271));
+            Check("Nums does not clamp a load past its window", Nums.Pct(1.4) == "140%", Nums.Pct(1.4));
+            Check("the page's own helper still routes through it", StatisticsPage.Num(4.7) == "4.7",
+                  StatisticsPage.Num(4.7));
         }
         finally { System.Globalization.CultureInfo.CurrentCulture = before; }
     }
+
+    /// <summary>
+    /// The types that put a number in front of a reader (T216). A list, unlike the formatters on them,
+    /// because there is no property of a type that says "this one is read by a user" — but it is the
+    /// short list, and it is the one thing a new surface has to be added to. The rule they all keep is
+    /// <see cref="Nums"/>; dates are outside it and stay in the display language.
+    /// </summary>
+    private static readonly Type[] Surfaces =
+    {
+        typeof(StatisticsPage),   // the charts, the pace report, the method note
+        typeof(ContextPage),      // the gauge caption, the simulation banner, the scan footer
+        typeof(ContextText),      // file sizes, and the tray's context nudge
+        typeof(SettingsPage),     // the poll cadence, its cost estimate, the extra-usage share
+        typeof(TokenEstimate),    // "≈4.9k", on every one of the above
+        typeof(Nums),             // the rule itself
+    };
 
     // ---------------------------------------------------------------- Blocks K/W: the slug encoding
 

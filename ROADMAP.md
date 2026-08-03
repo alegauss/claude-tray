@@ -70,8 +70,6 @@
 
 ## Block G — Localization
 
-- 💭 **T216** (deps: —) **One machine, two number conventions: the page decides, not the app** — T167 picked invariant for one window, while the Context page, the tray toast and the System page format the same figures with L.Culture, and the sweep it added reaches neither. → §XXI.1
-
 ## Block D — Auth & API resilience
 
 - 📋 **T224** (deps: —) **The tray infers permission to overspend from a local file, and cannot see the API refusing it** — Resolve reads hasExtraUsageEnabled out of a file Claude Code writes, while a second account answers rejected with org_level_disabled - the reading Allows was deferred until. → §XXIII.1

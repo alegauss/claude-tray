@@ -23,7 +23,7 @@
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts (active — see ROADMAP) |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
-| [G](#block-g--localization) | Localization (active — see ROADMAP) |
+| [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
 | [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
@@ -134,6 +134,7 @@
 - **T58** — `Localization.cs` (`L.T(...)` in code, `{local:Loc key}` in XAML) and every user-visible string extracted to keys. (`214093f`)
 - **T59** — Embedded JSON language resources for five languages: `en`, `pt-BR`, `pt-PT`, `fr`, `es`. (`efd5acf`)
 - **T60** — Language selection in Settings (`auto` = follow the OS) with a restart prompt, since localized strings resolve when a window is parsed. (`304b9ca`)
+- **T216** — Numbers are invariant everywhere and dates follow the display language, stated once in Nums and named into L.DateCulture; the split between chart and prose was refused because one context row carries a size beside a token estimate, so wherever its line fell it cut through a sentence. The format sweep now runs every static formatter on all six surfaces, not twelve on one page.
 
 ## Block H — Tray display options
 

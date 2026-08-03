@@ -295,8 +295,7 @@ internal sealed class TrayContext : ApplicationContext
 
         string title = L.T("toast.context.title");
         string subtitle = L.T("toast.context.subtitle", project.ShortPath);
-        string caption = L.T("toast.context.caption",
-            TokenEstimate.Format(eager), cost.ToString("0.000", L.Culture));
+        string caption = ContextText.NudgeCaption(eager, cost);
         try
         {
             EnsureWpfApp();

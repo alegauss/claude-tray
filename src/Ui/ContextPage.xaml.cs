@@ -325,10 +325,7 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
     // the scan short — a silent cap reads as "all clear", which it isn't.
     private string ScanInfoText(ContextScan scan)
     {
-        string info = L.T("context.footer",
-            scan.Projects.Count, scan.FilesWalked,
-            scan.ElapsedMs.ToString("0", L.Culture),
-            L.T(scan.FromCache ? "context.footer.cached" : "context.footer.fresh"));
+        string info = FooterText(scan.Projects.Count, scan.FilesWalked, scan.ElapsedMs, scan.FromCache);
 
         // Numbers that change on their own are unsettling unless the window says why.
         if (_liveRefresh)
@@ -338,6 +335,15 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         }
         return scan.Truncated ? info + "  " + L.T("context.truncated") : info;
     }
+
+    // The page's two number-bearing sentences, out of the render so a check can call them (T216).
+    private static string FooterText(int projects, int files, double elapsedMs, bool cached) =>
+        L.T("context.footer", projects, files, Nums.Of(elapsedMs, "0"),
+            L.T(cached ? "context.footer.cached" : "context.footer.fresh"));
+
+    private static string ObservedPartsText(int samples, int min, int max, double cost) =>
+        L.T("context.observed.parts", samples, TokenEstimate.Format(min), TokenEstimate.Format(max),
+            Nums.Of(cost, "0.000"));
 
     private void ShowSelected()
     {
@@ -358,9 +364,7 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         if (row.Project!.Observed is { } o)
         {
             ObservedValue.Text = TokenEstimate.Format(o.Median);
-            ObservedParts.Text = L.T("context.observed.parts",
-                o.Samples, TokenEstimate.Format(o.Min), TokenEstimate.Format(o.Max),
-                o.Cost.ToString("0.000", L.Culture));
+            ObservedParts.Text = ObservedPartsText(o.Samples, o.Min, o.Max, o.Cost);
         }
         else
         {

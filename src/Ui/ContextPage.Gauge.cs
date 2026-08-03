@@ -136,10 +136,7 @@ internal partial class ContextPage
         // Caption: the total, its share of the window, and what loading it costs on a cold cache —
         // priced with the observed session's model when there is one, else the Opus-tier default.
         double cost = total * UsageInsights.Price(observed?.Model ?? "").cw / 1_000_000.0;
-        GaugeCaption.Text = L.T("context.gauge.caption",
-            TokenEstimate.Format(total), WindowLabel(window),
-            ((double)total / window).ToString("P0", L.Culture),
-            cost.ToString("0.000", L.Culture));
+        GaugeCaption.Text = CaptionText(total, window, cost);
 
         // Legend, including the free remainder — the empty part of the bar is a number too.
         GaugeLegend.Children.Clear();
@@ -244,12 +241,23 @@ internal partial class ContextPage
         double saved = saving * UsageInsights.Price(model ?? "").cw / 1_000_000.0;
         int ticked = Relevant(row).Count(s => _simulated.Contains(s.Path));
 
-        SimHeadline.Text = L.T("context.sim.headline",
-            TokenEstimate.Format(saving), saved.ToString("0.000", L.Culture));
-        SimDetail.Text = L.T("context.sim.detail",
-            ticked, TokenEstimate.Format(before), TokenEstimate.Format(after),
-            ((double)after / window).ToString("P0", L.Culture));
+        SimHeadline.Text = SimHeadlineText(saving, saved);
+        SimDetail.Text = SimDetailText(ticked, before, after, window);
     }
+
+    // The gauge's four sentences, pulled out of the render so a check can call them (T216). Every number
+    // they carry goes through `Nums` — the caption states a share of the bar drawn under it and a dollar
+    // cost in one breath, which is exactly the sentence a per-surface convention would have split.
+    private static string CaptionText(int total, int window, double cost) =>
+        L.T("context.gauge.caption", TokenEstimate.Format(total), WindowLabel(window),
+            Nums.Pct((double)total / window), Nums.Of(cost, "0.000"));
+
+    private static string SimHeadlineText(int saving, double saved) =>
+        L.T("context.sim.headline", TokenEstimate.Format(saving), Nums.Of(saved, "0.000"));
+
+    private static string SimDetailText(int ticked, int before, int after, int window) =>
+        L.T("context.sim.detail", ticked, TokenEstimate.Format(before), TokenEstimate.Format(after),
+            Nums.Pct((double)after / window));
 
     // A checkbox toggled: update the selection and redraw the gauge only. The table is deliberately
     // not rebuilt — it would reset the scroll position under the pointer that just clicked.
@@ -293,7 +301,7 @@ internal partial class ContextPage
 
     private static string SegmentTip(string label, int tokens, int window)
         => L.T("context.gauge.tip", label, TokenEstimate.Format(tokens),
-            ((double)tokens / window).ToString("P0", L.Culture));
+            Nums.Pct((double)tokens / window));
 
     /// <summary>"200k" / "1M" — the window size, which is exact, so no "≈".</summary>
     private static string WindowLabel(int window) => window >= 1_000_000

@@ -13,9 +13,16 @@ using Orientation = System.Windows.Controls.Orientation;
 
 namespace ClaudeTray;
 
-/// <summary>The display words shared by the window's view models.</summary>
+/// <summary>The display words every context surface shares — the window's view models, and the tray's
+/// nudge card with the preview that stands in for it.</summary>
 internal static class ContextText
 {
+    /// <summary>The context nudge's caption: what the project loads, and what a cold start costs. Shared
+    /// by the tray and by <c>--capture-toast</c>'s stand-in, which had its own copy of the sentence and
+    /// its own spelling of the number until T216.</summary>
+    public static string NudgeCaption(int eager, double cost) =>
+        L.T("toast.context.caption", TokenEstimate.Format(eager), Nums.Of(cost, "0.000"));
+
     public static string Kind(ContextKind kind) => L.T(kind switch
     {
         ContextKind.UserInstructions => "context.kind.userInstructions",
@@ -45,8 +52,8 @@ internal static class ContextText
     /// is a number nobody reads.</summary>
     public static string Size(long bytes) => bytes switch
     {
-        < 1024 => L.T("context.size.bytes", bytes),
-        < 1024 * 1024 => L.T("context.size.kb", (bytes / 1024.0).ToString("0.#", L.Culture)),
-        _ => L.T("context.size.mb", (bytes / (1024.0 * 1024)).ToString("0.#", L.Culture)),
+        < 1024 => L.T("context.size.bytes", Nums.Of(bytes, "0")),
+        < 1024 * 1024 => L.T("context.size.kb", Nums.Of(bytes / 1024.0)),
+        _ => L.T("context.size.mb", Nums.Of(bytes / (1024.0 * 1024))),
     };
 }

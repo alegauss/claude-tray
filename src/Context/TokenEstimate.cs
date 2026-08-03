@@ -98,15 +98,15 @@ internal static class TokenEstimate
     }
 
     /// <summary>
-    /// Compact display form for an estimate: "≈820", "≈4.9k", "≈35k". Invariant on purpose — a
-    /// decimal comma in "≈4,9k" reads as a thousands separator, which is the one misreading a
-    /// token count can't afford.
+    /// Compact display form for an estimate: "≈820", "≈4.9k", "≈35k". Invariant like every other number
+    /// (<see cref="Nums"/>), and with a second reason of its own — a decimal comma in "≈4,9k" reads as a
+    /// thousands separator, which is the one misreading a token count can't afford, and the reason a
+    /// per-surface split of the convention was refused in T216.
     /// </summary>
     public static string Format(int tokens)
     {
-        var inv = System.Globalization.CultureInfo.InvariantCulture;
-        if (tokens < 1000) return "≈" + tokens.ToString(inv);
-        if (tokens < 10_000) return "≈" + (tokens / 1000.0).ToString("0.#", inv) + "k";
-        return "≈" + (tokens / 1000.0).ToString("0", inv) + "k";
+        if (tokens < 1000) return "≈" + Nums.Of(tokens, "0");
+        if (tokens < 10_000) return "≈" + Nums.Of(tokens / 1000.0) + "k";
+        return "≈" + Nums.Of(tokens / 1000.0, "0") + "k";
     }
 }

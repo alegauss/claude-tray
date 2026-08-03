@@ -26,21 +26,24 @@ internal partial class SettingsPage
     {
         // RetryValue can be null while the slider's initial value is set during InitializeComponent.
         if (RetryValue is null) return;
-        int s = (int)Math.Round(RetrySlider.Value);
-        RetryValue.Text = s == 1 ? L.T("settings.sec.one") : L.T("settings.sec.many", s);
+        RetryValue.Text = RetryText((int)Math.Round(RetrySlider.Value));
     }
+
+    private static string RetryText(int seconds) =>
+        seconds == 1 ? L.T("settings.sec.one") : L.T("settings.sec.many", seconds);
 
     private void UpdateIntervalLabel()
     {
         // IntervalValue can be null while the slider's initial value is set during InitializeComponent.
         if (IntervalValue is null) return;
         double m = IntervalSlider.Value;
-        // Keep the number invariant (period decimal) to match the rest of the app; translate only the unit.
-        IntervalValue.Text = m == 1.0
-            ? L.T("settings.min.one")
-            : L.T("settings.min.many", m.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture));
+        IntervalValue.Text = IntervalText(m);
         UpdateCostEstimate(m);
     }
+
+    // The number is invariant like every other one in the app (Nums, T216); only the unit is translated.
+    private static string IntervalText(double minutes) =>
+        minutes == 1.0 ? L.T("settings.min.one") : L.T("settings.min.many", Nums.Of(minutes));
 
     // Show, live for the chosen cadence, how much the polling "heartbeat" consumes. It uses Claude
     // Code's subscription login, so there is no separate bill — it just draws a sliver of your usage;
@@ -61,16 +64,15 @@ internal partial class SettingsPage
         double costPerCall = (InputTokensPerCall * HaikuInputPerM + OutputTokensPerCall * HaikuOutputPerM) / 1_000_000.0;
         double costPerMonth = costPerCall * callsPerHour * 24.0 * 30.0;
 
-        // Format the numbers with the invariant culture so they read consistently (period decimal,
-        // comma thousands) regardless of the OS locale; the surrounding words are localized.
-        var inv = System.Globalization.CultureInfo.InvariantCulture;
-        string stats = L.T("settings.cost.stats",
-            callsPerHour.ToString("0.#", inv),
-            tokensPerHour.ToString("0", inv),
-            tokensPerDay.ToString("#,0", inv),
-            costPerMonth.ToString("0.00", inv));
-
-        CostEstimate.Text = L.T("settings.cost.lead") + stats
-                            + (polled > 1 ? "\n" + L.T("settings.cost.profiles", polled) : "");
+        CostEstimate.Text = CostText(callsPerHour, tokensPerHour, tokensPerDay, costPerMonth, polled);
     }
+
+    // The heartbeat's four figures and the profile count under them, out of the render so the number
+    // sweep can call it (T216). Every figure goes through `Nums`; the surrounding words are localized.
+    private static string CostText(double callsPerHour, double tokensPerHour, double tokensPerDay,
+                                   double costPerMonth, int polled) =>
+        L.T("settings.cost.lead")
+        + L.T("settings.cost.stats", Nums.Of(callsPerHour), Nums.Of(tokensPerHour, "0"),
+              Nums.Of(tokensPerDay, "#,0"), Nums.Of(costPerMonth, "0.00"))
+        + (polled > 1 ? "\n" + L.T("settings.cost.profiles", polled) : "");
 }
