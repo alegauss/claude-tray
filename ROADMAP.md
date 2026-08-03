@@ -63,6 +63,10 @@
 
 ## Block AI — Verification — the checks that prove a change
 
+- 📋 **T233** (deps: —) **Two checks in the Menu case go red on a gesture the shell dropped, and name a defect that is not there** — The left-click and the submenu expand each drive one synthesised input and read once, so three of ten runs failed against a binary nothing was wrong with. → §XX.16
+- 📋 **T235** (deps: —) **The settings-panel walk checks nothing at all under a non-English -Lang, and says so to nobody** — Label returns before loading en once the requested language defines the key, so Settings-PanelKeys reads an unloaded table, derives zero panels and walks them all successfully. → §XX.17
+- 📋 **T236** (deps: —) **A run reports every check passed against a binary older than the feature it was checking** — -UseRunning drives whatever tray is resident and prints its path, but nothing compares it to -Exe, so a day-old build passed a submenu check for an entry it does not have. → §XX.18
+
 ## Block AJ — Working here — the repo's own docs and flags
 
 - 💭 **T219** (deps: —) **The turn budget is full, so a new rule is paid for by deleting an old one nobody ranked** — Writing T169's rule took AGENTS.md 612 bytes over, and the bytes came back from a sentence that happened to be duplicated — a selector that runs out before the next rule does. → §XXII.1
@@ -90,7 +94,9 @@
 
 - 📋 **T229** (deps: —) **A toggle flipped in the tray menu is undone by pressing Save in a window that was already open** — Two fields the menu writes have a control on the Claude Code page and no [TrayOwned] marker, so the page hands back the snapshot it was built with and the newer value loses. → §XXVI.1
 
-## Block O — Profiles
+## Block Q — Keyboard input in the windows
+
+- 📋 **T234** (deps: —) **The sentence saying how far a profile pick reaches is announced to nobody** — A ToolStripMenuItem's ToolTipText reaches no UIA property, so T171's scope line and T172's tip are invisible to a screen reader and to every check. → §XXVIII.1
 
 ## Non-goals (do NOT add as tasks)
 

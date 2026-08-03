@@ -216,6 +216,75 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
+### XX.16 A red run that means nothing is the failure this file is about
+
+Ten runs of `-Case Menu` while T230 and T231 were being written, and three of them went red on
+something nobody had broken: twice *"a left-click on the icon opened no window (T158)"* and once
+*"'Profile' did not expand from the keyboard - empty when the menu opened? (T148)"*. Re-running
+immediately passed each time, against the same binary and the same machine.
+
+Both are synthesised input against a shell that does not always take it — the same reason
+`Open-TrayMenu` retries five times and says so in the header's first trap. The two checks below it
+do not retry at all: one click, one deadline, and a FAIL whose wording names a defect that is not
+there.
+
+This is worse than a missing check. A red run is meant to mean the thing under it stopped working,
+and the file's own rule is that an exit code has to keep meaning something — T202 turned a `Fail`
+into an `Unchecked` for precisely that reason, because a case that goes red on a machine where the
+loop is run is a case people learn to ignore. A flake that fires one run in three teaches the same
+lesson faster.
+
+What the remedy has to avoid is the shape it is fixing: a retry that keeps going until it passes
+turns a real regression into a slow pass, so the attempts are bounded and the count is reported, the
+way the menu open already reports which attempt produced it. Worth settling with it whether the
+left-click and the expand should share one "drive it until the tree changes" helper, since both are
+the same gesture-then-observe pair.
+
+### XX.17 A derived list that resolves to nothing is a check with no steps
+
+`Label` walks `@($script:LangCode, 'en')` and returns on the first file that defines the key, so
+with `-Lang pt-BR` the English table is never loaded at all. `Settings-PanelKeys` then reads
+`$script:LangText['en']` directly — deliberately, because the panel list is derived from the
+`settings.nav.*` keys rather than typed out (T196) and English is the file that has all of them.
+Against an unloaded table the regex matches nothing, `$keys` comes back empty, and the walk over
+every settings panel runs over zero panels.
+
+Nothing fails. The Keyboard case reports what it did check and says nothing about the panels,
+because a loop over an empty list has nothing to say — which is the exact shape §XV.3 and T161 are
+about, arriving through the language flag instead of through a `Skip`.
+
+It has been latent since T196 and cannot fire in CI or in any default run, since both are English
+and `Label` loads `en` first there. It fires on exactly one path: a non-English `-Lang`, which is
+the flag whose whole purpose is checking the thing English runs cannot see.
+
+The fix is small — force the English table before reading it, the way `Settings-PanelKeys` already
+intends with its `Label 'settings.nav.general'` line, which loads `$script:LangCode` and not `en`.
+What the task is really for is the assertion beside it: the derived panel list must be non-empty
+before it is walked, so a list that resolves to nothing is a FAIL rather than a walk with no steps.
+
+### XX.18 A named binary and a checked binary are not the same claim
+
+Executing this block, `-Case Menu -UseRunning` reported every assertion green against the tray
+resident on this machine. That tray had been published the previous afternoon, before T171 shipped,
+so the machine-wide toggle the submenu is supposed to carry did not exist in it — and the count
+check passed anyway, because its floor was *profiles + 1* and four entries clear a floor of three.
+
+The floor is now derived (T230), which closes that particular hole. What it does not close is the
+one underneath: the flag says "check the binary somebody else started", and nothing on the run
+compares that binary to the one under `-Exe`. The path is printed loudly, which was the whole of
+T202's answer, and a printed path is not a comparison — the run still says *"OK, every interaction
+check passed"* about a build that predates the feature being verified.
+
+`-UseRunning` should stay. It is the deliberate override on a machine where the tray is always
+resident, and implying it was already refused (§XX.6). But the same run that names the path can read
+both file versions and say when they differ, and *"the resident tray is 1.5.2, `-Exe` is 1.5.3"* is
+a DEGRADED run rather than a clean one: what ran passed, and it did not run against what was asked
+about.
+
+Worth settling with it whether the file version is the right key at all — a Debug build under `-Exe`
+and an installed Release carry the same `<Version>` between releases, so a same-version pair can
+still be days apart. The write timestamp answers that and nothing else does.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
@@ -446,9 +515,33 @@ The shape wanted is a decision about which write is newer, not another list. A p
 the page reading the live model for exactly the fields it shares, are both plausible; what must not
 happen is a third category of ownership, since two were already one too many to keep straight.
 
-## XXVII Profiles — several logins on one machine (Block O)
+## XXVIII Input, focus, and being readable (Block Q)
 
-The tray polls more than one Claude Code profile and lets a pick move which one the icon follows.
-What files under this block is everything that follows from there: how a profile is identified, what
-it is called, what a pick reaches, and which of those a read-out is allowed to answer differently
-from the screen.
+What a control ANNOUNCES, as against what it draws. A picture cannot see an accessible name and
+neither can any check, so this is the block where a surface that renders perfectly and tells
+assistive technology nothing gets filed.
+
+### XXVIII.1 A menu entry announces its text and nothing else
+
+Every entry in the Profile submenu was dumped through UI Automation while T230 was being written.
+`HelpText` is empty on all of them, and the only pattern an entry carries besides `Invoke` is
+`Toggle` — and that one only while the item is **checked**. An unchecked `ToolStripMenuItem` exposes
+no `TogglePattern` at all, so "off" and "not a toggle" are one reading.
+
+Two consequences, and the first is the one that matters. `ToolTipText` is where T171 says what a
+pick actually reaches — *"the tray only"* against *"the tray and the Windows user environment"* —
+and where T172 explains that a session already running keeps what it started with. Those sentences
+exist because the icon moving reads as "the machine is now on this profile" and that is only
+sometimes true. WinForms does not map `ToolTipText` to `accHelp`, so a screen reader announces the
+entry's text and nothing else: the person who most needs the sentence about scope is the one who
+cannot reach it.
+
+The second is smaller and follows from the same gap: a menu toggle's OFF position cannot be asserted
+by anything, so T230's checks are written to claim only which entry is On. A switch that stopped
+turning on is caught; one that stopped turning off is not.
+
+Both are one question — what a `ToolStripItem` tells UI Automation — and the answer is its
+`AccessibleObject`: `AccessibleDescription`/`Help` for the tooltip, and a toggle state that is
+reported in both positions. Block Q is where this lives rather than the profile blocks, because it
+is the same property `PART_SelectedContentHost` and T175's row names were: a control that renders
+correctly and announces nothing.
