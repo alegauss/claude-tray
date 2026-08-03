@@ -301,27 +301,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.12 The exception whose reason expired one task later
-
-T249 removed `**.md` from `check.yml`'s `paths-ignore` because four checks had begun reading
-markdown, and kept `docs/**` on the stated grounds that nothing read the published site. The comment
-it left says so: *the day a check reads `docs/`, this line goes with it*.
-
-T250 is that check, and it shipped next. It reads `docs/index.html` and every `docs/*.png`, and
-asserts exactly the things a commit touching only `docs/` would break — a renamed screenshot, an
-image reference edited by hand, a marketing block pointing at a file that is gone. A commit that
-touches only that directory does not run the check written for it.
-
-The finding is not the line, it is that a correct exception went stale in one task and the note
-saying when to revisit it was not enough. `paths-ignore` is a hardcoded list of what no check reads,
-maintained by hand, in a repository that has spent a whole block replacing exactly that kind of list
-with something derived — and this one is worse than most, because being wrong makes a check silently
-not run rather than fail.
-
-So the fix is the line, and the question worth settling with it is whether the list should exist at
-all: what is left after `docs/` is `LICENSE`, which is one file, and the run it saves is one build.
-A guard nobody can get wrong is worth more than the minutes.
-
 ### XXII.13 The checks that read files, behind a compiler
 
 Six assertions in `--selftest` compare a document to the thing it documents. Not one of them needs

@@ -68,7 +68,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T252** (deps: —) **The guard still waves through the one directory a check started reading last task** — T249 left docs/ ignored because nothing read it and said the line goes the day one does, and T250 shipped that check an hour later without touching it. → §XXII.12
 - 📋 **T253** (deps: —) **Every prose commit now pays a Release build for assertions that need no binary** — T249 made markdown-only commits run the guard, and the only way to run those checks is an app that has to be compiled first, so a typo in the ledger costs a full build. → §XXII.13
 
 ## Block G — Localization

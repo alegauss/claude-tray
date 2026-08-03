@@ -13,25 +13,18 @@ name: check
 #
 # Nothing here needs a secret, a signature or Inno Setup — build, run, done.
 #
-# The two `paths-ignore` lists are duplicated on purpose: GitHub Actions does not support YAML
-# anchors, so a shared list would silently not be shared. Keep them in step.
+# **There is no `paths-ignore`, deliberately (T252).** It held `**.md` on the argument that prose
+# cannot move arithmetic, and that expired the day the suite began reading markdown — so T249 removed
+# it and kept `docs/**` on the same argument one directory over, with a note saying the line goes the
+# day a check reads that directory. T250 was that check and shipped next. Twice in two tasks, a
+# hand-kept list of what nothing reads was wrong, and being wrong here does not fail a run: it stops
+# one from happening, which is the quietest way this repository has found to lose a check. What the
+# list was buying is one build on a commit that touches `LICENSE` alone. A guard nobody can get wrong
+# is worth more than the minutes; what those minutes should cost instead is T253.
 on:
   push:
     branches: ['**']          # branches only: a tag push is a release, and build.yml owns that path
-    # `**.md` was here until T249, on the argument that a commit touching only prose cannot move the
-    # arithmetic. That stopped being true: four of these checks read markdown — the ledger's index, the
-    # file map, the flag catalogue and the active marker (T223, T242-T244) — so a commit that edits only
-    # `CHANGELOG.md` or a skill is precisely the commit they exist to catch, and it was the one being
-    # waved through. What is left is genuinely read by nothing: the published site and the licence.
-    # `paths-ignore` skips the run only when *every* changed file matches, so the usual code-plus-docs
-    # commit ran the check either way. The day a check reads `docs/`, this line goes with it.
-    paths-ignore:
-      - 'docs/**'             # the published GitHub Pages site
-      - 'LICENSE'
   pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - 'LICENSE'
 
 permissions:
   contents: read
