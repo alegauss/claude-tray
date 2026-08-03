@@ -38,7 +38,42 @@ internal static class SelfTestCli
     /// <summary>What did not run, by name (T169). The count alone cannot tell <em>"this run straddled a
     /// DST change"</em> from <em>"this environment has skipped these two forever"</em>, and the second is
     /// lost coverage that reads exactly like a clean run.</summary>
-    private static readonly List<string> Skipped = new();
+    private static readonly List<(string Name, string Why)> Skipped = new();
+
+    /// <summary>
+    /// The skips this suite is allowed to have, by name — so an <b>unexpected</b> one is a red run and a
+    /// known one is not (T218).
+    ///
+    /// <para>T169 made every skip print its name and deliberately left this policy open: whether an
+    /// unexpected skip should fail the build was "a judgement to make with the list in hand", and the
+    /// list now exists. Until now <c>--selftest</c> exited 0 with any number of skips and
+    /// <c>check.yml</c> read only the exit code, so a green run and a green run that checked two fewer
+    /// things were the same colour — which is T169's own defect moved from one guard to the whole
+    /// suite.</para>
+    ///
+    /// <para><b>Failing on any skip would be wrong.</b> Two of these are genuinely conditional on the
+    /// machine and the moment, so a blunt rule makes the suite flaky, and a flaky suite gets ignored —
+    /// which costs more coverage than the skips do. A count (<c>--max-skips</c>) is the cheap form and
+    /// nobody maintains a number; naming them means a skip that <em>stops</em> happening is as visible as
+    /// one that starts, which is why the reasons are here rather than in a comment.</para>
+    ///
+    /// <para>Each entry says what it costs to allow it. A skip that is <em>always</em> expected where this
+    /// runs is a check that does not exist there, and the honest response is to read that line and decide,
+    /// not to let the exit code stay quiet about it.</para>
+    /// </summary>
+    private static readonly (string Name, string Why)[] AllowedSkips =
+    {
+        ("the resume hour closes the week under its own target",
+         "the synthetic week does not always produce a profile whose resume hour lands under its target"),
+        ("the probe backtracks past a shorter directory that exists",
+         "a temp path whose encoding cannot be rebuilt - unrepresentable, not an unwritten case (T169)"),
+        ("the probe returns only directories that exist",
+         "the same temp path, in the same run"),
+        ("every id the interaction check drives still exists",
+         "no repository beside the build, which is every installed copy (T203)"),
+        ("the dev-flags catalogue names what the tables declare",
+         "the same absent repository (T207)"),
+    };
 
     /// <returns>Process exit code: 0 when every check passed.</returns>
     public static int Run(string[] flags)
@@ -133,12 +168,34 @@ internal static class SelfTestCli
         double ms = (DateTime.UtcNow.Ticks - started) / (double)TimeSpan.TicksPerMillisecond;
         Console.WriteLine();
         foreach (string f in Failures) Console.WriteLine("FAILED  " + f);
-        // Beside the counts, where the exit code is read: a name is what makes lost coverage legible, and
-        // whether an unexpected one should be a red build is a judgement to make with this list in hand.
-        foreach (string s in Skipped) Console.WriteLine("SKIPPED " + s);
+
+        // Beside the counts, where the exit code is read: a name is what makes lost coverage legible.
+        // Each one says what allowing it costs, so the line is a decision and not a note (T218).
+        foreach ((string name, string why) in Skipped)
+        {
+            string allowed = AllowedSkips.FirstOrDefault(a => a.Name == name).Why;
+            Console.WriteLine($"SKIPPED {name} — {why}");
+            if (allowed is not null) Console.WriteLine($"        allowed: {allowed}");
+        }
+
+        (string Name, string Why)[] unexpected =
+            Skipped.Where(s => AllowedSkips.All(a => a.Name != s.Name)).ToArray();
+        foreach ((string name, string why) in unexpected)
+            Console.WriteLine($"UNEXPECTED SKIP  {name} — {why}: nobody decided to lose this one. Fix the " +
+                              "reason, or add it to AllowedSkips with what allowing it costs.");
+
+        // The other direction, and the reason this is a list of names rather than a number: an allowed
+        // skip that has stopped happening is coverage regained, or a check that has quietly been renamed
+        // out from under this list. Reported, never failed — most of these are absent on most machines.
+        string[] absent = AllowedSkips.Where(a => Skipped.All(s => s.Name != a.Name))
+                                      .Select(a => a.Name).ToArray();
+        if (absent.Length > 0)
+            Console.WriteLine($"({absent.Length} allowed skip(s) did not happen here: {string.Join("; ", absent)})");
+
         Console.WriteLine($"{_passed} passed, {_failed} failed" +
-                          (Skipped.Count > 0 ? $", {Skipped.Count} skipped" : "") + $" — {ms:0}ms");
-        return _failed == 0 ? 0 : 1;
+                          (Skipped.Count > 0 ? $", {Skipped.Count} skipped" : "") +
+                          (unexpected.Length > 0 ? $", {unexpected.Length} UNEXPECTED" : "") + $" — {ms:0}ms");
+        return _failed == 0 && unexpected.Length == 0 ? 0 : 1;
     }
 
     // ---------------------------------------------------------------- Block J: the projection
@@ -2440,7 +2497,7 @@ internal static class SelfTestCli
 
     private static void Skip(string name, string why)
     {
-        Skipped.Add($"{name} — {why}");
+        Skipped.Add((name, why));
         Console.WriteLine($"  skip  {name} — {why}");
     }
 

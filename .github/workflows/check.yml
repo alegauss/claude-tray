@@ -58,6 +58,11 @@ jobs:
 
       # Started rather than invoked: the app is a Windows-subsystem .exe, so its output has to be
       # redirected to be seen and its exit code has to be waited for. Same idiom as build.yml.
+      #
+      # Exit 1 now has two meanings and the log distinguishes them (T218): a property broke, or the run
+      # skipped a check nobody agreed to lose. `--selftest` carries a named list of the skips it is
+      # allowed to have, so a known one stays green and an unexpected one is red — and the log is printed
+      # either way, because a count cannot say which check went missing.
       - name: Self-check
         shell: pwsh
         run: |

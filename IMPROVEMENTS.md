@@ -349,30 +349,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.15 What a skip should cost in CI
-
-T169 removed the cause of the one skip that fired on every CI run and made the rest legible: the summary
-now prints each skip by name, beside the counts. It left the policy open on purpose — "whether CI should
-**fail** on an unexpected skip is a judgement to make with the list in hand" — and the list now exists.
-
-What is true today: `--selftest` exits 0 with any number of skips, and `check.yml` reads only the
-exit code. A green run and a green run that checked two fewer things are the same colour, which is
-precisely the shape T169 called a check that does not exist, moved from one guard to the whole
-suite.
-
-The blunt fix is wrong. Two of the skips here are legitimately conditional on the machine and the
-moment — `Pacing` skips a flat-profile case the synthetic data cannot always produce, and one probe
-guard survives for a temp path that genuinely cannot be encoded — so failing on any skip makes the
-suite flaky, and a flaky suite gets ignored, which costs more coverage than the skips did.
-
-What is worth designing is the middle: an **expected** set, so an unexpected skip is red and a known
-one is not. The cheap form is a count (`--max-skips`), a number nobody maintains; the better one
-names them, the way `AutomationIds`' driven-id list is named, so a skip that stops happening is as
-visible as one that starts. Either way CI should report the names, not just the count.
-
-And where the judgement lands: a skip that is *always* expected on CI is a check CI does not have,
-and the honest response is to say so rather than to allow it quietly.
-
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of

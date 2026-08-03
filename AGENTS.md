@@ -251,7 +251,7 @@ ClaudeTray.exe --selftest [--quick]      # --quick skips the sections that wait 
   the *precondition*, never a weaker form of the claim — T161 gated on backtracking itself, so the build
   with backtracking removed went green. Then fix the environment: that guard still skipped both probe
   checks on every CI run, whose `%TEMP%` is an 8.3 alias the encoding cannot rebuild, so `Temp` resolves
-  the root (`LongPath`) and the summary **names each skip beside the counts** (T169).
+  the root (`LongPath`) and the summary **names each skip beside the counts** (T169); an unexpected one is red (T218).
 
 ## Build / run / dev helpers
 

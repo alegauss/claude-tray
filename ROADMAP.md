@@ -71,8 +71,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T218** (deps: T169 ✅) **A run that checked less is the same colour as one that checked everything** — T169 made every skip print its name and left the policy open on purpose; the exit code still ignores them, so losing a check in CI costs nothing and shows nothing. → §XX.15
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 - 💭 **T219** (deps: —) **The turn budget is full, so a new rule is paid for by deleting an old one nobody ranked** — Writing T169's rule took AGENTS.md 612 bytes over, and the bytes came back from a sentence that happened to be duplicated — a selector that runs out before the next rule does. → §XXII.1
