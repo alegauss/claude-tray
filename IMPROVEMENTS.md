@@ -400,22 +400,6 @@ times, three of them for the same read-only window (§XX.4), and nothing runs an
 even though the case that caught T135 needs no credentials at all (§XX.3). §XX.5 is the coverage the
 row rule actually has, which is three controls of the thirty-odd it now governs.
 
-### XX.5 The row rule's real coverage is one panel of six
-
-`SettingsRow` gives its trailing control the row's header as an accessible name unless the control
-already announces something. That rule now applies to every row on all six settings panels, and the
-check reads three controls on one of them.
-
-Two branches matter and neither is asserted. The one that must *not* fire: a row holding a field and
-a labelled Button beside it — `DirectoryBox` with `Browse…`, or the profile row with a ComboBox and
-two buttons — where the field takes the header and each button keeps its own text. Getting that
-wrong gives three controls the same name, which is worse for a screen reader than one unnamed. And
-the nesting branch: a StackPanel inside a StackPanel, which the walk handles and nothing exercises.
-
-Cheap to close: navigate the settings sidebar and assert per row rather than per named control,
-driving the panel list the page itself declares so a new panel is covered by existing code. The
-stated skip when a panel does not open belongs here too.
-
 ## §XXI — What Block AF's own captures turned up (Block AH)
 
 Block AF built five checks and repaired two capture flags, and every item here came out of *using*

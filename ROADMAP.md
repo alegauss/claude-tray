@@ -50,8 +50,6 @@
 >
 > Ordered by what can make a green run meaningless, then by what keeps the loop being run at all.
 
-- 📋 **T196** (deps: —) **The row rule now governs thirty-odd controls and is asserted on three of them** — `-Case Names` reads one ComboBox, one switch and one Slider on the Settings page's General panel, and five of its six panels are never visited. → §XX.5
-
 ## Block AE — Extra usage is money, and the tray is asleep for it
 
 > A field report against an account working past 100%: the overage reading is fetched, reaches one

@@ -319,6 +319,59 @@ function Label($key) {
     throw "no lang file defines '$key'"
 }
 
+<#
+  Every settings panel the page declares, derived rather than listed (T196). A panel is a sidebar item
+  and a sidebar item carries a `settings.nav.*` label, so a panel added later is swept by the existing
+  walk with no edit here - the failure mode of a hardcoded list is silently not checking the thing it
+  was written for (§XV.3, and T161 before it).
+#>
+function Settings-PanelKeys {
+    if ($script:PanelKeys) { return $script:PanelKeys }
+    Label 'settings.nav.general' | Out-Null      # forces the language file to be read
+    $keys = @()
+    foreach ($m in [regex]::Matches($script:LangText['en'], '"(settings\.nav\.[A-Za-z]+)"\s*:')) {
+        $keys += $m.Groups[1].Value
+    }
+    $script:PanelKeys = $keys
+    return $keys
+}
+
+<#
+  Click a settings sidebar item by its label. The items are bare `Border`s with no automation peer, so
+  they are matched by the `TextBlock` inside and disambiguated by x-position - the page title carries the
+  same words (trap 2). Returns whether the item was there to click.
+#>
+function Nav-Settings($win, $label) {
+    $textCond = New-Object System.Windows.Automation.PropertyCondition(
+        $AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Text)
+    $nav = @($win.FindAll('Descendants', $textCond) |
+             Where-Object { $_.Current.Name -eq $label } |
+             Sort-Object { $_.Current.BoundingRectangle.X })
+    if ($nav.Count -eq 0) { return $false }
+    ClickCentre $nav[0]
+    Start-Sleep -Milliseconds 800
+    return $true
+}
+
+<#
+  The controls `SettingsRow` is responsible for naming, and only those: a `ComboBox`, `Slider` or
+  `TextBox` has no content a name can be derived from, and a switch is a contentless `ToggleButton`
+  (which reaches UIA as a Button carrying TogglePattern). Everything else on a panel is either a Button
+  with its own text - `Save`, `Browse…`, `Add…`, which the rule must leave alone - or a framework
+  template part: a Slider's `DecreaseLarge`/`IncreaseLarge` and a ScrollBar's `PageUp`/`PageDown` are
+  plain unnamed Buttons, and they are excluded by *what they are* rather than by a list of their ids.
+#>
+function Row-Controls($win) {
+    $CT = [System.Windows.Automation.ControlType]
+    $toggle = [System.Windows.Automation.TogglePattern]::Pattern
+    return @($win.FindAll('Descendants', $ANY) | Where-Object {
+        $t = $_.Current.ControlType
+        if ($t -eq $CT::ComboBox -or $t -eq $CT::Slider -or $t -eq $CT::Edit) { return $true }
+        if ($t -ne $CT::Button) { return $false }
+        try { return $null -ne $_.GetCurrentPattern($toggle) } catch { return $false }
+    })
+}
+
 # ---------------------------------------------------------------- keyboard case
 
 <#
@@ -345,17 +398,10 @@ function Invoke-KeyboardCase {
             Info "collapsed pane is absent from the UIA tree (expected) - navigating to it"
         }
 
-        # The sidebar items are Borders with no automation peer: match the TextBlock inside, and take
-        # the leftmost, because the page title carries the same words.
-        $textCond = New-Object System.Windows.Automation.PropertyCondition(
-            $AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Text)
         $navLabel = Label 'settings.nav.claudeCode'
-        $nav = @($win.FindAll('Descendants', $textCond) |
-                 Where-Object { $_.Current.Name -eq $navLabel } |
-                 Sort-Object { $_.Current.BoundingRectangle.X })
-        if ($nav.Count -eq 0) { Fail "no sidebar item named '$navLabel' (is -Lang $Lang right?)"; return }
-        ClickCentre $nav[0]
-        Start-Sleep -Milliseconds 700
+        if (-not (Nav-Settings $win $navLabel)) {
+            Fail "no sidebar item named '$navLabel' (is -Lang $Lang right?)"; return
+        }
 
         $box = ById $win 'DirectoryBox'
         if (-not $box) { Fail "DirectoryBox not found after navigating to the Claude Code page"; return }
@@ -963,8 +1009,17 @@ function Printable($text) {
   derives its name from its own content and both of these have none - one's label is a separate
   TextBlock, the other's content is a Segoe MDL2 codepoint.
 
-  The settings rows are the same shape thirty-odd times over (`SettingsRow` = label left, control
-  right), so two of them are read here as the witness for the rule the row now applies to all.
+  The settings rows are the same shape thirty-odd times over (`SettingsRow` = label left, control right),
+  and the rule that names them was asserted on three controls of one panel out of six (T196). Now every
+  panel the page declares is opened - the list comes from the `settings.nav.*` labels, so a panel added
+  later is swept without an edit here - and every control the rule is responsible for is read. Three
+  shapes still get an exact-label read, because the sweep can only see THAT a control is named, not that
+  the name is its own row's header.
+
+  Both branches of the rule are covered, which is the point: the one that must fire (a ComboBox, Slider,
+  TextBox or contentless switch takes the header) and the one that must NOT (a field with a labelled
+  Button beside it - the field takes the header, each Button keeps its own text). Getting the second wrong
+  gives three controls in one row the same name, which is worse for a screen reader than one unnamed.
 
   `--main`, not `--settings`: one launch reaches both pages, and it is the shell the tray opens.
 #>
@@ -1012,9 +1067,10 @@ function Invoke-NamesCase {
             catch { ClickCentre $navSettings }
             Start-Sleep -Milliseconds 1200
 
-            # All three live on the Settings page's own default sidebar page (General), so no second
-            # navigation is needed - and they are one of each shape the row rule has to handle: an
-            # ItemsControl, a contentless ToggleButton, and a Slider inside a StackPanel.
+            # Three exact-label reads first, on the panel the page opens on: one of each shape the rule
+            # has to handle (an ItemsControl, a contentless ToggleButton, a Slider inside a StackPanel).
+            # These assert the name is the RIGHT string, which the sweep below cannot - it has no way to
+            # know which row a control belongs to.
             $rows = @(
                 @{ Id = 'LanguageCombo'; Key = 'settings.general.appLanguage';    What = "the language picker" }
                 @{ Id = 'StartupCheck';  Key = 'settings.general.startWithWindows'; What = "the start-with-Windows switch" }
@@ -1023,6 +1079,78 @@ function Invoke-NamesCase {
             foreach ($row in $rows) {
                 if (Assert-Name $win $row.Id (Label $row.Key) $row.What) { $read++ }
                 else { Fail "$($row.What) ($($row.Id)) is not in the tree after navigating to Settings" }
+            }
+
+            # T196: the rule governs thirty-odd controls across six panels and used to be asserted on the
+            # three above, all on one panel. Every panel is now visited and every control the rule is
+            # responsible for is read, so a row added to a panel nobody checked is covered.
+            # Opened and asserted counted apart: a panel with no row control was still visited, and
+            # rolling the two together would report it as one that got away.
+            $opened = 0
+            $asserted = 0
+            foreach ($key in Settings-PanelKeys) {
+                $panel = Label $key
+                if (-not (Nav-Settings $win $panel)) {
+                    Unchecked "the row rule on the '$panel' panel (T175)" `
+                              "no sidebar item carries that label - it was never opened"
+                    continue
+                }
+                $opened++
+                $controls = Row-Controls $win
+                if ($controls.Count -eq 0) {
+                    # Not a failure: About holds prose and links, and a panel is allowed to have no row
+                    # the rule applies to. Said out loud so "0 read" is never mistaken for "0 asserted".
+                    Info "'$panel': no ComboBox, Slider, TextBox or switch - nothing for the rule to name"
+                    continue
+                }
+                $unnamed = @()
+                foreach ($c in $controls) {
+                    $nm = [string]$c.Current.Name
+                    # A glyph codepoint satisfies "non-empty" and is not a name (T175's worst case), so
+                    # the printable form is what gets compared and what gets reported.
+                    if (-not $nm -or (Printable $nm) -ne $nm -or $nm -eq [string]$c.Current.AutomationId) {
+                        $unnamed += "$($c.Current.AutomationId)='$(Printable $nm)'"
+                    }
+                }
+                if ($unnamed.Count -gt 0) {
+                    Fail "'$panel': $($unnamed.Count) of $($controls.Count) row control(s) announce nothing a screen reader can use (T175) - $($unnamed -join ', ')"
+                } else {
+                    Pass "'$panel': all $($controls.Count) row control(s) announce a label"
+                    $read += $controls.Count
+                }
+                $asserted++
+            }
+            Info "$opened of $((Settings-PanelKeys).Count) settings panel(s) opened, $asserted carried a row control"
+
+            # The branch that must NOT fire, and the reason the rule tests the content rather than the
+            # type: a row holding a field with a labelled Button beside it must give the header to the
+            # field only, and each Button keeps its own text. Getting this wrong gives three controls in
+            # one row the same name, which is worse for a screen reader than one unnamed control.
+            if (Nav-Settings $win (Label 'settings.nav.claudeCode')) {
+                $trio = @(
+                    @{ Id = 'DirectoryBox';        Key = 'settings.cc.workDir';       What = "the working-directory field" }
+                    @{ Id = 'BrowseButton';        Key = 'settings.cc.browse';        What = "the Browse button beside it" }
+                    @{ Id = 'ProfileAddButton';    Key = 'settings.cc.profileAdd';    What = "the profile row's Add button" }
+                    @{ Id = 'ProfileRemoveButton'; Key = 'settings.cc.profileRemove'; What = "its Remove button" }
+                )
+                $names = @()
+                foreach ($t in $trio) {
+                    if (Assert-Name $win $t.Id (Label $t.Key) $t.What) {
+                        $read++
+                        $el = ById $win $t.Id 1000
+                        if ($el) { $names += [string]$el.Current.Name }
+                    }
+                }
+                # Same row, so a header that leaked onto the buttons would show up as one name three times.
+                $shared = @($names | Group-Object | Where-Object { $_.Count -gt 1 })
+                if ($shared.Count -gt 0) {
+                    Fail "a row's controls share a name: $(($shared | ForEach-Object { "'$($_.Name)' x$($_.Count)" }) -join ', ') - the header leaked onto a Button that had its own text"
+                } elseif ($names.Count -gt 1) {
+                    Pass "a field and the Buttons beside it keep $($names.Count) distinct names"
+                }
+            } else {
+                Unchecked "the field-plus-Button branch of the row rule (T175)" `
+                          "the Claude Code panel could not be opened"
             }
         }
 
