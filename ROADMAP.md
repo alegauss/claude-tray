@@ -44,7 +44,6 @@
 > Ordered by what is losing data today, then by what every string here is waiting on, then by what a
 > user would actually see.
 
-- 📋 **T209** (deps: —) **Four strings still call the extra figure a scale of its own** — The hedge was honest while nothing knew what the number denominated; T181 measured it — a window of its own, resetting on a calendar month — so chart, legend, projection and tooltip under-inform. → §XVIII.8
 - 📋 **T210** (deps: —) **The API names which window is binding and three files work it out again** — unified-representative-claim and its status state the claim the top-level figures are about, and the projection, the icon and the tooltip each derive it by comparing 5h against 7d. → §XVIII.9
 - 💭 **T211** (deps: —) **Nothing here knows the API is offering a fallback** — unified-fallback reads available and unified-fallback-percentage 0.5 on every response, and what either governs is unmeasured, so no string can say what happens at the limit. → §XVIII.10
 - 📋 **T212** (deps: —) **The header read-out prints a real reading and records none of it** — Record is called from the two poll paths only, so --probe discards the response it just fetched, and its empty-log line blames a change that has not come rather than a tray that never polled. → §XVIII.11

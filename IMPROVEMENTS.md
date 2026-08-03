@@ -365,28 +365,6 @@ Two constraints bind. The **privacy promise** is not in tension: rate-limit head
 overage more visible, and the next sentence, *this account is out, the other has room*, is the one the
 roadmap forbids. §XVIII.6 binds hardest; §XVI.4 found the answer's shape: a receipt, not a reward.
 
-### XVIII.8 Four strings hedge a number that is no longer unmeasured
-
-While T181 was open the app was careful, and the care is visible: `stats.legend.extra` says "extra
-usage (own scale)", `stats.chart.extraNow` and `stats.proj.billing` say "its own scale — see the
-method note", and the tooltip's `tip.extra` says only "Extra". None of them names what 100% would
-be, because nobody knew.
-
-Now something is known, and it is narrower than a guess would have been. The overage triple is a
-window like the other two, and its reset is a calendar-month boundary — `2026-09-01T00:00:00Z` on
-the reading taken — while 5h and 7d roll. So the figure is a utilization of the extra-usage
-allowance for the current month. What no header states is the *amount* of that allowance, and
-nothing here needs it: a percentage of a monthly window is a complete sentence.
-
-Which is the whole shape of this task: replace "its own scale" with the window, in all five language
-files, and leave the number alone. "Extra usage: 42% of this month's allowance" is what the
-measurement supports. "42% of your spend cap" is not — no header says whether the ceiling is one the
-user set or one the plan imposes, and the two read very differently to somebody deciding whether to
-keep working.
-
-§I.7 binds hardest here, because a clearer overage reading is a better invitation to switch
-accounts. The month is a receipt: this is what has been spent and when the slate clears.
-
 ### XVIII.9 The API names the binding window, and the app works it out again
 
 Beside the three window triples the response carries a fourth, unsuffixed set:

@@ -50,7 +50,7 @@
   "tip.profile": "Perfil: {0}",
   "tip.session": "Sessão 5h",
   "tip.week": "Semana 7d",
-  "tip.extra": "Extra",
+  "tip.extra": "Uso extra",
   "tip.leftSuffix": " restante",
   "tip.status": "Status: {0}{1}",
   "tip.atLimitFull": "⚠ {0}: no limite ({1})",
@@ -341,7 +341,7 @@
   "stats.legend.projection": "projeção",
   "stats.legend.usualIdle": "normalmente ocioso",
   "stats.legend.lastWeek": "semana passada",
-  "stats.legend.extra": "uso extra (escala própria)",
+  "stats.legend.extra": "uso extra (escala da direita)",
   "stats.methodTitle": "Como estes números são medidos",
   "stats.methodNote": "“Usado” e o reset vêm ao vivo dos limites de taxa da Anthropic; a curva é sua utilização real medida ao longo da janela (até haver registro suficiente, é reconstruída a partir das transcrições locais). A projeção assume o ritmo médio atual.",
   "stats.methodNote.shape": "A projeção semanal segue as horas em que você costuma estar ativo ({0} semanas de transcrições locais{1}), então fica plana de madrugada em vez de gastar a cota de modo uniforme — é um hábito, não uma agenda. Uso em outra máquina ou no claude.ai conta para o mesmo limite mas não deixa transcrição aqui, então uma hora que parece ociosa pode não ser.",
@@ -402,7 +402,7 @@
   // Projection text
   "stats.proj.noWindow": "Ainda não há leitura de limite para esta janela.",
   "stats.proj.atLimit": "Você atingiu o limite desta janela. Ela reseta em {0} — até lá, o uso está bloqueado.",
-  "stats.proj.billing": "Você gastou a cota incluída nesta janela e continua trabalhando — o uso extra está pagando, agora em {0} da escala própria dele. Esta janela reseta em {1}.",
+  "stats.proj.billing": "Você gastou a cota incluída nesta janela e continua trabalhando — o uso extra está pagando, agora em {0} do seu limite de uso extra. A janela incluída reseta em {1}.",
   "stats.proj.aheadEta": "No ritmo atual, sua cota chega a 100% em {0} — cerca de {1} antes do reset (em {2}). Vale desacelerar para não ser bloqueado.",
   "stats.proj.ahead": "Você está consumindo acima do ritmo equilibrado ({0} seria o esperado até agora, mas você já usou {1}). Ela reseta em {2}.",
   "stats.proj.ok": "Você está no ritmo equilibrado — abaixo da meta de {0}. No ritmo atual, a cota dura tranquilamente até o reset, em {1}.",
@@ -434,7 +434,7 @@
   "stats.chart.reset": "reset {0}",
   "stats.chart.unavailable": "Uso ao vivo indisponível desde {0} — sem dados neste trecho",
   "stats.chart.extraAxis": "uso extra",
-  "stats.chart.extraNow": "Uso extra: {0} (escala própria — veja a nota do método)",
+  "stats.chart.extraNow": "Uso extra: {0} do seu limite de uso extra, na escala da direita.",
 
   // ================= Janela de carga de contexto (ContextWindow) =================
   // Todas as chaves abaixo pertencem a este recurso; os subcomentários agrupam por painel.

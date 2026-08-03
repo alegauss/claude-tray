@@ -54,7 +54,7 @@
   "tip.profile": "Profile: {0}",
   "tip.session": "Session 5h",
   "tip.week": "Week 7d",
-  "tip.extra": "Extra",
+  "tip.extra": "Extra usage",
   "tip.leftSuffix": " left",
   "tip.status": "Status: {0}{1}",
   "tip.atLimitFull": "⚠ {0}: at limit ({1})",
@@ -345,7 +345,7 @@
   "stats.legend.projection": "projection",
   "stats.legend.usualIdle": "usually idle",
   "stats.legend.lastWeek": "last week",
-  "stats.legend.extra": "extra usage (own scale)",
+  "stats.legend.extra": "extra usage (right-hand scale)",
   "stats.methodTitle": "How these numbers are measured",
   "stats.methodNote": "“Used” and the reset come live from Anthropic's rate limits; the curve is your real measured utilization over the window (until enough is logged, it's reconstructed from local transcripts). The projection assumes the current average pace.",
   "stats.methodNote.shape": "The weekly projection follows the hours you're usually active ({0} weeks of local transcripts{1}), so it stays flat overnight instead of spending quota evenly around the clock — it's a habit, not a schedule. Usage from another machine or from claude.ai counts against the same limit but leaves no transcript here, so an hour that looks idle may not be.",
@@ -406,7 +406,7 @@
   // Projection text
   "stats.proj.noWindow": "No limit reading for this window yet.",
   "stats.proj.atLimit": "You've hit this window's limit. It resets in {0} — until then, usage is blocked.",
-  "stats.proj.billing": "You've spent the quota included in this window and are still working — extra usage is paying, now at {0} of its own scale. This window resets in {1}.",
+  "stats.proj.billing": "You've spent the quota included in this window and are still working — extra usage is paying, now at {0} of your extra-usage allowance. The included window resets in {1}.",
   "stats.proj.aheadEta": "At the current pace, your quota reaches 100% in {0} — about {1} before the reset (in {2}). Worth easing off so you don't get blocked.",
   "stats.proj.ahead": "You're consuming above the even pace ({0} would be expected by now, but you've already used {1}). It resets in {2}.",
   "stats.proj.ok": "You're pacing evenly — below the even-pace target of {0}. At the current rate, the quota comfortably lasts until the reset, in {1}.",
@@ -438,7 +438,7 @@
   "stats.chart.reset": "reset {0}",
   "stats.chart.unavailable": "Live usage unavailable since {0} — no data for this span",
   "stats.chart.extraAxis": "extra usage",
-  "stats.chart.extraNow": "Extra usage: {0} (its own scale — see the method note)",
+  "stats.chart.extraNow": "Extra usage: {0} of your extra-usage allowance, on the right-hand scale.",
 
   // ================= Context Load window (ContextWindow) =================
   // Every key below belongs to this one feature; the sub-comments group them by panel.
