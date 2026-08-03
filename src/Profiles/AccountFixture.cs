@@ -283,12 +283,21 @@ internal static class AccountFixture
             },
         }, Indented));
 
-    /// <summary>The <c>projects</c> map, which the page reads only for its size. The paths are invented
-    /// and lead nowhere — nothing resolves them, and a fixture must not name a real repository.</summary>
+    /// <summary>
+    /// The <c>projects</c> map, which the page reads only for its size. The paths are invented and lead
+    /// nowhere — nothing resolves them, and a fixture must not name a real repository.
+    ///
+    /// <para>The first project is written <b>twice</b>, differing only in the case of the drive letter,
+    /// because that is the shape a real file has (T225): Claude Code records whatever spelling the shell
+    /// used, so one folder ends up under two keys. The map therefore has <c>count + 1</c> entries and still
+    /// names <c>count</c> directories, which is exactly the gap the count has to close — and it keeps the
+    /// published screenshot's number the same, since the number was never about keys.</para>
+    /// </summary>
     private static Dictionary<string, object> Projects(int count)
     {
         var map = new Dictionary<string, object>();
         for (int i = 1; i <= count; i++) map[$@"D:\work\sample-project-{i}"] = new { };
+        map[@"d:\work\sample-project-1"] = new { };
         return map;
     }
 

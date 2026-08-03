@@ -285,28 +285,6 @@ The System information page reports the machine rather than the app, so every fi
 out of files Claude Code owns and this app only opens. What those files are allowed to contain is
 therefore not this app's decision, and a count taken over them is a claim about their shape.
 
-### XXIV.1 A key count is a claim about a file this app does not write
-
-`ClaudeAccount` reports a profile's project count as the number of keys under `projects` in
-`.claude.json`. That is a count of *entries*, and the page presents it as a count of directories.
-
-On this machine the two differ. One profile's file carries 39 keys and 37 directories: `d:/Git/x`
-and `D:/Git/x` both appear, twice over, differing only in the case of the drive letter. Windows
-paths are case-insensitive, so those are one folder that Claude Code recorded under two spellings —
-a shell that lower-cased the drive on one launch is enough to produce it, and nothing in either
-program is wrong for having written it.
-
-The fix is to count what the number claims to count, which means folding the keys under the same
-comparison the filesystem uses before counting them. `OrdinalIgnoreCase` is the whole of it for the
-drive letter, and it is also not quite enough in general — a path reached through a different
-spelling of the same directory is a wider problem, and this task is deliberately only the part that
-is measurable here.
-
-Worth noting where this does *not* reach. `ProjectSlug` owns the `projects/<slug>` encoding and the
-transcripts live in directories named by it, so a second spelling produces a second slug directory
-and the scans that walk those directories are counting real folders. This is the config file's own
-map, read once for one number on one page.
-
 ## XXV Toast cards — what the card actually draws (Block E)
 
 Two things the toasts got wrong that no capture ever objected to, both found by looking at a card

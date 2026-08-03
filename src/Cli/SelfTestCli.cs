@@ -147,6 +147,9 @@ internal static class SelfTestCli
         Section("effective — which profile the environment selects (Block AC)");
         EffectiveProfile();
 
+        Section("projects — a count of directories, not of keys (Block N)");
+        ProjectCount();
+
         Section("note — which paragraphs the method note yields (Block F)");
         MethodNote();
 
@@ -2813,6 +2816,54 @@ internal static class SelfTestCli
             .First(p => p.Key == "stats.methodNote.thin");
         Check("the thin preview is short of its own bar",
               thinPart.Args is ["2.1", "3"], string.Join(" of ", thinPart.Args));
+    }
+
+    // ---------------------------------------------------------------- Block N: what "9 projects" counts
+
+    /// <summary>
+    /// T225. The System page's project count is presented as a number of directories and was a number of
+    /// keys in a file this app does not write. On a real machine the two differed by two: <c>d:/Git/x</c>
+    /// and <c>D:/Git/x</c> both recorded, because Windows paths are case-insensitive and Claude Code writes
+    /// whatever spelling the shell used.
+    ///
+    /// <para>Asserted twice over, because the interesting failure is not the arithmetic — it is the one line
+    /// in <see cref="ClaudeAccount.Read(string)"/> that decides whether the fold is used at all. So the fold
+    /// is checked against the exact shape that was measured, and then a synthetic <c>.claude.json</c> of that
+    /// shape is read back through <c>Read</c> itself, in a throwaway tree.</para>
+    /// </summary>
+    private static void ProjectCount()
+    {
+        Check("two spellings of one drive letter are one directory",
+              ClaudeAccount.CountDirectories(new[] { @"d:\Git\x", @"D:\Git\x" }) == 1);
+        Check("and the whole measured shape folds to what the disk holds",
+              ClaudeAccount.CountDirectories(new[]
+              {
+                  "d:/Git/x", "D:/Git/x", "d:/Git/y", "D:/Git/y", "C:/other",
+              }) == 3);
+        Check("distinct directories are still distinct — the fold is case, not a merge",
+              ClaudeAccount.CountDirectories(new[] { @"D:\a", @"D:\b", @"D:\c" }) == 3);
+        Check("and an empty map is zero, not one",
+              ClaudeAccount.CountDirectories(Array.Empty<string>()) == 0);
+
+        // The other end of the same claim: a file of the measured shape, read the way the page reads one.
+        // Five keys, three folders — and the reading has to be the second number.
+        Temp(root =>
+        {
+            File.WriteAllText(Path.Combine(root, ".claude.json"),
+                """
+                {
+                  "installMethod": "native",
+                  "projects": {
+                    "d:/Git/x": {}, "D:/Git/x": {},
+                    "d:/Git/y": {}, "D:/Git/y": {},
+                    "C:/other": {}
+                  }
+                }
+                """);
+            ClaudeInfo read = ClaudeAccount.Read(root);
+            Check("a config file of that shape reads as three projects, not five",
+                  read.ProjectCount == 3, $"got {read.ProjectCount}");
+        });
     }
 
     // ---------------------------------------------------------------- Blocks F and G: one number convention

@@ -74,8 +74,6 @@
 
 ## Block N — System information — your plan, your install, this machine
 
-- 📋 **T225** (deps: —) **One directory is counted twice when two entries differ only in the case of the drive letter** — The project count is the number of keys under projects, and Windows paths are case-insensitive, so d:/Git/x and D:/Git/x are one folder reported as two. → §XXIV.1
-
 ## Block E — Reset notifications & toasts
 
 - 📋 **T227** (deps: —) **Every toast draws its emoji as a flat black glyph** — The Emoji TextBlock inherits the window's Segoe UI font stack, which has no colour glyphs, so the party popper the README prints in colour is a monochrome outline on the card itself. → §XXV.1

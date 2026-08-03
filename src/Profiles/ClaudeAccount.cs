@@ -213,7 +213,7 @@ internal static class ClaudeAccount
                 info.FirstToken = Iso(root, "claudeCodeFirstTokenDate");
                 if (root.TryGetProperty("projects", out JsonElement projects)
                     && projects.ValueKind == JsonValueKind.Object)
-                    info.ProjectCount = projects.EnumerateObject().Count();
+                    info.ProjectCount = CountDirectories(projects.EnumerateObject().Select(p => p.Name));
 
                 if (root.TryGetProperty("oauthAccount", out JsonElement acct)
                     && acct.ValueKind == JsonValueKind.Object)
@@ -589,9 +589,31 @@ internal static class ClaudeAccount
         if (dir is { Length: > 0 }) yield return Expand(dir);
     }
 
+    /// <summary>
+    /// How many <b>directories</b> a <c>projects</c> map names — which is not how many keys it has (T225).
+    ///
+    /// <para>Windows paths are case-insensitive, and Claude Code records whatever spelling the shell that
+    /// launched it used, so one folder can sit in that map under two keys: measured here, one profile's file
+    /// carried 39 keys and 37 directories, with <c>d:/Git/x</c> and <c>D:/Git/x</c> both present, twice over.
+    /// Neither program is wrong for having written it — a shell that lower-cased the drive on one launch is
+    /// the whole cause — but a page saying "39 projects" is then making a claim about the disk that the disk
+    /// does not agree with.</para>
+    ///
+    /// <para><b>Case, and only case.</b> Two spellings of one directory is a wider problem than this —
+    /// a substituted drive, a junction, a short (8.3) name, a trailing separator all reach the same folder
+    /// and none of them fold here. Case is what was measured on a real file, so case is what this claims;
+    /// folding more without a reading to show for it would be inventing which paths are the same.</para>
+    /// </summary>
+    internal static int CountDirectories(IEnumerable<string> keys) =>
+        keys.Distinct(StringComparer.OrdinalIgnoreCase).Count();
+
     /// <summary>The project directories Claude Code has registered, from the default config's
     /// <c>projects</c> map — cheaper and more exact than walking the disk. UNC paths are skipped
-    /// (a dead share can block a stat for seconds) and the list is capped.</summary>
+    /// (a dead share can block a stat for seconds) and the list is capped.
+    ///
+    /// <para>Folded by the same comparison the count uses (T225): the cap is a budget of directories to
+    /// probe, and spending two of it on one folder recorded under two spellings is the same defect the
+    /// count had, with a quieter consequence.</para></summary>
     private static IEnumerable<string> ProjectPaths()
     {
         foreach (string path in ConfigPaths(ConfigDir))
@@ -599,6 +621,7 @@ internal static class ClaudeAccount
             JsonDocument? doc = TryParse(path);
             if (doc is null) continue;
             var paths = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             using (doc)
             {
                 if (doc.RootElement.ValueKind == JsonValueKind.Object
@@ -607,6 +630,7 @@ internal static class ClaudeAccount
                     foreach (JsonProperty p in projects.EnumerateObject())
                     {
                         if (p.Name.StartsWith(@"\\") || p.Name.StartsWith("//")) continue;
+                        if (!seen.Add(p.Name)) continue;
                         paths.Add(p.Name);
                         if (paths.Count >= MaxProjectsProbed) break;
                     }
