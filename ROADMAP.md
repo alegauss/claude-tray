@@ -68,7 +68,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T254** (deps: —) **One of the repository's own gates has been failing on every push** — A shipped ledger line names the built .exe, bin/ is git-ignored, and the roadkeep job lints a bare checkout - so lint exits 1 in CI and passes for anyone who has built. → §XXII.14
 - 📋 **T255** (deps: —) **A task can leave the roadmap by three doors and only two of them open here** — retire refuses because this ledger declares no marker, so an abandoned task has nowhere to be recorded, and the discipline that sends you to that command does not say so. → §XXII.15
 
 ## Block G — Localization
