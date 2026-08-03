@@ -23,7 +23,7 @@
 | [D](#block-d--auth--api-resilience) | Auth & API resilience |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
-| [G](#block-g--localization) | Localization |
+| [G](#block-g--localization) | Localization (active — see ROADMAP) |
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
 | [J](#block-j--activity-aware-pacing) | Activity-aware pacing |

@@ -260,3 +260,31 @@ assistive technology nothing gets filed.
 
 The headless side of the inspector: what a script driving it can tell about a run, as opposed to
 what a person reading the output can.
+
+## XXX Dates — the words are translated and the order is not (Block G)
+
+What a date reads like once the month name is French and the arrangement is still English.
+
+### XXX.1 August 3, in French
+
+Measured across the five shipped cultures. `MMM d` renders `Aug 3` / `août 3` / `ago 3` / `ago. 3`,
+while their own `MonthDayPattern` is `MMMM d` for English and `d MMMM` or day-de-month for the other
+four. So the month name is localized and the arrangement around it is not, which reads worse than no
+translation at all: it is a sentence in French with English word order in the middle of it.
+
+The day-slash-month pattern is the same defect pointing the other way. It renders `3/8` in every
+culture including `en-US`, whose short date puts the month first - so the weekly chart's day
+dividers and its short axis labels say `3/8` for 3 August to the one audience the published
+screenshots are taken for, and an American reads 8 March.
+
+Five call sites, all in the Statistics page: `LocalTime` and `ShortTime` in `.Format.cs`, the two
+day dividers in `.Chart.cs`, and the updated line in `.xaml.cs`. The fix is not a new format string
+but taking the order from the culture the way the System page already does - it formats with the
+standard `d` and `g` specifiers and comes out right in all five. A custom pattern is what pins the
+order.
+
+Nothing catches it today and the reason is worth stating: T167's sweep varies `CurrentCulture` and
+compares, and dates deliberately name `DateFmt` so they are *expected* to differ - the sweep is
+about numbers. The property a check could hold is narrower and real: whichever of day and month
+comes first in what the page renders should be the one that comes first in that culture's own
+`MonthDayPattern`.
