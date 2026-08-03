@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T248** (deps: —) **A check that scans the sources reads its own prose as if it were code** — The flag check found a switch nothing accepts because a doc comment quotes the shape it matches, and stripping every // to end of line truncates any line whose string holds one. → §XX.21
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization

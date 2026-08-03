@@ -168,6 +168,9 @@ internal static class SelfTestCli
         Section("map — every source file has a row, and every row a file (Block AJ)");
         FileMap();
 
+        Section("scanning — the flag scan reads code, not the prose about it (Block AI)");
+        FlagScanning();
+
         Section("catalogue — every flag the sources accept is declared (Block AJ)");
         FlagCatalogue();
 
@@ -2088,6 +2091,61 @@ internal static class SelfTestCli
     }
 
     /// <summary>
+    /// T248. The flag scan's own two failure modes, held up by the two lines that produced them.
+    ///
+    /// <para>Its first run ever (T243) failed on <c>--x</c>: the paragraph above the method quotes the
+    /// shape being matched, and the scan read the example as a switch the catalogue had forgotten. The fix
+    /// — strip <c>//</c> to end of line — is right about comments and approximate about strings, and the
+    /// approximation is the second failure: a <c>//</c> inside a literal ends the line for the scan, so a
+    /// real flag sharing that line stops being seen. That one is invisible, because a check that asserts
+    /// less still passes.</para>
+    ///
+    /// <para>Both are asserted against synthetic source rather than against the tree, which is the point:
+    /// the tree happens not to contain the second case today, and a check that waits for one is a check
+    /// that ships broken. The prose sample is this very file's own shape, quoted flag and all.</para>
+    /// </summary>
+    private static void FlagScanning()
+    {
+        // The samples are ASSEMBLED, never written out. A snippet containing a literal `"--sample"` is,
+        // to the scan that reads this very folder, a flag the .exe accepts and the catalogue forgot — and
+        // it would be right. Building the token means the fixture cannot be mistaken for the thing it is a
+        // fixture of, which is the same reason the check below has to exist at all.
+        static string Lit(string name) => '"' + "--" + name + '"';
+
+        string prose = $$"""
+            /// <para>The source side is every {{Lit("gone-fishing")}} literal under src\, which is
+            /// what makes this derivable — one shape covers args.Contains and args[0] == alike.</para>
+            // Comments first: the paragraph above quotes {{Lit("also-gone")}} to show what is matched.
+            """;
+        string[] fromProse = FlagsRead(prose).ToArray();
+        Check("a paragraph quoting a flag is not a flag the app accepts",
+              fromProse.Length == 0, string.Join(", ", fromProse));
+
+        // The line the stripper ate. Everything after the `//` inside the literal used to vanish, and with
+        // it a real switch — silently, because what is left still parses and still passes.
+        string afterUrl = $"""
+            string site = "https://example.invalid/x"; bool raw = flags.Contains({Lit("kept-anyway")});
+            """;
+        Check("a flag after a string containing // is still read",
+              FlagsRead(afterUrl).SequenceEqual(new[] { "--kept-anyway" }),
+              string.Join(", ", FlagsRead(afterUrl)));
+
+        // Every comparison shape the sources actually use, so narrowing did not quietly drop one. A shape
+        // missing from here would show up as a *declared* flag nothing reads — see FlagCatalogue.
+        (string What, string Code)[] shapes =
+        {
+            ("Contains",        $"if (args.Contains({Lit("one")})) {{ }}"),
+            ("== on the left",  $"if (args[0] == {Lit("two")}) {{ }}"),
+            ("== on the right", $"if ({Lit("three")} == args[0]) {{ }}"),
+            ("an is pattern",   $"bool x = a is {Lit("four")};"),
+            ("IndexOf",         $"int at = Array.IndexOf(args, {Lit("five")});"),
+        };
+        string[] missed = shapes.Where(s => !FlagsRead(s.Code).Any()).Select(s => s.What).ToArray();
+        Check($"every comparison shape the sources use is read ({shapes.Length})", missed.Length == 0,
+              $"{string.Join(", ", missed)} — a flag read this way would read as documented-but-unused");
+    }
+
+    /// <summary>
     /// The other half of the flag surface (T243): the switches that are a bare string read out of
     /// <c>args</c> where they are used, with no table in code for T207's assertion to compare against.
     ///
@@ -2106,12 +2164,41 @@ internal static class SelfTestCli
     /// <see cref="SkillBlock"/> already keys on. Measured over the file as it stands: 45 declared, 46
     /// mentioned, and the difference is somebody else's flag.</para>
     ///
-    /// <para>The source side is every <c>"--x"</c> literal under <c>src\</c>, which is what makes this
-    /// derivable at all — one shape covers <c>args.Contains</c>, <c>args[0] ==</c> and
-    /// <c>Array.IndexOf</c> alike, because all three compare against a literal.</para>
+    /// <para><b>The source side is every flag literal something COMPARES against</b>, which is what makes
+    /// this derivable at all and, since T248, what keeps it from reading its own prose. It used to be every
+    /// <c>"--x"</c> literal with <c>//</c>-to-end-of-line stripped first — right about comments and
+    /// approximate about strings, because a <c>//</c> inside a literal (a URL, a UNC path, a regex) ended
+    /// the line for the scan and took any real flag after it with it, silently. Matching the comparison
+    /// instead excludes prose by construction: a paragraph may quote a flag all it likes, and what counts
+    /// is a literal standing beside <c>Contains</c>, <c>IndexOf</c>, <c>Equals</c>, an equality operator or
+    /// an <c>is</c> pattern. (Which is why this paragraph names the operators and does not write one out —
+    /// prose is excluded because it is prose about code, not because it may not mention a flag.)</para>
+    ///
+    /// <para><b>What happens to a flag read a way this does not know</b> — the question narrowing had to
+    /// answer, since a pattern of shapes is the hardcoded list this file keeps warning about. It drops out
+    /// of <c>accepted</c>, and the <em>second</em> assertion below then fails on it by name: it is declared
+    /// in the catalogue and no source appears to read it. The two directions catch each other, so an
+    /// unlearned shape is a red build that says which flag and not a check that quietly asserts less. The
+    /// gap left is a flag both read a new way and never documented, which is one edit by one author who is
+    /// looking at both.</para>
     /// </summary>
     private static void FlagCatalogue() =>
         Repo("every flag the sources accept is declared in dev-flags", FlagCatalogue, DevFlags, "src");
+
+    /// <summary>The flag literals one source file compares against. Pure, so <see cref="FlagScanning"/> can
+    /// hand it the two lines that used to be read wrong.</summary>
+    internal static IEnumerable<string> FlagsRead(string source) =>
+        FlagComparison.Matches(source).Select(m => m.Groups["flag"].Value);
+
+    private const string FlagLiteral = @"""(?<flag>--[a-z][a-z0-9-]*)""";
+
+    // .NET merges repeats of a named group, so one name serves every alternative.
+    private static readonly Regex FlagComparison = new(
+        $@"\b(?:Contains|IndexOf|Equals|StartsWith|EndsWith)\s*\([^)]*?{FlagLiteral}"
+        + $@"|[=!]=\s*{FlagLiteral}"
+        + $@"|{FlagLiteral}\s*[=!]="
+        + $@"|\bis\s+{FlagLiteral}",
+        RegexOptions.Compiled);
 
     private static void FlagCatalogue(string root)
     {
@@ -2120,12 +2207,7 @@ internal static class SelfTestCli
         string[] accepted = (Directory.Exists(src)
                 ? Directory.GetFiles(src, "*.cs", SearchOption.AllDirectories)
                 : Array.Empty<string>())
-            // Comments first, and this file is why: the paragraph above quotes `"--x"` to show the shape
-            // being matched, and the scan read it as a switch the catalogue had failed to document. A
-            // doc comment is prose about code, so it is the one place a flag-shaped literal means nothing.
-            .SelectMany(f => Regex.Matches(Regex.Replace(File.ReadAllText(f), @"//[^\r\n]*", ""),
-                                           @"""(--[a-z][a-z0-9-]*)""")
-                                  .Select(m => m.Groups[1].Value))
+            .SelectMany(f => FlagsRead(File.ReadAllText(f)))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(f => f, StringComparer.Ordinal).ToArray();
 

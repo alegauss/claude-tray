@@ -216,29 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.21 The scanner and the paragraph describing it
-
-T243's check reads every `"--x"` literal under `src\` and holds the catalogue to it. Its first run
-failed on `--x` itself: the paragraph above the method quotes the two shapes it matches, and the
-scan read the example as a switch the catalogue had forgotten. The fix was to strip `//` to end of
-line before matching, which is right about comments and approximate about strings.
-
-That approximation is the task. A `//` inside a string literal — a URL, a UNC path, a regex — ends
-the line as far as the scan is concerned, and everything after it disappears: a real flag literal
-sharing a line with such a string would silently stop being seen. The failure is the one this file
-keeps naming, a check that stops asserting and stays green, and it is invisible in the check's own
-source because the check still passes.
-
-Two directions worth weighing. A comment stripper that tracks whether it is inside a string is
-thirty lines and correct, and would serve every future source-scanning check rather than this one.
-Or the scan narrows to what it actually means: a flag literal appears in a comparison, so matching
-`Contains("--x")` and `== "--x"` rather than the bare literal excludes prose by construction and
-does not care what a comment says.
-
-The second is smaller and asserts more. What it costs is that a new comparison shape has to be added
-to the pattern, which is the failure mode of every hardcoded list here — so whichever wins has to
-say what happens when a flag is read a way the pattern does not know.
-
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of

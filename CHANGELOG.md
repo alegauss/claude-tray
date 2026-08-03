@@ -51,7 +51,7 @@
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
-| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
+| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 
 ## Block A — Foundation (tray, icon, API, projection)
@@ -569,6 +569,7 @@
 - **T240** — The check always launches with --second-tray, so whether a tray was resident a second ago decides nothing: the flag is free when the mutex is, the icon tag and the observer promise are unconditional, and the race that blamed the menu for a tray that never started is gone with the branch.
 - **T241** — The check fingerprints the whole of %LocalAppData%\ClaudeTray around the trays it launches, so a writer nobody listed is caught by the directory rather than by a list of methods - and because the check's own writes always show, no change observed is a sound pass even beside a resident tray.
 - **T245** — What --probe was asked to do is a value now - ProbePlan, decided from the arguments and nothing else - so both rules the flag carries are asserted instead of being held up by whoever last ran it: --recorded takes no reading, and --live --recorded refuses without doing either half. Swept over all eight combinations of the three switches rather than tabulated, in both directions, plus six spellings and casings of --recorded that must none of them ask for a call. Where it stops is stated: the plan is pure, so the run honouring it rests on the single if in front of the one call site, which is why the decision came out of the method at all.
+- **T248** — The flag scan reads a comparison, not a literal: a paragraph may quote a flag all it likes, and what counts is a literal standing beside Contains, IndexOf, Equals, an equality operator or an is pattern. That retires the // stripper, which was right about comments and approximate about strings - a // inside a literal ended the line and took any real flag after it, silently, which is a check that asserts less and stays green. Narrowing costs a pattern of shapes, and what happens when a flag is read a way it does not know is now stated and demonstrated: the flag drops out of accepted and the opposite assertion fails on it by name, so an unlearned shape is a red build naming which flag. Both failure modes are asserted against assembled synthetic source, because a written-out sample would be a flag this very scan accepts.
 
 ## Block AJ — Working here — the repo's own docs and flags
 
