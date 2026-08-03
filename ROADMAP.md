@@ -68,8 +68,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T255** (deps: —) **A task can leave the roadmap by three doors and only two of them open here** — retire refuses because this ledger declares no marker, so an abandoned task has nowhere to be recorded, and the discipline that sends you to that command does not say so. → §XXII.15
-
 ## Block G — Localization
 
 - 💭 **T216** (deps: —) **One machine, two number conventions: the page decides, not the app** — T167 picked invariant for one window, while the Context page, the tray toast and the System page format the same figures with L.Culture, and the sweep it added reaches neither. → §XXI.1

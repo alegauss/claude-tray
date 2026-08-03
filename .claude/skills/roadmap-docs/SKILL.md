@@ -154,8 +154,7 @@ shipped — demanding one would argue for the sprawl it exists to stop.
 `ship` copies the roadmap line's `why` into the ledger by default — and that line states a **problem**,
 because that is what a roadmap line is for. A ledger entry states an **outcome**: what now works.
 `--why` is the only chance to say so. **`amend` refuses a shipped id** ("it is already in the
-changelog") and `record drop` only removes the later of two entries for one id, so there is no second
-pass over an entry's wording, ever. Write it at ship time:
+changelog") and `record drop` only removes the later of two entries for one id. Write it at ship time:
 
 ```
 roadkeep ship T179 --why "The overage figure has a column in the store, and a reading that carries none stays absent rather than becoming a measured zero."
@@ -164,6 +163,31 @@ roadkeep ship T179 --why "The overage figure has a column in the store, and a re
 `roadkeep.toml`'s `[ledger] symptom = false` means an entry needs no bold symptom — the symptom
 belonged to the roadmap line `ship` just deleted. Needs none, not forbidden: the richer entries here
 open with one, and that is the house style worth matching for anything a user would notice.
+
+**There is one door back, and it is not a second draft.** `record amend <id> --why "…"` rewrites an
+entry's sentence where it stands — not `drop` plus `add`, which would move the line to the end of its
+block and show a reviewer a deletion where a word changed. Use it for a sentence that is *wrong about
+the repository*, not for one you would now phrase better: T254 used it to take a path out of T151 that
+`roadkeep lint` reported missing on every CI run, and that is the bar.
+
+## A task that is decided against
+
+**`retire` does not work in this project, and finding that out at the moment you need it is the trap.**
+It writes the ledger entry for a task leaving without shipping, and it refuses here because
+`roadkeep.toml` declares `[ledger] marker = false` — with no ✅ written, a 🗑 cannot be told from one.
+The refusal is correct and it writes nothing. (Upstream as `RK214`; if that lands, this section goes.)
+
+So the exit is `ship --why`, and the sentence carries the whole burden of not lying:
+
+- **Open with the decision, not with work.** *"Measured before deciding, and the premise did not
+  survive: …"* — never a sentence that reads as something built.
+- **Give the evidence that settled it**, in numbers where there are numbers. That is the deliverable;
+  a decision with no measurement behind it is an opinion that has taken an id.
+- **Say where the conclusion now lives** — usually a non-goal (`roadkeep non-goal add`), so the same
+  idea is not re-filed by the next person who has it.
+
+T253 is the worked example: a build-configuration change that a 10s-against-11s measurement killed,
+shipped as the measurement plus the non-goal it produced.
 
 ## Release notes
 

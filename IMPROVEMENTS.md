@@ -301,28 +301,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.15 The door the ledger's own shape closed
-
-`roadkeep retire` writes the entry for a task that leaves without shipping — the door T85 and T101
-both went through. It refuses here: `[ledger] marker = false` says this file's entries carry no ✅,
-which was a true and deliberate statement about 163 reconstructed lines, and it means a 🗑 cannot be
-told from a ✅ either. The command writes nothing and says so.
-
-The refusal is right. The consequence is that a task which should be abandoned has no recorded exit
-in this repository, and the alternative reached for under time pressure is to ship it — a ✅ against
-work that was decided against rather than done, which is exactly the ledger lying that `marker =
-false` was declared to avoid.
-
-It cost a step this session and will cost the next one the same, because nothing says it in advance:
-the `roadmap-docs` skill sends the reader to roadkeep for the write path, roadkeep's skill names
-`retire` among the verbs, and neither mentions that this project cannot use it. A rule that is
-discovered by being refused is a rule nobody planned around.
-
-Two ways, and the choice is editorial. Turn the marker on, which means every one of 170-odd existing
-lines is now a line without a ✅ that used to be fine — declared history becoming visible debt. Or
-write down, where the discipline lives, that a task here leaves by shipping with an outcome that
-says it was decided against, and say what that entry should read like.
-
 ## XXIII What the API says about permission, and what the app infers instead (Block D)
 
 Every signal this app has about whether an account may spend past its included quota is inferred

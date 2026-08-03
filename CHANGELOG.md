@@ -52,7 +52,7 @@
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
 | [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
-| [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags (active — see ROADMAP) |
+| [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 
 ## Block A — Foundation (tray, icon, API, projection)
 
@@ -578,6 +578,7 @@
 - **T252** — The guard has no paths-ignore at all now. Twice in two tasks a hand-kept list of what nothing reads was wrong - T249 removed markdown and kept docs on the same argument, T250 shipped the check that reads docs next - and being wrong there does not fail a run, it stops one from happening, which is the quietest way this repository loses a check. What the list bought was one build on a commit touching LICENSE alone; what those minutes should cost instead is T253.
 - **T253** — Measured before deciding, and the premise did not survive: a clean Release build is 10s against Debug's 11s, so what a prose commit pays is the runner and the restore, not the configuration. The one saving left - moving the document checks out of the binary - buys that 10s with a second reader of the very thing they exist to compare, so it is a non-goal now rather than an idea somebody re-files. The guard keeps running on every commit, which is what T252 bought and this measurement says is affordable.
 - **T254** — The roadkeep gate is green on a bare checkout again. T151's sentence named the built .exe while explaining why the job builds rather than publishes, bin/ is git-ignored and that workflow checks out without building, so lint had been exiting 1 on every push and 0 for anyone who had just compiled. Corrected through record amend - the ledger's own door for a word, which leaves the entry where it stands - keeping every fact and losing one path a reader can reconstruct from the sentence. The asymmetry that hid it is upstream as RK213: local lint still passes where CI would fail, because bin/ is there.
+- **T255** — The door retire cannot open here is written down before somebody walks into it, with the sentence that replaces it: a task decided against ships with a why that opens on the decision, carries the measurement that settled it, and names the non-goal the conclusion moved to - T253 as the worked example. Two claims about the other doors were corrected while in there: record amend does rewrite an entry where it stands, which the skill had said was impossible, and it is for a sentence wrong about the repository rather than a second draft.
 
 ## Block AB — What Block Z's own work left behind
 
