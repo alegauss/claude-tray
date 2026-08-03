@@ -1,4 +1,4 @@
-namespace ClaudeTray;
+﻿namespace ClaudeTray;
 
 /// <summary>
 /// One localized fragment of the method note: the resource key, and the arguments that string takes.
@@ -7,6 +7,10 @@ namespace ClaudeTray;
 /// it, because where it goes is a property of the language and not of the count.
 /// </summary>
 internal sealed record NoteFragment(string Key, params object[] Args);
+
+/// <summary>One headed paragraph of the method note, as the popup binds it. <c>public</c> because WPF
+/// resolves binding paths by reflection over public types only.</summary>
+public sealed record NoteLine(string Heading, string Body);
 
 /// <summary>Part of <see cref="StatisticsPage"/> — the method note's composition, split out by T168.</summary>
 internal partial class StatisticsPage
@@ -92,6 +96,47 @@ internal partial class StatisticsPage
         weeks <= 0 ? ""
         : weeks == 1 ? new NoteFragment("stats.methodNote.away.one")
         : new NoteFragment("stats.methodNote.away.many", Num(weeks, "0"));
+
+    /// <summary>
+    /// Which surface each paragraph is about — the heading it is filed under in the popup (T170).
+    /// </summary>
+    /// <remarks>
+    /// The note is not merely long, it is <em>unstructured</em>: measured across all five languages the
+    /// worst case is 1,276 characters (fr, mostly-measured) and <b>61–62% of it is constant in every
+    /// language</b> — <c>stats.methodNote</c> and <c>stats.methodNote.live</c> are always shown and never
+    /// vary. The paragraph that is actually about <em>this machine's evidence</em> is the other 39%, and
+    /// it sits in the middle of the wall, which is why nobody finds it.
+    /// <para>So the headings, keyed to the surfaces in the order the window shows them. Nothing is cut:
+    /// the "another machine or claude.ai leaves no transcript here" disclaimer is a privacy-adjacent
+    /// honesty about a blind spot, and the T163 paragraph is the one actionable reading in the window.
+    /// Moving the 61% to the README was the other candidate and is refused — it would put the definition
+    /// of "Used" and the blind-spot disclaimer where nobody reading the number will look, which is the
+    /// thing T113 decided against. A heading makes them skippable, which is what moving them was for.</para>
+    /// <para>Explicit, with no catch-all arm: a fragment added later gets <c>null</c> and a red
+    /// <c>--selftest</c>, rather than silently filing itself under the weekly projection.</para>
+    /// </remarks>
+    private static readonly Dictionary<string, string> Headings = new(StringComparer.Ordinal)
+    {
+        ["stats.methodNote"] = "stats.methodNote.h.numbers",
+        ["stats.methodNote.shape"] = "stats.methodNote.h.weekly",
+        ["stats.methodNote.shapeMeasured"] = "stats.methodNote.h.weekly",
+        ["stats.methodNote.thin"] = "stats.methodNote.h.weekly",
+        
+        ["stats.methodNote.live"] = "stats.methodNote.h.live",
+    };
+
+    /// <summary>The heading key a fragment is filed under, or null when nothing files it.</summary>
+    internal static string? HeadingFor(string fragmentKey) => Headings.GetValueOrDefault(fragmentKey);
+
+    /// <summary>The note as the popup shows it: a headed paragraph per fragment, in window order.</summary>
+    /// <remarks>An unfiled fragment gets no heading rather than its own key: <c>L.T</c> of a key it does
+    /// not know returns the key, and the fragment keys <em>are</em> the note's own strings, so the
+    /// obvious fallback rendered a whole 251-character paragraph as a bold heading. Seen while watching
+    /// the heading assertion fail, which is the argument for breaking a check on purpose.</remarks>
+    internal static IReadOnlyList<NoteLine> MethodNoteLines(PaceReport r, bool demoThin) =>
+        MethodNoteParts(r, demoThin)
+            .Select(f => new NoteLine(HeadingFor(f.Key) is { } h ? L.T(h) : "", Say(f)))
+            .ToList();
 
     /// <summary>A fragment as text: <c>L.T</c> and concatenation, nested clauses resolved first. The whole
     /// of what <c>Render</c> is left doing with the note.</summary>

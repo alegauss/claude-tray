@@ -399,7 +399,6 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         StatsStatusText.Visibility = Visibility.Collapsed;
         PanesBody.Visibility = Visibility.Visible;
         MethodInfo.Visibility = Visibility.Visible;
-        if (PreviewMethodOpen) MethodInfo.IsChecked = true;
         ApplyErrorBanner();
 
         // Under the profile it was computed for, and only once it is known to be renderable — an errored
@@ -441,7 +440,23 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         // `MethodNoteParts` where `--selftest` can call it (T168). What is left here is the rendering:
         // `L.T` and a space between the paragraphs, and nothing that could be wrong on screen without
         // being wrong in an assertion first.
-        MethodNote.Text = string.Join(" ", MethodNoteParts(r, PreviewDemoThin).Select(Say));
+        MethodNote.ItemsSource = MethodNoteLines(r, PreviewDemoThin);
+
+        // Only now, and only after a layout pass: a `Popup` fixes its placement when it opens, and the
+        // paragraphs assigned on the line above have not been measured yet — so it is placed as if it
+        // were empty, flips below the glyph at the bottom of the window and grows off the screen, out of
+        // every capture. A human clicking the ⓘ never hits this (the note has been laid out for minutes);
+        // the preview does, every time, which is why it opens at `Loaded` priority (T170).
+        if (PreviewMethodOpen)
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+            {
+                // `StaysOpen=False` is right for a person — a click anywhere dismisses the note — and
+                // wrong for a capture: `Capture-Window.ps1` brings the window to the foreground, the popup
+                // loses mouse capture and closes, and the PNG is of a window with no note in it. Held open
+                // for the preview only, which is the one caller that has no hand to click with.
+                MethodPopup.StaysOpen = true;
+                MethodInfo.IsChecked = true;
+            });
 
         // The idle bands are the *chart's* legend rather than the note's, but they turn on the same
         // question the note's first branch asks, so it is asked the same way.

@@ -55,8 +55,6 @@
 >
 > Ordered by what is wrong on screen today, then by what protects the rest.
 
-- 💭 **T170** (deps: —) **The method note is ~1,000 characters of 12px prose in one unstructured paragraph** — T113 moved it behind an information glyph because six lines under the panes was a lot of screen, and it is now twelve lines behind a click and still growing. → §XV.4
-
 ## Block AC — The tray reports the switch it performed, not the switch the machine got
 
 > A field report against shipped Block T: the tray and `/usage` named different profiles, and both were

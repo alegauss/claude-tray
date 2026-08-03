@@ -149,26 +149,6 @@ wrong locale, a paragraph that has quietly become twelve lines); two are in the 
 it (a decision that lives where no assertion can reach it, a skip that may never have run outside one
 machine). None was reported by anybody, and none of them would be.
 
-### §XV.4 The note is twelve lines behind a click (T170 — idea)
-
-Measured: the shaped branch of the method note is 238 + 352 + 422 = 1,012 characters, the mostly-measured
-branch 1,080, the thin one 913 — one unstructured paragraph of 12px prose, twelve lines in the captures at
-560px. T113 moved this text behind an ⓘ precisely because six lines pinned under the panes was too much
-screen for something read once; the click did not make the text shorter, and Block Z added to it twice.
-
-It is an idea and not a design because the obvious moves are both wrong. Cutting sentences loses claims
-that are load-bearing — the "another machine or claude.ai leaves no transcript here" disclaimer is a
-privacy-adjacent honesty about a blind spot, and the T163 paragraph is the one actionable reading in the
-window. And splitting the popup per tab (5h / week / throughput) would put the *method* somewhere other
-than where T113 decided it belongs, one click from every number it describes.
-
-Worth exploring: whether the note is a paragraph at all or a short list keyed to the numbers it explains
-(one line per figure, in the order the window shows them); whether the parts that never change belong in
-the README instead, with the popup keeping only what is specific to *this* machine's evidence; and what
-the real limit is — a note nobody finishes reading is not more honest than a shorter one, it is less.
-
----
-
 ## §XVI — The tray reports the switch it performed, not the switch the machine got (Block AC)
 
 The report is a question, not a bug: *"mudei para o Pessoal, mas se eu digito `/usage`, aparece

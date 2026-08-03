@@ -1297,6 +1297,48 @@ internal static class SelfTestCli
 
         // The thin preview poses as a machine short of the bar. It used to read "4.7 of 3" — a sentence
         // the string is never shown with — because the preview took the real machine's own figure.
+        // T170: every fragment is filed under a heading, and the map has no catch-all arm — so a paragraph
+        // added later is a red build here rather than one that quietly files itself under the wrong
+        // surface. Derived from what the function can actually yield, never from a list kept by hand.
+        string[] unfiled = cases.SelectMany(c => Keys(c.R, c.Thin)).Distinct()
+                                .Where(k => StatisticsPage.HeadingFor(k) is null).ToArray();
+        Check("every paragraph the note can yield is filed under a heading",
+              unfiled.Length == 0, string.Join(", ", unfiled));
+
+        // And the budget, which is the question §XV.4 left open: what the real limit is. Block Z grew this
+        // note twice without anyone noticing, and a note nobody finishes reading is not more honest than a
+        // shorter one — it is less. Measured over all five languages, the worst case today is 1,276
+        // characters (fr, mostly-measured) in paragraphs of at most 497. The caps below sit just above
+        // that: growing past one is a decision to take here, in the open, not a sentence that fits.
+        const int ParagraphCap = 520, NoteCap = 1350, HeadingCap = 40;
+        string beforeLang = L.Codes.First(c => L.Resolve(c) == L.Current);
+        try
+        {
+            List<string> over = new();
+            // Every shipped code, from `L.Codes` — a language added later is covered without a second
+            // list being edited here, the same rule T185's translation sweep follows.
+            foreach (string code in L.Codes)
+            {
+                L.Apply(code);
+                foreach ((string what, PaceReport r, bool thin) in cases)
+                {
+                    IReadOnlyList<NoteLine> lines = StatisticsPage.MethodNoteLines(r, thin);
+                    int total = lines.Sum(l => l.Body.Length);
+                    if (total > NoteCap) over.Add($"{code}/{what}: {total} chars > {NoteCap}");
+                    foreach (NoteLine l in lines)
+                    {
+                        if (l.Body.Length > ParagraphCap)
+                            over.Add($"{code}/{what}: a paragraph of {l.Body.Length} > {ParagraphCap}");
+                        if (l.Heading.Length > HeadingCap)
+                            over.Add($"{code}: heading \"{l.Heading}\" is {l.Heading.Length} > {HeadingCap}");
+                    }
+                }
+            }
+            Check($"the note stays inside its budget in every language ({NoteCap} total, {ParagraphCap} a paragraph)",
+                  over.Count == 0, string.Join("; ", over.Distinct().Take(4)));
+        }
+        finally { L.Apply(beforeLang); }
+
         NoteFragment thinPart = StatisticsPage
             .MethodNoteParts(Report(new ActivityShape { EffectiveWeeks = 4.7 }, Profile(4.7)), demoThin: true)
             .First(p => p.Key == "stats.methodNote.thin");

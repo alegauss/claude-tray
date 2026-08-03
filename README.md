@@ -119,8 +119,11 @@ so an hour that looks idle locally may not have been. As the app runs it builds 
 of the same week from **your logged rate-limit readings**, which do count that usage wherever it
 came from — and takes over hour by hour as it earns the coverage, so the blind spot closes
 gradually instead of all at once. The method note (ⓘ) says which source the shape currently comes
-from. The even-pace line, the verdict chip and the tray icon are deliberately **not**
-activity-aware — quota drains in wall-clock time whether or not anyone is typing.
+from — it is filed under a heading per surface (*the numbers and the curve*, *the weekly
+projection*, *the Throughput charts*), so the paragraph about **your** evidence is one to find
+rather than one to read past. The even-pace line, the verdict chip and the tray icon are
+deliberately **not** activity-aware — quota drains in wall-clock time whether or not anyone is
+typing.
 
 ### Live throughput — what is burning right now
 

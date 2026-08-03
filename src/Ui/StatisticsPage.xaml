@@ -489,7 +489,8 @@
                               ToolTip="{local:Loc stats.methodTitle}"
                               AutomationProperties.Name="{local:Loc stats.methodTitle}"
                               Content="&#xE946;" />
-                <Popup IsOpen="{Binding IsChecked, ElementName=MethodInfo, Mode=TwoWay}"
+                <Popup x:Name="MethodPopup"
+                       IsOpen="{Binding IsChecked, ElementName=MethodInfo, Mode=TwoWay}"
                        PlacementTarget="{Binding ElementName=MethodInfo}" Placement="Top"
                        VerticalOffset="-8" HorizontalOffset="-8"
                        StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
@@ -502,10 +503,24 @@
                         <StackPanel>
                             <TextBlock Text="{local:Loc stats.methodTitle}" FontWeight="SemiBold" FontSize="13"
                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <TextBlock x:Name="MethodNote" Margin="0,8,0,0" TextWrapping="Wrap" FontSize="12"
-                                       LineHeight="18"
-                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                       Text="{local:Loc stats.methodNote}" />
+                            <!-- One headed paragraph per surface, in the order the window shows them
+                                 (T170). It was a single run-on TextBlock: 1,276 characters at the worst
+                                 translation, 61% of them constant, with the paragraph about this
+                                 machine's own evidence buried in the middle of it. -->
+                            <ItemsControl x:Name="MethodNote" Margin="0,4,0,0"
+                                          Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,8,0,0">
+                                            <TextBlock Text="{Binding Heading}" FontSize="12" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            <TextBlock Text="{Binding Body}" Margin="0,2,0,0" FontSize="12"
+                                                       TextWrapping="Wrap" LineHeight="18"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
                         </StackPanel>
                     </Border>
                 </Popup>
