@@ -63,6 +63,8 @@
 
 ## Block AI — Verification — the checks that prove a change
 
+- 📋 **T260** (deps: —) **A mistyped language is honoured as the machine one, so a capture is of a language nobody asked for** — --lang zz prints the tooltip in the OS language and exits 0, while --sample-env, ten lines below it in the same method, refuses a bad mode with the catalogue. → §XX.26
+
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization
@@ -76,6 +78,10 @@
 ## Block S — Settings round-trip
 
 ## Block Q — Keyboard input in the windows
+
+## Block I — Context Load Inspector
+
+- 📋 **T261** (deps: —) **A scan that found nothing to scan reports an error and exits 0** — Pointing --context --root at a directory that does not exist prints an error line and returns success, so a script driving it reads the run as a scan that simply found no projects. → §XXIX.1
 
 ## Non-goals (do NOT add as tasks)
 

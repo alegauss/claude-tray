@@ -25,7 +25,7 @@
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
-| [I](#block-i--context-load-inspector) | Context Load Inspector |
+| [I](#block-i--context-load-inspector) | Context Load Inspector (active — see ROADMAP) |
 | [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
 | [K](#block-k--live-throughput) | Live throughput |
 | [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app |
@@ -51,7 +51,7 @@
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
-| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
+| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 
 ## Block A — Foundation (tray, icon, API, projection)

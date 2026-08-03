@@ -216,6 +216,28 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
+### XX.26 The flag the screenshot loop trusts
+
+Measured: `--lang zz --tooltip` printed the tooltip in `PtBr`, this machine's OS language, said
+nothing and exited 0. `--tooltip --lang` - the flag with its value missing - left the token in the
+argument list for something else to read and applied no override at all.
+
+This is the defect four tasks in this repository already have names for. T186 refuses an unknown
+preview variant, T198 an unknown toast, T200 an unknown week= name, T231 an unknown `--sample-env`
+mode, and every one of them refuses for the same stated reason: a token that is not understood must
+not quietly select the default, because a screenshot of the wrong thing looks exactly like a
+screenshot of the right one. `--sample-env` is parsed ten lines below `--lang` in `Main`, and its
+own comment says so, in the words this line would otherwise quote back at it.
+
+`--lang` is worse placed than any of them, because it is the flag the i18n verification loop is
+built on. `--lang fr --capture-toast extra out.png` with the code mistyped writes the card in the
+machine's language into the file the caller named, and the person believes they checked French.
+T257's sweep is safe because it passes codes from a list; a person typing one is not.
+
+What must not change is the *setting*. `L.Resolve` falling back to the OS for an unknown saved
+preference is correct, and `IsValidPreference` is what guards that. The argument is the other case:
+it was typed, on purpose, now. `L.Codes` is already the catalogue such a refusal would print.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
@@ -255,3 +277,31 @@ the two knows the other exists.
 What a control ANNOUNCES, as against what it draws. A picture cannot see an accessible name and
 neither can any check, so this is the block where a surface that renders perfectly and tells
 assistive technology nothing gets filed.
+
+## XXIX The Context Load Inspector's own read-out (Block I)
+
+The headless side of the inspector: what a script driving it can tell about a run, as opposed to
+what a person reading the output can.
+
+### XXIX.1 The read-out that says error and returns success
+
+Measured: `--context --root D:\nope-does-not-exist` printed `error: not found:
+D:\nope-does-not-exist` and exited **0**. The scanner is right - `ContextScan.Error` is set and the
+read-out prints it - and the process then tells its caller the run succeeded.
+
+Every other refusal on this surface exits 1 and was made to: an unknown preview variant (T186), an
+unknown toast (T198), a `--capture-toast` missing its output path (T198), `--probe --live
+--recorded` (T226, asserted by T245). This is the same class of answer with the opposite exit code,
+and the difference is that the others refuse *arguments* while this one fails at *work* - which is
+exactly the case a script cannot see by reading the output, because the output is what it was going
+to print anyway.
+
+`--root` exists for the fixture loop, so the caller is usually a script: `--context --root
+<fixture>` after building one, and a fixture path that moved reads as a project list that is simply
+empty. The same is true of `ContextUsage`'s own not-found for a missing `projects` directory.
+
+What has to be decided is how wide the rule goes. Every read-out here can end with `Error` set, and
+treating any of them as exit 1 is one line and possibly too blunt: a scan that walked most of a tree
+and hit one unreadable directory is a partial answer rather than a refusal, and `SafeWalk` exists
+precisely so that case keeps going. The distinction to look for is between a scan that could not
+start and one that finished with holes.
