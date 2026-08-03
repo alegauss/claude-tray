@@ -349,29 +349,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.13 The tooltip's own composition is decided where no check can see it
-
-`BuildTooltip` is 80 lines of real decisions on an instance method: which lines are added and in what order,
-whether the profile label is present, which of three at-limit forms the verdict takes, and — the one that
-actually rations — a 127-character budget that admits the projection in its **full** form, else its
-**compact** form, else not at all, with a `Truncate(…, 127)` behind it as a backstop.
-
-None of it is reachable by `--selftest`, because a `TrayContext` cannot be constructed headlessly.
-That is the same shape as T182 (a three-state verdict living on the tray until `QuotaStates` was
-extracted), T189 (the chart's series-building) and T168 (the method note's paragraphs) — and the fix
-is the same one: the composition becomes a static over a reading, and the assertions follow.
-
-T213 is why this is filed now rather than noted. It lengthened the status line by roughly eight
-characters in five languages, which pushes the projection from its full form to its compact one at
-some threshold nobody can name, in some languages before others. The German-style worst case does
-not exist here, but French and Portuguese are the longest of the five and neither was measured. A
-budget that decides what a user sees, spent by a task that could not check what it spent, is the
-definition of a rule held up by whoever next hovers an icon.
-
-Assert the interesting cases once extracted: that the profile label survives when the projection
-cannot, that the compact form is chosen rather than the line dropped whenever it fits, that no
-composed tooltip in any of the five languages exceeds 127 characters before `Truncate` sees it.
-
 ### XX.14 A capture that succeeds and shows nothing
 
 Verifying T170 cost three captures and a full-screen grab before the cause was visible, and none of

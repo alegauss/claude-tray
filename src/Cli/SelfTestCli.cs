@@ -95,6 +95,9 @@ internal static class SelfTestCli
         Section("flags — the preview and capture surface (Block AI)");
         Flags();
 
+        Section("tooltip — what fits in the tray's 127 characters (Block AI)");
+        Tooltip();
+
         Section("out — the directory a capture flag was given (Block AF)");
         Temp(OutputPaths);
 
@@ -1114,6 +1117,131 @@ internal static class SelfTestCli
         return $"{keys.Length} {(keys.Length == 1 ? "key" : "keys")} {what} — {list}" +
                (keys.Length > 12 ? $", … (+{keys.Length - 12} more)" : "");
     }
+
+    // ---------------------------------------------------------------- Block AI: the tooltip's budget
+
+    /// <summary>
+    /// The 127 characters of <c>NOTIFYICONDATA.szTip</c>, and what the tooltip does with them (T215).
+    ///
+    /// <para>This budget rations the most-seen text this app produces, and until T214 moved the
+    /// composition off <see cref="TrayContext"/> nothing could reach it: a tray cannot be constructed
+    /// headlessly, so the rule was held up by whoever next hovered an icon. T213 spent about eight of
+    /// these characters in five languages without being able to check what it spent.</para>
+    ///
+    /// <para><b>What measuring it found.</b> French with an overage line composed 129 characters — over
+    /// the cap, so Windows truncated the end, which is the status line carrying the time of the reading.
+    /// Nobody had measured it because nobody could. The composition now sheds the bounded window the icon
+    /// is <em>not</em> about before that can happen, and these assertions are what keeps it true in a
+    /// language nobody here reads.</para>
+    /// </summary>
+    private static void Tooltip()
+    {
+        // The app's own list, not a copy of it: a sixth language is covered here with no edit.
+        string[] codes = L.Codes.ToArray();
+        IReadOnlyList<TooltipCli.Variant> variants = TooltipCli.Catalogue;
+        const long Now = 1_800_000_000;
+
+        if (!Check("the tooltip catalogue has its states", variants.Count >= 8, $"{variants.Count}"))
+            return;
+
+        // Restored however this section exits: every later section reads L, and leaving the process in
+        // Spanish would rewrite what they assert against.
+        L.Lang saved = L.Current;
+        try
+        {
+            var over = new List<string>();
+            var noStatus = new List<string>();
+            foreach (string code in codes)
+            {
+                L.Apply(code);
+                foreach (TooltipCli.Variant v in variants)
+                {
+                    string text = TooltipText.Compose(v.Build(Now));
+                    if (text.Length > TooltipText.Cap) over.Add($"{code}/{v.Name} ({text.Length})");
+                    // The last line is the status line, and it is the one a blind end-truncation would
+                    // cut mid-value. Whole means whole: it is never the thing that gets shortened.
+                    string last = text.Split('\n')[^1];
+                    if (!text.EndsWith(last, StringComparison.Ordinal) || last.Length == 0)
+                        noStatus.Add($"{code}/{v.Name}");
+                }
+            }
+            Check($"no composed tooltip exceeds {TooltipText.Cap} chars, in any of the five languages " +
+                  $"({codes.Length * variants.Count} combinations)", over.Count == 0,
+                  $"{string.Join(", ", over)} — Windows truncates the end, which is the reading's time");
+            Check("and every one of them ends on a whole status line", noStatus.Count == 0,
+                  string.Join(", ", noStatus));
+
+            L.Apply("fr");   // the longest of the five, so the budget actually bites
+
+            // The label is what the user typed: the one input with no bound of its own, and an unbounded
+            // line makes the cap a claim nothing can keep.
+            string huge = new('W', 400);
+            string withHuge = TooltipText.Compose(Long(Now) with { ProfileLabel = huge });
+            Check("a profile label of any length cannot overrun the cap",
+                  withHuge.Length <= TooltipText.Cap, $"{withHuge.Length} chars from a {huge.Length}-char label");
+
+            // §XX.13's own asks, in order. The label is kept when the projection cannot be: knowing whose
+            // quota this is outranks a wordier sentence, and that trade is the reason the budget is
+            // spent in this order rather than the other.
+            string tight = TooltipText.Compose(Long(Now) with { ProfileLabel = "Trabalho" });
+            Check("the profile label survives when the projection cannot",
+                  tight.Contains("Trabalho", StringComparison.Ordinal),
+                  "the line naming whose quota this is was dropped to make room for a sentence");
+
+            // The compact form exists to be taken. A run where it would have fitted and the line was
+            // dropped anyway is the budget failing at the one job it has.
+            var dropped = new List<string>();
+            foreach (string code in codes)
+            {
+                L.Apply(code);
+                string composed = TooltipText.Compose(Long(Now) with { ProfileLabel = "Trabalho" });
+                int room = TooltipText.Cap - composed.Length;
+                string compact = L.T("tip.okEtaCompact", "100%", "1d 2h");
+                if (!composed.Contains(compact, StringComparison.Ordinal) && room >= compact.Length + 1)
+                    dropped.Add($"{code} (room {room}, compact {compact.Length})");
+            }
+            Check("the compact projection is taken whenever it fits, never dropped", dropped.Count == 0,
+                  string.Join(", ", dropped));
+
+            // What goes first when the readings alone are over budget: the bounded window the icon is not
+            // reporting. The watched one is the whole reason the tooltip is being read.
+            L.Apply("fr");
+            string overflowing = TooltipText.Compose(Overflowing(Now));
+            Check("an over-budget reading sheds the window the icon is not about",
+                  overflowing.Contains(L.T("tip.week"), StringComparison.Ordinal) &&
+                  !overflowing.Contains(L.T("tip.session"), StringComparison.Ordinal),
+                  $"kept the wrong line: {overflowing.Replace("\n", " | ")}");
+        }
+        finally { L.Apply(L.Codes[(int)saved]); }
+    }
+
+    /// <summary>A reading whose projection has both a full and a compact form, so the budget has
+    /// something to ration.</summary>
+    private static TooltipText.Input Long(long now) => new(
+        Data: new UsageData
+        {
+            Session5h = 0.61, Week7d = 0.88, Reset5h = now + 2 * 3600, Reset7d = now + 3 * 86400,
+            Status = "allowed", Status7d = "allowed",
+        },
+        Metric: "5h", ShowRemaining: false, ProfileLabel: null,
+        Verdict: Projection.Danger, Eta: 26 * 3600, State: QuotaState.InQuota,
+        Updated: "  ⟳ 14:32:05", Now: now);
+
+    /// <summary>The shape that overran: an overage line on top of both windows, which is the one state
+    /// that adds a fourth reading — and the state French composed 129 characters for.</summary>
+    private static TooltipText.Input Overflowing(long now) => Long(now) with
+    {
+        Metric = "7d",
+        Data = new UsageData
+        {
+            Session5h = 0.40, Week7d = 1.0, Extra = 0.47, HasExtra = true,
+            Reset5h = now + 2 * 3600, Reset7d = now + 3 * 86400, ResetExtra = now + 3 * 86400,
+            Status = "allowed", Status7d = "allowed", StatusExtra = "allowed",
+        },
+        Verdict = Projection.Unknown,
+        Eta = 0,
+        State = QuotaState.Billing,
+    };
 
     // ---------------------------------------------------------------- Block AI: the flag surface
 

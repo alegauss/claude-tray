@@ -71,7 +71,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T215** (deps: —) **A character budget decides what the tooltip shows and no assertion can reach it** — Which lines survive the 127-char cap is decided inside an instance method no headless test can build, and T213 spent eight of those characters in five languages without checking the effect. → §XX.13
 - 📋 **T217** (deps: —) **A capture can succeed and not contain the surface it was taken for** — A popup is its own window and closes when the script takes the foreground, so three captures of the method note reported success, named the right window, and showed no note. → §XX.14
 - 📋 **T218** (deps: T169 ✅) **A run that checked less is the same colour as one that checked everything** — T169 made every skip print its name and left the policy open on purpose; the exit code still ignores them, so losing a check in CI costs nothing and shows nothing. → §XX.15
 

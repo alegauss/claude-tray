@@ -74,9 +74,11 @@ internal static class TooltipText
         // stays: the budget below drops the verbose projection form before this, which is the right
         // trade — knowing *whose* quota this is matters more than a wordier projection sentence.
         if (i.ProfileLabel is { Length: > 0 } label)
-            lines.Add(L.T("tip.profile", label));
-        lines.Add($"{L.T("tip.session")}{leftSuffix}: {TrayContext.PctShown(data.Session5h, i.ShowRemaining)}  ⟳ {r5}");
-        lines.Add($"{L.T("tip.week")}{leftSuffix}: {TrayContext.PctShown(data.Week7d, i.ShowRemaining)}  ⟳ {r7}");
+            lines.Add(L.T("tip.profile", Clip(label, MaxLabel)));
+        string session = $"{L.T("tip.session")}{leftSuffix}: {TrayContext.PctShown(data.Session5h, i.ShowRemaining)}  ⟳ {r5}";
+        string week = $"{L.T("tip.week")}{leftSuffix}: {TrayContext.PctShown(data.Week7d, i.ShowRemaining)}  ⟳ {r7}";
+        lines.Add(session);
+        lines.Add(week);
         if (data.Extra > 0.001)
         {
             string re = data.ResetExtra > 0 ? TrayContext.FmtDays(data.ResetExtra - i.Now) : "--";
@@ -115,9 +117,20 @@ internal static class TooltipText
 
         string statusLine = TrayContext.StatusLine(data, i.Metric, i.Updated);
 
+        // The readings themselves can already be over budget before there is any projection to ration
+        // (T215): French with an overage line reached 129 characters, and the profile label is text the
+        // user typed, so no fixed set of strings can bound this. Measured, not supposed — nothing could
+        // measure it until the composition left the tray.
+        //
+        // What goes first is the bounded window the icon is NOT about. The tooltip exists to report the
+        // window the number on the icon reports, so losing the other one costs least, and it beats the
+        // alternative: `Truncate` cuts the END, which is the status line carrying the time of the reading.
+        if (Length(lines) + statusLine.Length > Cap)
+            lines.Remove(i.Metric == "5h" ? week : session);
+
         // The refresh time sits on the last line, so a blind end-truncation would chop it mid-value.
         // Keep the status/time line intact and fit the projection in: full form if it fits, else compact.
-        int used = lines.Sum(l => l.Length + 1) + statusLine.Length;
+        int used = Length(lines) + statusLine.Length;
         if (projection is { } p)
         {
             if (used + p.full.Length + 1 <= Cap) lines.Add(p.full);
@@ -126,4 +139,14 @@ internal static class TooltipText
         lines.Add(statusLine);
         return string.Join("\n", lines);
     }
+
+    /// <summary>What a set of lines costs against the cap, newline separators included.</summary>
+    private static int Length(List<string> lines) => lines.Sum(l => l.Length + 1);
+
+    /// <summary>How much of a profile's name the tooltip will show. A label is whatever the user typed,
+    /// so it is the one input here with no bound of its own — and an unbounded line makes the cap a
+    /// claim nothing can keep.</summary>
+    private const int MaxLabel = 24;
+
+    private static string Clip(string s, int max) => s.Length <= max ? s : s[..(max - 1)] + "…";
 }

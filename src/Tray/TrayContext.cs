@@ -6,9 +6,20 @@ namespace ClaudeTray;
 internal sealed class TrayContext : ApplicationContext
 {
     private static readonly string[] Metrics = { "5h", "7d", "extra" };
-    private static readonly Dictionary<string, string> Labels = new()
+    /// <summary>The name of a metric window, for a menu item or for a sentence that has to say which
+    /// window it is about.
+    ///
+    /// <para>Resolved per call, not held in a static dictionary (T215). That dictionary was built once at
+    /// class load, so the labels kept whichever language was current then and no later
+    /// <see cref="L.Apply"/> moved them — masked in the app, where changing the language restarts it, and
+    /// fatal to any check that wants to read this surface in five languages: the tooltip composed for
+    /// French carried a Portuguese window name.</para></summary>
+    internal static string MetricLabel(string metric) => metric switch
     {
-        ["5h"] = L.T("menu.metric.5h"), ["7d"] = L.T("menu.metric.7d"), ["extra"] = L.T("menu.metric.extra"),
+        "5h" => L.T("menu.metric.5h"),
+        "7d" => L.T("menu.metric.7d"),
+        "extra" => L.T("menu.metric.extra"),
+        _ => metric,
     };
 
     private readonly NotifyIcon _tray;
@@ -262,7 +273,7 @@ internal sealed class TrayContext : ApplicationContext
         var showOn = new ToolStripMenuItem(L.T("menu.showOnIcon"));
         foreach (string key in Metrics)
         {
-            var item = new ToolStripMenuItem(Labels[key]) { Tag = key, Checked = key == _metric };
+            var item = new ToolStripMenuItem(MetricLabel(key)) { Tag = key, Checked = key == _metric };
             item.Click += (_, _) => SetMetric((string)item.Tag!);
             _metricItems.Add(item);
             showOn.DropDownItems.Add(item);
@@ -663,7 +674,7 @@ internal sealed class TrayContext : ApplicationContext
                     null => L.T("insights.loading"),
                     { Unauthorized: true } => L.T("menu.profileNeedsAuth"),
                     { Error: not null } => L.T("menu.profileError"),
-                    _ => $"{Labels[_metric]} {PctShown(d.Metric(_metric))}",
+                    _ => $"{MetricLabel(_metric)} {PctShown(d.Metric(_metric))}",
                 };
 
             string suffix = monitored && _profilePinned && _settings.FollowActiveProfile
@@ -1304,8 +1315,7 @@ internal sealed class TrayContext : ApplicationContext
     /// headlessly, which is how the old line went unchecked through every run.</para>
     /// </summary>
     internal static string StatusLine(UsageData d, string metric, string updated)
-        => L.T("tip.status", Labels.TryGetValue(metric, out string? l) ? l : metric,
-               d.StatusOf(metric), updated);
+        => L.T("tip.status", MetricLabel(metric), d.StatusOf(metric), updated);
 
     internal static string Pct(double v) => $"{(int)Math.Round(Math.Min(v, 1.0) * 100)}%";
 
@@ -1314,11 +1324,6 @@ internal sealed class TrayContext : ApplicationContext
         => Pct(remaining ? Math.Clamp(1.0 - used, 0.0, 1.0) : used);
 
     private string PctShown(double used) => PctShown(used, _settings.ShowRemaining);
-
-    /// <summary>The name of a metric window, for a sentence that has to say which one it is about.
-    /// <see cref="Labels"/> stays private: it is the menu's own item list.</summary>
-    internal static string MetricLabel(string metric)
-        => Labels.TryGetValue(metric, out string? l) ? l : metric;
 
     internal static string FmtCountdown(double s)
     {
