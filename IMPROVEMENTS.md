@@ -230,8 +230,8 @@ the real limit is — a note nobody finishes reading is not more honest than a s
 
 ## §XVI — The tray reports the switch it performed, not the switch the machine got (Block AC)
 
-The report is a question, not a bug: *"mudei para o Pessoal, mas se eu digito `/usage`, aparece VILT
-Group"*, with the inference that `/usage` must be lying. It was not. The session was on the work account
+The report is a question, not a bug: *"mudei para o Pessoal, mas se eu digito `/usage`, aparece
+Trabalho"*, with the inference that `/usage` must be lying. It was not. The session was on the work account
 and the tray was showing the personal one: **both correct about different questions**, and nothing in the
 app connects them.
 

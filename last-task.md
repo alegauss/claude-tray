@@ -1,17 +1,20 @@
-# Block letter register — next is `AI`
+# Block register — history, not a counter
 
-> ⚠ **This file is no longer the task-number counter.** `roadkeep next-id` derives the next free
-> `T<n>` from `ROADMAP.md`, `CHANGELOG.md` and `AGENTS.md` themselves, and `roadkeep add` mints it —
-> so there is nothing here to bump and nothing that can drift. Do not re-add a counter line.
+> ⚠ **This file is neither the task-number counter nor a letter to bump.** `roadkeep next-id` derives
+> the next free `T<n>` from `ROADMAP.md`, `CHANGELOG.md` and `AGENTS.md` themselves, and `roadkeep add`
+> mints it — so there is nothing here to bump and nothing that can drift. Do not re-add a counter line.
 >
-> **Next block letter — `AI`** (Block **AH** = What Block AF's own captures turned up; created
-> 2026-08-02). Block letters are the one thing roadkeep does not derive.
-> Z was the last single letter, so the scheme continues **AA, AB, …** —
-> two letters, same ordering, and `CHANGELOG.md`'s table sorts them after Z. Nothing in the docs parses
-> a block letter, so this costs a wider column and nothing else.
+> ⚠ **A block is a theme, and a theme is reused.** New work goes into the block that already owns its
+> capability — the theme table in the **`roadmap-docs` skill** is the catalogue, and it is the only
+> place that says which letter owns what. A new letter is for a theme that table has no row for, and it
+> is named for the capability, never for the batch that found it. The structural notes below record the
+> opposite habit — a letter per batch of findings, which is how this project reached `AH` — and they are
+> kept as history, not as precedent. `AI` and `AJ` are reserved there for verification and for the
+> repo's own docs; nothing is "next".
 >
 > **`CHANGELOG.md` — not `ROADMAP.md` — is authoritative for the real maximum block letter**, since
-> the roadmap is periodically pruned of fully-shipped blocks. Grep it before bumping the letter.
+> the roadmap is periodically pruned of fully-shipped blocks. Grep it before opening a genuinely new
+> theme.
 >
 > The per-task log below is history. `CHANGELOG.md` is the shipped ledger and `git log` is
 > authoritative for detail; nothing needs to be appended here when a task ships.
@@ -164,7 +167,7 @@
   section is **§XV**: §XIII was retired with Z, and §XIV belongs to Block AA.
 - Block **AC** (T171–T174, created 2026-08-02) is a **field report against shipped Block T**, on the Block
   R / U / W / AA precedent, and it arrived as a *question* rather than a defect: *"mudei para o Pessoal,
-  mas se eu digito `/usage`, aparece VILT Group"*. The block exists because the honest answer was that
+  mas se eu digito `/usage`, aparece Trabalho"*. The block exists because the honest answer was that
   nothing was broken — the tray reports what it **watches** (`MonitoredConfigDir`) and Claude Code obeys
   what the **environment** says (`CLAUDE_CONFIG_DIR`), the two are wired together only under a flag that
   is off by default, and no surface in the app has ever named the difference. It is not a Block T task

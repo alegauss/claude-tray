@@ -185,7 +185,7 @@ internal static class ClaudeAccount
     /// starts as a near-empty stub, which is why "prefer whichever names an account" was enough at
     /// first; then Claude Code fills in an <c>oauthAccount</c> on it, both candidates qualify, and the
     /// stub — first in candidate order, and carrying no <c>userRateLimitTier</c>, no organization and no
-    /// projects — silently replaced the real reading. Observed live: a Max 5x / VILT Group / 39-project
+    /// projects — silently replaced the real reading. Observed live: a Max 5x / Trabalho / 39-project
     /// profile became "Claude Team", no org, 0 projects, and its derived label collapsed to "Personal",
     /// colliding with the second profile's.</para>
     ///

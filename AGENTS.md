@@ -326,10 +326,10 @@ repo** — installed for another, it leaves this one no hook, no tools, no skill
 [`roadkeep.yml`](.github/workflows/roadkeep.yml) runs the published action, and `lint` must pass.
 
 Two skills that do not overlap: **`roadkeep`** says which command to call and what each derives (it
-ships with the tool, so nothing here repeats it); **`roadmap-docs`** holds this project's own
-shipping discipline — one task one commit, the user-facing-surface gate, block letters, releases.
-Query instead of reading: `pick` chooses the next task and says why, `brief <id>` is everything it
-costs to start one. [`last-task.md`](last-task.md) is no longer the counter — `next-id` derives it.
+ships with the tool, so nothing here repeats it); **`roadmap-docs`** holds this project's own shipping
+discipline — one task one commit, the user-facing-surface gate, releases, and the **block theme table**:
+a block is a capability of this app and is **reused**, so a new letter is the rare case, not the habit.
+Query instead of reading: `pick` chooses the next task, `brief <id>` is what it costs to start one.
 
 ## Conventions
 

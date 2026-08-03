@@ -71,21 +71,68 @@ them easy to forget. **Every time a task ships, run this decision:**
 
 These surfaces are in the same repo, so they belong in the **same commit** as the task.
 
-## Block letters
+## A block is a theme, and a theme is reused
 
-roadkeep derives the id (`roadkeep next-id`, and `add` mints it) but has no opinion about **block
-letters**. Z was the last single letter, so the scheme continues **AA, AB, …**.
-**[`CHANGELOG.md`](../../../CHANGELOG.md), not `ROADMAP.md`, is authoritative for the real maximum
-letter** — the roadmap is periodically pruned of fully-shipped blocks. Grep it before opening a
-block, and record the new letter in [`last-task.md`](../../../last-task.md).
+**Reuse a block. Do not open one per batch of work.** The ledger's own column is headed *Theme*: a
+block names a **capability of this app** — the context inspector, the profiles, the pacing, the checks
+— and every task about that capability files under it, whenever it is found. That is how roadkeep's
+own backlog runs on six blocks and Shio's on sixteen, both years old, while this one reached **AH**:
+`AB`, `AD`, `AF` and `AH` are each literally *"what the previous block turned up"*, which is a batch,
+not a theme. Those headings are history in the ledger and cannot be renamed — they are **not** the
+pattern to copy. Before `roadkeep add` the question is *which theme is this*, never *which letter is
+next*.
+
+| Theme | Block | What files under it |
+|---|---|---|
+| Tray icon, tooltip, the poll loop, the projection | **A** | `IconRenderer`, `TrayContext`, `BurnTracker` |
+| What the icon and the menu are allowed to show | **H** | the tray display options |
+| Packaging, installer, self-update, CI | **B** | `build\`, `.github\workflows\`, `Updater` |
+| The Settings page, and what a control claims to change | **C** | `SettingsPage.*`, `Settings`, `[TrayOwned]` |
+| Auth, the API, and what a quota header means | **D** | `ApiClient`, `HeaderProbe`, `QuotaState`, extra usage |
+| Notifications and toasts | **E** | `ToastWindow`, `ContextNudges` |
+| The Statistics page and the pace report | **F** | `StatisticsPage.*`, `UsageReport`, `UsageHistory` |
+| Localization | **G** | `lang\*.json`, `Localization` |
+| The Context Load Inspector | **I** | `src\Context\*`, `ContextPage` |
+| Activity-aware pacing | **J** | `ActivityProfile`, `ActivityShape`, `HourlyUsage` |
+| Live throughput | **K** | `LiveRate`, `LiveChart`, `TranscriptTail` |
+| System information — this machine's install | **N** | `ClaudeAccount`, the System page |
+| Profiles — several logins on one machine | **O** | `src\Profiles\*`, `ProfileStore`, `EnvironmentProfile` |
+| Repo layout — where a file lives | **P** | the `src\` folders, `build\`, `scripts\` |
+| Input, focus, and being readable | **Q** | `WpfInputBridge`, keyboard, UI Automation names |
+| The window shell and its navigation | **Y** | `MainWindow`, page hosting, `PageWindow` |
+| Verification — the checks that prove a change | **AI** *(reserved)* | `--selftest`, `Check-Interaction.ps1`, previews, captures, fixtures |
+| Working here — the repo's own docs and flags | **AJ** *(reserved)* | `AGENTS.md`, the skills, `dev-flags`, the budgets |
+
+`AI` and `AJ` are **reserved, not yet declared**: verification and the repo's own docs are this
+project's two most active themes and had no row of their own, which is the gap the batch letters were
+filling. Declare either the way any new block is declared (below), in the commit its first task ships.
+
+**A block empties; it does not close.** `roadkeep pick --block I` answering *"nothing is open in Block
+I"* means that theme is quiet today, not finished — the next context task reopens it. Two consequences,
+so neither arrives as a surprising refusal. The roadmap is pruned of fully-shipped blocks, so a reused
+letter usually has **no roadmap heading** and `add --block I` refuses with *"no heading declares Block
+I"*: `roadkeep block add I --title "<the title the ledger already uses>"` then writes it into the
+roadmap **alone**, skipping the ledger that already declares it — so copy that title **verbatim** from
+`CHANGELOG.md`'s block table, because nothing checks that two files spell one block the same way. And
+`IMPROVEMENTS.md` numbers its sections in one `§I…` sequence that never reuses a number, so a reused
+block accumulates several `§` sections over its life; that is expected, and `section add` places each
+one under the task's own block.
+
+**A new letter is only for a theme the table has no row for** — and then it is named for the
+**capability**, never for the batch that found it or the block it came out of: *"Verification — the
+checks that prove a change"*, not *"What Block AF's own captures turned up"*. Z was the last single
+letter, so the scheme continues **AA, AB, …**, and **[`CHANGELOG.md`](../../../CHANGELOG.md), not
+`ROADMAP.md`, is authoritative for the real maximum letter** — grep it before opening one. **Add the
+row to the table above in the same commit**, or the next task has nothing to reuse and the drift starts
+again.
 
 **Declare the block in the ledger before shipping its first task.** `roadkeep ship` refuses with
-*"no heading declares Block X"* and writes nothing: naming a block is editorial, so the tool will
-never invent the heading. Add both by hand, in the same commit as that first task — a row in
-`CHANGELOG.md`'s block table, and a `## Block X — <title>` heading in the body, placed at the top of
-the newest-first run (the file is A–K ascending, then newest-first from there). The title is the
-roadmap's own block heading; mark the row `(active — see ROADMAP)` while tasks remain open. This is
-the **one** hand-edit to a governed file the discipline allows, and `roadkeep lint` must pass after.
+*"no heading declares Block X"* and writes nothing: naming a block is editorial, so no other write
+invents the heading. `roadkeep block add X --title "<title>"` is the one that does, in every governed
+file organised by blocks at once — so the heading itself is never hand-typed. What it does **not**
+write is the row in `CHANGELOG.md`'s block table: add that by hand in the same commit as the first
+task, with the same title, marked `(active — see ROADMAP)` while tasks remain open. That row is the
+**one** hand-edit to a governed file the discipline allows, and `roadkeep lint` must pass after.
 
 ## `ship --why`, or live with it
 
