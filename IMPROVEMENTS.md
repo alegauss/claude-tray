@@ -365,27 +365,30 @@ Two constraints bind. The **privacy promise** is not in tension: rate-limit head
 overage more visible, and the next sentence, *this account is out, the other has room*, is the one the
 roadmap forbids. §XVIII.6 binds hardest; §XVI.4 found the answer's shape: a receipt, not a reward.
 
-### XVIII.9 The API names the binding window, and the app works it out again
+### XVIII.9 Three top-level headers nobody reads, and one premise that was wrong (idea)
 
 Beside the three window triples the response carries a fourth, unsuffixed set:
-`anthropic-ratelimit-unified-status`, `-reset`, and `-representative-claim`, which read `allowed`,
-the 5h reset, and `five_hour` on the reading taken. The API is stating which claim its top-level
-answer is about.
+`anthropic-ratelimit-unified-status`, `-reset` and `-representative-claim`, reading `allowed`, the
+5h reset and `five_hour`. Nothing parses any of them. That much is measured and still true.
 
-This app answers the same question by hand, repeatedly. The projection compares 5h against 7d to
-decide which window the sentence should be about; the icon picks a metric to draw; the tooltip
-orders three lines. Each derivation is small and each is a place where this app's opinion of what
-binds can differ from the one the account is actually being limited by — most obviously
-mid-transition, when the two windows are close and the value flips between polls.
+What this section originally claimed — that the projection, the icon and the tooltip each re-derive
+which window is binding by comparing 5h against 7d — is false, and reading the call sites is what
+settled it. There is no such derivation anywhere. Every surface is scoped to `_metric`, the window
+the user picked from the tray menu: the two utilization lines, the at-limit and billing sentences,
+the projection, which names its own scope out loud, and `CurrentQuotaState`, whose comment states
+the choice — *the metric, not the worst window*, so that a sentence never captions a figure the user
+is not looking at. `BlockedUntilUnix` tests both windows against the threshold, which is not the
+same question. So there was nothing to unify.
 
-The win is not saving arithmetic. It is that "which limit is stopping me?" gets one answer with a
-source, instead of three computed independently in three files. `representative-claim` is also the
-only header that would name a window this app does not model at all, if one is ever added — so
-reading it is how a fourth window announces itself rather than silently not existing.
+What is left is an idea, and it needs the measurement before the design. `representative-claim`
+would let a surface say which limit the API itself considers binding — an answer this app currently
+never asks for, and a feature rather than a fix. The vocabulary is one value from one account:
+`five_hour`. A mapping written against one sample has a default arm nobody has seen, and T181 spent
+a whole task refusing exactly that. The probe records every one of these three, so a second value
+arrives as a log line rather than as a guess.
 
-Unknown, and the reason this is designed rather than done: the vocabulary. `five_hour` is the only
-value observed. What an account in overage reports here is exactly what the probe now records, and a
-mapping written against one sample is a mapping with a default arm nobody has seen.
+Reading the call sites did turn up a real mismatch one line below the ones checked — §XVIII.12 has
+it.
 
 ### XVIII.10 A fallback is on offer and nothing here knows the word (idea)
 
@@ -427,6 +430,29 @@ to keep waiting for a change that already happened.
 Both are one fix: record the live reading under the profile it was taken from, and say what an empty
 log actually means. `--live` skips reading the log, not writing to it — a flag asking for the
 freshest reading is the last one that should drop it.
+
+### XVIII.12 The tooltip's status line is about a window nobody chose
+
+Every line of the tooltip is scoped to `_metric`, the window the user picked from the menu: the two
+utilization lines, the at-limit and billing sentences, and the projection, which names its scope out
+loud so the figure cannot be misread. The last line is not. `Status: {0}` is filled from
+`_data.Status`, which is 5h's status and only ever 5h's — so somebody watching the week reads a word
+about the session, under a label that names no window at all.
+
+T208 makes the correction one expression: `_data.StatusOf(_metric)` beside the `Labels[_metric]` the
+sentence above it already uses. Nothing else moves, and no string changes, which matters because the
+Windows tooltip is capped at 127 characters and this line is the one the cap protects.
+
+Two decisions belong to whoever takes it. **Whether the label names the window.** Every neighbour
+does, and `Status: allowed` attributed to nothing is how this defect survived; against that, a
+longer label spends characters the cap is already rationing, and the line directly above it
+establishes the scope.
+
+**What to do when the chosen window is `extra`.** Echoing a status verbatim makes no claim, which is why
+this line was always safe — but `allowed` sitting under "Extra usage: 42%" will be read as a verdict on the
+extra usage, and no reading of that header from an account actually in overage exists. T208's rule was that
+an unmeasured affirmative may buy a poll and may not paint a screen. A verbatim echo is arguably neither;
+deciding it is part of the task, not a detail of it.
 
 ## XX Verification — the checks that prove a change (Block AI)
 
