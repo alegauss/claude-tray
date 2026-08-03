@@ -63,6 +63,9 @@
 
 ## Block AI — Verification — the checks that prove a change
 
+- 📋 **T239** (deps: —) **The tray a check launches writes to the same profile store the user's own tray is writing to** — --second-tray skips the single instance but not the polling, so a check appends a second reading per profile to a store designed for one writer - and a bare one writes the environment too. → §XX.16
+- 📋 **T240** (deps: —) **Whether a check launches a second tray is decided from a process list read a second earlier** — A tray starting or still dying in that gap is not in the reading, so the launch goes without --second-tray, exits on the mutex, and the run blames the menu for a tray that never came up. → §XX.17
+
 ## Block AJ — Working here — the repo's own docs and flags
 
 - 💭 **T219** (deps: —) **The turn budget is full, so a new rule is paid for by deleting an old one nobody ranked** — Writing T169's rule took AGENTS.md 612 bytes over, and the bytes came back from a sentence that happened to be duplicated — a selector that runs out before the next rule does. → §XXII.1

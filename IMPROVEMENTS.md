@@ -216,6 +216,53 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
+### XX.16 A second tray is not a read-only observer
+
+`--second-tray` (T237) skips the mutex so the menu check can drive the build under test. What it
+does not skip is everything a tray does while it is up: it polls, and every successful poll runs
+`UsageHistory.Append(key, …)` against the profile store — the same `profiles\<key>\` directory the
+resident tray is appending to on its own cadence. `HourlyUsage.Fold` reads that file, and the
+burn-up charts and the week-over-week comparison read what it folds.
+
+So a check run leaves two readings of the same profile at nearly the same instant, written by two
+processes, in a store whose whole design assumes one writer per key. Nothing observed has gone wrong
+— the window is seconds and the file is append-only — but "nothing observed" is the standard this
+block exists to reject, and the store is the one thing here that outlives the check by weeks.
+
+It reaches further than the store. A second tray also reconciles `CLAUDE_CONFIG_DIR` through
+`SyncEnvironmentToPin`, which is the one thing this app writes outside its own settings file. The
+sweep is safe by accident — `--sample-env` makes those writes land on the fixture (T231) — but a
+bare `--second-tray` has the live write path, and two trays reconciling one variable is a race with
+the user's environment as the loser.
+
+The shape wanted is a second tray that observes and does not accumulate: no store append, no
+environment write, no settings save. Worth settling whether that is a separate flag or simply what
+`--second-tray` means, and the second reads better — nobody launching a tray beside their own wants
+it keeping books.
+
+### XX.17 A snapshot of the process list is not the state at launch
+
+`Start-CheckTray` reads `Get-Process -Name ClaudeTray` once and decides everything from that one
+reading: whether to pass `--second-tray`, and which icon pattern will find the tray it is about to
+launch.
+
+A tray that is *dying* still appears in the list, so the launch is given the flag and the icon
+looked for under the `[check]` tag — harmless, since the flag only skips a mutex that is now free.
+The broken direction is the other one: a tray that *starts* in that gap, or one still holding the
+mutex while it exits, is not in the reading, so the launch goes without the flag, exits silently on
+the mutex, and the run reports what it can see — which was "the tray menu never opened (5
+attempts)", a FAIL naming the menu for a launch that never happened.
+
+One run during T237 did exactly that, two seconds after a tray had been killed, and it is the only
+reading of that run that fits. It is the hazard this file already records one function along:
+`Close-Main` waits for the exit rather than trusting the kill, *"because a still-dying `--main`
+looks like the tray to it"*.
+
+The fix is to stop deciding from a snapshot. `--second-tray` costs nothing when no tray is resident
+— the mutex is taken when free either way — so it can simply always be passed, which makes the tag
+unconditional and the branch disappear. What that trades is the tag appearing in the notification
+area on a machine with no resident tray, which is a state nobody is looking at.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
