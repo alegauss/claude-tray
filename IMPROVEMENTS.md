@@ -349,29 +349,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.11 The flag surface is the one thing no check asserts
-
-`--selftest` holds 240 assertions and not one of them is about a CLI flag. Everything it covers is
-arithmetic, stores and rules over synthetic inputs; the preview and capture surface — which is what
-every visual verification in this repository goes through — is protected only by somebody running it
-by hand and reading the result.
-
-Block AH added three refusals to that surface, and each is exactly the kind of thing that regresses
-in silence: `StatsPreviews` and `ToastPreviews` refusing an unknown name instead of rendering the
-default, `AccountFixture.ResolveWeek` refusing an unknown week, `--capture-toast` requiring its
-output path, and `--sample` that cannot be honoured stopping the run rather than falling back to
-this machine's real account. That last one is a privacy guard whose failure mode is a published PNG,
-and nothing would notice it being removed.
-
-All four are cheap to assert because they are **pure**: a table lookup and a resolver that return a
-value or null, no window and no file. `SelfTestCli` is the repo's test suite (§I.3 rules out a test
-project), so they belong there — one section, asserting that every documented variant resolves, that
-an invented name resolves to null, and that the two tables' rows match the names the skill catalogue
-prints.
-
-The last of those is the one with reach: it turns the "write it down in `dev-flags`" convention into
-something a build can check, which is the only version of that convention that survives.
-
 ### XX.12 The most-seen surface is the one nothing can photograph
 
 Every published picture in `docs/` comes from a flag: `--capture-stats`, `--capture-settings`,

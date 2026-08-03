@@ -106,6 +106,14 @@ internal static class StatsPreviews
         ("refresh", "--capture-stats only: snapshot while a fresh reading is still recomputing (T118)"),
     };
 
+    /// <summary>The table itself, for the self-check that every row it declares still resolves and that
+    /// an invented name does not (T207). Exposed rather than duplicated: a list of names written out in
+    /// the check would be the hand-maintained copy T203 has just finished removing elsewhere.</summary>
+    internal static IReadOnlyList<Variant> Catalogue => All;
+
+    /// <summary>The modifier rows, same reason.</summary>
+    internal static IReadOnlyList<(string Name, string What)> ModifierRows => Modifiers;
+
     /// <summary>A variant with its modifiers folded in: what the caller sets on the page.</summary>
     internal sealed record Choice(Variant Variant, bool Ghost, bool Live, bool Remaining, bool Ongoing, bool Refresh)
     {

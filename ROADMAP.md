@@ -71,7 +71,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T207** (deps: —) **Nothing asserts the preview and capture flags, only the arithmetic behind them** — All 240 self-check assertions are about stores and pacing, so the variant tables, the refusals and the output-path rules this block just added are held up by whoever next runs a flag by hand. → §XX.11
 - 📋 **T214** (deps: —) **One published screenshot is a photograph nobody can retake** — Every other picture in docs comes from a capture flag, and this one is a hand-taken shot of the notification area — so T213 changed the tooltip and the README's hero image still shows the old line. → §XX.12
 - 📋 **T215** (deps: —) **A character budget decides what the tooltip shows and no assertion can reach it** — Which lines survive the 127-char cap is decided inside an instance method no headless test can build, and T213 spent eight of those characters in five languages without checking the effect. → §XX.13
 - 📋 **T217** (deps: —) **A capture can succeed and not contain the surface it was taken for** — A popup is its own window and closes when the script takes the foreground, so three captures of the method note reported success, named the right window, and showed no note. → §XX.14

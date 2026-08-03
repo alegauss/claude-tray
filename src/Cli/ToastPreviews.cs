@@ -75,6 +75,11 @@ internal static class ToastPreviews
                 L.T("toast.extra.quotaLabel"), ToastWindow.ToastTheme.ExtraUsage)),
     };
 
+    /// <summary>The table itself, for the self-check that every row still resolves, that an invented name
+    /// does not, and that this catalogue and the one the <c>dev-flags</c> skill prints name the same
+    /// cards (T207).</summary>
+    internal static IReadOnlyList<Variant> Catalogue => All;
+
     /// <summary>
     /// Resolve the variant a preview command names. Null (no token given) is the first row; anything that
     /// names no row is <b>refused</b> — returning null after printing what exists, so the caller exits

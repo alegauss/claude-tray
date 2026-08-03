@@ -92,6 +92,9 @@ internal static class SelfTestCli
         Section("lang — five files, one key set and one set of holes (Block AF)");
         Translations();
 
+        Section("flags — the preview and capture surface (Block AI)");
+        Flags();
+
         Section("out — the directory a capture flag was given (Block AF)");
         Temp(OutputPaths);
 
@@ -1110,6 +1113,211 @@ internal static class SelfTestCli
         string list = string.Join(", ", keys.Take(12));
         return $"{keys.Length} {(keys.Length == 1 ? "key" : "keys")} {what} — {list}" +
                (keys.Length > 12 ? $", … (+{keys.Length - 12} more)" : "");
+    }
+
+    // ---------------------------------------------------------------- Block AI: the flag surface
+
+    /// <summary>
+    /// The preview and capture flags — the surface every visual verification in this repository goes
+    /// through, and the one thing none of the other assertions here touch (T207). Everything else is
+    /// arithmetic, stores and rules; the variant tables and the refusals around them were held up by
+    /// whoever next ran a flag by hand and read the result.
+    ///
+    /// <para>Each refusal asserted here has a failure mode that is silent by construction: a table that
+    /// stops resolving a name renders <em>the default</em> instead, which is a screenshot of the wrong
+    /// thing that looks exactly like a screenshot of the right one (T186, T198, T200), and
+    /// <c>--sample</c> failing open publishes a real account (T205). None of them would be noticed by
+    /// anything else in this file.</para>
+    ///
+    /// <para>They are cheap because they are pure: a table lookup and a resolver, returning a value or
+    /// null, with no window and no file. The refusals print their catalogue to the console, which is
+    /// their job and not this section's output, so those calls run through <see cref="Quietly"/>.</para>
+    /// </summary>
+    private static void Flags()
+    {
+        IReadOnlyList<StatsPreviews.Variant> stats = StatsPreviews.Catalogue;
+        IReadOnlyList<ToastPreviews.Variant> toasts = ToastPreviews.Catalogue;
+
+        // The guard on the precondition first: an empty table resolves nothing and refuses nothing, and
+        // every claim below would hold vacuously over it.
+        if (!Check("both preview tables carry their rows", stats.Count >= 8 && toasts.Count >= 5,
+                   $"{stats.Count} stats variants, {toasts.Count} toasts"))
+            return;
+
+        static string[] Words(string name) => name.Length == 0 ? Array.Empty<string>() : new[] { name };
+        static string Named(string name) => name.Length == 0 ? "(default)" : name;
+
+        string[] deadStats = stats.Where(v => StatsPreviews.Resolve(Words(v.Name), capturing: false) is null)
+                                  .Select(v => Named(v.Name)).ToArray();
+        Check($"every --stats variant the table declares resolves ({stats.Count})", deadStats.Length == 0,
+              $"{string.Join(", ", deadStats)} resolved to null — the flag would refuse a name it prints");
+
+        // The asymmetry is the point: --capture-stats must refuse the variants whose content it cannot
+        // render, and no others. Anchored on the two that ARE the method popup rather than on
+        // `Variant.Capturable` — Resolve decides *by* that flag, so comparing the two is one expression
+        // compared with itself, and stays green when the flag is inverted. Confirmed: with
+        // `Capturable => true` the earlier version of this assertion passed.
+        string[] popup = { "method", "thin" };
+        if (!Check("the method-popup variants are still named that", popup.All(n => stats.Any(v => v.Name == n)),
+                   $"{string.Join(", ", popup.Where(n => stats.All(v => v.Name != n)))} — renamed, and every " +
+                   "claim below would hold by resolving nothing"))
+            return;
+
+        string[] leaked = popup
+            .Where(n => Quietly(() => StatsPreviews.Resolve(new[] { n }, capturing: true)) is not null).ToArray();
+        Check("--capture-stats refuses the method-popup variants it cannot render", leaked.Length == 0,
+              $"{string.Join(", ", leaked)} — the PNG would be the page with no popup in it (T186)");
+
+        string[] overRefused = stats.Where(v => !popup.Contains(v.Name))
+            .Where(v => Quietly(() => StatsPreviews.Resolve(Words(v.Name), capturing: true)) is null)
+            .Select(v => Named(v.Name)).ToArray();
+        Check("and refuses nothing else", overRefused.Length == 0, string.Join(", ", overRefused));
+
+        Check("while --stats still shows them, which is the whole asymmetry",
+              popup.All(n => StatsPreviews.Resolve(new[] { n }, capturing: false) is not null),
+              "the interactive flag refuses them too, so the popup cannot be got on screen at all");
+
+        string[] deadModifiers = StatsPreviews.ModifierRows
+            .Where(m => StatsPreviews.Resolve(new[] { m.Name }, capturing: false) is null)
+            .Select(m => m.Name).ToArray();
+        Check($"every --stats modifier composes ({StatsPreviews.ModifierRows.Count})", deadModifiers.Length == 0,
+              string.Join(", ", deadModifiers));
+
+        Check("a --stats name that names no row is refused, not defaulted",
+              Quietly(() => StatsPreviews.Resolve(new[] { "nosuchvariant" }, capturing: false)) is null,
+              "it resolved — an unknown name renders the default and calls it what was asked for (T186)");
+
+        // A real variant beside an invented word must still be refused: taking the one it recognises is
+        // the same defect wearing a legal-looking argument.
+        Check("and so is a real variant beside one that is not",
+              Quietly(() => StatsPreviews.Resolve(new[] { "shape", "nosuchmodifier" }, capturing: false)) is null,
+              "it resolved 'shape' and dropped the word it did not know");
+
+        string[] deadToasts = toasts.Where(v => ToastPreviews.Resolve(v.Name) is null)
+                                    .Select(v => v.Name).ToArray();
+        Check($"every toast variant the table declares resolves ({toasts.Count})", deadToasts.Length == 0,
+              string.Join(", ", deadToasts));
+
+        Check("a bare toast flag is the first row, not a refusal",
+              ToastPreviews.Resolve(null)?.Name == toasts[0].Name,
+              $"got '{ToastPreviews.Resolve(null)?.Name}', expected '{toasts[0].Name}'");
+
+        Check("an unknown toast name is refused, not defaulted",
+              Quietly(() => ToastPreviews.Resolve("nosuchcard")) is null,
+              "it resolved — a screenshot of the wrong card looks like one of the right card (T198)");
+
+        // The privacy guard (T200): a week that cannot be honoured must stop the run, because the
+        // fallback is this machine's real account rendered into a file that gets published.
+        string[] deadWeeks = Enum.GetNames<AccountFixture.SampleWeek>()
+            .Where(w => AccountFixture.ResolveWeek(w) is null).ToArray();
+        Check($"every week= name resolves ({Enum.GetNames<AccountFixture.SampleWeek>().Length})",
+              deadWeeks.Length == 0, string.Join(", ", deadWeeks));
+        Check("week= is case-insensitive, the way the flag is typed",
+              AccountFixture.ResolveWeek("SPENDING") == AccountFixture.SampleWeek.Spending);
+        Check("an absent week= is the default, not a refusal",
+              AccountFixture.ResolveWeek(null) == AccountFixture.SampleWeek.Spending &&
+              AccountFixture.ResolveWeek("") == AccountFixture.SampleWeek.Spending);
+        Check("an unknown week= is refused, so --sample stops instead of falling back",
+              Quietly(() => AccountFixture.ResolveWeek("nosuchweek")) is null,
+              "it resolved — the run would build the default week and publish the wrong branch (T200)");
+
+        // T205's refusal, which this block added: the one page whose content is an account, on the one
+        // path that writes a file.
+        Check("capturing the System page without --sample is refused",
+              AccountFixture.CaptureRefusal("System", sampled: false) is not null);
+        Check("and is refused however it is spelled",
+              AccountFixture.CaptureRefusal("system", sampled: false) is not null);
+        Check("with --sample it proceeds",
+              AccountFixture.CaptureRefusal("System", sampled: true) is null);
+        Check("and no other page is touched by the rule",
+              AccountFixture.CaptureRefusal("General", sampled: false) is null &&
+              AccountFixture.CaptureRefusal(null, sampled: false) is null);
+
+        SkillCatalogue(toasts);
+    }
+
+    /// <summary>
+    /// The one assertion here with reach: it turns "write the flag down in <c>dev-flags</c>" from a
+    /// convention into something a build checks (T207). A catalogue in prose and a table in code are two
+    /// sources of truth for one list, and the drift is always the same direction — the table gains a row
+    /// and the document keeps describing the old set.
+    ///
+    /// <para>Both directions are asserted, because they catch opposite mistakes: every row must be named
+    /// in the skill (a variant added and never documented), and every name the skill lists in a
+    /// <c>| name</c> position must exist in the table (one renamed or removed, leaving the document
+    /// promising a flag that now refuses).</para>
+    /// </summary>
+    private static void SkillCatalogue(IReadOnlyList<ToastPreviews.Variant> toasts)
+    {
+        string? skill = RepoFile(Path.Combine(".claude", "skills", "dev-flags", "SKILL.md"));
+        if (skill is null)
+        {
+            Skip("the dev-flags catalogue names what the tables declare",
+                 ".claude\\skills\\dev-flags\\SKILL.md is not beside this build — no repo on disk");
+            return;
+        }
+
+        string[] lines = File.ReadAllLines(skill);
+        string toastBlock = SkillBlock(lines, "--simulate-reset");
+        string weekBlock = SkillBlock(lines, "--settings System --sample week=");
+
+        if (!Check("the dev-flags catalogue still has the blocks these tables document",
+                   toastBlock.Length > 0 && weekBlock.Length > 0,
+                   $"--simulate-reset {(toastBlock.Length > 0 ? "found" : "MISSING")}, " +
+                   $"week= {(weekBlock.Length > 0 ? "found" : "MISSING")} — the check cannot read what it compares"))
+            return;
+
+        string[] undocumented = toasts.Select(v => v.Name)
+            .Where(n => !toastBlock.Contains(n, StringComparison.Ordinal)).ToArray();
+        Check($"every toast the table declares is named in dev-flags ({toasts.Count})",
+              undocumented.Length == 0,
+              $"{string.Join(", ", undocumented)} — a card the catalogue does not mention");
+
+        string[] promised = ListedNames(toastBlock)
+            .Where(n => toasts.All(v => !v.Name.Equals(n, StringComparison.Ordinal))).ToArray();
+        Check("and every toast dev-flags lists exists in the table", promised.Length == 0,
+              $"{string.Join(", ", promised)} — documented, and the flag would refuse it");
+
+        string[] weeks = Enum.GetNames<AccountFixture.SampleWeek>();
+        string[] weeksMissing = weeks
+            .Where(w => !weekBlock.Contains(w.ToLowerInvariant(), StringComparison.Ordinal)).ToArray();
+        Check($"every week= name is named in dev-flags ({weeks.Length})", weeksMissing.Length == 0,
+              string.Join(", ", weeksMissing));
+
+        string[] weeksPromised = ListedNames(weekBlock)
+            .Where(n => !weeks.Any(w => w.Equals(n, StringComparison.OrdinalIgnoreCase))).ToArray();
+        Check("and every week= dev-flags lists exists", weeksPromised.Length == 0,
+              string.Join(", ", weeksPromised));
+    }
+
+    /// <summary>One flag's entry in the skill's fenced catalogue: the line that opens with it, plus the
+    /// indented <c>#</c> continuations under it, which is how every entry in that file is written.</summary>
+    private static string SkillBlock(string[] lines, string flag)
+    {
+        int start = Array.FindIndex(lines, l => l.StartsWith(flag, StringComparison.Ordinal));
+        if (start < 0) return "";
+
+        var block = new StringBuilder(lines[start]);
+        for (int i = start + 1; i < lines.Length && lines[i].TrimStart().StartsWith('#'); i++)
+            block.Append(' ').Append(lines[i].TrimStart());
+        return block.ToString();
+    }
+
+    /// <summary>The names a catalogue entry lists as alternatives — the <c>| name</c> positions, which is
+    /// the shape every such entry in that file uses.</summary>
+    private static string[] ListedNames(string block) =>
+        System.Text.RegularExpressions.Regex.Matches(block, @"\|\s*([a-z][a-z0-9-]*)")
+            .Select(m => m.Groups[1].Value)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+    /// <summary>A refusal prints its whole catalogue, which is the right behaviour for a person at a
+    /// prompt and noise in the middle of a self-check. Runs one and keeps the return value.</summary>
+    private static T Quietly<T>(Func<T> f)
+    {
+        TextWriter saved = Console.Out;
+        try { Console.SetOut(TextWriter.Null); return f(); }
+        finally { Console.SetOut(saved); }
     }
 
     // ---------------------------------------------------------------- Block AG: one id, one control
