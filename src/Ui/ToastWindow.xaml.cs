@@ -194,7 +194,7 @@ internal partial class ToastWindow : Window
 
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(rtb));
-        using var fs = System.IO.File.Create(path);
+        using FileStream fs = OutFile.Create(path);
         encoder.Save(fs);
     }
 

@@ -401,24 +401,6 @@ checking it.** The capture crash surfaced because a directory happened not to ex
 divergence because a chart's numbers looked wrong; the colour collision because the same hex was typed
 twice in one afternoon. A verification loop nobody exercises is indistinguishable from one that passes.
 
-### XIX.3 A capture that dies after it has drawn
-
-`StatisticsPage.SaveSnapshot` calls `File.Create` on the path it is given, and nothing creates the
-directory above it. Capturing into a folder that does not exist yet throws
-`DirectoryNotFoundException` — from a `DispatcherTimer` tick, so it surfaces as an unhandled
-exception with a WPF stack, after the window has already rendered and the expensive part is done.
-
-Every sibling does the opposite: `PreviewCli.RenderTest` opens with `Directory.CreateDirectory`, and
-`UsageHistory.Append` creates its own parent on every write. This one call site is the exception.
-
-It is a one-line fix and it goes on the list for the same reason as §XIX.2: what a person is doing
-when they hit it is *verifying a change*, and a stack trace in the middle of that reads as "the
-change broke the app" rather than "the folder was new". The cost is a wrong diagnosis on the surface
-where somebody is already suspicious.
-
-Worth doing once for the whole family — `--capture-settings` and `--capture-toast` take output paths
-too, and neither has been tried against a fresh directory.
-
 ### XIX.4 The same clay for opposite news
 
 T184 gave the extra-usage toast the brand clay, deliberately: the tray icon's bar (T182) and the

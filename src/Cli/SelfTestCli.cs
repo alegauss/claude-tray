@@ -87,6 +87,9 @@ internal static class SelfTestCli
         Section("lang — five files, one key set and one set of holes (Block AF)");
         Translations();
 
+        Section("out — the directory a capture flag was given (Block AF)");
+        Temp(OutputPaths);
+
         if (quick)
         {
             Console.WriteLine();
@@ -769,6 +772,39 @@ internal static class SelfTestCli
     private static List<ClaudeProfile> Profiles(string dir) => new() { new ClaudeProfile { ConfigDir = dir } };
 
     private static string Json(object? v) => System.Text.Json.JsonSerializer.Serialize(v);
+
+    // ---------------------------------------------------------------- Block AF: the capture's output path
+
+    /// <summary>
+    /// What every capture flag owes the path it was handed (T187): the file appears, and the directories
+    /// above it are created rather than being assumed. The defect this pins was one <c>File.Create</c> on a
+    /// path nothing created, throwing from a <c>DispatcherTimer</c> tick <em>after</em> the window had
+    /// rendered — so the check is here rather than in a screenshot, which is the one place it could not be
+    /// seen. Held on <see cref="OutFile"/>, which the three <c>SaveSnapshot</c> bodies now share.
+    /// </summary>
+    private static void OutputPaths(string root)
+    {
+        string nested = Path.Combine(root, "does", "not", "exist", "capture.png");
+        using (FileStream fs = OutFile.Create(nested)) fs.WriteByte(0x89);
+        Check("a capture into a directory tree that does not exist writes the file",
+              File.Exists(nested), $"nothing at {nested}");
+
+        // Truncation, because a second capture over yesterday's PNG must not leave its tail behind.
+        using (FileStream fs = OutFile.Create(nested)) fs.WriteByte(0x89);
+        Check("and a second capture over the same path truncates it",
+              new FileInfo(nested).Length == 1, $"{new FileInfo(nested).Length} bytes, expected 1");
+
+        // A bare filename's GetDirectoryName is empty, which is the case a naive parent-of check skips.
+        string cwd = Directory.GetCurrentDirectory();
+        try
+        {
+            Directory.SetCurrentDirectory(root);
+            using (FileStream fs = OutFile.Create("bare.png")) fs.WriteByte(0x89);
+            Check("a bare filename resolves against the current directory, not to no parent at all",
+                  File.Exists(Path.Combine(root, "bare.png")));
+        }
+        finally { Directory.SetCurrentDirectory(cwd); }
+    }
 
     // ---------------------------------------------------------------- Block AF: the five string tables
 

@@ -204,7 +204,7 @@ internal static class PreviewCli
                     col++;
                 }
         }
-        sheet.Save(path);
+        using (FileStream fs = OutFile.Create(path)) sheet.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
         Console.WriteLine("mark sheet: " + Path.GetFullPath(path));
     }
 
@@ -258,7 +258,7 @@ internal static class PreviewCli
             pngs[i] = ms.ToArray();
         }
 
-        using var fs = File.Create(path);
+        using FileStream fs = OutFile.Create(path);
         using var bw = new BinaryWriter(fs);
         bw.Write((short)0);              // reserved
         bw.Write((short)1);              // type: icon

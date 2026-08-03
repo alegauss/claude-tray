@@ -257,7 +257,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
 
         var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
         encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
-        using var fs = System.IO.File.Create(path);
+        using FileStream fs = OutFile.Create(path);
         encoder.Save(fs);
     }
 
