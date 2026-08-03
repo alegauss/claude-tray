@@ -63,6 +63,10 @@ them easy to forget. **Every time a task ships, run this decision:**
    - **`docs/index.html`** — the marketing block, kept consistent with the README's wording.
 3. **Write for the user, not the commit.** These surfaces explain what the feature does and how to
    use it. Never paste `IMPROVEMENTS.md` rationale verbatim.
+   *What `--selftest` holds up here (T250)*: every image either file points at exists, every screenshot
+   in `docs/` is shown by one of them, and the winget id is spelled one way across both and the
+   manifest. The **wording** is not checked and deliberately so — the site is marketing copy, the README
+   is not, and a check demanding they match would fail on every rewrite.
 4. **Verify UI by looking.** A task that touches a window is not done without a screenshot — the
    `preview-ui` skill, per [AGENTS.md](../../../AGENTS.md). For a localized change, screenshot at
    least one non-English language too.

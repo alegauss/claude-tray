@@ -68,7 +68,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T250** (deps: —) **Every user-facing feature owes two files, and the two are compared by nobody** — The gate says a shipped feature hits README.md and docs/index.html with consistent wording, and neither file is read by any check - the only surface pair still on trust. → §XXII.10
 - 📋 **T251** (deps: —) **A precondition that proved the repository is followed by five proving one file each** — T247 named the family's guard and every body then opens by asserting its own file exists, so the shape it removed one level up is back one level down, five times. → §XXII.11
 
 ## Block G — Localization

@@ -162,6 +162,9 @@ internal static class SelfTestCli
         Section("catalogue — every flag the sources accept is declared (Block AJ)");
         FlagCatalogue();
 
+        Section("surfaces — what a stranger reads: the README and the page (Block AJ)");
+        Repo("the README and the published page point at things that exist", UserSurfaces);
+
         if (quick)
         {
             Console.WriteLine();
@@ -2460,6 +2463,90 @@ internal static class SelfTestCli
         Check("and the script still assembles them from $sfx", lostPattern.Length == 0,
               lostPattern.Length == 0 ? "" : $"{string.Join(", ", lostPattern)} no longer built that way — " +
                                              "the explicit list above is stale and asserts nothing");
+    }
+
+    /// <summary>
+    /// The two documents a person outside this repository actually reads (T250): <c>README.md</c> and the
+    /// published site. The user-facing-surface gate names three surfaces a shipped feature owes, and only
+    /// <c>lang\*.json</c> was held to it — T185 fails a key that reached one language file. These two were
+    /// maintained on trust, by the same hand in the same commit, which is exactly the pattern that drifts.
+    ///
+    /// <para><b>What is deliberately not asserted, and this is what §XXII.10 left to settle.</b> The gate
+    /// asks the two to be *consistent in wording*, and a check demanding that would fail on every rewrite —
+    /// the failure mode that gets a check switched off. The site's headings are marketing copy and the
+    /// README's are not, on purpose. So the wording is left alone and what is checked is what has a right
+    /// answer: the <b>assets</b> both files point at, and the <b>identifier</b> both files quote.</para>
+    ///
+    /// <para>Three ways they go wrong, all silent. A screenshot renamed leaves a broken image on a page
+    /// nobody loads until a stranger does. A screenshot that neither file shows is one nobody re-takes when
+    /// the window moves, so it rots into a picture of an app that no longer exists. And the winget id is a
+    /// string a user types: spelled two ways it sends somebody to a package that is not there, and it is
+    /// quoted in six places across the README, the site and the manifests.</para>
+    /// </summary>
+    private static void UserSurfaces(string root)
+    {
+        string readme = Path.Combine(root, "README.md");
+        string site = Path.Combine(root, "docs", "index.html");
+        string docs = Path.Combine(root, "docs");
+        if (!Check("the README and the published page are where this check expects them",
+                   File.Exists(readme) && File.Exists(site),
+                   $"{readme} / {site} — in a checkout both are always there"))
+            return;
+
+        string readmeText = File.ReadAllText(readme);
+        string siteText = File.ReadAllText(site);
+
+        // `src`, `href` and `content` alike: the social preview is an og:image, which a check written for
+        // the first two would have declared unreferenced and been wrong about.
+        static string[] Assets(string text) =>
+            Regex.Matches(text, $@"(?:src|href|content)=""([^"":]+\.(?:png|gif|jpg|svg))""")
+                 .Select(m => m.Groups[1].Value)
+                 .Concat(Regex.Matches(text, @"!\[[^\]]*\]\(([^)]+\.(?:png|gif|jpg|svg))\)")
+                              .Select(m => m.Groups[1].Value))
+                 .Where(p => !p.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                 .Distinct(StringComparer.OrdinalIgnoreCase)
+                 .OrderBy(p => p, StringComparer.Ordinal).ToArray();
+
+        string[] fromReadme = Assets(readmeText);
+        string[] fromSite = Assets(siteText);
+        if (!Check("both documents still reference their screenshots",
+                   fromReadme.Length >= 8 && fromSite.Length >= 8,
+                   $"{fromReadme.Length} in the README, {fromSite.Length} on the page — " +
+                   "the check cannot read what it compares"))
+            return;
+
+        // The README's paths are repo-relative, the page's are relative to itself.
+        string[] brokenReadme = fromReadme.Where(p => !File.Exists(Path.Combine(root, p))).ToArray();
+        Check($"every image the README points at exists ({fromReadme.Length})", brokenReadme.Length == 0,
+              $"{string.Join(", ", brokenReadme)} — a broken image in the first thing anybody reads");
+
+        string[] brokenSite = fromSite.Where(p => !File.Exists(Path.Combine(docs, p))).ToArray();
+        Check($"every image the published page points at exists ({fromSite.Length})", brokenSite.Length == 0,
+              $"{string.Join(", ", brokenSite)} — broken on a page nobody loads until a stranger does");
+
+        var shown = new HashSet<string>(
+            fromSite.Concat(fromReadme.Select(p => p.Replace("docs/", "", StringComparison.Ordinal))),
+            StringComparer.OrdinalIgnoreCase);
+        string[] orphans = Directory.Exists(docs)
+            ? Directory.GetFiles(docs, "*.png").Select(f => Path.GetFileName(f))
+                       .Where(f => !shown.Contains(f))
+                       .OrderBy(f => f, StringComparer.Ordinal).ToArray()
+            : Array.Empty<string>();
+        Check("and every screenshot in docs is shown by one of them", orphans.Length == 0,
+              $"{string.Join(", ", orphans)} — shown nowhere, so nobody re-takes it when the window moves");
+
+        // An identifier, not prose: a user types it, and two spellings send one of them nowhere.
+        string[] ids = Regex.Matches(readmeText + siteText, @"alegauss\.[A-Za-z]+")
+            .Select(m => m.Value).Distinct(StringComparer.Ordinal)
+            .Where(v => !v.Equals("alegauss.github", StringComparison.Ordinal))
+            .OrderBy(v => v, StringComparer.Ordinal).ToArray();
+        Check("the README and the page quote one winget id", ids.Length == 1,
+              $"{string.Join(", ", ids)} — one of these installs nothing");
+
+        string manifest = Path.Combine(root, "build", "winget", "alegauss.ClaudeCodeTray.yaml");
+        Check("and it is the one the manifest publishes",
+              ids.Length == 1 && File.Exists(Path.Combine(root, "build", "winget", $"{ids[0]}.yaml")),
+              $"{(ids.Length == 1 ? ids[0] : "several")} names no manifest beside {Path.GetFileName(manifest)}");
     }
 
     /// <summary>

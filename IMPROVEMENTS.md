@@ -301,28 +301,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.10 The gate that is a rule everywhere and a check nowhere
-
-The `roadmap-docs` skill's user-facing-surface gate names three surfaces a shipped feature owes:
-`lang/*.json`, `README.md` and `docs/index.html`, the last two *kept consistent with each other's
-wording*. One of the three is checked — T185 fails a key that reached one language file, or a `{0}`
-that did not survive translation. The other two are read by nothing at all.
-
-They are the same shape as everything else this block has checked, and the sharper case. The site
-and the README are the two documents a person outside this repository actually reads, and they are
-maintained by the same hand in the same commit, which is exactly the pattern that drifts: the README
-gains a feature, the marketing block keeps the old list, and nobody sees both files in one sitting
-after the commit that touched them.
-
-What is comparable is the question. Prose cannot be diffed, and a check demanding two files say the
-same thing would fail on every rewording — the failure mode that gets a check switched off. What is
-derivable is narrower and probably enough: the feature *headings* the README lists against the
-blocks the site's marketing sections claim, and the screenshots each references existing in `docs/`.
-A broken image on a published page is a defect nobody has to argue about.
-
-Worth settling first: whether the gate's own three surfaces are the list, or whether the check
-should derive what a user-facing feature is from somewhere the gate does not have to be trusted for.
-
 ### XXII.11 One precondition, and then five more
 
 T247 gave the repository-reading checks one named precondition and the allowance that travels with
