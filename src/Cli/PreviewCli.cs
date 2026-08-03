@@ -4,110 +4,44 @@ namespace ClaudeTray;
 /// moved verbatim.</summary>
 internal static class PreviewCli
 {
-    // Dev helper: show a reset toast with sample data so it can be previewed / screenshotted
-    // standalone. Uses the same display strings as the live notifier. `variant`: "scheduled" (routine
-    // weekly reset), "credit" (partial mid-window drop 91% → 50%), "session" (routine 5h session
-    // reset), or anything else for the early weekly reset.
-    internal static void SimulateReset(string variant)
+    // Dev helper: show a toast card with sample data so it can be previewed / screenshotted standalone.
+    // Which card is one row of ToastPreviews, the table --capture-toast reads too (T198); it uses the same
+    // display strings as the live notifier, so nothing here can drift from what a user is shown.
+    internal static void SimulateReset(string? variant)
     {
+        if (ToastPreviews.Resolve(variant) is not { } chosen)
+        {
+            Environment.ExitCode = 1;
+            return;
+        }
         var app = new System.Windows.Application
         {
             ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
         };
-        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-        // "context" is not a reset at all: it previews the context-load nudge, which shares the toast
-        // card but not its festive framing (ochre, no confetti).
-        if (variant.Equals("context", StringComparison.OrdinalIgnoreCase))
-        {
-            var nudge = new ToastWindow("📇", L.T("toast.context.title"),
-                // Invented, for the reason ContextFixture exists at all: this card gets published, and
-                // a real repo name here puts a client's name on the marketing page.
-                L.T("toast.context.subtitle", "acme/atlas/2026.2"),
-                0.27, 0.27,
-                L.T("toast.context.caption", TokenEstimate.Format(54_000), (0.336).ToString("0.000", L.Culture)),
-                L.T("toast.context.quotaLabel"), ToastWindow.ToastTheme.Context);
-            nudge.Closed += (_, _) => app.Shutdown();
-            nudge.Show();
-            app.Run();
-            return;
-        }
-        var (key, ev) = variant.ToLowerInvariant() switch
-        {
-            "scheduled" => ("7d", new BurnTracker.ResetEvent(BurnTracker.ResetKind.Scheduled, 0.79, 0.0, now, now + 7 * 86400)),
-            "credit" => ("7d", new BurnTracker.ResetEvent(BurnTracker.ResetKind.Credit, 0.91, 0.50, now + 4 * 86400, now + 4 * 86400)),
-            "session" => ("5h", new BurnTracker.ResetEvent(BurnTracker.ResetKind.Scheduled, 0.88, 0.0, now, now + 5 * 3600)),
-            _ => ("7d", new BurnTracker.ResetEvent(BurnTracker.ResetKind.Unexpected, 0.79, 0.0, now + 3 * 86400, now + 7 * 86400)),
-        };
-        var (emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme) = TrayContext.ResetToastContent(key, ev, now);
-
-        var toast = new ToastWindow(emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme);
+        ToastWindow toast = chosen.Build(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
         toast.Closed += (_, _) => app.Shutdown();
         toast.Show();
         app.Run();
     }
 
-    // Dev/preview helper: same sample data as SimulateReset, but instead of leaving the toast on
-    // screen it waits for the entrance + bar-fill animations to settle, snapshots the card to a
-    // transparent PNG (so it composites on any README/site background), and exits.
+    // Dev/preview helper: the same card SimulateReset shows, but instead of leaving it on screen it waits
+    // for the entrance + bar-fill animations to settle, snapshots it to a transparent PNG (so it
+    // composites on any README/site background), and exits. `outPath` is required by the caller: a capture
+    // flag that defaults its *output* writes a file nobody named, and this one used to land `toast.png` in
+    // the working directory — which here is the repository root (T198).
     internal static void CaptureToast(string variant, string outPath)
     {
+        if (ToastPreviews.Resolve(variant) is not { } chosen)
+        {
+            Environment.ExitCode = 1;
+            return;
+        }
         var app = new System.Windows.Application
         {
             ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown,
         };
-        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-        // Two variants share the card without being reset events, so they are built directly. The
-        // extra-usage one (T184) can only be seen this way: the state it announces is one no machine can
-        // be put into on demand.
-        if (variant.Equals("context", StringComparison.OrdinalIgnoreCase)
-            || variant.Equals("extra", StringComparison.OrdinalIgnoreCase))
-        {
-            bool isExtra = variant.Equals("extra", StringComparison.OrdinalIgnoreCase);
-            var nudge = isExtra
-                // The card's bar is "quota still available", so it renders 1 − x. Passing the complement
-                // makes the filled sliver read as the extra usage spent so far, which is what the label
-                // beside it says.
-                ? new ToastWindow("🧾", L.T("toast.extra.title"), L.T("toast.extra.subtitle"),
-                    1 - 0.06, 1 - 0.06, L.T("toast.extra.caption", "2d 3h"),
-                    L.T("toast.extra.quotaLabel"), ToastWindow.ToastTheme.ExtraUsage)
-                : new ToastWindow("📇", L.T("toast.context.title"),
-                // Invented, for the reason ContextFixture exists at all: this card gets published, and
-                // a real repo name here puts a client's name on the marketing page.
-                L.T("toast.context.subtitle", "acme/atlas/2026.2"),
-                0.27, 0.27,
-                L.T("toast.context.caption", TokenEstimate.Format(54_000), (0.336).ToString("0.000", L.Culture)),
-                L.T("toast.context.quotaLabel"), ToastWindow.ToastTheme.Context);
-            nudge.Show();
-            var settleNudge = new System.Windows.Threading.DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(1700),
-            };
-            settleNudge.Tick += (_, _) =>
-            {
-                settleNudge.Stop();
-                try
-                {
-                    nudge.SaveSnapshot(System.IO.Path.GetFullPath(outPath));
-                    Console.WriteLine("wrote " + System.IO.Path.GetFullPath(outPath));
-                }
-                finally { app.Shutdown(); }
-            };
-            settleNudge.Start();
-            app.Run();
-            return;
-        }
-        var (key, ev) = variant.ToLowerInvariant() switch
-        {
-            "scheduled" => ("7d", new BurnTracker.ResetEvent(BurnTracker.ResetKind.Scheduled, 0.79, 0.0, now, now + 7 * 86400)),
-            "credit" => ("7d", new BurnTracker.ResetEvent(BurnTracker.ResetKind.Credit, 0.91, 0.50, now + 4 * 86400, now + 4 * 86400)),
-            "session" => ("5h", new BurnTracker.ResetEvent(BurnTracker.ResetKind.Scheduled, 0.88, 0.0, now, now + 5 * 3600)),
-            _ => ("7d", new BurnTracker.ResetEvent(BurnTracker.ResetKind.Unexpected, 0.79, 0.0, now + 3 * 86400, now + 7 * 86400)),
-        };
-        var (emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme) = TrayContext.ResetToastContent(key, ev, now);
-
-        var toast = new ToastWindow(emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme);
+        string full = System.IO.Path.GetFullPath(outPath);
+        ToastWindow toast = chosen.Build(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
         toast.Show();
         var settle = new System.Windows.Threading.DispatcherTimer
         {
@@ -116,7 +50,7 @@ internal static class PreviewCli
         settle.Tick += (_, _) =>
         {
             settle.Stop();
-            try { toast.SaveSnapshot(System.IO.Path.GetFullPath(outPath)); Console.WriteLine("wrote " + System.IO.Path.GetFullPath(outPath)); }
+            try { toast.SaveSnapshot(full); Console.WriteLine("wrote " + full); }
             finally { app.Shutdown(); }
         };
         settle.Start();

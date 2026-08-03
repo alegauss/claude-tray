@@ -48,8 +48,10 @@ Three different hosts, and the difference matters — see UI convention 7 in AGE
 --context --window <slug> --scroll    # ...scrolled to the source table
 --context --window <slug> --simulate  # ...with the 3 heaviest sources ticked (the what-if)
 --context --window <slug> --demo-history  # ...with a synthetic drift series behind it
---simulate-reset [variant]            # a reset toast on screen: scheduled | credit | session | context |
-                                      #   extra, or anything else for the early weekly reset
+--simulate-reset [variant]            # a toast card on screen: unexpected (the default early weekly reset)
+                                      #   | scheduled | credit | session | context | extra. One table with
+                                      #   --capture-toast (T198), so a name it does not know prints the
+                                      #   catalogue and exits 1 rather than showing the default card.
 ```
 
 ## The captures (off-screen, deterministic)
@@ -70,13 +72,24 @@ popup — its own top-level window, which `RenderTargetBitmap` over a page's con
                                       #   a synthetic variant on its own gets no picker at all. So any
                                       #   PUBLISHED capture of a fixture week needs --sample, and profile=
                                       #   is refused where there is no picker to walk.
---capture-toast <variant> <out.png>   # one toast card + shadow + confetti, transparent background
---render <dir>                        # tray-icon PNGs at 16/20/32 px, plus the accent mark sheet
---makeicon ClaudeTray.ico             # regenerate the multi-resolution app icon
---social docs\social-preview.png      # regenerate the social card
+--capture-toast <variant> <out.png>   # one toast card + shadow + confetti, transparent background.
+                                      #   BOTH arguments required (T198): a lone path used to be read as
+                                      #   the variant and land the default card in the working directory.
+                                      #   Variants are one table, src\Cli\ToastPreviews.cs, which
+                                      #   --simulate-reset reads too; an unknown name prints the catalogue
+                                      #   and exits 1.
+--render [dir]                        # tray-icon PNGs at 16/20/32 px, plus the accent mark sheet
+--makeicon [ClaudeTray.ico]           # regenerate the multi-resolution app icon
+--social [docs\social-preview.png]    # regenerate the social card
 ```
 
 Every one of these creates the directory it is given (T187), so a fresh output folder is fine.
+
+**Where an omitted output path goes** (T198). A default output belongs somewhere git ignores, never in the
+working directory — which for anyone running these is the repository root, where `run-commit.cmd` stages
+everything. So `--capture-stats`, `--render` and `--context-report` default under `docs\_preview\`;
+`--capture-toast` has no default at all. The two exceptions are deliberate: `--makeicon` and `--social`
+each default to their own **tracked** artifact, so the default means "regenerate the committed file".
 
 ## The headless read-outs
 

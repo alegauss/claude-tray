@@ -476,30 +476,6 @@ the task, not by checking it.** The picker leak surfaced because a fixture captu
 enough to notice the name above the chart; the toast path because a file appeared in the repo root;
 the window mix-up because the wrong window came back.
 
-### XXI.2 An output path read as a variant
-
-`--capture-toast` takes `<variant> <outPath>`, and with one argument the path is read as the
-variant: `--capture-toast D:\tmp\out.png` renders the default toast — an unrecognised variant falls
-through to the early-reset one — and writes it to `toast.png` in the current directory. Measured
-while checking T187: the file appeared in the repository root, where `run-commit.cmd` stages
-everything, one commit away from being published.
-
-Two separate faults, and the second is the one that costs. Reading a path as a variant is the same
-defect T186 fixed for `--stats`: a positional argument that means one thing when it is recognised
-and something else when it is not, with no error either way. And defaulting the *output* is worse
-than defaulting the input, because the input only makes the picture wrong while the output decides
-where it lands — a capture flag that writes somewhere the caller did not name is a flag that can
-dirty a tree.
-
-The shape T186 already established covers the first half: one table of variants, and a name it does
-not know is refused with the catalogue printed. The second half is its own decision. Requiring the
-output path is the honest option and breaks nothing that exists, since every caller in `AGENTS.md`,
-the `dev-flags` skill and `scripts\` passes one. If a default is kept it belongs under
-`docs\_preview\`, which is git-ignored, and never in the working directory.
-
-Worth auditing the family while here: `--render`, `--makeicon`, `--social` and `--context-report`
-all default an output path, and only `docs\_preview\` is ignored by git.
-
 ### XXI.3 A capture that does not say what it captured
 
 `scripts\Capture-Window.ps1 -Args "--stats","overage"` returned a PNG of the **Settings** window

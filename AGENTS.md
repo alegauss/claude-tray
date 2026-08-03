@@ -64,6 +64,7 @@ folder needs no csproj edit; if a move seems to need one, the move is wrong.
 | `src/Cli/SelfTestCli.cs` | `--selftest [--quick]`: 230+ assertions over the pacing, store, grid, tail, live-rate, series, language-table and palette rules, on synthetic inputs, exiting non-zero on failure — run on every push by `.github/workflows/check.yml` and again before an installer is packaged by `build.yml`. Writes only a temp tree and a `selftest` profile dir, both removed. This is the repo's test suite: there is no test project (a third-party framework would break §I.3), so a new invariant is asserted **here**. |
 | `src/Cli/ProbeCli.cs` | `--probe [--live] [--all]`: the rate-limit headers verbatim — the recorded capture log first, then one live call — because this app's reading of four of them is not the same thing as what the API said. The instrument for T181: what the overage percentage denominates, which only an account already in overage can answer. Quota metadata only, never a token. |
 | `src/Cli/StatsPreviews.cs` | The one table of Statistics previews `--stats` and `--capture-stats` both read (T186): a variant per row with what it feeds the page, the modifiers that compose with any of them, and the refusal — an unknown name prints the catalogue and exits 1 rather than rendering the default sample as if it were what was asked for. |
+| `src/Cli/ToastPreviews.cs` | The same table for the toast cards, read by `--simulate-reset` and `--capture-toast` both (T198). Two rules it carries: an unknown variant is refused with the catalogue, and **a capture flag never defaults its output path** — `--capture-toast` requires one, and a default that is kept goes under git-ignored `docs\_preview\`, never the working directory. |
 | `src/Cli/PreviewCli.cs` | The deterministic previews behind the published images: `--simulate-reset`, `--capture-toast`, `--render` (icon contact sheet), `--makeicon`, and the gap-demo report `--stats gapdemo` feeds. |
 
 **`src/Usage/` — quota, spend and live throughput**
@@ -222,9 +223,8 @@ powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 `
 - **A custom `TabControl` template must name its content host `PART_SelectedContentHost`.** WPF finds
   the selected tab's content by that exact name, and the `TabItem` peer asks for it to attach the pane's
   children — so an unnamed `ContentPresenter` leaves the **whole body** of every tab out of the UI
-  Automation tree. A screen reader then reads the tab headers over nothing, and no interaction check can
-  read the window at all. It is invisible to every screenshot, which is how it survived from T111 to
-  T165. The same trap applies to any templated control whose parts WPF looks up by name.
+  Automation tree: unreadable to a screen reader and to every check, perfect in every screenshot, which
+  is how it survived T111 → T165. Same trap for any templated control WPF looks up by name.
 
 ## Arithmetic verification (`--selftest`)
 

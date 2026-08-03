@@ -228,6 +228,7 @@
 ## Block AH — What Block AF's own captures turned up
 
 - **T197** — The Statistics picker is filled from whatever the command is about: --sample from AccountFixture, the default variant from this machine, and a synthetic variant on its own gets no picker — so a published fixture week carries no real account name, and profile= is refused where there is nothing to walk.
+- **T198** — The toast variants are one table both flags read, so an unknown name prints the catalogue instead of the early weekly reset, and --capture-toast requires its output path — with --render and --context-report moved under git-ignored docs\_preview\, no capture flag writes a file the caller never named.
 
 ## Block AF — Six surfaces shipped, and what nothing was checking
 

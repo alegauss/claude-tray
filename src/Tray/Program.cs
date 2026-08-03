@@ -96,12 +96,16 @@ internal static class Program
         // more than one, is T127.
         ProfileStore.SetMonitored(ClaudeAccount.Read());
 
+        // Defaults under docs\_preview\, which is git-ignored: `.` dumped a dozen PNGs into the working
+        // directory, which for anyone running this is the repository root (T198's rule, one flag along).
         if (args.Length >= 1 && args[0] == "--render")
         {
-            PreviewCli.RenderTest(args.Length >= 2 ? args[1] : ".");
+            PreviewCli.RenderTest(args.Length >= 2 ? args[1] : @"docs\_preview\icons");
             return;
         }
 
+        // --makeicon and --social keep their defaults on purpose: each names its own **tracked** artifact,
+        // so the default is "regenerate the committed file" rather than a file nobody asked for.
         if (args.Length >= 1 && args[0] == "--makeicon")
         {
             PreviewCli.MakeIcon(args.Length >= 2 ? args[1] : "ClaudeTray.ico");
@@ -172,7 +176,8 @@ internal static class Program
         // paths and numbers only (see ContextReport).
         if (args.Length >= 1 && args[0] == "--context-report")
         {
-            ContextCli.WriteContextReport(args.Length >= 2 ? args[1] : "context-report.md");
+            // Same rule as --render above: a default output belongs where git ignores it (T198).
+            ContextCli.WriteContextReport(args.Length >= 2 ? args[1] : @"docs\_preview\context-report.md");
             return;
         }
 
@@ -223,20 +228,32 @@ internal static class Program
             return;
         }
 
-        // Dev/preview helper: show a reset toast with sample data so the variants can be seen /
-        // screenshotted standalone. Optional second arg: "scheduled", "credit", or "unexpected" (default).
+        // Dev/preview helper: show a toast card with sample data so the variants can be seen /
+        // screenshotted standalone. Which card is one row of ToastPreviews, the table --capture-toast reads
+        // too; a name it does not know is refused with the catalogue rather than defaulted (T198).
         if (args.Length >= 1 && args[0] == "--simulate-reset")
         {
-            PreviewCli.SimulateReset(args.Length >= 2 ? args[1] : "unexpected");
+            PreviewCli.SimulateReset(args.Length >= 2 ? args[1] : null);
             return;
         }
 
-        // Dev/preview helper: render a reset toast (card + shadow + confetti) to a transparent PNG,
-        // so the four variants can be documented cleanly on any background. Args: <variant> <outPath>.
+        // Dev/preview helper: render a toast card (card + shadow + confetti) to a transparent PNG, so the
+        // variants can be documented cleanly on any background. Args: <variant> <outPath>, and **both are
+        // required**: with the path optional, `--capture-toast D:\tmp\out.png` read the path as the variant
+        // and wrote the wrong card to `toast.png` in the working directory, which here is the repository
+        // root, one commit away from being published (T198).
         if (args.Length >= 1 && args[0] == "--capture-toast")
         {
-            PreviewCli.CaptureToast(args.Length >= 2 ? args[1] : "unexpected",
-                args.Length >= 3 ? args[2] : "toast.png");
+            if (args.Length < 3)
+            {
+                Console.WriteLine(@"usage: --capture-toast <variant> <out.png>");
+                Console.WriteLine("Both are required. An output path this flag chose itself is a file the " +
+                                  "caller never named, and the default landed in the working directory (T198).");
+                ToastPreviews.PrintCatalog();
+                Environment.ExitCode = 1;
+                return;
+            }
+            PreviewCli.CaptureToast(args[1], args[2]);
             return;
         }
 
