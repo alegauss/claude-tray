@@ -25,6 +25,13 @@ internal sealed class UsageData
     public string Status7d = "unknown";
     public string StatusExtra = "unknown";
 
+    /// <summary>Why the overage window was refused, verbatim — <c>org_level_disabled</c> is the one value
+    /// measured so far, and it arrives only on an account whose <c>overage-status</c> is <c>rejected</c>
+    /// (T211's second account). Null when the header was not sent, which is every account that was not
+    /// turned down. It is the only signal here that could say <em>why</em> work stopped rather than that it
+    /// did, and <see cref="QuotaStates.Refuses"/> is what reads it (T224).</summary>
+    public string? ExtraDisabledReason;
+
     /// <summary>Every <c>anthropic-ratelimit-*</c> response header, verbatim, exactly as the API sent it
     /// (T181). The parsed fields above are this app's *reading* of four of them; this is the reading
     /// nobody has made yet — what the overage percentage denominates, and what the status header says
@@ -120,6 +127,7 @@ internal sealed class ApiClient
                 Status    = S(resp, "anthropic-ratelimit-unified-5h-status") ?? "unknown",
                 Status7d  = S(resp, "anthropic-ratelimit-unified-7d-status") ?? "unknown",
                 StatusExtra = S(resp, "anthropic-ratelimit-unified-overage-status") ?? "unknown",
+                ExtraDisabledReason = S(resp, "anthropic-ratelimit-unified-overage-disabled-reason"),
             };
             // Read the presence separately from the value: an account without extra usage sends no
             // overage header, and one that has it enabled but has spent nothing sends 0. H() collapses

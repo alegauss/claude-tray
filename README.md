@@ -476,7 +476,9 @@ and what this machine is.
   it again.
 - **Extra usage · using since · sign-in** — whether the account may keep working past the included
   limits, when this login first spent a token through Claude Code, and how long the stored sign-in
-  is valid (Claude Code refreshes it as you work, so an expired one is not a problem).
+  is valid (Claude Code refreshes it as you work, so an expired one is not a problem). When the API
+  is **refusing** extra usage — an organization that has turned it off, say — the row says so and
+  names the reason, instead of reading "enabled" from a local file that cannot see the refusal.
 - **The Claude Code install** — installed CLI version, install method, auto-update state, the
   configuration folder (with **Open**, and it honours `CLAUDE_CONFIG_DIR`) and how many projects it
   tracks.

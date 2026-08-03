@@ -509,11 +509,20 @@ internal static class SelfTestCli
 
         // The two answers must agree by construction: "never idle" and "billing" are the same fact, and
         // a tray that sleeps through a state its icon is drawing is the defect T180 and T182 each half-fixed.
+        // The refusal is swept with them (T224): it is the one signal both sides now read, so it is the one
+        // that could put them back into disagreement. The affirmative is deliberately left out — there the
+        // two must differ, which is asserted on its own below.
         foreach (double? x in new double?[] { null, 0, 0.42 })
             foreach (bool? f in new bool?[] { null, false, true })
-                Check($"idle and state agree (extra={x?.ToString() ?? "absent"}, flag={f?.ToString() ?? "unknown"})",
-                      (QuotaStates.Resolve(1.00, x, f) == QuotaState.Billing)
-                      == (TrayContext.BlockedUntilUnix(1.00, Now + 60, 0.10, Now + 600, x, f, (long)Now) == 0));
+                foreach (string? why in new string?[] { null, "org_level_disabled" })
+                {
+                    string status = why is null ? "unknown" : "rejected";
+                    Check($"idle and state agree (extra={x?.ToString() ?? "absent"}, " +
+                          $"flag={f?.ToString() ?? "unknown"}, refused={why is not null})",
+                          (QuotaStates.Resolve(1.00, x, f, status, why) == QuotaState.Billing)
+                          == (TrayContext.BlockedUntilUnix(1.00, Now + 60, 0.10, Now + 600, x, f, (long)Now,
+                                                           status, why) == 0));
+                }
 
         // T208. The overage window's own status is the response stating what the flag and the figure infer,
         // and the observed family is a prefix: `allowed`, `allowed_warning`. Everything else must fail to
@@ -537,6 +546,38 @@ internal static class SelfTestCli
                                            "rejected") > 0);
         Check("but the display is unmoved: the status alone never says billing",
               QuotaStates.Resolve(1.00, null, false) == QuotaState.Stopped);
+
+        // T224. The negative the affirmative could not take. Both signals were measured on the same account
+        // on 2026-08-03 — `rejected` with no overage utilization or reset at all, and a reason header that
+        // exists only because something said no — so either is enough, and neither may be inferred.
+        Check("a rejected status is a refusal, and so is the reason header on its own",
+              QuotaStates.Refuses("rejected", null) && QuotaStates.Refuses(null, "org_level_disabled")
+              && QuotaStates.Refuses("rejected", "org_level_disabled"));
+        Check("and nothing else refuses — not allowed, not unknown, not blank, not absent",
+              !QuotaStates.Refuses("allowed", null) && !QuotaStates.Refuses("unknown", null)
+              && !QuotaStates.Refuses("", "") && !QuotaStates.Refuses(null, null)
+              && !QuotaStates.Refuses(null, "   "));
+        Check("a refusal beats the local flag: enabled in .claude.json, disabled by the organisation",
+              QuotaStates.Resolve(1.00, null, true, "rejected", "org_level_disabled") == QuotaState.Stopped
+              && QuotaStates.Resolve(1.00, null, true) == QuotaState.Billing);
+        Check("but it does not beat an account observed spending — a pair nothing has ever sent",
+              QuotaStates.Resolve(1.00, 0.42, true, "rejected", "org_level_disabled") == QuotaState.Billing);
+        Check("and under the limit it changes nothing: a refusal is not a state of its own",
+              QuotaStates.Resolve(0.90, null, true, "rejected", "org_level_disabled") == QuotaState.InQuota);
+        Check("the poll idles on a refusal it would have stayed awake for",
+              TrayContext.BlockedUntilUnix(1.00, Now + 60, 0.10, Now + 600, null, true, (long)Now,
+                                           "rejected", "org_level_disabled") > 0
+              && TrayContext.BlockedUntilUnix(1.00, Now + 60, 0.10, Now + 600, null, true, (long)Now) == 0);
+
+        // The cause, as words. Only one value has ever been sent, so only one is translated: anything else
+        // is shown verbatim rather than explained, because a wrong reason for stopped work is worse than a
+        // raw token — and `RefusalReason` must stay null where there is nothing to explain, or the sub-line
+        // on the System page appears under every account that was never refused.
+        Check("the measured reason gets words, and an unseen one is quoted rather than guessed",
+              QuotaStates.RefusalReason("org_level_disabled") == L.T("quota.refused.orgLevelDisabled")
+              && QuotaStates.RefusalReason("some_new_reason") == L.T("quota.refused.other", "some_new_reason"));
+        Check("and no reason is no sentence",
+              QuotaStates.RefusalReason(null) is null && QuotaStates.RefusalReason("  ") is null);
 
         // Three windows, three status strings, one keyed accessor — and a `_ =>` default arm is how a
         // fourth key would silently read as 5h's.

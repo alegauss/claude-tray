@@ -279,30 +279,6 @@ from a file or from an effect. The API states it directly, on every response, an
 ever been able to read the statement — because until a second account was probed there was only one
 sample and it could not be told apart from a default.
 
-### XXIII.1 The refusal the display is not allowed to see, and the reading that changes that
-
-`QuotaStates.Resolve` answers the icon's colour and the tooltip's sentence from two signals: the
-overage utilization, and `hasExtraUsageEnabled` read out of `.claude.json`. It deliberately does not
-take the overage window's own status, and `Allows` says why: one reading, of one account, inside its
-quota and with the flag set, sent `overage-status: allowed` — so nothing could tell *you are
-permitted* apart from a value every response carries regardless, and believing it wrongly would put
-a clay bar and "extra usage is paying" in front of somebody whose work had stopped. The display was
-to keep inferring until a reading arrived that told the two apart.
-
-T211 took that reading. A second account on this machine answers `overage-status: rejected`, carries
-no overage utilization or reset at all, and sends a header nobody here had seen:
-`overage-disabled-reason: org_level_disabled`. The status is not a constant, and the refusal names
-its own cause.
-
-What that does not settle is the affirmative — `allowed` from an account inside its quota still
-cannot be distinguished from a default, so the asymmetry stands: a status may buy a poll and may not
-paint a screen. What it settles is the negative, which is the dangerous direction. A local flag
-reading enabled while the organisation has disabled it produces exactly the sentence T182 wrote to
-prevent. Both accounts here agree today, so this is latent rather than live.
-
-`overage-disabled-reason` is the second half of the task: the only signal measured so far that could
-turn *you have stopped* into a sentence naming why, which no surface can say at all.
-
 ## XXIV This machine's install, read from a file another program writes (Block N)
 
 The System information page reports the machine rather than the app, so every figure on it is read

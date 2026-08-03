@@ -51,8 +51,10 @@ internal static class QuotaStates
     /// T181 established the window — its own utilization, resetting on a calendar month — and not the
     /// amount, so reading 1.0 as "stopped again" would still invent a denominator nothing has measured.</para>
     /// </summary>
-    public static bool CanSpendPastQuota(double? extraUtil, bool? extraUsageEnabled, string? extraStatus = null)
-        => extraUtil > 0 || extraUsageEnabled == true || Allows(extraStatus);
+    public static bool CanSpendPastQuota(double? extraUtil, bool? extraUsageEnabled, string? extraStatus = null,
+                                         string? disabledReason = null)
+        => extraUtil > 0
+           || (!Refuses(extraStatus, disabledReason) && (extraUsageEnabled == true || Allows(extraStatus)));
 
     /// <summary>
     /// Whether a window's status string is one of the permitted ones. The observed family is
@@ -73,6 +75,28 @@ internal static class QuotaStates
         => status != null && status.StartsWith("allowed", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Whether the API has <em>refused</em> the overage window — the negative <see cref="Allows"/> could not
+    /// take, and the one direction a display is allowed to believe (T224).
+    ///
+    /// <para><b>Why this one may paint a screen when the affirmative may not.</b> <c>allowed</c> arrives on
+    /// an account inside its quota with the flag already set, so it cannot be told from a value every
+    /// response carries. A refusal cannot be a default in the same way: T211's second account answers
+    /// <c>overage-status: rejected</c>, carries no overage utilization or reset at all, and sends
+    /// <c>overage-disabled-reason: org_level_disabled</c> — a header that exists only because something
+    /// said no. Both were measured together on 2026-08-03; the other account on the same machine sends
+    /// <c>allowed</c> and no reason header.</para>
+    ///
+    /// <para><b>Two signals, either enough</b>, for the same reason the affirmative has two: the status is
+    /// the statement, the reason header is its cause, and one arriving without the other is a shape nobody
+    /// here has seen. Only <c>rejected</c> is a measured refusal — an absent header, <c>unknown</c>, and a
+    /// spelling nobody has seen must go on failing to refuse, or every account without an overage window
+    /// reads as one that was turned down.</para>
+    /// </summary>
+    public static bool Refuses(string? extraStatus, string? disabledReason)
+        => (extraStatus?.StartsWith("rejected", StringComparison.OrdinalIgnoreCase) ?? false)
+           || !string.IsNullOrWhiteSpace(disabledReason);
+
+    /// <summary>
     /// Whether this pair of consecutive readings is the moment the meter started (T184).
     ///
     /// <para>A <em>rise</em>, not a state: the previous reading must be a measured zero. <c>null</c> is
@@ -84,11 +108,41 @@ internal static class QuotaStates
     public static bool StartsSpending(double? previous, double? current)
         => current > 0 && previous is { } was && was <= 0;
 
-    /// <summary>Which state a reading puts the account in. Deliberately does not take the overage status —
-    /// what this returns becomes a colour and a sentence, and <see cref="Allows"/> says why an unmeasured
-    /// affirmative may not reach either.</summary>
-    public static QuotaState Resolve(double util, double? extraUtil, bool? extraUsageEnabled)
+    /// <summary>
+    /// Which state a reading puts the account in — a colour and a sentence, so every signal it takes has to
+    /// have been measured.
+    ///
+    /// <para>It still does not take the affirmative: <see cref="Allows"/> says why an <c>allowed</c> nobody
+    /// can tell from a default may not paint a screen, and that has not changed. What T224 added is the
+    /// other direction. The order below is the whole decision:</para>
+    /// <list type="number">
+    /// <item>an overage figure above zero is the account <em>observed</em> doing it, and outranks anything
+    /// said about it — refusal included, a pair nothing has ever sent together;</item>
+    /// <item>a measured refusal beats <paramref name="extraUsageEnabled"/>, because that flag is read out of
+    /// a file Claude Code writes and the refusal is the API's own answer. This is the case T182's sentence
+    /// was written to prevent, arriving from the other side: enabled locally, disabled by the organisation,
+    /// and a clay bar reading "extra usage is paying" in front of somebody whose work had stopped;</item>
+    /// <item>otherwise the local flag answers, as before.</item>
+    /// </list>
+    /// <para>Omitting the last two arguments means <em>no refusal has been read</em> — which is what a caller
+    /// with no live response has, and what every caller had before T224.</para>
+    /// </summary>
+    public static QuotaState Resolve(double util, double? extraUtil, bool? extraUsageEnabled,
+                                     string? extraStatus = null, string? disabledReason = null)
         => util < AtLimitThreshold ? QuotaState.InQuota
-         : CanSpendPastQuota(extraUtil, extraUsageEnabled) ? QuotaState.Billing
+         : extraUtil > 0 ? QuotaState.Billing
+         : Refuses(extraStatus, disabledReason) ? QuotaState.Stopped
+         : extraUsageEnabled == true ? QuotaState.Billing
          : QuotaState.Stopped;
+
+    /// <summary>
+    /// The refusal's cause as a sentence, or null when nothing was refused (T224). The one value measured so
+    /// far — <c>org_level_disabled</c> — gets words; anything else is shown verbatim rather than guessed at,
+    /// because a wrong explanation of why work stopped is worse than the raw token.
+    /// </summary>
+    public static string? RefusalReason(string? disabledReason)
+        => string.IsNullOrWhiteSpace(disabledReason) ? null
+         : disabledReason.Equals("org_level_disabled", StringComparison.OrdinalIgnoreCase)
+             ? L.T("quota.refused.orgLevelDisabled")
+             : L.T("quota.refused.other", disabledReason);
 }

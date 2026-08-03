@@ -20,7 +20,7 @@
 | [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
-| [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
+| [D](#block-d--auth--api-resilience) | Auth & API resilience |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts (active — see ROADMAP) |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
@@ -101,6 +101,7 @@
 - **T34** — Signed-out and API-error states show the logo (with a red dot for a live error) rather than a misleading `0%`; ToS advisory in the auth messaging. (`dda4641`, `877b273`)
 - **T35** — Header-less API responses treated as transient, which removed a phantom weekly reset. (`b44a058`)
 - **T36** — Poll-cadence idling: once a window is maxed out, consumption is frozen until it resets, so the loop sleeps to just past the known reset and double-checks instead of re-reading 100% every 5 minutes. (`3e193c3`)
+- **T224** — A measured refusal now outranks the local flag: overage-status rejected, or the overage-disabled-reason header that only exists because something said no, resolves to Stopped where hasExtraUsageEnabled alone said Billing, and the poll idles instead of spending a call an account cannot use. The System page states the cause in five languages, and week=refused is the fixture branch no local file can produce. An account observed spending still outranks both.
 
 ## Block E — Reset notifications & toasts
 

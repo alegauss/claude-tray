@@ -67,7 +67,11 @@ internal static class AccountFixture
     /// extra usage off is a real reading, the published <c>system-account.png</c> documents it, and trading
     /// one unrendered state for another is not progress.</para>
     /// </summary>
-    internal enum SampleWeek { Spending, Zero, Absent }
+    /// <remarks><see cref="Refused"/> is T224's branch and the reason the enum grew a fourth: the row's
+    /// value comes out of <c>.claude.json</c>, so "enabled locally, refused by the organisation" is a state
+    /// no local file can be put into — and T205 refuses to capture the System page against a real login, so
+    /// without a fixture the sentence naming why work stopped could never appear in a published picture.</remarks>
+    internal enum SampleWeek { Spending, Zero, Absent, Refused }
 
     /// <summary>Resolve the <c>week=</c> value, or null for a name that exists nowhere — refused with the
     /// catalogue printed, on the same rule as the preview tables (T186): a token that is not understood
@@ -84,6 +88,7 @@ internal static class AccountFixture
         Console.WriteLine("  spending   the included quota ran out and the allowance is paying: 'in use now (42%)'");
         Console.WriteLine("  zero       enabled, measured, nothing spent: 'not in use'");
         Console.WriteLine("  absent     no stored reading at all, so the row says only 'Enabled'");
+        Console.WriteLine("  refused    enabled in the file, rejected by the API: 'Not available' + the reason");
         return null;
     }
 
@@ -131,10 +136,16 @@ internal static class AccountFixture
     {
         string key = ProfileStore.KeyFor(personal);
         UsageHistory.Clear(key);
+        // Both stores are cleared for every week, not only the ones that write: a rebuild has to be able to
+        // take the refusal *away* again, and a leftover probe log would keep the refused sentence on a page
+        // built for another branch.
+        HeaderProbe.Clear(key);
         // The absent branch is the *lack* of a store, so the clear above is the whole fixture for it.
         if (which == SampleWeek.Absent) return;
 
         long now = new DateTimeOffset(nowUtc, TimeSpan.Zero).ToUnixTimeSeconds();
+        if (which == SampleWeek.Refused) { WriteRefusal(key, now); return; }
+
         long reset7d = now + 3 * 86400;         // 4 days of the week gone, 3 to go
         long reset5h = now + 2 * 3600;
 
@@ -170,6 +181,34 @@ internal static class AccountFixture
                  which == SampleWeek.Zero ? zero : spending)
             UsageHistory.Append(key, now - (long)(hoursAgo * 3600), u5, reset5h, u7, reset7d,
                                 extra, extra is null ? 0 : reset7d);
+    }
+
+    /// <summary>
+    /// The refused account, as the API really answers it (T224). Copied from the reading T211 took on
+    /// 2026-08-03 rather than invented: <c>overage-status: rejected</c>, <c>overage-disabled-reason:
+    /// org_level_disabled</c>, and — the part that is easy to get wrong — <b>no overage utilization or
+    /// reset header at all</b>, which is what a refused window sends. No usage history goes with it for the
+    /// same reason: there is no allowance being spent to have a series of.
+    ///
+    /// <para>Written through <see cref="HeaderProbe.Record"/>, so the fixture holds no second copy of the
+    /// line format — which also means <b>one</b> line lands however many times this is called: the probe
+    /// writes on a change of shape, and a fixture that produced a line per call would be a fixture of a
+    /// different store than the one shipping.</para>
+    /// </summary>
+    private static void WriteRefusal(string key, long now)
+    {
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["anthropic-ratelimit-unified-5h-utilization"] = "1.0",
+            ["anthropic-ratelimit-unified-5h-reset"] = (now + 2 * 3600).ToString(Nums.Fmt),
+            ["anthropic-ratelimit-unified-5h-status"] = "rejected",
+            ["anthropic-ratelimit-unified-7d-utilization"] = "0.72",
+            ["anthropic-ratelimit-unified-7d-reset"] = (now + 3 * 86400).ToString(Nums.Fmt),
+            ["anthropic-ratelimit-unified-7d-status"] = "allowed",
+            ["anthropic-ratelimit-unified-overage-status"] = "rejected",
+            ["anthropic-ratelimit-unified-overage-disabled-reason"] = "org_level_disabled",
+        };
+        HeaderProbe.Record(key, now, headers);
     }
 
     /// <summary>A personal Max 20x subscription: no organization, so the org row collapses.</summary>

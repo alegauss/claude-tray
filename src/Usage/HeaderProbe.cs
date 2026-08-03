@@ -107,6 +107,17 @@ internal static class HeaderProbe
         catch { return false; }
     }
 
+    /// <summary>Drop a profile's whole log, so a fixture can write a deterministic one through
+    /// <see cref="Record"/> rather than a private copy of the line format — the same rule
+    /// <see cref="UsageHistory.Clear"/> exists for. The in-memory shape has to go with the file, or the
+    /// first <see cref="Record"/> after a rebuild compares against a log that is no longer there and
+    /// writes nothing. Only ever called for <see cref="AccountFixture"/>'s invented profile.</summary>
+    internal static void Clear(string profileKey)
+    {
+        LastShape.Remove(profileKey);
+        try { File.Delete(FilePath(profileKey)); } catch { /* a fixture rebuild is best-effort too */ }
+    }
+
     /// <summary>Every captured reading, oldest first.</summary>
     public static List<ProbeEntry> Load(string profileKey)
     {

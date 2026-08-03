@@ -72,8 +72,6 @@
 
 ## Block D — Auth & API resilience
 
-- 📋 **T224** (deps: —) **The tray infers permission to overspend from a local file, and cannot see the API refusing it** — Resolve reads hasExtraUsageEnabled out of a file Claude Code writes, while a second account answers rejected with org_level_disabled - the reading Allows was deferred until. → §XXIII.1
-
 ## Block N — System information — your plan, your install, this machine
 
 - 📋 **T225** (deps: —) **One directory is counted twice when two entries differ only in the case of the drive letter** — The project count is the number of keys under projects, and Windows paths are case-insensitive, so d:/Git/x and D:/Git/x are one folder reported as two. → §XXIV.1

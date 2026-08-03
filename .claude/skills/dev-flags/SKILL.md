@@ -38,7 +38,10 @@ Three different hosts, and the difference matters — see UI convention 7 in AGE
 --settings System --sample week=<name># which stored week the personal fixture profile gets, and so which
                                       #   branch of the extra-usage row renders (T200): spending (the
                                       #   default, "in use now (42%)") | zero ("not in use") | absent (no
-                                      #   reading, so just "Enabled"). An unknown name is refused with the
+                                      #   reading, so just "Enabled") | refused ("Not available" plus the
+                                      #   reason the API gave, T224 — the branch no local file can produce,
+                                      #   so it writes a header-probe log instead of a usage history). An
+                                      #   unknown name is refused with the
                                       #   catalogue, and **--sample that cannot be honoured stops the run**
                                       #   rather than falling back to this machine's real account.
 --settings-tray [page]                # ...hosted the way the TRAY hosts it (WinForms pump). The only

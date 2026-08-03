@@ -1126,7 +1126,7 @@ internal sealed class TrayContext : ApplicationContext
         // the one that says whether hitting 100% stops the work or starts charging for it.
         bool? extraEnabled = _watched.Count > 0 ? _watched[0].ExtraUsage : null;
         return BlockedUntilUnix(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d, d.ExtraUtil, extraEnabled, now,
-                                d.StatusExtra);
+                                d.StatusExtra, d.ExtraDisabledReason);
     }
 
     /// <summary>
@@ -1150,6 +1150,14 @@ internal sealed class TrayContext : ApplicationContext
     /// one API call per interval, and only for an account already past 100%. That asymmetry is also why
     /// this is the one caller that passes the status — <c>QuotaStates.Allows</c> has the rest.</para>
     ///
+    /// <para><b>And one thing now says it cannot</b> (T224): a measured refusal — <c>overage-status:
+    /// rejected</c>, or the <c>overage-disabled-reason</c> header that only exists because something said no
+    /// — outranks the local flag here exactly as it does in <c>Resolve</c>. Nothing is lost by idling then:
+    /// the premise this gate defends is "at the limit, consumption is frozen", and an account the API has
+    /// refused is the case where that premise is true again. What it does not outrank is an overage figure
+    /// already above zero — an account observed spending is not one to stop polling on, whatever a header
+    /// says, and the two have never arrived together.</para>
+    ///
     /// <para>What this does <b>not</b> try to decide is whether the extra-usage allowance is itself
     /// exhausted — the third state, where the account really has stopped. Nothing established yet says
     /// what the overage percentage is a percentage <em>of</em>, so treating 1.0 as "stopped" would be
@@ -1158,9 +1166,9 @@ internal sealed class TrayContext : ApplicationContext
     /// <returns>The unix second to idle until, or 0 when the poll should keep its normal cadence.</returns>
     internal static double BlockedUntilUnix(double util5h, double reset5h, double util7d, double reset7d,
                                             double? extraUtil, bool? extraUsageEnabled, long now,
-                                            string? extraStatus = null)
+                                            string? extraStatus = null, string? disabledReason = null)
     {
-        if (QuotaStates.CanSpendPastQuota(extraUtil, extraUsageEnabled, extraStatus)) return 0;
+        if (QuotaStates.CanSpendPastQuota(extraUtil, extraUsageEnabled, extraStatus, disabledReason)) return 0;
 
         double soonest = double.PositiveInfinity;
         bool atLimit = false;
@@ -1398,7 +1406,10 @@ internal sealed class TrayContext : ApplicationContext
     {
         if (_data is not { Error: null } d) return QuotaState.InQuota;
         bool? extraEnabled = _watched.Count > 0 ? _watched[0].ExtraUsage : null;
-        return QuotaStates.Resolve(d.Metric(_metric), d.ExtraUtil, extraEnabled);
+        // The refusal goes in with the flag it overrides (T224): `extraEnabled` comes out of a file Claude
+        // Code writes, and these two are the response's own answer about the same permission.
+        return QuotaStates.Resolve(d.Metric(_metric), d.ExtraUtil, extraEnabled,
+                                   d.StatusExtra, d.ExtraDisabledReason);
     }
 
     /// <summary>The tray's own reading, handed to <see cref="TooltipText.Compose"/> — which owns the text

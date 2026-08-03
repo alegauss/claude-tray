@@ -107,12 +107,20 @@ internal partial class SettingsPage
             SysAuthWarnBody.Text = L.T("settings.sys.authWarnBody");
         }
 
-        SysExtra.Text = c.ExtraUsage switch
-        {
-            true => L.T("settings.sys.enabled") + ExtraInUse(c),
-            false => L.T("settings.sys.disabled"),
-            null => Dash,
-        };
+        // What the local file says, and — since T224 — what the API answered about the same permission.
+        // A refusal replaces "Enabled" rather than sitting beside it: the row is about whether this account
+        // may spend past its quota, and "enabled" on its own is the sentence that was wrong.
+        string? refusal = RefusalFor(c);
+        SysExtra.Text = refusal is not null && c.ExtraUsage != false
+            ? L.T("settings.sys.extraRefused")
+            : c.ExtraUsage switch
+            {
+                true => L.T("settings.sys.enabled") + ExtraInUse(c),
+                false => L.T("settings.sys.disabled"),
+                null => Dash,
+            };
+        SysExtraSub.Text = refusal ?? "";
+        SysExtraSub.Visibility = Shown(SysExtraSub.Text);
 
         SysSince.Text = c.FirstToken is { } first ? first.ToString("d", culture) : Dash;
         SysSinceSub.Text = c.AccountCreated is { } created
@@ -195,6 +203,29 @@ internal partial class SettingsPage
     // so the number sweep can call it (T216). A fraction of the extra-usage allowance, not of a quota.
     private static string ExtraInUseText(double extra) =>
         L.T("settings.sys.extraInUse", Nums.Of(extra * 100));
+
+    /// <summary>
+    /// Why the API refused this profile's overage window, or null when it has not (T224). Read from the
+    /// profile's own <see cref="HeaderProbe"/> log for the same reason the figure above comes from
+    /// <see cref="UsageHistory"/>: this page makes no network requests, and the last poll is as fresh as
+    /// the tray is. The probe writes a line only when the header shape moves, so its newest entry carries
+    /// whatever the API last said — including, when the refusal is lifted, no reason header at all.
+    /// </summary>
+    private static string? RefusalFor(ClaudeInfo c)
+    {
+        try
+        {
+            List<ProbeEntry> log = HeaderProbe.Load(ProfileStore.KeyFor(c));
+            if (log.Count == 0) return null;
+            ProbeEntry last = log[^1];
+            return QuotaStates.Refuses(last.Get("anthropic-ratelimit-unified-overage-status"),
+                                       last.Get("anthropic-ratelimit-unified-overage-disabled-reason"))
+                ? QuotaStates.RefusalReason(last.Get("anthropic-ratelimit-unified-overage-disabled-reason"))
+                  ?? L.T("quota.refused.unstated")
+                : null;
+        }
+        catch { return null; }
+    }
 
     // A value line is hidden rather than left blank, so a row with nothing to qualify stays compact.
     private static Visibility Shown(string text) =>
