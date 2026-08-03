@@ -68,7 +68,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T249** (deps: —) **The workflows still tell the reader the self-check is arithmetic** — T246 corrected that sentence in AGENTS.md and two skills and reached neither CI file, where it is the comment explaining why the interaction job exists beside it. → §XXII.9
 - 📋 **T250** (deps: —) **Every user-facing feature owes two files, and the two are compared by nobody** — The gate says a shipped feature hits README.md and docs/index.html with consistent wording, and neither file is read by any check - the only surface pair still on trust. → §XXII.10
 - 📋 **T251** (deps: —) **A precondition that proved the repository is followed by five proving one file each** — T247 named the family's guard and every body then opens by asserting its own file exists, so the shape it removed one level up is back one level down, five times. → §XXII.11
 

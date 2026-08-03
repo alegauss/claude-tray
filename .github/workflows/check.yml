@@ -1,7 +1,8 @@
 name: check
 
 # The guard, on every push and pull request: build the app and run the checks it carries
-# (`--selftest`, T96) over the pacing and live-rate arithmetic.
+# (`--selftest`, T96) — an invariant over synthetic inputs, and a document held against the thing it
+# documents (T246).
 #
 # Deliberately a workflow of its own rather than a job added to build.yml. The trigger belongs to the
 # workflow, not to the job, and build.yml must stay `workflow_dispatch` — cutting a release is a
@@ -17,15 +18,18 @@ name: check
 on:
   push:
     branches: ['**']          # branches only: a tag push is a release, and build.yml owns that path
-    # A commit that touches only prose cannot move the arithmetic. `paths-ignore` skips the run only
-    # when *every* changed file matches, so the usual code-plus-docs commit still runs the check.
+    # `**.md` was here until T249, on the argument that a commit touching only prose cannot move the
+    # arithmetic. That stopped being true: four of these checks read markdown — the ledger's index, the
+    # file map, the flag catalogue and the active marker (T223, T242-T244) — so a commit that edits only
+    # `CHANGELOG.md` or a skill is precisely the commit they exist to catch, and it was the one being
+    # waved through. What is left is genuinely read by nothing: the published site and the licence.
+    # `paths-ignore` skips the run only when *every* changed file matches, so the usual code-plus-docs
+    # commit ran the check either way. The day a check reads `docs/`, this line goes with it.
     paths-ignore:
-      - '**.md'
       - 'docs/**'             # the published GitHub Pages site
       - 'LICENSE'
   pull_request:
     paths-ignore:
-      - '**.md'
       - 'docs/**'
       - 'LICENSE'
 
@@ -72,10 +76,11 @@ jobs:
           Get-Content selftest.log, selftest.err -ErrorAction SilentlyContinue
           if ($p.ExitCode -ne 0) { throw "self-check failed (exit $($p.ExitCode))" }
 
-  # The interaction loop, on the one case that can run unattended (T194). `--selftest` is arithmetic; this
-  # is the loop that exists because the WPF windows accepted no keyboard input at all from the day the
-  # first one shipped (T135) while every screenshot ever taken of them looked perfect. Until now it ran
-  # only when somebody chose to run it.
+  # The interaction loop, on the one case that can run unattended (T194). `--selftest` asserts what can be
+  # decided by reading — arithmetic on synthetic inputs, and a document against what it documents; this is
+  # the loop that exists because the WPF windows accepted no keyboard input at all from the day the first
+  # one shipped (T135) while every screenshot ever taken of them looked perfect. Until now it ran only when
+  # somebody chose to run it.
   #
   # Why only `-Case Keyboard`. `Panes`, `Profiles` and `Names` need a rendered report, which needs
   # credentials and a machine's own transcripts; `Menu` needs the notification area. `Keyboard` needs

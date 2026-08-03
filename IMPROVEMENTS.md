@@ -301,27 +301,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.9 The description that lives in four files and was fixed in three
-
-T246 renamed the `--selftest` section and stated the two kinds of claim the suite holds, in
-`AGENTS.md`, `dev-flags` and `file-map`. `.github/workflows/check.yml` says it twice and was not
-touched: *the checks it carries over the pacing and live-rate arithmetic* at the top, and
-*`--selftest` is arithmetic; this is the loop that…* where the interaction job is justified.
-
-The second one is load-bearing, which is what makes this more than tidying. It is the sentence that
-says why a second job exists at all — the argument being *that check is arithmetic, this one drives
-a running window* — and half of it is now false. A reader deciding where a new check goes reads the
-workflow as often as the skill, and this one tells them the suite is narrower than it is.
-
-That it was missed is the finding, not the wording. The description of the suite lives in four
-files, T246 fixed the three that a person editing `AGENTS.md` would have open, and the fourth was
-invisible for exactly the reason this block keeps rediscovering: nothing relates them. The same
-question applies as everywhere else here — whether a description repeated in four places should be
-one place the other three point at, or whether the repetition is worth a check that compares them.
-
-Worth settling with it: `check.yml` also carries the *name* of the arithmetic job, `selftest`, which
-is fine, and its comment about the allowed-skip list, which T247 has now moved.
-
 ### XXII.10 The gate that is a rule everywhere and a check nowhere
 
 The `roadmap-docs` skill's user-facing-surface gate names three surfaces a shipped feature owes:
