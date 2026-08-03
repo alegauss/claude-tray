@@ -301,6 +301,71 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
+### XXII.9 The description that lives in four files and was fixed in three
+
+T246 renamed the `--selftest` section and stated the two kinds of claim the suite holds, in
+`AGENTS.md`, `dev-flags` and `file-map`. `.github/workflows/check.yml` says it twice and was not
+touched: *the checks it carries over the pacing and live-rate arithmetic* at the top, and
+*`--selftest` is arithmetic; this is the loop that…* where the interaction job is justified.
+
+The second one is load-bearing, which is what makes this more than tidying. It is the sentence that
+says why a second job exists at all — the argument being *that check is arithmetic, this one drives
+a running window* — and half of it is now false. A reader deciding where a new check goes reads the
+workflow as often as the skill, and this one tells them the suite is narrower than it is.
+
+That it was missed is the finding, not the wording. The description of the suite lives in four
+files, T246 fixed the three that a person editing `AGENTS.md` would have open, and the fourth was
+invisible for exactly the reason this block keeps rediscovering: nothing relates them. The same
+question applies as everywhere else here — whether a description repeated in four places should be
+one place the other three point at, or whether the repetition is worth a check that compares them.
+
+Worth settling with it: `check.yml` also carries the *name* of the arithmetic job, `selftest`, which
+is fine, and its comment about the allowed-skip list, which T247 has now moved.
+
+### XXII.10 The gate that is a rule everywhere and a check nowhere
+
+The `roadmap-docs` skill's user-facing-surface gate names three surfaces a shipped feature owes:
+`lang/*.json`, `README.md` and `docs/index.html`, the last two *kept consistent with each other's
+wording*. One of the three is checked — T185 fails a key that reached one language file, or a `{0}`
+that did not survive translation. The other two are read by nothing at all.
+
+They are the same shape as everything else this block has checked, and the sharper case. The site
+and the README are the two documents a person outside this repository actually reads, and they are
+maintained by the same hand in the same commit, which is exactly the pattern that drifts: the README
+gains a feature, the marketing block keeps the old list, and nobody sees both files in one sitting
+after the commit that touched them.
+
+What is comparable is the question. Prose cannot be diffed, and a check demanding two files say the
+same thing would fail on every rewording — the failure mode that gets a check switched off. What is
+derivable is narrower and probably enough: the feature *headings* the README lists against the
+blocks the site's marketing sections claim, and the screenshots each references existing in `docs/`.
+A broken image on a published page is a defect nobody has to argue about.
+
+Worth settling first: whether the gate's own three surfaces are the list, or whether the check
+should derive what a user-facing feature is from somewhere the gate does not have to be trusted for.
+
+### XXII.11 One precondition, and then five more
+
+T247 gave the repository-reading checks one named precondition and the allowance that travels with
+it. Each body then opens the same way it always did, one level down: `Path.Combine` the file it
+wants, `Check` that it exists, `return` if not. Five copies, and the sentences are already drifting
+apart the way the seven skip reasons did.
+
+It is smaller than what T247 removed and it is the same mistake, which is the reason to name it
+rather than leave it. The assertion is also nearly content-free: in a checkout those five files are
+always there, so the check passes every time it runs and has never been seen to fail — which this
+file's own rule calls a comment.
+
+The shape is to let the precondition take what the check needs. `Repo` already answers *is there a
+repository*; taking the relative paths a body will read and proving them in the same place makes the
+body start at its subject, keeps one sentence for the family, and turns five always-green assertions
+into one that means something: *these files are the repository this check was written against*.
+
+Worth settling: whether a missing governed file should be red at all, or whether it should be the
+same skip as a missing repository. A checkout with no `CHANGELOG.md` is not an installed copy — it
+is a repository somebody is halfway through changing, and the honest answer may be that the run is
+red for a reason the person already knows.
+
 ## XXIII What the API says about permission, and what the app infers instead (Block D)
 
 Every signal this app has about whether an account may spend past its included quota is inferred
