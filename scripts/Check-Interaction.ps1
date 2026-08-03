@@ -26,7 +26,8 @@
                        the real ComboBox and read the report back at each stop: the used %, the reset
                        caption and the live headline. Nothing else in this repo *drives* the picker —
                        every capture renders one profile, which is structurally incapable of seeing
-                       T164's three defects (all need a second switch; two need it to go back).
+                       T164's three defects (all need a second switch; two need it to go back). Also
+                       T166's timing: on the way back, the status line must never be observed at all.
       -Case Menu       Launch the real tray, open the notification-area icon's menu, read its entries,
                        and expand "Open Claude Code" to read the per-profile entries (this is what
                        verified T137).
@@ -161,6 +162,14 @@ function ById($root, $id, $timeoutMs = 4000) {
         Start-Sleep -Milliseconds 200
     } while ((Get-Date) -lt $deadline)
     return $null
+}
+
+<# One FindFirst and no retry - for a loop that does its own waiting and must not have the helper's
+   200ms retry sleep folded into every miss. Used by the timing observation, where the granularity of
+   the poll IS the resolution of the answer. #>
+function ByIdNow($root, $id) {
+    $cond = New-Object System.Windows.Automation.PropertyCondition($AE::AutomationIdProperty, $id)
+    return $root.FindFirst('Descendants', $cond)
 }
 
 <# By UIA Name rather than AutomationId - for controls whose identity is their label (the nav strip's
@@ -349,11 +358,38 @@ function Combo-SelectedText($combo) {
 }
 
 <#
+  T177: the status line, watched rather than sampled. T166's whole claim is a *timing* — the probe that
+  measured it saw the line at 162 ms on a build without the per-profile cache, which is well inside the
+  settling wait a switch already does — so a single look after the switch could miss it and report a
+  pass. Both the settle and the read below record into these, and the caller clears them per stop.
+#>
+$script:StatusSeen = $false
+$script:StatusSeenText = $null
+
+<# Spend a wait watching the status line instead of sleeping through it. #>
+function Watch-Status($win, $ms, $stepMs = 60) {
+    $deadline = (Get-Date).AddMilliseconds($ms)
+    do {
+        if ($win) {
+            $status = ByIdNow $win 'StatusText'
+            if ($status) {
+                $txt = [string]$status.Current.Name
+                if ($txt) { $script:StatusSeen = $true; $script:StatusSeenText = $txt }
+            }
+        }
+        Start-Sleep -Milliseconds $stepMs
+    } while ((Get-Date) -lt $deadline)
+}
+
+<#
   Select an index through the control itself, never through `SelectProfileForPreview` — the preview seam
   sets SelectedIndex directly, and it is the thing this case exists to stop trusting. Returns which route
   worked, so a pass says how the switch was made instead of implying the first one.
+
+  `$win` is optional and only for the timing observation: given it, the post-selection settle is spent
+  watching the status line rather than sleeping through the very interval it appears in.
 #>
-function Combo-Select($combo, [int]$index) {
+function Combo-Select($combo, [int]$index, $win = $null) {
     $ec = [System.Windows.Automation.ExpandCollapsePattern]::Pattern
     # WPF generates the item containers on the first drop-down, so before that there are no ListItems in
     # the tree to select at all.
@@ -364,7 +400,7 @@ function Combo-Select($combo, [int]$index) {
     if ($items.Count -gt $index) {
         try {
             $items[$index].GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
-            Start-Sleep -Milliseconds 250
+            if ($win) { Watch-Status $win 250 } else { Start-Sleep -Milliseconds 250 }
             try { $combo.GetCurrentPattern($ec).Collapse() } catch { }
             return "UIA"
         } catch { Info "SelectionItemPattern.Select threw - $($_.Exception.Message)" }
@@ -403,8 +439,18 @@ function Reset-Minutes($text) {
 function Read-ProfileStop($win, $computing, $timeoutSec = 25) {
     $deadline = (Get-Date).AddSeconds($timeoutSec)
     do {
+        # The status line first, and recorded rather than acted on (T177): whether it was EVER up on the
+        # way to the panes is the property, so it has to be sampled on every turn of this loop, not
+        # looked at once the panes failed to appear.
+        $status = ByIdNow $win 'StatusText'
+        $statusText = $null
+        if ($status) {
+            $statusText = [string]$status.Current.Name
+            if ($statusText) { $script:StatusSeen = $true; $script:StatusSeenText = $statusText }
+        }
+
         foreach ($sfx in @('S', 'W')) {
-            $used = ById $win "Used$sfx" 200
+            $used = ByIdNow $win "Used$sfx"
             if ($used -and [string]$used.Current.Name) {
                 # Read, then build: Windows PowerShell has no `if` expression, and a null element here
                 # must stay null rather than becoming an empty string a comparison would call equal.
@@ -422,17 +468,13 @@ function Read-ProfileStop($win, $computing, $timeoutSec = 25) {
                 }
             }
         }
-        $status = ById $win 'StatusText' 200
-        if ($status) {
-            $txt = [string]$status.Current.Name
-            # "Computing…" is the switch still in flight, not an answer - keep waiting for one.
-            if ($txt -and $txt -ne $computing) {
-                return [pscustomobject]@{
-                    Kind = 'status'; Suffix = $null; Used = $null; Reset = $null; Live = $null; Status = $txt
-                }
+        # "Computing…" is the switch still in flight, not an answer - keep waiting for one.
+        if ($statusText -and $statusText -ne $computing) {
+            return [pscustomobject]@{
+                Kind = 'status'; Suffix = $null; Used = $null; Reset = $null; Live = $null; Status = $statusText
             }
         }
-        Start-Sleep -Milliseconds 300
+        Start-Sleep -Milliseconds 80
     } while ((Get-Date) -lt $deadline)
     return [pscustomobject]@{
         Kind = 'nothing'; Suffix = $null; Used = $null; Reset = $null; Live = $null; Status = $null
@@ -484,8 +526,12 @@ function Invoke-ProfilesCase {
         # 0 is where the window already opened, so the first stop is read without touching the picker.
         $stops = @()
         foreach ($step in @(0, 1, 0)) {
+            # Cleared per stop, so the sighting belongs to this switch and not to the previous one.
+            $script:StatusSeen = $false
+            $script:StatusSeenText = $null
+            $route = $null
             if ($stops.Count -gt 0) {
-                $route = Combo-Select $combo $step
+                $route = Combo-Select $combo $step $win
                 Info "selected index $step through the $route route"
             }
             $stop = Read-ProfileStop $win $computing
@@ -495,6 +541,9 @@ function Invoke-ProfilesCase {
             }
             $stop | Add-Member -NotePropertyName Index -NotePropertyValue $step
             $stop | Add-Member -NotePropertyName Label -NotePropertyValue (Combo-SelectedText $combo)
+            $stop | Add-Member -NotePropertyName Route -NotePropertyValue $route
+            $stop | Add-Member -NotePropertyName SawStatus -NotePropertyValue $script:StatusSeen
+            $stop | Add-Member -NotePropertyName SawStatusText -NotePropertyValue $script:StatusSeenText
             $stops += $stop
             if ($stop.Kind -eq 'panes') {
                 Info "index $step '$($stop.Label)': used $($stop.Used), reset $($stop.Reset)"
@@ -565,6 +614,29 @@ function Invoke-ProfilesCase {
             } else {
                 Fail "the reset caption jumped over the round trip: '$($stops[0].Reset)' -> '$($stops[2].Reset)' for the same profile (T164)"
             }
+        }
+
+        # T177: T166's entire claim is a timing — coming back to a profile seen seconds ago must not blank
+        # the panes — and the probe that measured it (status line at 162ms, panes back after 961ms without
+        # the per-profile cache; line never shown, panes at 12ms with it) was a scratch file that is now
+        # gone. Stated as "the status line was never observed", deliberately NOT as "the panes returned
+        # within N ms": a deadline is the one assertion in this file that would go red on a slow machine
+        # for a correct reason, and the property really is that the line is not shown at all.
+        if ($stops[1].Kind -ne 'panes' -or $stops[2].Kind -ne 'panes') {
+            Info "the switch stops did not both show a report, so there was no cached one to put back -"
+            Info "  T166's timing was not checked on this run"
+        }
+        elseif ($stops[2].Route -ne 'UIA') {
+            # The keyboard fallback moves the selection through every index on the way to the target, so
+            # each one in between is a switch of its own and the line it shows is not the one under test.
+            Info "the return was made by the $($stops[2].Route) route, which selects through every index"
+            Info "  on the way - the status line that shows is not T166's, so the timing was not checked"
+        }
+        elseif ($stops[2].SawStatus) {
+            Fail "coming back to '$($stops[0].Label)' showed the status line ('$($stops[2].SawStatusText)') - its report was not put back (T166)"
+        }
+        else {
+            Pass "coming back to '$($stops[0].Label)' never showed the status line - its report was put back (T166)"
         }
 
         # The defect a percentage cannot see: the tail is disposed on the way out and restarted for the new

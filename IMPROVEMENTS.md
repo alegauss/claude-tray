@@ -356,20 +356,6 @@ pane was absent from the UI Automation tree. Every number, chart legend, project
 headline. It shipped in T111 and survived to T165 because a screenshot does not use that tree, and neither
 did anything else in this repo. What follows is the same lesson at three smaller scales.
 
-### §XVII.3 The timing T166 claims is asserted nowhere (T177)
-
-T166's entire claim is a timing: coming back to a profile seen seconds ago must not blank the panes. It was
-verified properly — a probe that switches and then polls the tree every 60 ms, run against a build with the
-cache and one without: *status line at 162 ms, panes back after 961 ms* without, *status line never shown,
-panes readable after 12 ms* with. Both numbers are in the T166 changelog entry, and the script that produced
-them was a scratch file.
-
-That is the situation T142 and T165 were both created to end. The property is cheap and sharply defined —
-on the switch **back**, `StatusText` must never become visible — and it belongs beside the round-trip
-assertions that already drive the same picker. Worth stating in the check itself: this is the one assertion
-in the file that would fail on a *slow* machine for a correct reason if it were written as a deadline, so
-it must be written as "the status line was never observed", not as "the panes returned within N ms".
-
 ### §XVII.4 A timeout that reports the opposite of what it saw (T178)
 
 `Read-ProfileStop` polls for either the panes or a settled status line, treating `stats.computing` as

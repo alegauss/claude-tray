@@ -63,7 +63,6 @@
 >
 > Ordered by what a user is affected by today, then by what protects the rest.
 
-- 📋 **T177** (deps: T166 ✅) **T166's whole claim is a timing, and no check makes it** — Coming back to a profile seen seconds ago must never show the status line at all, and the probe that measured it was a scratch file that is now gone. → §XVII.3
 - 📋 **T178** (deps: T165 ✅) **"Read NOTHING" is reported for a window that was talking the whole time** — `Read-ProfileStop` reports no panes and no status line after 25s without saying what it last saw, so a window that was slow and one that was blank fail alike. → §XVII.4
 
 ## Block AB — What Block Z's own work left behind
