@@ -46,6 +46,7 @@
 
 - 💭 **T210** (deps: —) **The API names which window is binding and three files work it out again** — Three of them are read by nothing, and what reading representative-claim would unlock needs a second value first: five_hour from one account is a mapping whose default arm nobody has seen. → §XVIII.9
 - 💭 **T211** (deps: —) **Nothing here knows the API is offering a fallback** — unified-fallback reads available and unified-fallback-percentage 0.5 on every response, and what either governs is unmeasured, so no string can say what happens at the limit. → §XVIII.10
+- 📋 **T222** (deps: —) **The one state where extra usage is paying is the one state whose tooltip cannot say so** — The overage line only exists while overage is being spent, and it costs the room the sentence needed: neither the full nor the compact form fits, in any of the five languages. → §XVIII.11
 
 ## Block AB — What Block Z's own work left behind
 
@@ -71,9 +72,13 @@
 
 ## Block AI — Verification — the checks that prove a change
 
+- 📋 **T220** (deps: —) **A check driving the tray already running compares its labels against a language that tray is not in** — -Lang is a launch argument and -UseRunning does not launch, so the resident tray answers in its own saved language and four labels that were all present were reported missing. → §XX.16
+- 📋 **T221** (deps: —) **A capture is certified while another application's window sits in a corner of it** — The ownership check samples nine points across the window, so a foreign window covering a region between them passes - the run that verified T217 produced exactly that and reported success. → §XX.17
+
 ## Block AJ — Working here — the repo's own docs and flags
 
 - 💭 **T219** (deps: —) **The turn budget is full, so a new rule is paid for by deleting an old one nobody ranked** — Writing T169's rule took AGENTS.md 612 bytes over, and the bytes came back from a sentence that happened to be duplicated — a selector that runs out before the next rule does. → §XXII.1
+- 📋 **T223** (deps: —) **Three block headings in the ledger have no row in the ledger's own table of blocks** — That table is the only index of what each block is about and it is written by hand, so Block AG carries five shipped tasks under a letter the index does not list at all. → §XXII.2
 
 ## Block G — Localization
 

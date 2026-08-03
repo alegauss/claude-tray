@@ -331,6 +331,30 @@ What is cheap and already done: the probe keys on both — neither ends in `-uti
 so a change in either writes a line without a name being added anywhere. Nothing to build for the
 measurement; this task begins when a log has something to read.
 
+### XVIII.11 The sentence that never fits is the one that matters most
+
+Measured with the read-out T214 added, in all five languages. In the billing state the tooltip
+carries four readings — profile or session, week, extra usage, status — and the fourth is the one
+that only exists here. It costs about 26 characters in English and 34 in French, and it is spent
+before any sentence is considered.
+
+What is left is 17 characters in English against a compact form of 23, and 25 in French against 29.
+Neither form fits anywhere. T182 split this line in two on purpose, because 'you have stopped' and
+'you are paying to carry on' are opposite pieces of news and the tooltip used to give the first for
+both — and the second of those two is the one that is now never shown at all. `atlimit` renders its
+sentence; `extra` renders none, and the difference between them on screen is a percentage that reads
+the same.
+
+T215 made the budget an assertable property and shed the unwatched window when the readings alone
+overrun, which bought French 27 characters and still was not enough. So this is not budget
+mechanics, which is why it is filed rather than fixed there.
+
+Three shapes, and they trade differently. The compact form can get **shorter** — 'extra usage is
+paying' has fewer words in it than 23 characters, but the words are T182's and shortening them is a
+decision about what the news is. The overage line and the sentence can **merge**, since both are
+about the same fact. Or the sentence can outrank the window the icon is not about, which the
+shedding order already has a place for.
+
 ## XX Verification — the checks that prove a change (Block AI)
 
 This project's checks are three loops with different reaches. `--selftest` asserts arithmetic on
@@ -348,6 +372,56 @@ was a fallback route that turned an assertion into a note; T196 was a rule gover
 controls asserted on three. None of them ever went red. That is why the exit codes now distinguish a
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
+
+### XX.16 The flag that cannot reach the process it drives
+
+Found while verifying T202. With a tray resident, `-Case Menu -UseRunning` is the route the script
+itself suggests, and against a pt-BR tray under the default `-Lang en` it produced four FAILs —
+'Open' missing, 'Open Claude Code' missing, 'Profile' missing, three nav destinations missing — for
+labels that were every one of them on screen, in Portuguese.
+
+Nothing was broken. `-Lang` is passed as `--lang` on the command line, and `-UseRunning` exists
+precisely because there is no command line: it attaches to a process somebody else started. So the
+parameter is silently inert on the one path that most needs it, and the failure it produces is
+indistinguishable from the defect the case exists to catch.
+
+The shape is this block's own, arriving from the other side: not a check that is green while
+asserting nothing, but a check that is red while nothing is wrong. Both teach the same thing about
+its colour.
+
+Two honest fixes and they answer different questions. The script can **read** the tray's language
+rather than assume it — the saved preference is in the settings file the app already writes, and
+matching what the process actually uses is the accurate answer. Or `-UseRunning` can **refuse** a
+`-Lang` that was given explicitly, which is cheap, needs no file read, and says out loud that this
+combination cannot be honoured — the same shape as T205's refusal.
+
+Worth settling with it: whether the labels a case matches should come from the running process at
+all, since every one of them is already resolved by `L` inside the app.
+
+### XX.17 Nine points cannot cover a window
+
+T199 decides what lands in the file by asking who owns the pixels, which is the right property:
+being in the foreground is a proxy the script cannot even insist on. It asks at nine points — the
+centre, the four quarter positions, and since T206 four more a fifth of the way in from each edge's
+midpoint.
+
+Nine points is a sample, not a cover, and the gap is not theoretical. The capture taken to verify
+T217 — the one the script certified, named the right window for, and reported as a correct copy —
+carries two windows of another process across its lower-right corner. Every sample missed them.
+
+What makes this worth a task rather than more samples: adding points moves the threshold without
+changing the shape, and the number that finally covers a window is the number of pixels in it. The
+property is about a region, and it is being asked about coordinates.
+
+Cheaper answers exist. The **z-order** above the target can be enumerated — walk the windows in
+front of it and intersect their rectangles with the one about to be copied, which answers for the
+whole area in one pass and names the intruder. Or the copy can be compared against an off-screen
+render of the same window where one exists, which is a different guarantee and only available for a
+page.
+
+Also worth settling: whether a foreign window overlapping the **edge** of a capture should fail it
+or crop it. T206 made the copied rectangle the painted frame, so an edge overlap is now inside real
+content rather than inside the border it used to be.
 
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
@@ -413,3 +487,27 @@ produced a defect **and** the rule cannot be asserted in `--selftest` instead. T
 number-convention rule is now a check, not a paragraph; T192's id-uniqueness rule is a check. That
 test predicts a smaller file, and it says which paragraphs go to a skill rather than which ones go
 away.
+
+### XXII.2 The index of themes is the one thing nothing checks
+
+`CHANGELOG.md` opens with a table mapping every block letter to its theme, and the `roadmap-docs`
+skill carries the same mapping for choosing where new work files. Blocks **AC**, **AG** and **AJ**
+have headings in the ledger and no row in that table; AG has five shipped tasks under it.
+
+The rule exists and is written down — the skill says the row is added by hand in the same commit as
+the block's first task, and calls it the one hand-edit to a governed file the discipline allows.
+What is missing is anything that notices when it is not done. `roadkeep lint` passes: the table is
+prose to it.
+
+Why it matters more than tidiness. That table is what the next task is filed against. A letter that
+is missing from it reads exactly like a letter that does not exist, which is how this repository
+reached AH by opening a block per batch of findings instead of reusing the theme — the habit the
+skill's own table was written to stop. An index with holes in it argues for a new letter every time.
+
+The check is the same move T207 made against `dev-flags`: the ledger is a file in the repository,
+its block headings are derivable, and its table rows are a list. Both directions are cheap — a
+heading with no row, and a row naming no heading — and `--selftest` already reads repository files
+for exactly this kind of claim.
+
+Worth settling with it: whether the skill's theme table is a third source to check against, or
+whether it should point at the ledger's rather than repeat it.
