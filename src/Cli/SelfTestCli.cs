@@ -96,6 +96,9 @@ internal static class SelfTestCli
         Section("series — what the chart is handed, from readings alone (Block AF)");
         Series();
 
+        Section("names — one automation id, one control (Block AG)");
+        AutomationIds();
+
         if (quick)
         {
             Console.WriteLine();
@@ -1029,6 +1032,82 @@ internal static class SelfTestCli
         string list = string.Join(", ", keys.Take(12));
         return $"{keys.Length} {(keys.Length == 1 ? "key" : "keys")} {what} — {list}" +
                (keys.Length > 12 ? $", … (+{keys.Length - 12} more)" : "");
+    }
+
+    // ---------------------------------------------------------------- Block AG: one id, one control
+
+    /// <summary>
+    /// An <c>x:Name</c> is a control's identity to everything outside the compiler — UI Automation, a
+    /// screen reader, <c>Check-Interaction.ps1</c> — and WPF scopes it per XAML file, so two pages could
+    /// each call a control <c>ProfileCombo</c> and the C# in both would still compile. An id lookup then
+    /// has two candidates and <c>FindFirst</c> returns whichever the tree reaches first, which depends on
+    /// which destinations have been built: a page is built on its first visit and then kept collapsed, so
+    /// the answer changes with the route a run took.
+    ///
+    /// <para>Nothing was wrong on screen when T192 was written, and that was the defect — <c>-Case Names</c>
+    /// read the Statistics picker <em>before</em> navigating to Settings, and a comment saying so was the
+    /// whole guarantee. The first case that visited Settings and then looked the picker up by id would have
+    /// driven the other control and gone on passing. So the rule is asserted here rather than remembered:
+    /// <b>an <c>x:Name</c> is unique across the app, not per XAML file.</b>
+    ///
+    /// <para>The types are <em>derived</em>, never listed: a page added later is covered without an edit
+    /// here, because a hardcoded list's failure mode is silently not checking the thing it was written
+    /// for (§XV.3). A XAML-backed type is the one that implements <c>IComponentConnector</c>, and its
+    /// generated fields are exactly the named elements — <c>internal</c> and a <see cref="DependencyObject"/>,
+    /// which is what separates them from the page's own hand-written state.</para>
+    /// </summary>
+    private static void AutomationIds()
+    {
+        Type connector = typeof(System.Windows.Markup.IComponentConnector);
+        List<Type> pages = typeof(SelfTestCli).Assembly.GetTypes()
+            .Where(t => t.IsClass && connector.IsAssignableFrom(t))
+            .OrderBy(t => t.Name, StringComparer.Ordinal)
+            .ToList();
+
+        // The guard first, on the precondition and not on a weaker form of the property: reflection
+        // yielding nothing would report a clean run over zero controls, which is §XV.3's defect again.
+        if (!Check("every XAML-backed window and page is reachable by reflection", pages.Count >= 5,
+                   $"found {pages.Count}: {string.Join(", ", pages.Select(p => p.Name))}"))
+            return;
+
+        Dictionary<string, List<string>> owners = new(StringComparer.Ordinal);
+        foreach (Type page in pages)
+            foreach (FieldInfo f in page.GetFields(BindingFlags.Instance | BindingFlags.NonPublic |
+                                                   BindingFlags.Public | BindingFlags.DeclaredOnly))
+                if (f.IsAssembly && typeof(System.Windows.DependencyObject).IsAssignableFrom(f.FieldType))
+                {
+                    if (!owners.TryGetValue(f.Name, out List<string>? on)) owners[f.Name] = on = new();
+                    on.Add(page.Name);
+                }
+
+        if (!Check("and the named controls in them are found", owners.Count >= 50,
+                   $"{owners.Count} named controls across {pages.Count} types — too few to be the real set"))
+            return;
+
+        string[] shared = owners.Where(kv => kv.Value.Count > 1)
+                                .Select(kv => $"{kv.Key} ({string.Join(" + ", kv.Value)})")
+                                .OrderBy(s => s, StringComparer.Ordinal).ToArray();
+        Check($"no x:Name is carried by two controls ({owners.Count} across {pages.Count} types)",
+              shared.Length == 0,
+              shared.Length == 0 ? "" : $"{shared.Length} shared — {string.Join("; ", shared)}");
+
+        // Every id `Check-Interaction.ps1` looks a control up by, because that lookup is a *string* and no
+        // compiler checks it. Renaming `StatusText` while doing T192 broke the one behind T166's "the status
+        // line must never be observed at all" — and a lookup that finds nothing makes that assertion pass by
+        // seeing nothing, which is §XX.2's defect exactly. A rename is now a red `--selftest`, not a case
+        // that quietly stops asserting. Keep this list and the script's lookups in step.
+        string[] driven =
+        {
+            "DirectoryBox", "RetrySlider",                                   // -Case Keyboard
+            "StatsStatusText", "UsedS", "UsedW", "ResetS", "ResetW",          // -Case Panes / Profiles
+            "LiveHeadS", "LiveHeadW", "StatsProfileCombo",
+            "NavSettings", "MethodInfo",                                     // -Case Names
+            "LanguageCombo", "StartupCheck", "IntervalSlider",
+        };
+        string[] gone = driven.Where(id => !owners.ContainsKey(id)).ToArray();
+        Check($"every id the interaction check drives still exists ({driven.Length})", gone.Length == 0,
+              gone.Length == 0 ? "" : $"{gone.Length} gone — {string.Join(", ", gone)}: renamed without " +
+                                      "updating scripts\\Check-Interaction.ps1, whose lookups are strings");
     }
 
     // ---------------------------------------------------------------- Blocks K/W: the slug encoding

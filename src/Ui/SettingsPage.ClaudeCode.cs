@@ -60,9 +60,9 @@ internal partial class SettingsPage
         _ccProfiles = DiscoverProfiles();
 
         _fillingProfile = true;
-        ProfileCombo.Items.Clear();
+        CcProfileCombo.Items.Clear();
         foreach (ClaudeInfo p in _ccProfiles)
-            ProfileCombo.Items.Add(new System.Windows.Controls.ComboBoxItem
+            CcProfileCombo.Items.Add(new System.Windows.Controls.ComboBoxItem
             {
                 Content = p.IsDefault ? L.T("settings.sys.profileDefault", p.Label) : p.Label,
             });
@@ -71,7 +71,7 @@ internal partial class SettingsPage
             for (int i = 0; i < _ccProfiles.Count; i++)
                 if (string.Equals(_ccProfiles[i].ConfigDir, selectDir, StringComparison.OrdinalIgnoreCase))
                     index = i;
-        if (_ccProfiles.Count > 0) ProfileCombo.SelectedIndex = index;
+        if (_ccProfiles.Count > 0) CcProfileCombo.SelectedIndex = index;
         _fillingProfile = false;
 
         // With one profile there is nowhere for the icon to follow to and nothing to point the
@@ -90,8 +90,8 @@ internal partial class SettingsPage
     }
 
     private ClaudeInfo? SelectedProfile =>
-        ProfileCombo.SelectedIndex >= 0 && ProfileCombo.SelectedIndex < _ccProfiles.Count
-            ? _ccProfiles[ProfileCombo.SelectedIndex]
+        CcProfileCombo.SelectedIndex >= 0 && CcProfileCombo.SelectedIndex < _ccProfiles.Count
+            ? _ccProfiles[CcProfileCombo.SelectedIndex]
             : null;
 
     private void FillProfileFields()

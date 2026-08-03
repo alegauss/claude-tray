@@ -326,8 +326,8 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
 
     private void ShowStatus(string message)
     {
-        StatusText.Text = message;
-        StatusText.Visibility = Visibility.Visible;
+        StatsStatusText.Text = message;
+        StatsStatusText.Visibility = Visibility.Visible;
         PanesBody.Visibility = Visibility.Collapsed;
         // No report, nothing to explain: the "i" goes with the panes it describes, and its popup is
         // closed rather than left hanging over a status message.
@@ -394,7 +394,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
             return;
         }
 
-        StatusText.Visibility = Visibility.Collapsed;
+        StatsStatusText.Visibility = Visibility.Collapsed;
         PanesBody.Visibility = Visibility.Visible;
         MethodInfo.Visibility = Visibility.Visible;
         if (PreviewMethodOpen) MethodInfo.IsChecked = true;

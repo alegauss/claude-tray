@@ -50,7 +50,6 @@
 >
 > Ordered by what can make a green run meaningless, then by what keeps the loop being run at all.
 
-- 📋 **T192** (deps: —) **Two controls in one window carry the same automation id, so an id lookup picks by tree order** — The Statistics picker and the Settings one are both `ProfileCombo`, and the only reason the new name check reads the right one is that it reads before navigating. → §XX.1
 - 📋 **T193** (deps: —) **A picker route that stops working turns an assertion into a note, and the run stays green** — T177's timing is observed only along `Combo-Select`'s UIA route, and the keyboard fallback exists precisely because that route can die. → §XX.2
 - 📋 **T194** (deps: —) **The check that caught the keyboard being dead in every window runs only when somebody remembers** — `-Case Keyboard` drives `--settings-tray`, which needs no credentials and no report, and CI runs `--selftest` alone on a runner that has a desktop. → §XX.3
 - 📋 **T195** (deps: —) **A full interaction run launches the app five times, three of them for the same read-only window** — `Panes`, `Profiles` and `Names` each start `--main`, wait out its first layout and first poll, and kill it, although none of them changes anything the next would see. → §XX.4

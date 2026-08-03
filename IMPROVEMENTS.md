@@ -400,22 +400,6 @@ times, three of them for the same read-only window (§XX.4), and nothing runs an
 even though the case that caught T135 needs no credentials at all (§XX.3). §XX.5 is the coverage the
 row rule actually has, which is three controls of the thirty-odd it now governs.
 
-### XX.1 Two ProfileCombos, and the check that reads the right one by luck
-
-`ById $win 'ProfileCombo'` has two candidates in `--main`: the Statistics page's picker and the one
-on the Settings page's Claude Code panel. `FindFirst` returns whichever the tree reaches first, so
-which control a check drives depends on which destinations have been built — and a page is built on
-its first visit and then kept collapsed, so the answer changes with the route a run took.
-
-Nothing is wrong today, and that is the defect: `-Case Names` reads the Statistics picker *before*
-it navigates to Settings, and a comment saying so is the whole guarantee. `-Case Profiles` is safe
-only because it never leaves Statistics. The first case that visits Settings and then looks the
-picker up by id will silently drive the other control and go on passing.
-
-Sharing an id is wrong on its own terms too — an automation id is a control's identity, and anything
-scripting the window has the same ambiguity a check does. Give each its own, update the lookups, and
-state the rule: an `x:Name` here is unique across the window, not per page.
-
 ### XX.2 The fallback route quietly un-asserts the switch-back timing
 
 `Combo-Select` tries `SelectionItemPattern.Select()` and falls back to arrow keys on a focused

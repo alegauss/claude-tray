@@ -161,7 +161,15 @@ would tie a window to its folder.
    add `x:ClassModifier="internal"` to the XAML root and `internal partial class` in code-behind.
 5. **Verify by looking, every time.** See the workflow below. Do not report a UI change as done
    without a screenshot.
-6. **A screenshot cannot see a keyboard bug, and `--settings` cannot either.** The preview flags run a
+6. **An `x:Name` is unique across the app, not per XAML file.** WPF scopes names per file, so two pages
+   can each name a control `ProfileCombo` and both code-behinds still compile — but an `x:Name` is the
+   control's identity to everything *outside* the compiler (UI Automation, a screen reader,
+   `Check-Interaction.ps1`), and an id lookup then returns whichever the tree reaches first. Since a page
+   is built on its first visit and then kept collapsed, that answer changes with the route a run took: a
+   check can silently drive the other control and go on passing (T192). Name a control for the page it is
+   on (`StatsProfileCombo` / `CcProfileCombo` / `SysProfileCombo`). `--selftest` asserts it by reflecting
+   over every `IComponentConnector` type, so a collision is a red build rather than a comment.
+7. **A screenshot cannot see a keyboard bug, and `--settings` cannot either.** The preview flags run a
    **WPF** `Application.Run`; the tray runs a **WinForms** pump, and the two are different *input*
    environments — that difference is how "no keyboard input in any window" (T135) survived every
    preview, capture and screenshot this repo has ever taken. Anything that involves typing, Tab, Esc or
@@ -261,7 +269,7 @@ dotnet run -- --main [dest]           # the WHOLE window as the tray opens it (n
                                       #   Statistics | Context | Settings), under the WinForms pump the
                                       #   tray uses. --settings / --stats / --context --window show one
                                       #   page without the shell, and --settings-tray is the only preview
-                                      #   that can see a keyboard bug — see UI convention 6.
+                                      #   that can see a keyboard bug — see UI convention 7.
 dotnet run -- --settings System --sample [--reveal]
                                       # --sample feeds a surface its fixture instead of this machine's
                                       #   data. ANY published screenshot of a page that shows an account,

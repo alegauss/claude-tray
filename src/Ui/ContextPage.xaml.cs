@@ -100,7 +100,7 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         SortBox.SelectionChanged += (_, _) => { if (IsLoaded) ShowSelected(); };
         RescanButton.Click += (_, _) => StartScan();
         // Close means the shell: a destination has nothing of its own to close.
-        CloseButton.Click += (_, _) => Window.GetWindow(this)?.Close();
+        ContextCloseButton.Click += (_, _) => Window.GetWindow(this)?.Close();
         SimClearButton.Click += (_, _) => { _simulated.Clear(); ShowSelected(); };
         CopyPromptButton.Click += (_, _) => CopyCleanupPrompt(projectScope: true);
         AllCopyPromptButton.Click += (_, _) => CopyCleanupPrompt(projectScope: false);
@@ -251,7 +251,7 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         // for a fixture scan: sample projects have no business in the real drift history.
         if (ScanRoot is null) ContextHistory.Record(ProfileStore.Monitored, scan, DateTimeOffset.UtcNow.UtcDateTime);
 
-        StatusText.Visibility = Visibility.Collapsed;
+        ContextStatusText.Visibility = Visibility.Collapsed;
         MasterPane.Visibility = Visibility.Visible;
         DetailPane.Visibility = Visibility.Visible;
 
@@ -315,8 +315,8 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
 
     private void ShowStatus(string text)
     {
-        StatusText.Text = text;
-        StatusText.Visibility = Visibility.Visible;
+        ContextStatusText.Text = text;
+        ContextStatusText.Visibility = Visibility.Visible;
         MasterPane.Visibility = Visibility.Collapsed;
         DetailPane.Visibility = Visibility.Collapsed;
     }

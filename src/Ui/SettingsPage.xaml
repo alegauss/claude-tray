@@ -428,7 +428,7 @@
                                 <local:SettingsRow Header="{local:Loc settings.cc.profile}"
                                                    Description="{local:Loc settings.cc.profileDesc}">
                                     <StackPanel Orientation="Horizontal">
-                                        <ComboBox x:Name="ProfileCombo" MinWidth="170" VerticalAlignment="Center"
+                                        <ComboBox x:Name="CcProfileCombo" MinWidth="170" VerticalAlignment="Center"
                                                   SelectionChanged="Profile_Changed" />
                                         <Button x:Name="ProfileAddButton" Content="{local:Loc settings.cc.profileAdd}"
                                                 MinWidth="92" Padding="14,5" Margin="8,0,0,0"

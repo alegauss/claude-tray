@@ -219,7 +219,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- Shown instead of the panes while scanning, on a scan error, or with nothing to show. -->
-            <TextBlock x:Name="StatusText" Grid.ColumnSpan="2" Margin="4,20,4,0"
+            <TextBlock x:Name="ContextStatusText" Grid.ColumnSpan="2" Margin="4,20,4,0"
                        FontSize="13.5" TextWrapping="Wrap" Visibility="Collapsed"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
@@ -539,7 +539,7 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <Button x:Name="RescanButton" Content="{local:Loc context.refresh}"
                         MinWidth="104" Padding="14,7" Margin="0,0,10,0" />
-                <Button x:Name="CloseButton" Content="{local:Loc context.close}"
+                <Button x:Name="ContextCloseButton" Content="{local:Loc context.close}"
                         MinWidth="104" Padding="14,7" IsCancel="True" />
             </StackPanel>
         </Grid>

@@ -378,7 +378,7 @@ function Watch-Status($win, $ms, $stepMs = 60) {
     $deadline = (Get-Date).AddMilliseconds($ms)
     do {
         if ($win) {
-            $status = ByIdNow $win 'StatusText'
+            $status = ByIdNow $win 'StatsStatusText'
             if ($status) {
                 $txt = [string]$status.Current.Name
                 if ($txt) { $script:StatusSeen = $true; $script:StatusSeenText = $txt }
@@ -462,7 +462,7 @@ function Read-ProfileStop($win, $computing, $timeoutSec = 25) {
         # The status line first, and recorded rather than acted on (T177): whether it was EVER up on the
         # way to the panes is the property, so it has to be sampled on every turn of this loop, not
         # looked at once the panes failed to appear.
-        $status = ByIdNow $win 'StatusText'
+        $status = ByIdNow $win 'StatsStatusText'
         $statusText = $null
         if ($status) {
             $statusText = [string]$status.Current.Name
@@ -602,7 +602,7 @@ function Invoke-ProfilesCase {
         [Native]::Topmost([IntPtr]$win.Current.NativeWindowHandle)
         try { $win.SetFocus() } catch { Info "window SetFocus threw - $($_.Exception.Message)" }
 
-        $combo = ById $win 'ProfileCombo' 8000
+        $combo = ById $win 'StatsProfileCombo' 8000
         if (-not $combo) {
             Fail "the profile picker is not in the tree although --profiles found $count profiles"
             return
@@ -851,7 +851,7 @@ function Printable($text) {
 
 <#
   What the window says it is, control by control. This is the one property in this file that no
-  screenshot and no other case can observe: the T165 control-view dump found `ProfileCombo` and
+  screenshot and no other case can observe: the T165 control-view dump found `StatsProfileCombo` and
   `MethodInfo` carrying empty names while every neighbouring button read fine, because a WPF control
   derives its name from its own content and both of these have none - one's label is a separate
   TextBlock, the other's content is a Segoe MDL2 codepoint.
@@ -873,10 +873,11 @@ function Invoke-NamesCase {
         [Native]::Topmost([IntPtr]$win.Current.NativeWindowHandle)
         try { $win.SetFocus() } catch { Info "window SetFocus threw - $($_.Exception.Message)" }
 
-        # --- Statistics, read BEFORE navigating: the Settings page carries a `ProfileCombo` of its
-        # own, and once that pane is built an id lookup would have two candidates to choose between.
+        # --- Statistics. The read order no longer decides which control this finds: every `x:Name` in
+        # the shell is unique across the window (T192), asserted by `--selftest`, so `StatsProfileCombo`
+        # is the Statistics one whether or not the Settings pane has been built.
         $count = Expected-ProfileCount
-        if (Assert-Name $win 'ProfileCombo' (Label 'stats.profile') "the Statistics profile picker" 8000) {
+        if (Assert-Name $win 'StatsProfileCombo' (Label 'stats.profile') "the Statistics profile picker" 8000) {
             $read++
         }
         elseif ($count -lt 2) {

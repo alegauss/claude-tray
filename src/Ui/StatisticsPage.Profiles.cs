@@ -28,28 +28,28 @@ internal partial class StatisticsPage
             _profile = new ProfileRef(ProfileStore.KeyFor(profiles[0]), profiles[0].ConfigDir);
             _showingMonitored = true;
         }
-        if (ProfileCombo is null) return;
+        if (StatsProfileCombo is null) return;
 
         ProfileCard.Visibility = profiles.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
-        ProfileCombo.SelectionChanged -= Profile_Changed;
-        ProfileCombo.Items.Clear();
+        StatsProfileCombo.SelectionChanged -= Profile_Changed;
+        StatsProfileCombo.Items.Clear();
         foreach (ClaudeInfo p in profiles)
-            ProfileCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = p.Label });
-        if (profiles.Count > 0) ProfileCombo.SelectedIndex = 0;
-        ProfileCombo.SelectionChanged += Profile_Changed;
+            StatsProfileCombo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = p.Label });
+        if (profiles.Count > 0) StatsProfileCombo.SelectedIndex = 0;
+        StatsProfileCombo.SelectionChanged += Profile_Changed;
     }
 
     /// <summary>Preview-only: pick a profile by index, so the capture path can render the window as
     /// another profile without a click.</summary>
     internal void SelectProfileForPreview(int index)
     {
-        if (ProfileCombo is not null && index >= 0 && index < ProfileCombo.Items.Count)
-            ProfileCombo.SelectedIndex = index;
+        if (StatsProfileCombo is not null && index >= 0 && index < StatsProfileCombo.Items.Count)
+            StatsProfileCombo.SelectedIndex = index;
     }
 
     private void Profile_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        int i = ProfileCombo.SelectedIndex;
+        int i = StatsProfileCombo.SelectedIndex;
         if (i < 0 || i >= _profiles.Count) return;
 
         ClaudeInfo picked = _profiles[i];

@@ -23,7 +23,7 @@ dotnet publish -c Release             # single self-contained .exe -> bin\Releas
 
 ## The windows, as previews
 
-Three different hosts, and the difference matters — see UI convention 6 in AGENTS.md.
+Three different hosts, and the difference matters — see UI convention 7 in AGENTS.md.
 
 ```
 --main [dest]                         # the WHOLE window as the tray opens it: nav strip + destination

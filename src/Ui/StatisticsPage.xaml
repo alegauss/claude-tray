@@ -170,7 +170,7 @@
                          TextBlock beside it, which the automation tree cannot associate on its own, so
                          without this the control that decides what the whole report is about announces
                          itself as "combo box" and nothing else. -->
-                    <ComboBox Grid.Column="2" x:Name="ProfileCombo" MinWidth="180"
+                    <ComboBox Grid.Column="2" x:Name="StatsProfileCombo" MinWidth="180"
                               VerticalAlignment="Center"
                               AutomationProperties.LabeledBy="{Binding ElementName=ProfileLabel}" />
                 </Grid>
@@ -201,7 +201,7 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <TextBlock x:Name="StatusText" Grid.RowSpan="2"
+            <TextBlock x:Name="StatsStatusText" Grid.RowSpan="2"
                        Margin="4,24,4,0" FontSize="14" TextWrapping="Wrap"
                        Visibility="Collapsed"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -514,7 +514,7 @@
                 <Button x:Name="RefreshButton" Content="{local:Loc stats.refresh}"
                         MinWidth="92" Padding="14,6" Margin="0,0,8,0"
                         Click="Refresh_Click" />
-                <Button x:Name="CloseButton" Content="{local:Loc stats.close}"
+                <Button x:Name="StatsCloseButton" Content="{local:Loc stats.close}"
                         MinWidth="92" Padding="14,6"
                         Style="{DynamicResource AccentButtonStyle}"
                         Click="Close_Click" />

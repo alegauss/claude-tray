@@ -280,7 +280,7 @@ internal static class Program
 
         // Dev/preview helper: the **whole window** as the tray opens it — the nav strip over its three
         // destinations — hosted under the WinForms pump with the input bridge, which is what the tray
-        // does (see UI convention 6). `--main [Statistics|Context|Settings]` opens on a destination.
+        // does (see UI convention 7). `--main [Statistics|Context|Settings]` opens on a destination.
         if (args.Length >= 1 && args[0] == "--main")
         {
             ApplicationConfiguration.Initialize();
