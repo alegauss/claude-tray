@@ -216,6 +216,54 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
+### XX.16 A check whose first step is quitting the app is one nobody runs
+
+The Menu case launches the tray. The tray holds a named mutex, so a second launch exits silently, so
+the case refuses to start while any ClaudeTray is alive (T202) — and the app is meant to be
+resident, which means every developer machine is in that state permanently. `-UseRunning` is the way
+out and it checks whichever binary happens to be running; T236 now says out loud when that is not
+the build under `-Exe`, which makes the run honest without making it useful.
+
+What is left has no path at all. Verifying the two submenu tasks in this block meant stopping the
+user's resident tray three times across two sessions and restarting it afterwards, by hand, because
+there is no other way to point the case at the thing just compiled. A verification loop whose first
+step is "quit the app you are developing" is one people stop running, and the case that goes unrun
+is the one covering the menu — the surface with the most tasks filed against it this year.
+
+The shape that fits is a dev-only escape from the single instance, so a second tray can be launched
+beside the resident one for the length of a check. Two things it must not become: reachable by
+accident from a normal launch, since the mutex is a real feature and two trays polling the same
+profile is not a state to ship; and implied by the script, which is T202's refusal again wearing a
+different hat.
+
+Worth settling with it what the second tray does about the icon — two identical icons in the
+notification area is exactly the ambiguity `Get-TrayIcon` resolves by tooltip prefix, and it matches
+on "Claude Code", which both would carry.
+
+### XX.17 An assertion nothing routine reaches is coverage nobody has
+
+T231 built `--sample-env` so the environment mark could be looked at on a machine that agrees with
+itself, and T230's check asserts it. Run the suite with no flags — which is what `check.yml` does
+and what anybody debugging runs — and the line is still *"the environment mark on a profile entry
+(T172) NOT CHECKED"*. The fixture exists, the assertion exists, and nothing brings them together
+unless a person remembers `-SampleEnv other` and types it.
+
+That is most of the way back to where the task started. The reason T231 was filed was that T172 had
+shipped without its interesting state ever being rendered; an assertion that is Unchecked on every
+unattended run has the same coverage as no assertion, and now carries a green tick's worth of
+reassurance on top.
+
+The move is for the Menu case to drive the fixture itself rather than offer it: after the ordinary
+pass against the real environment, relaunch on `--sample-env other` and assert the mark, then on
+`outside` and assert the line. Both are cheap — the tray launch is the cost, and the case already
+pays it once.
+
+Two things to settle. `-SampleEnv` given explicitly should still pin the whole run to one mode, or a
+person looking at one state loses it to the sweep. And `other` is refused on a one-profile machine,
+which is CI: that arm stays `Unchecked` there with the reason it already prints, so the sweep must
+not turn a legitimate absence into a failure — which is the same rule the profile picker's
+two-profile skip follows.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
