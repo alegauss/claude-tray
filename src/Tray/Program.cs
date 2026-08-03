@@ -266,6 +266,22 @@ internal static class Program
             return;
         }
 
+        // The tray tooltip's text for a synthetic reading (T214). The one published surface no capture
+        // flag can photograph — it is drawn by the shell, not by this app — so this reads it out instead.
+        if (args.Length >= 1 && args[0] == "--tooltip")
+        {
+            Environment.ExitCode = TooltipCli.Run(args);
+            return;
+        }
+
+        // ...and the same text drawn into the shell's card, so the one published picture that was a
+        // hand-taken photograph becomes something any machine can regenerate (T214).
+        if (args.Length >= 1 && args[0] == "--capture-tooltip")
+        {
+            Environment.ExitCode = TooltipCli.Capture(args);
+            return;
+        }
+
         // The rate-limit headers as the API sent them, plus every shape change the tray has recorded
         // (T181). The instrument for a reading only an account already in overage can supply.
         if (args.Length >= 1 && args[0] == "--probe")

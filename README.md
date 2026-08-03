@@ -14,7 +14,7 @@ shows your **rate-limit usage percentage** as a crisp, DPI-aware icon.
 ![C#](https://img.shields.io/badge/C%23-WinForms%20%2B%20GDI%2B-239120?logo=csharp&logoColor=white)
 ![winget](https://img.shields.io/badge/winget-alegauss.ClaudeCodeTray-2496ED?logo=windows&logoColor=white)
 
-<img src="docs/tooltip.png" alt="Tray icon with usage tooltip" width="46%">
+<img src="docs/tooltip.png" alt="The tray tooltip: session and week usage, the projection, and what the rate limit says" width="46%">
 &nbsp;&nbsp;
 <img src="docs/menu.png" alt="Right-click menu" width="46%">
 

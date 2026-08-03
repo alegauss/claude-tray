@@ -349,31 +349,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.12 The most-seen surface is the one nothing can photograph
-
-Every published picture in `docs/` comes from a flag: `--capture-stats`, `--capture-settings`,
-`--capture-toast`, `--render`, `--social`. One does not. `docs/tooltip.png` is a hand-taken
-photograph of the real Windows notification area — this machine's taskbar, this machine's icons —
-and it is the README's hero image, second only to the icon itself.
-
-So it drifts silently. T213 changed the last line of the tooltip in five languages and that picture
-still says `Status: allowed`, a form the app no longer produces. Nothing failed, because nothing
-looks.
-
-The obstacle is real and worth naming, because it is why this was never built. A tray tooltip is not
-a window: it is `NOTIFYICONDATA.szTip`, drawn by the shell, and it appears only when a pointer rests
-over an icon that may itself be inside the overflow flyout. There is nothing to `SaveSnapshot`. Two
-routes exist, and they answer different questions. A **read-out** — print the composed text for a
-synthetic reading and a given metric — is cheap, needs no screen, and is what a check should assert;
-it does not produce a picture. A **render** — draw the same text into the same rounded card the
-shell draws — produces a publishable picture that is honest about the words while admitting it is a
-mock-up of the chrome.
-
-The read-out is the one that pays for itself: it makes the tooltip's own composition reviewable at
-all, which §XX.13 is about, and it makes the picture's staleness detectable by comparison instead of
-by someone remembering. Take it first, and take the render only if the README still wants a
-photograph.
-
 ### XX.13 The tooltip's own composition is decided where no check can see it
 
 `BuildTooltip` is 80 lines of real decisions on an instance method: which lines are added and in what order,

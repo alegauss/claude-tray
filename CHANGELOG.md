@@ -537,6 +537,7 @@
 - **T205** — A capture of the System information page is refused without --sample and writes no file, so the one page whose content is an account can no longer be published off a real holder and organization by forgetting a flag - while interactive --settings System still shows the real login, which is the only place it belongs.
 - **T206** — The screen copy takes the window's painted frame from DWM instead of GetWindowRect, so a capture no longer carries the strip of desktop the invisible resize border and drop shadow put down its left, right and bottom edges - measured at 200% as L11 T0 R11 B11, printed on every run, and the mid-edge pixels it exposes are now checked for ownership too.
 - **T207** — The preview and capture surface has 25 assertions of its own: every variant and modifier the two tables declare resolves, every refusal still refuses instead of rendering the default, and the dev-flags catalogue is checked against the tables in both directions - so writing a flag down is now a build rule rather than a convention.
+- **T214** — The tooltip has a read-out and a render: --tooltip prints its composed text for ten states with each one's character count against the 127 cap, in any language, and --capture-tooltip draws the same text into the shell's card - so docs/tooltip.png stopped being a hand-taken photograph of one machine's notification area and became a picture anybody can regenerate, which is why it had gone a release out of date saying a line the app no longer produces.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

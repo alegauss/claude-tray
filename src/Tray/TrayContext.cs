@@ -1262,83 +1262,21 @@ internal sealed class TrayContext : ApplicationContext
         return QuotaStates.Resolve(d.Metric(_metric), d.ExtraUtil, extraEnabled);
     }
 
+    /// <summary>The tray's own reading, handed to <see cref="TooltipText.Compose"/> — which owns the text
+    /// itself, so that it can be printed by <c>--tooltip</c> without a tray to hover over (T214).</summary>
     private string BuildTooltip()
     {
-        if (_data == null) return L.T("tip.connecting");
-        if (_data.Error != null)
-        {
-            if (_data.Unauthorized)
-                return _data.NeedsFullLogin
-                    ? L.T("tip.notSignedIn")
-                    : L.T("tip.willAppear");
-            return L.T("tip.apiError", _data.Error);
-        }
-
-        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        string r5 = _data.Reset5h > 0 ? FmtCountdown(_data.Reset5h - now) : "--";
-        string r7 = _data.Reset7d > 0 ? FmtDays(_data.Reset7d - now) : "--";
-
-        // In "remaining" mode the two bounded windows show the complement and read "… left".
-        // Extra is overage (no cap to have quota "left" from), so it always shows the amount used.
-        string leftSuffix = _settings.ShowRemaining ? L.T("tip.leftSuffix") : "";
-        var lines = new List<string>();
-        // With more than one profile, a percentage without an owner is a lie. The label goes first and
-        // stays: the 127-char budget below drops the verbose projection form before this, which is the
-        // right trade — knowing *whose* quota this is matters more than a wordier projection sentence.
-        if (_watched.Count > 1 && _watched[0].Label is { Length: > 0 } label)
-            lines.Add(L.T("tip.profile", label));
-        lines.Add($"{L.T("tip.session")}{leftSuffix}: {PctShown(_data.Session5h)}  ⟳ {r5}");
-        lines.Add($"{L.T("tip.week")}{leftSuffix}: {PctShown(_data.Week7d)}  ⟳ {r7}");
-        if (_data.Extra > 0.001)
-        {
-            string re = _data.ResetExtra > 0 ? FmtDays(_data.ResetExtra - now) : "--";
-            lines.Add($"{L.T("tip.extra")}: {Pct(_data.Extra)}  ⟳ {re}");
-        }
-
         var (verdict, eta) = CurrentProjection();
-        string scope = Labels[_metric]; // make clear which window the projection is about
-        bool hasEta = eta > 0 && !double.IsInfinity(eta);
-        // The projection is about reaching the limit: "100%" used == "0% left" remaining.
-        string limit = _settings.ShowRemaining ? L.T("tip.limitLeft") : L.T("tip.limitUsed");
-        // The same target as a *future event*. In "remaining" mode "0% left" mirrors the current
-        // saldo lines above ("Session 5h left: 97%"), so it reads as a present value; the plain-
-        // language "runs out" marks it as something that happens later. Used mode keeps the "100%"
-        // percentage it always showed, which reads naturally as a ceiling you climb toward.
-        string hits = _settings.ShowRemaining ? L.T("tip.hitsLeft") : L.T("tip.hitsUsed");
-        // Each projection verdict has a full form and a compact fallback for when the tooltip is
-        // tight (see the 127-char cap note below). null => no projection line at all.
-        (string full, string compact)? projection = CurrentPct() >= QuotaStates.AtLimitThreshold
-            // Already maxed: state it plainly rather than "projecting" a limit you've reached — and say
-            // *which* kind of maxed, because "you have stopped" and "you are paying to carry on" are
-            // opposite pieces of news and this line used to give the first for both (T182).
-            ? CurrentQuotaState() == QuotaState.Billing
-                ? (L.T("tip.billingFull", scope), L.T("tip.billingCompact"))
-                : (L.T("tip.atLimitFull", scope, limit), L.T("tip.atLimitCompact", limit))
-            : verdict switch
-            {
-                Projection.Danger => hasEta
-                    ? (L.T("tip.dangerEtaFull", scope, hits, FmtDays(eta)), L.T("tip.dangerEtaCompact", hits, FmtDays(eta)))
-                    : (L.T("tip.dangerPaceFull", scope), L.T("tip.dangerPaceCompact")),
-                Projection.Ok => double.IsInfinity(eta)
-                    ? (L.T("tip.okTrackFull", scope), L.T("tip.okTrackCompact"))
-                    : (L.T("tip.okEtaFull", scope, hits, FmtDays(eta)), L.T("tip.okEtaCompact", hits, FmtDays(eta))),
-                _ => null,
-            };
-
-        string updated = _lastRefresh is { } t ? $"  ⟳ {t:HH:mm:ss}" : "";
-        string statusLine = StatusLine(_data, _metric, updated);
-
-        // The Windows tray tooltip is capped at 127 chars (NOTIFYICONDATA.szTip). The refresh
-        // time sits on the last line, so a blind end-truncation would chop it mid-value. Keep the
-        // status/time line intact and fit the projection in: full form if it fits, else compact.
-        int used = lines.Sum(l => l.Length + 1) + statusLine.Length;
-        if (projection is { } p)
-        {
-            if (used + p.full.Length + 1 <= 127) lines.Add(p.full);
-            else if (used + p.compact.Length + 1 <= 127) lines.Add(p.compact);
-        }
-        lines.Add(statusLine);
-        return string.Join("\n", lines);
+        return TooltipText.Compose(new TooltipText.Input(
+            Data: _data,
+            Metric: _metric,
+            ShowRemaining: _settings.ShowRemaining,
+            ProfileLabel: _watched.Count > 1 ? _watched[0].Label : null,
+            Verdict: verdict,
+            Eta: eta,
+            State: CurrentQuotaState(),
+            Updated: _lastRefresh is { } t ? $"  ⟳ {t:HH:mm:ss}" : "",
+            Now: DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
     }
 
     /// <summary>
@@ -1369,20 +1307,27 @@ internal sealed class TrayContext : ApplicationContext
         => L.T("tip.status", Labels.TryGetValue(metric, out string? l) ? l : metric,
                d.StatusOf(metric), updated);
 
-    private static string Pct(double v) => $"{(int)Math.Round(Math.Min(v, 1.0) * 100)}%";
+    internal static string Pct(double v) => $"{(int)Math.Round(Math.Min(v, 1.0) * 100)}%";
 
     // A window's percentage as displayed: the used fraction, or its complement in "remaining" mode.
-    private string PctShown(double used)
-        => Pct(_settings.ShowRemaining ? Math.Clamp(1.0 - used, 0.0, 1.0) : used);
+    internal static string PctShown(double used, bool remaining)
+        => Pct(remaining ? Math.Clamp(1.0 - used, 0.0, 1.0) : used);
 
-    private static string FmtCountdown(double s)
+    private string PctShown(double used) => PctShown(used, _settings.ShowRemaining);
+
+    /// <summary>The name of a metric window, for a sentence that has to say which one it is about.
+    /// <see cref="Labels"/> stays private: it is the menu's own item list.</summary>
+    internal static string MetricLabel(string metric)
+        => Labels.TryGetValue(metric, out string? l) ? l : metric;
+
+    internal static string FmtCountdown(double s)
     {
         if (s <= 0) return L.T("dur.now");
         int h = (int)(s / 3600), m = (int)(s % 3600 / 60);
         return h > 0 ? $"{h}h {m:00}m" : $"{m}m";
     }
 
-    private static string FmtDays(double s)
+    internal static string FmtDays(double s)
     {
         if (s <= 0) return L.T("dur.now");
         int d = (int)(s / 86400), h = (int)(s % 86400 / 3600);

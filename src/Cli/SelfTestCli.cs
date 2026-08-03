@@ -1233,7 +1233,21 @@ internal static class SelfTestCli
               AccountFixture.CaptureRefusal("General", sampled: false) is null &&
               AccountFixture.CaptureRefusal(null, sampled: false) is null);
 
-        SkillCatalogue(toasts);
+        IReadOnlyList<TooltipCli.Variant> tips = TooltipCli.Catalogue;
+        string[] deadTips = tips.Where(v => TooltipText.Compose(v.Build(1_800_000_000)).Length == 0)
+                                .Select(v => v.Name).ToArray();
+        Check($"every tooltip variant composes text ({tips.Count})", deadTips.Length == 0,
+              string.Join(", ", deadTips));
+
+        // The cap is the tooltip's whole design constraint: past it Windows truncates, and the line it
+        // would cut is the one carrying the refresh time.
+        string[] overCap = tips
+            .Where(v => TooltipText.Compose(v.Build(1_800_000_000)).Length > TooltipText.Cap)
+            .Select(v => $"{v.Name} ({TooltipText.Compose(v.Build(1_800_000_000)).Length})").ToArray();
+        Check($"and none of them exceeds the {TooltipText.Cap}-char cap", overCap.Length == 0,
+              string.Join(", ", overCap));
+
+        SkillCatalogue(toasts, tips);
     }
 
     /// <summary>
@@ -1247,7 +1261,8 @@ internal static class SelfTestCli
     /// <c>| name</c> position must exist in the table (one renamed or removed, leaving the document
     /// promising a flag that now refuses).</para>
     /// </summary>
-    private static void SkillCatalogue(IReadOnlyList<ToastPreviews.Variant> toasts)
+    private static void SkillCatalogue(IReadOnlyList<ToastPreviews.Variant> toasts,
+                                       IReadOnlyList<TooltipCli.Variant> tips)
     {
         string? skill = RepoFile(Path.Combine(".claude", "skills", "dev-flags", "SKILL.md"));
         if (skill is null)
@@ -1288,6 +1303,23 @@ internal static class SelfTestCli
             .Where(n => !weeks.Any(w => w.Equals(n, StringComparison.OrdinalIgnoreCase))).ToArray();
         Check("and every week= dev-flags lists exists", weeksPromised.Length == 0,
               string.Join(", ", weeksPromised));
+
+        // The table this block itself added, held to the rule it just wrote (T214): a flag documented
+        // the day it ships and never again is the drift this assertion exists to stop.
+        string tipBlock = SkillBlock(lines, "--tooltip");
+        if (!Check("the dev-flags catalogue has the --tooltip block", tipBlock.Length > 0,
+                   "MISSING — the check cannot read what it compares"))
+            return;
+
+        string[] tipsUndocumented = tips.Select(v => v.Name)
+            .Where(n => !tipBlock.Contains(n, StringComparison.Ordinal)).ToArray();
+        Check($"every tooltip variant is named in dev-flags ({tips.Count})", tipsUndocumented.Length == 0,
+              string.Join(", ", tipsUndocumented));
+
+        string[] tipsPromised = ListedNames(tipBlock)
+            .Where(n => tips.All(v => !v.Name.Equals(n, StringComparison.Ordinal))).ToArray();
+        Check("and every tooltip dev-flags lists exists", tipsPromised.Length == 0,
+              string.Join(", ", tipsPromised));
     }
 
     /// <summary>One flag's entry in the skill's fenced catalogue: the line that opens with it, plus the

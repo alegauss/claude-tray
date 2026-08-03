@@ -54,6 +54,12 @@ Three different hosts, and the difference matters — see UI convention 7 in AGE
 --context --window <slug> --scroll    # ...scrolled to the source table
 --context --window <slug> --simulate  # ...with the 3 heaviest sources ticked (the what-if)
 --context --window <slug> --demo-history  # ...with a synthetic drift series behind it
+--tooltip [variant]                   # the TRAY TOOLTIP's composed text, printed with its char count
+                                      #   against the 127 cap (T214). No variant prints them all: ok
+                                      #   (the default) | track | danger | remaining | profile | extra
+                                      #   | atlimit | connecting | signedout | error. The one surface no
+                                      #   capture can photograph - the shell draws it - so this is how it
+                                      #   gets reviewed at all. Add --lang to read it in a translation.
 --simulate-reset [variant]            # a toast card on screen: unexpected (the default early weekly reset)
                                       #   | scheduled | credit | session | context | extra. One table with
                                       #   --capture-toast (T198), so a name it does not know prints the
@@ -82,6 +88,12 @@ popup — its own top-level window, which `RenderTargetBitmap` over a page's con
                                       #   a synthetic variant on its own gets no picker at all. So any
                                       #   PUBLISHED capture of a fixture week needs --sample, and profile=
                                       #   is refused where there is no picker to walk.
+--capture-tooltip <out.png> [variant] # the same tooltip text drawn into the shell's card, transparent
+                                      #   background, same variants as --tooltip (T214). A RENDERING, not
+                                      #   a photograph: card only, no taskbar and no desktop. This is what
+                                      #   docs\tooltip.png comes from - it used to be a hand-taken shot of
+                                      #   one machine's notification area, which is why it went a release
+                                      #   out of date without anything noticing.
 --capture-toast <variant> <out.png>   # one toast card + shadow + confetti, transparent background.
                                       #   BOTH arguments required (T198): a lone path used to be read as
                                       #   the variant and land the default card in the working directory.
