@@ -214,7 +214,7 @@ appears — without reading a word:
 
 <div align="center">
 
-<img src="docs/notify-surprise.png" alt="Surprise! — weekly limit reset early (clay)" width="48%">
+<img src="docs/notify-surprise.png" alt="Surprise! — weekly limit reset early (rose)" width="48%">
 &nbsp;
 <img src="docs/notify-bonus.png" alt="Bonus! — weekly usage credited back (violet)" width="48%">
 

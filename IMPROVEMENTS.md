@@ -401,27 +401,6 @@ checking it.** The capture crash surfaced because a directory happened not to ex
 divergence because a chart's numbers looked wrong; the colour collision because the same hex was typed
 twice in one afternoon. A verification loop nobody exercises is indistinguishable from one that passes.
 
-### XIX.4 The same clay for opposite news
-
-T184 gave the extra-usage toast the brand clay, deliberately: the tray icon's bar (T182) and the
-weekly chart's second axis (T183) already wear it for *past the included quota*, and one fact should
-look the same everywhere it appears.
-
-The collision is that `ToastTheme.Surprise` — the weekly limit resetting **early**, unambiguously
-good news — has used the same clay since the toasts shipped, as the `_ =>` fallback of the gradient
-switch. So the notification colour vocabulary now says clay for both "you got quota back ahead of
-schedule" and "you have started paying", which are as close to opposite as this app has.
-
-Both claims are individually reasonable and that is what makes it a design decision rather than a
-bug to squash: either the app-wide clay yields on the toast surface, or Surprise moves. Surprise
-moving is the smaller change and the better one — its clay was a default rather than a choice, while
-T182 and T183 picked theirs for a stated reason, and *Bonus* (violet) already shows the good-news
-family has room. But it repaints a shipped notification, so it is worth saying out loud rather than
-doing quietly.
-
-Whichever way it goes, the published `notify-surprise.png` and `notify-extra.png` are then two cards
-of the same colour on one page, which is the form the reader actually meets.
-
 ### XIX.5 A chart rule held by one screenshot
 
 T183's series obeys a rule that matters: a stored reading carrying **no** overage figure is skipped,

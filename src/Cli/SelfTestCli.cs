@@ -90,6 +90,9 @@ internal static class SelfTestCli
         Section("out — the directory a capture flag was given (Block AF)");
         Temp(OutputPaths);
 
+        Section("toasts — one colour vocabulary, one fact per colour (Block AF)");
+        ToastColours();
+
         if (quick)
         {
             Console.WriteLine();
@@ -772,6 +775,45 @@ internal static class SelfTestCli
     private static List<ClaudeProfile> Profiles(string dir) => new() { new ClaudeProfile { ConfigDir = dir } };
 
     private static string Json(object? v) => System.Text.Json.JsonSerializer.Serialize(v);
+
+    // ---------------------------------------------------------------- Block AF: the toast palette
+
+    /// <summary>
+    /// What T188 was: two toasts wearing the same clay for opposite news — quota back early, and you have
+    /// started paying. A colour on these cards is a claim about what kind of news it is, so the rule is one
+    /// row per <see cref="ToastWindow.ToastTheme"/> and no two rows alike, and it is asserted rather than
+    /// remembered. Driven off the enum, so a theme added tomorrow is covered tomorrow.
+    ///
+    /// <para>Reading the palette needs no window: it is a static table of hex strings, which is why it was
+    /// worth separating from the brush it feeds.</para>
+    /// </summary>
+    private static void ToastColours()
+    {
+        var seen = new Dictionary<string, ToastWindow.ToastTheme>(StringComparer.OrdinalIgnoreCase);
+        foreach (ToastWindow.ToastTheme t in Enum.GetValues<ToastWindow.ToastTheme>())
+        {
+            (string light, string mid, string deep) = ToastWindow.Palette(t);
+            string row = $"{light}/{mid}/{deep}";
+
+            if (!Check($"{t} names its own three stops", light.Length > 0 && mid.Length > 0 && deep.Length > 0, row))
+                continue;
+            if (seen.TryGetValue(row, out ToastWindow.ToastTheme other))
+                Fail($"{t} has a colour of its own",
+                     $"it wears {row}, which is already {other}'s — the T188 collision, in a new pair");
+            else
+            {
+                _passed++;
+                Console.WriteLine($"  ok    {t} has a colour of its own ({mid})");
+                seen[row] = t;
+            }
+        }
+
+        // The one row whose value is a cross-surface agreement rather than a free choice: clay is what the
+        // icon's bar and the chart's second axis mean by "past the included quota" (T182, T183, T184).
+        Check("extra usage keeps the clay the icon and the chart use",
+              ToastWindow.Palette(ToastWindow.ToastTheme.ExtraUsage).Mid.Equals("#D97757", StringComparison.OrdinalIgnoreCase),
+              ToastWindow.Palette(ToastWindow.ToastTheme.ExtraUsage).Mid);
+    }
 
     // ---------------------------------------------------------------- Block AF: the capture's output path
 

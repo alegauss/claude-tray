@@ -1123,7 +1123,8 @@ internal sealed class TrayContext : ApplicationContext
         string routineCaption = showRemaining ? L.T("toast.caption.routineLeft", fromLeftPct, freshSuffix) : L.T("toast.caption.routineUsed", fromPct, freshSuffix);
 
         // Color theme: a session event is always blue; otherwise the weekly kind picks the color
-        // (early reset = clay/Surprise, credit = violet/Bonus, routine = teal/Weekly).
+        // (early reset = rose/Surprise, credit = violet/Bonus, routine = teal/Weekly — T188 moved the
+        // early reset off the clay the paying state owns).
         ToastWindow.ToastTheme theme = !weekly
             ? ToastWindow.ToastTheme.Session
             : ev.Kind switch

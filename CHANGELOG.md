@@ -229,6 +229,7 @@
 - **T185** — `--selftest` compares the five string tables against en: every key en has reaches all five files, no key exists in one file alone, and every {0}-style hole survives translation — and each failure names the offending keys rather than counting them.
 - **T186** — `--stats <variant>` and `--capture-stats <out> <variant>` read one table of previews (`src/Cli/StatsPreviews.cs`), so a preview added is a preview both flags gain, and a name neither knows is refused with the catalog printed instead of rendering the default sample as if it were the thing asked for.
 - **T187** — Every capture flag creates the directory it was told to write into: the three SaveSnapshot bodies, the icon writers and --social share one `OutFile.Create`, so a capture into a new folder writes the file instead of throwing DirectoryNotFoundException from a timer tick after the window has already rendered — and --selftest holds it.
+- **T188** — The early-reset toast is rose and the extra-usage one keeps the clay: clay now means one thing across the icon's bar, the chart's second axis and the notifications — past the included quota — and the good news that quota came back early no longer wears the colour of having started to pay. The palette is a table with no fallback arm, so a new toast cannot inherit another's colour, and --selftest asserts every theme's row is its own.
 
 ## Block AE — Extra usage is money, and the tray is asleep for it
 

@@ -15,8 +15,8 @@ namespace ClaudeTray;
 
 /// <summary>
 /// A bespoke, on-brand "toast" for the unexpected-reset event — a borderless WPF window that slides
-/// up from the bottom-right with the Claude clay/coral gradient, a confetti burst, and the weekly
-/// usage bar visibly emptying from its old level to 0%. It deliberately replaces the plain system
+/// up from the bottom-right with a rose gradient (see <see cref="Palette"/>), a confetti burst, and the
+/// weekly usage bar visibly emptying from its old level to 0%. It deliberately replaces the plain system
 /// balloon for this one happy event: the reset hands your quota back, so it should feel like good
 /// news. Shown non-modally from the tray; auto-dismisses, or the user can open Claude Code or close it.
 /// </summary>
@@ -61,22 +61,40 @@ internal partial class ToastWindow : Window
         Loaded += OnLoaded;
     }
 
-    // A distinct top-left→bottom-right gradient per type: clay (Surprise), violet (Bonus),
-    // teal (Weekly), blue (Session), ochre (Context). White text reads on all five; the first four
-    // also carry confetti, which Context deliberately does not — see OnLoaded.
+    /// <summary>
+    /// The card's three gradient stops per type — light, mid, deep — read top-left→bottom-right. One row
+    /// per <see cref="ToastTheme"/> and <b>no two rows alike</b>: a colour here is a claim about what kind
+    /// of news this is, so two types sharing one says they mean the same thing.
+    ///
+    /// <para><b>Why rose, not clay, for Surprise (T188).</b> Clay is what the tray icon's bar (T182) and
+    /// the weekly chart's second axis (T183) wear for <em>past the included quota</em>, and T184 gave the
+    /// extra-usage toast the same clay on purpose, so one fact looks the same everywhere. Surprise — the
+    /// weekly limit resetting <em>early</em>, unambiguously good news — had been clay since the toasts
+    /// shipped, but only as the fallback arm of this switch: a default, never a choice. So it is the one
+    /// that moves, into the good-news family Bonus's violet already showed had room.</para>
+    ///
+    /// <para>Every value is spelled out and there is no fallback arm, which is what stopped the borrowing:
+    /// a theme added tomorrow will not compile until it picks a colour, and <c>--selftest</c> asserts the
+    /// rows stay distinct.</para>
+    /// </summary>
+    internal static (string Light, string Mid, string Deep) Palette(ToastTheme theme) => theme switch
+    {
+        ToastTheme.Surprise => ("#E98BB4", "#CE5F8F", "#92325F"),  // rose — a happy surprise
+        ToastTheme.Bonus => ("#B98BDD", "#9460C6", "#5E3496"),     // violet
+        ToastTheme.Weekly => ("#43B894", "#23987A", "#136E58"),    // teal/green
+        ToastTheme.Session => ("#6BA3E6", "#3F79CF", "#234E96"),   // blue
+        ToastTheme.Context => ("#D9A85C", "#BE8535", "#8A5E1E"),   // ochre — a nudge, not a party
+        // Clay: the colour the icon's bar and the weekly chart's second axis already wear for
+        // "past the included quota", so the same fact looks the same wherever it appears (T184).
+        ToastTheme.ExtraUsage => ("#E89072", "#D97757", "#B0512F"),
+        _ => throw new ArgumentOutOfRangeException(nameof(theme), theme, "no card colour for this toast"),
+    };
+
+    // White text reads on all six; the four good-news ones also carry confetti, which Context and
+    // ExtraUsage deliberately do not — see OnLoaded.
     private static LinearGradientBrush Gradient(ToastTheme theme)
     {
-        (string a, string b, string c) = theme switch
-        {
-            ToastTheme.Bonus => ("#B98BDD", "#9460C6", "#5E3496"),   // violet
-            ToastTheme.Weekly => ("#43B894", "#23987A", "#136E58"),  // teal/green
-            ToastTheme.Session => ("#6BA3E6", "#3F79CF", "#234E96"), // blue
-            ToastTheme.Context => ("#D9A85C", "#BE8535", "#8A5E1E"),  // ochre — a nudge, not a party
-            // Clay: the colour the icon's bar and the weekly chart's second axis already wear for
-            // "past the included quota", so the same fact looks the same wherever it appears (T184).
-            ToastTheme.ExtraUsage => ("#E89072", "#D97757", "#B0512F"),
-            _ => ("#E89072", "#D97757", "#B0512F"),                  // clay (Surprise)
-        };
+        (string a, string b, string c) = Palette(theme);
         static Color C(string hex) => (Color)ColorConverter.ConvertFromString(hex);
         return new LinearGradientBrush(
             new GradientStopCollection { new(C(a), 0), new(C(b), 0.5), new(C(c), 1) },
