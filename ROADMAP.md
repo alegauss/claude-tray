@@ -68,8 +68,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T253** (deps: —) **Every prose commit now pays a Release build for assertions that need no binary** — T249 made markdown-only commits run the guard, and the only way to run those checks is an app that has to be compiled first, so a typo in the ledger costs a full build. → §XXII.13
-
 ## Block G — Localization
 
 - 💭 **T216** (deps: —) **One machine, two number conventions: the page decides, not the app** — T167 picked invariant for one window, while the Context page, the tray toast and the System page format the same figures with L.Culture, and the sweep it added reaches neither. → §XXI.1
@@ -127,3 +125,6 @@ Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full 
   session, undoing the one property that keeps T99 free when nobody is looking.
 - **No pricing or positioning discussion as a numbered task.** It goes in
   [STRATEGY.md](STRATEGY.md), which is where a decision that is not work belongs.
+- **No check outside the binary** --selftest is the suite because a test project would break the
+  single-exe rule, and moving a document check out to save a measured 10s compile buys a second
+  reader of the thing it compares.

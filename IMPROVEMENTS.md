@@ -301,27 +301,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.13 The checks that read files, behind a compiler
-
-Six assertions in `--selftest` compare a document to the thing it documents. Not one of them needs
-the app: they open files, match text and compare lists. All six are reachable only by building
-`ClaudeTray.exe` in Release and running it, because `--selftest` *is* the test suite and the suite
-is a flag on the product — the shape §I.3 forces by refusing a test project.
-
-That was free while the guard skipped prose. T249 stopped it skipping, correctly, and the bill
-arrived with it: a commit fixing a sentence in `CHANGELOG.md` now runs `dotnet build -c Release` and
-the interaction job before anything reads the sentence. The checks themselves take milliseconds.
-
-Three shapes, and the trade-off is real in each. Leave it, and the cost is minutes of CI on the
-commits this repository makes most. Split the document checks into a job that runs them without a
-build — which needs them to exist outside the binary, and the no-test-project rule is about
-*dependencies*, not about where a check may live. Or keep one binary and let the guard build Debug
-for a prose-only change, which is most of the difference and none of the risk, since these checks
-never touch the compiled behaviour.
-
-Worth settling first: whether a document check belonging to the app at all is the thing that is
-wrong. The app does not read `CHANGELOG.md` in the user's hands; only this repository does.
-
 ## XXIII What the API says about permission, and what the app infers instead (Block D)
 
 Every signal this app has about whether an account may spend past its included quota is inferred

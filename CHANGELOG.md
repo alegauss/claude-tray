@@ -52,7 +52,7 @@
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
 | [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
-| [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags (active — see ROADMAP) |
+| [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 
 ## Block A — Foundation (tray, icon, API, projection)
 
@@ -576,6 +576,7 @@
 - **T250** — The last surface pair on trust is checked: every image the README or the published page points at exists, every screenshot in docs is shown by one of them - a shot nobody displays is one nobody re-takes when the window moves - and the winget id a user types is spelled one way across both files and the manifest that publishes it. The wording is deliberately left alone: the site is marketing copy and the README is not, so a check demanding they agree would fail on every rewrite and be turned off.
 - **T251** — The precondition takes the paths the check reads, so the seven guards that opened each body are one assertion that names which path is missing instead of seven that pass every run and have never been seen to fail. A checkout lacking a governed file is red, not a skip - that is a repository somebody is halfway through changing, which is not the same fact as an installed copy having none, and standing a check down for it loses coverage to a state nobody meant to leave behind.
 - **T252** — The guard has no paths-ignore at all now. Twice in two tasks a hand-kept list of what nothing reads was wrong - T249 removed markdown and kept docs on the same argument, T250 shipped the check that reads docs next - and being wrong there does not fail a run, it stops one from happening, which is the quietest way this repository loses a check. What the list bought was one build on a commit touching LICENSE alone; what those minutes should cost instead is T253.
+- **T253** — Measured before deciding, and the premise did not survive: a clean Release build is 10s against Debug's 11s, so what a prose commit pays is the runner and the restore, not the configuration. The one saving left - moving the document checks out of the binary - buys that 10s with a second reader of the very thing they exist to compare, so it is a non-goal now rather than an idea somebody re-files. The guard keeps running on every commit, which is what T252 bought and this measurement says is affordable.
 
 ## Block AB — What Block Z's own work left behind
 
