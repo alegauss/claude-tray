@@ -216,6 +216,32 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
+### XX.27 The last flag that guesses
+
+Measured, both of them. `--capture-settings <out> NoSuchPage --sample` printed `wrote <out>`, exited
+0, and the file is a picture of **General**. `--main NoSuchDest` opened on **Statistics**.
+`--settings <page>` is the same resolver as the first, so it is three entry points over one silent
+default.
+
+This is the last member of a family this repository has already closed five times, always for the
+same stated reason - a token that is not understood must not quietly select the default, because a
+screenshot of the wrong thing looks exactly like a screenshot of the right one. T186 made preview
+variants refuse, T198 the toast cards, T200 the `week=` names, T231 the `--sample-env` modes, T260
+the `--lang` codes. Every one of those prints a catalogue and exits 1.
+
+The page name is the worst of them to have left, because it is the only one that **writes a file**
+while being wrong: the capture lands under the name the caller chose, so what survives is a PNG of a
+page nobody asked for, and nothing in the output says which page it is.
+
+The shape is the one next door: `SelectPage`'s switch and `MainWindow.Navigate`'s both end in a
+default arm, and the six page names and three destination names are already enumerable. What is
+wanted is a resolver returning null for a name it does not know and printing what exists - which is
+what `ToastPreviews.Resolve`, `StatsPreviews.Resolve`, `AccountFixture.ResolveWeek` and
+`L.RefuseOverride` already are.
+
+Worth settling with it: whether a bare `--main` and a bare `--settings`, which name nothing, keep
+their default. They should - naming nothing is not a typo.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
