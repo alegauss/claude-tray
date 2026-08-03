@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T265** (deps: —) **The one question the icon code says is worth asking has no contact sheet to ask it with** — T147 built a magnified sheet for the accent band, and answering whether stopped and billing are tellable apart at 16px took fifteen lines of hand-written PowerShell to compose one. → §XX.29
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization

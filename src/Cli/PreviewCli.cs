@@ -176,6 +176,13 @@ internal static class PreviewCli
             using (var billing = IconRenderer.Render(1.00, IconRenderer.State.Ok, false, size, Projection.Danger, billing: true))
                 billing.Save(Path.Combine(dir, $"icon_billing_{size}.png"));
         }
+        // …and the sheet that lets the question actually be asked (T265). The two PNGs above have sat
+        // beside each other on disk since T182 while the only way to compare them was to magnify them by
+        // hand — which is the argument T147 already made for the accent band: a 16px PNG viewed at 16px
+        // cannot be judged at all. Its own file rather than a row added to the accent sheet, because that
+        // one asserts a band a glance has to notice and this one asserts two fills a glance must not
+        // confuse, and one image carrying two claims is how a reader stops knowing which of them failed.
+        SaveBillingSheet(Path.Combine(dir, "billing_sheet.png"));
 
         // The same cases carrying each profile accent (T147), plus a contact sheet magnified 8x with
         // the real 16px pixels preserved — the band has to be judged at tray size, and a 16px PNG
@@ -196,6 +203,54 @@ internal static class PreviewCli
                 err.Save(Path.Combine(dir, $"logo_error_{size}.png"));
         }
         Console.WriteLine("rendered to " + Path.GetFullPath(dir));
+    }
+
+    /// <summary>
+    /// The sheet for the one question <c>IconRenderer</c> says is worth asking about this colour (T265):
+    /// at 16px, are <em>stopped</em> and <em>paying</em> tellable apart, and does neither read as an alarm?
+    ///
+    /// <para><b>Paired and adjacent</b>, stopped then billing at each size, because the claim is about two
+    /// fills a glance must not confuse — putting them side by side is the comparison, and separating them
+    /// by a size would be asking a different question. Each tile is drawn at its own size × the zoom in a
+    /// cell wide enough for the largest, so 16 next to 32 also shows how much less room the small one has.
+    /// Both backdrops, for the same reason the accent sheet has both: the tile does not change and the
+    /// taskbar does.</para>
+    ///
+    /// <para>Its own file rather than a row on <see cref="SaveMarkSheet"/>'s: that one asserts a band a
+    /// glance has to notice, this one asserts two fills a glance must not confuse, and one image carrying
+    /// two claims is how a reader stops knowing which of them failed.</para>
+    /// </summary>
+    private static void SaveBillingSheet(string path)
+    {
+        const int zoom = 8, gap = 10, widest = 32;
+        int[] sizes = { 16, 20, 32 };
+        int cell = widest * zoom + gap;
+        int w = gap + sizes.Length * 2 * cell;
+        int h = gap + 2 * (widest * zoom + gap);
+
+        using var sheet = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using var g = Graphics.FromImage(sheet);
+        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
+
+        for (int row = 0; row < 2; row++)
+        {
+            int top = gap + row * (widest * zoom + gap);
+            using (var bg = new SolidBrush(row == 0 ? Color.FromArgb(32, 32, 32) : Color.FromArgb(240, 240, 240)))
+                g.FillRectangle(bg, 0, top - gap / 2, w, widest * zoom + gap);
+
+            int col = 0;
+            foreach (int size in sizes)
+                foreach (bool billing in new[] { false, true })
+                {
+                    using var bmp = IconRenderer.Render(1.00, IconRenderer.State.Ok, false, size,
+                                                        Projection.Danger, billing: billing);
+                    g.DrawImage(bmp, gap + col * cell, top, size * zoom, size * zoom);
+                    col++;
+                }
+        }
+        using (FileStream fs = OutFile.Create(path)) sheet.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
+        Console.WriteLine("billing sheet: " + Path.GetFullPath(path));
     }
 
     /// <summary>

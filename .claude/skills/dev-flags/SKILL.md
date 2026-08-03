@@ -124,7 +124,13 @@ Preview popups are held open by `PageWindow` for every popup, not per call site.
                                       #   whole sweep - the language is fixed per process - and check.yml
                                       #   runs exactly that on every push. Reads a layout, not a picture,
                                       #   so there is no settle wait and no window is activated.
---render [dir]                        # tray-icon PNGs at 16/20/32 px, plus the accent mark sheet
+--render [dir]                        # tray-icon PNGs at 16/20/32 px, plus TWO contact sheets, each
+                                      #   magnified 8x with the real pixels preserved and drawn on a
+                                      #   light and a dark strip: mark_sheet.png for the profile accent
+                                      #   band (T147), billing_sheet.png for stopped-against-paying at
+                                      #   each size (T265, the question IconRenderer names as the one
+                                      #   worth asking). Two files, not two rows of one: a single image
+                                      #   asserting two claims cannot say which of them failed.
 --makeicon [ClaudeTray.ico]           # regenerate the multi-resolution app icon
 --social [docs\social-preview.png]    # regenerate the social card
 ```
