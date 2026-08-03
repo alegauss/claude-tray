@@ -373,10 +373,25 @@ function Nav-Settings($win, $label) {
   template part: a Slider's `DecreaseLarge`/`IncreaseLarge` and a ScrollBar's `PageUp`/`PageDown` are
   plain unnamed Buttons, and they are excluded by *what they are* rather than by a list of their ids.
 #>
-function Row-Controls($win) {
+<#
+  The rows of whatever panel is on screen, as UIA Groups (T204). `SettingsRow` reaches the tree as a
+  Group carrying its Header as the name, which is the element that says "this control and that text
+  are one row" - without it a control can only be checked against "some non-empty string", and a rule
+  handing every control the WRONG header reads exactly like one handing out the right ones.
+  The class name is what separates a row from the other groups a panel carries.
+#>
+function Row-Groups($root) {
+    $CT = [System.Windows.Automation.ControlType]
+    return @($root.FindAll('Descendants', $ANY) | Where-Object {
+        $_.Current.ControlType -eq $CT::Group -and $_.Current.ClassName -eq 'SettingsRow'
+    })
+}
+
+# Takes any root, not just the window: the per-row pass below hands it one row's Group.
+function Row-Controls($root) {
     $CT = [System.Windows.Automation.ControlType]
     $toggle = [System.Windows.Automation.TogglePattern]::Pattern
-    return @($win.FindAll('Descendants', $ANY) | Where-Object {
+    return @($root.FindAll('Descendants', $ANY) | Where-Object {
         $t = $_.Current.ControlType
         if ($t -eq $CT::ComboBox -or $t -eq $CT::Slider -or $t -eq $CT::Edit) { return $true }
         if ($t -ne $CT::Button) { return $false }
@@ -1129,6 +1144,47 @@ function Invoke-NamesCase {
                 } else {
                     Pass "'$panel': all $($controls.Count) row control(s) announce a label"
                     $read += $controls.Count
+                }
+
+                # T204: the same controls, now against the header of the row they are ACTUALLY in. The
+                # sweep above proves a name exists; this proves it is the right one, which is the half
+                # that was structurally impossible before the row had a peer.
+                $groups = @(Row-Groups $win)
+                if ($groups.Count -eq 0) {
+                    Fail "'$panel': $($controls.Count) row control(s) and no SettingsRow group in the tree - the row's automation peer is gone, so nothing can be checked against its own header (T204)"
+                } else {
+                    # Every header on the panel, so "announces a header" can be told from "announces THE
+                    # WRONG header" - the failure the flat sweep is blind to by construction.
+                    $headers = @{}
+                    foreach ($g in $groups) { $h = [string]$g.Current.Name; if ($h) { $headers[$h] = $true } }
+
+                    $paired = 0; $ownHeader = 0; $ownText = 0; $wrong = @()
+                    foreach ($g in $groups) {
+                        $h = [string]$g.Current.Name
+                        if (-not $h) { continue }
+                        $inRow = @(Row-Controls $g)
+                        # A row of prose, or one whose control the rule does not govern. Counted apart so
+                        # the number reported is rows that actually paired, never rows that merely exist.
+                        if ($inRow.Count -eq 0) { continue }
+                        $paired++
+                        foreach ($c in $inRow) {
+                            $nm = [string]$c.Current.Name
+                            if ($nm -eq $h) { $ownHeader++ }
+                            elseif ($nm -and $headers.ContainsKey($nm)) {
+                                # A Button keeping its own text is fine; a control wearing a NEIGHBOUR's
+                                # header is the rule pairing the wrong two things.
+                                $wrong += "$($c.Current.AutomationId)='$(Printable $nm)' sits in the '$h' row"
+                            }
+                            elseif ($nm) { $ownText++ }
+                        }
+                    }
+                    if ($wrong.Count -gt 0) {
+                        Fail "'$panel': $($wrong.Count) control(s) announce ANOTHER row's header (T204) - $($wrong -join ', ')"
+                    } elseif ($paired -eq 0) {
+                        Fail "'$panel': $($groups.Count) row group(s) in the tree but not one holds a row control - the controls are outside their rows, so no pairing was checked (T204)"
+                    } else {
+                        Pass "'$panel': $paired row(s) pair a control with their own header; $ownHeader announce it, $ownText carry their own text"
+                    }
                 }
                 $asserted++
             }

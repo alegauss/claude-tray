@@ -71,7 +71,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T204** (deps: —) **A settings row is not a group in the automation tree, so its controls cannot be checked against their own header** — T196 sweeps every panel but can only assert that a control announces something, because nothing in the tree says which row a control belongs to. → §XX.8
 - 📋 **T205** (deps: —) **A capture of the System page shows a real login unless a flag is remembered** — --capture-settings System without --sample renders this machine's own login, so the page that has a fixture because it gets published is a forgotten flag away from naming a real holder and org. → §XX.9
 - 📋 **T206** (deps: —) **A screen-copied PNG carries a strip of whatever is behind the window** — GetWindowRect spans the invisible resize border and drop shadow, so the copied rectangle is wider than the window paints and every capture the script makes has other pixels down its edges. → §XX.10
 - 📋 **T207** (deps: —) **Nothing asserts the preview and capture flags, only the arithmetic behind them** — All 240 self-check assertions are about stores and pacing, so the variant tables, the refusals and the output-path rules this block just added are held up by whoever next runs a flag by hand. → §XX.11

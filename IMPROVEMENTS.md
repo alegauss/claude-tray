@@ -349,23 +349,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.8 The sweep can see a name, not the right name
-
-`SettingsRow` gives its trailing control the row's header as an accessible name. T196 now reads
-every control the rule is responsible for on all six panels — 23 of them — but asserts only that
-each announces a non-empty, printable string that is not its own automation id. Three controls still
-get an exact-label read, and those three are the only place the *correct* name is verified.
-
-The gap is structural, not lazy. `SettingsRow` is a lookless `ContentControl`, and it reaches UIA as
-nothing: there is no element between the panel and the control that says *this control and that text
-are one row*. So the check cannot pair a control with its header, and a rule that gave every control
-the **wrong** header would pass the sweep.
-
-Giving the row an automation peer — a `Group` carrying `Header` as its name — closes it, and it is
-worth more than the check: a screen reader currently reads a flat run of labelled controls where the
-visual design is label↔control pairs. Then the sweep becomes per row, which is what §XX.5 asked for
-and this settled for less.
-
 ### XX.9 The fixture is opt-in on the page that most needs it
 
 T197 stopped the Statistics picker naming a real account on a synthetic chart, and T200 stopped a
