@@ -286,26 +286,6 @@ Two constraints bind. The **privacy promise** is not in tension: rate-limit head
 overage more visible, and the next sentence, *this account is out, the other has room*, is the one the
 roadmap forbids. §XVIII.6 binds hardest; §XVI.4 found the answer's shape: a receipt, not a reward.
 
-### XVIII.10 A fallback is on offer and nothing here knows the word (idea)
-
-Two headers on every response are entirely outside this app's vocabulary: `unified-fallback`,
-reading `available`, and `unified-fallback-percentage`, reading `0.5`. Nothing parses either.
-
-The plausible reading is the interesting one: that past some point a request is served by a smaller
-model rather than refused, and that `0.5` is the threshold or the share involved. If that is what it
-means, it matters to the one sentence this app exists to get right — *what happens when I hit the
-limit* — because the answer would be neither "you stop" nor "you pay", but a third thing the tray
-has no state for. That would sit beside the clay bar T182 shipped, not replace it.
-
-It is an idea and not a design because both readings are guesses. `available` and `0.5` are one
-sample from one account inside its quota, and a percentage with no stated denominator is the exact
-mistake T181 spent a whole task refusing to make. Two headers whose meaning is inferred from their
-names is how an app ends up explaining something that was never true.
-
-What is cheap and already done: the probe keys on both — neither ends in `-utilization` or `-reset`,
-so a change in either writes a line without a name being added anywhere. Nothing to build for the
-measurement; this task begins when a log has something to read.
-
 ### XVIII.11 The sentence that never fits is the one that matters most
 
 Measured with the read-out T214 added, in all five languages. In the billing state the tooltip

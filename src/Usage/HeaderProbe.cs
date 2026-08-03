@@ -19,6 +19,25 @@ internal readonly record struct HeaderVocab(string Name, IReadOnlyList<VocabValu
     public bool Moved => Values.Count > 1;
 }
 
+/// <summary>How many of a log's readings carried one header name, out of how many there were.</summary>
+internal readonly record struct HeaderPresence(string Name, int Readings, int Total)
+{
+    /// <summary>Sent on some readings and not others — which is a reading in itself, and the one thing a
+    /// vocabulary of values cannot express.</summary>
+    public bool Intermittent => Readings < Total;
+}
+
+/// <summary>What one profile's log says about a header name: its values, or that the name never appeared
+/// there at all. <c>null</c> is the absence, and it is the point.</summary>
+internal readonly record struct ProfileValue(string Profile, string? Value);
+
+/// <summary>One header name across several profiles' logs.</summary>
+internal readonly record struct HeaderSpread(string Name, IReadOnlyList<ProfileValue> ByProfile)
+{
+    /// <summary>At least one profile has never been sent this name while another has.</summary>
+    public bool Divergent => ByProfile.Any(p => p.Value is null);
+}
+
 /// <summary>
 /// The instrument behind T181: a verbatim record of the <c>anthropic-ratelimit-*</c> headers, written to
 /// <c>header-probe.jsonl</c> in the profile's own store.
@@ -174,6 +193,74 @@ internal static class HeaderProbe
             result.Add(new HeaderVocab(kv.Key, values));
         }
         result.Sort((a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name));
+        return result;
+    }
+
+    /// <summary>How often each header name was actually sent, over a log's own readings (T211).
+    ///
+    /// <para>A vocabulary of <em>values</em> cannot express an absence: a name carried by one reading in
+    /// seven and a name carried by all seven both read as "one value, seen". That difference is what
+    /// settled this — <c>unified-fallback</c> is sent to an account whose overage window exists and not to
+    /// one whose organisation has disabled it, while <c>unified-fallback-percentage</c> is sent to both.
+    /// So presence is reported over <b>every</b> name, moving figures included: <c>overage-utilization</c>
+    /// arriving or going away is the same kind of fact, and the suffix rule that rightly excuses a figure
+    /// from having a vocabulary must not excuse it from being counted.</para></summary>
+    public static List<HeaderPresence> Presence(IEnumerable<ProbeEntry> log)
+    {
+        var counts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        int total = 0;
+        foreach (ProbeEntry e in log)
+        {
+            total++;
+            foreach (string name in e.Headers.Keys)
+                counts[name] = counts.TryGetValue(name, out int n) ? n + 1 : 1;
+        }
+
+        var result = new List<HeaderPresence>();
+        foreach (var kv in counts) result.Add(new HeaderPresence(kv.Key, kv.Value, total));
+        result.Sort((a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Name, b.Name));
+        return result;
+    }
+
+    /// <summary>Every header name across several profiles' logs, and what each profile has been sent (T211).
+    ///
+    /// <para>The reading that reframed <c>unified-fallback</c> could not be taken inside one log, because
+    /// the two accounts are the two samples: one is offered the header and the other is never sent it at
+    /// all. <c>--probe --all</c> printed both logs and left the diff to whoever was reading, which is the
+    /// same eyesight T210 removed one level down.</para>
+    ///
+    /// <para>A profile's value is the joined vocabulary of that name — several values when it has moved,
+    /// <c>(figure)</c> for the utilizations and resets, whose value is a number that says nothing when
+    /// compared across accounts — and <c>null</c> when the profile has never been sent the name. Null is
+    /// the answer this exists to state, so it is a distinct case and not an empty string.</para></summary>
+    public static List<HeaderSpread> Spread(IEnumerable<(string Profile, IReadOnlyList<ProbeEntry> Log)> logs)
+    {
+        var perProfile = new List<(string Profile, Dictionary<string, string> Values)>();
+        var names = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach ((string profile, IReadOnlyList<ProbeEntry> log) in logs)
+        {
+            var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (HeaderVocab v in Vocabulary(log))
+                values[v.Name] = string.Join(" / ", v.Values.Select(x => x.Value));
+            // Presence is the wider set: it counts the figures too, and a figure arriving or going away is
+            // exactly the kind of divergence this is for.
+            foreach (HeaderPresence p in Presence(log))
+            {
+                names.Add(p.Name);
+                if (!values.ContainsKey(p.Name)) values[p.Name] = "(figure)";
+            }
+            perProfile.Add((profile, values));
+        }
+
+        var result = new List<HeaderSpread>();
+        foreach (string name in names)
+        {
+            var by = new List<ProfileValue>();
+            foreach ((string profile, Dictionary<string, string> values) in perProfile)
+                by.Add(new ProfileValue(profile, values.TryGetValue(name, out string? v) ? v : null));
+            result.Add(new HeaderSpread(name, by));
+        }
         return result;
     }
 

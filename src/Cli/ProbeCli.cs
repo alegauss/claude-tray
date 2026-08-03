@@ -41,11 +41,13 @@ internal static class ProbeCli
         if (!liveOnly)
         {
             List<ClaudeInfo> profiles = all ? discovered : new List<ClaudeInfo> { target };
+            var spread = new List<(string Profile, IReadOnlyList<ProbeEntry> Log)>();
 
             foreach (ClaudeInfo p in profiles)
             {
                 string key = ProfileStore.KeyFor(p);
                 List<ProbeEntry> log = HeaderProbe.Load(key);
+                if (log.Count > 0) spread.Add((p.Label ?? key, log));
                 Console.WriteLine($"== {p.Label ?? key} — {log.Count} recorded reading(s)");
                 if (log.Count == 0)
                 {
@@ -59,9 +61,12 @@ internal static class ProbeCli
                     continue;
                 }
                 Vocabulary(log, indent: "   ");
+                Presence(log, indent: "   ");
                 foreach (ProbeEntry e in log) Dump(e.T, e.Headers, indent: "   ");
                 Console.WriteLine();
             }
+
+            Spread(spread, indent: "   ");
         }
 
         Console.WriteLine($"== live, right now — {target.Label ?? targetKey}");
@@ -121,6 +126,58 @@ internal static class ProbeCli
             : $"{indent}  Every categorical header has exactly one value on file, so its vocabulary is still\n"
               + $"{indent}  one sample from one account. A mapping written now would have a default arm\n"
               + $"{indent}  nobody has seen — see IMPROVEMENTS §XVIII.9.");
+        Console.WriteLine();
+    }
+
+    /// <summary>The names this profile is not always sent (T211). Silent when every reading carried every
+    /// name, which is the uninteresting case and the common one.</summary>
+    private static void Presence(List<ProbeEntry> log, string indent)
+    {
+        List<HeaderPresence> intermittent = HeaderProbe.Presence(log).Where(p => p.Intermittent).ToList();
+        if (intermittent.Count == 0) return;
+
+        Console.WriteLine($"{indent}  not sent on every reading — a name's absence is a reading too");
+        int width = intermittent.Max(p => p.Name.Length);
+        foreach (HeaderPresence p in intermittent)
+            Console.WriteLine($"{indent}    {p.Name.PadRight(width)}  {p.Readings} of {p.Total}");
+        Console.WriteLine();
+    }
+
+    /// <summary>What each profile is sent and what it is not (T211).
+    ///
+    /// <para>The two accounts on this machine are the two samples, so the comparison cannot be made inside
+    /// either log — and printing both logs in full, which is what <c>--all</c> did, left the diff to
+    /// whoever was reading. Only the divergent names are listed: a name every profile is sent is the
+    /// uninteresting case, and it is the one that fills the screen.</para></summary>
+    private static void Spread(List<(string Profile, IReadOnlyList<ProbeEntry> Log)> logs, string indent)
+    {
+        if (logs.Count < 2) return;   // a spread over one profile is that profile's own vocabulary
+
+        List<HeaderSpread> spread = HeaderProbe.Spread(logs);
+        List<HeaderSpread> divergent = spread.Where(h => h.Divergent).ToList();
+        Console.WriteLine($"== across {logs.Count} profiles — {spread.Count - divergent.Count} name(s) sent "
+                          + $"to all, {divergent.Count} to only some");
+        if (divergent.Count == 0)
+        {
+            Console.WriteLine($"{indent}every profile is sent the same set of names.");
+            Console.WriteLine();
+            return;
+        }
+
+        int width = logs.Max(l => l.Profile.Length);
+        foreach (HeaderSpread h in divergent)
+        {
+            Console.WriteLine($"{indent}{h.Name}");
+            foreach (ProfileValue v in h.ByProfile)
+                Console.WriteLine($"{indent}  {v.Profile.PadRight(width)}  {v.Value ?? "— never sent"}");
+        }
+        Console.WriteLine();
+        // Saying what it does *not* license matters more here than what it shows: a name sent to one
+        // account and not another is the shape of a permission, and a permission this app has never seen
+        // refused is one it must not describe.
+        Console.WriteLine($"{indent}A name sent to one account and never to another is a reading in itself:");
+        Console.WriteLine($"{indent}whatever it announces is conditional. What the condition *is* stays");
+        Console.WriteLine($"{indent}unmeasured, so no string in this app may explain it — see IMPROVEMENTS §XVIII.");
         Console.WriteLine();
     }
 

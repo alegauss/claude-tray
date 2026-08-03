@@ -141,7 +141,11 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   every value each categorical header has taken, counted and dated,
                                       #   so "has a second value arrived?" — the question §XVIII.9 and
                                       #   §XVIII.10 are blocked on — is read rather than eyeballed across
-                                      #   500 readings. Quota metadata only: no message content, no token.
+                                      #   500 readings. A name not sent on every reading says so, and
+                                      #   --all ends with the CROSS-PROFILE spread (T211): which names
+                                      #   every account is sent and which only some — the comparison that
+                                      #   measured `unified-fallback` as conditional and absent, not
+                                      #   universal. Quota metadata only: no message content, no token.
 --insights                            # the 24h usage breakdown: requests, sessions, per-model share
 --tail                                # every assistant turn as it lands, with what the sweep cost
 --live                                # the rolling tok/s with its per-project sparklines

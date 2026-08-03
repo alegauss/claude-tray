@@ -44,7 +44,6 @@
 > Ordered by what is losing data today, then by what every string here is waiting on, then by what a
 > user would actually see.
 
-- 💭 **T211** (deps: —) **Nothing here knows the API is offering a fallback** — unified-fallback reads available and unified-fallback-percentage 0.5 on every response, and what either governs is unmeasured, so no string can say what happens at the limit. → §XVIII.10
 - 📋 **T222** (deps: —) **The one state where extra usage is paying is the one state whose tooltip cannot say so** — The overage line only exists while overage is being spent, and it costs the room the sentence needed: neither the full nor the compact form fits, in any of the five languages. → §XVIII.11
 
 ## Block AB — What Block Z's own work left behind

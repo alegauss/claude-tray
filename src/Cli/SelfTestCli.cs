@@ -677,6 +677,94 @@ internal static class SelfTestCli
               HeaderProbe.Vocabulary(partial).First(h => h.Name == Claim).Values[0].Count == 1);
         Check("an empty log has no vocabulary at all",
               HeaderProbe.Vocabulary(new List<ProbeEntry>()).Count == 0);
+
+        Spread();
+    }
+
+    /// <summary>T211. The reading that reframed <c>unified-fallback</c> is an <em>absence</em>: it is sent
+    /// to an account whose overage window exists and never sent to one whose organisation disabled it,
+    /// while <c>unified-fallback-percentage</c> goes to both. A vocabulary of values cannot express that —
+    /// one reading in seven and seven in seven both read as "one value, seen" — and the two samples are two
+    /// accounts, so the comparison does not fit inside one log either.</summary>
+    private static void Spread()
+    {
+        const string Fallback = "anthropic-ratelimit-unified-fallback";
+        const string Pct = "anthropic-ratelimit-unified-fallback-percentage";
+        const string OverUtil = "anthropic-ratelimit-unified-overage-utilization";
+        const string Util5 = "anthropic-ratelimit-unified-5h-utilization";
+
+        static ProbeEntry E(double t, params string[] kv)
+        {
+            var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            for (int i = 0; i + 1 < kv.Length; i += 2) d[kv[i]] = kv[i + 1];
+            return new ProbeEntry(t, d);
+        }
+
+        // One log whose later readings carry a name the first did not — the within-profile case.
+        var arriving = new List<ProbeEntry>
+        {
+            E(Now,      Util5, "0.10", Pct, "0.5"),
+            E(Now + 60, Util5, "0.99", Pct, "0.5", OverUtil, "0.02"),
+        };
+        List<HeaderPresence> presence = HeaderProbe.Presence(arriving);
+        // Looked up rather than indexed, and each lookup asserted before it is read: a name missing from
+        // the result is the defect these are about, and it must fail by name instead of throwing the rest
+        // of the section away with it.
+        HeaderPresence always = presence.FirstOrDefault(p => p.Name == Pct);
+        if (Check("a name every reading carried is in the result", always.Name != null))
+        {
+            Check("and is not intermittent", !always.Intermittent);
+            Check("counted against the log's own length",
+                  always.Readings == 2 && always.Total == 2, $"{always.Readings}/{always.Total}");
+        }
+
+        // The suffix rule excuses a figure from having a vocabulary. It must not excuse it from being
+        // counted: overage-utilization appearing is one of the two divergences this task measured.
+        HeaderPresence late = presence.FirstOrDefault(p => p.Name == OverUtil);
+        if (Check("a moving figure has presence even though it has no vocabulary",
+                  late.Name != null && HeaderProbe.Vocabulary(arriving).All(v => v.Name != OverUtil)))
+        {
+            Check("a name that arrived partway through is intermittent", late.Intermittent);
+            Check("counted on the readings that carried it, not all of them",
+                  late.Readings == 1 && late.Total == 2, $"{late.Readings}/{late.Total}");
+        }
+        Check("an empty log has no presence at all",
+              HeaderProbe.Presence(new List<ProbeEntry>()).Count == 0);
+
+        // The cross-profile case, shaped like the two real accounts: one is offered the fallback, the
+        // other is never sent the name at all, and both are sent the percentage.
+        var offered = new List<ProbeEntry> { E(Now, Util5, "0.76", Pct, "0.5", Fallback, "available") };
+        var never = new List<ProbeEntry> { E(Now, Util5, "0.25", Pct, "0.5") };
+        List<HeaderSpread> spread = HeaderProbe.Spread(new List<(string, IReadOnlyList<ProbeEntry>)>
+        {
+            ("offered", offered), ("never", never),
+        });
+
+        HeaderSpread fb = spread.FirstOrDefault(h => h.Name == Fallback);
+        if (Check("the name only one profile is sent is in the spread", fb.Name != null))
+        {
+            Check("and it is divergent", fb.Divergent);
+            Check("the profile that has it reads its value",
+                  fb.ByProfile.First(p => p.Profile == "offered").Value == "available");
+            Check("and the one that does not reads absent, not empty",
+                  fb.ByProfile.First(p => p.Profile == "never").Value is null);
+        }
+
+        HeaderSpread pct = spread.FirstOrDefault(h => h.Name == Pct);
+        if (Check("the name both profiles are sent is in the spread", pct.Name != null))
+        {
+            Check("and it is not divergent", !pct.Divergent);
+            Check("with the same value on both — the measured half of T211",
+                  pct.ByProfile.All(p => p.Value == "0.5"));
+        }
+
+        // A figure has no vocabulary to compare, and printing one account's 0.76 beside another's 0.25 as
+        // if it were a difference of kind is exactly the misreading the spread exists to avoid.
+        HeaderSpread util = spread.FirstOrDefault(h => h.Name == Util5);
+        if (Check("a moving figure reaches the spread at all", util.Name != null))
+            Check("spread by presence, not by its number", util.ByProfile.All(p => p.Value == "(figure)"));
+        Check("every name either profile sent is in the spread", spread.Count == 3, $"{spread.Count}");
+        Check("and each name carries a row per profile", spread.All(h => h.ByProfile.Count == 2));
     }
 
     // ---------------------------------------------------------------- Block AE: the overage column
