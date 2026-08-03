@@ -605,6 +605,11 @@
   "toast.extra.subtitle": "You've passed the quota included in your plan — work continues, charged as extra usage.",
   "toast.extra.caption": "This extra-usage window resets in {0}.",
   "toast.extra.captionNoReset": "Its own reset time isn't being reported yet.",
+  "toast.profile.title": "Profile set for Windows",
+  "toast.profile.titleFailed": "Windows was not updated",
+  "toast.profile.subtitle": "{0} — {1}",
+  "toast.profile.caption": "Sessions started from now on use it. One already running keeps the profile it started with.",
+  "toast.profile.captionFailed": "CLAUDE_CONFIG_DIR still reads {0}.",
   "toast.extra.quotaLabel": "extra usage so far",
   "toast.context.quotaLabel": "Context window still free"
 }

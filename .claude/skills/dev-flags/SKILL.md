@@ -63,7 +63,8 @@ Three different hosts, and the difference matters — see UI convention 7 in AGE
                                       #   capture can photograph - the shell draws it - so this is how it
                                       #   gets reviewed at all. Add --lang to read it in a translation.
 --simulate-reset [variant]            # a toast card on screen: unexpected (the default early weekly reset)
-                                      #   | scheduled | credit | session | context | extra. One table with
+                                      #   | scheduled | credit | session | context | extra | profile |
+                                      #   profile-failed. One table with
                                       #   --capture-toast (T198), so a name it does not know prints the
                                       #   catalogue and exits 1 rather than showing the default card.
 ```

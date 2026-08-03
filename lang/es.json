@@ -601,6 +601,11 @@
   "toast.extra.subtitle": "Has superado la cuota incluida en tu plan — el trabajo continúa, cobrado como uso extra.",
   "toast.extra.caption": "Esta ventana de uso extra se reinicia en {0}.",
   "toast.extra.captionNoReset": "Su propia hora de reinicio aún no se informa.",
+  "toast.profile.title": "Perfil definido en Windows",
+  "toast.profile.titleFailed": "Windows no se actualizó",
+  "toast.profile.subtitle": "{0} — {1}",
+  "toast.profile.caption": "Las sesiones iniciadas de ahora en adelante lo usan. Una ya abierta conserva el perfil con el que arrancó.",
+  "toast.profile.captionFailed": "CLAUDE_CONFIG_DIR sigue diciendo {0}.",
   "toast.extra.quotaLabel": "uso extra hasta ahora",
   "toast.context.quotaLabel": "Ventana de contexto aún libre"
 }

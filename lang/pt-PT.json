@@ -602,6 +602,11 @@
   "toast.extra.subtitle": "Passou da quota incluída no seu plano — o trabalho continua, cobrado como uso extra.",
   "toast.extra.caption": "Esta janela de uso extra repõe em {0}.",
   "toast.extra.captionNoReset": "A hora de repor dela ainda não está a ser indicada.",
+  "toast.profile.title": "Perfil definido no Windows",
+  "toast.profile.titleFailed": "O Windows não foi atualizado",
+  "toast.profile.subtitle": "{0} — {1}",
+  "toast.profile.caption": "As sessões iniciadas de agora em diante usam este perfil. Uma já aberta mantém o perfil com que começou.",
+  "toast.profile.captionFailed": "O CLAUDE_CONFIG_DIR ainda diz {0}.",
   "toast.extra.quotaLabel": "uso extra até agora",
   "toast.context.quotaLabel": "Janela de contexto ainda livre"
 }

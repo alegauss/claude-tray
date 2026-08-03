@@ -243,7 +243,7 @@ knowing about; the routine weekly and session resets are calmer "your quota's ba
 are on by default** — toggle any of them independently in **Settings** (click the icon → Settings),
 so you can keep the surprises and silence the routine ones, or vice versa.
 
-### Two that aren't celebrations
+### Three that aren't celebrations
 
 Not every thing worth knowing is good news. These use the same card without the confetti:
 
@@ -253,12 +253,22 @@ Not every thing worth knowing is good news. These use the same card without the 
 &nbsp;
 <img src="docs/notify-extra.png" alt="Extra usage has started — past the quota included in your plan (clay)" width="48%">
 
+<img src="docs/notify-profile.png" alt="Profile set for Windows — the machine-wide profile switch landed (slate)" width="48%">
+
 </div>
 
 | Notification | Color | What it means | Setting |
 |---|---|---|---|
 | 📇 **Heavy startup context** | **Ochre** | A project's instruction files, memory and skills have grown enough that **every session pays for them before you type** — with what a cold-cache load costs | Context growth (**off** by default) |
 | 🧾 **Extra usage has started** | **Clay** | You've passed the quota included in your plan and work is now being **charged as extra usage** | Extra usage starts |
+| 💻 **Profile set for Windows** | **Slate** | The machine-wide profile switch **landed** — with the directory it wrote, or, if the write didn't take, what `CLAUDE_CONFIG_DIR` still reads | — (only when you switch) |
+
+Writing the machine-wide profile is the least visible thing this app does: nothing on screen changes,
+and you can't see the effect until you start another program. So it's the one action that confirms
+itself — **only** when you switch by hand, once per switch, and only once the variable has been read
+back to check the write actually took. It has **no quota bar**, which is a rule and not a style
+choice: a bar animating one account's remaining quota into another's would suggest switching accounts
+because one ran out, and this app does not say that.
 
 The context nudge fires at most **once per project per week**, and is off by default on purpose:
 nobody asked to be told their own memory directory is growing. The extra-usage one exists *because*

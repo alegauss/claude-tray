@@ -97,6 +97,11 @@ internal sealed class TrayContext : ApplicationContext
 
         _tray.BalloonTipClicked += (_, _) => { if (_update != null) _ = ApplyUpdateAsync(); };
 
+        // The one action whose effect nothing can see until another process starts (T174). Subscribed
+        // for the process lifetime, and dropped in ExitApp so a queued write finishing during shutdown
+        // does not try to raise a window on a thread that is leaving.
+        EnvironmentProfile.Completed += OnEnvironmentWritten;
+
         _ = RefreshAsync(); // fire first fetch immediately
         _ = CheckForUpdateAsync(); // look for a newer release on launch
         RecomputeInsights(); // build the 24h usage breakdown in the background
@@ -220,6 +225,62 @@ internal sealed class TrayContext : ApplicationContext
         {
             _tray.BalloonTipTitle = title;
             _tray.BalloonTipText = subtitle;
+            _tray.ShowBalloonTip(8000);
+        }
+    }
+
+    /// <summary>The STA thread this app's two UI stacks share. Captured while the tray is being built,
+    /// because the environment write reports back from the thread pool and a window cannot be raised
+    /// there.</summary>
+    private readonly SynchronizationContext _ui =
+        SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
+
+    /// <summary>
+    /// A queued environment write reported back (T173). Writing the user-scope <c>CLAUDE_CONFIG_DIR</c>
+    /// is the least visible thing this app does and the only one whose effect cannot be seen until
+    /// another process starts, so it is the one action that earns a card of its own (T174).
+    ///
+    /// <para>Narrow on purpose, against the T87 non-goal: only on an explicit user action — auto-follow
+    /// never writes, by design (T145) — once per action, and only to confirm a change that is otherwise
+    /// unobservable. A call with nothing to write is silent: the machine already said this, so there is
+    /// no change to confirm, and the reconcile that Save runs on every press would otherwise toast for
+    /// pressing Save.</para>
+    /// </summary>
+    private void OnEnvironmentWritten(EnvironmentProfile.WriteOutcome outcome)
+    {
+        if (!outcome.Wrote) return;
+        _ui.Post(_ => AnnounceEnvironmentWrite(outcome), null);
+    }
+
+    private void AnnounceEnvironmentWrite(EnvironmentProfile.WriteOutcome outcome)
+    {
+        // Null intent is "remove the variable", which selects the profile a bare `claude` uses — not
+        // "no profile". A dir outside the watch list falls back to its folder name rather than a blank.
+        string dir = outcome.Intended is { Length: > 0 } d ? d : ClaudeAccount.HomeConfigDir;
+        string label = EnvironmentProfile.SelectedIn(_watched, dir)?.Label
+                       ?? Path.GetFileName(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+
+        string title = L.T(outcome.Landed ? "toast.profile.title" : "toast.profile.titleFailed");
+        string subtitle = L.T("toast.profile.subtitle", label, dir);
+        // What the non-goal permits and no more: the variable is what changed, and a session already
+        // running cannot be moved to it. The failure arm says what the machine still reads instead.
+        string caption = outcome.Landed
+            ? L.T("toast.profile.caption")
+            : outcome.Error ?? L.T("toast.profile.captionFailed",
+                                   outcome.Observed is { Length: > 0 } o ? o : L.T("settings.cc.envSyncNone"));
+        try
+        {
+            EnsureWpfApp();
+            // No bar and no confetti: see ToastWindow's constructor for why borrowing the quota bar here
+            // would say something this app is not allowed to say.
+            new ToastWindow(outcome.Landed ? "💻" : "🚫", title, subtitle, 0, 0, caption,
+                "", ToastWindow.ToastTheme.Profile).Show();
+        }
+        catch
+        {
+            _tray.BalloonTipTitle = title;
+            _tray.BalloonTipText = $"{subtitle} — {caption}";
+            _tray.BalloonTipIcon = outcome.Landed ? ToolTipIcon.Info : ToolTipIcon.Warning;
             _tray.ShowBalloonTip(8000);
         }
     }
@@ -1565,7 +1626,9 @@ internal sealed class TrayContext : ApplicationContext
         if (_iconHandle != IntPtr.Zero) DestroyIcon(_iconHandle);
         _tray.Dispose();
         // A profile switched a moment ago has its environment write in flight on the thread pool
-        // (T149); the process must not take it down with it.
+        // (T149); the process must not take it down with it. Its confirmation, though, has nowhere
+        // left to go — the tray icon is disposed and the message loop is about to end (T174).
+        EnvironmentProfile.Completed -= OnEnvironmentWritten;
         EnvironmentProfile.Drain();
         ExitThread();
     }

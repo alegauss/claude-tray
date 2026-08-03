@@ -23,7 +23,7 @@ namespace ClaudeTray;
 internal partial class ToastWindow : Window
 {
     /// <summary>Color theme per notification type, so each is identifiable at a glance.</summary>
-    internal enum ToastTheme { Surprise, Bonus, Weekly, Session, Context, ExtraUsage }
+    internal enum ToastTheme { Surprise, Bonus, Weekly, Session, Context, ExtraUsage, Profile }
 
     private bool _closing;
     private double _targetScale = 1.0; // available quota after the event; the bar animates to this
@@ -58,6 +58,19 @@ internal partial class ToastWindow : Window
         Caption.Text = caption;
         FillScale.ScaleX = fromAvail; // quota left before; animates up to _targetScale
 
+        // A profile switch has no quota to draw, and the bar is not free to borrow: animating the
+        // outgoing account's remaining quota into the incoming one's says "switch accounts, this one has
+        // room" without a string, which is exactly what §I.7 forbids. So the block goes, and the card
+        // shrinks to what is left rather than padding the gap out (T174).
+        // A shorter card, sized to what is left rather than to a number picked off the English wording:
+        // the title wraps to two lines in every language here except English, and a fixed height that
+        // fits one of them cuts the caption off in the others (caught in the pt-BR capture).
+        if (theme == ToastTheme.Profile)
+        {
+            QuotaBlock.Visibility = Visibility.Collapsed;
+            SizeToContent = SizeToContent.Height;
+        }
+
         Loaded += OnLoaded;
     }
 
@@ -87,6 +100,10 @@ internal partial class ToastWindow : Window
         // Clay: the colour the icon's bar and the weekly chart's second axis already wear for
         // "past the included quota", so the same fact looks the same wherever it appears (T184).
         ToastTheme.ExtraUsage => ("#E89072", "#D97757", "#B0512F"),
+        // Slate: a machine-wide setting took effect (T174). Deliberately the quietest row in the table —
+        // this card confirms an action the user just took, and every other colour here is a claim about
+        // news that arrived on its own. Distinct from Session's blue, which is about a quota window.
+        ToastTheme.Profile => ("#93A7BE", "#63799A", "#3A4A66"),
         _ => throw new ArgumentOutOfRangeException(nameof(theme), theme, "no card colour for this toast"),
     };
 
@@ -103,13 +120,17 @@ internal partial class ToastWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        // Settle the auto-sized card's height into the property before anything reads it: both the
+        // parking below and SaveSnapshot work off Height, which SizeToContent leaves at its XAML value.
+        if (_theme == ToastTheme.Profile && ActualHeight > 0) Height = ActualHeight;
         PositionBottomRight();
         PlayEntrance();
-        FillTheBar();
+        if (_theme != ToastTheme.Profile) FillTheBar();   // there is no bar on that card to fill
         // Every toast so far has been good news (quota back). The context nudge is the first that
         // isn't, so it gets the same card and animation without the celebration — and the extra-usage
-        // one is a receipt, which is the least celebratory thing this app has to say.
-        if (_theme is not (ToastTheme.Context or ToastTheme.ExtraUsage)) LaunchConfetti();
+        // one is a receipt, which is the least celebratory thing this app has to say. A profile switch
+        // is a confirmation of something the user just did, which is nobody's idea of a party.
+        if (_theme is not (ToastTheme.Context or ToastTheme.ExtraUsage or ToastTheme.Profile)) LaunchConfetti();
 
         // Auto-dismiss after a comfortable read; the user can also close or act before then.
         var life = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };

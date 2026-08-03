@@ -601,6 +601,11 @@
   "toast.extra.subtitle": "Vous avez dépassé le quota inclus dans votre offre — le travail continue, facturé en usage supplémentaire.",
   "toast.extra.caption": "Cette fenêtre d’usage supplémentaire se réinitialise dans {0}.",
   "toast.extra.captionNoReset": "Sa propre heure de réinitialisation n’est pas encore indiquée.",
+  "toast.profile.title": "Profil défini dans Windows",
+  "toast.profile.titleFailed": "Windows n’a pas été mis à jour",
+  "toast.profile.subtitle": "{0} — {1}",
+  "toast.profile.caption": "Les sessions lancées à partir de maintenant l’utilisent. Une session déjà ouverte garde le profil avec lequel elle a démarré.",
+  "toast.profile.captionFailed": "CLAUDE_CONFIG_DIR indique toujours {0}.",
   "toast.extra.quotaLabel": "usage supplémentaire à ce jour",
   "toast.context.quotaLabel": "Fenêtre de contexte encore libre"
 }

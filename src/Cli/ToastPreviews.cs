@@ -73,6 +73,21 @@ internal static class ToastPreviews
             _ => new ToastWindow("🧾", L.T("toast.extra.title"), L.T("toast.extra.subtitle"),
                 1 - 0.06, 1 - 0.06, L.T("toast.extra.caption", "2d 3h"),
                 L.T("toast.extra.quotaLabel"), ToastWindow.ToastTheme.ExtraUsage)),
+
+        new("profile", "the machine-wide profile switch landing (T174): slate, no confetti and — the " +
+                       "part that is a rule, not a taste — no quota bar, on a card shortened to suit",
+            // An invented profile and dir, for the reason the context row is invented: this card gets
+            // captured and published, and a real one puts somebody's account on the marketing page.
+            _ => new ToastWindow("💻", L.T("toast.profile.title"),
+                L.T("toast.profile.subtitle", "Personal", @"C:\Users\you\.claude-personal"),
+                0, 0, L.T("toast.profile.caption"), "", ToastWindow.ToastTheme.Profile)),
+
+        new("profile-failed", "the same switch, not landing: the write threw or the variable still reads " +
+                              "the old value, which before T173 nothing could tell you at all",
+            _ => new ToastWindow("🚫", L.T("toast.profile.titleFailed"),
+                L.T("toast.profile.subtitle", "Personal", @"C:\Users\you\.claude-personal"),
+                0, 0, L.T("toast.profile.captionFailed", @"C:\Users\you\.claude-work"),
+                "", ToastWindow.ToastTheme.Profile)),
     };
 
     /// <summary>The table itself, for the self-check that every row still resolves, that an invented name

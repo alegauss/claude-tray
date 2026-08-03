@@ -174,29 +174,6 @@ Three failure modes hide behind the one symptom, and separating them comes first
 C bounds the block: **no registry check proves the next process will see the value.** Hence §XVI.2
 displays the effective value continuously rather than asserting it once at the pick.
 
-### §XVI.4 The one action with no feedback at all (T174)
-
-Writing a machine-wide setting is the least visible thing the tray does and the only one whose effect
-cannot be seen until another process starts. `ToastWindow` is the app's answer to "an event worth
-noticing", and `ToastTheme.Context` established that a toast need not be a celebration — same card, same
-slide-and-fade, no confetti.
-
-A switch toast is the same category. It fires on §XVI.3's confirmation — **after** the value is read back,
-never on the click — and says what was applied: the profile, the effective directory, and the sentence the
-"no switching a running session" non-goal requires.
-
-What the toast **must not** do is the decision worth recording. `ToastWindow`'s central metaphor is a quota
-bar animating from its old level to its new one, and reusing it — animating the outgoing account's
-remaining quota into the incoming one's — is the obvious move and forbidden. The "profiles are contexts,
-not quota pools" non-goal says no string may suggest changing accounts because one hit its limit, and a
-bar leaping from 0% to 100% says it without a string, in precisely the situation that produced this
-report. So: no quota bar and no confetti. If that leaves the card thin, the answer is a smaller card.
-
-Per the T87 non-goal it needs its own justification rather than an inherited one, and it is narrow: only
-on an explicit user action, once per action, only to confirm a change otherwise unobservable.
-
----
-
 ## §XVIII — Extra usage is money, and the tray is asleep for it (Block AE)
 
 The report indicts the whole feature: *"apesar de estar em 100% de uso, ainda funcionava, porque estava

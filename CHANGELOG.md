@@ -44,7 +44,7 @@
 | [Z](#block-z--what-the-app-knows-and-doesnt-say) | What the app knows and doesn't say — the read-back of Block V |
 | [AA](#block-aa--the-picker-switches-profiles-the-window-has-to-switch-with-it) | The picker switches profiles; the window has to switch with it (active — see ROADMAP) |
 | [AB](#block-ab--what-block-zs-own-work-left-behind) | What Block Z's own work left behind |
-| [AC](#block-ac--the-tray-reports-the-switch-it-performed-not-the-switch-the-machine-got) | The tray reports the switch it performed, not the switch the machine got (active — see ROADMAP) |
+| [AC](#block-ac--the-tray-reports-the-switch-it-performed-not-the-switch-the-machine-got) | The tray reports the switch it performed, not the switch the machine got |
 | [AD](#block-ad--the-window-can-be-read-now-and-what-that-turned-up) | The window can be read now, and what that turned up |
 | [AE](#block-ae--extra-usage-is-money-and-the-tray-is-asleep-for-it) | Extra usage is money, and the tray is asleep for it |
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
@@ -560,3 +560,4 @@
 - **T171** — Picking a profile now states how far the pick reaches - the tray only, or the whole Windows user environment - and the machine-wide switch sits in the Profile submenu itself, so the half that did not happen is legible at the moment of the choice instead of buried in Settings.
 - **T172** — The Profile submenu now reads CLAUDE_CONFIG_DIR back and marks the profile it names when that is not the one the icon draws - or names the folder outright when it covers no registered profile - so whose numbers these are and which profile a new session starts in stop being one answer. Agreement passes without ceremony; the divergence is the signal.
 - **T173** — A queued environment write now reports how it went: the value is read back off the registry once the queue reaches it, and the outcome - landed, did not land, or threw with the reason - is raised per write and kept as the last one, so a write that was merely accepted is no longer indistinguishable from one that took. The click still returns at once and nothing shows a dialog.
+- **T174** — A machine-wide profile write now confirms itself, on the read-back rather than on the click: a slate card naming the profile, the directory and the one claim the non-goal permits - sessions from now on, never one already running. No confetti and, deliberately, no quota bar: animating one account's remaining quota into another's would say switch accounts because this one has room. The failure arm names what CLAUDE_CONFIG_DIR still reads.

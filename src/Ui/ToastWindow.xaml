@@ -55,7 +55,11 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock x:Name="Emoji" FontSize="32" VerticalAlignment="Center" />
                             <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                                <TextBlock x:Name="TitleText" FontSize="20" FontWeight="Bold" Foreground="White" />
+                                <!-- Bounded like the subtitle: the close button sits at the same top-right
+                                     corner, and an unbounded title runs straight under it in any language
+                                     whose wording is longer than English's (T174). -->
+                                <TextBlock x:Name="TitleText" FontSize="20" FontWeight="Bold" Foreground="White"
+                                           TextWrapping="Wrap" MaxWidth="250" />
                                 <TextBlock x:Name="Subtitle" FontSize="13" Foreground="#EEFFFFFF"
                                            TextWrapping="Wrap" MaxWidth="270" />
                             </StackPanel>
@@ -67,23 +71,26 @@
                                 Cursor="Hand" Click="Close_Click" />
                     </Grid>
 
-                    <!-- The good news, shown as available quota filling back up to 100%. -->
+                    <!-- The good news, shown as available quota filling back up to 100%. QuotaBlock is
+                         collapsed for a card that has no quota to talk about (T174) — see the constructor. -->
                     <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,12,0,0">
-                        <Grid>
-                            <TextBlock x:Name="QuotaLabel" FontSize="13" FontWeight="SemiBold"
-                                       Foreground="White" HorizontalAlignment="Left" />
-                            <TextBlock x:Name="AvailPct" FontSize="13" FontWeight="SemiBold"
-                                       Foreground="White" HorizontalAlignment="Right" />
-                        </Grid>
-                        <Border Height="10" CornerRadius="5" Background="#33FFFFFF"
-                                Margin="0,6,0,0" ClipToBounds="True">
-                            <Border x:Name="Fill" CornerRadius="5" Background="White"
-                                    HorizontalAlignment="Stretch" RenderTransformOrigin="0,0">
-                                <Border.RenderTransform>
-                                    <ScaleTransform x:Name="FillScale" ScaleX="0.21" />
-                                </Border.RenderTransform>
+                        <StackPanel x:Name="QuotaBlock">
+                            <Grid>
+                                <TextBlock x:Name="QuotaLabel" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="White" HorizontalAlignment="Left" />
+                                <TextBlock x:Name="AvailPct" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="White" HorizontalAlignment="Right" />
+                            </Grid>
+                            <Border Height="10" CornerRadius="5" Background="#33FFFFFF"
+                                    Margin="0,6,0,0" ClipToBounds="True">
+                                <Border x:Name="Fill" CornerRadius="5" Background="White"
+                                        HorizontalAlignment="Stretch" RenderTransformOrigin="0,0">
+                                    <Border.RenderTransform>
+                                        <ScaleTransform x:Name="FillScale" ScaleX="0.21" />
+                                    </Border.RenderTransform>
+                                </Border>
                             </Border>
-                        </Border>
+                        </StackPanel>
                         <TextBlock x:Name="Caption" FontSize="12" Foreground="#CCFFFFFF"
                                    Margin="0,7,0,0" TextWrapping="Wrap" />
                     </StackPanel>

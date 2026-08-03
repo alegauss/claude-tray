@@ -233,6 +233,7 @@
   .notify.teal{border-color:rgba(35,152,122,.5)}     .notify.teal .nsw{background:#23987A;box-shadow:0 0 10px rgba(35,152,122,.6)}
   .notify.blue{border-color:rgba(63,121,207,.5)}     .notify.blue .nsw{background:#3F79CF;box-shadow:0 0 10px rgba(63,121,207,.6)}
   .notify.ochre{border-color:rgba(190,133,53,.5)}    .notify.ochre .nsw{background:#BE8535;box-shadow:0 0 10px rgba(190,133,53,.6)}
+  .notify.slate{border-color:rgba(99,121,154,.5)}    .notify.slate .nsw{background:#63799A;box-shadow:0 0 10px rgba(99,121,154,.6)}
 
   /* ---------- privacy banner ---------- */
   .privacy{
@@ -544,9 +545,9 @@
     <!-- The two that are not resets. Same card, no confetti: these state a fact rather than
          celebrating one, so they are grouped apart from the four above. -->
     <div class="sec-head reveal" style="margin-top:64px">
-      <div class="eyebrow">And two that aren't celebrations</div>
+      <div class="eyebrow">And three that aren't celebrations</div>
       <h2>The same card, without the confetti</h2>
-      <p>Not every thing worth knowing is good news. These two use the same toast and say so plainly — one about what every session costs you before you type, one about the moment your quota stops being included.</p>
+      <p>Not every thing worth knowing is good news. These three use the same toast and say so plainly — one about what every session costs you before you type, one about the moment your quota stops being included, and one confirming a change you cannot otherwise see.</p>
     </div>
     <div class="notify-grid reveal">
       <div class="notify ochre">
@@ -558,6 +559,11 @@
         <img src="notify-extra.png" alt="Extra usage has started — past the quota included in your plan (clay)">
         <div class="ntag"><span class="nsw"></span> Extra usage <b>has started</b></div>
         <p>It exists because the four above do: the app interrupted you to say quota came <b>back</b> and said nothing when you started paying. Fires <b>once</b> when a check first finds you past your included quota — not on a timer, not again while the same spell lasts. A receipt, not a prompt: it names no account and suggests nothing.</p>
+      </div>
+      <div class="notify slate">
+        <img src="notify-profile.png" alt="Profile set for Windows — the machine-wide profile switch landed (slate)">
+        <div class="ntag"><span class="nsw"></span> Profile <b>set for Windows</b></div>
+        <p>Writing the machine-wide profile is the least visible thing this app does — nothing on screen changes, and you cannot see the effect until you start another program. So it confirms itself: only when you switch by hand, once per switch, and only after the variable is read back to check the write took. <b>No quota bar</b> — a bar animating one account's remaining quota into another's would suggest switching accounts because one ran out, and this app does not say that.</p>
       </div>
     </div>
   </div>

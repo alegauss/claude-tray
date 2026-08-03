@@ -61,8 +61,6 @@
 >
 > Ordered by what is wrong for every user today, then by what makes the result checkable.
 
-- 📋 **T174** (deps: T173 ✅) **A machine-wide write is the one action with no feedback at all** — The icon moving is feedback for the icon, and the effect of the write stays invisible until the next process starts. → §XVI.4
-
 ## Block AI — Verification — the checks that prove a change
 
 - 📋 **T220** (deps: —) **A check driving the tray already running compares its labels against a language that tray is not in** — -Lang is a launch argument and -UseRunning does not launch, so the resident tray answers in its own saved language and four labels that were all present were reported missing. → §XX.16
