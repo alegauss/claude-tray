@@ -75,10 +75,19 @@
 
 - 💭 **T219** (deps: —) **The turn budget is full, so a new rule is paid for by deleting an old one nobody ranked** — Writing T169's rule took AGENTS.md 612 bytes over, and the bytes came back from a sentence that happened to be duplicated — a selector that runs out before the next rule does. → §XXII.1
 - 📋 **T223** (deps: —) **Three block headings in the ledger have no row in the ledger's own table of blocks** — That table is the only index of what each block is about and it is written by hand, so Block AG carries five shipped tasks under a letter the index does not list at all. → §XXII.2
+- 📋 **T226** (deps: —) **Reading the log the probe already recorded costs a live API call, every time** — --probe --live skips reading the log and nothing skips the call, so reviewing what was captured spends a request against the account being measured. → §XXII.3
 
 ## Block G — Localization
 
 - 💭 **T216** (deps: —) **One machine, two number conventions: the page decides, not the app** — T167 picked invariant for one window, while the Context page, the tray toast and the System page format the same figures with L.Culture, and the sweep it added reaches neither. → §XXI.1
+
+## Block D — Auth & API resilience
+
+- 📋 **T224** (deps: —) **The tray infers permission to overspend from a local file, and cannot see the API refusing it** — Resolve reads hasExtraUsageEnabled out of a file Claude Code writes, while a second account answers rejected with org_level_disabled - the reading Allows was deferred until. → §XXIII.1
+
+## Block N — System information — your plan, your install, this machine
+
+- 📋 **T225** (deps: —) **One directory is counted twice when two entries differ only in the case of the drive letter** — The project count is the number of keys under projects, and Windows paths are case-insensitive, so d:/Git/x and D:/Git/x are one folder reported as two. → §XXIV.1
 
 ## Non-goals (do NOT add as tasks)
 

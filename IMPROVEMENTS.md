@@ -442,3 +442,83 @@ for exactly this kind of claim.
 
 Worth settling with it: whether the skill's theme table is a third source to check against, or
 whether it should point at the ledger's rather than repeat it.
+
+### XXII.3 A read-out that cannot be run without taking a reading
+
+`--probe` prints the recorded log and then makes one live call, which T212 made it record rather
+than drop. `--live` is the half that skips *reading* the log. There is no half that skips the call.
+
+The cost showed up while building T210 and T211: three live calls were spent to look at a read-out
+over data already on disk, and each one appended to the log being read. That is the mild version.
+The sharp one is that the flag's whole subject is an account near or past its quota, which is
+exactly the account whose requests are worth something — the instrument for measuring a limit should
+not be a thing that consumes it.
+
+The shape is already there and is one word: `--live` reads live only, so its opposite reads the log
+only. What that opposite must not do is become the default, because a stale log read as if it were
+current is how the wrong reading gets quoted, and T212 exists because a captured reading that is not
+written down is lost.
+
+Two smaller things sit with it, both about the same command being run to look rather than to
+measure. The live call is made even when the log is empty and the summary would say nothing, and
+`--all` takes its live reading from the monitored profile alone, so the spread it prints is one
+profile fresher than the rest without saying so.
+
+## XXIII What the API says about permission, and what the app infers instead (Block D)
+
+Every signal this app has about whether an account may spend past its included quota is inferred
+from a file or from an effect. The API states it directly, on every response, and nothing here has
+ever been able to read the statement — because until a second account was probed there was only one
+sample and it could not be told apart from a default.
+
+### XXIII.1 The refusal the display is not allowed to see, and the reading that changes that
+
+`QuotaStates.Resolve` answers the icon's colour and the tooltip's sentence from two signals: the
+overage utilization, and `hasExtraUsageEnabled` read out of `.claude.json`. It deliberately does not
+take the overage window's own status, and `Allows` says why: one reading, of one account, inside its
+quota and with the flag set, sent `overage-status: allowed` — so nothing could tell *you are
+permitted* apart from a value every response carries regardless, and believing it wrongly would put
+a clay bar and "extra usage is paying" in front of somebody whose work had stopped. The display was
+to keep inferring until a reading arrived that told the two apart.
+
+T211 took that reading. A second account on this machine answers `overage-status: rejected`, carries
+no overage utilization or reset at all, and sends a header nobody here had seen:
+`overage-disabled-reason: org_level_disabled`. The status is not a constant, and the refusal names
+its own cause.
+
+What that does not settle is the affirmative — `allowed` from an account inside its quota still
+cannot be distinguished from a default, so the asymmetry stands: a status may buy a poll and may not
+paint a screen. What it settles is the negative, which is the dangerous direction. A local flag
+reading enabled while the organisation has disabled it produces exactly the sentence T182 wrote to
+prevent. Both accounts here agree today, so this is latent rather than live.
+
+`overage-disabled-reason` is the second half of the task: the only signal measured so far that could
+turn *you have stopped* into a sentence naming why, which no surface can say at all.
+
+## XXIV This machine's install, read from a file another program writes (Block N)
+
+The System information page reports the machine rather than the app, so every figure on it is read
+out of files Claude Code owns and this app only opens. What those files are allowed to contain is
+therefore not this app's decision, and a count taken over them is a claim about their shape.
+
+### XXIV.1 A key count is a claim about a file this app does not write
+
+`ClaudeAccount` reports a profile's project count as the number of keys under `projects` in
+`.claude.json`. That is a count of *entries*, and the page presents it as a count of directories.
+
+On this machine the two differ. One profile's file carries 39 keys and 37 directories: `d:/Git/x`
+and `D:/Git/x` both appear, twice over, differing only in the case of the drive letter. Windows
+paths are case-insensitive, so those are one folder that Claude Code recorded under two spellings —
+a shell that lower-cased the drive on one launch is enough to produce it, and nothing in either
+program is wrong for having written it.
+
+The fix is to count what the number claims to count, which means folding the keys under the same
+comparison the filesystem uses before counting them. `OrdinalIgnoreCase` is the whole of it for the
+drive letter, and it is also not quite enough in general — a path reached through a different
+spelling of the same directory is a wider problem, and this task is deliberately only the part that
+is measurable here.
+
+Worth noting where this does *not* reach. `ProjectSlug` owns the `projects/<slug>` encoding and the
+transcripts live in directories named by it, so a second spelling produces a second slug directory
+and the scans that walk those directories are counting real folders. This is the config file's own
+map, read once for one number on one page.

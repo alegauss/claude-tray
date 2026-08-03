@@ -20,7 +20,7 @@
 | [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
-| [D](#block-d--auth--api-resilience) | Auth & API resilience |
+| [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
@@ -45,7 +45,7 @@
 | [AA](#block-aa--the-picker-switches-profiles-the-window-has-to-switch-with-it) | The picker switches profiles; the window has to switch with it (active — see ROADMAP) |
 | [AB](#block-ab--what-block-zs-own-work-left-behind) | What Block Z's own work left behind |
 | [AD](#block-ad--the-window-can-be-read-now-and-what-that-turned-up) | The window can be read now, and what that turned up |
-| [AE](#block-ae--extra-usage-is-money-and-the-tray-is-asleep-for-it) | Extra usage is money, and the tray is asleep for it (active — see ROADMAP) |
+| [AE](#block-ae--extra-usage-is-money-and-the-tray-is-asleep-for-it) | Extra usage is money, and the tray is asleep for it |
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
 | [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
