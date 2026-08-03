@@ -256,27 +256,6 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
-### XXII.3 A read-out that cannot be run without taking a reading
-
-`--probe` prints the recorded log and then makes one live call, which T212 made it record rather
-than drop. `--live` is the half that skips *reading* the log. There is no half that skips the call.
-
-The cost showed up while building T210 and T211: three live calls were spent to look at a read-out
-over data already on disk, and each one appended to the log being read. That is the mild version.
-The sharp one is that the flag's whole subject is an account near or past its quota, which is
-exactly the account whose requests are worth something — the instrument for measuring a limit should
-not be a thing that consumes it.
-
-The shape is already there and is one word: `--live` reads live only, so its opposite reads the log
-only. What that opposite must not do is become the default, because a stale log read as if it were
-current is how the wrong reading gets quoted, and T212 exists because a captured reading that is not
-written down is lost.
-
-Two smaller things sit with it, both about the same command being run to look rather than to
-measure. The live call is made even when the log is empty and the summary would say nothing, and
-`--all` takes its live reading from the monitored profile alone, so the spread it prints is one
-profile fresher than the rest without saying so.
-
 ## XXIII What the API says about permission, and what the app infers instead (Block D)
 
 Every signal this app has about whether an account may spend past its included quota is inferred

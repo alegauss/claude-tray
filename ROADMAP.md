@@ -65,8 +65,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T226** (deps: —) **Reading the log the probe already recorded costs a live API call, every time** — --probe --live skips reading the log and nothing skips the call, so reviewing what was captured spends a request against the account being measured. → §XXII.3
-
 ## Block G — Localization
 
 - 💭 **T216** (deps: —) **One machine, two number conventions: the page decides, not the app** — T167 picked invariant for one window, while the Context page, the tray toast and the System page format the same figures with L.Culture, and the sweep it added reaches neither. → §XXI.1

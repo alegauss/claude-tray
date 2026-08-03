@@ -17,14 +17,32 @@ namespace ClaudeTray;
 ///
 /// <para><c>--probe --live</c> skips <em>reading</em> the log, not writing to it: a flag asking for the
 /// freshest reading is the last one that should drop it. <c>--probe --all</c> reads every profile's log,
-/// and still takes its live reading from the monitored one.</para>
+/// and still takes its live reading from the monitored one — which it now says out loud, because a
+/// spread whose profiles are not equally fresh reads as one that is.</para>
+///
+/// <para><b><c>--recorded</c> is the half that skips the call (T226).</b> The shape was already here and
+/// missing its opposite: <c>--live</c> reads live only, so <c>--recorded</c> reads the log only, and
+/// looking at what was captured stops costing a request against the very account being measured — the
+/// instrument for measuring a limit should not be a thing that consumes it. Three live calls were spent
+/// building T210 and T211 to look at a read-out over data already on disk, each one appending to the log
+/// being read. It is deliberately <em>not</em> the default: a stale log read as if it were current is how
+/// the wrong reading gets quoted, so the flag has to be typed. With <c>--live</c> it refuses rather than
+/// picking one — they are opposite halves and no order of precedence is more obvious than the other.</para>
 /// </summary>
 internal static class ProbeCli
 {
     public static async Task<int> RunAsync(string[] args)
     {
         bool liveOnly = args.Contains("--live");
+        bool recordedOnly = args.Contains("--recorded");
         bool all = args.Contains("--all");
+
+        if (liveOnly && recordedOnly)
+        {
+            Console.WriteLine("--live and --recorded are opposite halves of this command: --live skips reading");
+            Console.WriteLine("the log, --recorded skips taking a reading. Pass one, or neither for both halves.");
+            return 1;
+        }
 
         Console.WriteLine("Rate-limit headers, verbatim. Quota metadata only — no message content, no token.");
         Console.WriteLine();
@@ -56,7 +74,9 @@ internal static class ProbeCli
                     // profile since the probe shipped, which is a different fact and the actionable one.
                     Console.WriteLine("   nothing on file. The first reading is always kept, so this profile");
                     Console.WriteLine("   has not been polled since the probe shipped — run the tray, or (for");
-                    Console.WriteLine("   the monitored profile) the live call below files one now.");
+                    Console.WriteLine(recordedOnly
+                        ? "   the monitored profile) drop --recorded and the live call files one now."
+                        : "   the monitored profile) the live call below files one now.");
                     Console.WriteLine();
                     continue;
                 }
@@ -66,7 +86,16 @@ internal static class ProbeCli
                 Console.WriteLine();
             }
 
-            Spread(spread, indent: "   ");
+            Spread(spread, indent: "   ", live: all && !recordedOnly ? target.Label ?? targetKey : null);
+        }
+
+        if (recordedOnly)
+        {
+            // The whole point of the flag, said where the live block would have been: silence here would
+            // read exactly like a call that returned nothing.
+            Console.WriteLine("== recorded only — no live call was made, so nothing was spent and nothing filed.");
+            Console.WriteLine("   Drop --recorded for a reading of right now, which is also filed.");
+            return 0;
         }
 
         Console.WriteLine($"== live, right now — {target.Label ?? targetKey}");
@@ -85,6 +114,15 @@ internal static class ProbeCli
         Console.WriteLine(kept
             ? "   recorded — this shape was not on file."
             : "   not recorded: the shape has not moved since the last reading on file.");
+
+        // A summary derived from the log *before* this reading joined it is a summary that does not
+        // contain it — including the run that files the very first one (T226). Naming the flag that
+        // re-reads is cheaper than making the summaries lie about which readings they cover.
+        if (kept && !liveOnly)
+        {
+            Console.WriteLine("   The vocabulary and spread above were derived before it joined the log —");
+            Console.WriteLine("   `--probe --recorded` re-reads them including it, and costs no call.");
+        }
 
         Console.WriteLine(d.HasExtra
             ? "   The overage header is present. T181 measured the window; what 100% of it *amounts to* is\n"
@@ -148,8 +186,14 @@ internal static class ProbeCli
     /// <para>The two accounts on this machine are the two samples, so the comparison cannot be made inside
     /// either log — and printing both logs in full, which is what <c>--all</c> did, left the diff to
     /// whoever was reading. Only the divergent names are listed: a name every profile is sent is the
-    /// uninteresting case, and it is the one that fills the screen.</para></summary>
-    private static void Spread(List<(string Profile, IReadOnlyList<ProbeEntry> Log)> logs, string indent)
+    /// uninteresting case, and it is the one that fills the screen.</para>
+    ///
+    /// <para><c>live</c> names the one profile a live call is about to refresh, or null when none is
+    /// (<c>--recorded</c>). The live reading is taken from the monitored profile alone, so one column of
+    /// this comparison is seconds old and the rest are as of whenever the tray last polled them — a
+    /// difference that changes what a divergence means and was legible nowhere (T226).</para></summary>
+    private static void Spread(List<(string Profile, IReadOnlyList<ProbeEntry> Log)> logs, string indent,
+                               string? live = null)
     {
         if (logs.Count < 2) return;   // a spread over one profile is that profile's own vocabulary
 
@@ -157,6 +201,17 @@ internal static class ProbeCli
         List<HeaderSpread> divergent = spread.Where(h => h.Divergent).ToList();
         Console.WriteLine($"== across {logs.Count} profiles — {spread.Count - divergent.Count} name(s) sent "
                           + $"to all, {divergent.Count} to only some");
+
+        // What each column is as of, before what they disagree about: an absent name is a permission only
+        // if both logs are recent enough to have seen it, and one of these is about to be seconds old.
+        int stamp = logs.Max(l => l.Profile.Length);
+        foreach ((string profile, IReadOnlyList<ProbeEntry> log) in logs)
+            Console.WriteLine($"{indent}{profile.PadRight(stamp)}  last recorded {When(log.Max(e => e.T))}");
+        Console.WriteLine(live is null
+            ? $"{indent}no live call was made, so every column above is as recorded."
+            : $"{indent}the live call below refreshes {live} only — the rest stay as old as their last poll.");
+        Console.WriteLine();
+
         if (divergent.Count == 0)
         {
             Console.WriteLine($"{indent}every profile is sent the same set of names.");

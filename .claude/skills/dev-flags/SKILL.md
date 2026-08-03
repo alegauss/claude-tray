@@ -140,11 +140,22 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   claims to own the variable and what it restores to (T173) —
                                       #   that claim against a differing registry is a write that was
                                       #   accepted and never landed.
---probe [--live] [--all]              # the rate-limit headers VERBATIM: the recorded capture log first,
+--probe [--live | --recorded] [--all] # the rate-limit headers VERBATIM: the recorded capture log first,
                                       #   then one live call — which is itself recorded (T212), against
                                       #   the monitored profile and filed under its key. --live skips
-                                      #   *reading* the log, not writing to it; --all reads every
-                                      #   profile's. The instrument for T181's other half — what 100% of
+                                      #   *reading* the log, not writing to it; --recorded is its
+                                      #   opposite half (T226) and skips the CALL — reviewing what was
+                                      #   captured no longer spends a request against the very account
+                                      #   being measured, which is the account whose requests are worth
+                                      #   something. Not the default, deliberately: a stale log read as
+                                      #   if it were current is how a wrong reading gets quoted. The two
+                                      #   together refuse and exit 1. --all reads every profile's log and
+                                      #   names which single profile the live call refreshes, with each
+                                      #   column's last recorded time, so a spread whose profiles are not
+                                      #   equally fresh no longer reads as one that is. A live reading
+                                      #   that is kept says the summaries above predate it and names
+                                      #   --recorded, which re-reads them for free. The instrument for
+                                      #   T181's other half — what 100% of
                                       #   the overage window amounts to, which only an account in overage
                                       #   can answer. Each profile's log opens with its VOCABULARY (T210):
                                       #   every value each categorical header has taken, counted and dated,

@@ -566,6 +566,7 @@
 
 - **T219** — AGENTS.md now states the test it is kept by - a rule earns its bytes if getting it wrong has produced a defect and --selftest cannot assert it instead - and the per-file map left on that test for the new `file-map` skill, reference material consulted rather than read. 40,981 bytes against a 41,000 ceiling became 23,359 against 24,200, so the next rule is written instead of negotiated against whichever paragraph was least recently needed.
 - **T223** — The ledger's index of blocks is asserted against the ledger's own headings, both directions and the anchor with them, so a block that ships under a letter the index never learned is a red build - the two that had drifted, P and AG, are listed, and AG's five shipped tasks are findable from the table again. The roadmap-docs theme table is checked one way only, since it lists the themes meant to be reused rather than every letter that ever shipped.
+- **T226** — The probe grew the half that skips the call: --recorded reads the log only, so reviewing what was captured costs nothing against the account being measured - not the default, because a stale log read as current is how a wrong reading gets quoted, and passing it with --live refuses instead of picking one. Two things that sat with it are said out loud now: --all names the single profile its live call refreshes beside each column's last recorded time, and a kept reading points at --recorded, since the summaries printed above it were derived before it joined the log.
 
 ## Block AB — What Block Z's own work left behind
 
