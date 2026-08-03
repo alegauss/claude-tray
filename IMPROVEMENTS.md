@@ -216,6 +216,30 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
+### XX.25 The character the script cannot read
+
+Measured rather than reasoned about, twice in one session and with two different symptoms.
+
+Loud: an em dash inside a double-quoted string is a **parse error** - `Token inesperado`, and no
+assertion runs at all. Reduced to two files and confirmed: with no BOM, a `Write-Output` of a string
+holding U+2014 does not parse under PowerShell 5.1, while the same character in a `#` comment runs
+fine. The mechanism is the encoding, not the character. The file carries no byte-order mark, so 5.1
+reads it as the ANSI code page, and the three UTF-8 bytes of U+2014 arrive as three CP1252
+characters whose last one is a right double quotation mark - which closes the string mid-expression.
+
+Quiet, and worse: the file already carries 38 em dashes, every one of them inside a comment or a
+help block, where mojibake only looks bad. T234 hit the other end - a `-split` on a middle dot
+compared against a token the parser had read as something else, so the split never matched and the
+state word read as the whole sentence. That one passes review, passes the parser, and asserts
+nothing.
+
+Two fixes, and they are not the same trade. A byte-order mark is one byte and makes both symptoms go
+away for every character, at the cost of a diff on a 2300-line file and of whatever else reads it.
+Keeping code ASCII and leaving prose to comments costs nothing and remembers nothing - which is the
+failure mode of every rule in this repository that lives in somebody's head.
+
+Whichever it is has to be checked, or it is the same rule with a shorter memory.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of

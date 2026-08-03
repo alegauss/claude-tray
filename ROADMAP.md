@@ -63,6 +63,8 @@
 
 ## Block AI — Verification — the checks that prove a change
 
+- 📋 **T259** (deps: —) **A dash in a message string does not parse, and the same dash in a comparison compares wrong** — The check script has no BOM, so PowerShell 5.1 reads it as ANSI and a UTF-8 em dash arrives ending in a smart quote that closes the string early - a parse error, not a failing check. → §XX.25
+
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization
