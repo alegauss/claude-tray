@@ -301,6 +301,48 @@ work; the rest is deciding what it may find.
 AGENTS.md is loaded every turn and is at its budget, so the file is zero-sum: what goes in now
 displaces something, and nothing records which rules have earned the bytes they cost.
 
+### XXII.12 The exception whose reason expired one task later
+
+T249 removed `**.md` from `check.yml`'s `paths-ignore` because four checks had begun reading
+markdown, and kept `docs/**` on the stated grounds that nothing read the published site. The comment
+it left says so: *the day a check reads `docs/`, this line goes with it*.
+
+T250 is that check, and it shipped next. It reads `docs/index.html` and every `docs/*.png`, and
+asserts exactly the things a commit touching only `docs/` would break — a renamed screenshot, an
+image reference edited by hand, a marketing block pointing at a file that is gone. A commit that
+touches only that directory does not run the check written for it.
+
+The finding is not the line, it is that a correct exception went stale in one task and the note
+saying when to revisit it was not enough. `paths-ignore` is a hardcoded list of what no check reads,
+maintained by hand, in a repository that has spent a whole block replacing exactly that kind of list
+with something derived — and this one is worse than most, because being wrong makes a check silently
+not run rather than fail.
+
+So the fix is the line, and the question worth settling with it is whether the list should exist at
+all: what is left after `docs/` is `LICENSE`, which is one file, and the run it saves is one build.
+A guard nobody can get wrong is worth more than the minutes.
+
+### XXII.13 The checks that read files, behind a compiler
+
+Six assertions in `--selftest` compare a document to the thing it documents. Not one of them needs
+the app: they open files, match text and compare lists. All six are reachable only by building
+`ClaudeTray.exe` in Release and running it, because `--selftest` *is* the test suite and the suite
+is a flag on the product — the shape §I.3 forces by refusing a test project.
+
+That was free while the guard skipped prose. T249 stopped it skipping, correctly, and the bill
+arrived with it: a commit fixing a sentence in `CHANGELOG.md` now runs `dotnet build -c Release` and
+the interaction job before anything reads the sentence. The checks themselves take milliseconds.
+
+Three shapes, and the trade-off is real in each. Leave it, and the cost is minutes of CI on the
+commits this repository makes most. Split the document checks into a job that runs them without a
+build — which needs them to exist outside the binary, and the no-test-project rule is about
+*dependencies*, not about where a check may live. Or keep one binary and let the guard build Debug
+for a prose-only change, which is most of the difference and none of the risk, since these checks
+never touch the compiled behaviour.
+
+Worth settling first: whether a document check belonging to the app at all is the thing that is
+wrong. The app does not read `CHANGELOG.md` in the user's hands; only this repository does.
+
 ## XXIII What the API says about permission, and what the app infers instead (Block D)
 
 Every signal this app has about whether an account may spend past its included quota is inferred
