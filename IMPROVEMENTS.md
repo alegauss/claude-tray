@@ -476,30 +476,6 @@ the task, not by checking it.** The picker leak surfaced because a fixture captu
 enough to notice the name above the chart; the toast path because a file appeared in the repo root;
 the window mix-up because the wrong window came back.
 
-### XXI.3 A capture that does not say what it captured
-
-`scripts\Capture-Window.ps1 -Args "--stats","overage"` returned a PNG of the **Settings** window
-belonging to a different instance that happened to be open on the desktop, printed `Captured 1760 x
-1200 -> …` and exited 0. Measured while shipping T186, and the only reason it was caught is that the
-picture was read.
-
-This is the same class as the defect T186 repaired, on the surface that is supposed to verify the
-repair. Worse, it is the path `AGENTS.md` sends people to for the one case the off-screen capture
-cannot serve — a popup is its own top-level window, so `--stats method` plus this script is the
-*only* way to photograph the method note. The check that catches a lying capture is the reader
-noticing, which is exactly the assumption Block AF spent seven tasks removing elsewhere.
-
-What it has to do is name what it captured. The script launches a process; the window it photographs
-must be one that process owns, and if the wait for that window times out it must fail rather than
-fall back to whatever is in front. Printing the window's title and its owning process id in the
-success line is worth as much as the assertion, because it makes the next wrong capture
-self-reporting instead of silent.
-
-Two adjacent facts belong here. `Check-Interaction.ps1` already refuses to run while another tray is
-alive, for precisely this reason, and its `-UseRunning` escape is the shape a deliberate override
-should take. And whatever this grows, `--capture-settings` and `--capture-stats` stay the default:
-the value of this script is the popup case, not convenience.
-
 ### XXI.4 The third branch of the same row
 
 `SettingsPage.System`'s extra-usage row has three branches. Absent — no stored reading, or one

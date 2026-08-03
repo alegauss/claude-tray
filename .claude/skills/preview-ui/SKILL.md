@@ -30,6 +30,13 @@ ClaudeTray.exe --settings      # just the Settings page, without the shell's nav
 per-monitor-DPI-aware (critical on 150–200% displays or the capture is offset/scaled), copies the
 window's rectangle to a PNG, and kills the process.
 
+It is a **screen copy**, so it verifies what it captured before writing anything (T199) — it had
+returned another instance's window and reported success. The success line names the window title and
+pid: **read it**, and if it names a window you did not ask for, the PNG is not evidence. A failure
+means nothing was written, so fix the cause rather than re-reading a stale PNG. Two failures to expect:
+another ClaudeTray **window** is open (close it, or pass `-IgnoreOtherInstances`), or something stayed
+on top of the window for 4s (usually a dialog — dismiss it and re-run).
+
 ## Steps
 
 1. **Build** (Debug is fine and fast):

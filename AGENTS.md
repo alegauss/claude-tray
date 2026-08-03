@@ -185,9 +185,9 @@ dotnet build -c Debug
 powershell -ExecutionPolicy Bypass -File scripts\Capture-Window.ps1   # -> docs\_preview\settings.png
 ```
 
-Then Read `docs\_preview\settings.png` and judge it. `--settings` opens the window standalone so no
-tray-menu clicking is needed; the capture script is per-monitor-DPI-aware (required at 150–200%).
-`docs\_preview\` is git-ignored.
+Then Read `docs\_preview\settings.png` and judge it. `--settings` opens the window standalone; the
+script is per-monitor-DPI-aware (required at 150–200%) and `docs\_preview\` is git-ignored. **It is a
+screen copy, so it names whose window it copied and writes nothing when that is not ours (T199).
 
 ## Interaction verification (the loop a capture cannot close)
 
