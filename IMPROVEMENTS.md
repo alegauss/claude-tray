@@ -401,28 +401,6 @@ checking it.** The capture crash surfaced because a directory happened not to ex
 divergence because a chart's numbers looked wrong; the colour collision because the same hex was typed
 twice in one afternoon. A verification loop nobody exercises is indistinguishable from one that passes.
 
-### XIX.1 Five files, one pair of eyes
-
-Block AE added nineteen keys across `en`, `pt-BR`, `pt-PT`, `es` and `fr`, every one by hand, in a
-repository whose own rule is *new user-visible strings go into all five*. The rule is right and
-nothing enforces it: a key that lands only in `en` falls back silently, so the app is correct in
-English and quietly untranslated everywhere else until somebody opens that screen in that language.
-
-`--lang <code>` is the stated verification, and it is a person remembering. This block ran it for
-three languages and never for the two Portuguese variants — exactly the sampling that lets a gap
-live.
-
-The check belongs in `--selftest`, which is already this repository's test suite: load the five
-embedded resources, assert the key sets match, name what is missing. Two details decide whether it
-is worth having. It must compare **placeholders** too — `{0}` present in one language and absent in
-another is a formatted string that silently drops a number, which no key-set comparison sees. And it
-must name the offending key rather than report a count, because a count is something people learn to
-live with.
-
-What it must not become is a translation-*quality* check. Whether the Portuguese reads well is not
-something an assertion can hold, and pretending otherwise would make it untrustworthy in the one way
-that matters.
-
 ### XIX.2 Two flags, one preview, no overlap
 
 `--stats <variant>` and `--capture-stats <out> <variant>` are the interactive preview and the

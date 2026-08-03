@@ -84,6 +84,9 @@ internal static class SelfTestCli
         Section("settings — the page's copy and the tray's carry (Blocks S and Z)");
         SettingsRoundTrip();
 
+        Section("lang — five files, one key set and one set of holes (Block AF)");
+        Translations();
+
         if (quick)
         {
             Console.WriteLine();
@@ -766,6 +769,87 @@ internal static class SelfTestCli
     private static List<ClaudeProfile> Profiles(string dir) => new() { new ClaudeProfile { ConfigDir = dir } };
 
     private static string Json(object? v) => System.Text.Json.JsonSerializer.Serialize(v);
+
+    // ---------------------------------------------------------------- Block AF: the five string tables
+
+    /// <summary>
+    /// The rule <c>lang\*.json</c> exists to keep: a user-visible string is in all five files or in none.
+    /// A key that lands only in <c>en</c> falls back silently (<see cref="L.T(string)"/>), so the app reads
+    /// correctly in English and stays quietly untranslated everywhere else until somebody opens that screen
+    /// in that language — and the stated verification was <c>--lang &lt;code&gt;</c>, which is a person
+    /// remembering. Block AE put nineteen keys into five files by hand and ran it for three languages.
+    ///
+    /// <para>Placeholders are compared too, because <c>{0}</c> present in one language and absent in another
+    /// is a formatted string that silently drops a number, and no comparison of key <em>sets</em> sees it.
+    /// Every failure names the offending keys rather than counting them: a count is something people learn
+    /// to live with.</para>
+    ///
+    /// <para><b>Where this stops.</b> Whether the Portuguese reads well is not something an assertion can
+    /// hold, and this does not pretend to — it is a parity check, not a translation-quality one. It also
+    /// cannot see a string hardcoded in XAML, which has no key to be missing.</para>
+    /// </summary>
+    private static void Translations()
+    {
+        IReadOnlyDictionary<string, string> en = L.Strings("en");
+
+        // The guard first: a load that silently yielded nothing — a renamed resource, a parse error — would
+        // make every comparison below pass over an empty set.
+        if (!Check($"the base table loads ({en.Count} keys)", en.Count > 0,
+                   "en.json parsed to no keys at all, so nothing below would have compared anything"))
+            return;
+
+        foreach (string code in L.Codes)
+        {
+            if (code == "en") continue;
+            IReadOnlyDictionary<string, string> t = L.Strings(code);
+            if (!Check($"{code} loads ({t.Count} keys)", t.Count > 0,
+                       $"lang\\{code}.json parsed to no keys, and every key would fall back to English"))
+                continue;
+
+            string[] missing = Keys(en, k => !t.ContainsKey(k));
+            Check($"{code} translates every key en has", missing.Length == 0,
+                  Named(missing, "reaching only en"));
+
+            string[] orphan = Keys(t, k => !en.ContainsKey(k));
+            Check($"{code} carries no key en does not", orphan.Length == 0,
+                  Named(orphan, $"existing in {code} alone, so nothing reads them"));
+
+            string[] slipped = Keys(en, k => t.TryGetValue(k, out string? s) && Holes(en[k]) != Holes(s));
+            Check($"{code} keeps every placeholder en has", slipped.Length == 0,
+                  Named(slipped, "differing in their {0}-style holes, so a number is dropped or misplaced"));
+        }
+    }
+
+    // The keys of one table matching a predicate, ordered so the same gap reads the same way twice.
+    private static string[] Keys(IReadOnlyDictionary<string, string> table, Func<string, bool> bad) =>
+        table.Keys.Where(bad).Order(StringComparer.Ordinal).ToArray();
+
+    /// <summary>The <c>{0}</c>-style holes a string carries, deduplicated and ordered, as one comparable
+    /// text. <c>{{</c> is <see cref="string.Format(string, object[])"/>'s escape for a literal brace, so it
+    /// is stepped over rather than read as the start of a hole.</summary>
+    private static string Holes(string s)
+    {
+        var found = new SortedSet<int>();
+        for (int i = 0; i < s.Length - 1; i++)
+        {
+            if (s[i] != '{') continue;
+            if (s[i + 1] == '{') { i++; continue; }
+            int j = i + 1, n = 0;
+            while (j < s.Length && char.IsAsciiDigit(s[j])) n = n * 10 + (s[j++] - '0');
+            if (j > i + 1) found.Add(n);
+        }
+        return string.Join(",", found);
+    }
+
+    // A failure detail that names the keys instead of counting them, capped so one forgotten file cannot
+    // bury the rest of the run.
+    private static string Named(string[] keys, string what)
+    {
+        if (keys.Length == 0) return "";
+        string list = string.Join(", ", keys.Take(12));
+        return $"{keys.Length} {(keys.Length == 1 ? "key" : "keys")} {what} — {list}" +
+               (keys.Length > 12 ? $", … (+{keys.Length - 12} more)" : "");
+    }
 
     // ---------------------------------------------------------------- Blocks K/W: the slug encoding
 

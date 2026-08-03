@@ -72,6 +72,22 @@ internal static class L
     public static IReadOnlyList<(string Code, string Name)> PickerLanguages =>
         Languages.Select(li => (li.Code, li.Endonym)).ToArray();
 
+    /// <summary>Every shipped language's code, the base (<c>en</c>) first. This is the set
+    /// <c>--selftest</c> compares (T185), so a language added to <see cref="Languages"/> is checked
+    /// without a second list being edited.</summary>
+    public static IReadOnlyList<string> Codes => Languages.Select(li => li.Code).ToArray();
+
+    /// <summary>The parsed table behind one shipped language code, for the key and placeholder comparison
+    /// in <c>--selftest</c> (T185). Unlike <see cref="T(string)"/> this does <b>not</b> fall back to
+    /// English — the gaps between the files are the thing being measured. An unknown code yields an
+    /// empty table.</summary>
+    public static IReadOnlyDictionary<string, string> Strings(string code)
+    {
+        foreach (LangInfo li in Languages)
+            if (li.Code == code) return Table(li.Lang);
+        return new Dictionary<string, string>();
+    }
+
     /// <summary>The culture to format dates/numbers in for the active language (invariant for English).</summary>
     public static CultureInfo Culture
     {
