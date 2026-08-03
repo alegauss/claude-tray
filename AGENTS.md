@@ -185,9 +185,9 @@ window it copied and writes nothing when that window is not ours** (T199).
 
 ## Interaction verification (the loop a capture cannot close)
 
-A picture proves layout. It cannot prove a key press arrives — that is how T135 survived every
-screenshot this repo ever took. `scripts\Check-Interaction.ps1` drives the real UI through UI
-Automation and asserts a pass/fail. **Three exit codes (T193): `0` all ran and passed, `2` DEGRADED —
+A picture proves layout. It cannot prove a key press arrives (convention 7, T135).
+`scripts\Check-Interaction.ps1` drives the real UI through UIA and asserts a pass/fail.
+**Three exit codes (T193): `0` all ran and passed, `2` DEGRADED —
 what ran passed but something could not be evaluated, `1` a failure**, and the summary names what did not.
 
 ```
@@ -209,8 +209,10 @@ All five are below; listing *three* is how two stayed script-only (T201). The he
   `ComboBox`, reading the report at each stop — the same profile must read the same coming back, the middle
   must differ, the headline never "unavailable" at a settled stop (T165). Below two: **DEGRADED**, no skip.
 - **Menu** launches the tray, opens the notification icon's menu, reads its entries, then expands *Open
-  Claude Code* for the per-profile ones. It **refuses** while another tray is alive (its launch would exit
-  on the mutex and read that tray's menu as a pass) — `-UseRunning` drives that one.
+  Claude Code* for the per-profile ones. Two refusals, one rule — **the check must look at what you
+  named**: it will not run while another tray is alive (the mutex would hand it that one), and under
+  `-UseRunning` no `-Lang` reaches the process, so labels match the language that tray itself resolved
+  and a `-Lang` typed anyway is `Unchecked`, never overridden (T202, T220).
 - **An assertion that could have run and didn't is `Unchecked`, never an `Info` line.** T166's timing hung
   off `Combo-Select`'s UIA route alone, so the day `Select()` began throwing, the run would print a note and
   stay green (T193). Both halves are needed: a fallback reaching its target in **one selection change**
@@ -232,7 +234,8 @@ over the pacing, the stores, the grid, the tail, the live rate or the slug encod
 on synthetic inputs, and nowhere else.
 
 ```
-ClaudeTray.exe --selftest [--quick]      # --quick skips the sections that wait on real sweeps
+ClaudeTray.exe --selftest [--quick]      # exit 1 on failure — run it before committing
+                                         # --quick skips the sections that wait on real sweeps
                                          # a WinExe writes to no console of its own: from PowerShell,
                                          # Start-Process … -Wait -RedirectStandardOutput st.log
 ```
@@ -256,8 +259,8 @@ ClaudeTray.exe --selftest [--quick]      # --quick skips the sections that wait 
 ## Build / run / dev helpers
 
 **The complete flag catalogue is the `dev-flags` skill** — every preview, capture, headless read-out
-and fixture, with what each is for. It is reference material, consulted rather than read, which is the
-last thing a per-turn budget should pay for (T191); a flag you add goes there. What stays here is the
+and fixture, with what each is for — reference material, consulted rather than read, which a per-turn
+budget should not pay for (T191); a flag you add goes there. What stays here is the
 handful that carry a *rule*, because getting these wrong produces work that has to be redone.
 
 ```
@@ -267,23 +270,21 @@ dotnet publish -c Release             # single self-contained .exe -> bin\Releas
 
 dotnet run -- --main [dest]           # the WHOLE window as the tray opens it (nav strip + destination:
                                       #   Statistics | Context | Settings), under the WinForms pump the
-                                      #   tray uses. --settings / --stats / --context --window show one
-                                      #   page without the shell, and --settings-tray is the only preview
-                                      #   that can see a keyboard bug — see UI convention 7.
+                                      #   tray uses. --settings / --stats / --context --window show one page
+                                      #   without the shell; --settings-tray is the only preview that can
+                                      #   see a keyboard bug — UI convention 7.
 dotnet run -- --settings System --sample [--reveal]
-                                      # --sample feeds a surface its fixture instead of this machine's
-                                      #   data. ANY published screenshot of a page that shows an account,
-                                      #   a repo name or a project path must use it.
+                                      # --sample feeds a surface its fixture, not this machine's data. ANY
+                                      #   published shot of an account, repo name or project path uses it.
 dotnet run -- --capture-settings <out.png> [page] [scroll=<dip>]
 dotnet run -- --capture-stats [outBase] [variant] [--sample]
                                       # rendered OFF-SCREEN to PNG. Prefer these over
-                                      #   scripts\Capture-Window.ps1, which copies the pixels on screen
-                                      #   inside the window rect — so any app that steals focus or sits on
-                                      #   top ends up in the file. A popup is the exception: it is its own
-                                      #   window, which an off-screen capture cannot see.
+                                      #   scripts\Capture-Window.ps1, which copies pixels ON SCREEN inside
+                                      #   the window rect — anything stealing focus or sitting on top ends
+                                      #   up in the file. A popup is the exception: its own window, which
+                                      #   an off-screen capture cannot see.
 dotnet run -- --lang fr --settings    # any command in another language. Published shots are English; use
                                       #   this to check a layout in the longest translation.
-dotnet run -- --selftest [--quick]    # the self-check, exit 1 on failure — run it before committing.
 ```
 
 ## Release process

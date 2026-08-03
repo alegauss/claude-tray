@@ -545,6 +545,7 @@
 - **T215** — The tooltip's 127-character budget is asserted across all five languages and every state - 50 combinations, plus a profile label of any length - after measuring found French with an overage line composing 129 characters, which Windows was truncating from the end where the reading's own time sits; an over-budget reading now sheds the bounded window the icon is not about, and the metric labels stopped being frozen in whichever language the process started in.
 - **T217** — A capture can be asked to prove it contains the surface it was taken for: the preview prints what it drew and where, -Expect makes Capture-Window.ps1 demand that line and check the rectangle is inside the copy, and neither a surface that went unreported nor one that landed outside the window writes a file - while holding preview popups open moved from one page's call site to the host every preview shares.
 - **T218** — An unexpected skip is now a red run: --selftest carries a named list of the skips it is allowed to have, each with what allowing it costs, so losing a check in CI costs the exit code instead of nothing - and a skip that stops happening is reported too, which a count could never say.
+- **T220** — The Menu case matches the tray's labels against the language that tray actually resolved when -UseRunning attached to it, and refuses a -Lang that was typed alongside instead of quietly checking a different one.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

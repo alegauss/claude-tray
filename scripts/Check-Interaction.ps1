@@ -95,6 +95,10 @@
     Display language forced for the run (`--lang`), so the labels this script matches are fixed
     regardless of the machine's saved preference. Default `en`.
 
+    It is a LAUNCH argument, which is the whole of its reach: with `-UseRunning` there is no command
+    line, so the labels are matched against the language the resident tray actually resolved instead
+    (T220). An explicitly given `-Lang` is refused there rather than overridden — see `-UseRunning`.
+
 .PARAMETER UseRunning
     Menu case only: drive the tray that is ALREADY running instead of launching `-Exe`. Convenient on
     a dev machine (the single-instance mutex makes a second launch exit silently), but it checks
@@ -110,6 +114,12 @@
     `-Lang` does not survive it either, which is the same point measured: the language is a launch
     argument, so a resident tray runs in its own saved one. Verifying T202 against a pt-BR tray with
     the default `-Lang en` produced four FAILs for labels that were all present, in Portuguese.
+
+    So the labels are matched against what that tray resolved — `Resolve-TrayLang` reads the same two
+    inputs the app read, saved preference then Windows display language — and the run says which and
+    from where (T220). The default `-Lang en` is not a request and is simply replaced; a `-Lang` typed
+    on the command line is, and one this tray cannot be in is `Unchecked` rather than quietly ignored.
+    Checking a language nobody asked for is the same defect as checking a binary nobody named.
 
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1
@@ -128,6 +138,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# Whether -Lang was TYPED, as opposed to defaulted (T220). Captured here and only here: inside a
+# function $PSBoundParameters is that function's own, so asking there reads an empty table and the
+# refusal below never fires - which is exactly how it first shipped.
+$script:LangGiven = $PSBoundParameters.ContainsKey('Lang')
+
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Windows.Forms
 
 Add-Type -TypeDefinition @"
@@ -314,10 +330,20 @@ function Close-Main {
   checks are not pinned to English and cannot drift from the shipped strings.
 #>
 $script:LangText = @{}
+
+<#
+  The language the labels below are matched against. It starts as `-Lang`, because on every path that
+  LAUNCHES the app that IS the language: it is passed as `--lang`. `-UseRunning` is the one path with
+  no command line, and there it is replaced by what the resident tray is actually in (T220) - see
+  Resolve-TrayLang. Kept as one variable rather than threaded through Label's callers, because the
+  whole point is that every label in a run resolves against the same language.
+#>
+$script:LangCode = $Lang
+
 function Label($key) {
     # Read by regex, not ConvertFrom-Json: the lang files carry `//` section comments, which are not
     # JSON. Falls back to en.json for a missing key, exactly as the app does.
-    foreach ($code in @($Lang, 'en')) {
+    foreach ($code in @($script:LangCode, 'en')) {
         if (-not $script:LangText.ContainsKey($code)) {
             $file = Join-Path (Split-Path -Parent $PSScriptRoot) "lang\$code.json"
             if (-not (Test-Path $file)) { throw "no language file for '$code' ($file)" }
@@ -329,6 +355,56 @@ function Label($key) {
         }
     }
     throw "no lang file defines '$key'"
+}
+
+<#
+  What language a tray THAT IS ALREADY RUNNING answers in (T220).
+
+  `-Lang` is passed as `--lang` on the command line, so on every launching path it is the language by
+  construction. `-UseRunning` exists precisely because there is no command line - it attaches to a
+  process somebody else started - and that tray picked its language the way L.Detect/L.Resolve do: the
+  saved preference in settings.json if it names a shipped code, otherwise the Windows display language,
+  English when nothing matches. This mirrors that, and nothing more: it is a READING of the same two
+  inputs the app read, not a second policy.
+
+  What it cannot see is a resident tray that was itself launched with `--lang` (a process-only override
+  that leaves the saved preference untouched). That is a developer running the app by hand, and it is
+  why the answer is reported out loud rather than assumed - the run prints the language it resolved and
+  where from, so a wrong one is visible in the log instead of arriving as four FAILs for labels that
+  are all on screen.
+#>
+function Resolve-TrayLang {
+    $codes = @('en', 'pt-BR', 'pt-PT', 'fr', 'es')   # L.Languages, in its own order
+
+    $file = Join-Path $env:LOCALAPPDATA "ClaudeTray\settings.json"
+    if (Test-Path $file) {
+        try {
+            $pref = (Get-Content -LiteralPath $file -Encoding UTF8 -Raw | ConvertFrom-Json).Language
+            # "auto", absent, or a code no shipped language carries all mean the same to L.Resolve: fall
+            # through to the OS. Matching that exactly is the point - a preference the app would have
+            # rejected must not be honoured here either.
+            if ($pref -and $codes -contains $pref) {
+                return [pscustomobject]@{ Code = $pref; From = "the saved preference in settings.json" }
+            }
+        } catch {
+            # A settings file that cannot be read is not a reason to guess English: fall to the OS, which
+            # is what the app does when the preference is unusable.
+        }
+    }
+
+    # L.Detect: pt-PT matched exactly so a generic pt-* still lands on pt-BR, then the two-letter names.
+    try {
+        $ui = (Get-UICulture)
+        $two = $ui.TwoLetterISOLanguageName.ToLowerInvariant()
+        $code = if ($ui.Name -ieq 'pt-PT') { 'pt-PT' }
+                elseif ($two -eq 'pt')     { 'pt-BR' }
+                elseif ($two -eq 'fr')     { 'fr' }
+                elseif ($two -eq 'es')     { 'es' }
+                else                       { 'en' }
+        return [pscustomobject]@{ Code = $code; From = "the Windows display language ($($ui.Name))" }
+    } catch {
+        return [pscustomobject]@{ Code = 'en'; From = "the fallback (no preference, no readable UI culture)" }
+    }
 }
 
 <#
@@ -1366,6 +1442,24 @@ function Invoke-MenuCase {
         if ($running.Count -eq 0) { Fail "-UseRunning given but no ClaudeTray process is running"; return }
         $proc = $running[0]
         Info "driving the ALREADY RUNNING tray, not -Exe: $($proc.Path)"
+
+        # T220: this is the one path with no command line, so `-Lang` never reached the process. Match the
+        # labels against what the tray is actually in, or every one of them is compared to a translation
+        # nobody is looking at - four FAILs for entries that were all on screen, in Portuguese.
+        $tray = Resolve-TrayLang
+        if ($script:LangGiven -and $Lang -ne $tray.Code) {
+            # Explicit and unhonourable: refuse rather than override, the shape T205 settled on. A default
+            # `-Lang` is not a request and is simply replaced below; a typed one is the caller's word about
+            # a language this run cannot produce, and silently checking a different one is the defect this
+            # file exists to catch.
+            Unchecked "the tray icon's menu (T137, T148, T158)" `
+                ("-Lang $Lang was given with -UseRunning, but the language is a launch argument and this " +
+                 "tray was launched by somebody else: it is in $($tray.Code), by $($tray.From). Drop " +
+                 "-Lang to check it as it is, or drop -UseRunning to launch one in $Lang.")
+            return
+        }
+        $script:LangCode = $tray.Code
+        Info "matching labels against $($script:LangCode), by $($tray.From) - -Lang cannot reach a running tray"
     }
     elseif ($running.Count -gt 0) {
         # A second launch would exit silently on the single-instance mutex, and this check would then

@@ -216,31 +216,6 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
-### XX.16 The flag that cannot reach the process it drives
-
-Found while verifying T202. With a tray resident, `-Case Menu -UseRunning` is the route the script
-itself suggests, and against a pt-BR tray under the default `-Lang en` it produced four FAILs —
-'Open' missing, 'Open Claude Code' missing, 'Profile' missing, three nav destinations missing — for
-labels that were every one of them on screen, in Portuguese.
-
-Nothing was broken. `-Lang` is passed as `--lang` on the command line, and `-UseRunning` exists
-precisely because there is no command line: it attaches to a process somebody else started. So the
-parameter is silently inert on the one path that most needs it, and the failure it produces is
-indistinguishable from the defect the case exists to catch.
-
-The shape is this block's own, arriving from the other side: not a check that is green while
-asserting nothing, but a check that is red while nothing is wrong. Both teach the same thing about
-its colour.
-
-Two honest fixes and they answer different questions. The script can **read** the tray's language
-rather than assume it — the saved preference is in the settings file the app already writes, and
-matching what the process actually uses is the accurate answer. Or `-UseRunning` can **refuse** a
-`-Lang` that was given explicitly, which is cheap, needs no file read, and says out loud that this
-combination cannot be honoured — the same shape as T205's refusal.
-
-Worth settling with it: whether the labels a case matches should come from the running process at
-all, since every one of them is already resolved by `L` inside the app.
-
 ### XX.17 Nine points cannot cover a window
 
 T199 decides what lands in the file by asking who owns the pixels, which is the right property:
