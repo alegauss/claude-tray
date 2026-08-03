@@ -145,6 +145,9 @@ internal static class SelfTestCli
         Section("names — one automation id, one control (Block AG)");
         AutomationIds();
 
+        Section("effective — which profile the environment selects (Block AC)");
+        EffectiveProfile();
+
         Section("note — which paragraphs the method note yields (Block F)");
         MethodNote();
 
@@ -1800,6 +1803,53 @@ internal static class SelfTestCli
     /// generated fields are exactly the named elements — <c>internal</c> and a <see cref="DependencyObject"/>,
     /// which is what separates them from the page's own hand-written state.</para>
     /// </summary>
+    /// <summary>
+    /// T172: whose numbers the icon draws and which profile a new session would start in are two
+    /// questions, and the menu marks them only when the answers differ. The states that matter — the
+    /// variable naming the *other* profile, or a folder no profile covers — are precisely the ones the
+    /// machine running this is not in, so they are driven through
+    /// <see cref="EnvironmentProfile.SelectedIn"/> rather than waited for.
+    /// </summary>
+    private static void EffectiveProfile()
+    {
+        const string work = @"C:\Users\x\.claude-work";
+        const string home = @"C:\Users\x\.claude";
+        List<ClaudeInfo> profiles = new()
+        {
+            new ClaudeInfo { Label = "Personal", ConfigDir = home, IsDefault = true },
+            new ClaudeInfo { Label = "Work", ConfigDir = work },
+        };
+
+        Check("the variable's dir names the profile that owns it",
+              EnvironmentProfile.SelectedIn(profiles, work)?.Label == "Work");
+        Check("and the default dir names the default profile",
+              EnvironmentProfile.SelectedIn(profiles, home)?.Label == "Personal");
+
+        // The spelling half: a variable set by hand carries a trailing slash or a relative form, and a
+        // reading that split one profile into two would report a disagreement that does not exist.
+        Check("a trailing separator is the same profile, not an unknown folder",
+              EnvironmentProfile.SelectedIn(profiles, work + @"\")?.Label == "Work");
+        Check("and so is the other case of the same path",
+              EnvironmentProfile.SelectedIn(profiles, work.ToUpperInvariant())?.Label == "Work");
+
+        // The state with no entry to hang a mark on — something other than the tray set the variable.
+        Check("a dir no profile covers selects none of them",
+              EnvironmentProfile.SelectedIn(profiles, @"C:\Users\x\.claude-elsewhere") is null);
+        Check("and an empty profile list answers null rather than throwing",
+              EnvironmentProfile.SelectedIn(new List<ClaudeInfo>(), work) is null);
+
+        // What the menu actually decides on: the mark appears only on a real divergence.
+        Check("agreement is silent, disagreement is not",
+              EnvironmentProfile.SelectedIn(profiles, home)?.ConfigDir == profiles[0].ConfigDir
+              && EnvironmentProfile.SelectedIn(profiles, work)?.ConfigDir != profiles[0].ConfigDir);
+
+        // Unset is not "no profile": a bare `claude` lands in ~/.claude, so the honest reading of an
+        // absent variable is the default profile — not a blank the menu would have nothing to say about.
+        Check("an unset variable reads as the default config dir",
+              ClaudeAccount.SamePath(EnvironmentProfile.EffectiveConfigDir(),
+                                     EnvironmentProfile.Current() ?? ClaudeAccount.HomeConfigDir));
+    }
+
     private static void AutomationIds()
     {
         Type connector = typeof(System.Windows.Markup.IComponentConnector);

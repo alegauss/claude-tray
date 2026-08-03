@@ -86,6 +86,16 @@ internal static class ProfilesCli
                           + $"   \"{L.T("menu.profileEnvSync")}\" {(settings.SyncEnvironmentProfile ? "[x]" : "[ ]")}"
                           + "   (sessions started from now on; running ones keep theirs)");
         Console.WriteLine($"icon follows: {monitored?.Label ?? "-"}  ({monitored?.ConfigDir ?? "-"})");
+        // The other question, and the one `/usage` answers (T172): whose numbers the icon draws is not
+        // which profile the environment selects, and the two are printed together so a disagreement is
+        // read here rather than discovered inside a session.
+        ClaudeInfo? envProfile = EnvironmentProfile.Selected(profiles);
+        string envDir = EnvironmentProfile.EffectiveConfigDir();
+        bool agrees = envProfile is not null && monitored is not null
+                      && ClaudeAccount.SamePath(envProfile.ConfigDir, monitored.ConfigDir);
+        Console.WriteLine($"environment selects: {envProfile?.Label ?? "none of these"}  ({envDir})"
+                          + (EnvironmentProfile.Current() is null ? "   CLAUDE_CONFIG_DIR not set - the default applies" : "")
+                          + (agrees ? "   - agrees with the icon" : "   !! DIFFERS from the icon"));
         Console.WriteLine($"polled every interval: {polled} of {profiles.Count}"
                           + (polled < profiles.Count
                               ? "  (a profile off the subscription has no quota window to read)" : ""));

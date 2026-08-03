@@ -174,25 +174,6 @@ Three failure modes hide behind the one symptom, and separating them comes first
 C bounds the block: **no registry check proves the next process will see the value.** Hence §XVI.2
 displays the effective value continuously rather than asserting it once at the pick.
 
-### §XVI.2 The effective profile is not on screen anywhere (T172)
-
-Every profile indicator is fed by `MonitoredConfigDir`: the icon and its accent band (T147), the submenu
-check mark, the Statistics picker. All answer *whose numbers am I looking at?* — the question the tray was
-built for. None answers *which account will the next session use?*, which is what somebody has when
-`/usage` surprises them. T145 put the live value on the Claude Code settings page, the right place for a
-setting but a row on a page opened deliberately — no help to a person not yet suspecting anything.
-
-The fix reads `EnvironmentProfile.Current()` back where the choice is made and the doubt arises, and — the
-load-bearing half — **marks the two as disagreeing when they disagree**. Agreement is the common case and
-deserves no ceremony; the divergence is the whole signal.
-
-Per failure mode C, the honest phrasing is about the *variable*, not about any future process: sessions
-started from a shell that picked up the change will use it, and claiming more invents a guarantee Windows
-does not offer. A stronger source of truth exists — a live session writes its transcript under the config
-dir it is actually using, which is how the original investigation was settled — and reading it would name
-the account a *running* session is on. That is a larger idea, deliberately not folded in; it would need
-its own design, and it must respect §I.1 (paths and existence only, never content).
-
 ### §XVI.3 A write whose result nothing reads (T173)
 
 T149's trade was correct and should not be reverted: the registry write plus its `WM_SETTINGCHANGE` sweep

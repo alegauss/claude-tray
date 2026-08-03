@@ -558,3 +558,4 @@
 ## Block AC — The tray reports the switch it performed, not the switch the machine got
 
 - **T171** — Picking a profile now states how far the pick reaches - the tray only, or the whole Windows user environment - and the machine-wide switch sits in the Profile submenu itself, so the half that did not happen is legible at the moment of the choice instead of buried in Settings.
+- **T172** — The Profile submenu now reads CLAUDE_CONFIG_DIR back and marks the profile it names when that is not the one the icon draws - or names the folder outright when it covers no registered profile - so whose numbers these are and which profile a new session starts in stop being one answer. Agreement passes without ceremony; the divergence is the signal.

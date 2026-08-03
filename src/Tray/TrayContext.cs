@@ -659,6 +659,29 @@ internal sealed class TrayContext : ApplicationContext
         if (_profileMenu is null) return;
         _profileMenu.DropDownItems.Clear();
 
+        // Which profile the *environment* selects, as opposed to the one the icon draws (T172). Read on
+        // every open, because something other than the tray can have moved it since the last one. Marked
+        // only when the two disagree: agreement is the ordinary case and the divergence is the signal.
+        ClaudeInfo? envProfile = EnvironmentProfile.Selected(_watched);
+        bool envDiffers = _watched.Count > 0
+                          && (envProfile is null
+                              || ProfileStore.KeyFor(envProfile) != ProfileStore.KeyFor(_watched[0]));
+
+        // The variable naming a folder no registered profile covers is a real state, not an error:
+        // something other than the tray set it, and there is no entry below to hang the mark on. Said
+        // as a line of its own rather than left as a profile list that silently answers the wrong
+        // question. Disabled — it reports, and nothing here is clickable.
+        if (envDiffers && envProfile is null)
+        {
+            _profileMenu.DropDownItems.Add(new ToolStripMenuItem(
+                L.T("menu.profileEnvOutside", EnvironmentProfile.EffectiveConfigDir()))
+            {
+                Enabled = false,
+                ToolTipText = L.T("menu.profileEnvOutsideTip"),
+            });
+            _profileMenu.DropDownItems.Add(new ToolStripSeparator());
+        }
+
         for (int i = 0; i < _watched.Count; i++)
         {
             ClaudeInfo p = _watched[i];
@@ -680,6 +703,9 @@ internal sealed class TrayContext : ApplicationContext
             string suffix = monitored && _profilePinned && _settings.FollowActiveProfile
                 ? "  · " + L.T("menu.profilePinned")
                 : ActiveSuffix(p);
+            // The one the variable names, when that is not the one on the icon (T172).
+            bool isEnv = envDiffers && envProfile is not null && ReferenceEquals(envProfile, p);
+            if (isEnv) suffix += "  · " + L.T("menu.profileEnvSelects");
             var item = new ToolStripMenuItem($"{p.Label} — {reading}{suffix}")
             {
                 Checked = monitored,
@@ -688,7 +714,11 @@ internal sealed class TrayContext : ApplicationContext
                 // it off the pick moves the tray and nothing else. Said at the point of decision, and
                 // only ever about sessions started from now on — a running one cannot be moved (§I).
                 ToolTipText = p.ConfigDir + "\n"
-                              + L.T(_settings.SyncEnvironmentProfile ? "menu.profileScopeWindows" : "menu.profileScopeTray"),
+                              + L.T(_settings.SyncEnvironmentProfile ? "menu.profileScopeWindows" : "menu.profileScopeTray")
+                              // Never "the next session will use this": the variable is what is known,
+                              // and a shell that has not picked the change up yet still starts the old
+                              // one. The claim is about CLAUDE_CONFIG_DIR and stops there.
+                              + (isEnv ? "\n" + L.T("menu.profileEnvSelectsTip") : ""),
             };
             ClaudeInfo captured = p;
             item.Click += (_, _) => SetMonitoredProfile(captured);

@@ -406,6 +406,13 @@ against a second, empty state file instead of your own project history.
 move the tray only, or set the profile everywhere in Windows — and either way it is about sessions
 started from then on, never one already running.
 
+**And the submenu answers the other question too.** The check mark says whose numbers the icon is
+drawing; that is not the same as which profile a *new* session starts in. When `CLAUDE_CONFIG_DIR`
+names a different profile, that one is marked **· set in Windows** — and when it points at a folder
+none of your profiles covers, the submenu says so and names it. Agreement is the normal case and
+passes without ceremony; the disagreement is the whole point, because it is the one that makes
+`/usage` report an account you weren't expecting.
+
 **Want the profile you pick to be the whole machine's?** Turn on **Use the chosen profile everywhere in
 Windows** — it sits right in the **Profile** submenu, below **Follow the active profile**, so the wider
 switch is where the picking happens and not something you have to go find; **Settings → Claude Code →

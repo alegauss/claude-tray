@@ -42,6 +42,34 @@ internal static class EnvironmentProfile
     }
 
     /// <summary>
+    /// The config dir the **persistent environment** selects: the variable's value, or <c>~/.claude</c>
+    /// when it is not set — which is what a bare <c>claude</c> falls back to.
+    ///
+    /// <para>Read rather than assumed, and deliberately not the tray's <c>MonitoredConfigDir</c>: that
+    /// one is whose numbers the icon draws, and these two answer different questions (T172). They agree
+    /// in the ordinary case and the difference is the entire signal when they do not.</para>
+    /// </summary>
+    internal static string EffectiveConfigDir() =>
+        Current() is { Length: > 0 } v ? v : ClaudeAccount.HomeConfigDir;
+
+    /// <summary>
+    /// Which of <paramref name="profiles"/> <see cref="EffectiveConfigDir"/> names — null when the
+    /// variable points at a folder this machine has no registered profile for, which is a real state
+    /// and not an error: something other than the tray set it.
+    ///
+    /// <para>One implementation, so the tray menu and <c>--profiles</c> cannot disagree about it — the
+    /// same rule <see cref="ClaudeAccount.PickMonitored"/> follows for the icon's profile.</para>
+    /// </summary>
+    internal static ClaudeInfo? Selected(List<ClaudeInfo> profiles) =>
+        SelectedIn(profiles, EffectiveConfigDir());
+
+    /// <summary>The same question asked of a config dir handed in rather than read off this machine —
+    /// the seam the self-check drives, because the interesting states (the variable naming the other
+    /// profile, or a folder no profile covers) are exactly the ones a developer's machine is not in.</summary>
+    internal static ClaudeInfo? SelectedIn(List<ClaudeInfo> profiles, string configDir) =>
+        profiles.FirstOrDefault(p => ClaudeAccount.SamePath(p.ConfigDir, configDir));
+
+    /// <summary>
     /// Make <paramref name="configDir"/> the environment's profile, remembering what was there the
     /// first time so <see cref="Restore"/> can undo it.
     ///
