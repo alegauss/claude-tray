@@ -16,6 +16,12 @@
       -Case Keyboard   Launch `--settings-tray` (WinForms pump — the only preview that can see a
                        keyboard bug), navigate to a page, type into a TextBox and read the value back
                        through ValuePattern, Tab out of it, and drive a Slider with an arrow key.
+      -Case Panes      Launch `--main` and assert the report can be READ: the three tab headers, and
+                       the selected pane's body — a used %, a reset caption, a live headline — inside
+                       the accessibility tree. Needs no second profile, which is the whole point
+                       (T176): behind `-Case Profiles`' two-profile skip this never ran on a
+                       one-profile machine, and it is the only thing that would notice
+                       `PART_SelectedContentHost` going missing again.
       -Case Profiles   Launch `--main`, walk the Statistics page's profile picker 0 -> 1 -> 0 through
                        the real ComboBox and read the report back at each stop: the used %, the reset
                        caption and the live headline. Nothing else in this repo *drives* the picker —
@@ -59,7 +65,7 @@
     opened the way a keyboard user opens them (Down to the item, Right to expand), and read.
 
 .PARAMETER Case
-    Keyboard, Profiles, Menu, Names, or All (default).
+    Keyboard, Panes, Profiles, Menu, Names, or All (default).
 
 .PARAMETER Exe
     The build under test. Defaults to the Debug build.
@@ -76,12 +82,13 @@
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Keyboard
+    powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Panes
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Profiles
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Names
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Menu -UseRunning
 #>
 param(
-    [ValidateSet('All', 'Keyboard', 'Profiles', 'Menu', 'Names')]
+    [ValidateSet('All', 'Keyboard', 'Panes', 'Profiles', 'Menu', 'Names')]
     [string]$Case = 'All',
     [string]$Exe = "bin\Debug\net10.0-windows\win-x64\ClaudeTray.exe",
     [string]$Lang = "en",
@@ -447,9 +454,12 @@ function Invoke-ProfilesCase {
     $count = Expected-ProfileCount
     if ($count -lt 2) {
         # Named, never silent: the round trip does not exist on a machine with one profile, and a Skip
-        # that does not say what it failed to check is worse than no check (T161).
+        # that does not say what it failed to check is worse than no check (T161). What it costs is now
+        # only the switch — the readable-panes property this case used to carry with it moved to
+        # `-Case Panes`, which needs no second profile (T176).
         Info "SKIPPED - this check needs 2+ Claude Code profiles; --profiles reports $count."
         Info "          Nothing about the profile switch (T164) was verified on this run."
+        Info "          The panes being readable at all is -Case Panes, which ran regardless."
         return
     }
 
@@ -575,6 +585,75 @@ function Invoke-ProfilesCase {
     finally {
         # WaitForExit, not just Kill: the menu case refuses to start while any ClaudeTray process is alive,
         # and a still-dying `--main` would look like the tray to it.
+        if ($proc -and -not $proc.HasExited) { $proc.Kill(); $proc.WaitForExit(5000) | Out-Null }
+    }
+}
+
+# ---------------------------------------------------------------- panes case
+
+<#
+  That the window can be READ at all, with no second profile involved (T176).
+
+  This assertion used to exist only inside `-Case Profiles`, which opens by asking `--profiles` for a
+  count and skipping — loudly, but completely — below two. That is right for the round trip, which
+  cannot exist with one profile. It is wrong for the property that made the round trip readable: the
+  tab body being in the accessibility tree has nothing to do with profiles, and behind that skip it did
+  not run on a single-profile machine, which is most machines and every CI runner.
+
+  No screenshot can stand in for it. With the segmented tab template's content host unnamed (T165) the
+  window renders perfectly and the entire pane — every number, legend and projection sentence — is
+  absent from the tree, which is why that defect survived from T111 to T165.
+#>
+function Invoke-PanesCase {
+    Head "Panes - the report is in the accessibility tree, not just on the screen"
+
+    $computing = Label 'stats.computing'
+
+    $proc = Start-App "--lang $Lang --main"
+    try {
+        $win = WindowOfProcess $proc.Id
+        if (-not $win) { Fail "the main window never appeared"; return }
+        Start-Sleep -Milliseconds 1200
+        [Native]::Topmost([IntPtr]$win.Current.NativeWindowHandle)
+        try { $win.SetFocus() } catch { Info "window SetFocus threw - $($_.Exception.Message)" }
+
+        # The headers first, and separately: T165's defect left all three of these perfectly readable
+        # and took the whole body with them, so "headers but no body" is the exact shape to name.
+        $tabs = @('stats.tab.session', 'stats.tab.week', 'stats.tab.throughput') | ForEach-Object { Label $_ }
+        $missing = @($tabs | Where-Object { -not (ByName $win $_ 8000) })
+        if ($missing.Count -gt 0) {
+            Fail "these tab headers are not in the tree: $($missing -join ', ')"
+        } else {
+            Pass "all three tab headers read ($($tabs -join ' / '))"
+        }
+
+        $stop = Read-ProfileStop $win $computing
+        if ($stop.Kind -eq 'panes') {
+            # Reading a number from inside the selected TabItem *is* the assertion that its body is
+            # attached: `Used$sfx` is a TextBlock nested several levels inside the pane.
+            Pass "the selected pane's body is in the tree - used $($stop.Used) (tab '$($stop.Suffix)')"
+            foreach ($field in @(
+                @{ Name = "the reset caption"; Value = $stop.Reset }
+                @{ Name = "the live headline"; Value = $stop.Live }
+            )) {
+                if ($field.Value) { Pass "$($field.Name) reads '$($field.Value)'" }
+                else { Fail "$($field.Name) is not readable although the pane's used % is" }
+            }
+        }
+        elseif ($stop.Kind -eq 'status') {
+            # Gated on the precondition, not on a weaker form of the assertion (T161): the pane is
+            # Collapsed until a report renders, so with no report there is no body to look for. Said
+            # out loud, with what went unchecked.
+            Info "SKIPPED - the window shows the status line, not a report: '$($stop.Status)'"
+            Info "          Nothing about the pane body being in the tree was verified on this run."
+        }
+        else {
+            Fail "the window rendered no readable report - no pane body and no settled status line (T165)"
+        }
+    }
+    finally {
+        # WaitForExit, not just Kill: the menu case that may run later refuses to start while any
+        # ClaudeTray process is alive.
         if ($proc -and -not $proc.HasExited) { $proc.Kill(); $proc.WaitForExit(5000) | Out-Null }
     }
 }
@@ -982,6 +1061,7 @@ function Invoke-MenuCase {
 Write-Host "Check-Interaction - $Exe (lang $Lang)" -ForegroundColor White
 if ($Case -in @('All', 'Keyboard')) { Invoke-KeyboardCase }
 # Before the menu case, and killed with WaitForExit: that one refuses to run while any ClaudeTray is alive.
+if ($Case -in @('All', 'Panes'))    { Invoke-PanesCase }
 if ($Case -in @('All', 'Profiles')) { Invoke-ProfilesCase }
 if ($Case -in @('All', 'Names'))    { Invoke-NamesCase }
 if ($Case -in @('All', 'Menu'))     { Invoke-MenuCase }

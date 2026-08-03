@@ -356,19 +356,6 @@ pane was absent from the UI Automation tree. Every number, chart legend, project
 headline. It shipped in T111 and survived to T165 because a screenshot does not use that tree, and neither
 did anything else in this repo. What follows is the same lesson at three smaller scales.
 
-### §XVII.2 The pane-in-the-tree check is trapped behind a two-profile precondition (T176)
-
-`-Case Profiles` is now the only thing in the repo that would notice the tab body leaving the accessibility
-tree again — and it opens by asking `--profiles` for a count and skipping, loudly but completely, below
-two. That is right for the round trip, which cannot exist with one profile. It is wrong for the property
-that made the round trip readable, which has nothing to do with profiles at all.
-
-The practical effect is that the check protecting the regression T165 just fixed does not run on a
-single-profile machine, which is most machines and every CI runner — the same shape as T169's skip in Block
-AB, arriving from the opposite direction. Splitting the assertion out (the window opens; the panes are in
-the tree; a used %, a reset caption and a live headline can be read) gives the one-profile machine a real
-check where it currently gets a stated skip, and leaves `-Case Profiles` to be about the switch.
-
 ### §XVII.3 The timing T166 claims is asserted nowhere (T177)
 
 T166's entire claim is a timing: coming back to a profile seen seconds ago must not blank the panes. It was

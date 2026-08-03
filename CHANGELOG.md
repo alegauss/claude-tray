@@ -234,6 +234,7 @@
 ## Block AD — The window can be read now, and what that turned up
 
 - **T175** — The Statistics picker announces the label beside it and the method-note button announces the note's own title, and every settings row hands its header to a trailing control that would otherwise announce nothing — so the two controls the T165 tree dump found unnamed, and the thirty-odd rows carrying the same shape, all read.
+- **T176** — The three tab headers and the selected pane's body — a used %, a reset caption, a live headline — are asserted by a case of their own that needs no second profile, so the property T165 restored is checked on the single-profile machines where -Case Profiles only ever skipped, and that skip now costs the switch alone.
 
 ## Block AA — The picker switches profiles; the window has to switch with it
 
