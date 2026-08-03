@@ -93,6 +93,9 @@ internal static class SelfTestCli
         Section("toasts — one colour vocabulary, one fact per colour (Block AF)");
         ToastColours();
 
+        Section("series — what the chart is handed, from readings alone (Block AF)");
+        Series();
+
         if (quick)
         {
             Console.WriteLine();
@@ -775,6 +778,105 @@ internal static class SelfTestCli
     private static List<ClaudeProfile> Profiles(string dir) => new() { new ClaudeProfile { ConfigDir = dir } };
 
     private static string Json(object? v) => System.Text.Json.JsonSerializer.Serialize(v);
+
+    // ---------------------------------------------------------------- Block AF: the chart's series
+
+    /// <summary>
+    /// The three decisions <see cref="UsageReport.FillCurve"/> makes, asserted where they are made rather
+    /// than looked for in a screenshot (T189). The one that motivated it: a stored reading carrying **no**
+    /// overage figure is skipped, not plotted as zero — the same <c>absent ≠ zero</c> rule T179 built the
+    /// store around, one layer up, and reading it wrong would draw a floor along the chart that nobody
+    /// measured. A fixture with no nulls in it cannot demonstrate that path, so the screenshot never did.
+    ///
+    /// <para><c>Curve</c> and <c>Gaps</c> come out of the same method and were asserted by nothing either,
+    /// so they are here too: which of the two shaping paths ran, and whether a hole in the readings became
+    /// a gap span.</para>
+    /// </summary>
+    private static void Series()
+    {
+        const double window = 7 * 86400;
+        double reset = 1_800_000_000;           // a fixed clock: the fractions below are then exact
+        double start = reset - window;
+        double now = start + 0.5 * window;      // half the window elapsed
+
+        // A window as `Fill` would have left it, by hand — the seam is that this needs no profile.
+        static WindowPace Win(double reset, double window, double now, double util) => new()
+        {
+            HasWindow = true, ResetUnix = reset, WindowSeconds = window, Util = util,
+            ElapsedSeconds = now - (reset - window),
+        };
+        UsageSample At(double frac, double util, double? extra) =>
+            new(start + frac * window, util, reset, util, reset, extra);
+
+        // ---- the overage series: absent is not zero
+        var w = Win(reset, window, now, 1.0);
+        UsageReport.FillCurve(w, new(), new()
+        {
+            At(0.10, 0.30, null),               // no overage figure in this reading at all
+            At(0.20, 0.60, 0.0),                // measured, and nothing spent past the quota
+            At(0.30, 0.90, null),
+            At(0.40, 1.00, 0.25),
+            At(0.45, 1.00, 0.10),               // spending can fall back; ExtraMax is the peak, not the last
+        }, s => (s.Util7d, s.Reset7d), now);
+
+        Check("a reading with no overage figure is not plotted as a zero",
+              w.ExtraCurve.Count == 3, $"{w.ExtraCurve.Count} points, expected the 3 that carry a figure");
+        Check("a measured zero is plotted, because it is a measurement",
+              w.ExtraCurve.Any(p => p.val == 0.0 && Math.Abs(p.frac - 0.20) < 1e-9));
+        Near("the overage axis is scaled to the peak of the kept points", w.ExtraMax, 0.25, 0);
+        Check("the overage points come out sorted by time",
+              w.ExtraCurve.Select(p => p.frac).SequenceEqual(w.ExtraCurve.Select(p => p.frac).Order()));
+
+        // A window whose readings all lack the figure must draw no second series at all — the state every
+        // account was in before T179's column existed, and the one an absent-reads-as-zero bug would fill.
+        var none = Win(reset, window, now, 0.5);
+        UsageReport.FillCurve(none, new(), new() { At(0.1, 0.2, null), At(0.3, 0.4, null) },
+                              s => (s.Util7d, s.Reset7d), now);
+        Check("a window with no overage reading anywhere draws no overage series",
+              none.ExtraCurve.Count == 0 && none.ExtraMax == 0, $"{none.ExtraCurve.Count} points, max {none.ExtraMax}");
+
+        // ---- which shaping path ran
+        Check($"the real-history path needs {UsageReport.MinRealSamples} logged points",
+              w.Curve.Count > 2 && Math.Abs(w.Curve[0].frac) < 1e-9,
+              "the curve should open at (0,0) and carry the logged points");
+        Near("and it lands on the live reading, which is fresher than the last logged point",
+             w.Curve[^1].cum, w.Util, 0);
+        Near("at the elapsed fraction", w.Curve[^1].frac, 0.5, 1e-9);
+
+        // One logged point is below the threshold, so the token samples shape it instead — scaled to land
+        // on the live utilization, whatever the tokens happen to total.
+        var thin = Win(reset, window, now, 0.60);
+        UsageReport.FillCurve(thin,
+            new() { (start + 0.1 * window, new TokenBits(1000, 0, 0, 0)),
+                    (start + 0.3 * window, new TokenBits(3000, 0, 0, 0)) },
+            new() { At(0.10, 0.20, null) }, s => (s.Util7d, s.Reset7d), now);
+        Check("one logged point is not enough, so the token samples shape the curve",
+              thin.Curve.Count == 3, $"{thin.Curve.Count} points, expected (0,0) plus the 2 samples");
+        Near("and the token curve is scaled to end at the live utilization", thin.Curve[^1].cum, 0.60, 0);
+        Check("the tokens themselves are reported, not only used for the shape",
+              thin.TokensInWindow == 4000 && thin.RequestsInWindow == 2,
+              $"{thin.TokensInWindow} tokens over {thin.RequestsInWindow} requests");
+
+        // ---- gaps: a hole in the readings, not a stray missed poll
+        var outage = Win(reset, window, now, 0.50);
+        var readings = new List<UsageSample>();
+        for (double f = 0.02; f <= 0.20; f += 0.02) readings.Add(At(f, f, null));   // a steady cadence
+        for (double f = 0.42; f <= 0.48; f += 0.02) readings.Add(At(f, f, null));   // ...resuming after
+        UsageReport.FillCurve(outage, new(), readings, s => (s.Util7d, s.Reset7d), now);
+        Check("a stretch with no logged reading is marked as an outage", outage.Gaps.Count == 1,
+              $"{outage.Gaps.Count} gaps, expected the one hole between 0.20 and 0.42");
+        if (outage.Gaps.Count == 1)
+            Check("and the gap is bracketed by the readings either side of the hole",
+                  Math.Abs(outage.Gaps[0].f0 - 0.20) < 1e-6 && Math.Abs(outage.Gaps[0].f1 - 0.42) < 1e-6,
+                  $"{outage.Gaps[0].f0:0.####} → {outage.Gaps[0].f1:0.####}");
+
+        var steady = Win(reset, window, now, 0.50);
+        var even = new List<UsageSample>();
+        for (double f = 0.02; f <= 0.50; f += 0.02) even.Add(At(f, f, null));
+        UsageReport.FillCurve(steady, new(), even, s => (s.Util7d, s.Reset7d), now);
+        Check("an unbroken cadence is no outage at all", steady.Gaps.Count == 0,
+              $"{steady.Gaps.Count} gaps over evenly spaced readings");
+    }
 
     // ---------------------------------------------------------------- Block AF: the toast palette
 

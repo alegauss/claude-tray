@@ -401,26 +401,6 @@ checking it.** The capture crash surfaced because a directory happened not to ex
 divergence because a chart's numbers looked wrong; the colour collision because the same hex was typed
 twice in one afternoon. A verification loop nobody exercises is indistinguishable from one that passes.
 
-### XIX.5 A chart rule held by one screenshot
-
-T183's series obeys a rule that matters: a stored reading carrying **no** overage figure is skipped,
-not plotted as zero. Reading absent as zero would draw a floor along the bottom of the chart that
-nobody measured — the same `absent ≠ zero` distinction T179 built the store around, one layer up.
-
-Nothing asserts it. `FillCurve` is `private` inside `UsageReport`, reached only through
-`ComputePace`, which wants a real profile and its transcripts; the drawing itself is WPF and
-off-limits to a headless run. So the rule is held by the fixture screenshot taken once while
-building it — and a fixture that contains no nulls cannot demonstrate the null path at all, which
-means even that screenshot does not show it.
-
-The same shape as §XV.2: a real decision living where `--selftest` cannot reach. The fix is the same
-too — lift the series-building to something callable with a `List<UsageSample>` and a window, and
-assert the three cases directly (nulls skipped, a measured zero kept, `ExtraMax` over the kept
-points only). None of that needs a profile, a chart, or a screen.
-
-It is worth doing beyond overage: `Curve` and `Gaps` are built in the same method and asserted by
-nothing either.
-
 ### XIX.6 The branch that shipped unseen
 
 T182 appends to the System page's extra-usage row whether the allowance is *in use* — "Enabled — in

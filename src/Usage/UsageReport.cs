@@ -220,12 +220,21 @@ internal static class UsageReport
     // reset cleanly drops the previous window's samples. Reset times are stable within a window.
     private const double ResetMatchTolerance = 120;
     // Below this many in-window readings the real curve is too coarse to beat the token shaping.
-    private const int MinRealSamples = 2;
+    internal const int MinRealSamples = 2;
 
-    // Shape a window's burn-up curve. Preferred: the real utilizations logged over this window
-    // (<paramref name="hist"/>, selected by <paramref name="pick"/>). Fallback, when there aren't
-    // enough logged points yet: the token samples, scaled so the curve lands on the live utilization.
-    private static void FillCurve(WindowPace w, List<(double t, TokenBits bits)> samples,
+    /// <summary>
+    /// Shape a window's burn-up curve. Preferred: the real utilizations logged over this window
+    /// (<paramref name="hist"/>, selected by <paramref name="pick"/>). Fallback, when there aren't
+    /// enough logged points yet: the token samples, scaled so the curve lands on the live utilization.
+    ///
+    /// <para><b>Internal, not private, so <c>--selftest</c> can reach it (T189).</b> Three real decisions
+    /// live here — an absent overage reading is skipped rather than plotted as zero, the real-history path
+    /// takes over at <see cref="MinRealSamples"/> points, and a hole in the readings becomes a gap span —
+    /// and every one of them used to be reachable only through <see cref="ComputePace"/>, which wants a
+    /// profile and its transcripts, drawn by WPF a headless run cannot touch. A <see cref="WindowPace"/>,
+    /// a list of samples and a clock are all it actually needs; nothing here reads a file or a screen.</para>
+    /// </summary>
+    internal static void FillCurve(WindowPace w, List<(double t, TokenBits bits)> samples,
         List<UsageSample> hist, Func<UsageSample, (double util, double reset)> pick, double now)
     {
         if (!w.HasWindow) return;
