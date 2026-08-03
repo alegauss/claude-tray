@@ -80,6 +80,11 @@ internal static class EnvironmentProfile
     /// claiming a variable the tray does not actually own — and the only thing that line does is make
     /// <see cref="Restore"/> put back the value that is already there. The tray never abandons a
     /// setting it manages either way, which was the whole promise.</para>
+    ///
+    /// <para>What *is* now answered, just not here: the write reports how it went when it goes, through
+    /// <see cref="Completed"/> and <see cref="Last"/> (T173). Returning "accepted" was harmless while
+    /// nothing displayed the result; §XVI.2 put the effective profile on screen, and from then on a
+    /// write that threw would be a screen quietly disagreeing with the machine.</para>
     /// </summary>
     internal static bool Adopt(Settings settings, string configDir)
     {
@@ -134,11 +139,18 @@ internal static class EnvironmentProfile
             // other one. With no write pending the registry is the honest answer, which is also how
             // a value changed behind the tray's back (System Properties) is picked up again.
             string? heading = _inFlight > 0 ? _target : Current();
-            if (string.Equals(heading ?? "", value ?? "", StringComparison.OrdinalIgnoreCase)) return true;
-
-            _target = value;
-            _inFlight++;
-            _writes = _writes.ContinueWith(_ => Apply(value), TaskScheduler.Default);
+            bool already = string.Equals(heading ?? "", value ?? "", StringComparison.OrdinalIgnoreCase);
+            if (!already)
+            {
+                _target = value;
+                _inFlight++;
+            }
+            // Queued either way (T173). A call with nothing to write still has an outcome — "the machine
+            // already says this" — and a caller asking whether its choice reached the machine must get
+            // the same shape of answer either way, or the reconcile Save runs on every press would be a
+            // silent hole in the record. Queued rather than answered here so the report still arrives
+            // after any write already in flight, and always off the UI thread.
+            _writes = _writes.ContinueWith(_ => Apply(value, wrote: !already), TaskScheduler.Default);
         }
         return true;
     }
@@ -150,18 +162,77 @@ internal static class EnvironmentProfile
     private static string? _target;
     private static int _inFlight;
 
-    private static void Apply(string? value)
+    private static void Apply(string? value, bool wrote)
     {
-        try
+        string? error = null;
+        if (wrote)
         {
-            // .NET removes the variable when the value is null or empty — which is exactly the
-            // "select ~/.claude" case, not an error.
-            Environment.SetEnvironmentVariable(Var, value, EnvironmentVariableTarget.User);
-            Broadcast();
+            try
+            {
+                // .NET removes the variable when the value is null or empty — which is exactly the
+                // "select ~/.claude" case, not an error.
+                Environment.SetEnvironmentVariable(Var, value, EnvironmentVariableTarget.User);
+                Broadcast();
+            }
+            // Still swallowed as far as the *click* is concerned — nothing the user is waiting on
+            // depends on this — but no longer discarded: the reason is what the outcome below carries.
+            catch (Exception ex) { error = ex.Message; }
+            finally { lock (Gate) _inFlight--; }
         }
-        catch { /* the icon already moved; nothing the user is waiting on depends on this */ }
-        finally { lock (Gate) _inFlight--; }
+
+        var outcome = new WriteOutcome(value, error is null ? ReadBack(value) : Current(), error, wrote);
+        Last = outcome;
+        try { Completed?.Invoke(outcome); }
+        catch { /* a subscriber that throws must not poison the queue the next pick rides on */ }
     }
+
+    /// <summary>
+    /// What the variable says once the write is meant to have landed — read back rather than inferred
+    /// from the call returning, which is the whole of T173: <see cref="Adopt"/> answers *accepted*, and
+    /// until something reads the registry again nothing on this machine knows the difference between
+    /// that and *written*.
+    ///
+    /// <para>Given a bounded moment to agree rather than sampled once. Measured on the pick that
+    /// produced §XVI: <c>SetEnvironmentVariable</c> returned at <b>87 ms</b> while the value first read
+    /// back out of <c>HKCU\Environment</c> at <b>108 ms</b>, so a single read straight after the call
+    /// can observe the old value and report a perfectly good write as a failure. Nothing waits on this —
+    /// it runs on the pool long after the caller returned — but the wait is still capped, because it
+    /// sits in the queue the next profile switch is behind.</para>
+    /// </summary>
+    private static string? ReadBack(string? intended)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            string? now = Current();
+            if (string.Equals(now ?? "", intended ?? "", StringComparison.OrdinalIgnoreCase)) return now;
+            Thread.Sleep(40);
+        }
+        return Current();
+    }
+
+    /// <summary>
+    /// How a queued write actually turned out, read back off the registry rather than assumed (T173).
+    /// </summary>
+    /// <param name="Intended">The value the write meant to leave behind — null means "remove it".</param>
+    /// <param name="Observed">What the variable said afterwards.</param>
+    /// <param name="Error">The exception's message when the write threw, else null.</param>
+    /// <param name="Wrote">False when there was nothing to do because the variable already said this —
+    /// a landed outcome, and not one worth telling anybody about.</param>
+    internal readonly record struct WriteOutcome(string? Intended, string? Observed, string? Error, bool Wrote)
+    {
+        /// <summary>The variable reads back as what the write meant it to.</summary>
+        internal bool Landed => Error is null
+                                && string.Equals(Observed ?? "", Intended ?? "", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Raised on the thread pool once a queued write has been applied and read back — one per
+    /// call to <see cref="Adopt"/> or <see cref="Restore"/>, in the order they were made. The seam a
+    /// failure reaches the user through (T174); this file itself shows nothing.</summary>
+    internal static event Action<WriteOutcome>? Completed;
+
+    /// <summary>The most recent outcome, so the result of the last write is readable without having
+    /// been subscribed when it happened — which is what makes <c>--profiles</c> able to report it.</summary>
+    internal static WriteOutcome? Last { get; private set; }
 
     /// <summary>Let a queued write finish before the process goes away — switching profile and quitting
     /// within the same second must not lose the variable. Bounded, because a shutdown must not hang on

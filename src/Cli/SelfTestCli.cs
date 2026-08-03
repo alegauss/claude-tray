@@ -1848,6 +1848,27 @@ internal static class SelfTestCli
         Check("an unset variable reads as the default config dir",
               ClaudeAccount.SamePath(EnvironmentProfile.EffectiveConfigDir(),
                                      EnvironmentProfile.Current() ?? ClaudeAccount.HomeConfigDir));
+
+        // T173: what a queued write reports back. Driven on the outcome itself, because the states worth
+        // asserting are a write that threw and a write that silently did not take, and manufacturing
+        // either on this machine means rewriting the developer's own CLAUDE_CONFIG_DIR.
+        Check("a value that reads back as itself landed",
+              new EnvironmentProfile.WriteOutcome(work, work, null, true).Landed);
+        Check("and a value that reads back as something else did not",
+              !new EnvironmentProfile.WriteOutcome(work, home, null, true).Landed);
+        Check("a thrown write never counts as landed, whatever the variable says",
+              !new EnvironmentProfile.WriteOutcome(work, work, "access denied", true).Landed);
+        // Removing the variable is the "select ~/.claude" case, where null is the intended value — and
+        // an absent variable reads back as null, not as an empty string, on one route and not the other.
+        Check("removing the variable lands when it reads back absent",
+              new EnvironmentProfile.WriteOutcome(null, null, null, true).Landed
+              && new EnvironmentProfile.WriteOutcome(null, "", null, true).Landed);
+        Check("and does not land while the old value is still there",
+              !new EnvironmentProfile.WriteOutcome(null, work, null, true).Landed);
+        // A no-op is a landed outcome — the machine already says this — and still reports, so a caller
+        // asking "did my choice reach the machine?" is never met with silence.
+        Check("nothing to write is still an answer, and a landed one",
+              new EnvironmentProfile.WriteOutcome(work, work, null, false) is { Wrote: false, Landed: true });
     }
 
     private static void AutomationIds()

@@ -135,7 +135,10 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   prints each profile's last turn, where auto-follow points, what a
                                       #   pick in the menu reaches — tray only, or Windows too (T171) — and
                                       #   which profile the environment selects beside the one the icon
-                                      #   draws, marked when the two DIFFER (T172).
+                                      #   draws, marked when the two DIFFER (T172), and whether the tray
+                                      #   claims to own the variable and what it restores to (T173) —
+                                      #   that claim against a differing registry is a write that was
+                                      #   accepted and never landed.
 --probe [--live] [--all]              # the rate-limit headers VERBATIM: the recorded capture log first,
                                       #   then one live call — which is itself recorded (T212), against
                                       #   the monitored profile and filed under its key. --live skips

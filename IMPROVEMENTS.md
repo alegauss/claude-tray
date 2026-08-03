@@ -174,33 +174,6 @@ Three failure modes hide behind the one symptom, and separating them comes first
 C bounds the block: **no registry check proves the next process will see the value.** Hence §XVI.2
 displays the effective value continuously rather than asserting it once at the pick.
 
-### §XVI.3 A write whose result nothing reads (T173)
-
-T149's trade was correct and should not be reverted: the registry write plus its `WM_SETTINGCHANGE` sweep
-measured 129 ms and 486 ms *idle*, and seconds on a working machine, so carrying it on the UI thread is
-what froze the tray on a pick. `Write` queues to the thread pool, `Adopt` settles its bookkeeping up front
-and returns *accepted*, and `Apply` swallows the exception because nothing the user waits on depends on
-it. The window that leaves open is small — measured against the pick that produced the report:
-
-| Measurement | Value |
-|---|---|
-| `Environment.SetEnvironmentVariable(…, User)` returns | **87 ms** |
-| Value readable back from `HKCU\Environment` | **108 ms** |
-| `HKCU\Environment` last write | 2026-08-02 **18:09:36** |
-| `%LocalAppData%\ClaudeTray\settings.json` mtime | 2026-08-02 **18:09:36** — the same Save |
-| `EnvironmentProfileRestore` / `EnvironmentProfileOwned` | `null` / `true` — the first `Adopt` saw no prior value |
-| Editor process launched | 18:06:35, from an `explorer.exe` of 12:39:04 |
-
-So this is not a spinner. Returning *accepted* was true when nothing displayed the result; §XVI.2 makes
-something display it, and then a write that threw is a screen quietly disagreeing with itself. `Drain`
-already exists for the shutdown path and is the shape to reuse: once the queue is empty, read the variable
-back, compare against the intent, and give the mismatch somewhere to go. Bookkeeping, not UI — a
-completion signal per queued write, so the outcome reaches whatever wants it, in T174's case the toast.
-
-It must not become a blocking wait (the caller returns at once, exactly as now) and it must not become a
-dialog on failure — T145's reasoning holds, that a modal about an environment variable is the wrong way to
-interrupt a menu click.
-
 ### §XVI.4 The one action with no feedback at all (T174)
 
 Writing a machine-wide setting is the least visible thing the tray does and the only one whose effect

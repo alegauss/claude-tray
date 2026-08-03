@@ -96,6 +96,16 @@ internal static class ProfilesCli
         Console.WriteLine($"environment selects: {envProfile?.Label ?? "none of these"}  ({envDir})"
                           + (EnvironmentProfile.Current() is null ? "   CLAUDE_CONFIG_DIR not set - the default applies" : "")
                           + (agrees ? "   - agrees with the icon" : "   !! DIFFERS from the icon"));
+        // The bookkeeping a write leaves behind, which is the only part of it that outlives the process
+        // that queued it (T173). "Owned" is the tray's claim that it took the variable over; the line
+        // above is what the registry says about that claim, and the two disagreeing is a write that was
+        // accepted and never landed.
+        Console.WriteLine($"tray owns the variable: {(settings.EnvironmentProfileOwned ? "yes" : "no")}"
+                          + $"   restores to {settings.EnvironmentProfileRestore ?? "(unset)"}"
+                          + (EnvironmentProfile.Last is { } last
+                              ? $"   last write this process: {(last.Landed ? "landed" : "DID NOT LAND")}"
+                                + (last.Error is { } why ? $" ({why})" : "")
+                              : ""));
         Console.WriteLine($"polled every interval: {polled} of {profiles.Count}"
                           + (polled < profiles.Count
                               ? "  (a profile off the subscription has no quota window to read)" : ""));
