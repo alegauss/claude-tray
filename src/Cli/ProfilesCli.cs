@@ -15,13 +15,21 @@ internal static class ProfilesCli
         // authoritative confirmation the page's Check button runs, and the only way to exercise it
         // without clicking.
         bool check = args.Any(a => a is "--check");
-        string[] registered = args.Where(a => !a.StartsWith("--")).ToArray();
+        string[] extra = args.Where(a => !a.StartsWith("--")).ToArray();
+        // Discovered through the tray's own registered list, and not through the config-dir overload
+        // (T232). That one skips the typed-label pass, so this read-out was answering with the *derived*
+        // label — "Personal" — for a profile every surface a user sees calls "Pessoal". A read-out of the
+        // app's state has to reach it by the app's route, or it is a second computation that agrees only
+        // while nobody has renamed anything. A dir named on the command line is an extra on top of the
+        // registered ones, carrying no label, so it still reads as whatever the files identify it as.
+        List<ClaudeProfile> registered = Settings.Load().Profiles
+            .Concat(extra.Select(d => new ClaudeProfile { ConfigDir = d })).ToList();
         // Timed because the tray now re-runs this on every menu open (T137): it has to stay cheap.
         var discovery = System.Diagnostics.Stopwatch.StartNew();
         List<ClaudeInfo> profiles = ClaudeAccount.Discover(registered);
         discovery.Stop();
         Console.WriteLine($"Claude Code profiles: {profiles.Count}"
-                          + (registered.Length > 0 ? $" ({registered.Length} registered dir(s) passed in)" : "")
+                          + (extra.Length > 0 ? $" ({extra.Length} extra dir(s) passed in)" : "")
                           + $"   discovery {discovery.Elapsed.TotalMilliseconds:0.0}ms");
         Console.WriteLine();
         foreach (ClaudeInfo p in profiles)

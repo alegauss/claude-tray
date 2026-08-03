@@ -479,3 +479,10 @@ environment variable, because the reconcile runs off the value Save restored.
 The shape wanted is a decision about which write is newer, not another list. A per-field stamp, or
 the page reading the live model for exactly the fields it shares, are both plausible; what must not
 happen is a third category of ownership, since two were already one too many to keep straight.
+
+## XXVII Profiles — several logins on one machine (Block O)
+
+The tray polls more than one Claude Code profile and lets a pick move which one the icon follows.
+What files under this block is everything that follows from there: how a profile is identified, what
+it is called, what a pick reaches, and which of those a read-out is allowed to answer differently
+from the screen.

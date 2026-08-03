@@ -93,6 +93,8 @@
 
 - 📋 **T229** (deps: —) **A toggle flipped in the tray menu is undone by pressing Save in a window that was already open** — Two fields the menu writes have a control on the Claude Code page and no [TrayOwned] marker, so the page hands back the snapshot it was built with and the newer value loses. → §XXVI.1
 
+## Block O — Profiles
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
