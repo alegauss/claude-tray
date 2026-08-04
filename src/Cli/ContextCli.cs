@@ -54,7 +54,10 @@ internal static class ContextCli
         });
         if (ReadOut.Failed(scan.Error)) return;
 
-        Console.WriteLine($"Context load — {scan.Projects.Count} projects, {scan.FilesWalked} files, " +
+        // "walked", not "files": the report's summary counts what the scan KEPT, and the two differ by the
+        // ones the walk visited and discarded — 1021 against 881 on the machine that produced T268. One
+        // vocabulary across both artifacts is the whole of that fix.
+        Console.WriteLine($"Context load — {scan.Projects.Count} projects, {scan.FilesWalked} files walked, " +
                           $"{scan.ElapsedMs:0}ms {(scan.FromCache ? "(cached)" : "(fresh scan)")}");
         if (scan.Truncated)
             Console.WriteLine("  ! the walk hit its file/directory cap — totals below are a floor, not a total");

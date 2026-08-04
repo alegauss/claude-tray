@@ -54,14 +54,20 @@ internal static class ContextReport
         UsageEvidence? evidence, int baseTokens)
     {
         long bytes = scan.Shared.Sum(s => s.Bytes) + scan.Projects.Sum(p => p.Bytes);
-        int files = scan.Shared.Count + scan.Projects.Sum(p => p.Sources.Count);
+        int kept = scan.Shared.Count + scan.Projects.Sum(p => p.Sources.Count);
 
         sb.AppendLine("## Summary");
         sb.AppendLine();
         sb.AppendLine("| | |");
         sb.AppendLine("|---|---|");
         Row(sb, "Projects", scan.Projects.Count.ToString(CultureInfo.InvariantCulture));
-        Row(sb, "Measured files", files.ToString(CultureInfo.InvariantCulture));
+        // Two rows, and neither of them says "measured" (T268). This row used to read `Measured files`
+        // while the *column* nine lines below reads `Measured` and means the median startup context read
+        // from transcripts — one word, two labels, one document, and the prose defines only the other one.
+        // Both numbers are worth keeping rather than picking one: walked-against-kept is what tells a
+        // reader the shape of a capped walk, and the caveat above this table now has figures to attach to.
+        Row(sb, "Files walked", scan.FilesWalked.ToString(CultureInfo.InvariantCulture));
+        Row(sb, "Sources kept", kept.ToString(CultureInfo.InvariantCulture));
         Row(sb, "Footprint on disk", Kb(bytes));
         Row(sb, "Shared eager context (counted once)", TokenEstimate.Format(scan.SharedEagerTokens));
         Row(sb, "Base overhead, invisible to any file scan", TokenEstimate.Format(baseTokens));

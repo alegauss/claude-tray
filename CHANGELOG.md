@@ -25,7 +25,7 @@
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
-| [I](#block-i--context-load-inspector) | Context Load Inspector (active — see ROADMAP) |
+| [I](#block-i--context-load-inspector) | Context Load Inspector |
 | [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
 | [K](#block-k--live-throughput) | Live throughput |
 | [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app |
@@ -187,6 +187,7 @@
 - **T84** — Docs, and Block I closed out: a README section (what it is, eager vs lazy, evidence, findings, what-if, grade/drift, the CLI surface, and the privacy line), a two-shot `docs/index.html` block with a nav entry, an `llms.txt` feature paragraph, and **Context…** added to the menu list. Both screenshots come from the `--sample` fixture, and the fixture was moved to `%PUBLIC%` first so the published images carry neither the developer's username nor any client project name. The site's privacy panel now states the context promise explicitly: sizes, names, timestamps and frontmatter only, never the contents of your memories, instructions or skills — and it never edits them.
 - **T261** — A read-out that could not start now says so and exits 1, through one helper that prints the sentence and sets the code together, so no call site can do one without the other - four of them printed error: and returned 0, and --root exists for the fixture loop, where the caller is a script. How wide the rule goes was measured rather than argued: a scan has no partial form, since its Error is only ever set on one that returned immediately, while a scan that finished with holes carries Truncated and no error - and UsageEvidence, the one type where partial is representable, says so with Complete beside its Error and stays a note. Both halves are asserted, boundary included.
 - **T267** — The caveat travels with the text now: a capped scan says inside the prompt that the list is a floor, and tells the reader to say it is partial before starting - an instruction rather than a note, because the rest of that section instructs and the reader is something that will act. The report already carried the same fact inside itself; the prompt printed it in the scan header, above the hash, which is outside what a person copies. Absent when the scan is whole, since a caveat that is always there is one nobody reads. Checked in both directions, alongside the two promises the prompt exists under.
+- **T268** — The word Measured names one quantity in that document again: the summary row that meant sources the scan kept is now two rows, Files walked and Sources kept, which also gives the capped-walk caveat above the table the two figures that show its shape - 1021 against 881 on the machine that produced the task. The scan header says files walked, so both artifacts of one scan share a vocabulary. The check names the word rather than sweeping for collisions, because the first draft of it fired on Findings, which is the same quantity at two scopes and misleads nobody - same word for the same thing is fine, and no regex tells that from the defect.
 
 ## Block J — Activity-aware pacing
 

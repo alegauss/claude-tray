@@ -168,6 +168,9 @@ internal static class SelfTestCli
         Section("map — every source file has a row, and every row a file (Block AJ)");
         FileMap();
 
+        Section("report — one label, one quantity (Block I)");
+        ReportLabels();
+
         Section("prompt — what the cleanup prompt carries out of the app (Block I)");
         CleanupPrompt();
 
@@ -2109,6 +2112,54 @@ internal static class SelfTestCli
                               .OrderBy(f => f, StringComparer.Ordinal).ToArray();
         Check("and every folder it names is still there", gone.Length == 0,
               $"{string.Join(", ", gone)} — a placement rule for a folder that no longer exists");
+    }
+
+    /// <summary>
+    /// T268. The report used to label a summary row <c>Measured files</c> while, nine lines below, a column
+    /// headed <c>Measured</c> meant the median startup context read from transcripts — one word, two labels,
+    /// one document, and the prose defined only the second. Read on the generated document, where a person
+    /// meets it: the header of the same scan said 1021 and that row said 881, both right and neither saying
+    /// which was which.
+    ///
+    /// <para>What is held is narrower than the first draft of it, and the narrowing is the interesting part.
+    /// "No summary row may be labelled with a word the Projects table uses as a column" sounds like the
+    /// invariant and is not: written that way the check fires on <c>Findings</c>, which is the same quantity
+    /// at two scopes — the machine's total and one project's — and misleads nobody. Same word for the
+    /// <em>same</em> thing is fine; same word for two different things is the defect, and no regex can tell
+    /// those apart. So the assertion names the word that was actually wrong, and the positive rows carry the
+    /// rest: the two counts exist, by their own names, and are free to differ.</para>
+    /// </summary>
+    private static void ReportLabels()
+    {
+        var scan = new ContextScan { ScannedUtc = DateTime.UtcNow, FilesWalked = 1021, Truncated = true };
+        scan.Shared.Add(new ContextSource { Path = @"C:\u\CLAUDE.md", Kind = ContextKind.UserInstructions });
+
+        string doc = ContextReport.Build(scan, Array.Empty<Finding>(), null,
+                                        new Dictionary<string, ContextDebt>(), 32_000, DateTime.Now);
+
+        Check("the summary reports what the walk visited, by that name",
+              doc.Contains("| Files walked | 1021 |", StringComparison.Ordinal));
+        Check("and what it kept, by that name — one source here, and they are allowed to differ",
+              doc.Contains("| Sources kept | 1 |", StringComparison.Ordinal));
+
+        // Scoped to the Summary block: read over the whole document this also matches the Projects table's
+        // own header row and reports it colliding with itself, which is how the first draft of this check
+        // failed on `Project`.
+        int from = doc.IndexOf("## Summary", StringComparison.Ordinal);
+        int to = doc.IndexOf("## Projects", StringComparison.Ordinal);
+        if (!Check("the summary block is readable", from >= 0 && to > from, $"{from}..{to}")) return;
+
+        string[] rowLabels = Regex.Matches(doc[from..to], @"(?m)^\| ([A-Z][^|]*?) \| ")
+                                  .Select(m => m.Groups[1].Value).ToArray();
+        if (!Check($"the summary's rows are readable ({rowLabels.Length})", rowLabels.Length >= 6,
+                   string.Join(" / ", rowLabels)))
+            return;
+
+        // The word the Projects table owns, and the one this row used to steal.
+        string[] stolen = rowLabels.Where(r => r.Contains("Measured", StringComparison.Ordinal)).ToArray();
+        Check($"no summary row calls itself Measured — the column owns that word ({rowLabels.Length} rows)",
+              stolen.Length == 0,
+              $"{string.Join(", ", stolen)} — and the column nine lines down means something else");
     }
 
     /// <summary>
