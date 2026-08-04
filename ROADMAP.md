@@ -90,8 +90,6 @@
 
 ## Block J — Activity-aware pacing
 
-- 📋 **T295** (deps: —) **last week's ghost curve stops at a ceiling and never shades the stretch the account was over** — T287's column is in the store and PreviousWeek still returns a curve and a coverage share only, so the stretch this week's chart shades has no counterpart on the week drawn behind it. → §XXXII.2
-
 ## Block A — Foundation — tray, icon, API, projection
 
 - 📋 **T280** (deps: T275 ✅) **nothing on screen says when the overage spell started** — The store dates the crossing at its first reading past the threshold, and saying since when is the difference between reporting a state and reporting an event. → §XXXIII

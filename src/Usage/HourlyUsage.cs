@@ -390,8 +390,16 @@ internal static class HourlyUsage
     /// <param name="Curve">(fraction of the window, cumulative utilization), hour by hour.</param>
     /// <param name="Coverage">Share of that week's hours that had at least one reading.</param>
     /// <param name="AtSameFraction">Where it stood at the same point in the window as now.</param>
+    /// <param name="OverSpans">The stretches of that week the account was past its included quota (T295),
+    /// as (from, to) fractions of the window — the same 0–1 scale as <paramref name="Curve"/>. A run of
+    /// over-hours <em>is</em> the stretch, so consecutive hours are one span and each covers its own hour
+    /// whole; empty when no hour of the week carried the bit.</param>
+    /// <param name="OverKnown">Whether the week can answer the question at all: false when a day the store
+    /// holds for it was folded before T287's column existed, in which case an empty
+    /// <paramref name="OverSpans"/> means <em>not recorded</em> and never <em>it stayed inside</em>.</param>
     internal sealed record GhostWeek(List<(double frac, double cum)> Curve, double Coverage,
-        double AtSameFraction, double Total);
+        double AtSameFraction, double Total,
+        List<(double f0, double f1)> OverSpans, bool OverKnown);
 
     /// <summary>Enough of the previous week must have been observed for its curve to mean anything;
     /// below this the line would mostly be flat stretches the app simply wasn't there for.</summary>
@@ -424,6 +432,11 @@ internal static class HourlyUsage
             var curve = new List<(double, double)> { (0, 0) };
             double cum = 0, atSame = 0;
             int covered = 0;
+            // The spell (T295), gathered hour by hour with the spend and turned into spans below. `known`
+            // starts true and only a day the store actually holds can falsify it: a day missing altogether
+            // is the app having been closed, which `coverage` already reports.
+            var over = new bool[hours];
+            bool known = true;
 
             for (int i = 0; i < hours; i++)
             {
@@ -432,6 +445,8 @@ internal static class HourlyUsage
                 {
                     if (day.Count[at.Hour] > 0) covered++;
                     cum += day.Spend[at.Hour];
+                    over[i] = day.WasOver(at.Hour);
+                    if (!day.OverKnown) known = false;
                 }
                 double frac = (i + 1) / (double)hours;
                 if (frac <= nowFraction) atSame = cum;
@@ -440,9 +455,30 @@ internal static class HourlyUsage
 
             double coverage = covered / (double)hours;
             if (coverage < MinGhostCoverage || cum < MinGhostTotal) return null;
-            return new GhostWeek(curve, coverage, atSame, Math.Min(1, cum));
+            return new GhostWeek(curve, coverage, atSame, Math.Min(1, cum), Spans(over), known);
         }
         catch { return null; }   // the ghost is decoration; never fail a report over it
+    }
+
+    /// <summary>Runs of over-quota hours as (from, to) fractions of the window (T295). An hour is a slot of
+    /// the window, not a point in it, so hour <c>i</c> covers <c>[i/n, (i+1)/n]</c> and a run of them ends
+    /// where the first hour that was not over begins — no cadence to bridge, unlike
+    /// <see cref="UsageReport.MergeSpans"/>, because the fold has already reduced the readings to a grid
+    /// with a slot per hour.</summary>
+    internal static List<(double f0, double f1)> Spans(bool[] over)
+    {
+        var spans = new List<(double, double)>();
+        int n = over.Length;
+        if (n == 0) return spans;
+
+        int start = -1;
+        for (int i = 0; i < n; i++)
+        {
+            if (over[i] && start < 0) start = i;
+            else if (!over[i] && start >= 0) { spans.Add((start / (double)n, i / (double)n)); start = -1; }
+        }
+        if (start >= 0) spans.Add((start / (double)n, 1.0));
+        return spans;
     }
 
     /// <summary>
@@ -451,7 +487,13 @@ internal static class HourlyUsage
     /// two weeks of folded history, and a feature that cannot be looked at cannot be verified (same
     /// reason <see cref="ContextHistory.Demo"/> exists).
     /// </summary>
-    public static GhostWeek Demo(DateTime windowStartLocal, double windowSeconds, double nowFraction, double total)
+    /// <param name="over">Draw a week that <em>ran out</em>: the quota is spent by
+    /// <see cref="DemoOverOnset"/> and every hour past that carried the header, which is the ghost T295
+    /// shades. The spans are derived from the curve rather than declared beside it, so the two cannot
+    /// disagree in a screenshot. <paramref name="total"/> is ignored when it is set — a week that went past
+    /// its included quota did not finish under it.</param>
+    public static GhostWeek Demo(DateTime windowStartLocal, double windowSeconds, double nowFraction,
+                                 double total, bool over = false)
     {
         int hours = (int)Math.Round(windowSeconds / 3600.0);
         var weight = new double[hours];
@@ -464,17 +506,26 @@ internal static class HourlyUsage
             sum += weight[i];
         }
 
+        // Spent faster than the week is long, so the ceiling arrives with time left to spend past it.
+        double target = over ? 1 / DemoOverOnset : total;
         var curve = new List<(double, double)> { (0, 0) };
+        var spell = new bool[hours];
         double cum = 0, atSame = 0;
         for (int i = 0; i < hours; i++)
         {
-            cum += total * weight[i] / sum;
+            cum += target * weight[i] / sum;
             double frac = (i + 1) / (double)hours;
             if (frac <= nowFraction) atSame = cum;
-            curve.Add((frac, cum));
+            curve.Add((frac, Math.Min(1, cum)));
+            spell[i] = over && cum >= 1;
         }
-        return new GhostWeek(curve, 1, atSame, total);
+        return new GhostWeek(curve, 1, Math.Min(1, atSame), Math.Min(over ? 1 : total, cum),
+                             Spans(spell), OverKnown: true);
     }
+
+    /// <summary>Where the demo week's included quota runs out, as a fraction of the window: late enough to
+    /// be a week that worked normally first, early enough that the stretch past it is visible.</summary>
+    private const double DemoOverOnset = 0.78;
 
     // ---------------------------------------------------------------- storage
 

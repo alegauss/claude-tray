@@ -201,6 +201,12 @@ this same point in the week. It appears once there are two weeks of history to d
 stays hidden if too much of that week went unrecorded — a line drawn from hours the app wasn't
 running would look like a quiet week, which is exactly the wrong conclusion.
 
+If that week ran past the quota included in your plan, the stretch it was over is drawn in **clay
+along the faint line itself** — the same color the current week's stretch is shaded in, kept on the
+ghost rather than across the plot so the two weeks can never be mistaken for each other. Both weeks
+share one x-axis here, and a shaded column would belong to neither. A week older than the app's
+record of that answers **nothing** rather than claiming it stayed inside: hovering it says so.
+
 **Extra usage, on an axis of its own.** If you go past the quota included in your plan and keep
 working, the weekly chart draws what you're spending past it as a **clay** line — with its **own
 right-hand scale**, never against the 0–100% one. The two are percentages of different things: the

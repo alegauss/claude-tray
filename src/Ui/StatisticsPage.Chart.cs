@@ -88,6 +88,11 @@ internal partial class StatisticsPage
         };
     }
 
+    /// <summary>How far into the plot the ghost's over-quota stretch sits from the ghost's own line, in
+    /// device-independent pixels (T295) — enough to clear the 100% gridline and the projection that share
+    /// that edge, small enough to still read as part of the curve it hugs.</summary>
+    private const double GhostOverOffset = 4;
+
     private void Chart_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         var canvas = (Canvas)sender;
@@ -224,8 +229,41 @@ internal partial class StatisticsPage
             {
                 Points = gpts, Stroke = accent, StrokeThickness = 1.5, Opacity = 0.32,
             });
-            AddHit(c, X(1), Yc(ghost.Total),
-                L.T("stats.chart.lastWeek", Pct(Disp(ghost.Total)), Pct(Disp(ghost.AtSameFraction))));
+
+            // Where that week was past its included quota, as a clay stretch hugging the ghost's own line
+            // (T295).
+            //
+            // On the line and not as a band, which is the one thing this cannot copy from the band above.
+            // Both weeks share this x-axis — a fraction of a window, not a date — so a second full-height
+            // band would sit exactly where the first one does and name no week: the reader would be left to
+            // guess which of the two curves it belongs to.
+            //
+            // Beside the line rather than on it, because of where the stretch always falls. Being past the
+            // included quota means the week is *at* its ceiling, so a recolored segment of the curve is
+            // always flat against the 100% gridline — which is also where the projection lands, in a clay
+            // that is nearly this one. The first capture of this drew it there and it could not be seen at
+            // all. Offset a few pixels into the plot it belongs to the same curve and collides with neither,
+            // and the offset flips with the axis so "into the plot" survives the remaining-mode flip.
+            double lift = _remaining ? -GhostOverOffset : GhostOverOffset;
+            foreach (var (f0, f1) in ghost.OverSpans)
+            {
+                var seg = new PointCollection(ghost.Curve
+                    .Where(p => p.frac >= f0 - 1e-9 && p.frac <= f1 + 1e-9)
+                    .Select(p => new Point(X(p.frac), Yc(p.cum) + lift)));
+                if (seg.Count < 2) continue;
+                var line = new Polyline
+                {
+                    Points = seg, Stroke = BillingBrush, StrokeThickness = 3, Opacity = 0.8,
+                };
+                line.ToolTip = L.T("stats.chart.lastWeekOverSpan");
+                c.Children.Add(line);
+            }
+
+            // The ghost's own figure, plus — when that week cannot answer the question — the sentence that
+            // keeps an unshaded ghost from reading as a week that stayed inside its quota.
+            string tip = L.T("stats.chart.lastWeek", Pct(Disp(ghost.Total)), Pct(Disp(ghost.AtSameFraction)));
+            if (!ghost.OverKnown) tip += " " + L.T("stats.chart.lastWeekOverUnknown");
+            AddHit(c, X(1), Yc(ghost.Total), tip);
         }
 
         // Even-pace reference: straight line between empty (consumption 0) at the start and the limit

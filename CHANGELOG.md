@@ -26,7 +26,7 @@
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
-| [J](#block-j--activity-aware-pacing) | Activity-aware pacing (active — see ROADMAP) |
+| [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
 | [K](#block-k--live-throughput) | Live throughput |
 | [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app |
 | [M](#block-m--explain-on-demand) | Explain on demand — the method note behind an ⓘ |
@@ -216,6 +216,7 @@
 - **T271** — The read-out named a heaviest and a lightest hour that cannot be found in the only picture it draws. Measured, not eyeballed: the grid Sunday row was 13 light cells then a run of mid cells, with 16:00 and 22:00 both the same glyph, while the line beneath called one the heaviest Sunday hour (2.00x) and the other the lightest (0.79x). Not a wrong number - the grid draws P, the share of weeks an hour was active at all, and the line draws I, how hard it is worked when it is. The control that proves the gap is real is the busiest-bucket line, which IS on the grid axis and does point at its darkest cell (Monday 22:00, the only full-black glyph). Of the three shapes the task allowed - a second grid, a legend, or one clause - this is the cheapest that closes it: the line now opens with intensity, then names the axis it is not. Extracted as the pure ActivityCli.IntensityLine so a check reads both branches without a profile store; three assertions, and the axis one was seen to fail with the clause removed.
 - **T287** — The fold keeps a bit an hour for the spell, written even where nothing was over so its absence still means a day folded before it existed, and a pruned week is no longer a ceiling.
 - **T296** — Coverage and the spell are counted for every reading the fold sees, its oldest included, so an hour observed once reads as observed rather than unknown; only spend still waits for a pair.
+- **T295** — The ghost carries the stretches that week was over and the chart draws them in clay on the ghost's own line, clear of the ceiling they always sit on; a week with no column says unknown.
 
 ## Block K — Live throughput
 

@@ -460,6 +460,8 @@
   "stats.chart.extraAxis": "extra usage",
   "stats.chart.extraNow": "Extra usage: {0} of your extra-usage allowance, on the right-hand scale.",
   "stats.chart.overSpan": "Shaded: the API reported you past the quota included in your plan over this stretch, so work carried on as extra usage.",
+  "stats.chart.lastWeekOverSpan": "Last week: the API reported you past the quota included in your plan over this stretch, so that week's work carried on as extra usage.",
+  "stats.chart.lastWeekOverUnknown": "Whether that week went past the quota included in your plan was not recorded — it is older than the readings that would say.",
 
   // ================= Context Load window (ContextWindow) =================
   // Every key below belongs to this one feature; the sub-comments group them by panel.

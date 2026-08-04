@@ -456,6 +456,8 @@
   "stats.chart.extraAxis": "uso extra",
   "stats.chart.extraNow": "Uso extra: {0} de tu límite de uso extra, en la escala derecha.",
   "stats.chart.overSpan": "Sombreado: en este tramo la API informó de que estabas por encima de la cuota incluida en tu plan, así que el trabajo siguió como uso extra.",
+  "stats.chart.lastWeekOverSpan": "La semana pasada: en este tramo la API informó de que estabas por encima de la cuota incluida en tu plan, así que el trabajo de esa semana siguió como uso extra.",
+  "stats.chart.lastWeekOverUnknown": "No quedó registrado si esa semana superó la cuota incluida en tu plan — es más antigua que las lecturas que lo dirían.",
 
   // ================= Ventana de carga de contexto (ContextWindow) =================
   // Todas las claves de abajo pertenecen a esta función; los subcomentarios las agrupan por panel.

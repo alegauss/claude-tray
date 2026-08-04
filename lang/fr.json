@@ -455,6 +455,8 @@
   "stats.chart.unavailable": "Consommation en direct indisponible depuis {0} — aucune donnée sur cet intervalle",
   "stats.chart.extraAxis": "usage suppl.",
   "stats.chart.overSpan": "Zone ombrée : sur cette période l’API a signalé que vous dépassiez le quota inclus dans votre offre, le travail s’est donc poursuivi en usage supplémentaire.",
+  "stats.chart.lastWeekOverSpan": "Semaine dernière : sur cette période l’API a signalé que vous dépassiez le quota inclus dans votre offre, le travail de cette semaine s’est donc poursuivi en usage supplémentaire.",
+  "stats.chart.lastWeekOverUnknown": "Il n’a pas été enregistré si cette semaine a dépassé le quota inclus dans votre offre — elle est plus ancienne que les relevés qui le diraient.",
   "stats.chart.extraNow": "Usage supplémentaire : {0} de votre limite d’usage supplémentaire, sur l’échelle de droite.",
 
   // ================= Fenêtre de charge de contexte (ContextWindow) =================

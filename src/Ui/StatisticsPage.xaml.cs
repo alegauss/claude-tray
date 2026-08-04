@@ -447,10 +447,16 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         if (PreviewDemoOverage) FillDemoOverage(r.Weekly);
         if (PreviewDemoOverSpell) FillDemoOverSpell(r.Weekly);
 
+        // The demo ghost follows the week in front of it: on an overage preview it is a week that also ran
+        // out and kept working, which is the only reading on which T295's shaded stretch exists to be
+        // looked at — and the picture that shows the band and the stretch are not the same claim.
         if (PreviewDemoGhost && r.Weekly.Ghost is null && r.Weekly.HasWindow)
+        {
+            bool ghostOver = PreviewDemoOverage || PreviewDemoOverSpell;
             r.Weekly.Ghost = HourlyUsage.Demo(
                 DateTimeOffset.FromUnixTimeSeconds((long)(r.Weekly.ResetUnix - r.Weekly.WindowSeconds)).LocalDateTime,
-                r.Weekly.WindowSeconds, r.Weekly.ElapsedFraction, 0.86);
+                r.Weekly.WindowSeconds, r.Weekly.ElapsedFraction, 0.86, ghostOver);
+        }
 
         // On the first render, open the weekly tab instead of the 5-hour one when the session is idle
         // (expired / not using Claude): the 5-hour chart is then flat at 100% and the weekly chart, with

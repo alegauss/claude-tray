@@ -1167,6 +1167,44 @@ internal static class SelfTestCli
               HourlyUsage.PreviousWeek(ProfileKey, Now, 7 * 86400, 0.5) == null,
               $"under {HourlyUsage.MinGhostTotal * 100:0}% total");
 
+        // T295. An hour is a slot of the window and not a point in it, so the arithmetic is pinned on the
+        // pure function first: a run of hours is one span covering those hours whole.
+        var run = new bool[24];
+        run[4] = run[5] = run[6] = true;
+        List<(double f0, double f1)> spans = HourlyUsage.Spans(run);
+        Check("three consecutive over-hours are one span", spans.Count == 1, $"{spans.Count} spans");
+        Near("opening where the first of them opens", spans[0].f0, 4 / 24.0, 1e-12);
+        Near("and closing where the first hour that was not over begins", spans[0].f1, 7 / 24.0, 1e-12);
+
+        var split = new bool[24];
+        split[1] = split[20] = split[21] = split[22] = split[23] = true;
+        List<(double f0, double f1)> two = HourlyUsage.Spans(split);
+        Check("an hour on its own and a run are two spans", two.Count == 2, $"{two.Count} spans");
+        Near("the lone hour is one hour wide, not a zero-width line", two[0].f1 - two[0].f0, 1 / 24.0, 1e-12);
+        Near("and a run that reaches the end of the window closes on it", two[1].f1, 1.0, 1e-12);
+        Check("no over-hour is no span", HourlyUsage.Spans(new bool[24]).Count == 0);
+
+        // Then the ghost itself, which is what the chart reads. Qualitative on purpose: which fractions the
+        // spans land on depends on the hour of day the check runs at, and the claim under test is not that.
+        WriteStore(FoldedWeek(coverage: 1.0, perHour: 0.004, column: true, overFrom: 10, overTo: 13));
+        HourlyUsage.GhostWeek? shaded = HourlyUsage.PreviousWeek(ProfileKey, Now, 7 * 86400, 0.5);
+        if (Check("a previous week that went over still draws its ghost", shaded is not null)
+            && shaded is { } g)
+        {
+            Check("and the ghost carries the stretches it was over", g.OverSpans.Count > 0);
+            Check("each of them a real interval inside the window",
+                  g.OverSpans.All(s => s.f1 > s.f0 && s.f0 >= 0 && s.f1 <= 1 + 1e-12));
+            Check("the week is one that can answer the question at all", g.OverKnown);
+        }
+
+        WriteStore(FoldedWeek(coverage: 1.0, perHour: 0.004, column: true));
+        Check("a week measured inside its quota shades nothing, and says so",
+              HourlyUsage.PreviousWeek(ProfileKey, Now, 7 * 86400, 0.5) is { OverSpans.Count: 0, OverKnown: true });
+
+        WriteStore(FoldedWeek(coverage: 1.0, perHour: 0.004));
+        Check("a week folded before the column existed shades nothing and knows nothing — not the same claim",
+              HourlyUsage.PreviousWeek(ProfileKey, Now, 7 * 86400, 0.5) is { OverSpans.Count: 0, OverKnown: false });
+
         // T94: one heavy hour must not become a "4× heavy" bucket. The guards are the only thing
         // between a single incident and a projection that inherits it for weeks.
         WriteStore(IntensityDay());
@@ -4983,7 +5021,12 @@ internal static class SelfTestCli
 
     /// <summary>Nine local days of folded readings ending today, at a given hour coverage and spend —
     /// enough to cover any previous weekly window the ghost asks for.</summary>
-    private static List<HourlyDay> FoldedWeek(double coverage, double perHour)
+    /// <param name="column">Write T287's over-quota column at all. Off by default, which is what a day
+    /// folded before it existed looks like — the state the ghost must not read as "stayed inside".</param>
+    /// <param name="overFrom">First hour of each day the account was past its included quota, or -1 for
+    /// none. Inclusive, with <paramref name="overTo"/>, and only ever read when the column is written.</param>
+    private static List<HourlyDay> FoldedWeek(double coverage, double perHour,
+                                              bool column = false, int overFrom = -1, int overTo = -1)
     {
         var days = new List<HourlyDay>();
         for (int d = 8; d >= 0; d--)
@@ -4991,13 +5034,15 @@ internal static class SelfTestCli
             DateTime date = DateTime.Today.AddDays(-d);
             var spend = new double[24];
             var count = new int[24];
+            bool[]? over = column ? new bool[24] : null;
             for (int h = 0; h < 24; h++)
             {
                 if (h >= 24 * coverage) continue;
                 count[h] = 3;
                 spend[h] = perHour;
+                if (over is not null && overFrom >= 0 && h >= overFrom && h <= overTo) over[h] = true;
             }
-            days.Add(new HourlyDay(date.Year * 10000 + date.Month * 100 + date.Day, spend, count));
+            days.Add(new HourlyDay(date.Year * 10000 + date.Month * 100 + date.Day, spend, count, over));
         }
         return days;
     }
@@ -5055,6 +5100,13 @@ internal static class SelfTestCli
             for (int h = 0; h < 24; h++) sb.Append(FormattableString.Invariant($"{(h > 0 ? "," : "")}{d.Spend[h]:0.#####}"));
             sb.Append("],\"c\":[");
             for (int h = 0; h < 24; h++) sb.Append($"{(h > 0 ? "," : "")}{d.Count[h]}");
+            // Only when the fixture asked for it: a day with no `Over` is a day folded before T287's
+            // column existed, and writing an all-zero one would erase the very distinction it tests.
+            if (d.Over is { } over)
+            {
+                sb.Append("],\"x\":[");
+                for (int h = 0; h < 24; h++) sb.Append($"{(h > 0 ? "," : "")}{(over[h] ? 1 : 0)}");
+            }
             sb.AppendLine("]}");
         }
         File.WriteAllText(HourlyUsage.FilePath(ProfileKey), sb.ToString());
