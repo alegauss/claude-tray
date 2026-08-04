@@ -20,6 +20,19 @@ internal static class TooltipCli
 {
     internal sealed record Variant(string Name, string What, Func<long, TooltipText.Input> Build);
 
+    /// <summary>The reading with no data in it, which the last three rows of <see cref="All"/> vary from.
+    ///
+    /// <para><b>It is declared above <c>All</c> deliberately (T272).</b> Static field initialisers run in
+    /// textual order, so below it this field is null while <c>All</c> is being built — and the three rows
+    /// that read it survived only because each read sits inside a <c>Func&lt;long, …&gt;</c> nobody invokes
+    /// until the static constructor has finished. The compiler said so, three times, as the only warnings
+    /// this project produced; one non-deferred read would have turned them into a
+    /// <c>NullReferenceException</c> at type initialisation, before <c>--tooltip</c> printed a line. Moving
+    /// it up costs nothing — the flag's output is byte-identical across the move — and the order is now
+    /// safe rather than lucky.</para></summary>
+    private static readonly TooltipText.Input Empty =
+        new(null, "5h", false, null, Projection.Unknown, 0, QuotaState.InQuota, "", 0);
+
     /// <summary>The states worth reading. The order is the catalogue's, and the first row is what a bare
     /// flag shows — the same rule the other two preview tables follow.</summary>
     private static readonly Variant[] All =
@@ -66,9 +79,6 @@ internal static class TooltipCli
         new("error", "the API answered something this app could not use",
             _ => Empty with { Data = new UsageData { Error = "403 payment required" } }),
     };
-
-    private static readonly TooltipText.Input Empty =
-        new(null, "5h", false, null, Projection.Unknown, 0, QuotaState.InQuota, "", 0);
 
     /// <summary>One synthetic reading, with the resets placed far enough out that their countdowns are
     /// stable text rather than something that changes between two runs of this flag.</summary>

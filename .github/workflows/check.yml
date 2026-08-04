@@ -50,8 +50,16 @@ jobs:
       # `dotnet build`, not `dotnet publish`: the csproj is self-contained for win-x64 either way, so
       # the plain build output is a runnable .exe, and skipping the single-file bundling and its
       # compression is most of the difference between this job and the release one.
+      #
+      # `-warnaserror` here and NOT `TreatWarningsAsErrors` in the csproj (T272). Three CS8602 warnings
+      # stood in this build long enough that a log reading "3 warnings" was what clean looked like, so a
+      # fourth — a real one — would have arrived invisible. Both places would stop that; they bill it
+      # differently. In the csproj, a future SDK shipping a new analyser breaks `dotnet build` for whoever
+      # is mid-task, and AGENTS.md documents that command as the fast compile check. Here it breaks a run,
+      # which is where somebody is already deciding whether to merge. The cost lands on the decision
+      # instead of on the work.
       - name: Build
-        run: dotnet build -c Release --nologo
+        run: dotnet build -c Release --nologo -warnaserror
 
       # Started rather than invoked: the app is a Windows-subsystem .exe, so its output has to be
       # redirected to be seen and its exit code has to be waited for. Same idiom as build.yml.
@@ -108,8 +116,10 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # `-warnaserror` for the reason given on the other job's Build step (T272), and on both because a
+      # gate one job carries and the other does not is a gate that depends on which job ran first.
       - name: Build
-        run: dotnet build -c Release --nologo
+        run: dotnet build -c Release --nologo -warnaserror
 
       # Exit 2 is DEGRADED (T193): everything that ran passed, but an assertion could not be evaluated.
       # Treated as a failure here on purpose — the whole point of running this in CI is that nobody is

@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T272** (deps: —) **a build that says "3 warnings" is what clean looks like here, so a fourth is invisible** — A whole-project rebuild emits three CS8602 warnings and nothing gates on warnings, so a real fourth one lands in a log that already reads 3 warnings and nobody sees it. → §XX.14
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization

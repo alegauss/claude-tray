@@ -171,6 +171,9 @@ internal static class SelfTestCli
         Section("intensity — the line that names its own axis (Block J)");
         IntensityAxis();
 
+        Section("warnings — the gate that keeps a build log worth reading (Block AI)");
+        WarningGate();
+
         Section("report — one label, one quantity (Block I)");
         ReportLabels();
 
@@ -2544,6 +2547,46 @@ internal static class SelfTestCli
         Check($"every .ps1 is ASCII or carries a UTF-8 mark ({scripts.Length})", unreadable.Count == 0,
               $"{string.Join(", ", unreadable)} — 5.1 reads these in the ANSI code page, so a dash inside a "
               + "string closes it and the script does not parse");
+    }
+
+    /// <summary>
+    /// T272. Every build <c>check.yml</c> runs fails on a warning, because the alternative was tolerating
+    /// them and that is measurably not a stable state.
+    ///
+    /// <para><b>What it is asserting and why it is here rather than only in the workflow.</b> Three
+    /// <c>CS8602</c> warnings stood in this project long enough that a build log reading "3 warnings" was
+    /// what clean looked like, so a fourth would have arrived unread. The gate that stops that lives in a
+    /// YAML file nothing reads, which is the same shape as the defect: dropping <c>-warnaserror</c> from a
+    /// step is one word, it makes no test fail, and the run stays green while the protection is gone. So
+    /// the flag is asserted where the assertions are.</para>
+    ///
+    /// <para><b>Both steps, not one.</b> <c>check.yml</c> builds twice — once for the self-check job and
+    /// once for the interaction job — and a gate carried by one of them only holds when that job is the one
+    /// that ran. The check counts the build steps it found and prints the count, because "all of them
+    /// carry it" is not an assertion when the number could be zero.</para>
+    /// </summary>
+    private static void WarningGate() =>
+        Repo("every build CI runs fails on a warning", WarningGate, ".github/workflows/check.yml");
+
+    private static void WarningGate(string root)
+    {
+        string[] builds = File.ReadAllLines(Path.Combine(root, ".github/workflows/check.yml"))
+            .Select(l => l.Trim())
+            .Where(l => l.StartsWith("run:", StringComparison.Ordinal)
+                        && l.Contains("dotnet build", StringComparison.Ordinal))
+            .ToArray();
+
+        // The count is the precondition, not a nicety: a workflow this check cannot find the builds in
+        // would pass an "all of them" test with nothing in hand.
+        if (!Check("the workflow's builds are readable", builds.Length == 2,
+                   $"found {builds.Length} `dotnet build` step(s), expected 2 — the check cannot gate what " +
+                   "it cannot see"))
+            return;
+
+        string[] ungated = builds.Where(l => !l.Contains("-warnaserror", StringComparison.Ordinal)).ToArray();
+        Check($"both CI builds carry -warnaserror ({builds.Length})", ungated.Length == 0,
+              $"{string.Join(" | ", ungated)} — without it a real warning lands in a log nobody reads, " +
+              "which is the state T272 was filed against");
     }
 
     /// <summary>
