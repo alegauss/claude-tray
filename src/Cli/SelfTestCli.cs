@@ -168,6 +168,9 @@ internal static class SelfTestCli
         Section("map — every source file has a row, and every row a file (Block AJ)");
         FileMap();
 
+        Section("intensity — the line that names its own axis (Block J)");
+        IntensityAxis();
+
         Section("report — one label, one quantity (Block I)");
         ReportLabels();
 
@@ -2112,6 +2115,39 @@ internal static class SelfTestCli
                               .OrderBy(f => f, StringComparer.Ordinal).ToArray();
         Check("and every folder it names is still there", gone.Length == 0,
               $"{string.Join(", ", gone)} — a placement rule for a folder that no longer exists");
+    }
+
+    /// <summary>
+    /// T271. <c>--activity</c> draws one grid — how <b>often</b> an hour is active — and the line under it
+    /// reports how <b>hard</b> hours are worked, an axis with no picture. Measured on the machine that
+    /// produced the task: Sunday 16:00 and Sunday 22:00 both rendered <c>▓</c> while being called 2.00× and
+    /// 0.79×, the two ends of that line. So the line names its axis now, and this holds it to that.
+    ///
+    /// <para>Asserted on the sentence, not through the command: the read-out reads a real profile's store,
+    /// which this suite may not touch, so the line was pulled out as a pure function of a synthetic
+    /// profile. Both branches, because a flat profile still prints a claim about the projection.</para>
+    /// </summary>
+    private static void IntensityAxis()
+    {
+        var flat = new ActivityProfile { HasIntensity = false };
+        string flatLine = ActivityCli.IntensityLine(flat);
+        Check("a profile with nothing folded yet says the pacing is flat",
+              flatLine.Contains("flat", StringComparison.Ordinal)
+              && flatLine.Contains("same rate", StringComparison.Ordinal), flatLine);
+
+        // Two buckets deliberately set to the clamp ends, and both on the same day, which is the shape that
+        // produced the task: one picture, one glyph, two opposite claims.
+        var shaped = new ActivityProfile { HasIntensity = true };
+        shaped.I[(int)DayOfWeek.Sunday * 24 + 16] = ActivityProfile.MaxIntensity;
+        shaped.I[(int)DayOfWeek.Sunday * 24 + 22] = ActivityProfile.MinIntensity;
+        string line = ActivityCli.IntensityLine(shaped);
+
+        Check("it reports the heaviest and the lightest bucket it was given",
+              line.Contains("heaviest Sunday 16:00", StringComparison.Ordinal)
+              && line.Contains("lightest Sunday 22:00", StringComparison.Ordinal), line);
+        Check("and says which axis that is, so the darkest cell is not read as the heaviest hour",
+              line.Contains("not the grid's axis", StringComparison.Ordinal)
+              && line.Contains("not how often", StringComparison.Ordinal), line);
     }
 
     /// <summary>

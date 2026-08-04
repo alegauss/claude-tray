@@ -95,27 +95,7 @@ internal static class ActivityCli
             Console.WriteLine("measured blend: none yet — the grid is entirely from local transcripts, " +
                               "which cannot see usage from another machine or claude.ai");
 
-        // What T94 added on top of presence. Printed even when flat, because "every hour costs the
-        // same" is a claim about the projection and silence would read as the feature being absent.
-        if (prof.HasIntensity)
-        {
-            int heavy = 0, light = 0;
-            for (int b = 0; b < ActivityProfile.Buckets; b++)
-            {
-                if (prof.I[b] > prof.I[heavy]) heavy = b;
-                if (prof.I[b] < prof.I[light]) light = b;
-            }
-            Console.WriteLine($"intensity: heaviest {(DayOfWeek)(heavy / 24)} {heavy % 24:00}:00 " +
-                              $"({prof.I[heavy]:0.00}×), lightest {(DayOfWeek)(light / 24)} {light % 24:00}:00 " +
-                              $"({prof.I[light]:0.00}×), clamped to " +
-                              $"[{ActivityProfile.MinIntensity:0.0}, {ActivityProfile.MaxIntensity:0.0}] and shrunk " +
-                              $"toward 1 by {ActivityProfile.IntensityPriorWeeks:0.0} weeks of prior");
-        }
-        else
-        {
-            Console.WriteLine("intensity: flat — no folded active hours to weigh yet, so every active hour " +
-                              "is paced at the same rate (the pre-T94 projection, exactly)");
-        }
+        Console.WriteLine(IntensityLine(prof));
         Console.WriteLine();
 
         if (prof.Samples == 0) { Console.WriteLine("no activity in the last 12 weeks — nothing to shape"); return; }
@@ -137,6 +117,41 @@ internal static class ActivityCli
         Console.WriteLine($"  next 7 days    {prof.ExpectedActiveHours(nowLocal, nowLocal.AddDays(7)),5:0.0}h");
 
         if (flags.Contains("--measured")) PrintMeasuredActivity(prof, nowLocal, numbers);
+    }
+
+    /// <summary>
+    /// What T94 added on top of presence, as one line. Printed even when flat, because "every hour costs
+    /// the same" is a claim about the projection and silence would read as the feature being absent.
+    ///
+    /// <para><b>Why the line names its own axis (T271).</b> It reports a heaviest and a lightest hour, and
+    /// the only picture on this surface is the grid printed below it — in which neither of those two hours
+    /// can be found. Measured, not eyeballed: the grid's Sunday row was
+    /// <c>░░░░░░░░░░░░░▒▓▓▓▓░░▒▒▓░</c>, where 16:00 and 22:00 are both <c>▓</c>, while this line called one
+    /// the heaviest Sunday hour (2.00×) and the other the lightest (0.79×). That is not a wrong number: the
+    /// grid draws <c>P</c>, the share of weeks an hour was active at all, and this draws <c>I</c>, how hard
+    /// it is worked when it is. The control that proves the gap is real is <c>busiest bucket</c>, which
+    /// <em>is</em> on the grid's axis and does point at its darkest cell.
+    ///
+    /// Of the three shapes the task allowed — a second grid, a legend, or one clause — this is the
+    /// cheapest that closes it. Pure so a check can read both branches without a profile store.</para>
+    /// </summary>
+    internal static string IntensityLine(ActivityProfile prof)
+    {
+        if (!prof.HasIntensity)
+            return "intensity: flat — no folded active hours to weigh yet, so every active hour " +
+                   "is paced at the same rate (the pre-T94 projection, exactly)";
+
+        int heavy = 0, light = 0;
+        for (int b = 0; b < ActivityProfile.Buckets; b++)
+        {
+            if (prof.I[b] > prof.I[heavy]) heavy = b;
+            if (prof.I[b] < prof.I[light]) light = b;
+        }
+        return "intensity (not the grid's axis: how hard an hour is worked, not how often) — " +
+               $"heaviest {(DayOfWeek)(heavy / 24)} {heavy % 24:00}:00 ({prof.I[heavy]:0.00}×), " +
+               $"lightest {(DayOfWeek)(light / 24)} {light % 24:00}:00 ({prof.I[light]:0.00}×), " +
+               $"clamped to [{ActivityProfile.MinIntensity:0.0}, {ActivityProfile.MaxIntensity:0.0}] " +
+               $"and shrunk toward 1 by {ActivityProfile.IntensityPriorWeeks:0.0} weeks of prior";
     }
 
     // The same week, measured instead of inferred: built from the folded hourly aggregate

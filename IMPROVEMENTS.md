@@ -273,29 +273,3 @@ installed.
 ## XXXII The activity read-out, as a picture (Block J)
 
 What the grid shows and what the sentences around it claim, which are not the same axis.
-
-### XXXII.1 Two axes, one picture
-
-Extracted from the rendered output rather than eyeballed. The grid row for Sunday is
-
-     Sun ...............▒▓▓▓▓░░▒▒▓░
-
-and character 16 and character 22 are both `▓`. The line under it says heaviest Sunday 16:00 at
-2.00x and lightest Sunday 22:00 at 0.79x - the two extremes of the intensity axis, landing on
-identical glyphs.
-
-The neighbouring line is the control that shows this is a real gap and not a quibble: busiest bucket
-Monday 22:00 at 94% points at a `█`, the darkest glyph there is, and a reader can find it. The
-legend says as much, `p = share of weeks active`. So the picture is the FREQUENCY axis, the busiest
-line reads off it, and the intensity line reads off an axis with no picture at all.
-
-Nothing here is wrong, which is what makes it worth a task rather than a fix. Both quantities are
-honest and both are labelled with a different word. What is missing is that the reader is never told
-they are different axes, so the natural reading - find the darkest cell, that is the heaviest hour -
-is wrong, and the two cells the sentence names look the same.
-
-Three shapes, and the cost differs. Say it in the intensity line, which is one clause and no new
-output. Draw a second grid for intensity, which doubles the picture and invites the same confusion
-in reverse. Or mark the two named buckets in the frequency grid, which answers where they are
-without claiming the glyphs mean intensity. What must not happen is a legend that explains both axes
-onto one set of glyphs.
