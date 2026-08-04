@@ -275,6 +275,27 @@ internal static class HeaderProbe
         return result;
     }
 
+    /// <summary>The names <see cref="ApiClient"/>'s parser reads, from the parser itself (T278). Built once:
+    /// it is derived by running a pure method, and nothing can change it while the process lives.</summary>
+    private static readonly HashSet<string> Parsed =
+        new(ApiClient.NamesRead, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Whether this app reads the named header into a field, or merely records it verbatim (T278).
+    ///
+    /// <para>Both halves of <c>--probe</c> were about the <em>response</em> — which names arrive, and which
+    /// each account is sent. Neither said anything about the app, and the space between them is where a
+    /// header arrives for months unread: the one deciding whether work has stopped went unread through the
+    /// release that shipped the state it decides, and that it was unread had to be established by grepping
+    /// the source. Answered from <see cref="ApiClient.NamesRead"/> rather than from a list here, because a
+    /// second list is a second thing to forget.</para></summary>
+    public static bool IsRead(string name) => Parsed.Contains(name);
+
+    /// <summary>Every name a log carried that reaches no field, alphabetically (T278). Permitted — the whole
+    /// family is recorded precisely so a name nobody reads yet is on file when it becomes interesting — but
+    /// never silent.</summary>
+    public static List<string> Unread(IEnumerable<ProbeEntry> log) =>
+        Presence(log).Select(p => p.Name).Where(n => !IsRead(n)).ToList();
+
     /// <summary>A header whose value is a figure that moves on its own, so only its presence is shape.</summary>
     private static bool Moves(string name) =>
         name.EndsWith("-utilization", StringComparison.OrdinalIgnoreCase)

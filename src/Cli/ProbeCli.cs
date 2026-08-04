@@ -123,6 +123,7 @@ internal static class ProbeCli
                 }
                 Vocabulary(log, indent: "   ");
                 Presence(log, indent: "   ");
+                Readership(log, indent: "   ");
                 foreach (ProbeEntry e in log) Dump(e.T, e.Headers, indent: "   ");
                 Console.WriteLine();
             }
@@ -252,6 +253,12 @@ internal static class ProbeCli
         Console.WriteLine(live is null
             ? $"{indent}no live call was made, so every column above is as recorded."
             : $"{indent}the live call below refreshes {live} only — the rest stay as old as their last poll.");
+
+        // The same question over the union of what every profile is sent (T278). Per-profile it is already
+        // stated above; here it is the one number for the whole machine, which is what --all is for.
+        int unread = spread.Count(h => !HeaderProbe.IsRead(h.Name));
+        Console.WriteLine($"{indent}{spread.Count - unread} of these reach a field in this app, "
+                          + $"{unread} reach none — marked on every line below.");
         Console.WriteLine();
 
         if (divergent.Count == 0)
@@ -264,7 +271,9 @@ internal static class ProbeCli
         int width = logs.Max(l => l.Profile.Length);
         foreach (HeaderSpread h in divergent)
         {
-            Console.WriteLine($"{indent}{h.Name}");
+            // Marked here too: a name only one account is sent is the shape of a permission, and whether
+            // this app reads it decides whether that permission reaches anything at all (T278).
+            Console.WriteLine($"{indent}{(HeaderProbe.IsRead(h.Name) ? ReadMark : UnreadMark)}  {h.Name}");
             foreach (ProfileValue v in h.ByProfile)
                 Console.WriteLine($"{indent}  {v.Profile.PadRight(width)}  {v.Value ?? "— never sent"}");
         }
@@ -278,6 +287,59 @@ internal static class ProbeCli
         Console.WriteLine();
     }
 
+    /// <summary>Which names on file this app reads, and which reach no field at all (T278).
+    ///
+    /// <para>The vocabulary and the presence above are both about the <em>response</em> — what a name has
+    /// ever said, and which accounts are sent it. Neither is about this app, and the gap between them is
+    /// where a header sits unread for months: five of the names arriving today reach no field, and that was
+    /// established by grepping <c>ApiClient</c> rather than by anything the instrument prints. So it is
+    /// stated once per profile, in front of the readings, and the individual lines below carry the same mark
+    /// so a name found by eye in the dump does not need looking up.</para>
+    ///
+    /// <para>Both directions are named. A recorded name nothing reads is <em>permitted</em> — the whole
+    /// family is kept verbatim precisely so a header is on file before anybody knows it matters — while a
+    /// name this app reads and this account is never sent is the opposite fact, and the one that means a
+    /// field is filled from nothing.</para></summary>
+    private static void Readership(List<ProbeEntry> log, string indent)
+    {
+        List<HeaderPresence> present = HeaderProbe.Presence(log);
+        if (present.Count == 0) return;
+        List<string> unread = HeaderProbe.Unread(log);
+        List<string> absent = ApiClient.NamesRead
+            .Where(n => !present.Any(p => string.Equals(p.Name, n, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        Console.WriteLine($"{indent}readership — {present.Count - unread.Count} of {present.Count} name(s) on "
+                          + $"file reach a field in this app, {unread.Count} reach none");
+        foreach (string n in unread) Console.WriteLine($"{indent}  {UnreadMark}  {n}");
+        if (unread.Count > 0)
+        {
+            Console.WriteLine($"{indent}  A recorded name nothing reads is permitted — the family is kept");
+            Console.WriteLine($"{indent}  verbatim so a header is on file before anybody knows it matters.");
+            Console.WriteLine($"{indent}  It is never silent, because that is how one stays unread.");
+        }
+        foreach (string n in absent)
+            Console.WriteLine($"{indent}  read, never sent to this profile: {n}");
+        Console.WriteLine();
+    }
+
+    /// <summary>The mark a read name carries in the dump, and the one an unread name carries. Unread is the
+    /// loud one on purpose: it is the fact the read-out exists to stop being invisible.</summary>
+    internal const string ReadMark = "read  ";
+    internal const string UnreadMark = "UNREAD";
+
+    /// <summary>One reading's header lines, each marked read or unread, sorted by name (T278). Pure, so what
+    /// the dump claims about a name is a value a check can hold up against the parser rather than console
+    /// output somebody has to read.</summary>
+    internal static List<string> Marked(IReadOnlyDictionary<string, string> headers)
+    {
+        var names = new List<string>(headers.Keys);
+        names.Sort(StringComparer.OrdinalIgnoreCase);
+        return names
+            .Select(n => $"{(HeaderProbe.IsRead(n) ? ReadMark : UnreadMark)}  {n}: {headers[n]}")
+            .ToList();
+    }
+
     private static string When(double t) =>
         DateTimeOffset.FromUnixTimeSeconds((long)t).ToLocalTime().ToString("yyyy-MM-dd HH:mm");
 
@@ -285,9 +347,7 @@ internal static class ProbeCli
     {
         string when = DateTimeOffset.FromUnixTimeSeconds((long)t).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
         Console.WriteLine($"{indent}{when}");
-        var names = new List<string>(headers.Keys);
-        names.Sort(StringComparer.OrdinalIgnoreCase);
-        foreach (string n in names)
-            Console.WriteLine($"{indent}  {n}: {headers[n]}");
+        foreach (string line in Marked(headers))
+            Console.WriteLine($"{indent}  {line}");
     }
 }

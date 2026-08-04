@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T278** (deps: —) **the probe prints every rate-limit header and never says which of them the app reads** — Five arriving names reach no field, and the one deciding whether work has stopped was found by grepping the source rather than by any read-out. → §XX.1
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization

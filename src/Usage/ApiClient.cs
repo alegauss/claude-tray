@@ -116,23 +116,7 @@ internal sealed class ApiClient
             using HttpResponseMessage resp = await _http.SendAsync(req).ConfigureAwait(false);
             string bodyText = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-            var d = new UsageData
-            {
-                Session5h = H(resp, "anthropic-ratelimit-unified-5h-utilization"),
-                Week7d    = H(resp, "anthropic-ratelimit-unified-7d-utilization"),
-                Extra     = H(resp, "anthropic-ratelimit-unified-overage-utilization"),
-                Reset5h   = H(resp, "anthropic-ratelimit-unified-5h-reset"),
-                Reset7d   = H(resp, "anthropic-ratelimit-unified-7d-reset"),
-                ResetExtra = H(resp, "anthropic-ratelimit-unified-overage-reset"),
-                Status    = S(resp, "anthropic-ratelimit-unified-5h-status") ?? "unknown",
-                Status7d  = S(resp, "anthropic-ratelimit-unified-7d-status") ?? "unknown",
-                StatusExtra = S(resp, "anthropic-ratelimit-unified-overage-status") ?? "unknown",
-                ExtraDisabledReason = S(resp, "anthropic-ratelimit-unified-overage-disabled-reason"),
-            };
-            // Read the presence separately from the value: an account without extra usage sends no
-            // overage header, and one that has it enabled but has spent nothing sends 0. H() collapses
-            // both to 0.0, so the distinction has to be captured here or it cannot be recovered later.
-            d.HasExtra = resp.Headers.Contains("anthropic-ratelimit-unified-overage-utilization");
+            UsageData d = ReadHeaders(name => S(resp, name));
             // The whole family, kept verbatim rather than parsed: a header this app does not yet read is
             // exactly the one T181 needs to see, and it costs nothing — the response is already in hand.
             foreach (var h in resp.Headers)
@@ -179,6 +163,59 @@ internal sealed class ApiClient
         {
             return new UsageData { Error = Friendly(e), Transient = IsTransient(e) };
         }
+    }
+
+    /// <summary>
+    /// The whole of this app's <em>reading</em> of a response: every rate-limit header name that reaches a
+    /// field, in one place, expressed against a lookup rather than against an <see cref="HttpResponseMessage"/>.
+    ///
+    /// <para><b>Why a lookup (T278).</b> A name is read here or it is read nowhere, and the read-out that
+    /// says which is which has to come from this method — a table of names written beside it is a second
+    /// thing to forget, and forgetting it is how a header can be marked read for months after the line that
+    /// read it was deleted. Handing the parse a <c>get</c> makes the same code answer both questions: with a
+    /// real response it parses, and with a recording lookup that answers nothing it enumerates itself.
+    /// See <see cref="NamesRead"/>.</para>
+    /// </summary>
+    private static UsageData ReadHeaders(Func<string, string?> get)
+    {
+        var d = new UsageData
+        {
+            Session5h = N(get, "anthropic-ratelimit-unified-5h-utilization"),
+            Week7d    = N(get, "anthropic-ratelimit-unified-7d-utilization"),
+            Extra     = N(get, "anthropic-ratelimit-unified-overage-utilization"),
+            Reset5h   = N(get, "anthropic-ratelimit-unified-5h-reset"),
+            Reset7d   = N(get, "anthropic-ratelimit-unified-7d-reset"),
+            ResetExtra = N(get, "anthropic-ratelimit-unified-overage-reset"),
+            Status    = get("anthropic-ratelimit-unified-5h-status") ?? "unknown",
+            Status7d  = get("anthropic-ratelimit-unified-7d-status") ?? "unknown",
+            StatusExtra = get("anthropic-ratelimit-unified-overage-status") ?? "unknown",
+            ExtraDisabledReason = get("anthropic-ratelimit-unified-overage-disabled-reason"),
+        };
+        // Read the presence separately from the value: an account without extra usage sends no overage
+        // header, and one that has it enabled but has spent nothing sends 0. N() collapses both to 0.0, so
+        // the distinction has to be captured here or it cannot be recovered later.
+        d.HasExtra = get("anthropic-ratelimit-unified-overage-utilization") != null;
+        return d;
+    }
+
+    /// <summary>Every rate-limit header name <see cref="ReadHeaders"/> reads, derived by running it against a
+    /// lookup that records what it was asked for and answers nothing (T278).
+    ///
+    /// <para>So it is the parser's own list, not a copy of it: a name this app stops reading leaves here the
+    /// moment its line goes, and a name it starts reading arrives with no second edit. Everything else on a
+    /// response is recorded verbatim and read by nothing — which <c>--probe</c> now says out loud, per
+    /// header, rather than leaving it to be established by grepping this file.</para></summary>
+    internal static IReadOnlyList<string> NamesRead { get; } = EnumerateNamesRead();
+
+    private static IReadOnlyList<string> EnumerateNamesRead()
+    {
+        var seen = new List<string>();
+        ReadHeaders(name =>
+        {
+            if (!seen.Contains(name, StringComparer.OrdinalIgnoreCase)) seen.Add(name);
+            return null;
+        });
+        return seen;
     }
 
     // Timeouts (HttpClient throws TaskCanceledException), DNS/connection failures and similar
@@ -243,9 +280,9 @@ internal sealed class ApiClient
         return null;
     }
 
-    private static double H(HttpResponseMessage r, string name)
+    private static double N(Func<string, string?> get, string name)
     {
-        string? v = S(r, name);
+        string? v = get(name);
         return v != null && double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out double d)
             ? d : 0.0;
     }

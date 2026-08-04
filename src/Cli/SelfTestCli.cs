@@ -150,6 +150,9 @@ internal static class SelfTestCli
         Section("probe — what the flag was asked to do, before it does any of it (Block AI)");
         ProbePlanning();
 
+        Section("probe — which arriving headers this app actually reads (Block AI)");
+        Readership();
+
         Section("glyphs — every card's emoji is in the font the card names (Block E)");
         ToastGlyphs();
 
@@ -3490,6 +3493,88 @@ internal static class SelfTestCli
         // And the opposite, or the check above is satisfied by a plan that never calls at all.
         Check("while the bare flag does take one",
               ProbeCli.Plan(Array.Empty<string>()) is { TakeReading: true, ReadLog: true, Refused: false });
+    }
+
+    // ---------------------------------------------------------------- Block AI: what the app reads
+
+    /// <summary>
+    /// T278. <c>--probe</c> printed fourteen names and said nothing about which of them this app reads. The
+    /// read-out that now does is driven from <see cref="ApiClient.NamesRead"/> — the parser enumerating
+    /// itself — so the failure it cannot have is a table drifting from the code; what it can still have is
+    /// the wiring between the two coming apart, and that is what this holds up.
+    ///
+    /// <para><b>The defect is asymmetric, and so are the assertions.</b> A name the parser reads that the
+    /// probe calls unread is a lie about the app: a field filled from a header the instrument says nothing
+    /// touches. A name nothing reads is <em>permitted</em> — the whole family is recorded verbatim precisely
+    /// so a header is on file before anybody knows it matters — so the property there is not that the set is
+    /// empty but that it is impossible to miss: every one of them carries the loud mark, and the count is
+    /// stated in front of the readings.</para>
+    ///
+    /// <para>Asked against the fourteen names one real account sends, so "unread" is measured over the set
+    /// that actually arrives rather than over the four families a check could quietly invent.</para>
+    /// </summary>
+    private static void Readership()
+    {
+        // The reading of 2026-08-03, name for name: nine the parser reads and five it does not.
+        string[] read =
+        {
+            "anthropic-ratelimit-unified-5h-utilization", "anthropic-ratelimit-unified-5h-reset",
+            "anthropic-ratelimit-unified-5h-status", "anthropic-ratelimit-unified-7d-utilization",
+            "anthropic-ratelimit-unified-7d-reset", "anthropic-ratelimit-unified-7d-status",
+            "anthropic-ratelimit-unified-overage-utilization", "anthropic-ratelimit-unified-overage-reset",
+            "anthropic-ratelimit-unified-overage-status",
+        };
+        string[] unread =
+        {
+            "anthropic-ratelimit-unified-status", "anthropic-ratelimit-unified-reset",
+            "anthropic-ratelimit-unified-representative-claim", "anthropic-ratelimit-unified-fallback",
+            "anthropic-ratelimit-unified-fallback-percentage",
+        };
+
+        // Every name the parser reads is a name the probe calls read. This is the direction that must not
+        // fail: the other one is a permission.
+        string[] denied = ApiClient.NamesRead.Where(n => !HeaderProbe.IsRead(n)).ToArray();
+        Check($"every name the parser reads is marked read ({ApiClient.NamesRead.Count})", denied.Length == 0,
+              string.Join("; ", denied));
+        Check("and the parser's list is the parser's own, not an empty one",
+              read.All(n => ApiClient.NamesRead.Contains(n, StringComparer.OrdinalIgnoreCase)),
+              string.Join("; ", read.Where(n => !ApiClient.NamesRead.Contains(n, StringComparer.OrdinalIgnoreCase))));
+        Check("a name no line of the parser asks for is not marked read",
+              unread.All(n => !HeaderProbe.IsRead(n)),
+              string.Join("; ", unread.Where(HeaderProbe.IsRead)));
+        Check("the mark is not case-sensitive — a header name is not",
+              HeaderProbe.IsRead("ANTHROPIC-RATELIMIT-UNIFIED-5H-UTILIZATION"));
+
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string n in read) headers[n] = "0.5";
+        foreach (string n in unread) headers[n] = "five_hour";
+        List<string> lines = ProbeCli.Marked(headers);
+
+        if (Check("the dump marks every name it prints, and prints every name",
+                  lines.Count == read.Length + unread.Length, $"{lines.Count} of {headers.Count}"))
+        {
+            Check("a read name is marked read in the dump",
+                  read.All(n => lines.Any(l => l.StartsWith(ProbeCli.ReadMark) && l.Contains(n))),
+                  string.Join("; ", read.Where(n => !lines.Any(l => l.StartsWith(ProbeCli.ReadMark) && l.Contains(n)))));
+            Check("and an unread one carries the loud mark, which is the whole point",
+                  unread.All(n => lines.Any(l => l.StartsWith(ProbeCli.UnreadMark) && l.Contains(n))),
+                  string.Join("; ", unread.Where(n => !lines.Any(l => l.StartsWith(ProbeCli.UnreadMark) && l.Contains(n)))));
+            Check("the value is still printed verbatim beside the mark",
+                  lines.All(l => l.EndsWith(": 0.5") || l.EndsWith(": five_hour")));
+        }
+
+        // Over a log rather than one reading: the count in front of the readings is derived from the same
+        // set the marks are, or the summary and the lines below it can disagree.
+        var log = new List<ProbeEntry> { new(Now, headers) };
+        List<string> reported = HeaderProbe.Unread(log);
+        Check($"the log's unread set is exactly the names nothing reads ({unread.Length})",
+              reported.Count == unread.Length && unread.All(reported.Contains),
+              string.Join("; ", reported));
+        Check("a log carrying only read names reports none",
+              HeaderProbe.Unread(new List<ProbeEntry>
+              {
+                  new(Now, read.ToDictionary(n => n, _ => "0.5", StringComparer.OrdinalIgnoreCase)),
+              }).Count == 0);
     }
 
     // ---------------------------------------------------------------- Block E: the cards' glyphs

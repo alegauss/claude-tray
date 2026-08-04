@@ -189,7 +189,13 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   --all ends with the CROSS-PROFILE spread (T211): which names
                                       #   every account is sent and which only some — the comparison that
                                       #   measured `unified-fallback` as conditional and absent, not
-                                      #   universal. Quota metadata only: no message content, no token.
+                                      #   universal. Every printed name is marked READ or UNREAD (T278) —
+                                      #   whether it reaches a field in this app, taken from ApiClient's
+                                      #   parser enumerating itself, never from a table beside it. Each
+                                      #   profile opens with a READERSHIP count, and both directions are
+                                      #   named: a recorded name nothing reads is permitted but loud, and
+                                      #   a name the parser reads that a profile is never sent is the
+                                      #   opposite fact. Quota metadata only: no message content, no token.
 --insights                            # the 24h usage breakdown: requests, sessions, per-model share
 --tail                                # every assistant turn as it lands, with what the sweep cost
 --live [seconds] [--root <dir>] [--raw]
