@@ -116,6 +116,36 @@ internal static class QuotaStates
         => current > 0 && previous is { } was && was <= 0;
 
     /// <summary>
+    /// The same moment, read off the header that actually moved (T276).
+    ///
+    /// <para>The spell of 2026-08-04 answered <c>0.0</c> before the crossing, <c>0.0</c> after it and
+    /// <c>0.0</c> on every reading in between, while <c>overage-in-use</c> went from absent to <c>true</c>.
+    /// So the figure route above is correct and blind here: the account crossed its quota, went on working,
+    /// and no rise ever happened for the toast to arm on. This asks the boolean the same question, and the
+    /// two are routes to one announcement rather than two notifications.</para>
+    ///
+    /// <para>T184's asymmetry is kept exactly: absent is not <c>false</c>, so the previous reading must have
+    /// been <em>taken</em> and have said the account was inside its quota. Every reading inside the quota
+    /// carries no header at all, which is what a fresh process sees — and announcing a start from a reading
+    /// nobody took is how a notification loses its credibility.</para>
+    /// </summary>
+    public static bool StartsSpending(bool? previous, bool? current)
+        => current is true && previous is false;
+
+    /// <summary>
+    /// Whether this reading is the account measured back <em>inside</em> its quota — the state a spell has
+    /// to return to before the next one may be announced (T276).
+    ///
+    /// <para>Not the negation of either <see cref="StartsSpending"/>: both signals have to be quiet, because
+    /// the two routes share one latch and a figure climbing 0 → 0.05 in the middle of a spell the boolean
+    /// already announced must not release it. And at least one of them has to have been <em>measured</em>
+    /// quiet — a reading carrying neither header says nothing, which is the same rule the rises keep.</para>
+    /// </summary>
+    public static bool BackInsideQuota(bool? inUse, double? extra)
+        => inUse is not true && !(extra > 0)
+           && (inUse is false || (extra is { } x && x <= 0));
+
+    /// <summary>
     /// Which state a reading puts the account in — a colour and a sentence, so every signal it takes has to
     /// have been measured.
     ///

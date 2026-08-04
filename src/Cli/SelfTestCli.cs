@@ -560,6 +560,29 @@ internal static class SelfTestCli
         Check("and the next rise after a return to zero is a start again",
               QuotaStates.StartsSpending(0, 0.05));
 
+        // T276: the same rule asked of the header that actually moves. The spell of 2026-08-04 is the
+        // pair at the top — a figure that never left zero while the boolean crossed — and every asymmetry
+        // above is repeated here rather than assumed to carry over.
+        Check("the figure route is blind to a spell whose utilization never leaves zero",
+              !QuotaStates.StartsSpending(0.0, 0.0) && QuotaStates.StartsSpending(false, true));
+        Check("a boolean already true is a spell in progress, not its beginning",
+              !QuotaStates.StartsSpending(true, true));
+        Check("an absent previous reading never fires it — absent is not false",
+              !QuotaStates.StartsSpending((bool?)null, true));
+        Check("nor does an absent current one",
+              !QuotaStates.StartsSpending(false, (bool?)null));
+        Check("nor the crossing running backwards",
+              !QuotaStates.StartsSpending(true, false));
+
+        // The latch both routes share is released by a reading measured back inside the quota, and by
+        // nothing weaker: a figure climbing mid-spell must not re-arm the announcement.
+        Check("a measured no on either header is back inside the quota",
+              QuotaStates.BackInsideQuota(false, null) && QuotaStates.BackInsideQuota(null, 0.0));
+        Check("a spell in progress is not, on either header",
+              !QuotaStates.BackInsideQuota(true, 0.0) && !QuotaStates.BackInsideQuota(false, 0.42));
+        Check("and a reading carrying neither header says nothing",
+              !QuotaStates.BackInsideQuota(null, null));
+
         // The two answers must agree by construction: "never idle" and "billing" are the same fact, and
         // a tray that sleeps through a state its icon is drawing is the defect T180 and T182 each half-fixed.
         // The refusal is swept with them (T224): it is the one signal both sides now read, so it is the one

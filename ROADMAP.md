@@ -77,8 +77,7 @@
 
 ## Block E — Reset notifications & toasts
 
-- 📋 **T276** (deps: T273 ✅) **the notification about extra usage cannot fire on an account whose overage figure never leaves zero** — It arms on that figure rising above zero, which read 0.0 on every reading through the crossing, so the one alert about money never came. → §XXV.1
-- 📋 **T277** (deps: T276) **the card announcing that extra usage is paying draws a bar that reads as full quota** — The bar renders the complement of the overage figure, so a spell with no figure fills it completely and the news arrives contradicted by its own picture. → §XXV.2
+- 📋 **T277** (deps: T276 ✅) **the card announcing that extra usage is paying draws a bar that reads as full quota** — The bar renders the complement of the overage figure, so a spell with no figure fills it completely and the news arrives contradicted by its own picture. → §XXV.2
 
 ## Block S — Settings round-trip
 

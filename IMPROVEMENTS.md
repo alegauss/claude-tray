@@ -511,25 +511,6 @@ therefore not this app's decision, and a count taken over them is a claim about 
 Two things the toasts got wrong that no capture ever objected to, both found by looking at a card
 rather than at the code that built it.
 
-### XXV.1 A rise that never happens
-
-`NoteExtraUsage` arms on `QuotaStates.StartsSpending`, which is a *rise*: the current figure above
-zero and the previous one a measured zero. T184 chose that deliberately and the reasoning holds —
-`null` is not zero, and announcing a start from a reading nobody took is how a notification loses
-its credibility.
-
-The reading of 2026-08-04 is the case the rule cannot see. The figure was `0.0` before the crossing,
-`0.0` after it, and `0.0` on every reading of the spell, while `overage-in-use` went from absent to
-`true`. So the account crossed 100%, went on working, and the toast that exists for precisely that
-moment was correctly suppressed.
-
-Arm it on the boolean's rise instead, with T184's asymmetry kept intact: absent is not `false`, so
-the previous reading must have been *taken* and have said so, and a process starting mid-spell still
-seeds from the store rather than announcing a beginning it did not witness. The figure stays a
-second route — an account whose overage utilization does climb should fire once and not twice, so
-both routes share one already-announced latch. `NotifyOnExtraUsage` still governs whether either
-speaks at all.
-
 ### XXV.2 A card with no number to draw
 
 The card is handed `1 − extra` because its bar renders quota still available, so the filled sliver

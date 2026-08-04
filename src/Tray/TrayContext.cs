@@ -166,9 +166,17 @@ internal sealed class TrayContext : ApplicationContext
 
     /// <summary>The last overage reading seen for the monitored profile, so a rise can be told from a
     /// state. Seeded from the store on the first poll of the process (see <see cref="NoteExtraUsage"/>):
-    /// held only in memory, a restart mid-spell would read as a fresh transition and toast again.</summary>
+    /// held only in memory, a restart mid-spell would read as a fresh transition and toast again.
+    /// <see cref="_lastInUse"/> is the same reading's <c>overage-in-use</c>, kept beside it because that is
+    /// the header the crossing actually moves (T276).</summary>
     private double? _lastExtra;
+    private bool? _lastInUse;
     private bool _lastExtraSeeded;
+
+    /// <summary>Whether this spell has already been announced. One latch for both routes, so an account
+    /// whose figure does climb after the boolean fired is told once and not twice; released by a reading
+    /// measured back inside the quota (T276).</summary>
+    private bool _announcedExtra;
 
     /// <summary>
     /// Announce the start of the meter, once (T184).
@@ -180,32 +188,56 @@ internal sealed class TrayContext : ApplicationContext
     /// rejects a *predicted*, continuous, activity-shaped nudge); it is the existing channel's missing
     /// half — a discrete transition, observed rather than forecast, at most once per spell.</para>
     ///
-    /// <para><b>A rise, not a state.</b> It fires on the first reading above zero after one at zero.
-    /// <c>null</c> is not zero (T179) and deliberately does not arm it: a profile whose history predates
-    /// that field, or a response with no overage header, has not been observed at zero, and announcing a
-    /// "start" from a reading nobody took is how a notification loses its credibility.</para>
+    /// <para><b>A rise, not a state.</b> It fires on the first reading that says the account is past its
+    /// quota after one that said it was not. <c>null</c> is not zero and not <c>false</c> (T179) and
+    /// deliberately arms nothing: a profile whose history predates the field, or a response with no overage
+    /// header, has not been observed inside the quota, and announcing a "start" from a reading nobody took
+    /// is how a notification loses its credibility.</para>
+    ///
+    /// <para><b>Two headers, one announcement (T276).</b> T184 watched the overage <em>figure</em>, and the
+    /// spell of 2026-08-04 read <c>0.0</c> straight through the crossing — so the one alert about money
+    /// never came. <c>overage-in-use</c> is the header that moved, and it is now the first route; the figure
+    /// stays the second, for an account whose utilization does climb. They share
+    /// <see cref="_announcedExtra"/>, so such an account hears this once rather than twice, and the latch is
+    /// released only by a reading measured back inside the quota — a spell announced is a spell finished.</para>
     ///
     /// <para><b>What it must not say.</b> It fires exactly when somebody is most receptive to *the other
     /// profile still has quota* — the sentence the roadmap forbids as limit circumvention in a convenience
     /// costume. So the card names no profile, no account and no alternative, and offers no action. It
     /// states the fact and the reset, and stops: a receipt, not a reward, and not a suggestion.</para>
     /// </summary>
-    private void NoteExtraUsage(double? extra, double resetExtra)
+    private void NoteExtraUsage(double? extra, double resetExtra, bool? inUse)
     {
         if (!_lastExtraSeeded)
         {
             // The reading before this process started, so a restart in the middle of an overage spell
-            // does not look like its beginning.
+            // does not look like its beginning. Both signals, or the boolean route would announce a spell
+            // this process only walked in on.
             _lastExtraSeeded = true;
-            try { _lastExtra = UsageHistory.Latest(ProfileStore.Monitored)?.Extra; } catch { _lastExtra = null; }
+            try
+            {
+                UsageSample? last = UsageHistory.Latest(ProfileStore.Monitored);
+                _lastExtra = last?.Extra;
+                _lastInUse = last?.InUse;
+            }
+            catch { _lastExtra = null; _lastInUse = null; }
         }
 
         double? previous = _lastExtra;
+        bool? previousInUse = _lastInUse;
         _lastExtra = extra;
+        _lastInUse = inUse;
+
+        // State, not a decision — the latch describes the spell, so it is maintained above the toggle and
+        // released before the return that reads it.
+        if (QuotaStates.BackInsideQuota(inUse, extra)) _announcedExtra = false;
 
         if (!_settings.NotifyOnExtraUsage) return;
-        if (!QuotaStates.StartsSpending(previous, extra)) return;
-        double now = extra!.Value;
+        if (_announcedExtra) return;
+        if (!QuotaStates.StartsSpending(previousInUse, inUse)
+            && !QuotaStates.StartsSpending(previous, extra)) return;
+        _announcedExtra = true;
+        double now = extra ?? 0;
 
         string title = L.T("toast.extra.title");
         string subtitle = L.T("toast.extra.subtitle");
@@ -1027,8 +1059,9 @@ internal sealed class TrayContext : ApplicationContext
             HeaderProbe.Record(ProfileStore.Monitored, now, fresh.RateHeaders);
 
             // The moment the meter starts (T184) — checked against the reading before this one, so the
-            // toast marks a transition rather than the mere fact of being in overage.
-            NoteExtraUsage(fresh.ExtraUtil, fresh.ResetExtra);
+            // toast marks a transition rather than the mere fact of being in overage. Both headers, since
+            // the figure can sit at zero across the whole crossing (T276).
+            NoteExtraUsage(fresh.ExtraUtil, fresh.ResetExtra, fresh.ExtraInUse);
 
             foreach (string key in Metrics)
             {
