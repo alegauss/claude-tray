@@ -269,31 +269,3 @@ What a date reads like once the month name is French and the arrangement is stil
 
 What cutting a release costs on a developer machine, as opposed to on a runner that has nothing else
 installed.
-
-### XXXI.3 Who else is building this tree
-
-Measured rather than supposed, which matters because the supposition is written in two ledger
-entries. T258 and T269 both name these failures as an unproven neighbour and both guess a parallel
-Claude session. Looking at the machine instead:
-
-- three `dotnet.exe` processes are MSBuild **worker nodes** (MSBuild.dll /noautoresponse /nologo
-  /nodemode:...), left alive from earlier builds - node reuse is on by default and this session accumulated
-  them from 19:37 onward;
-- two more are the IDE: the VS Code C# Dev Kit language server and OmniSharp under SonarLint, both of which
-  run design-time builds of this project.
-
-All of them read and write the same obj\Debug\net10.0-windows\win-x64. The WPF markup pass is the
-part that races: it writes a temp project, generates .g.cs and .baml into that directory, and
-removes the temp project after. A reused node or a design-time build that regenerates or cleans
-while a command-line build believes those files present produces exactly what was seen - BG1002 over
-a missing .baml, CS2001 over a missing .g.cs, each passing on retry.
-
-Two halves, and only one is reachable. The repository can stop contributing its own reusable nodes,
-which costs warm-build time and is exactly the kind of trade T253 measured rather than assumed - so
-measure it before taking it. It cannot stop an IDE from building the project it has open, which
-means the honest deliverable may be a sentence where the next person hits this rather than a
-setting.
-
-What must not happen is a retry loop. A build that passes on the second attempt cannot tell a race
-from a broken tree, which is the reading T256 refused for the interaction check and T258 for the
-publish.

@@ -201,11 +201,13 @@ budget should not pay for (T191); a flag you add goes there. What stays here is 
 handful that carry a *rule*, because getting these wrong produces work that has to be redone.
 
 ```
-dotnet build -c Debug                 # fast compile check. Refusing with MSB1011 ("more than one
-                                      #   project file") means an interrupted build left a
-                                      #   *_wpftmp.csproj here: delete it, or name the project once
-                                      #   (`… ClaudeTray.csproj`). A build that completes sweeps stale
-                                      #   ones itself (T269) — this is only the first run after a kill.
+dotnet build -c Debug                 # fast compile check. Two failures here are not your code, both
+                                      #   measured: MSB1011 = an interrupted build left a *_wpftmp.csproj
+                                      #   (delete it; a completed build sweeps stale ones, T269), and a
+                                      #   missing generated file (BG1002/CS2001/CS0103 on an x:Name) is
+                                      #   the markup pass racing the IDE's design-time builds over one
+                                      #   obj\ (T270). Build again — but never in a retry loop, which
+                                      #   cannot tell a race from a broken tree.
 dotnet run -c Release                 # build + run the tray app
 dotnet publish -c Release             # single self-contained .exe -> bin\Release\net10.0-windows\win-x64\publish\
 
@@ -232,8 +234,6 @@ Version lives in **one place**: `<Version>` in `ClaudeTray.csproj`. Everything d
 Everything that exists to *ship* the app lives in `build\` (T131) — the installer script, the
 build/release scripts and the winget manifests. Each resolves the repo root itself, so it can be run
 from anywhere; `scripts\` is a different thing (the screenshot/capture dev tools) and stays put.
-`build.cmd` refuses the publish when something is running from the folder it would overwrite, naming
-the pid rather than letting the SDK fail inside its bundler (T266) — it never stops that process.
 
 ```
 # bump <Version>, then:
