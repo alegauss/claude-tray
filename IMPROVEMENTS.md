@@ -322,6 +322,26 @@ that the exclusion works does not wait for the tree to contain a violation. Whet
 one shared scanner or three that each match their own construct is the open question; the property
 is that no scan here decides what is code by pattern-matching what is prose.
 
+### XX.6 A capture that photographed the spinner and said Captured
+
+`Capture-Window.ps1` verifies **which** window it copied — T199's fix, and the success line names
+the title and pid so a wrong one is caught by reading it. It does not verify that the window has
+anything on it yet, and the two failures look identical to whoever is reading the output.
+
+Measured 2026-08-04 while shipping T275: `--stats overage-noamount` on a machine with 213 recent
+transcript files took about 25 seconds to build its report. At the default `-WaitMs 1500` the script
+copied the page mid-load — heading, subtitle, "Computing your consumption pace…", nothing else — and
+printed `Captured 1738 x 1885`. Two variants captured that way are near-identical for the same
+reason, so comparing them proves nothing. It was caught only because the picture was looked at.
+
+The script cannot know when a given page is done; it can know that a page still showing its own
+loading text is not a picture of anything. The string is already in `lang/*.json`, so the check is a
+read of the accessibility tree for it, not a longer wait. A longer wait is the wrong answer twice:
+it slows every capture, and it still reports success on the page that needed longer still.
+
+`-WaitMs` stays, for the caller who knows better. What changes is that reaching it with a page still
+loading is a **failure**, named, writing no file — the same shape as the wrong-window refusal.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
@@ -458,6 +478,28 @@ the constant when it is not, and how a value the app has never seen — a third 
 two — stays a state the tray can draw rather than a guess. Absence is the common case: three of five
 readings here carry no such header at all.
 
+### XXIII.6 The other half of the same split
+
+T274 rescoped the state to the account and fixed the sentence for **billing**: a rejected session
+behind a week at 47% now says extra usage is paying, unscoped, because 47% is not what crossed. The
+`Stopped` half was deliberately left, and it is the same defect wearing the opposite outcome.
+
+`TooltipText` gates its at-limit sentence on `metricAtLimit`, the window on the icon. So an account
+whose session is `rejected` at 1.02 with no extra usage, watched on the week at 0.47, gets the
+ordinary projection sentence — *✓ Week 7d projection: on track* — while nothing it does will run
+until the session resets. The two window lines above it do carry 100% and 47%, so the reading is
+recoverable by eye; the sentence, which exists to say what the reading means, gives the wrong
+answer.
+
+The shape of the fix is T274's, already built and already asserted: the account-scoped `Resolve`
+answers `Stopped`, and the caption is kept off the sentence when the metric is not the window that
+crossed. What needs deciding is the wording, and it is not the tooltip's alone —
+`stats.proj.atLimit` on the Statistics page is gated the same way.
+
+Worth checking before writing a string: whether an unscoped "work has stopped" is even true when the
+*other* window is fine. It is — the API refuses the request, not the window — but the sentence has to
+be one a user reads as "you are blocked now", not as "some window somewhere is full".
+
 ## XXIV This machine's install, read from a file another program writes (Block N)
 
 The System information page reports the machine rather than the app, so every figure on it is read
@@ -534,6 +576,28 @@ installed.
 
 What the grid shows and what the sentences around it claim, which are not the same axis.
 
+### XXXII.1 A fold that keeps the hours and loses the spell
+
+T275 put the boolean in `usage-history.jsonl` and the weekly chart now shades the stretch the
+account was past its included quota. That store is pruned at eight days, and `HourlyUsage.Fold` is
+what runs first so nothing is discarded before it is counted — spend and coverage, per local hour,
+kept forever.
+
+The fold has no column for the spell. So the guarantee holds for the two figures it was written for
+and quietly does not hold for the third: a week reviewed a fortnight later shows a ceiling, the
+ghost week draws a curve that stops at 100%, and nothing anywhere says the account went on working
+past it and paying. §XXIII.3 named both stores as losing this; only the near one was fixed.
+
+What the fold would keep is not a copy of the readings. An hour either carried a reading that said
+the account was over or it did not, which is one bit per hour on a store that already has a slot per
+hour — the same shape as coverage, and it composes with the band the same way, since a run of such
+hours *is* the stretch. That also settles what a partial hour means: coverage already answers "how
+much of this hour was observed", so the bit answers only "was any of it over".
+
+Two consumers follow: `GhostWeek` can shade last week the way this week is shaded, and T280's "since
+when" can survive the pruning that would otherwise make it a question only about the last eight
+days.
+
 ## XXXIII Since when, not just that it is happening (Block A)
 
 The tooltip's billing sentence states a condition: *o uso extra está pagando*. Nothing anywhere says
@@ -551,3 +615,21 @@ measure 114/127 and 103/127 in pt-BR, so a duration fits where a timestamp carry
 It belongs in the same fitting ladder as the projection sentence — full form, compact form, dropped
 — with the readings above it kept, and `--tooltip` is what says which of the three each language
 ends up with.
+
+## XXXIV Two derivations of one cadence (Block F)
+
+`FindGaps` decides when a silence between two readings is an outage; `BridgeSeconds` decides when
+the same silence ends an overage spell. They are the same question asked twice, and since T275 they
+are also the same arithmetic written twice: `max(GapFloorSeconds, GapCadenceFactor × median delta)`,
+once inline inside `FindGaps` and once as a method beside it.
+
+Nothing is wrong today — they agree, because one was copied from the other. What is wrong is that
+nothing makes them go on agreeing. A cadence estimate that became a trimmed mean, or a floor that
+moved because the default poll interval changed, would reach the red outage stretch and not the clay
+band, and both are drawn on the same chart, where a reader would take the disagreement for data.
+This repository has the rule for exactly this shape: one reader, or two files that can differ.
+
+The fix is small and the naming is the point. `FindGaps` takes its threshold from `BridgeSeconds`
+over its own points, so there is one derivation, one place a change lands and one name to assert
+against. `--selftest` already covers both behaviours separately; what it cannot do today is fail
+when they part, which is what folding them gives it for nothing.

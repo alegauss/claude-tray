@@ -63,11 +63,15 @@
 
 ## Block AI — Verification — the checks that prove a change
 
+- 📋 **T286** (deps: —) **a window capture reports success while the page it photographed is still computing** — Capture-Window.ps1 waits 1500ms by default, the Statistics page took 25s here, and the PNG of "Computing your consumption pace…" was announced as Captured. → §XX.6
+
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization
 
 ## Block D — Auth & API resilience
+
+- 📋 **T288** (deps: —) **the stopped verdict still follows the window on the icon, so a blocked session hides behind a quiet week** — T274 split the billing verdict from the caption and left this half: 5h rejected beside 7d at 0.47 draws an on-track projection and says nowhere that work has stopped. → §XXIII.6
 
 ## Block N — System information — your plan, your install, this machine
 
@@ -86,9 +90,15 @@
 
 ## Block J — Activity-aware pacing
 
+- 📋 **T287** (deps: —) **the permanent aggregate folds a week down and drops every trace that the account was over its quota** — HourlyUsage keeps spend and coverage per hour; T275's ix column lives only in the 8-day store, so a spell reviewed a fortnight later is a ceiling and no account of it. → §XXXII.1
+
 ## Block A — Foundation — tray, icon, API, projection
 
 - 📋 **T280** (deps: T275 ✅) **nothing on screen says when the overage spell started** — The store dates the crossing at its first reading past the threshold, and saying since when is the difference between reporting a state and reporting an event. → §XXXIII
+
+## Block F — Statistics window (pace report)
+
+- 📋 **T289** (deps: —) **one rule about what counts as a break in the readings is computed twice in the same file** — T275 gave MergeSpans a measured bridge and FindGaps still derives the identical median-and-floor inline, so the two can drift and only one of them has a name. → §XXXIV
 
 ## Non-goals (do NOT add as tasks)
 
