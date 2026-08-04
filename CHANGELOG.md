@@ -21,7 +21,7 @@
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
-| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts (active — see ROADMAP) |
+| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) (active — see ROADMAP) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
@@ -125,6 +125,7 @@
 - **T227** — Measured before fixing, and the premise did not survive: naming a colour font changes nothing, because WPF text and GDI+ both draw Segoe UI Emoji monochrome base layer - no coloured pixel in six glyphs under either, and a real captured card with the font named is the same black popper. What shipped is the half that is true: BodyFont and EmojiFont are fields the window binds with x:Static, so the glyph comes from a font carrying every codepoint the cards use instead of whatever font linking reached first, and --selftest asks the typeface for each one so a card that would draw a tofu box is a red build. Colour is now a non-goal with the measurement behind it.
 - **T228** — A capture now refuses rather than writing a picture of a clipped card: after the settle timer each text block is asked where it landed relative to the card, and the flag exits 1 naming the block and the rectangle. It found one on its first run - the French extra-usage caption, 7.6px under the bottom edge and clipped away by the inner grid, so the PNG showed nothing wrong - and every card now grows for its own wording, with a MinHeight of the designed height so all seven published screenshots come back at exactly the pixels they already are. Forty combinations, eight cards in five languages, fit.
 - **T276** — The extra-usage notification arms on the overage-in-use header as well as on the figure, so an account whose overage utilization reads zero straight through the crossing is still told, once per spell, that money has started.
+- **T277** — The extra-usage card draws its bar only from a figure the reading carries, so a spell reported with none arrives as the sentence and its reset rather than behind a meter showing a full allowance.
 
 ## Block F — Statistics window (pace report)
 

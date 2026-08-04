@@ -76,7 +76,8 @@
                     </Grid>
 
                     <!-- The good news, shown as available quota filling back up to 100%. QuotaBlock is
-                         collapsed for a card that has no quota to talk about (T174) — see the constructor. -->
+                         collapsed for a card whose reading carries no quantity to draw (T174, T277) —
+                         see the constructor. -->
                     <StackPanel Grid.Row="1" VerticalAlignment="Center" Margin="0,12,0,0">
                         <StackPanel x:Name="QuotaBlock">
                             <Grid>

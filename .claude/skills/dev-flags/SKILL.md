@@ -74,7 +74,9 @@ Three different hosts, and the difference matters — see UI convention 7 in AGE
                                       #   gets reviewed at all. Add --lang to read it in a translation.
 --simulate-reset [variant]            # a toast card on screen: unexpected (the default early weekly reset)
                                       #   | scheduled | credit | session | context | extra | profile |
-                                      #   profile-failed. One table with
+                                      #   profile-failed | extra-bare. The last is the extra-usage card as
+                                      #   the measured spell reports it - in use, no figure, and so no bar
+                                      #   at all, since 1 - 0 draws a full one (T277). One table with
                                       #   --capture-toast (T198), so a name it does not know prints the
                                       #   catalogue and exits 1 rather than showing the default card.
 ```

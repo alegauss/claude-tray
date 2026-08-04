@@ -68,11 +68,9 @@ internal static class ToastPreviews
 
         new("extra", "the extra-usage card (T184), which can only be seen this way: the state it " +
                      "announces is one no machine can be put into on demand",
-            // The card's bar is "quota still available", so it renders 1 - x. Passing the complement makes
-            // the filled sliver read as the extra usage spent so far, which is what the label beside it says.
-            _ => new ToastWindow("🧾", L.T("toast.extra.title"), L.T("toast.extra.subtitle"),
-                1 - 0.06, 1 - 0.06, L.T("toast.extra.caption", "2d 3h"),
-                L.T("toast.extra.quotaLabel"), ToastWindow.ToastTheme.ExtraUsage)),
+            // The reading, not the bar: TrayContext owns the complement the card is drawn from, so this
+            // preview and the tray cannot disagree about what a figure draws (T277).
+            _ => Extra(0.06)),
 
         new("profile", "the machine-wide profile switch landing (T174): slate, no confetti and — the " +
                        "part that is a rule, not a taste — no quota bar, on a card shortened to suit",
@@ -80,15 +78,33 @@ internal static class ToastPreviews
             // captured and published, and a real one puts somebody's account on the marketing page.
             _ => new ToastWindow("💻", L.T("toast.profile.title"),
                 L.T("toast.profile.subtitle", "Personal", @"C:\Users\you\.claude-personal"),
-                0, 0, L.T("toast.profile.caption"), "", ToastWindow.ToastTheme.Profile)),
+                null, null, L.T("toast.profile.caption"), "", ToastWindow.ToastTheme.Profile)),
 
         new("profile-failed", "the same switch, not landing: the write threw or the variable still reads " +
                               "the old value, which before T173 nothing could tell you at all",
             _ => new ToastWindow("🚫", L.T("toast.profile.titleFailed"),
                 L.T("toast.profile.subtitle", "Personal", @"C:\Users\you\.claude-personal"),
-                0, 0, L.T("toast.profile.captionFailed", @"C:\Users\you\.claude-work"),
+                null, null, L.T("toast.profile.captionFailed", @"C:\Users\you\.claude-work"),
                 "", ToastWindow.ToastTheme.Profile)),
+
+        new("extra-bare", "the same card as the spell that produced it actually reports: overage in use " +
+                          "and no figure at all, so there is no bar — the form a reading with nothing to " +
+                          "draw gets (T277)",
+            // The reading the spell of 2026-08-04 actually sent, rather than a hand-written "no bar": the
+            // bar-less card is what a measured zero produces, and if that ever stopped being true this row
+            // would show it.
+            _ => Extra(0.0)),
     };
+
+    /// <summary>The extra-usage card, built from a reading the way the tray builds it — the same wording,
+    /// the same clay, and the bar (or none) that <see cref="TrayContext.ExtraUsageBar"/> derives.</summary>
+    private static ToastWindow Extra(double? figure)
+    {
+        double? bar = TrayContext.ExtraUsageBar(figure);
+        return new ToastWindow("🧾", L.T("toast.extra.title"), L.T("toast.extra.subtitle"),
+            bar, bar, L.T("toast.extra.caption", "2d 3h"),
+            L.T("toast.extra.quotaLabel"), ToastWindow.ToastTheme.ExtraUsage);
+    }
 
     /// <summary>The table itself, for the self-check that every row still resolves, that an invented name
     /// does not, and that this catalogue and the one the <c>dev-flags</c> skill prints name the same

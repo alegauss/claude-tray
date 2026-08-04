@@ -237,7 +237,6 @@ internal sealed class TrayContext : ApplicationContext
         if (!QuotaStates.StartsSpending(previousInUse, inUse)
             && !QuotaStates.StartsSpending(previous, extra)) return;
         _announcedExtra = true;
-        double now = extra ?? 0;
 
         string title = L.T("toast.extra.title");
         string subtitle = L.T("toast.extra.subtitle");
@@ -247,9 +246,7 @@ internal sealed class TrayContext : ApplicationContext
         try
         {
             EnsureWpfApp();
-            // The card's bar renders "quota still available" (1 − x), so the complement is passed: the
-            // filled sliver is then the extra usage spent so far, matching the label beside it.
-            double bar = Math.Clamp(1 - now, 0, 1);
+            double? bar = ExtraUsageBar(extra);
             new ToastWindow("🧾", title, subtitle, bar, bar, caption,
                 L.T("toast.extra.quotaLabel"), ToastWindow.ToastTheme.ExtraUsage).Show();
         }
@@ -260,6 +257,23 @@ internal sealed class TrayContext : ApplicationContext
             _tray.ShowBalloonTip(8000);
         }
     }
+
+    /// <summary>
+    /// What the extra-usage card's bar should be for a reading, or <c>null</c> for <b>no bar</b> (T277).
+    ///
+    /// <para>The bar renders quota <em>still available</em>, so the complement is what makes the filled
+    /// sliver read as the extra usage spent so far and match the label beside it. That arithmetic has one
+    /// value it cannot take: with the figure at zero — every reading of the measured spell — <c>1 − 0</c> is
+    /// a <b>full</b> bar, drawn behind a sentence whose whole message is that the quota is spent and money
+    /// is being charged. A meter for a quantity the reading does not carry is not a neutral default; it is
+    /// a claim, and here the opposite of the one the card was opened to make.</para>
+    ///
+    /// <para>Static and here rather than inline, so <c>--simulate-reset</c>, <c>--capture-toast</c> and the
+    /// tray cannot disagree about what a figure draws — the reason <see cref="ResetToastContent"/> is shared
+    /// the same way — and so <c>--selftest</c> can ask, with no window.</para>
+    /// </summary>
+    internal static double? ExtraUsageBar(double? extra)
+        => extra is { } x && x > 0 ? Math.Clamp(1 - x, 0, 1) : null;
 
     /// <summary>The STA thread this app's two UI stacks share. Captured while the tray is being built,
     /// because the environment write reports back from the thread pool and a window cannot be raised
@@ -305,7 +319,7 @@ internal sealed class TrayContext : ApplicationContext
             EnsureWpfApp();
             // No bar and no confetti: see ToastWindow's constructor for why borrowing the quota bar here
             // would say something this app is not allowed to say.
-            new ToastWindow(outcome.Landed ? "💻" : "🚫", title, subtitle, 0, 0, caption,
+            new ToastWindow(outcome.Landed ? "💻" : "🚫", title, subtitle, null, null, caption,
                 "", ToastWindow.ToastTheme.Profile).Show();
         }
         catch

@@ -77,8 +77,6 @@
 
 ## Block E — Reset notifications & toasts
 
-- 📋 **T277** (deps: T276 ✅) **the card announcing that extra usage is paying draws a bar that reads as full quota** — The bar renders the complement of the overage figure, so a spell with no figure fills it completely and the news arrives contradicted by its own picture. → §XXV.2
-
 ## Block S — Settings round-trip
 
 ## Block Q — Keyboard input in the windows

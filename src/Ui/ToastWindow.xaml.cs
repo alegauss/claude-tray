@@ -57,6 +57,7 @@ internal partial class ToastWindow : Window
 
     private bool _closing;
     private double _targetScale = 1.0; // available quota after the event; the bar animates to this
+    private bool _hasBar = true;       // false when the reading carries no quantity to draw (T277)
     private ToastTheme _theme = ToastTheme.Surprise;
 
     // Festive palette for the confetti — golds, white, coral and soft pastels read well on the gradient.
@@ -70,13 +71,26 @@ internal partial class ToastWindow : Window
         (Color)ColorConverter.ConvertFromString("#FFF3B0"),
     };
 
-    public ToastWindow(string emoji, string title, string subtitle, double fromUsage, double toUsage,
+    /// <param name="fromUsage">The usage the bar starts at, or <c>null</c> for a card with <b>no bar</b>.
+    /// A quantity, not a decoration: see the collapse below.</param>
+    /// <param name="toUsage">The usage it animates to. Null on the same terms as
+    /// <paramref name="fromUsage"/>; either being null is a card with no bar.</param>
+    public ToastWindow(string emoji, string title, string subtitle, double? fromUsage, double? toUsage,
         string caption, string quotaLabel, ToastTheme theme)
     {
         InitializeComponent();
 
-        double fromAvail = 1 - Math.Clamp(fromUsage, 0, 1);
-        _targetScale = 1 - Math.Clamp(toUsage, 0, 1); // quota left after the event
+        // A card may not draw a meter for a quantity its reading does not carry (T277). A profile switch
+        // never had one, and the bar is not free to borrow: animating the outgoing account's remaining
+        // quota into the incoming one's says "switch accounts, this one has room" without a string, which
+        // is exactly what §I.7 forbids (T174). The extra-usage card arrives at the same rule from the other
+        // side — the spell of 2026-08-04 reported no overage figure at all, and `1 − 0` is a **full** bar
+        // behind a sentence whose whole message is that the quota is spent. A bar with nothing behind it is
+        // not a neutral default; it is a claim, and there it is the opposite of the card's own.
+        _hasBar = fromUsage is { } && toUsage is { };
+
+        double fromAvail = 1 - Math.Clamp(fromUsage ?? 0, 0, 1);
+        _targetScale = 1 - Math.Clamp(toUsage ?? 0, 0, 1); // quota left after the event
 
         _theme = theme;
         Card.Background = Gradient(theme);
@@ -88,14 +102,11 @@ internal partial class ToastWindow : Window
         Caption.Text = caption;
         FillScale.ScaleX = fromAvail; // quota left before; animates up to _targetScale
 
-        // A profile switch has no quota to draw, and the bar is not free to borrow: animating the
-        // outgoing account's remaining quota into the incoming one's says "switch accounts, this one has
-        // room" without a string, which is exactly what §I.7 forbids. So the block goes, and the card
-        // shrinks to what is left rather than padding the gap out (T174).
+        // The block goes, and the card shrinks to what is left rather than padding the gap out.
         // A shorter card, sized to what is left rather than to a number picked off the English wording:
         // the title wraps to two lines in every language here except English, and a fixed height that
         // fits one of them cuts the caption off in the others (caught in the pt-BR capture).
-        if (theme == ToastTheme.Profile)
+        if (!_hasBar)
             QuotaBlock.Visibility = Visibility.Collapsed;
 
         // And every card grows if its own wording needs it (T228). T174 sized the profile card to its
@@ -107,7 +118,7 @@ internal partial class ToastWindow : Window
         // moves: `SizeToContent` alone would shrink every card whose content is shorter than 200 and
         // re-cut every published screenshot for a defect none of them has. Growth only, and only where a
         // translation asks for it.
-        MinHeight = theme == ToastTheme.Profile ? 0 : Height;
+        MinHeight = _hasBar ? Height : 0;
         SizeToContent = SizeToContent.Height;
 
         Loaded += OnLoaded;
@@ -166,7 +177,7 @@ internal partial class ToastWindow : Window
         if (ActualHeight > 0) Height = ActualHeight;
         PositionBottomRight();
         PlayEntrance();
-        if (_theme != ToastTheme.Profile) FillTheBar();   // there is no bar on that card to fill
+        if (_hasBar) FillTheBar();   // there is no bar on a card with no quantity to fill it with
         // Every toast so far has been good news (quota back). The context nudge is the first that
         // isn't, so it gets the same card and animation without the celebration — and the extra-usage
         // one is a receipt, which is the least celebratory thing this app has to say. A profile switch

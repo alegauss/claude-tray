@@ -511,23 +511,6 @@ therefore not this app's decision, and a count taken over them is a claim about 
 Two things the toasts got wrong that no capture ever objected to, both found by looking at a card
 rather than at the code that built it.
 
-### XXV.2 A card with no number to draw
-
-The card is handed `1 − extra` because its bar renders quota still available, so the filled sliver
-reads as the extra spent so far and matches the label beside it. With the figure at `0.0` that bar
-is drawn **full**: a card whose whole message is that the quota is spent and money is being charged,
-showing a complete allowance behind the sentence.
-
-So the toast T276 arms needs a second form — the news, the reset, and no bar at all. `ToastWindow`'s
-palette already carries `ExtraUsage`, the clay `#D97757` the icon and the chart share, so the
-variant costs no new colour. `--check-toasts` asks every card in every language whether it fits,
-which is where a bar-less form is held to the same test as the rest, and `--capture-toast` writes
-the picture to the explicit path T198 requires.
-
-The rule worth keeping past the task: a card may not draw a meter for a quantity its reading does
-not carry. A bar with nothing behind it is not a neutral default — it is a claim, and here it is the
-opposite of the one the card was opened to make.
-
 ## XXVI One setting, two places that change it (Block S)
 
 The tray menu and the Settings page now both write fields the page believes it owns, and only one of

@@ -155,6 +155,9 @@ internal static class SelfTestCli
         Section("glyphs — every card's emoji is in the font the card names (Block E)");
         ToastGlyphs();
 
+        Section("the extra-usage card — a bar only for a figure it has (Block E)");
+        ExtraCardBar();
+
         Section("projects — a count of directories, not of keys (Block N)");
         ProjectCount();
 
@@ -4231,6 +4234,32 @@ internal static class SelfTestCli
         string[] missing = glyphs.Where(g => !Maps(ToastWindow.EmojiFont, g)).ToArray();
         Check($"and the font the card names carries every one of them ({glyphs.Length})", missing.Length == 0,
               $"{string.Join(" ", missing)} — would draw as a tofu box, and a capture would not say so");
+    }
+
+    /// <summary>
+    /// T277. The one value the complement cannot take. The card's bar renders quota <em>still available</em>,
+    /// so it is drawn from <c>1 − figure</c> — and the spell of 2026-08-04 reported the figure as <c>0.0</c>
+    /// on every reading, which draws it <b>full</b>: a complete allowance behind a sentence saying the quota
+    /// is spent and money is being charged.
+    ///
+    /// <para>Asked of the arithmetic rather than of the picture, because the card is a window and this file
+    /// builds none — and because a full bar is a perfectly well-formed rendering, so a capture certifies it
+    /// without complaint, which is exactly how it shipped.</para>
+    /// </summary>
+    private static void ExtraCardBar()
+    {
+        Check("a figure the reading carries is drawn as the quota still available",
+              TrayContext.ExtraUsageBar(0.06) is { } bar && Math.Abs(bar - 0.94) < 1e-9);
+        Check("a measured zero draws no bar at all — 1 − 0 is a full one",
+              TrayContext.ExtraUsageBar(0.0) is null);
+        Check("and neither does a reading that carries no figure",
+              TrayContext.ExtraUsageBar(null) is null);
+
+        // The preview is the only way this card is ever seen, so it has to be the same decision: a row
+        // that hand-wrote its own bar is a screenshot that can disagree with what the tray sends.
+        Check("both extra-usage previews are in the catalogue, so the bar-less form is checked with the rest",
+              new[] { "extra", "extra-bare" }
+                  .All(n => ToastPreviews.Catalogue.Any(v => v.Name == n)));
     }
 
     /// <summary>Whether a family has a real glyph for every codepoint in <paramref name="text"/>. Asked of
