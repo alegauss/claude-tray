@@ -172,6 +172,31 @@ internal static class QuotaStates
                    d.StatusExtra, d.ExtraDisabledReason, d.ExtraInUse);
 
     /// <summary>
+    /// Whether this reading is far enough along to warrant the near-limit flash (T281) — the API's own
+    /// answer where it gave one, and this repository's constant where it did not.
+    ///
+    /// <para><b>Why the header outranks the constant.</b> <see cref="Settings.FlashWarnThreshold"/> is
+    /// <c>0.90</c>, a number chosen here, carrying a comment that said it is where the API reports
+    /// <c>allowed_warning</c>. That was a claim about another system, and an account whose warning lands
+    /// elsewhere would get a tray that flashes at the wrong moment with nothing here able to notice —
+    /// because a constant cannot disagree with a header nothing reads. Now one is read: on 2026-08-04 the
+    /// response named <c>0.9</c> on the reading whose status first said <c>allowed_warning</c>, which
+    /// happens to confirm the constant for <em>this</em> plan and settles nothing about the next.</para>
+    ///
+    /// <para><b>Why an unseen value is still a state and not a guess.</b> The header names the threshold
+    /// that was <em>crossed</em>, so it arrives already true — nothing has to be mapped, and a plan with a
+    /// third threshold or two of them works with no table here. That is the whole reason this can act on a
+    /// vocabulary of two values where §XVIII.9 refuses one: the value is a number in the same units as the
+    /// utilization beside it, not a word needing a meaning.</para>
+    ///
+    /// <para><b>And absence is the common case</b> — four of the six readings on file carry no such header,
+    /// every one of them inside the quota. So absence falls back rather than refusing: a reading the API
+    /// said nothing about is exactly what the constant was there for.</para>
+    /// </summary>
+    public static bool Warns(double util, double? surpassed)
+        => util >= (surpassed ?? Settings.FlashWarnThreshold);
+
+    /// <summary>
     /// The refusal's cause as a sentence, or null when nothing was refused (T224). The one value measured so
     /// far — <c>org_level_disabled</c> — gets words; anything else is shown verbatim rather than guessed at,
     /// because a wrong explanation of why work stopped is worse than the raw token.

@@ -175,7 +175,7 @@
   "settings.display.showRemaining": "Afficher le restant au lieu du consommé",
   "settings.display.showRemainingDesc": "Décompte le quota qu'il vous reste : l'icône démarre pleine à 100% et descend jusqu'à 0%, et l'info-bulle indique « … restant ». La couleur d'avertissement et les alertes sont inchangées.",
   "settings.display.flashWarn": "Faire clignoter l'icône près de la limite",
-  "settings.display.flashWarnDesc": "Fait clignoter l'icône de la barre d'état dès que l'utilisation dépasse 90% (la zone « allowed_warning »). Désactivé par défaut — la couleur d'avertissement continue de suivre la limite dans tous les cas.",
+  "settings.display.flashWarnDesc": "Fait clignoter l’icône de la barre d’état près de la limite : au seuil que l’API indique sur la réponse qui le franchit, ou 90% sur les lectures où elle n’en indique aucun. Désactivé par défaut — la couleur d’avertissement continue de suivre la limite dans tous les cas.",
 
   // Claude Code page
   "settings.cc.title": "Claude Code",

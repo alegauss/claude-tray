@@ -55,7 +55,8 @@ To build from source instead, see [Build and run](#build-and-run).
   are unchanged)
 - **3D bevel border**: light highlight on the top/left and shadow on the bottom/right → relief
 - Number: large digits, white with a **dark outline** (readable at any size)
-- ≥90%: the background flashes
+- Near the limit: the background flashes — at the threshold **the API itself names** on the response
+  that crosses it, falling back to ≥90% on the readings where it names none
 - Amber = API error · while connecting (before the first reading) it shows the **app logo**
 
 The **app icon** (`.exe`, installer, shortcuts) is the same clay tile with a white spark mark —

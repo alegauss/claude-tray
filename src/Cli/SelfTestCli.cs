@@ -664,6 +664,21 @@ internal static class SelfTestCli
               QuotaStates.Resolve(new UsageData { Session5h = 0.40, Week7d = 0.90 }, true)
               == QuotaState.InQuota);
 
+        // T281. The threshold the window crossed, named by the API instead of chosen here. The readings are
+        // the ones on file: absent inside the quota, 0.9 beside the first `allowed_warning` at 0.91, 1.0
+        // beside `rejected` at 1.02.
+        Check("with no header the constant answers, exactly as before",
+              QuotaStates.Warns(0.91, null) && !QuotaStates.Warns(0.89, null));
+        Check("and the threshold the response named outranks it, in both directions",
+              QuotaStates.Warns(0.72, 0.70) && !QuotaStates.Warns(0.95, 0.98));
+        Check("the measured pair still warns: 0.9 named beside a utilization of 0.91",
+              QuotaStates.Warns(0.91, 0.9));
+        Check("a threshold nobody here has seen needs no mapping — it is a number, not a word",
+              QuotaStates.Warns(0.63, 0.60) && QuotaStates.Warns(1.00, 1.0)
+              && !QuotaStates.Warns(0.55, 0.60));
+        Check("and an absent header is not a threshold of zero, which every reading would be past",
+              !QuotaStates.Warns(0.10, null));
+
         // The cause, as words. Only one value has ever been sent, so only one is translated: anything else
         // is shown verbatim rather than explained, because a wrong reason for stopped work is worse than a
         // raw token — and `RefusalReason` must stay null where there is nothing to explain, or the sub-line
@@ -4036,6 +4051,9 @@ internal static class SelfTestCli
         // whole point of reading it is that it arrives on the reading nobody had yet.
         Check("and the header that says overage is happening is read, a day after the list above",
               ApiClient.NamesRead.Contains("anthropic-ratelimit-unified-overage-in-use",
+                                           StringComparer.OrdinalIgnoreCase));
+        Check("as is the one naming the threshold the window crossed — the first name the mark caught",
+              ApiClient.NamesRead.Contains("anthropic-ratelimit-unified-5h-surpassed-threshold",
                                            StringComparer.OrdinalIgnoreCase));
         Check("a name no line of the parser asks for is not marked read",
               unread.All(n => !HeaderProbe.IsRead(n)),

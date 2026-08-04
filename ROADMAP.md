@@ -69,8 +69,6 @@
 
 ## Block D — Auth & API resilience
 
-- 📋 **T281** (deps: —) **the API states which threshold the window crossed, and the app flashes on a constant it picked itself** — `5h-surpassed-threshold` was absent on three readings inside the quota, arrived as 0.9 beside `allowed_warning` at 0.91, and read 1.0 beside `rejected` at 1.02. → §XXIII.5
-
 ## Block N — System information — your plan, your install, this machine
 
 ## Block E — Reset notifications & toasts

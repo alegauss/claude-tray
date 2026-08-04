@@ -88,7 +88,7 @@ internal sealed class TrayContext : ApplicationContext
         _poll.Interval = _settings.RefreshSeconds * 1000;
         _poll.Tick += async (_, _) => await RefreshAsync();
         _poll.Start();
-        _flash.Tick += (_, _) => { if (_settings.FlashNearLimit && CurrentPct() >= Settings.FlashWarnThreshold) { _flashOn = !_flashOn; Render(); } };
+        _flash.Tick += (_, _) => { if (CurrentlyWarned()) { _flashOn = !_flashOn; Render(); } };
         _flash.Start();
         _updateCheck.Tick += async (_, _) => await CheckForUpdateAsync();
         _updateCheck.Start();
@@ -1369,7 +1369,7 @@ internal sealed class TrayContext : ApplicationContext
             _data.Error != null ? IconRenderer.State.Error :
             IconRenderer.State.Ok;
 
-        bool flash = _settings.FlashNearLimit && CurrentPct() >= Settings.FlashWarnThreshold && _flashOn;
+        bool flash = CurrentlyWarned() && _flashOn;
         int size = Math.Max(16, SystemInformation.SmallIconSize.Width);
 
         Projection verdict = CurrentProjection().verdict;
@@ -1405,6 +1405,21 @@ internal sealed class TrayContext : ApplicationContext
         old?.Dispose();
         if (oldHandle != IntPtr.Zero) DestroyIcon(oldHandle);
     }
+
+    /// <summary>Whether the near-limit flash should be running right now (T281). One method because the
+    /// blink timer and the render each asked the same question, and two copies of it is how the timer
+    /// could toggle a state the render then declined to draw.
+    ///
+    /// <para>The threshold comes from the response where the response named one, and from
+    /// <see cref="Settings.FlashWarnThreshold"/> where it did not — <see cref="QuotaStates.Warns"/> owns
+    /// that choice. Only the 5h header exists to be read, so a tray following the week falls back on every
+    /// reading; that is the same behaviour it had before, not a regression, and the day a
+    /// <c>7d-surpassed-threshold</c> is recorded it becomes a second field and one more argument
+    /// here.</para></summary>
+    private bool CurrentlyWarned()
+        => _settings.FlashNearLimit
+           && QuotaStates.Warns(CurrentPct(),
+                                _metric == "5h" && _data is { Error: null } d ? d.Surpassed5h : null);
 
     /// <summary>Which of the three states the <em>account</em> is in (T182, rescoped by T274).
     ///

@@ -175,7 +175,7 @@
   "settings.display.showRemaining": "Mostrar restante em vez de usado",
   "settings.display.showRemainingDesc": "Conta a cota que resta: o ícone começa cheio em 100% e esvazia até 0%, e a dica mostra “… restante”. A cor de aviso e os alertas não mudam.",
   "settings.display.flashWarn": "Piscar o ícone perto do limite",
-  "settings.display.flashWarnDesc": "Faz o ícone da bandeja piscar quando o uso passa de 90% (a faixa “allowed_warning”). Desativado por padrão — a cor de aviso continua acompanhando o limite de qualquer forma.",
+  "settings.display.flashWarnDesc": "Faz o ícone da bandeja piscar perto do limite — no limiar que a API informa na resposta que o cruza, ou 90% nas leituras em que ela não informa nenhum. Desativado por padrão — a cor de aviso continua acompanhando o limite de qualquer forma.",
 
   // Claude Code page
   "settings.cc.title": "Claude Code",

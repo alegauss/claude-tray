@@ -51,13 +51,21 @@ internal sealed class Settings
 
     /// <summary>
     /// Blink the tray icon (background flashes every 500 ms) once usage crosses the near-limit
-    /// warning threshold (&gt;=90%, the point where the API reports <c>allowed_warning</c>). Off by
-    /// default: the constant flashing can be distracting, so it's opt-in — the warning color still
-    /// tracks the limit regardless. See <see cref="FlashWarnThreshold"/>.
+    /// warning threshold — the one the API names on the response where it is crossed, or
+    /// <see cref="FlashWarnThreshold"/> on the readings it names none. Off by default: the constant
+    /// flashing can be distracting, so it's opt-in — the warning color still tracks the limit regardless.
+    /// <see cref="QuotaStates.Warns"/> is where the two are chosen between.
     /// </summary>
     public bool FlashNearLimit { get; set; } = false;
 
-    /// <summary>Usage fraction (0 to 1) at which the near-limit flash kicks in, when enabled.</summary>
+    /// <summary>Usage fraction (0 to 1) at which the near-limit flash kicks in when the response names no
+    /// threshold of its own — which is most readings (T281).
+    ///
+    /// <para><b>It is the fallback, not the definition.</b> This used to be documented as "the point where
+    /// the API reports <c>allowed_warning</c>", which was a claim about another system that nothing here
+    /// could check. The claim happens to hold on the plan that was measured — <c>5h-surpassed-threshold</c>
+    /// arrived as <c>0.9</c> beside the first <c>allowed_warning</c> — and says nothing about any other, so
+    /// the header now answers wherever it is sent and this number answers where it is not.</para></summary>
     public const double FlashWarnThreshold = 0.90;
 
     /// <summary>

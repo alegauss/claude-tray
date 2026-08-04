@@ -41,6 +41,19 @@ internal sealed class UsageData
     /// which is why this affirmative may paint a screen and that one may not.</summary>
     public bool? ExtraInUse;
 
+    /// <summary>The threshold the 5h window has crossed, named by the API rather than chosen here —
+    /// <c>5h-surpassed-threshold</c> (T281). <c>null</c> is the header not being sent, which is the common
+    /// case and a reading in itself: it was absent on the four readings inside the quota, arrived as
+    /// <c>0.9</c> on the one whose status first said <c>allowed_warning</c> at a utilization of 0.91, and
+    /// read <c>1.0</c> on the one that said <c>rejected</c> at 1.02.
+    ///
+    /// <para>Two values in one log, each beside a status transition this app already reads — so what it
+    /// announces is measured rather than inferred, which is what separates it from the single-sample
+    /// vocabularies §XVIII.9 declines to map. <see cref="Settings.FlashWarnThreshold"/> is the number this
+    /// repository picked for the same question, and <see cref="QuotaStates.Warns"/> is what decides between
+    /// them.</para></summary>
+    public double? Surpassed5h;
+
     /// <summary>Every <c>anthropic-ratelimit-*</c> response header, verbatim, exactly as the API sent it
     /// (T181). The parsed fields above are this app's *reading* of four of them; this is the reading
     /// nobody has made yet — what the overage percentage denominates, and what the status header says
@@ -200,6 +213,7 @@ internal sealed class ApiClient
             StatusExtra = get("anthropic-ratelimit-unified-overage-status") ?? "unknown",
             ExtraDisabledReason = get("anthropic-ratelimit-unified-overage-disabled-reason"),
             ExtraInUse = B(get, "anthropic-ratelimit-unified-overage-in-use"),
+            Surpassed5h = NOrNull(get, "anthropic-ratelimit-unified-5h-surpassed-threshold"),
         };
         // Read the presence separately from the value: an account without extra usage sends no overage
         // header, and one that has it enabled but has spent nothing sends 0. N() collapses both to 0.0, so
@@ -296,6 +310,13 @@ internal sealed class ApiClient
         return v != null && double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out double d)
             ? d : 0.0;
     }
+
+    /// <summary>A figure whose <em>absence</em> is a reading, so it may not collapse to <c>N</c>'s 0.0 —
+    /// a threshold nobody was told about is not a threshold of zero, which every reading would then be
+    /// past (T281).</summary>
+    private static double? NOrNull(Func<string, string?> get, string name)
+        => get(name) is { } v
+           && double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out double d) ? d : null;
 
     /// <summary>A header whose value is a word for true or false, read as three states: the header was not
     /// sent, it said so, or it said otherwise. <c>N</c>'s collapse of an absent header to 0.0 is exactly what
