@@ -399,7 +399,32 @@ internal static class HourlyUsage
     /// <paramref name="OverSpans"/> means <em>not recorded</em> and never <em>it stayed inside</em>.</param>
     internal sealed record GhostWeek(List<(double frac, double cum)> Curve, double Coverage,
         double AtSameFraction, double Total,
-        List<(double f0, double f1)> OverSpans, bool OverKnown);
+        List<(double f0, double f1)> OverSpans, bool OverKnown)
+    {
+        /// <summary>Whether a shaded stretch covers hours whose curve never reached the ceiling (T299).
+        ///
+        /// <para>The two halves of the fold answer with different arithmetic: the bit is what the API said
+        /// at a reading in that hour, the curve is a running sum of deltas, and <see cref="Fold"/> discards
+        /// the delta of any pair straddling a window reset. A week the tray saw in pieces therefore draws a
+        /// total that is a <em>floor</em>, and can carry hours marked over while its own line peaks below
+        /// 100%. Neither figure is wrong, so this reports the disagreement rather than resolving it: the
+        /// chart pins the stretch where the header's claim lives and says the line is a floor.</para></summary>
+        public bool ShadedAboveCurve
+        {
+            get
+            {
+                foreach (var (f0, f1) in OverSpans)
+                    foreach (var (frac, cum) in Curve)
+                        if (frac > f0 + 1e-9 && frac <= f1 + 1e-9 && cum < 1 - CeilingSlack) return true;
+                return false;
+            }
+        }
+
+        /// <summary>How far under 100% a shaded hour may sit before the curve counts as disagreeing with the
+        /// header. A hair, not a tolerance for a real gap: a week that spent 99.9% and was told it was over
+        /// is the rounding of one reading, and one that peaked at 80% is the fold having lost a delta.</summary>
+        private const double CeilingSlack = 0.005;
+    }
 
     /// <summary>Enough of the previous week must have been observed for its curve to mean anything;
     /// below this the line would mostly be flat stretches the app simply wasn't there for.</summary>

@@ -458,6 +458,7 @@
   "stats.chart.overSpan": "Sombreado: en este tramo la API informó de que estabas por encima de la cuota incluida en tu plan, así que el trabajo siguió como uso extra.",
   "stats.chart.lastWeekOverSpan": "La semana pasada: en este tramo la API informó de que estabas por encima de la cuota incluida en tu plan, así que el trabajo de esa semana siguió como uso extra.",
   "stats.chart.lastWeekOverUnknown": "No quedó registrado si esa semana superó la cuota incluida en tu plan — es más antigua que las lecturas que lo dirían.",
+  "stats.chart.lastWeekOverFloor": "Su línea queda por debajo del 100 % porque esa semana solo se vio a trozos — el total dibujado es un mínimo, no todo lo que las lecturas dicen que se gastó.",
 
   // ================= Ventana de carga de contexto (ContextWindow) =================
   // Todas las claves de abajo pertenecen a esta función; los subcomentarios las agrupan por panel.

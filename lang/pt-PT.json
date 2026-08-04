@@ -459,6 +459,7 @@
   "stats.chart.overSpan": "Sombreado: neste troço a API indicou que estava além da quota incluída no seu plano, pelo que o trabalho continuou como uso extra.",
   "stats.chart.lastWeekOverSpan": "Semana passada: neste troço a API indicou que estava além da quota incluída no seu plano, pelo que o trabalho dessa semana continuou como uso extra.",
   "stats.chart.lastWeekOverUnknown": "Não ficou registado se essa semana passou da quota incluída no seu plano — é mais antiga do que as leituras que o diriam.",
+  "stats.chart.lastWeekOverFloor": "A linha dessa semana fica abaixo de 100% porque só foi vista em pedaços — o total desenhado é um mínimo, não tudo o que as leituras dizem que foi gasto.",
 
   // ================= Janela de carga de contexto (ContextWindow) =================
   // Todas as chaves abaixo pertencem a esta funcionalidade; os subcomentários agrupam por painel.

@@ -462,6 +462,7 @@
   "stats.chart.overSpan": "Shaded: the API reported you past the quota included in your plan over this stretch, so work carried on as extra usage.",
   "stats.chart.lastWeekOverSpan": "Last week: the API reported you past the quota included in your plan over this stretch, so that week's work carried on as extra usage.",
   "stats.chart.lastWeekOverUnknown": "Whether that week went past the quota included in your plan was not recorded — it is older than the readings that would say.",
+  "stats.chart.lastWeekOverFloor": "Its line reads under 100% because that week was only seen in pieces — the total drawn is a floor, not everything the readings say was spent.",
 
   // ================= Context Load window (ContextWindow) =================
   // Every key below belongs to this one feature; the sub-comments group them by panel.

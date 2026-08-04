@@ -91,8 +91,6 @@
 
 ## Block J — Activity-aware pacing
 
-- 📋 **T299** (deps: —) **the ghost can shade a stretch while its own line says that week never reached its ceiling** — The bit is the header's word and the curve a sum of deltas that drops reset-crossing pairs, so a week the fold under-counted draws clay at 80% and reads as the chart contradicting itself. → §XXXII.4
-
 ## Block A — Foundation — tray, icon, API, projection
 
 - 📋 **T280** (deps: T275 ✅) **nothing on screen says when the overage spell started** — The store dates the crossing at its first reading past the threshold, and saying since when is the difference between reporting a state and reporting an event. → §XXXIII

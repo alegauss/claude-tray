@@ -26,7 +26,7 @@
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
-| [J](#block-j--activity-aware-pacing) | Activity-aware pacing (active — see ROADMAP) |
+| [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
 | [K](#block-k--live-throughput) | Live throughput |
 | [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app |
 | [M](#block-m--explain-on-demand) | Explain on demand — the method note behind an ⓘ |
@@ -217,6 +217,7 @@
 - **T287** — The fold keeps a bit an hour for the spell, written even where nothing was over so its absence still means a day folded before it existed, and a pruned week is no longer a ceiling.
 - **T296** — Coverage and the spell are counted for every reading the fold sees, its oldest included, so an hour observed once reads as observed rather than unknown; only spend still waits for a pair.
 - **T295** — The ghost carries the stretches that week was over and the chart draws them in clay on the ghost's own line, clear of the ceiling they always sit on; a week with no column says unknown.
+- **T299** — The stretch is marked where the header's claim lives, at 100%, and a week whose line reads lower under it is told to be a floor — two honest halves of one fold, no longer one contradictory picture.
 
 ## Block K — Live throughput
 

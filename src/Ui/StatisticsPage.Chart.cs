@@ -239,30 +239,37 @@ internal partial class StatisticsPage
             // guess which of the two curves it belongs to.
             //
             // Beside the line rather than on it, because of where the stretch always falls. Being past the
-            // included quota means the week is *at* its ceiling, so a recolored segment of the curve is
-            // always flat against the 100% gridline — which is also where the projection lands, in a clay
-            // that is nearly this one. The first capture of this drew it there and it could not be seen at
-            // all. Offset a few pixels into the plot it belongs to the same curve and collides with neither,
-            // and the offset flips with the axis so "into the plot" survives the remaining-mode flip.
+            // included quota means the week is *at* its ceiling, so the stretch is flat against the 100%
+            // gridline — which is also where the projection lands, in a clay that is nearly this one. The
+            // first capture of this drew it there and it could not be seen at all. Offset a few pixels into
+            // the plot it belongs to the same curve and collides with neither, and the offset flips with the
+            // axis so "into the plot" survives the remaining-mode flip.
+            //
+            // Pinned to the ceiling rather than tracked along the curve (T299). The header's claim is *that
+            // the account was over*, which is a statement about 100% and about nothing else; the curve is a
+            // sum of deltas the fold drops one of at every window reset, so a week seen in pieces can carry
+            // these hours while its line peaks at 80%. Drawn on that line the stretch would sit in the
+            // middle of the plot contradicting the very axis it was placed on — so the stretch goes where
+            // the claim lives, and the disagreement is said in words below instead of drawn.
             double lift = _remaining ? -GhostOverOffset : GhostOverOffset;
             foreach (var (f0, f1) in ghost.OverSpans)
             {
-                var seg = new PointCollection(ghost.Curve
-                    .Where(p => p.frac >= f0 - 1e-9 && p.frac <= f1 + 1e-9)
-                    .Select(p => new Point(X(p.frac), Yc(p.cum) + lift)));
-                if (seg.Count < 2) continue;
+                if (X(f1) - X(f0) <= 0) continue;
                 var line = new Polyline
                 {
-                    Points = seg, Stroke = BillingBrush, StrokeThickness = 3, Opacity = 0.8,
+                    Points = new PointCollection { new(X(f0), Yc(1) + lift), new(X(f1), Yc(1) + lift) },
+                    Stroke = BillingBrush, StrokeThickness = 3, Opacity = 0.8,
                 };
                 line.ToolTip = L.T("stats.chart.lastWeekOverSpan");
                 c.Children.Add(line);
             }
 
-            // The ghost's own figure, plus — when that week cannot answer the question — the sentence that
-            // keeps an unshaded ghost from reading as a week that stayed inside its quota.
+            // The ghost's own figure, plus the sentences the picture alone would get wrong: that an unshaded
+            // ghost may simply not know, and that a line under a shaded stretch is a floor, not a week that
+            // stayed inside its quota after all.
             string tip = L.T("stats.chart.lastWeek", Pct(Disp(ghost.Total)), Pct(Disp(ghost.AtSameFraction)));
             if (!ghost.OverKnown) tip += " " + L.T("stats.chart.lastWeekOverUnknown");
+            if (ghost.ShadedAboveCurve) tip += " " + L.T("stats.chart.lastWeekOverFloor");
             AddHit(c, X(1), Yc(ghost.Total), tip);
         }
 

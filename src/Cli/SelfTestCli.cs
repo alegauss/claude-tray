@@ -1205,6 +1205,26 @@ internal static class SelfTestCli
         Check("a week folded before the column existed shades nothing and knows nothing — not the same claim",
               HourlyUsage.PreviousWeek(ProfileKey, Now, 7 * 86400, 0.5) is { OverSpans.Count: 0, OverKnown: false });
 
+        // T299. The two halves of the fold can disagree — the bit says the header called the account over,
+        // the curve is a sum of deltas the fold drops one of at every reset — and the chart has to know
+        // which weeks those are, because on them the stretch it draws sits above its own line.
+        var flat = new List<(double frac, double cum)>();
+        for (int i = 0; i <= 24; i++) flat.Add((i / 24.0, 0.80 * i / 24.0));   // a week that peaks at 80%
+        var mid = new List<(double f0, double f1)> { (10 / 24.0, 13 / 24.0) };
+        Check("a stretch over hours the curve never lifted to the ceiling is a disagreement",
+              new HourlyUsage.GhostWeek(flat, 1, 0.4, 0.80, mid, true).ShadedAboveCurve);
+        Check("and a week with nothing shaded has nothing to disagree with",
+              !new HourlyUsage.GhostWeek(flat, 1, 0.4, 0.80, new List<(double, double)>(), true).ShadedAboveCurve);
+
+        var ceiling = new List<(double frac, double cum)>();
+        // At the ceiling by hour 8, i.e. before the stretch opens — which is the ordinary case, since being
+        // told you are over is what a week that already spent its quota gets.
+        for (int i = 0; i <= 24; i++) ceiling.Add((i / 24.0, Math.Min(1, 3.0 * i / 24.0)));
+        Check("a week whose line is at the ceiling under its stretch agrees with it",
+              !new HourlyUsage.GhostWeek(ceiling, 1, 0.9, 1.0, mid, true).ShadedAboveCurve);
+        Check("...and the demo week the previews draw is one of those",
+              !HourlyUsage.Demo(DateTime.Today.AddDays(-7), 7 * 86400, 0.5, 0.86, over: true).ShadedAboveCurve);
+
         // T94: one heavy hour must not become a "4× heavy" bucket. The guards are the only thing
         // between a single incident and a projection that inherits it for weeks.
         WriteStore(IntensityDay());
