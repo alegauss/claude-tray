@@ -301,6 +301,27 @@ mentions, so the count of them against `NamesRead.Count` holds the enumeration t
 anything about branches — and a conditional read fails it the moment it is written, rather than the
 month somebody trusts the mark.
 
+### XX.5 Three scanners, one of them tested
+
+`--selftest` now reads this repository's own sources in three places. `FlagsRead` (T248) matches the
+*comparison* — `Contains("--x")`, `== "--x"`, `is "--x"` — so a flag quoted in a paragraph is not a flag
+the app accepts, and that property is asserted against synthetic source rather than against the tree.
+The two scans added since match a bare literal and then subtract prose by hand.
+
+Both paid for it immediately. `ConsoleCodePage` (T283) failed on its first run against its own
+summary, which names the setter in order to explain what it counts; it now drops lines that start
+with `//`, which is right about a whole-line comment and blind to a trailing one. `ParserNames`
+(T284) needed that rule *and* a second — a name may not end in a dash — because the paragraphs above
+the parse write the family as `anthropic-ratelimit-unified-*`. Each guard is correct about the case
+that produced it and nothing holds either against a case that has not happened yet.
+
+T248 already established what this costs: a scan whose exclusion is approximate fails silently, by
+asserting less, and still passes. The shape that does not is matching the construct — a setter is an
+assignment, a header name is an argument to the parse — and the fixtures are synthetic, so the check
+that the exclusion works does not wait for the tree to contain a violation. Whether that lands as
+one shared scanner or three that each match their own construct is the open question; the property
+is that no scan here decides what is code by pattern-matching what is prose.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
