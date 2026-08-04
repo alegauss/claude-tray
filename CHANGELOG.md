@@ -21,7 +21,7 @@
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
-| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts (active — see ROADMAP) |
+| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) (active — see ROADMAP) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
@@ -127,6 +127,7 @@
 - **T276** — The extra-usage notification arms on the overage-in-use header as well as on the figure, so an account whose overage utilization reads zero straight through the crossing is still told, once per spell, that money has started.
 - **T277** — The extra-usage card draws its bar only from a figure the reading carries, so a spell reported with none arrives as the sentence and its reset rather than behind a meter showing a full allowance.
 - **T290** — The extra-usage transition takes the reading that preceded the process as an input instead of fetching one the poll had already overwritten, so a crossing caught on the first poll after launch is announced, and a spell the tray only walked in on still is not.
+- **T292** — The extra-usage alarm is rebuilt from the incoming account's own history when the icon changes hands, and it carries the profile its readings belong to — so a reading from another account re-baselines quietly instead of being compared into a start nobody witnessed.
 
 ## Block F — Statistics window (pace report)
 

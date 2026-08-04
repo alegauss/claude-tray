@@ -4252,36 +4252,54 @@ internal static class SelfTestCli
     /// </summary>
     private static void ExtraAlarm()
     {
+        const string one = "account-one";
+        const string two = "account-two";
+        static UsageSample Reading(double? extra, bool? inUse) =>
+            new(Now, 0.5, 0, 0.5, 0, Extra: extra, InUse: inUse);
+
         // The crossing on the very first poll of a process — a tray started while the account was inside
         // its quota, whose first reading is the one that goes over. Silent before T290.
-        var launched = new ExtraUsageAlarm(new UsageSample(Now, 0.5, 0, 0.5, 0, Extra: 0.0, InUse: false));
+        var launched = new ExtraUsageAlarm(one, Reading(0.0, false));
         Check("a crossing on the first poll after launch is announced",
-              launched.Note(0.0, true));
+              launched.Note(one, 0.0, true));
         Check("and the same spell is not announced again",
-              !launched.Note(0.0, true) && !launched.Note(0.02, true));
+              !launched.Note(one, 0.0, true) && !launched.Note(one, 0.02, true));
 
         // The seed's other job, which T184 wrote it for and which must survive the fix.
-        var midSpell = new ExtraUsageAlarm(new UsageSample(Now, 0.5, 0, 0.5, 0, Extra: 0.0, InUse: true));
+        var midSpell = new ExtraUsageAlarm(one, Reading(0.0, true));
         Check("a tray started in the middle of a spell announces nothing",
-              !midSpell.Note(0.0, true) && !midSpell.Note(0.03, true));
+              !midSpell.Note(one, 0.0, true) && !midSpell.Note(one, 0.03, true));
         Check("but it does announce the next spell, once the account has been seen back inside",
-              !midSpell.Note(0.0, false) && midSpell.Note(0.0, true));
+              !midSpell.Note(one, 0.0, false) && midSpell.Note(one, 0.0, true));
 
         // No history at all: a fresh install, or a profile whose log predates both fields. Absent is not
         // "inside the quota", so the first reading of any kind arms nothing (T179's rule, kept).
-        var fresh = new ExtraUsageAlarm(null);
+        var fresh = new ExtraUsageAlarm(one, null);
         Check("with no seed the first reading announces nothing, whatever it says",
-              !fresh.Note(0.42, true));
+              !fresh.Note(one, 0.42, true));
         Check("and the account still gets its next spell announced",
-              !fresh.Note(0.0, false) && fresh.Note(0.0, true));
+              !fresh.Note(one, 0.0, false) && fresh.Note(one, 0.0, true));
+
+        // T292: two accounts' readings compare to nothing. The tray rebuilds the alarm when the icon
+        // changes hands, and this is what the alarm does when something forgot to — the quiet answer, in
+        // both directions, because a false "you have started paying" is the worse of the two failures.
+        var quiet = new ExtraUsageAlarm(one, Reading(0.0, false));
+        Check("a switch to an account already spending announces nothing — nobody saw it begin",
+              !quiet.Note(two, 0.0, true));
+        Check("and the incoming account's own crossing is still announced, one poll later",
+              !quiet.Note(two, 0.0, false) && quiet.Note(two, 0.0, true));
+
+        var spending = new ExtraUsageAlarm(one, Reading(0.0, true));
+        Check("a switch away from a spell does not carry its latch into the new account",
+              !spending.Note(two, 0.0, false) && spending.Note(two, 0.0, true));
 
         // The figure route, which is the only one an account whose utilization climbs would ever have had,
         // and which must not double-announce beside the boolean.
-        var climbing = new ExtraUsageAlarm(new UsageSample(Now, 0.5, 0, 0.5, 0, Extra: 0.0, InUse: null));
+        var climbing = new ExtraUsageAlarm(one, Reading(0.0, null));
         Check("a rise in the figure alone still announces",
-              climbing.Note(0.02, null));
+              climbing.Note(one, 0.02, null));
         Check("and the boolean arriving after it does not announce a second time",
-              !climbing.Note(0.05, true));
+              !climbing.Note(one, 0.05, true));
     }
 
     /// <summary>

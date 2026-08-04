@@ -20,6 +20,10 @@ namespace ClaudeTray;
 /// </summary>
 internal sealed class ExtraUsageAlarm
 {
+    /// <summary>Whose readings these are (T292). An alarm is about one account: a rise is two readings
+    /// compared, and two accounts' readings compare to nothing.</summary>
+    private string _profile;
+
     private double? _lastExtra;
     private bool? _lastInUse;
 
@@ -27,23 +31,29 @@ internal sealed class ExtraUsageAlarm
     /// whose figure does climb after the boolean fired is told once and not twice (T276).</summary>
     private bool _announced;
 
+    /// <param name="profileKey">The account these readings belong to — <see cref="ProfileStore.Monitored"/>
+    /// at the moment the alarm is built.</param>
     /// <param name="before">The last reading taken <b>before this process started</b>, or <c>null</c> when
     /// the history holds none. It is what stops a tray launched in the middle of an overage spell from
     /// reading that spell as its beginning — and passing this poll's own reading is the defect T290 fixed,
     /// so the caller reads the store before it appends to it.</param>
-    public ExtraUsageAlarm(UsageSample? before)
+    public ExtraUsageAlarm(string profileKey, UsageSample? before)
     {
+        _profile = profileKey;
         _lastExtra = before?.Extra;
         _lastInUse = before?.InUse;
-
-        // A spell this process walked in on is already announced, as far as this process is concerned.
-        // The two readings alone only keep the *boolean* route quiet — it sees true beside true and finds
-        // no rise — while the figure route would still read a mid-spell 0.0 → 0.03 as a beginning and
-        // announce the middle of a spell as its start. The seed says which state the account was in, so it
-        // is the thing that knows there is nothing left to announce about it. An absent reading arms
-        // nothing either way: it is not an observation of spending any more than it is one of quiet.
-        _announced = before is { } s && (s.InUse is true || s.Extra > 0);
+        _announced = Spending(before?.Extra, before?.InUse);
     }
+
+    /// <summary>Whether a reading is the account observed <em>doing</em> it — which is what makes a spell
+    /// one this alarm has walked in on rather than one it can announce the beginning of.
+    ///
+    /// <para>The two readings alone only keep the <em>boolean</em> route quiet: it sees <c>true</c> beside
+    /// <c>true</c> and finds no rise, while the figure route would still read a mid-spell 0.0 → 0.03 as a
+    /// beginning and announce the middle of a spell as its start. So the latch starts set. An absent
+    /// reading arms nothing either way — it is not an observation of spending any more than it is one of
+    /// quiet.</para></summary>
+    private static bool Spending(double? extra, bool? inUse) => inUse is true || extra > 0;
 
     /// <summary>
     /// Take one reading, and answer whether it is the moment to announce.
@@ -58,8 +68,25 @@ internal sealed class ExtraUsageAlarm
     /// They share <see cref="_announced"/>, released only by a reading measured back inside the quota — so
     /// one spell is at most one announcement, and the next spell can still have its own.</para>
     /// </summary>
-    public bool Note(double? extra, bool? inUse)
+    public bool Note(string profileKey, double? extra, bool? inUse)
     {
+        if (!string.Equals(profileKey, _profile, StringComparison.Ordinal))
+        {
+            // A reading from an account this alarm has never watched, which is what a switch of the
+            // monitored profile produces (T292). The caller is expected to have built a fresh alarm at the
+            // switch, seeded from the incoming account's own history; this is what happens when it did not,
+            // and it is deliberately the *quiet* answer rather than a repair. There is no repair available
+            // here: seeding from the store at this moment reads back the line this very poll appended,
+            // which is the defect T290 removed. So the reading becomes the baseline and announces nothing —
+            // the same answer a process with no history gets — and a genuine crossing on this account is
+            // announced by the poll after it. A forgotten call site costs one late alert, never a false one.
+            _profile = profileKey;
+            _lastExtra = extra;
+            _lastInUse = inUse;
+            _announced = Spending(extra, inUse);
+            return false;
+        }
+
         double? previous = _lastExtra;
         bool? previousInUse = _lastInUse;
         _lastExtra = extra;

@@ -528,33 +528,9 @@ therefore not this app's decision, and a count taken over them is a claim about 
 
 ## XXV Toast cards — what the card actually draws (Block E)
 
-What the toasts get wrong is rarely visible in the code that built them: two of the defects filed
-here were found by looking at a card, and the third by following the reading a card is made from
-back to the poll that took it.
-
-### XXV.4 Two accounts, one previous reading
-
-`AdoptMonitored` exists so that none of the previous account's numbers can be drawn as this one's:
-it nulls `_data` and `_lastGoodSnapshot`, clears `_burn`, re-keys the stores and re-renders. The
-extra-usage alarm holds two readings and a latch that are every bit as much the old account's, and
-it is not on that list. It has been off it since T184, as three loose fields nobody had a name for;
-T290 changed only that they now have one.
-
-What the gap produces is the false start the whole design was written to prevent. Switch from an
-account inside its quota to one already spending past it and the next poll compares a measured
-`false` against a `true`, finds a rise, and announces that extra usage has **started** — on an
-account that was over before the switch, whose beginning nobody witnessed. The other direction is
-the missed alert: a latch, or a previous `true`, carried into an account that then genuinely
-crosses.
-
-The seed is already the right idea, so the fix is that a switch builds a fresh alarm from the
-incoming profile's own history, exactly as the constructor does. That is one line in
-`AdoptMonitored`, and the field stops being `readonly`.
-
-Worth taking further while it is open: the things a switch must drop together are a list kept by
-hand, and this is the fourth member found missing from it. One object holding the monitored
-account's whole in-memory state would make the drop a single assignment and the list something the
-compiler keeps, rather than something the next reader has to notice.
+What the toasts get wrong is rarely visible in the code that built them. Of the defects filed here,
+two were found by looking at a card, one by following the reading a card is made from back to the
+poll that took it, and one by giving that reading a name and noticing whose it was.
 
 ## XXVI One setting, two places that change it (Block S)
 

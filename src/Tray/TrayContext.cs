@@ -75,11 +75,8 @@ internal sealed class TrayContext : ApplicationContext
         RefreshWatched();           // which profiles to poll, and which one the icon follows (T127)
 
         // Here and nowhere later (T290): the first line at which the monitored profile is known, and
-        // ahead of every poll that appends to the history this reads. A seed taken inside the poll is the
-        // reading that poll just wrote, which is the defect — so the reading is taken while there is
-        // provably nothing of this process's in the store, and handed over once.
-        try { _extraAlarm = new ExtraUsageAlarm(UsageHistory.Latest(ProfileStore.Monitored)); }
-        catch { _extraAlarm = new ExtraUsageAlarm(null); }   // the history is best-effort everywhere else too
+        // ahead of every poll that appends to the history this reads.
+        _extraAlarm = NewExtraAlarm();
 
         _tray = new NotifyIcon
         {
@@ -173,13 +170,27 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     /// <summary>
-    /// The extra-usage transition, seeded with the history <b>as it stood before this process's first
-    /// poll</b> (T290) — see <see cref="ExtraUsageAlarm"/> for why that reading is handed in rather than
-    /// fetched. Assigned in the constructor rather than here: a field initialiser runs before
-    /// <see cref="RefreshWatched"/>, and until that has run <see cref="ProfileStore.Monitored"/> is the
-    /// empty key, so the seed would come from no profile's history at all.
+    /// The extra-usage transition for the account the icon follows, seeded with that account's history
+    /// <b>as it stood before the next poll appends to it</b> (T290) — see <see cref="ExtraUsageAlarm"/>
+    /// for why the reading is handed in rather than fetched. Assigned rather than initialised inline: a
+    /// field initialiser runs before <see cref="RefreshWatched"/>, and until that has run
+    /// <see cref="ProfileStore.Monitored"/> is the empty key, so the seed would come from no profile's
+    /// history at all. Rebuilt when the monitored account changes, because a rise is two readings compared
+    /// and two accounts' readings compare to nothing (T292).
     /// </summary>
-    private readonly ExtraUsageAlarm _extraAlarm;
+    private ExtraUsageAlarm _extraAlarm;
+
+    /// <summary>A fresh alarm for whichever account the icon now follows, seeded from that account's own
+    /// history. Both callers are places where the store provably holds nothing this process wrote for that
+    /// account yet, which is the whole of what makes the seed the <em>previous</em> reading (T290).</summary>
+    private static ExtraUsageAlarm NewExtraAlarm()
+    {
+        string key = ProfileStore.Monitored;
+        // Best-effort, as the history is everywhere else it is touched: an unreadable one means no seed,
+        // not no tray and not a poll that throws.
+        try { return new ExtraUsageAlarm(key, UsageHistory.Latest(key)); }
+        catch { return new ExtraUsageAlarm(key, null); }
+    }
 
     /// <summary>
     /// Announce the start of the meter, once (T184).
@@ -204,7 +215,7 @@ internal sealed class TrayContext : ApplicationContext
     /// </summary>
     private void NoteExtraUsage(double? extra, double resetExtra, bool? inUse)
     {
-        if (!_extraAlarm.Note(extra, inUse)) return;
+        if (!_extraAlarm.Note(ProfileStore.Monitored, extra, inUse)) return;
         if (!_settings.NotifyOnExtraUsage) return;
 
         string title = L.T("toast.extra.title");
@@ -956,6 +967,15 @@ internal sealed class TrayContext : ApplicationContext
         _lastGoodSnapshot = null;
         _burn.Clear();
         RefreshWatched();
+
+        // Below `RefreshWatched` and not beside the three above, which is the whole reason this was
+        // missed (T292): those drop what is already held, while this one has to *read* the incoming
+        // account's history, and until `RefreshWatched` has run the monitored key is still the outgoing
+        // account's. The alarm is the fourth thing a switch must not carry across — a previous reading
+        // belonging to one account and a current one belonging to another compare to nothing, and the
+        // comparison is what decides whether somebody is told they have started paying.
+        _extraAlarm = NewExtraAlarm();
+
         Render();
     }
 
