@@ -45,4 +45,40 @@
     <EmbeddedResource Include="lang\*.json" />
   </ItemGroup>
 
+  <!-- Sweep the temp projects the WPF SDK leaves behind (T269).
+       Compiling XAML writes `ClaudeTray_<random>_wpftmp.csproj` beside this file and normally deletes it;
+       an interrupted build does not, and then `dotnet build` — the fast compile check AGENTS.md documents —
+       refuses with MSB1011, "this folder contains more than one project file". The file is gitignored, so
+       nothing ever mentions it: one sat in this root for four hours before it was noticed.
+       `build.cmd` already swept them, but only on the publish path — the loop that creates them was the
+       one loop that never cleaned them.
+
+       Two guards, and both are the point:
+
+       * `MSBuildProjectName` — the SDK builds the temp project itself, and that build must not delete the
+         file it is building.
+       * `ModifiedTime` — a temp project younger than the cutoff may belong to a build running RIGHT NOW.
+         Parallel sessions share this tree (that is why `build.cmd`'s unconditional delete was safe only
+         after a publish had finished), and three builds in one session failed with missing generated files
+         — `BG1002` over a .baml, `CS2001` over a .g.cs — each passing on retry, which is what a concurrent
+         build looks like. An unguarded sweep would have made that worse, not better. -->
+  <Target Name="SweepStaleWpfTmpProjects" BeforeTargets="PrepareForBuild"
+          Condition="'$(MSBuildProjectName)' == 'ClaudeTray'">
+    <!-- The age filter lives on the ItemGroup, not on the Delete. A task condition is evaluated even when
+         the item list is EMPTY - which is the ordinary case, a clean folder - and `DateTime.Parse('')` then
+         throws MSB4184 and fails the build. An item condition batches per item and simply does not run
+         when there are none. 10 minutes in ticks: long enough that no live XAML pass is caught (they last
+         seconds), short enough that the next build after an interruption is already clean. -->
+    <ItemGroup>
+      <_WpfTmpFound Include="$(MSBuildProjectDirectory)\*_wpftmp.csproj" />
+    </ItemGroup>
+    <!-- Guarded on the list being non-empty, which is the ordinary case: an item condition referencing
+         `%(…)` is still evaluated once, with empty metadata, when there is nothing to batch over. -->
+    <ItemGroup Condition="'@(_WpfTmpFound)' != ''">
+      <_WpfTmpStale Include="@(_WpfTmpFound)"
+                    Condition="$([MSBuild]::Subtract($([System.DateTime]::Now.Ticks), $([System.DateTime]::Parse('%(ModifiedTime)').Ticks))) &gt; 6000000000" />
+    </ItemGroup>
+    <Delete Files="@(_WpfTmpStale)" ContinueOnError="true" TreatErrorsAsWarnings="true" />
+  </Target>
+
 </Project>

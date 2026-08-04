@@ -201,7 +201,11 @@ budget should not pay for (T191); a flag you add goes there. What stays here is 
 handful that carry a *rule*, because getting these wrong produces work that has to be redone.
 
 ```
-dotnet build -c Debug                 # fast compile check
+dotnet build -c Debug                 # fast compile check. Refusing with MSB1011 ("more than one
+                                      #   project file") means an interrupted build left a
+                                      #   *_wpftmp.csproj here: delete it, or name the project once
+                                      #   (`… ClaudeTray.csproj`). A build that completes sweeps stale
+                                      #   ones itself (T269) — this is only the first run after a kill.
 dotnet run -c Release                 # build + run the tray app
 dotnet publish -c Release             # single self-contained .exe -> bin\Release\net10.0-windows\win-x64\publish\
 

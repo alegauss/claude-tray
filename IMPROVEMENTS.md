@@ -269,34 +269,3 @@ What a date reads like once the month name is French and the arrangement is stil
 
 What cutting a release costs on a developer machine, as opposed to on a runner that has nothing else
 installed.
-
-### XXXI.2 The temp project nobody sweeps
-
-Reproduced, on the state the machine was already in. `dotnet build -c Debug` - the first command
-AGENTS.md lists under Build / run / dev helpers, described there as the fast compile check - fails
-with
-
-    MSBUILD : error MSB1011: Especifique o arquivo de solucao ou de projeto ... esta pasta contem mais de
-    um arquivo de projeto
-
-because the WPF SDK writes `ClaudeTray_<random>_wpftmp.csproj` beside the real one while compiling
-XAML and leaves it behind when a build is interrupted. One has been in the root since 17:02 today.
-
-Two things make it linger unseen. It is in `.gitignore`, so `git status` never mentions it. And the
-only thing that removes one is `build.cmd` line 25, on the **publish** path - so the loop that
-creates them (edit, `dotnet build -c Debug`, look) is the one loop that never cleans them, while the
-release path that does clean them runs once per release.
-
-The workaround is invisible too: naming the project explicitly, `dotnet build -c Debug
-ClaudeTray.csproj`, which is what this session did for hours without noticing it was working around
-anything - and it is not what the repository documents.
-
-The unproven neighbour, named so the next reader can rule it in or out: three builds this session
-failed with generated-file errors instead - BG1002 over ToastWindow.baml, CS2001 over
-MainWindow.g.cs - each passing on retry. Whether a stale temp project is behind those too is not
-measured. One of them cost something real: the command after it ran the previous binary, which is
-the reading T258 exists to refuse.
-
-What has to be decided is where cleanup belongs, since `build.cmd` is the wrong place: a target in
-the csproj that runs before build sees the SDK create the live one after it, so removing every match
-at start is safe, while removing them at end would race the SDK.
