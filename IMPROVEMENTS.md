@@ -362,6 +362,27 @@ answer per row, which a preview knows because it knows whether its reading carri
 the check becomes *the bar is present exactly where the row says it is*, which also holds the two
 profile cards that have been bar-less since T174 and have never once been asked.
 
+### XX.8 The other picker
+
+`Check-Interaction.ps1 -Case Profiles` walks a `ComboBox` 0 → 1 → 0 and reads the report at each
+stop, and it is the only check that drives a profile control at all. It is not this one. That picker
+chooses whose numbers the Statistics page *draws*; `AdoptMonitored` changes which account the tray
+icon follows, writes `MonitoredConfigDir` to settings, re-keys the stores, drops the outgoing
+account's in-memory state and takes the new account's token. Two controls, similar names, and only
+the harmless one is driven.
+
+What rides on the undriven path is not small. T292 was a defect on it, found by reading rather than
+by running; the automatic arm (T145's follow-active-profile) reaches it without anybody clicking;
+and it is the one action in the app that changes what a *different* process will do. The check that
+exists proves the report follows the picker, which is precisely the claim that covers none of that.
+
+The case is buildable here: this machine discovers two profiles, and the tray menu already names
+them. Drive the menu item, then assert what a switch is supposed to have done — the icon's profile
+changed, the report follows it, the setting on disk names the new directory, and the reading on show
+is the incoming account's rather than the outgoing one's. Below two profiles it is **DEGRADED**, not
+skipped, on the rule Profiles already keeps. Worth pairing with T293, which changes what "drops the
+outgoing account's state" means.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
@@ -618,3 +639,24 @@ The fix is small and the naming is the point. `FindGaps` takes its threshold fro
 over its own points, so there is one derivation, one place a change lands and one name to assert
 against. `--selftest` already covers both behaviours separately; what it cannot do today is fail
 when they part, which is what folding them gives it for nothing.
+
+## XXXV What a switch must not carry across (Block A)
+
+`AdoptMonitored` drops the outgoing account's numbers one by one: `_data`, `_lastGoodSnapshot`,
+`_burn`, and since T292 `_extraAlarm`. The list is prose in a method body, held by whoever last read
+it. T292 is the evidence that this does not hold — the alarm's readings had been the outgoing
+account's since T184, through four blocks of work on that very notification, and were found only by
+giving them a name and asking whose they were.
+
+There is no assertion available for a list of this shape, and that is the point: a check would have
+to know which fields are the monitored account's, which is the same knowledge the method already
+fails to keep. The compiler can keep it instead. One object — call it the monitored account's
+in-memory state — holding the reading, the last good snapshot, the burn tracker and the alarm, and
+the switch becomes a single assignment of a fresh one. A field added to that object is dropped by
+the switch because there is nowhere else for it to live.
+
+Two things to get right rather than assume. The fields do not have one lifetime today: three are
+cleared and the fourth is *rebuilt from the incoming profile's history*, so the object's constructor
+takes the profile key, exactly as `ExtraUsageAlarm`'s does. And `_otherData` is not part of it — it
+is keyed per profile on purpose (T137) and holds the accounts the icon is not following, so folding
+it in would delete readings the submenu draws.

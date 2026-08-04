@@ -65,6 +65,7 @@
 
 - 📋 **T286** (deps: —) **a window capture reports success while the page it photographed is still computing** — Capture-Window.ps1 waits 1500ms by default, the Statistics page took 25s here, and the PNG of "Computing your consumption pace…" was announced as Captured. → §XX.6
 - 📋 **T291** (deps: T277 ✅) **no check asks whether a card built with no quantity actually drew no bar** — The fit check reads only text blocks and the arithmetic is asserted a layer above the window, so the collapse could come back and every capture, check and assertion would stay green. → §XX.7
+- 📋 **T294** (deps: —) **no check drives the switch that changes which account the icon follows** — The Profiles case drives the report's picker, which only chooses whose numbers are drawn — so the path that rewrites the setting, re-keys the stores and drops the old account's state runs under none. → §XX.8
 
 ## Block AJ — Working here — the repo's own docs and flags
 
@@ -93,6 +94,7 @@
 ## Block A — Foundation — tray, icon, API, projection
 
 - 📋 **T280** (deps: T275 ✅) **nothing on screen says when the overage spell started** — The store dates the crossing at its first reading past the threshold, and saying since when is the difference between reporting a state and reporting an event. → §XXXIII
+- 📋 **T293** (deps: —) **the fields a profile switch must drop are a list kept by hand, and each new one is found by the defect it causes** — AdoptMonitored nulls three and clears a fourth by name, so a fifth is carried into the incoming account until somebody notices what it made the tray say. → §XXXV
 
 ## Block F — Statistics window (pace report)
 
