@@ -78,6 +78,8 @@
 
 ## Block E — Reset notifications & toasts
 
+- 📋 **T292** (deps: —) **switching the account the icon follows leaves the extra-usage alarm holding the previous account's readings** — AdoptMonitored drops every other figure so none is drawn as the new account's, and the alarm is not on that list — so a poll reads one account's quiet beside another's spend. → §XXV.4
+
 ## Block S — Settings round-trip
 
 ## Block Q — Keyboard input in the windows
