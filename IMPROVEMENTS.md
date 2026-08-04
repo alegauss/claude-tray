@@ -245,6 +245,24 @@ read or unread, and have `--selftest` assert the two against each other: a name 
 that the probe calls unread is a defect in the read-out, and a name nothing reads is permitted but
 has to be impossible to miss in `--probe --all`.
 
+### XX.2 A summary the check cannot see
+
+T278 made the marking assertable: `ApiClient.NamesRead` enumerates the parser, `HeaderProbe.IsRead`
+and `Unread` are pure, `ProbeCli.Marked` returns lines, and `--selftest` holds all four against a
+fixture of the fourteen names one real account sends. The one thing it did not make assertable is
+the sentence a reader actually sees first — `readership — 9 of 17 name(s) on file reach a field in
+this app, 8 reach none` — which is built inline and written to `Console`.
+
+So the count and the marks below it are derived from the same set today and nothing keeps them that
+way. A refactor that recounts, filters or dedupes on the summary line alone produces a read-out
+whose header disagrees with its own body, and every check in the section passes: they are all asked
+of the classifier, never of the summary. This is the same defect shape as T245's inlined `--probe`
+decision and T271's unnamed axis — a fact stated only as output.
+
+The fix is the shape the file already uses twice: a pure function returning the summary, printed by
+the caller. It is small, and the reason to file it rather than fold it into T278 is that T278's own
+commit is what demonstrates the pattern being incomplete here.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
@@ -349,6 +367,30 @@ so some models appear not to count against it, and pricing turns the account was
 worse than saying nothing.
 
 Measure that list against a real spell before writing a figure on screen.
+
+### XXIII.5 The threshold the response names
+
+T278's readership read-out put every arriving header under a mark, and the first thing it marked was
+a name that had already moved twice. `anthropic-ratelimit-unified-5h-surpassed-threshold` is absent
+on every reading inside the quota, arrives as `0.9` on the reading whose `5h-status` first says
+`allowed_warning` at a utilization of 0.91, and reads `1.0` on the one that says `rejected` at 1.02.
+
+That is not the single-sample vocabulary §XVIII.9 declines to map. The name has taken two values in
+one log, each beside a status transition this app already reads, so what it announces is measured
+rather than inferred: the threshold the account crossed, named by the API, on the reading it was
+crossed on.
+
+Meanwhile `Settings.FlashWarnThreshold` is `0.90` — a number this repository chose, with a comment
+saying it is where the API reports `allowed_warning`. That comment is a claim about another system,
+and the header is the system saying it. An account on a different plan whose warning lands elsewhere
+gets a tray that flashes at the wrong moment, and nothing here would notice, because the constant
+cannot disagree with a header nothing reads.
+
+What is open is what to do with it, not what it says. Reading the value as the threshold is one
+line; the design question is whether the flash follows the header when it is sent and falls back to
+the constant when it is not, and how a value the app has never seen — a third threshold, a plan with
+two — stays a state the tray can draw rather than a guess. Absence is the common case: three of five
+readings here carry no such header at all.
 
 ## XXIV This machine's install, read from a file another program writes (Block N)
 
