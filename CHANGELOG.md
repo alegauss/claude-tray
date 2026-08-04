@@ -21,7 +21,7 @@
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
-| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
+| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts (active — see ROADMAP) |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) (active — see ROADMAP) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |

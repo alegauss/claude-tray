@@ -342,6 +342,26 @@ it slows every capture, and it still reports success on the page that needed lon
 `-WaitMs` stays, for the caller who knows better. What changes is that reaching it with a page still
 loading is a **failure**, named, writing no file — the same shape as the wrong-window refusal.
 
+### XX.7 A bar nobody asks about
+
+T277 gave `ToastWindow` a rule — a card may not draw a meter for a quantity its reading does not
+carry, and a null figure collapses the block. Three things now watch the extra-usage card and none
+of them watches that. `--selftest` asks the arithmetic, that `ExtraUsageBar(0)` is null, which is a
+claim about a number and not about a window. `--check-toasts` builds every card in every language
+and asks whether it fits, and `Overflow()` walks `TextBlock`s only: the bar is a `Border`, so a card
+that drew one anyway fits perfectly well. And `--capture-toast extra-bare` writes a PNG somebody has
+to look at, which is the check T277 itself leaned on and the one that never runs again.
+
+So the collapse can come back — a theme test restored, a null coalesced away at a call site — while
+the build stays green, the captures stay green, and the defect returns as the exact picture the task
+removed: a full allowance drawn behind a sentence saying the quota is spent.
+
+The property is cheap once a card exists. `QuotaBlock.Visibility` answers it directly, and
+`--check-toasts` already builds one card per variant per language. What it needs is the expected
+answer per row, which a preview knows because it knows whether its reading carries a quantity — so
+the check becomes *the bar is present exactly where the row says it is*, which also holds the two
+profile cards that have been bar-less since T174 and have never once been asked.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
@@ -508,8 +528,29 @@ therefore not this app's decision, and a count taken over them is a claim about 
 
 ## XXV Toast cards — what the card actually draws (Block E)
 
-Two things the toasts got wrong that no capture ever objected to, both found by looking at a card
-rather than at the code that built it.
+What the toasts get wrong is rarely visible in the code that built them: two shipped defects here
+were found by looking at a card, and the one open below by following the reading the card is made
+from back to the poll that took it.
+
+### XXV.3 A previous reading that is this one
+
+`NoteExtraUsage` seeds its previous reading from `UsageHistory.Latest` on the first poll of a
+process, so that a tray started in the middle of an overage spell does not read that spell as its
+beginning. The store is the right source. The moment is not: the poll appends the reading it is
+about to judge **before** it calls the notifier, so `Latest` hands that same reading straight back.
+
+The cost is one missed alert per restart, in exactly the case the alert exists for. A tray launched
+while the account is inside its quota, whose very first poll is the crossing, compares that poll
+against itself, finds no rise and stays quiet — and on the second poll the previous reading says the
+account was already over, which is a spell under way. T276 gave this toast a header that actually
+moves; this is the other way it goes missing, and no reading outwards from the notifier shows it,
+because the defect is in the order of two calls a hundred lines apart.
+
+Seed before the append, or hand the notifier the previous reading rather than letting it fetch one.
+The second is the smaller change and the more honest shape: the poll knows which reading is which,
+and the notifier currently has to trust a store whose contents depend on what else ran first. Either
+way the property nothing holds today is the one to assert — that a first poll can announce a
+crossing, and that a later poll of the same spell cannot.
 
 ## XXVI One setting, two places that change it (Block S)
 

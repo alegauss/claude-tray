@@ -64,6 +64,7 @@
 ## Block AI — Verification — the checks that prove a change
 
 - 📋 **T286** (deps: —) **a window capture reports success while the page it photographed is still computing** — Capture-Window.ps1 waits 1500ms by default, the Statistics page took 25s here, and the PNG of "Computing your consumption pace…" was announced as Captured. → §XX.6
+- 📋 **T291** (deps: T277 ✅) **no check asks whether a card built with no quantity actually drew no bar** — The fit check reads only text blocks and the arithmetic is asserted a layer above the window, so the collapse could come back and every capture, check and assertion would stay green. → §XX.7
 
 ## Block AJ — Working here — the repo's own docs and flags
 
@@ -76,6 +77,8 @@
 ## Block N — System information — your plan, your install, this machine
 
 ## Block E — Reset notifications & toasts
+
+- 📋 **T290** (deps: —) **a crossing on a process's first poll is never announced, and every poll after it reads a spell already under way** — The rise is seeded from the history the same poll has already appended to, so the reading it compares against is that poll's own — and nothing differs from itself. → §XXV.3
 
 ## Block S — Settings round-trip
 
