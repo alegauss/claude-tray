@@ -409,23 +409,30 @@ true, shaded behind the utilization line, with the second axis appearing only wh
 to rule. That needs the boolean in the store beside the figure, which is this task and why T279 and
 T280 both depend on it. `--stats overage` is the preview it has to be visible in.
 
-### XXIII.4 What the spell cost, from what is already read
+### XXIII.4 What the spell cost, and the list that refused to say (dropped)
 
-The honest version of "extra usage is paying" is a number in money, and the app is closer to one
-than the overage percentage suggests. `UsageInsights` already reads the last 24h of transcripts into
-a cost-weighted breakdown and owns the per-model `Price` table the whole app shares; T275 puts the
-crossing in the store with a timestamp. The turns taken after that timestamp are therefore priceable
-with nothing new read and no endpoint added.
+The honest version of "extra usage is paying" is a number in money, and the app looked close to one:
+`UsageInsights` owns the per-model `Price` table, and T275 puts the crossing in the store with a
+timestamp, so the turns after it are priceable with nothing new read.
 
-Three things have to hold for it to ship, and the third is why this is an idea rather than a design.
-It is an **estimate**, carrying the same visible "≈" every token count here does — §I.3. It is a
-**receipt**: what it cost, with no suggestion, no comparison against another profile, nothing that
-reads as a reward for spending — §I.7 and §XVI.4. And the price table has to be right about which
-models the overage even bills: `.claude.json` caches a `tengu_usage_overage_included_models` list,
-so some models appear not to count against it, and pricing turns the account was never billed for is
-worse than saying nothing.
+Three things had to hold. An **estimate**, carrying the visible "≈" every token count here does —
+§I.3. A **receipt**: what it cost, with no suggestion and nothing that reads as a reward for
+spending — §I.7 and §XVI.4. And a price table right about which models the overage even bills, since
+pricing turns the account was never billed for is worse than saying nothing. That was the gate, and
+the instruction was to measure the list first.
 
-Measure that list against a real spell before writing a figure on screen.
+**Measured 2026-08-04, and the third fails.** `.claude.json` caches
+`tengu_usage_overage_included_models` under `cachedGrowthBookFeatures`, reading `["Fable",
+"Fable 5"]`. Eight days of transcripts here are 34,595 Opus turns, 195 Sonnet and **zero Fable** — so
+under one reading of the flag ("these bill as overage") the estimate for a spell that demonstrably
+cost money is $0.00, and under the other ("these stay included") it is the whole $5,834 notional. One
+sample cannot tell them apart, which is the shape §XVIII.9 declines to map. Two smaller cracks in the
+same joint: the values are display names, not the model ids `Price` matches on; and a cached
+GrowthBook payload is remote experiment state, not a billing contract. §I.2 forbids the call that
+would settle it.
+
+So the figure is a non-goal, and T275 already draws the honest half: the band says **when**, the
+sentence says no header states how much. A denominator the API states would reopen this.
 
 ### XXIII.5 The threshold the response names
 

@@ -108,6 +108,7 @@
 - **T273** — **The affirmative nothing could believe now reaches the screen.** `overage-in-use` is parsed into `UsageData` and ranked in `Resolve` and the poll's idle above the local flag and below a measured refusal, so an account past 100% reads as billing on the API's own statement.
 - **T274** — **Whether the account is paying no longer depends on a menu click.** The verdict resolves from the worst bounded window while the caption stays with the metric, so a rejected session behind a week at 47% says so — unscoped, since 47% is not what crossed.
 - **T275** — **A spell with no figure now leaves a record.** `usage-history.jsonl` carries `ix` beside `ux`, so the week shades the stretch the API said the account was over — behind the usage line, with no second axis, because no header states an amount.
+- **T279** — **Measured before deciding, and the premise did not survive.** `tengu_usage_overage_included_models` is a cached GrowthBook flag reading ["Fable", "Fable 5"]; 8 days of transcripts here are 34,595 Opus turns, 195 Sonnet, 0 Fable. Now a non-goal.
 
 ## Block E — Reset notifications & toasts
 
