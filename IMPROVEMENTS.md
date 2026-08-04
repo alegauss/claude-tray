@@ -383,6 +383,25 @@ is the incoming account's rather than the outgoing one's. Below two profiles it 
 skipped, on the rule Profiles already keeps. Worth pairing with T293, which changes what "drops the
 outgoing account's state" means.
 
+### XX.9 Two writers of one line, and the fixture is the quiet one
+
+`SelfTestCli.WriteStore` builds `usage-hourly.jsonl` lines by hand — `d`, `s`, `c`, appended in a
+`StringBuilder` of its own — because the checks that need a folded week need one that was never
+folded. That is the right fixture and the wrong writer: `HourlyUsage.WriteAll` is the other one, and
+nothing holds the two in step.
+
+T287 is what showed the cost. It added a fourth column, and every fixture went on writing three — so
+`FoldedWeek`, `FoldedWeeks` and `IntensityDay` all describe days folded before the column existed.
+That happens to be a legitimate state and a useful one to test, which is exactly why it is
+dangerous: a fixture that silently means *unknown* asserts nothing about the column, and the check
+that reads it still passes. A fixture missing a column nobody notices is a check that has quietly
+narrowed.
+
+What is wanted is one writer. `WriteAll` is private and takes a dictionary and a clock, and the
+fixtures already hold `HourlyDay` values — so the fixture path can go through the real writer with
+an `internal` seam, the way `FillCurve` was opened up for T189, rather than through a copy of the
+format that only ever drifts one way.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
@@ -603,6 +622,41 @@ much of this hour was observed", so the bit answers only "was any of it over".
 Two consumers follow: `GhostWeek` can shade last week the way this week is shaded, and T280's "since
 when" can survive the pruning that would otherwise make it a question only about the last eight
 days.
+
+### XXXII.2 The week behind this one, shaded the same way
+
+T275 shades the stretch the account spent past its included quota on the current week's burn-up,
+read from the readings themselves. T287 put the same fact in the permanent fold, one bit per hour,
+so the week before this one can answer that question too once its raw readings are pruned.
+
+`PreviousWeek` does not ask it. It returns a curve, a coverage share and where the week stood at
+this point in its window, and the chart draws that line behind the live one — so a week that went
+past its quota and went on paying draws exactly the ghost of a week that stopped at the ceiling.
+Those are the two readings of one flat top, and only one of them cost money.
+
+What the ghost needs out of the fold is spans rather than bits: a run of over-hours *is* the
+stretch, and the hour grid maps onto the ghost's (fraction, cumulative) axis the same way its spend
+already does. `OverKnown` is what decides whether the ghost may say anything at all — a week folded
+before the column existed has no answer, and drawing nothing for it must not read as a week that
+stayed inside its quota.
+
+### XXXII.3 A reading is a fact, and a pair is a different one
+
+`Fold` walks the readings in consecutive pairs, because spend is the positive part of the difference
+between two of them and there is no first difference. It then attributes everything to the later
+reading of the pair — the spend, the coverage tick, and since T287 the over-quota bit — which
+quietly gives the first reading of the batch no hour at all.
+
+Spend is right to be a fact about a pair. Coverage is not: the reading was taken, at a known hour,
+and that hour was observed whatever the arithmetic beside it can say. So the oldest hour of every
+fold loses a reading, and an hour whose only reading was that one comes back as *unknown* — the
+state the store's whole design keeps distinct from idle. The bit T287 added lands in the same hole
+and matters more there, since the hour may be the only surviving trace of a spell after the raw log
+is pruned.
+
+The fix is small and its shape is the point: the loop counts coverage and the bit for every sample
+it sees, including `samples[0]`, and keeps the pair for the delta alone. Folding stays idempotent
+per day, so a corrected pass over a day already in the store still changes nothing.
 
 ## XXXIII Since when, not just that it is happening (Block A)
 
