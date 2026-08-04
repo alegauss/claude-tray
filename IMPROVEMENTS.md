@@ -402,6 +402,25 @@ fixtures already hold `HourlyDay` values — so the fixture path can go through 
 an `internal` seam, the way `FillCurve` was opened up for T189, rather than through a copy of the
 format that only ever drifts one way.
 
+### XX.30 The other capture, and the same spinner
+
+§XX.6 is about `Capture-Window.ps1`, which copies pixels from the screen and cannot know when a page
+is done. `--capture-stats` is the other capture — off-screen, inside the app, and the one AGENTS.md
+tells a reader to prefer — and it has the identical defect for the opposite reason: it *can* know.
+
+Measured while shipping T295: five runs of `--capture-stats … overage-noamount ghost`, two of which
+wrote a PNG holding the heading, the subtitle and `Computing your consumption pace…`, and printed
+`wrote …-5h.png / -7d.png / -throughput.png` for all three. The second one was caught the way the
+first was: by looking at the picture. A capture that lands on the placeholder is not slower
+evidence, it is no evidence, and the read-out says the same word either way.
+
+The fix is not a longer wait, for the reason §XX.6 gives, and here it does not even need the
+accessibility tree: the page builds its report on a task and swaps the placeholder out when it
+resolves, so the capture path can wait on that and refuse — named, writing no file — when it does
+not arrive. The `refresh` modifier deliberately captures mid-recompute (T118), so the refusal
+belongs behind it: what that flag asks for is exactly what every other run must stop calling a
+success.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
@@ -657,6 +676,26 @@ is pruned.
 The fix is small and its shape is the point: the loop counts coverage and the bit for every sample
 it sees, including `samples[0]`, and keeps the pair for the delta alone. Folding stays idempotent
 per day, so a corrected pass over a day already in the store still changes nothing.
+
+### XXXII.4 Two measurements of one week, and no rule for when they disagree
+
+T295 draws the ghost's over-quota stretch on the ghost's own line, which was the right place for it
+because being past the included quota means the week is at 100% and the stretch is therefore flat
+against the ceiling. That is true of the *reading*. It is not guaranteed of the *curve*.
+
+The two come from different arithmetic in the same fold. The bit is what the API said at some
+reading in that hour. The curve is a running sum of positive weekly-utilization deltas, and `Fold`
+discards the delta of any pair straddling a window reset — correctly, since that difference is not
+work. A week the tray saw only in pieces therefore accumulates a total that is a *floor* on what was
+spent, and a real store can hold a week whose bits say "over" while its own line peaks at 80%. The
+chart would then draw a clay stretch across a rising middle of the plot: two honest measurements,
+one picture, and a reader with no way to tell which to believe.
+
+Nothing here is a wrong number, so the fix is not arithmetic. Either the stretch is drawn where the
+claim actually lives — pinned to the ceiling, which is what the header asserted — or the ghost's
+tooltip says that its own total is a floor. The first is a smaller change and the second is the more
+honest sentence; what must not survive is the chart making a claim neither half of the fold
+supports.
 
 ## XXXIII Since when, not just that it is happening (Block A)
 

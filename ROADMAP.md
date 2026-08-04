@@ -67,6 +67,7 @@
 - 📋 **T291** (deps: T277 ✅) **no check asks whether a card built with no quantity actually drew no bar** — The fit check reads only text blocks and the arithmetic is asserted a layer above the window, so the collapse could come back and every capture, check and assertion would stay green. → §XX.7
 - 📋 **T294** (deps: —) **no check drives the switch that changes which account the icon follows** — The Profiles case drives the report's picker, which only chooses whose numbers are drawn — so the path that rewrites the setting, re-keys the stores and drops the old account's state runs under none. → §XX.8
 - 📋 **T297** (deps: —) **the folded store's line format has a second writer inside the check, kept in step by hand** — WriteStore composes the day line itself, so T287's column reached every fixture as absent — the one state a fixture cannot notice it is asserting, because absent is a legitimate reading. → §XX.9
+- 📋 **T298** (deps: T286) **the in-app capture writes a PNG of the loading placeholder and reports it written** — --capture-stats photographed "Computing your consumption pace…" twice in five runs today; T286 is about the screen-copy script, and this path is in the app, where the report finishing is awaitable. → §XX.30
 
 ## Block AJ — Working here — the repo's own docs and flags
 
@@ -89,6 +90,8 @@
 ## Block B — Packaging, self-update, CI
 
 ## Block J — Activity-aware pacing
+
+- 📋 **T299** (deps: —) **the ghost can shade a stretch while its own line says that week never reached its ceiling** — The bit is the header's word and the curve a sum of deltas that drops reset-crossing pairs, so a week the fold under-counted draws clay at 80% and reads as the chart contradicting itself. → §XXXII.4
 
 ## Block A — Foundation — tray, icon, API, projection
 
