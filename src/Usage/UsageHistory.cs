@@ -11,10 +11,18 @@ namespace ClaudeTray;
 /// nothing past its included quota. Collapsing the two would make every historical line look like a
 /// measured zero, which is the same hazard <see cref="ApiClient"/> guards one layer up: a fabricated
 /// zero reads as a collapse to nobody's usage. It is also the distinction the "you have started
-/// paying" transition is detected against, since that is a first departure *from* zero.</para></summary>
+/// paying" transition is detected against, since that is a first departure *from* zero.</para>
+///
+/// <para><see cref="InUse"/> is the API stating that the account was past its included quota at this
+/// reading — <c>overage-in-use</c> (T273) — and it is nullable for the same reason and a sharper one
+/// (T275). The spell measured on 2026-08-04 recorded <c>ux:0</c> on every reading through the crossing,
+/// so the figure beside it carries no trace at all that the account was over: <c>Extra</c> answers
+/// <em>how much of the allowance</em> and this answers <em>whether it was being used</em>, and only the
+/// second was ever true. <c>null</c> is a line written before this field existed or a response that did
+/// not carry the header, which is what every reading inside the quota looks like.</para></summary>
 internal readonly record struct UsageSample(
     double T, double Util5h, double Reset5h, double Util7d, double Reset7d,
-    double? Extra = null, double ResetExtra = 0);
+    double? Extra = null, double ResetExtra = 0, bool? InUse = null);
 
 /// <summary>
 /// A tiny append-only log of the live rate-limit readings, written once per successful poll to
@@ -23,8 +31,9 @@ internal readonly record struct UsageSample(
 /// transcript token counts (which weighs cache reads and models wrong against the limit).
 ///
 /// One compact JSON object per line, e.g. <c>{"t":1719900000,"u5":0.72,"r5":...,"u7":0.38,"r7":...}</c>,
-/// plus <c>"ux"</c>/<c>"rx"</c> for the overage reading — written only when there is one, so a line
-/// without them reads back as <em>absent</em> rather than as a measured zero (see <see cref="UsageSample"/>).
+/// plus <c>"ux"</c>/<c>"rx"</c> for the overage reading and <c>"ix"</c> for the API saying the account was
+/// past its included quota — each written only when there is one, so a line without them reads back as
+/// <em>absent</em> rather than as a measured zero or a measured no (see <see cref="UsageSample"/>).
 /// At the default 5-minute cadence this is ~230 KB per week; growth is bounded by age-based pruning
 /// (older than <see cref="RetentionDays"/> days), triggered lazily so we don't rewrite every poll.
 /// Every operation is best-effort: a failure here must never disrupt a poll or the report.
@@ -55,8 +64,11 @@ internal static class UsageHistory
     /// <summary>Append one reading. Best-effort; prunes stale lines lazily.</summary>
     /// <param name="extraUtil">The overage utilization, or null when this response carried none. Null
     /// omits the field entirely rather than writing a zero — see <see cref="UsageSample"/>.</param>
+    /// <param name="extraInUse">Whether the API said the account was past its included quota at this
+    /// reading. Null omits it, on the same rule: absent is not false, and it is what a response inside
+    /// the quota looks like (T275).</param>
     public static void Append(string profileKey, long nowUnix, double util5h, double reset5h, double util7d, double reset7d,
-                              double? extraUtil = null, double extraReset = 0)
+                              double? extraUtil = null, double extraReset = 0, bool? extraInUse = null)
     {
         // T239: an observing tray reads this store and adds nothing to it.
         if (ProfileStore.Observing) return;
@@ -69,6 +81,10 @@ internal static class UsageHistory
             if (extraUtil is { } x)
                 line = FormattableString.Invariant(
                     $"{line[..^1]},\"ux\":{x:0.####},\"rx\":{(long)extraReset}}}");
+            // Written independently of `ux`, because the spell this exists to record had one and not the
+            // other: `ux:0` on every reading past the threshold, and the header saying so beside it.
+            if (extraInUse is { } inUse)
+                line = $"{line[..^1]},\"ix\":{(inUse ? 1 : 0)}}}";
             File.AppendAllText(path, line + Environment.NewLine);
             PruneIfStale(profileKey, path, nowUnix);
         }
@@ -168,8 +184,9 @@ internal static class UsageHistory
             s = new UsageSample(
                 Num(root, "t"), Num(root, "u5"), Num(root, "r5"), Num(root, "u7"), Num(root, "r7"),
                 // NumOrNull, not Num: every line written before T179 lacks "ux", and reading those back
-                // as 0 would invent a measurement nobody took.
-                NumOrNull(root, "ux"), Num(root, "rx"));
+                // as 0 would invent a measurement nobody took. "ix" follows the same rule (T275) — and it
+                // is stored as 0/1 rather than as a JSON boolean so one number reader covers the file.
+                NumOrNull(root, "ux"), Num(root, "rx"), NumOrNull(root, "ix") is { } b ? b != 0 : null);
             return s.T > 0;
         }
         catch { return false; }

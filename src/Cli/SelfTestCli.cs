@@ -966,6 +966,52 @@ internal static class SelfTestCli
 
         Check("the newest reading is what Latest reports, overage included",
               UsageHistory.Latest(ProfileKey) is { Extra: 0.42 });
+
+        // T275. The spell measured on 2026-08-04 wrote `ux:0` on every reading past the threshold, so the
+        // figure carries no trace of it at all — the header does, and it has to survive the same round trip
+        // with the same three states the figure has. Written on a line whose `ux` is a measured zero,
+        // because that is the shape the real spell took and the one a boolean read off the figure misses.
+        long t1 = t0 + 180;
+        UsageHistory.Append(ProfileKey, t1, 1.02, Now + 3600, 0.47, Now + 86400,
+                            extraUtil: 0, extraReset: Now + 7200, extraInUse: true);
+        UsageHistory.Append(ProfileKey, t1 + 60, 0.30, Now + 3600, 0.47, Now + 86400,
+                            extraUtil: 0, extraReset: Now + 7200, extraInUse: false);
+
+        List<UsageSample> both = UsageHistory.Load(ProfileKey, t1);
+        if (!Check("the two readings around the crossing come back", both.Count == 2, $"{both.Count} read"))
+            return;
+        Check("the header that says the account is over survives the store", both[0].InUse == true);
+        Check("and so does its denial, which is not the same as never having been asked", both[1].InUse == false);
+        Check("a spell is recorded even where the figure beside it is a measured zero",
+              both[0] is { InUse: true, Extra: 0 });
+        Check("a reading written before the field existed reads back as neither", read[0].InUse == null);
+        Check("an absent header writes no field at all", !first.Contains("\"ix\""), first);
+
+        // The stretch the chart shades, from the readings themselves. A poll every five minutes is one
+        // spell; the app being closed between two of them is two.
+        const double week = 7 * 86400;
+        double Frac(double seconds) => seconds / week;      // readings placed in seconds, not in guesses
+
+        // A five-minute cadence, which is the default, so the bridge is the floor rather than the measure.
+        double bridge = UsageReport.BridgeSeconds(new List<double> { 0, 300, 600, 900 });
+        Near("a five-minute poll bridges on the floor, not on three of its own intervals", bridge, 900, 0);
+        Check("a quarter-hour poll widens the bridge instead of combing the stretch",
+              UsageReport.BridgeSeconds(new List<double> { 0, 900, 1800, 2700 }) > 900);
+
+        var close = new List<double> { Frac(0), Frac(300), Frac(600) };
+        List<(double f0, double f1)> one = UsageReport.MergeSpans(close, week, bridge);
+        Check("consecutive readings are one stretch, not three", one.Count == 1, $"{one.Count} spans");
+        Near("which starts at the first of them", one[0].f0, Frac(0), 1e-9);
+        Near("and ends at the last", one[0].f1, Frac(600), 1e-9);
+
+        var apart = new List<double> { Frac(0), Frac(300), Frac(6 * 3600), Frac(6 * 3600 + 300) };
+        Check("a silence long enough to be the app being closed ends the stretch",
+              UsageReport.MergeSpans(apart, week, bridge).Count == 2);
+        Check("a lone reading is still a stretch, wide enough to be drawn",
+              UsageReport.MergeSpans(new List<double> { 0.40 }, week, bridge) is [var lone]
+              && lone.f1 > lone.f0);
+        Check("and no readings is no stretch at all",
+              UsageReport.MergeSpans(new List<double>(), week, bridge).Count == 0);
     }
 
     // ---------------------------------------------------------------- Block J: the stores
@@ -1324,6 +1370,25 @@ internal static class SelfTestCli
                               s => (s.Util7d, s.Reset7d), now);
         Check("a window with no overage reading anywhere draws no overage series",
               none.ExtraCurve.Count == 0 && none.ExtraMax == 0, $"{none.ExtraCurve.Count} points, max {none.ExtraMax}");
+        Check("and nothing to shade either", none.ExtraSpans.Count == 0);
+
+        // T275. The spell as measured: the header true across a stretch with the figure at a measured zero
+        // throughout. The band has to appear where the series cannot, or the state that went unrecorded
+        // goes on being invisible one layer further along.
+        UsageSample Over(double frac, bool? inUse) =>
+            new(start + frac * window, 1.0, reset, 1.0, reset, 0.0, reset, inUse);
+        double poll = 300 / window;             // the default cadence, as a fraction of the week
+        var spell = Win(reset, window, now, 1.0);
+        UsageReport.FillCurve(spell, new(), new()
+        {
+            Over(0.30 - poll, false), Over(0.30, true), Over(0.30 + poll, true),
+            Over(0.30 + 2 * poll, true), Over(0.30 + 3 * poll, null),
+        }, s => (s.Util7d, s.Reset7d), now);
+        Check("the stretch the account was over is shaded from the header, not from the figure",
+              spell.ExtraSpans.Count == 1, $"{spell.ExtraSpans.Count} spans");
+        Near("opening where the header first said so", spell.ExtraSpans[0].f0, 0.30, 1e-9);
+        Check("and no second axis is invented for it: every figure on those readings was zero",
+              spell.ExtraMax == 0, $"max {spell.ExtraMax}");
 
         // ---- which shaping path ran
         Check($"the real-history path needs {UsageReport.MinRealSamples} logged points",

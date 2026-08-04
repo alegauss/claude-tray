@@ -422,6 +422,7 @@
   "stats.proj.noWindow": "Aún no hay lectura de límite para esta ventana.",
   "stats.proj.atLimit": "Has alcanzado el límite de esta ventana. Se reinicia en {0} — hasta entonces, el uso está bloqueado.",
   "stats.proj.billing": "Has gastado la cuota incluida en esta ventana y sigues trabajando — el uso extra está pagando, ahora en {0} de tu límite de uso extra. La ventana incluida se reinicia en {1}.",
+  "stats.proj.billingNoAmount": "Has gastado la cuota incluida en esta ventana y sigues trabajando — el uso extra está pagando. Ninguna cabecera dice cuánto supone eso de tu límite de uso extra, así que esta app no lo adivina. La ventana incluida se reinicia en {0}.",
   "stats.proj.aheadEta": "Al ritmo actual, tu cuota llega al 100% en {0} — unos {1} antes del reinicio (en {2}). Conviene reducir el ritmo para no quedar bloqueado.",
   "stats.proj.ahead": "Estás consumiendo por encima del ritmo equilibrado (se esperaría {0} a estas alturas, pero ya has usado {1}). Se reinicia en {2}.",
   "stats.proj.ok": "Vas a ritmo equilibrado — por debajo del objetivo de {0}. Al ritmo actual, la cuota dura tranquilamente hasta el reinicio, en {1}.",
@@ -454,6 +455,7 @@
   "stats.chart.unavailable": "Uso en directo no disponible desde {0} — sin datos en este tramo",
   "stats.chart.extraAxis": "uso extra",
   "stats.chart.extraNow": "Uso extra: {0} de tu límite de uso extra, en la escala derecha.",
+  "stats.chart.overSpan": "Sombreado: en este tramo la API informó de que estabas por encima de la cuota incluida en tu plan, así que el trabajo siguió como uso extra.",
 
   // ================= Ventana de carga de contexto (ContextWindow) =================
   // Todas las claves de abajo pertenecen a esta función; los subcomentarios las agrupan por panel.

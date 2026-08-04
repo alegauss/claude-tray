@@ -209,6 +209,13 @@ number twice. It's not a second projection: "when do you run out" has already be
 
 ![Statistics — the weekly chart past the included quota: the clay extra-usage line on its own right-hand scale](docs/statistics-overage.png)
 
+**And when there is no figure, there is still a stretch.** Some accounts spend past the included
+quota with the allowance percentage reading **0%** the whole time — the API says *you are over*
+without saying *by how much*. The week then shades the stretch you were over in clay, behind the
+usage line, and says so in words: extra usage is paying, and no header states what it amounts to.
+No second axis appears, because there is no figure to rule one with. The app would rather show you
+when it happened than invent how much.
+
 ## ✨ Reset notifications — color-coded, at a glance
 
 When a usage window hands your quota back, the app celebrates it with a **bespoke, on-brand

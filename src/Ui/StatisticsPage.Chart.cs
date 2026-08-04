@@ -9,6 +9,7 @@ using System.Windows.Shapes;
 using Brush = System.Windows.Media.Brush;
 using Color = System.Windows.Media.Color;
 using Point = System.Windows.Point;
+using Rectangle = System.Windows.Shapes.Rectangle;
 using Size = System.Windows.Size;
 
 namespace ClaudeTray;
@@ -49,6 +50,16 @@ internal partial class StatisticsPage
         // that also draws the evidence. Said before either mode's switch, because both were wrong.
         if (w.Verdict == PaceVerdict.AtLimit && w.ExtraCurve.Count > 0 && w.ExtraMax > 0)
             return L.T("stats.proj.billing", Pct(w.ExtraCurve[^1].val), toReset);
+
+        // The same news with nothing to put a percentage on (T275). The spell that prompted this recorded
+        // `ux:0` on every reading, so the branch above cannot fire and the window fell through to "usage is
+        // blocked" — the sentence T182 removed, back again for the shape T182 never saw. The band beside it
+        // is drawn from the header alone, and so is this: it says the state and no amount, because no header
+        // states one. Only while it is *still* happening — a spell that ended earlier in the window has a
+        // band to look at and no claim to make about right now.
+        if (w.Verdict == PaceVerdict.AtLimit && w.ExtraSpans.Count > 0
+            && w.WindowSeconds > 0 && w.ElapsedFraction - w.ExtraSpans[^1].f1 <= 900 / w.WindowSeconds)
+            return L.T("stats.proj.billingNoAmount", toReset);
 
         if (_remaining)
         {
@@ -134,6 +145,33 @@ internal partial class StatisticsPage
             Canvas.SetLeft(gl, X(1) + 2);
             Canvas.SetTop(gl, Y(g) - 8);
             c.Children.Add(gl);
+        }
+
+        // When the account was past its included quota, as a shaded stretch behind everything (T275).
+        //
+        // A band and not a series, because on the spell this was built from there is no series: `ux` read
+        // 0 on every reading through the crossing, so the clay curve below draws nothing and T247's guard
+        // is right to keep it that way. What the band claims is only what the header stated — *this* is
+        // when it was happening — and it is drawn first so the usage line, the ghost and the projection all
+        // stay on top of it. The same clay as the second axis and the tray's paying icon, at the strength
+        // a background can carry without competing with the line it sits behind.
+        foreach (var (f0, f1) in w.ExtraSpans)
+        {
+            double x0 = X(f0), x1 = X(f1);
+            var band = new Rectangle
+            {
+                Width = Math.Max(1.5, x1 - x0), Height = ph,
+                Fill = BillingBrush, Opacity = 0.14,
+            };
+            Canvas.SetLeft(band, x0);
+            Canvas.SetTop(band, top);
+            c.Children.Add(band);
+        }
+        if (w.ExtraSpans.Count > 0)
+        {
+            // Said once, on the first stretch, rather than per band: several spans are one piece of news.
+            var (bf0, bf1) = w.ExtraSpans[0];
+            AddHit(c, (X(bf0) + X(bf1)) / 2, top + ph / 2, L.T("stats.chart.overSpan"));
         }
 
         // Day boundaries: a faint dashed vertical at each local midnight, so a multi-day span (the 7-day

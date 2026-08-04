@@ -34,6 +34,7 @@ internal static class StatsPreviews
         bool Live = false,
         bool Ghost = false,
         bool Overage = false,
+        bool OverSpell = false,
         bool Thin = false,
         bool MethodOpen = false,
         bool Error = false,
@@ -66,6 +67,13 @@ internal static class StatsPreviews
             now => new PaceSnapshot(0.0, now + 5 * 3600, 1.0, now + 2 * 86400,
                                     Extra: 0.47, ResetExtra: now + 2 * 86400),
             Overage: true),
+
+        new("overage-noamount", "the spell as it was actually measured (T275): the API said the account " +
+                                "was past its included quota for a stretch of the week while the overage " +
+                                "figure stayed at 0, so the band is drawn and there is no second axis",
+            now => new PaceSnapshot(0.0, now + 5 * 3600, 1.0, now + 2 * 86400,
+                                    Extra: 0, ResetExtra: now + 2 * 86400),
+            OverSpell: true),
 
         new("live", "a deterministic synthetic three minutes in the throughput strip, instead of the real " +
                     "tail — which cannot be screenshotted twice the same way",
@@ -171,6 +179,7 @@ internal static class StatsPreviews
             PreviewDemoLive = c.Live,
             PreviewDemoGhost = c.Ghost,
             PreviewDemoOverage = c.Variant.Overage,
+            PreviewDemoOverSpell = c.Variant.OverSpell,
             PreviewDemoThin = c.Variant.Thin,
             PreviewMethodOpen = c.Variant.MethodOpen,
         };

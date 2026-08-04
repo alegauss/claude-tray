@@ -177,10 +177,14 @@ internal static class AccountFixture
             (0,  0.86, 0.69, 0.0),              // what the row reports: enabled, and not in use
         };
 
+        // The header beside the figure (T275). Derived from the week rather than tabulated a third time:
+        // the spending week is over its quota from the reading the overage clock starts, and the zero week
+        // never is — which is the pair the two tables above already spell out.
         foreach ((double hoursAgo, double u7, double u5, double? extra) in
                  which == SampleWeek.Zero ? zero : spending)
             UsageHistory.Append(key, now - (long)(hoursAgo * 3600), u5, reset5h, u7, reset7d,
-                                extra, extra is null ? 0 : reset7d);
+                                extra, extra is null ? 0 : reset7d,
+                                extra is null ? null : u7 >= 1.0);
     }
 
     /// <summary>

@@ -80,6 +80,16 @@ internal sealed class WindowPace
     // The largest overage reading in the window — what the second axis is scaled to. 0 when there is none.
     public double ExtraMax;
 
+    // The stretches of this window over which the API said the account was past its included quota (T275):
+    // x-fraction pairs, the same 0–1 scale as Curve, merged so consecutive readings are one span.
+    //
+    // A stretch rather than a curve, and it is the whole reason this is not just more of ExtraCurve. The
+    // measured spell recorded `ux:0` on every reading through the crossing, so there is no figure to plot
+    // and T247's guard is right to refuse a zero series — a shaded interval says "this is when it was
+    // happening" and asserts nothing about how much, which is the only claim this block's readings support.
+    // Empty when no reading in the window carried the header, which is every account inside its quota.
+    public List<(double f0, double f1)> ExtraSpans = new();
+
     // The activity-aware projection (T87), or null to keep drawing the straight average-pace line:
     // weekly window only, and only when the profile has enough weeks behind it. See ActivityShape.
     public ActivityShape? Shape;
@@ -274,6 +284,22 @@ internal static class UsageReport
         }
         w.ExtraCurve.Sort((a, b) => a.frac.CompareTo(b.frac));
 
+        // The stretches the account was actually over (T275), from the same readings and on the same
+        // x-scale. Selected by time like the series above and for the same reason: the overage window runs
+        // on its own reset clock. Only `true` opens a span — `null` is a reading with no header and `false`
+        // is a reading inside the quota, and neither is a moment to shade.
+        var over = new List<double>();
+        var seen = new List<double>();
+        foreach (UsageSample s in hist)
+        {
+            if (s.T < start || s.T > now) continue;
+            seen.Add(s.T);
+            if (s.InUse == true) over.Add(Math.Clamp((s.T - start) / w.WindowSeconds, 0, 1));
+        }
+        over.Sort();
+        seen.Sort();
+        w.ExtraSpans = MergeSpans(over, w.WindowSeconds, BridgeSeconds(seen));
+
         // Preferred path: the real measured utilization over this window.
         var real = new List<(double frac, double cum)>();
         foreach (UsageSample s in hist)
@@ -324,6 +350,53 @@ internal static class UsageReport
     // as unavailable, while a real interruption (a persistent 403, a long app-off stretch) is.
     private const double GapFloorSeconds = 15 * 60;   // absolute floor, regardless of a fast cadence
     private const double GapCadenceFactor = 3.0;      // ...or this many times the measured poll spacing
+
+    /// <summary>How far apart two readings may be and still belong to one spell (T275): the same
+    /// <see cref="GapFloorSeconds"/> / <see cref="GapCadenceFactor"/> rule <see cref="FindGaps"/> uses to
+    /// decide the opposite question. It has to be measured rather than fixed, because the poll interval is
+    /// a setting — at a fifteen-minute cadence a constant floor would end the spell at every reading and
+    /// draw a comb where there was a stretch. <paramref name="times"/> must be sorted.</summary>
+    internal static double BridgeSeconds(List<double> times)
+    {
+        if (times.Count < 2) return GapFloorSeconds;
+        var deltas = new List<double>();
+        for (int i = 1; i < times.Count; i++) deltas.Add(times[i] - times[i - 1]);
+        deltas.Sort();
+        return Math.Max(GapFloorSeconds, GapCadenceFactor * deltas[deltas.Count / 2]);
+    }
+
+    /// <summary>Turn the readings that said "past the included quota" into the intervals they cover (T275).
+    /// <paramref name="fracs"/> must be sorted.
+    ///
+    /// <para>A reading is a point, and a spell is a stretch, so the two have to be bridged by something —
+    /// <paramref name="bridgeSeconds"/>, from <see cref="BridgeSeconds"/>. Consecutive readings inside that
+    /// tolerance are one span; a longer silence between two of them ends the first and opens a second,
+    /// because the app being closed for six hours is not evidence that the account was over the whole
+    /// time. A lone reading still becomes a span of its own poll's width rather than a zero-width line
+    /// nobody could see — it is a measurement, and a picture that drops it is the store's problem again one
+    /// layer up.</para></summary>
+    internal static List<(double f0, double f1)> MergeSpans(List<double> fracs, double windowSeconds,
+                                                           double bridgeSeconds = GapFloorSeconds)
+    {
+        var spans = new List<(double, double)>();
+        if (fracs.Count == 0 || windowSeconds <= 0) return spans;
+
+        double bridge = bridgeSeconds / windowSeconds;
+        double f0 = fracs[0], last = fracs[0];
+        for (int i = 1; i < fracs.Count; i++)
+        {
+            if (fracs[i] - last > bridge) { spans.Add((f0, Widen(f0, last, bridge))); f0 = fracs[i]; }
+            last = fracs[i];
+        }
+        spans.Add((f0, Widen(f0, last, bridge)));
+        return spans;
+    }
+
+    /// <summary>A span's end: its last reading, or — when the whole span is one reading — a sliver wide
+    /// enough to be drawn. Clamped to the window, so a spell still running at the reset does not shade
+    /// past it.</summary>
+    private static double Widen(double f0, double last, double bridge)
+        => Math.Min(1.0, last > f0 ? last : f0 + bridge / 4);
 
     /// <summary>Find spans between consecutive known points whose time gap is well above the normal
     /// sample cadence, returning each as the bracketing curve points so the chart can redraw that

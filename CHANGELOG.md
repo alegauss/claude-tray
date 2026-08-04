@@ -107,6 +107,7 @@
 - **T224** — A measured refusal now outranks the local flag: overage-status rejected, or the overage-disabled-reason header that only exists because something said no, resolves to Stopped where hasExtraUsageEnabled alone said Billing, and the poll idles instead of spending a call an account cannot use. The System page states the cause in five languages, and week=refused is the fixture branch no local file can produce. An account observed spending still outranks both.
 - **T273** — **The affirmative nothing could believe now reaches the screen.** `overage-in-use` is parsed into `UsageData` and ranked in `Resolve` and the poll's idle above the local flag and below a measured refusal, so an account past 100% reads as billing on the API's own statement.
 - **T274** — **Whether the account is paying no longer depends on a menu click.** The verdict resolves from the worst bounded window while the caption stays with the metric, so a rejected session behind a week at 47% says so — unscoped, since 47% is not what crossed.
+- **T275** — **A spell with no figure now leaves a record.** `usage-history.jsonl` carries `ix` beside `ux`, so the week shades the stretch the API said the account was over — behind the usage line, with no second axis, because no header states an amount.
 
 ## Block E — Reset notifications & toasts
 

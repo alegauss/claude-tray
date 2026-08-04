@@ -365,6 +365,10 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     /// as the other fixtures: synthetic input, real drawing code. See <c>--stats overage</c>.</summary>
     internal bool PreviewDemoOverage { get; init; }
 
+    /// <summary>Preview seam: the spell with no figure behind it (T275). See <c>--stats overage-noamount</c>
+    /// and <see cref="FillDemoOverSpell"/>.</summary>
+    internal bool PreviewDemoOverSpell { get; init; }
+
     /// <summary>The shape of a week that ran out mid-way and kept working: flat nothing until the quota is
     /// spent, then a climb that does not stop at the ceiling because it is not measured against one.</summary>
     /// <remarks>
@@ -394,6 +398,27 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
             w.ExtraCurve.Add((f, 0.47 * t * (0.75 + 0.25 * Math.Sin(t * 9))));
         }
         foreach (var (_, v) in w.ExtraCurve) w.ExtraMax = Math.Max(w.ExtraMax, v);
+        // The band the figure cannot draw (T275). It covers the same stretch here, which is the *easy*
+        // case — a spell with a figure. The one this exists for is the opposite: an account the header
+        // said was over while `ux` stayed at 0, which `--stats overage-noamount` is the preview of.
+        w.ExtraSpans = new List<(double, double)> { (onset, w.ElapsedFraction) };
+    }
+
+    /// <summary>The spell as it was actually measured (T275): the API saying the account is past its
+    /// included quota for a stretch of the week, with the overage figure reading <c>0</c> the whole time.
+    ///
+    /// <para>Its own preview rather than a variation of the one above, because the two draw different
+    /// pictures and only this one is the state that went unrecorded. There is no clay curve, no second
+    /// axis and no maximum to label — every one of those needs a figure, and T247 is right that a series
+    /// of zeros is not a series. What there is is the band, which is the whole claim: this is when it was
+    /// happening, and the app does not know how much it amounted to.</para></summary>
+    internal static void FillDemoOverSpell(WindowPace w)
+    {
+        if (!w.HasWindow) return;
+        w.ExtraCurve.Clear();
+        w.ExtraMax = 0;
+        double onset = w.ElapsedFraction * 0.55;
+        w.ExtraSpans = new List<(double, double)> { (onset, w.ElapsedFraction) };
     }
 
     private void Render(PaceReport r)
@@ -420,6 +445,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         _weekly = r.Weekly;
 
         if (PreviewDemoOverage) FillDemoOverage(r.Weekly);
+        if (PreviewDemoOverSpell) FillDemoOverSpell(r.Weekly);
 
         if (PreviewDemoGhost && r.Weekly.Ghost is null && r.Weekly.HasWindow)
             r.Weekly.Ghost = HourlyUsage.Demo(

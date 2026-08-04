@@ -977,7 +977,8 @@ internal sealed class TrayContext : ApplicationContext
             // Its own series, so its history is ready if the icon ever follows it (T125).
             if (d.Error == null)
             {
-                UsageHistory.Append(key, now, d.Session5h, d.Reset5h, d.Week7d, d.Reset7d, d.ExtraUtil, d.ResetExtra);
+                UsageHistory.Append(key, now, d.Session5h, d.Reset5h, d.Week7d, d.Reset7d, d.ExtraUtil,
+                                    d.ResetExtra, d.ExtraInUse);
                 HeaderProbe.Record(key, now, d.RateHeaders);
             }
         }
@@ -1018,7 +1019,7 @@ internal sealed class TrayContext : ApplicationContext
             // Log the live reading so the Statistics charts can draw the real utilization curve over
             // time, rather than inferring the burn shape from transcript token counts.
             UsageHistory.Append(ProfileStore.Monitored, now, fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d,
-                                fresh.ExtraUtil, fresh.ResetExtra);
+                                fresh.ExtraUtil, fresh.ResetExtra, fresh.ExtraInUse);
 
             // Keep the headers themselves whenever their shape moves (T181). The reading that says what
             // the overage percentage denominates can only be taken while an account is in overage, which

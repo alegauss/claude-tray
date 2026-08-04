@@ -426,6 +426,7 @@
   "stats.proj.noWindow": "No limit reading for this window yet.",
   "stats.proj.atLimit": "You've hit this window's limit. It resets in {0} — until then, usage is blocked.",
   "stats.proj.billing": "You've spent the quota included in this window and are still working — extra usage is paying, now at {0} of your extra-usage allowance. The included window resets in {1}.",
+  "stats.proj.billingNoAmount": "You've spent the quota included in this window and are still working — extra usage is paying. No header says how much of your extra-usage allowance that amounts to, so this app does not guess. The included window resets in {0}.",
   "stats.proj.aheadEta": "At the current pace, your quota reaches 100% in {0} — about {1} before the reset (in {2}). Worth easing off so you don't get blocked.",
   "stats.proj.ahead": "You're consuming above the even pace ({0} would be expected by now, but you've already used {1}). It resets in {2}.",
   "stats.proj.ok": "You're pacing evenly — below the even-pace target of {0}. At the current rate, the quota comfortably lasts until the reset, in {1}.",
@@ -458,6 +459,7 @@
   "stats.chart.unavailable": "Live usage unavailable since {0} — no data for this span",
   "stats.chart.extraAxis": "extra usage",
   "stats.chart.extraNow": "Extra usage: {0} of your extra-usage allowance, on the right-hand scale.",
+  "stats.chart.overSpan": "Shaded: the API reported you past the quota included in your plan over this stretch, so work carried on as extra usage.",
 
   // ================= Context Load window (ContextWindow) =================
   // Every key below belongs to this one feature; the sub-comments group them by panel.

@@ -69,8 +69,7 @@
 
 ## Block D — Auth & API resilience
 
-- 📋 **T275** (deps: T273 ✅) **an overage spell leaves nothing behind in the store, so it cannot be read back after the reset** — Every reading through the crossing recorded `ux:0`, and the burn-up chart needs a figure above zero before it draws an overage axis at all. → §XXIII.3
-- 💭 **T279** (deps: T273 ✅, T275) **the app can say that extra usage is paying and never what the spell cost** — The overage percentage is a share of an amount no header states, while the turns taken after the crossing and the price table already here would estimate it in money. → §XXIII.4
+- 💭 **T279** (deps: T273 ✅, T275 ✅) **the app can say that extra usage is paying and never what the spell cost** — The overage percentage is a share of an amount no header states, while the turns taken after the crossing and the price table already here would estimate it in money. → §XXIII.4
 - 📋 **T281** (deps: —) **the API states which threshold the window crossed, and the app flashes on a constant it picked itself** — `5h-surpassed-threshold` was absent on three readings inside the quota, arrived as 0.9 beside `allowed_warning` at 0.91, and read 1.0 beside `rejected` at 1.02. → §XXIII.5
 
 ## Block N — System information — your plan, your install, this machine
@@ -92,7 +91,7 @@
 
 ## Block A — Foundation — tray, icon, API, projection
 
-- 📋 **T280** (deps: T275) **nothing on screen says when the overage spell started** — The store dates the crossing at its first reading past the threshold, and saying since when is the difference between reporting a state and reporting an event. → §XXXIII
+- 📋 **T280** (deps: T275 ✅) **nothing on screen says when the overage spell started** — The store dates the crossing at its first reading past the threshold, and saying since when is the difference between reporting a state and reporting an event. → §XXXIII
 
 ## Non-goals (do NOT add as tasks)
 
