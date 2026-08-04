@@ -81,6 +81,8 @@
 
 ## Block B — Packaging, self-update, CI
 
+- 📋 **T269** (deps: —) **A leftover temp project breaks the documented build command, and only the release path cleans it up** — A stale wpftmp csproj has sat in the root since 17:02, so dotnet build -c Debug refuses with MSB1011 - and the only cleanup is a line in build.cmd, which a dev loop never runs. → §XXXI.2
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
