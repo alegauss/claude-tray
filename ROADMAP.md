@@ -79,6 +79,8 @@
 
 ## Block I — Context Load Inspector
 
+- 📋 **T268** (deps: —) **One word carries three meanings in one report, and the row explaining one sits nine lines from another** — Measured files counts what the scan kept, the Measured column is the median read from transcripts, and Measured locally is the privacy claim - only the middle one is explained. → §XXIX.3
+
 ## Block B — Packaging, self-update, CI
 
 ## Non-goals (do NOT add as tasks)

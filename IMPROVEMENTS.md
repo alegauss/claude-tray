@@ -261,6 +261,30 @@ assistive technology nothing gets filed.
 The headless side of the inspector: what a script driving it can tell about a run, as opposed to
 what a person reading the output can.
 
+### XXIX.3 One word, three meanings, one document
+
+Read in the generated document rather than inferred from the code. The report uses the word four
+times, for three different things:
+
+- line 5, Measured locally from the claude directory - the privacy claim, about how the numbers were got.
+- line 16, the Measured files row, 881 - the sources the scan **kept**, shared plus per-project.
+- lines 25 and 29, the Measured column - the median startup context **observed in transcripts**, which the
+  prose immediately above the table does explain: it says this is the median startup context of recent
+  sessions read from the transcripts, and that it includes the base overhead the estimate cannot see.
+
+That explanation is the argument. The document already knows it must define a word it reuses, and
+defines the one nine lines below the row where the same word means something else.
+
+A second reading makes it concrete. Every scan header in this session printed 1021 files, and the
+report of the same scan minutes later said 881. Both are right - the header counts what the walk
+**visited**, FilesWalked, and the summary counts what it **kept** - and neither says so, so two
+artifacts of one scan disagree about a number labelled the same way in both.
+
+Worth settling with it: whether the fix is wording or a row. Two labels would do it, Files walked
+and Sources kept, and so would keeping one and dropping the other, since the summary already carries
+the footprint and the finding counts and a reader who wants the walk size has the header. What must
+not happen is a third definition arriving later beside the first two.
+
 ## XXX Dates — the words are translated and the order is not (Block G)
 
 What a date reads like once the month name is French and the arrangement is still English.
