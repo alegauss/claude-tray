@@ -158,6 +158,9 @@ internal static class SelfTestCli
         Section("the extra-usage card — a bar only for a figure it has (Block E)");
         ExtraCardBar();
 
+        Section("the extra-usage alarm — a seed, a rise, and one announcement per spell (Block E)");
+        ExtraAlarm();
+
         Section("projects — a count of directories, not of keys (Block N)");
         ProjectCount();
 
@@ -4234,6 +4237,51 @@ internal static class SelfTestCli
         string[] missing = glyphs.Where(g => !Maps(ToastWindow.EmojiFont, g)).ToArray();
         Check($"and the font the card names carries every one of them ({glyphs.Length})", missing.Length == 0,
               $"{string.Join(" ", missing)} — would draw as a tofu box, and a capture would not say so");
+    }
+
+    /// <summary>
+    /// T290. The transition as a sequence, which is the part nothing could ask before: the predicates under
+    /// it were asserted from the day they were written, and the defect sat in neither of them. The notifier
+    /// fetched its own seed from a history the same poll had already appended to, so the first reading of a
+    /// process was compared with itself — and the assertion that would have caught it is the first one here,
+    /// which needs a seed, a reading, and an answer, none of which existed as an input until T290.
+    ///
+    /// <para>Driven with no tray and no store, because <see cref="ExtraUsageAlarm"/> takes its seed rather
+    /// than reading one. That is the fix and the testability in the same move: a type that cannot look up
+    /// its own previous reading cannot look up the wrong one.</para>
+    /// </summary>
+    private static void ExtraAlarm()
+    {
+        // The crossing on the very first poll of a process — a tray started while the account was inside
+        // its quota, whose first reading is the one that goes over. Silent before T290.
+        var launched = new ExtraUsageAlarm(new UsageSample(Now, 0.5, 0, 0.5, 0, Extra: 0.0, InUse: false));
+        Check("a crossing on the first poll after launch is announced",
+              launched.Note(0.0, true));
+        Check("and the same spell is not announced again",
+              !launched.Note(0.0, true) && !launched.Note(0.02, true));
+
+        // The seed's other job, which T184 wrote it for and which must survive the fix.
+        var midSpell = new ExtraUsageAlarm(new UsageSample(Now, 0.5, 0, 0.5, 0, Extra: 0.0, InUse: true));
+        Check("a tray started in the middle of a spell announces nothing",
+              !midSpell.Note(0.0, true) && !midSpell.Note(0.03, true));
+        Check("but it does announce the next spell, once the account has been seen back inside",
+              !midSpell.Note(0.0, false) && midSpell.Note(0.0, true));
+
+        // No history at all: a fresh install, or a profile whose log predates both fields. Absent is not
+        // "inside the quota", so the first reading of any kind arms nothing (T179's rule, kept).
+        var fresh = new ExtraUsageAlarm(null);
+        Check("with no seed the first reading announces nothing, whatever it says",
+              !fresh.Note(0.42, true));
+        Check("and the account still gets its next spell announced",
+              !fresh.Note(0.0, false) && fresh.Note(0.0, true));
+
+        // The figure route, which is the only one an account whose utilization climbs would ever have had,
+        // and which must not double-announce beside the boolean.
+        var climbing = new ExtraUsageAlarm(new UsageSample(Now, 0.5, 0, 0.5, 0, Extra: 0.0, InUse: null));
+        Check("a rise in the figure alone still announces",
+              climbing.Note(0.02, null));
+        Check("and the boolean arriving after it does not announce a second time",
+              !climbing.Note(0.05, true));
     }
 
     /// <summary>

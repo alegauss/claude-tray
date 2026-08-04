@@ -78,8 +78,6 @@
 
 ## Block E — Reset notifications & toasts
 
-- 📋 **T290** (deps: —) **a crossing on a process's first poll is never announced, and every poll after it reads a spell already under way** — The rise is seeded from the history the same poll has already appended to, so the reading it compares against is that poll's own — and nothing differs from itself. → §XXV.3
-
 ## Block S — Settings round-trip
 
 ## Block Q — Keyboard input in the windows

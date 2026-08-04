@@ -528,29 +528,9 @@ therefore not this app's decision, and a count taken over them is a claim about 
 
 ## XXV Toast cards — what the card actually draws (Block E)
 
-What the toasts get wrong is rarely visible in the code that built them: two shipped defects here
-were found by looking at a card, and the one open below by following the reading the card is made
-from back to the poll that took it.
-
-### XXV.3 A previous reading that is this one
-
-`NoteExtraUsage` seeds its previous reading from `UsageHistory.Latest` on the first poll of a
-process, so that a tray started in the middle of an overage spell does not read that spell as its
-beginning. The store is the right source. The moment is not: the poll appends the reading it is
-about to judge **before** it calls the notifier, so `Latest` hands that same reading straight back.
-
-The cost is one missed alert per restart, in exactly the case the alert exists for. A tray launched
-while the account is inside its quota, whose very first poll is the crossing, compares that poll
-against itself, finds no rise and stays quiet — and on the second poll the previous reading says the
-account was already over, which is a spell under way. T276 gave this toast a header that actually
-moves; this is the other way it goes missing, and no reading outwards from the notifier shows it,
-because the defect is in the order of two calls a hundred lines apart.
-
-Seed before the append, or hand the notifier the previous reading rather than letting it fetch one.
-The second is the smaller change and the more honest shape: the poll knows which reading is which,
-and the notifier currently has to trust a store whose contents depend on what else ran first. Either
-way the property nothing holds today is the one to assert — that a first poll can announce a
-crossing, and that a later poll of the same spell cannot.
+What the toasts get wrong is rarely visible in the code that built them: two of the defects filed
+here were found by looking at a card, and the third by following the reading a card is made from
+back to the poll that took it.
 
 ## XXVI One setting, two places that change it (Block S)
 

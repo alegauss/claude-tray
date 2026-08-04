@@ -73,6 +73,14 @@ internal sealed class TrayContext : ApplicationContext
     {
         _metric = _settings.Metric; // restore the last-selected window (BuildMenu reads it)
         RefreshWatched();           // which profiles to poll, and which one the icon follows (T127)
+
+        // Here and nowhere later (T290): the first line at which the monitored profile is known, and
+        // ahead of every poll that appends to the history this reads. A seed taken inside the poll is the
+        // reading that poll just wrote, which is the defect — so the reading is taken while there is
+        // provably nothing of this process's in the store, and handed over once.
+        try { _extraAlarm = new ExtraUsageAlarm(UsageHistory.Latest(ProfileStore.Monitored)); }
+        catch { _extraAlarm = new ExtraUsageAlarm(null); }   // the history is best-effort everywhere else too
+
         _tray = new NotifyIcon
         {
             Visible = true,
@@ -164,19 +172,14 @@ internal sealed class TrayContext : ApplicationContext
         if (nudge is { } n) NudgeContext(n.project, n.eager);
     }
 
-    /// <summary>The last overage reading seen for the monitored profile, so a rise can be told from a
-    /// state. Seeded from the store on the first poll of the process (see <see cref="NoteExtraUsage"/>):
-    /// held only in memory, a restart mid-spell would read as a fresh transition and toast again.
-    /// <see cref="_lastInUse"/> is the same reading's <c>overage-in-use</c>, kept beside it because that is
-    /// the header the crossing actually moves (T276).</summary>
-    private double? _lastExtra;
-    private bool? _lastInUse;
-    private bool _lastExtraSeeded;
-
-    /// <summary>Whether this spell has already been announced. One latch for both routes, so an account
-    /// whose figure does climb after the boolean fired is told once and not twice; released by a reading
-    /// measured back inside the quota (T276).</summary>
-    private bool _announcedExtra;
+    /// <summary>
+    /// The extra-usage transition, seeded with the history <b>as it stood before this process's first
+    /// poll</b> (T290) — see <see cref="ExtraUsageAlarm"/> for why that reading is handed in rather than
+    /// fetched. Assigned in the constructor rather than here: a field initialiser runs before
+    /// <see cref="RefreshWatched"/>, and until that has run <see cref="ProfileStore.Monitored"/> is the
+    /// empty key, so the seed would come from no profile's history at all.
+    /// </summary>
+    private readonly ExtraUsageAlarm _extraAlarm;
 
     /// <summary>
     /// Announce the start of the meter, once (T184).
@@ -188,18 +191,11 @@ internal sealed class TrayContext : ApplicationContext
     /// rejects a *predicted*, continuous, activity-shaped nudge); it is the existing channel's missing
     /// half — a discrete transition, observed rather than forecast, at most once per spell.</para>
     ///
-    /// <para><b>A rise, not a state.</b> It fires on the first reading that says the account is past its
-    /// quota after one that said it was not. <c>null</c> is not zero and not <c>false</c> (T179) and
-    /// deliberately arms nothing: a profile whose history predates the field, or a response with no overage
-    /// header, has not been observed inside the quota, and announcing a "start" from a reading nobody took
-    /// is how a notification loses its credibility.</para>
-    ///
-    /// <para><b>Two headers, one announcement (T276).</b> T184 watched the overage <em>figure</em>, and the
-    /// spell of 2026-08-04 read <c>0.0</c> straight through the crossing — so the one alert about money
-    /// never came. <c>overage-in-use</c> is the header that moved, and it is now the first route; the figure
-    /// stays the second, for an account whose utilization does climb. They share
-    /// <see cref="_announcedExtra"/>, so such an account hears this once rather than twice, and the latch is
-    /// released only by a reading measured back inside the quota — a spell announced is a spell finished.</para>
+    /// <para><b>When it fires is <see cref="ExtraUsageAlarm"/>'s.</b> The rise, the two headers it can
+    /// arrive on and the once-per-spell latch are that type's, driven end to end by <c>--selftest</c>; what
+    /// is left here is the card. The reading is offered on <em>every</em> poll and the setting is consulted
+    /// after, not before: a spell nobody was told about still happened, and a state machine fed only while
+    /// a toggle is on is comparing against a reading of unknown age.</para>
     ///
     /// <para><b>What it must not say.</b> It fires exactly when somebody is most receptive to *the other
     /// profile still has quota* — the sentence the roadmap forbids as limit circumvention in a convenience
@@ -208,35 +204,8 @@ internal sealed class TrayContext : ApplicationContext
     /// </summary>
     private void NoteExtraUsage(double? extra, double resetExtra, bool? inUse)
     {
-        if (!_lastExtraSeeded)
-        {
-            // The reading before this process started, so a restart in the middle of an overage spell
-            // does not look like its beginning. Both signals, or the boolean route would announce a spell
-            // this process only walked in on.
-            _lastExtraSeeded = true;
-            try
-            {
-                UsageSample? last = UsageHistory.Latest(ProfileStore.Monitored);
-                _lastExtra = last?.Extra;
-                _lastInUse = last?.InUse;
-            }
-            catch { _lastExtra = null; _lastInUse = null; }
-        }
-
-        double? previous = _lastExtra;
-        bool? previousInUse = _lastInUse;
-        _lastExtra = extra;
-        _lastInUse = inUse;
-
-        // State, not a decision — the latch describes the spell, so it is maintained above the toggle and
-        // released before the return that reads it.
-        if (QuotaStates.BackInsideQuota(inUse, extra)) _announcedExtra = false;
-
+        if (!_extraAlarm.Note(extra, inUse)) return;
         if (!_settings.NotifyOnExtraUsage) return;
-        if (_announcedExtra) return;
-        if (!QuotaStates.StartsSpending(previousInUse, inUse)
-            && !QuotaStates.StartsSpending(previous, extra)) return;
-        _announcedExtra = true;
 
         string title = L.T("toast.extra.title");
         string subtitle = L.T("toast.extra.subtitle");
