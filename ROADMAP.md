@@ -81,6 +81,8 @@
 
 ## Block B — Packaging, self-update, CI
 
+- 📋 **T270** (deps: —) **Three builds this session failed over generated files, and the cause is not what was guessed** — Persistent MSBuild nodes and the IDE design-time builds share this obj with the command line, and the WPF markup pass races there - not a parallel session, as two ledger entries suppose. → §XXXI.3
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

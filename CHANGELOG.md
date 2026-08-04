@@ -18,7 +18,7 @@
 | Block | Theme |
 |---|---|
 | [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
-| [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
+| [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI (active — see ROADMAP) |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
