@@ -77,7 +77,6 @@ internal static class SelfTestCli
     /// <returns>Process exit code: 0 when every check passed.</returns>
     public static int Run(string[] flags)
     {
-        try { Console.OutputEncoding = Encoding.UTF8; } catch { /* redirected output */ }
         System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
         bool quick = flags.Contains("--quick");
@@ -200,6 +199,9 @@ internal static class SelfTestCli
 
         Section("scripts — every .ps1 is one PowerShell 5.1 can read (Block AI)");
         ScriptEncoding();
+
+        Section("console — the code page is set where the flags are dispatched (Block AI)");
+        ConsoleCodePage();
 
         Section("scanning — the flag scan reads code, not the prose about it (Block AI)");
         FlagScanning();
@@ -2550,6 +2552,60 @@ internal static class SelfTestCli
         Check($"every .ps1 is ASCII or carries a UTF-8 mark ({scripts.Length})", unreadable.Count == 0,
               $"{string.Join(", ", unreadable)} — 5.1 reads these in the ANSI code page, so a dash inside a "
               + "string closes it and the script does not parse");
+    }
+
+    /// <summary>
+    /// T283. The console's code page is set in exactly one place — where the flags are dispatched — and
+    /// this is the check that keeps it there.
+    ///
+    /// <para>Twelve read-outs each opened with their own <c>Console.OutputEncoding = UTF8</c>, learned one
+    /// at a time as each hit the same wall: a WinExe's console starts on the OEM code page, which prints an
+    /// em dash and a section sign as <c>?</c>. <c>--probe</c> never learned it, and it was the read-out
+    /// densest in both — every <c>§XVIII.9</c> it sent a reader to arrived as <c>?XVIII.9</c>, which names
+    /// no section.</para>
+    ///
+    /// <para><b>Why a source scan rather than an output assertion.</b> The defect is not what one flag
+    /// prints; it is that remembering was the mechanism. A check of <c>--probe</c>'s output would have gone
+    /// green the moment somebody pasted the line a thirteenth time, and said nothing about the fourteenth
+    /// flag. What is asserted is the shape that made the omission impossible: one call site, in the
+    /// dispatch, ahead of every verb.</para>
+    /// </summary>
+    private static void ConsoleCodePage() =>
+        Repo("the console's code page is set once, where the flags are dispatched", ConsoleCodePage, "src");
+
+    private static void ConsoleCodePage(string root)
+    {
+        // Assembled, never written out: a literal of the thing being counted would be one more of it, in
+        // the file doing the counting — the same rule FlagScanning's fixtures are built by.
+        string setter = "Console." + "OutputEncoding" + " =";
+        string dispatch = Path.Combine("src", "Tray", "Program.cs");
+
+        // Comment lines are dropped before counting, and the first run of this check is why: the paragraph
+        // above names the setter to explain what is being counted, and the scan read the explanation as a
+        // thirteenth copy. The same lesson T248 learned about the flag scan, in the same file.
+        (string File, int Count)[] setters = Directory
+            .GetFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories)
+            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+            .Select(f => (File: Path.GetRelativePath(root, f),
+                          Count: File.ReadLines(f)
+                                     .Count(l => l.Contains(setter) && !l.TrimStart().StartsWith("//"))))
+            .Where(x => x.Count > 0)
+            .ToArray();
+
+        if (!Check("something sets the console's code page at all", setters.Length > 0,
+                   "no source sets it — a read-out full of dashes would print them as '?'"))
+            return;
+
+        string[] elsewhere = setters
+            .Where(x => !string.Equals(x.File, dispatch, StringComparison.OrdinalIgnoreCase))
+            .Select(x => $"{x.File} ({x.Count})").ToArray();
+        Check("only the dispatch sets it, so no flag can be added having forgotten to",
+              elsewhere.Length == 0,
+              $"{string.Join(", ", elsewhere)} — a per-file copy is a rule twelve callers kept and a "
+              + "thirteenth did not (T283)");
+        Check("and it sets it once, not once per verb",
+              setters.Single(x => string.Equals(x.File, dispatch, StringComparison.OrdinalIgnoreCase))
+                     .Count == 1);
     }
 
     /// <summary>

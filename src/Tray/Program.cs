@@ -89,9 +89,33 @@ internal static class Program
     /// worth of places — the script matches it as a regex.</summary>
     internal const string SecondTrayTag = "[check]";
 
+    /// <summary>
+    /// Put this process's console on UTF-8, once, before any verb runs (T283).
+    ///
+    /// <para>A WinExe's console starts on the OEM code page, which prints an em dash and a section sign as
+    /// <c>?</c>. Twelve read-outs had learned that one at a time and opened with their own copy of this
+    /// line; <c>--probe</c> never did, so the instrument densest in both — <c>readership — 9 of 17</c>, and
+    /// the <c>§XVIII.9</c> it tells a reader to go and read — was the one that lost them. A pointer is the
+    /// one kind of text that cannot be guessed back: <c>see IMPROVEMENTS ?XVIII.9</c> names no section.</para>
+    ///
+    /// <para>It is a property of <em>being a console read-out</em> and not of any one flag, so it is done
+    /// where the flags are dispatched rather than pasted a thirteenth time. That also makes it assertable:
+    /// twelve callers remembering is not a rule a check can hold, and one call site is.</para>
+    ///
+    /// <para>Throws when this process has no console at all — the ordinary tray launch — and when output is
+    /// redirected on some hosts. Both are caught: the setting is a courtesy to a terminal that is there, and
+    /// never a reason for the tray not to start.</para>
+    /// </summary>
+    private static void Utf8Console()
+    {
+        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* no console, or redirected */ }
+    }
+
     [STAThread]
     private static void Main(string[] args)
     {
+        Utf8Console();
+
         // `--lang <code>` anywhere in the arguments overrides the display language for this process
         // only, leaving the saved preference alone. It exists for the i18n screenshot loop: verifying
         // that a window still fits in Spanish should not mean editing the user's settings and
@@ -109,9 +133,7 @@ internal static class Program
             args = args.Take(langAt).Concat(args.Skip(langAt + (langOverride is null ? 1 : 2))).ToArray();
             if (L.RefuseOverride(langOverride) is { } refusal)
             {
-                // The endonyms carry accents, and a WinExe's console starts on the OEM code page, which
-                // prints them as '?' — same reason ToastPreviews.PrintCatalog sets this.
-                try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected */ }
+                // The endonyms carry accents; Utf8Console above is what makes them survive (T283).
                 Console.WriteLine(refusal);
                 Environment.Exit(1);
                 return;
@@ -642,9 +664,7 @@ internal static class Program
         if (given is null || known.Any(k => string.Equals(k, given, StringComparison.OrdinalIgnoreCase)))
             return false;
 
-        // A WinExe's console starts on the OEM code page, which prints the dash below as '?' — the same
-        // reason ToastPreviews.PrintCatalog and the --lang refusal set this.
-        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected */ }
+        // The dash below survives because Main put the console on UTF-8 before any verb ran (T283).
         Console.WriteLine($"unknown {what} '{given}'. Refusing rather than opening the default one, which");
         Console.WriteLine("is how a capture of the wrong page gets taken (T186, T198, T260 — same rule).");
         Console.WriteLine();

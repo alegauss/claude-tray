@@ -1,4 +1,4 @@
-namespace ClaudeTray;
+﻿namespace ClaudeTray;
 
 /// <summary>
 /// The Statistics previews, as one table both entry points read: <c>--stats &lt;variant&gt;</c> opens the
@@ -187,9 +187,6 @@ internal static class StatsPreviews
 
     private static void PrintCatalog()
     {
-        // The catalog is the one output of these flags a person reads, and it is full of em dashes; a
-        // WinExe's console starts on the OEM code page, which prints them as '?'.
-        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
         Console.WriteLine();
         Console.WriteLine("previews (--stats <variant> / --capture-stats <out> <variant>):");
         foreach (Variant v in All)

@@ -1,4 +1,4 @@
-namespace ClaudeTray;
+﻿namespace ClaudeTray;
 
 /// <summary>
 /// The toast previews, as one table both entry points read: <c>--simulate-reset &lt;variant&gt;</c> leaves the
@@ -116,9 +116,6 @@ internal static class ToastPreviews
     /// path.</summary>
     internal static void PrintCatalog()
     {
-        // The catalogue is the one output of these flags a person reads, and it is full of em dashes; a
-        // WinExe's console starts on the OEM code page, which prints them as '?'.
-        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
         Console.WriteLine();
         Console.WriteLine("toasts (--simulate-reset <variant> / --capture-toast <variant> <out.png>):");
         foreach (Variant v in All)

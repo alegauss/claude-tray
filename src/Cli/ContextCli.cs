@@ -1,4 +1,4 @@
-namespace ClaudeTray;
+﻿namespace ClaudeTray;
 
 /// <summary>The `--context` family: the headless context report and everything it prints. Split out of `Program.cs` by T132 —
 /// moved verbatim.</summary>
@@ -15,9 +15,6 @@ internal static class ContextCli
         bool noCache = flags.Contains("--no-cache");
         string? filter = flags.FirstOrDefault(f => !f.StartsWith("--"));
 
-        // The report is full of "≈" — without this the console renders every estimate as a
-        // replacement character on a non-UTF-8 codepage (cmd.exe defaults to 850 here).
-        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
         // A developer report, read alongside the source: invariant numbers throughout, so
         // "2.79 chars/token" can't render as "2,79" and read like a thousands separator. Safe to set
         // process-wide here — this command prints and exits, it never reaches the localized UI.
@@ -188,7 +185,6 @@ internal static class ContextCli
     // got without opening the file.
     internal static void WriteContextReport(string path)
     {
-        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
         DateTime now = DateTimeOffset.UtcNow.UtcDateTime;
 
         ContextScan scan = ContextScanner.Scan(now);

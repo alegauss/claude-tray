@@ -1,4 +1,4 @@
-namespace ClaudeTray;
+﻿namespace ClaudeTray;
 
 /// <summary>
 /// <c>--tooltip [variant]</c>: the tray tooltip's text for a synthetic reading, printed (T214).
@@ -134,7 +134,6 @@ internal static class TooltipCli
             return 1;
         }
 
-        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
         long now = 1_800_000_000;               // fixed, so the read-out is reproducible
         Console.WriteLine($"tray tooltip — {L.Current} — cap {TooltipText.Cap} chars (NOTIFYICONDATA.szTip)");
         foreach (Variant v in chosen)
@@ -251,7 +250,6 @@ internal static class TooltipCli
     /// <summary>What exists, printed for a refusal.</summary>
     internal static void PrintCatalog()
     {
-        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
         Console.WriteLine();
         Console.WriteLine("tooltips (--tooltip [variant]; no variant prints them all):");
         foreach (Variant v in All)

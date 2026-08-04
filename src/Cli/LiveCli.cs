@@ -1,4 +1,4 @@
-namespace ClaudeTray;
+﻿namespace ClaudeTray;
 
 /// <summary>The `--tail` and `--live` families: what is burning right now, from the transcripts. Split out of `Program.cs` by T132 —
 /// moved verbatim.</summary>
@@ -10,7 +10,6 @@ internal static class LiveCli
     // bytes appended, not the size of the tree.
     internal static void PrintTail(string[] flags)
     {
-        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
         System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
         int rootAt = Array.IndexOf(flags, "--root");
@@ -72,7 +71,6 @@ internal static class LiveCli
     // 90), `--root <dir>` for a stand-in tree, `--raw` to also print the unsmoothed box filter.
     internal static void PrintLive(string[] flags)
     {
-        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
         System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
         int rootAt = Array.IndexOf(flags, "--root");

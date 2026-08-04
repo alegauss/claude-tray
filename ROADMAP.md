@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T283** (deps: —) **the probe prints every dash and section sign as a question mark, pointers included** — Twelve entry points set the console to UTF-8 one copy at a time and `--probe` is not among them, so `readership — 9 of 17` and the `§XVIII.9` it sends you to read both arrive mangled. → §XX.3
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization

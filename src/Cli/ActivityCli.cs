@@ -1,4 +1,4 @@
-namespace ClaudeTray;
+﻿namespace ClaudeTray;
 
 /// <summary>The `--activity` family: the weekly activity profile as a 24x7 grid. Split out of `Program.cs` by T132 —
 /// moved verbatim.</summary>
@@ -12,8 +12,6 @@ internal static class ActivityCli
     // ~/.claude.
     internal static void PrintActivity(string[] flags)
     {
-        // Block-drawing characters and "≈" render as replacement chars on cmd.exe's default codepage.
-        try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* redirected output */ }
         System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
 
         int rootAt = Array.IndexOf(flags, "--root");
