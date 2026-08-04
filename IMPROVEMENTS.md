@@ -216,6 +216,28 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
+### XX.14 §XX.14 The three warnings that made a fourth invisible
+
+Measured, not assumed. A `-t:Rebuild` emits exactly three `CS8602` (possible null dereference), in
+`src/Cli/TooltipCli.cs` at 61, 64 and 67 — the `Empty with { … }` rows of the `--tooltip` catalogue.
+They are the only warnings this project produces, so a log reading "3 warnings" is what clean looks
+like here.
+
+Two problems, and the second costs something.
+
+**The code is outside the rule by luck.** `Empty` is declared at line 70; the `All` array reading it at line 25. Roslyn flow-analyses static initialisers in textual order, so `Empty` really is unassigned there — the compiler is right. It survives only because every read sits inside a `Func<long, …>` nobody invokes until the static constructor has finished, and nothing states that: one non-deferred read above line 70 and `--tooltip` dies at type initialisation.
+
+**Nothing looks at warnings.** `check.yml` does not mention them, `AGENTS.md` does not while documenting `dotnet build` as the fast compile check, and the csproj sets no `TreatWarningsAsErrors`. So a real fourth warning arrives into a log that already says three — the shape T214 was filed against, where `docs/tooltip.png` showed a line the app had stopped producing, "with nothing failing because nothing looks".
+
+The cause was confirmed rather than argued: moving `Empty` above `All` takes the build to **0
+warnings**, and `--tooltip all` is byte-identical across the move (14 lines, `Compare-Object` empty)
+— the control, because a fix that silences a warning by changing behaviour is not a fix.
+
+So: the reorder, which also makes static-init order safe rather than lucky; and what stops the next
+one. `TreatWarningsAsErrors` bills a future SDK's analyser to whoever is mid-task; failing CI on any
+warning bills it where a decision gets made. Either way the choice belongs here, because tolerating
+three is what made these three invisible.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
