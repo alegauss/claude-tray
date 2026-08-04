@@ -421,6 +421,25 @@ not arrive. The `refresh` modifier deliberately captures mid-recompute (T118), s
 belongs behind it: what that flag asks for is exactly what every other run must stop calling a
 success.
 
+### XX.31 The state that was reasoned about and never looked at
+
+T299 is about a week whose over-quota bits and whose curve disagree: the fold drops the delta of any
+pair straddling a window reset, so a week the tray saw in pieces draws a total that is a floor and
+can carry hours marked over while its line peaks below the ceiling. The fix pins the clay mark at
+100% and adds a sentence to the ghost's tooltip saying the line is a floor.
+
+Both were verified by `--selftest`, against hand-built `GhostWeek` values. Neither has been *seen*.
+No `--stats` variant produces the state, because producing it means a folded store whose spend is
+short of what its own bits imply — and the demo ghost is deliberately coherent, with its spans
+derived from its curve so a screenshot cannot show the two disagreeing.
+
+This is the shape T264 named: a preview whose whole reason for existing is a state no machine can be
+put into, and the only kind of state that gets shipped on reasoning alone. What it costs is a
+variant that hands the page a ghost built the wrong way round — bits past the ceiling, curve short
+of it — which is three lines beside `FillDemoOverSpell` plus its row in the catalogue and the flag
+doc. What it buys is the one question an assertion cannot answer: whether a clay mark floating a
+centimetre above the line it belongs to reads as *the header said so* or as a drawing bug.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
@@ -753,3 +772,23 @@ cleared and the fourth is *rebuilt from the incoming profile's history*, so the 
 takes the profile key, exactly as `ExtraUsageAlarm`'s does. And `_otherData` is not part of it — it
 is keyed per profile on purpose (T137) and holds the accounts the icon is not following, so folding
 it in would delete readings the submenu draws.
+
+## XXXVI Two clay marks, and a legend that lists the lines instead
+
+The weekly chart's legend names four things: actual usage, even pace, projection, last week. Every
+one of them is a *line*. Since T275 the chart also carries a clay band — this week's stretch past
+the included quota — and since T295 a clay mark at the ceiling for last week's, and the legend
+mentions neither.
+
+Both are explained, and only, by a tooltip: the band's on a hit target at its middle, the mark's on
+the mark itself. That is the discoverability of a thing nobody knows is there. The band at least has
+the paragraph under the chart saying extra usage is paying, which is why T275 was right not to grow
+the legend for one element. Two elements in one colour, meaning the same fact about two different
+weeks, is a different question — and the reader who notices them has no way to tell which week
+either belongs to without finding the hover.
+
+What is *not* wanted is four more legend entries. The clay pair is one idea — *past the quota
+included in your plan* — distinguished by where it is drawn, so one entry that says so, with the
+week left to the tooltip, is the whole change. It also has to survive the case that only one of the
+two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
+one step further on.

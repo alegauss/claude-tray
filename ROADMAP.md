@@ -68,6 +68,7 @@
 - 📋 **T294** (deps: —) **no check drives the switch that changes which account the icon follows** — The Profiles case drives the report's picker, which only chooses whose numbers are drawn — so the path that rewrites the setting, re-keys the stores and drops the old account's state runs under none. → §XX.8
 - 📋 **T297** (deps: —) **the folded store's line format has a second writer inside the check, kept in step by hand** — WriteStore composes the day line itself, so T287's column reached every fixture as absent — the one state a fixture cannot notice it is asserting, because absent is a legitimate reading. → §XX.9
 - 📋 **T298** (deps: T286) **the in-app capture writes a PNG of the loading placeholder and reports it written** — --capture-stats photographed "Computing your consumption pace…" twice in five runs today; T286 is about the screen-copy script, and this path is in the app, where the report finishing is awaitable. → §XX.30
+- 📋 **T301** (deps: T299 ✅) **the state T299 exists for has no preview, so only an assertion has ever seen it** — A ghost whose bits say over while its line peaks at 80% needs a fold seen in pieces, which no --stats variant produces, so the mark and its floor sentence were asserted in code and never looked at. → §XX.31
 
 ## Block AJ — Working here — the repo's own docs and flags
 
@@ -99,6 +100,7 @@
 ## Block F — Statistics window (pace report)
 
 - 📋 **T289** (deps: —) **one rule about what counts as a break in the readings is computed twice in the same file** — T275 gave MergeSpans a measured bridge and FindGaps still derives the identical median-and-floor inline, so the two can drift and only one of them has a name. → §XXXIV
+- 📋 **T300** (deps: —) **two clay marks on one chart, and the legend beside them names neither** — The band is this week past its quota and the mark is last week's, both clay; the legend lists four lines that are neither, so the only explanation is a tooltip nobody knows to hover. → §XXXVI
 
 ## Non-goals (do NOT add as tasks)
 
