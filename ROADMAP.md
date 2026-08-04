@@ -91,7 +91,6 @@
 ## Block J — Activity-aware pacing
 
 - 📋 **T295** (deps: —) **last week's ghost curve stops at a ceiling and never shades the stretch the account was over** — T287's column is in the store and PreviousWeek still returns a curve and a coverage share only, so the stretch this week's chart shades has no counterpart on the week drawn behind it. → §XXXII.2
-- 📋 **T296** (deps: —) **the oldest reading in a fold counts toward no hour's coverage, and since T287 toward no hour's spell** — Fold marks only the later of each pair, so samples[0] never reaches its own hour: an hour observed once reads as unknown, and the bit that was its only trace is gone. → §XXXII.3
 
 ## Block A — Foundation — tray, icon, API, projection
 

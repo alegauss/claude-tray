@@ -46,7 +46,8 @@ internal readonly record struct HourlyDay(int Key, double[] Spend, int[] Count, 
 /// <para>Spend is the sum of positive weekly-utilization deltas between consecutive readings,
 /// attributed to the hour of the later reading. A drop in utilization is a window reset, not negative
 /// work, so it contributes nothing. Coverage is counted separately precisely so a gap can't read as a
-/// quiet hour.</para>
+/// quiet hour — and it is counted for <em>every</em> reading, the oldest of the batch included, because
+/// being polled at an hour is a fact about that reading alone (T296).</para>
 ///
 /// <para>The third column is the spell (T287): <c>x</c>, one bit per hour, true where a reading said the
 /// account was past its included quota. T275 recorded that in <c>usage-history.jsonl</c>, which is pruned
@@ -106,16 +107,16 @@ internal static class HourlyUsage
         if (ProfileStore.Observing) return;
         try
         {
-            if (samples.Count < 2) return;
+            if (samples.Count == 0) return;
 
             int today = KeyOf(Local(nowUnix));
             Dictionary<int, HourlyDay> existing = ReadAll(profileKey);
             var built = new Dictionary<int, HourlyDay>();
 
             samples.Sort((a, b) => a.T.CompareTo(b.T));
-            for (int i = 1; i < samples.Count; i++)
+            for (int i = 0; i < samples.Count; i++)
             {
-                UsageSample prev = samples[i - 1], cur = samples[i];
+                UsageSample cur = samples[i];
                 DateTime at = Local(cur.T);
                 int key = KeyOf(at);
 
@@ -126,16 +127,26 @@ internal static class HourlyUsage
                 if (!built.TryGetValue(key, out HourlyDay day))
                     built[key] = day = new HourlyDay(key, new double[24], new int[24], new bool[24]);
 
+                // Coverage and the spell are facts about this one reading (T296): it was taken, at a known
+                // hour, and the API either said the account was over or it did not. Neither needs a
+                // predecessor, so neither waits for one — the loop used to start at the second sample and
+                // the oldest reading of every batch marked no hour at all, which for an hour observed once
+                // is the difference between idle and unknown. That coverage can outrun measurable spend is
+                // not new either: a reading whose delta is discarded at a window reset has always counted.
                 day.Count[at.Hour]++;
 
-                // The spell, on the same reading the coverage was counted from (T287). Only `true` sets the
-                // bit: `false` is a reading inside the quota and `null` is a response that carried no
-                // header, and the hour is covered either way — so the bit says "was any of it over", never
-                // "was it seen".
+                // Only `true` sets the bit: `false` is a reading inside the quota and `null` is a response
+                // that carried no header, and the hour is covered either way — so the bit says "was any of
+                // it over", never "was it seen" (T287).
                 if (cur.InUse == true && day.Over is { } over) over[at.Hour] = true;
+
+                // Spend is the one figure here that is a fact about a *pair*, so it is the only one the
+                // first reading of the batch cannot have: there is no earlier reading to difference against.
+                if (i == 0) continue;
 
                 // A reset (utilization dropping, or a new reset deadline) ends the accounting for that
                 // step: the two readings belong to different windows and their difference is not work.
+                UsageSample prev = samples[i - 1];
                 bool sameWindow = Math.Abs(cur.Reset7d - prev.Reset7d) < 120;
                 double delta = cur.Util7d - prev.Util7d;
                 if (sameWindow && delta > 0) day.Spend[at.Hour] += delta;

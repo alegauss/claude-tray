@@ -1111,8 +1111,9 @@ internal static class SelfTestCli
             Check("the hour a reading said it was over keeps a bit", spellFold.WasOver(13));
             Check("an hour whose readings carried no header is not a spell", !spellFold.WasOver(9));
             Check("nor is an hour the API said was inside the quota", !spellFold.WasOver(15));
+            // Four, not three: the 08:00 reading opens the batch and T296 is what gave it its hour back.
             Check("the hours around it are covered either way — the bit is not coverage",
-                  spellFold.Covered == 3, $"{spellFold.Covered} covered");
+                  spellFold.Covered == 4, $"{spellFold.Covered} covered");
             Check("two readings in one hour are one bit, not a count",
                   spellFold.OverHours == 1, $"{spellFold.OverHours} hours over");
         }
@@ -1126,6 +1127,29 @@ internal static class SelfTestCli
               lines.Any(l => !l.Contains($"\"d\":{spellKey}") && !l.Contains("\"x\":")));
         Check("...and reads back as unknown rather than as never over",
               withSpell.Any(d => d.Key != spellKey && !d.OverKnown && !d.WasOver(13)));
+
+        // T296. The oldest reading of a batch has no predecessor, which is a statement about spend and
+        // about nothing else: it was still taken, at a known hour, and the API still answered. Its hour is
+        // deliberately the only one in this batch, because an hour observed once is where losing the
+        // reading turns "idle" into "unknown" — and where the bit is the only surviving trace of a spell.
+        DateTime lone = DateTime.Today.AddDays(-11);
+        int loneKey = lone.Year * 10000 + lone.Month * 100 + lone.Day;
+        HourlyUsage.Fold(ProfileKey, new List<UsageSample>
+        {
+            new(Unix(lone.AddHours(7)), 0, 0, 0.40, reset, Extra: 0, InUse: true),   // oldest: no pair
+            new(Unix(lone.AddHours(12)), 0, 0, 0.42, reset),
+            new(Unix(lone.AddHours(12).AddMinutes(5)), 0, 0, 0.44, reset),
+        }, nowUnix);
+
+        HourlyDay loneFold = HourlyUsage.Load(ProfileKey).FirstOrDefault(d => d.Key == loneKey);
+        if (Check("a batch whose oldest reading stands alone in its hour folds", loneFold.Key == loneKey))
+        {
+            Check("the oldest reading marks the hour it was taken in", loneFold.Count[7] == 1,
+                  $"{loneFold.Count[7]} readings");
+            Check("and the spell it carried is not lost with it", loneFold.WasOver(7));
+            Near("while its spend waits for a pair it does not have", loneFold.Spend[7], 0, 1e-12);
+            Near("which the hour that has one still gets", loneFold.Spend[12], 0.04, 1e-9);
+        }
 
         // T89's two gates. A ghost that is really a record of the app having been closed would read as
         // a quiet week, which is the one thing it must not do.
