@@ -81,6 +81,10 @@
 
 ## Block B — Packaging, self-update, CI
 
+## Block J — Activity-aware pacing
+
+- 📋 **T271** (deps: —) **The read-out names two extremes that cannot be found in the only picture it draws** — Sunday 16:00 and Sunday 22:00 carry the same glyph in the grid and are reported as the heaviest and the lightest hour, because the grid draws frequency and that line reports intensity. → §XXXII.1
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

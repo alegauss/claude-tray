@@ -26,7 +26,7 @@
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
-| [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
+| [J](#block-j--activity-aware-pacing) | Activity-aware pacing (active — see ROADMAP) |
 | [K](#block-k--live-throughput) | Live throughput |
 | [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app |
 | [M](#block-m--explain-on-demand) | Explain on demand — the method note behind an ⓘ |
