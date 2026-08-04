@@ -256,9 +256,7 @@ internal static class ProbeCli
 
         // The same question over the union of what every profile is sent (T278). Per-profile it is already
         // stated above; here it is the one number for the whole machine, which is what --all is for.
-        int unread = spread.Count(h => !HeaderProbe.IsRead(h.Name));
-        Console.WriteLine($"{indent}{spread.Count - unread} of these reach a field in this app, "
-                          + $"{unread} reach none — marked on every line below.");
+        Console.WriteLine($"{indent}{SpreadReadership(spread)}");
         Console.WriteLine();
 
         if (divergent.Count == 0)
@@ -302,25 +300,45 @@ internal static class ProbeCli
     /// field is filled from nothing.</para></summary>
     private static void Readership(List<ProbeEntry> log, string indent)
     {
-        List<HeaderPresence> present = HeaderProbe.Presence(log);
-        if (present.Count == 0) return;
-        List<string> unread = HeaderProbe.Unread(log);
-        List<string> absent = ApiClient.NamesRead
-            .Where(n => !present.Any(p => string.Equals(p.Name, n, StringComparison.OrdinalIgnoreCase)))
-            .ToList();
-
-        Console.WriteLine($"{indent}readership — {present.Count - unread.Count} of {present.Count} name(s) on "
-                          + $"file reach a field in this app, {unread.Count} reach none");
-        foreach (string n in unread) Console.WriteLine($"{indent}  {UnreadMark}  {n}");
-        if (unread.Count > 0)
-        {
-            Console.WriteLine($"{indent}  A recorded name nothing reads is permitted — the family is kept");
-            Console.WriteLine($"{indent}  verbatim so a header is on file before anybody knows it matters.");
-            Console.WriteLine($"{indent}  It is never silent, because that is how one stays unread.");
-        }
-        foreach (string n in absent)
-            Console.WriteLine($"{indent}  read, never sent to this profile: {n}");
+        List<string> lines = ReadershipLines(HeaderProbe.Readership(log));
+        if (lines.Count == 0) return;
+        foreach (string line in lines) Console.WriteLine($"{indent}{line}");
         Console.WriteLine();
+    }
+
+    /// <summary>The readership block: its count, and then the names it counted (T282).
+    ///
+    /// <para>Returned rather than printed, because the count and the marks under it are one fact stated
+    /// twice and a summary is the only part of this read-out that can contradict its own body. Built from a
+    /// <see cref="HeaderReadership"/> whose <c>Read</c> is derived from the same list the marked lines come
+    /// from, so the two cannot be recounted apart — and a check can hold the sentence against the lines
+    /// instead of against the classifier they were both derived from, which is what it could do before.</para></summary>
+    internal static List<string> ReadershipLines(HeaderReadership r)
+    {
+        var lines = new List<string>();
+        if (r.Total == 0) return lines;
+
+        lines.Add($"readership — {r.Read} of {r.Total} name(s) on file reach a field in this app, "
+                  + $"{r.Unread.Count} reach none");
+        foreach (string n in r.Unread) lines.Add($"  {UnreadMark}  {n}");
+        if (r.Unread.Count > 0)
+        {
+            lines.Add("  A recorded name nothing reads is permitted — the family is kept");
+            lines.Add("  verbatim so a header is on file before anybody knows it matters.");
+            lines.Add("  It is never silent, because that is how one stays unread.");
+        }
+        foreach (string n in r.NeverSent) lines.Add($"  read, never sent to this profile: {n}");
+        return lines;
+    }
+
+    /// <summary>The one sentence <c>--all</c> states over the union of every profile's names (T282). The
+    /// same count as the per-profile block above and the same reason to be a value: it is a claim about the
+    /// marks printed under it, and nothing else in this file could check it.</summary>
+    internal static string SpreadReadership(IReadOnlyList<HeaderSpread> spread)
+    {
+        int unread = spread.Count(h => !HeaderProbe.IsRead(h.Name));
+        return $"{spread.Count - unread} of these reach a field in this app, {unread} reach none — "
+               + "marked on every line below.";
     }
 
     /// <summary>The mark a read name carries in the dump, and the one an unread name carries. Unread is the

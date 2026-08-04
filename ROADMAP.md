@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T282** (deps: —) **the readership count is printed straight to the console, so nothing holds it against the marks it summarises** — The marks and the unread set are both values a check reads, while the line stating how many names reach a field is console output — the one shape T278 left unreplaced. → §XX.2
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization

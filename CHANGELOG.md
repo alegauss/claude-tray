@@ -51,7 +51,7 @@
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
-| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
+| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 
 ## Block A — Foundation (tray, icon, API, projection)
@@ -588,6 +588,7 @@
 - **T265** — The question IconRenderer names as the only one worth asking of this colour now has a sheet to ask it with: billing_sheet.png pairs stopped against paying at 16, 20 and 32, adjacent because the claim is about two fills a glance must not confuse, magnified 8x with the real pixels and drawn on both a light and a dark strip. Its own file rather than a row on the accent sheet, since one image carrying two claims cannot say which of them failed. Answered while building it: at 16px the red and the clay are tellable apart and neither reads as an alarm.
 - **T272** — Moved the Empty declaration above the All array that reads it, which took the build from three CS8602 warnings to zero with --tooltip all byte-identical across the move, and put the invariant in a doc comment: static initialisers run in textual order, so the three rows survived only by deferral inside a Func. Gated it in check.yml with -warnaserror on both build steps rather than TreatWarningsAsErrors in the csproj, so a future SDK analyser bills a merge decision instead of whoever is mid-task, and asserted the flag in --selftest because dropping one word from a YAML file nothing reads is exactly how the protection would go missing while the run stayed green. Proved both directions: the check goes red naming the ungated step, and the old order rebuilt with the flag fails as error CS8602 rather than warning.
 - **T278** — Every rate-limit header --probe prints is marked read or unread from the parser enumerating itself, each profile opens with the count, and --selftest holds the two against each other.
+- **T282** — The readership block and the --all sentence are returned as values built from one derived count, so --selftest holds each summary against the marked lines it is a summary of rather than against the classifier both came from.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

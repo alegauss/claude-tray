@@ -27,6 +27,22 @@ internal readonly record struct HeaderPresence(string Name, int Readings, int To
     public bool Intermittent => Readings < Total;
 }
 
+/// <summary>What one log says about this app's <em>reading</em> of it: how many names it carried, how many
+/// of those reach a field, which reach none, and which the parser reads but this profile is never sent
+/// (T282).
+///
+/// <para>A value rather than four numbers assembled where they are printed. The count and the names below
+/// it are one fact stated twice, so they are derived once here — a read-out whose header disagrees with its
+/// own body is the one failure a summary can have, and it is invisible to a check that can only look at the
+/// classifier.</para></summary>
+internal readonly record struct HeaderReadership(
+    int Total, IReadOnlyList<string> Unread, IReadOnlyList<string> NeverSent)
+{
+    /// <summary>The names that reach a field. Derived, never stored: it is <see cref="Total"/> minus the
+    /// unread, and a second stored count is a second thing that can be wrong.</summary>
+    public int Read => Total - Unread.Count;
+}
+
 /// <summary>What one profile's log says about a header name: its values, or that the name never appeared
 /// there at all. <c>null</c> is the absence, and it is the point.</summary>
 internal readonly record struct ProfileValue(string Profile, string? Value);
@@ -295,6 +311,22 @@ internal static class HeaderProbe
     /// never silent.</summary>
     public static List<string> Unread(IEnumerable<ProbeEntry> log) =>
         Presence(log).Select(p => p.Name).Where(n => !IsRead(n)).ToList();
+
+    /// <summary>Both directions of the same question, over one log, as one value (T282): what it carried,
+    /// what reaches no field, and what the parser reads that this profile has never been sent.
+    ///
+    /// <para>The last is the opposite fact and the sharper one — a field filled from a header that never
+    /// arrives — so it is measured against <see cref="ApiClient.NamesRead"/> rather than against the log,
+    /// which by definition cannot mention a name it never carried.</para></summary>
+    public static HeaderReadership Readership(IEnumerable<ProbeEntry> log)
+    {
+        List<HeaderPresence> present = Presence(log);
+        var carried = new HashSet<string>(present.Select(p => p.Name), StringComparer.OrdinalIgnoreCase);
+        return new HeaderReadership(
+            present.Count,
+            present.Select(p => p.Name).Where(n => !IsRead(n)).ToList(),
+            ApiClient.NamesRead.Where(n => !carried.Contains(n)).ToList());
+    }
 
     /// <summary>A header whose value is a figure that moves on its own, so only its presence is shape.</summary>
     private static bool Moves(string name) =>

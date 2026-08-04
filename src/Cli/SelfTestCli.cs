@@ -3575,6 +3575,74 @@ internal static class SelfTestCli
               {
                   new(Now, read.ToDictionary(n => n, _ => "0.5", StringComparer.OrdinalIgnoreCase)),
               }).Count == 0);
+
+        Summary(log, read, unread);
+    }
+
+    /// <summary>
+    /// T282. The count in front of the readings is a claim <em>about</em> the marks under it — nine of
+    /// seventeen reach a field — and T278 left it as the one part of the read-out built inline and written
+    /// straight to the console. Every check above it asks the classifier, which is the thing both the
+    /// sentence and the marks were derived from, so a summary that recounted on its own line would have
+    /// contradicted its own body with all of them passing.
+    ///
+    /// <para>So what is asserted here is the agreement, not the arithmetic: the numbers the sentence states
+    /// are the lengths of the lists printed beneath it, and the block is a value both can be read off. The
+    /// <c>--all</c> sentence is the same claim over the union of every profile's names and gets the same
+    /// treatment, or the defect simply moves one screen down.</para>
+    /// </summary>
+    private static void Summary(List<ProbeEntry> log, string[] read, string[] unread)
+    {
+        HeaderReadership r = HeaderProbe.Readership(log);
+        Check($"the readership counts every name on file ({read.Length + unread.Length})",
+              r.Total == read.Length + unread.Length, $"{r.Total}");
+        Check("read and unread account for all of them, with read derived rather than stored",
+              r.Read + r.Unread.Count == r.Total && r.Read == read.Length, $"{r.Read} + {r.Unread.Count}");
+        Check("and the unread list is the names nothing reads, not a count of them",
+              unread.All(r.Unread.Contains) && r.Unread.Count == unread.Length,
+              string.Join("; ", r.Unread));
+
+        List<string> lines = ProbeCli.ReadershipLines(r);
+        if (Check("the block leads with the sentence a reader sees first", lines.Count > 0
+                  && lines[0].StartsWith("readership — "), lines.Count > 0 ? lines[0] : "<empty>"))
+        {
+            // The agreement itself: the sentence's own numbers, read back out of it, against the lines it
+            // is a summary of. Anything that recounts on one side alone fails here and nowhere else.
+            Check("its numbers are the lines beneath it, not a second count",
+                  lines[0].Contains($"{r.Read} of {r.Total} ") && lines[0].Contains($"{r.Unread.Count} reach none")
+                  && lines.Count(l => l.Contains(ProbeCli.UnreadMark)) == r.Unread.Count,
+                  lines[0]);
+            Check("every unread name is marked in the body it summarises",
+                  unread.All(n => lines.Any(l => l.Contains(ProbeCli.UnreadMark) && l.Contains(n))));
+            Check("and a name the parser reads that never arrived is named as the opposite fact",
+                  r.NeverSent.All(n => lines.Any(l => l.Contains("read, never sent") && l.Contains(n))));
+        }
+
+        // A log carrying every name the parser reads and nothing else: no unread lines, and no prose
+        // excusing them, or the block explains an absence it is not reporting.
+        var allRead = new List<ProbeEntry>
+        {
+            new(Now, read.ToDictionary(n => n, _ => "0.5", StringComparer.OrdinalIgnoreCase)),
+        };
+        List<string> clean = ProbeCli.ReadershipLines(HeaderProbe.Readership(allRead));
+        Check("a log with nothing unread says so and stops",
+              clean.Count > 0 && clean[0].Contains("0 reach none")
+              && !clean.Any(l => l.Contains(ProbeCli.UnreadMark)), string.Join(" | ", clean));
+        Check("an empty log yields no block at all — not a heading over nothing",
+              ProbeCli.ReadershipLines(HeaderProbe.Readership(new List<ProbeEntry>())).Count == 0);
+
+        // The same sentence over the union of two profiles, which is what --all prints.
+        List<HeaderSpread> spread = HeaderProbe.Spread(new List<(string, IReadOnlyList<ProbeEntry>)>
+        {
+            ("reads", allRead), ("does not", log),
+        });
+        string union = ProbeCli.SpreadReadership(spread);
+        int unreadNames = spread.Count(h => !HeaderProbe.IsRead(h.Name));
+        Check("the --all sentence counts the union of every profile's names",
+              union.Contains($"{spread.Count - unreadNames} of these") && union.Contains($"{unreadNames} reach none"),
+              union);
+        Check("and it counts names, not readings — two profiles do not double the total",
+              spread.Count == read.Length + unread.Length, $"{spread.Count}");
     }
 
     // ---------------------------------------------------------------- Block E: the cards' glyphs
