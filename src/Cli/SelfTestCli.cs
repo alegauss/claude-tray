@@ -203,6 +203,9 @@ internal static class SelfTestCli
         Section("console — the code page is set where the flags are dispatched (Block AI)");
         ConsoleCodePage();
 
+        Section("source — what a scan of this repository reads as code (Block AI)");
+        CodeReading();
+
         Section("parser — the names it spells and the names it reports are one set (Block AI)");
         ParserNames();
 
@@ -2575,29 +2578,97 @@ internal static class SelfTestCli
     /// written rather than the month somebody trusts the mark. The bare family prefix is excluded: it is
     /// what the verbatim copy filters on, not a name read into a field.</para>
     /// </summary>
+    /// <summary>
+    /// T285. <see cref="CodeOf"/>'s own answer, over the literal forms this repository contains — asserted
+    /// against synthetic source rather than against the tree, for T248's reason: the tree happens not to
+    /// hold every case today, and a check that waits for one is a check that ships broken.
+    ///
+    /// <para>Two directions, and the second is the one that fails quietly. A comment that survives makes a
+    /// scan report something that is not there, which is loud — all three scans here were caught that way,
+    /// each on its own first run. A string that does <em>not</em> survive makes a scan report less than is
+    /// there, and a check asserting less still passes. Every fixture below therefore keeps a piece of code
+    /// after the region being skipped, so a terminator read wrong is a fact this can see.</para>
+    /// </summary>
+    private static void CodeReading()
+    {
+        // Assembled, never written out — the fixtures are read by the very scans they are fixtures of.
+        string q = "\"";
+        string slashes = "//";
+        string setter = "Console." + "OutputEncoding" + " =";
+
+        (string What, string Source, bool Kept)[] cases =
+        {
+            ("a line comment", $"{slashes} {setter} UTF8\nint a = 1;", false),
+            ("a doc comment", $"/// <c>{setter} UTF8</c>\nint a = 1;", false),
+            ("a block comment", $"/* {setter} UTF8 */\nint a = 1;", false),
+            ("a comment at end of line", $"int a = 1;   {slashes} {setter} UTF8", false),
+            ("code itself", $"{setter} UTF8;", true),
+            ("a string holding the setter", $"string s = {q}{setter} UTF8{q};", true),
+        };
+        foreach ((string what, string source, bool kept) in cases)
+            Check($"{what}: the setter {(kept ? "survives" : "is gone")}",
+                  CodeOf(source).Contains(setter) == kept, CodeOf(source).Replace("\n", "\\n"));
+
+        // The T248 case, one level down: a `//` inside a literal is not a comment, and reading it as one
+        // eats the rest of the line — silently, because what is left still parses and still asserts.
+        string url = $"string site = {q}https://example.invalid/x{q}; int kept = 1;";
+        Check("a // inside a string does not start a comment", CodeOf(url).Contains("int kept = 1;"),
+              CodeOf(url));
+
+        // Every terminator this file's own sources rely on. Each fixture ends in a token that only appears
+        // after the literal, so a string read as unterminated loses it.
+        (string What, string Source)[] terminators =
+        {
+            ("a doubled quote in a verbatim string", $"var r = @{q}a{q}{q}b{q}; int kept = 1;"),
+            ("an escaped quote in a quoted string", $"var r = {q}a\\{q}b{q}; int kept = 1;"),
+            ("a quote inside a char literal", $"char c = '{q}'; int kept = 1;"),
+            ("a raw string carrying a quote", $"var r = {q}{q}{q}he said {q}hi{q}{q}{q}{q}; int kept = 1;"),
+            ("a raw string carrying a comment", $"var r = {q}{q}{q}{slashes} not a comment{q}{q}{q}; int kept = 1;"),
+            ("an interpolated raw string", $"var r = $${q}{q}{q}x {{{{y}}}} {slashes} z{q}{q}{q}; int kept = 1;"),
+        };
+        string[] lost = terminators.Where(t => !CodeOf(t.Source).Contains("int kept = 1;"))
+                                   .Select(t => $"{t.What} → {CodeOf(t.Source)}").ToArray();
+        Check($"the code after every literal form is still read ({terminators.Length})", lost.Length == 0,
+              string.Join("; ", lost));
+
+        // Line numbers survive a removal, or a caller counting by line answers about the wrong one.
+        string across = $"/* one\ntwo */\nint a = 1;";
+        Check("a removed region keeps its newlines",
+              CodeOf(across).Count(ch => ch == '\n') == across.Count(ch => ch == '\n'),
+              CodeOf(across).Replace("\n", "\\n"));
+
+        // And the whole of this file, which is the largest source here and the one carrying raw strings:
+        // a scanner that desynchronised on those would silently skip everything after them.
+        string? self = RepoFile(Path.Combine("src", "Cli", "SelfTestCli.cs"));
+        if (self is not null)
+        {
+            string code = CodeOf(File.ReadAllText(self));
+            Check("this file's own last method survives the scan", code.Contains("private static void Remove"),
+                  $"{code.Length} of {new FileInfo(self).Length} characters");
+        }
+    }
+
     private static void ParserNames() =>
         Repo("every header name the parser spells is one it reports reading", ParserNames, "src");
+
+    /// <summary>A header name as the parse spells one: the family, and at least one character of window
+    /// after it. The bare <c>anthropic-ratelimit-</c> prefix is the verbatim copy's filter, not a name.</summary>
+    private static readonly Regex HeaderLiteral = new("\"(anthropic-ratelimit-[a-z0-9][a-z0-9-]*)\"",
+                                                      RegexOptions.Compiled);
 
     private static void ParserNames(string root)
     {
         string path = Path.Combine(root, "src", "Usage", "ApiClient.cs");
         if (!Check("the parser is in the checkout", File.Exists(path), path)) return;
 
-        // Comment lines are dropped for the reason ConsoleCodePage's are, and here there is a second: the
-        // paragraphs above the parse write the family as `anthropic-ratelimit-unified-*`, which matches as
-        // a name ending in a dash. Names are required not to end in one, so a comment that slips past the
-        // first rule still cannot invent a header.
+        // Over the code alone (T285). This scan carried two hand rules — skip a line starting with `//`,
+        // and refuse a name ending in a dash — the second only because the paragraphs above the parse write
+        // the family as `anthropic-ratelimit-unified-*`. Neither is needed once a comment is a region
+        // rather than a shape, and the bare family prefix is excluded by requiring a character after it:
+        // that literal is what the verbatim copy filters on, not a name read into a field.
         var spelled = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (string line in File.ReadLines(path))
-        {
-            if (line.TrimStart().StartsWith("//")) continue;
-            foreach (System.Text.RegularExpressions.Match m in
-                     System.Text.RegularExpressions.Regex.Matches(line, "\"(anthropic-ratelimit-[a-z0-9-]+)\""))
-            {
-                string name = m.Groups[1].Value;
-                if (!name.EndsWith("-")) spelled.Add(name);
-            }
-        }
+        foreach (Match m in HeaderLiteral.Matches(CodeOf(File.ReadAllText(path))))
+            spelled.Add(m.Groups[1].Value);
 
         if (!Check($"the parser spells header names at all ({spelled.Count})", spelled.Count > 0,
                    "none found — the scan reads nothing, so it would pass on a parser that read nothing"))
@@ -2643,15 +2714,14 @@ internal static class SelfTestCli
         string setter = "Console." + "OutputEncoding" + " =";
         string dispatch = Path.Combine("src", "Tray", "Program.cs");
 
-        // Comment lines are dropped before counting, and the first run of this check is why: the paragraph
-        // above names the setter to explain what is being counted, and the scan read the explanation as a
-        // thirteenth copy. The same lesson T248 learned about the flag scan, in the same file.
+        // Counted over the code alone (T285). The paragraph above names the setter in order to explain what
+        // is being counted, and on this check's first run that explanation was read as a thirteenth copy —
+        // so the comment is removed lexically rather than by a rule about how a line begins.
         (string File, int Count)[] setters = Directory
             .GetFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories)
             .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
             .Select(f => (File: Path.GetRelativePath(root, f),
-                          Count: File.ReadLines(f)
-                                     .Count(l => l.Contains(setter) && !l.TrimStart().StartsWith("//"))))
+                          Count: CodeOf(File.ReadAllText(f)).Split(setter).Length - 1))
             .Where(x => x.Count > 0)
             .ToArray();
 
@@ -2808,6 +2878,152 @@ internal static class SelfTestCli
 
     /// <summary>The flag literals one source file compares against. Pure, so <see cref="FlagScanning"/> can
     /// hand it the two lines that used to be read wrong.</summary>
+    /// <summary>
+    /// One source file's <b>code</b>: every comment removed, every string literal kept whole (T285).
+    ///
+    /// <para><b>Why this exists.</b> Three checks here read this repository's own sources. <c>FlagsRead</c>
+    /// (T248) matches a comparison — <c>Contains("--x")</c> — so a flag quoted in a paragraph is not a flag
+    /// the app accepts. The two added since matched a bare literal and then subtracted prose by hand, and
+    /// both paid for it on their first run: T283's scan read its own summary, which names the setter in
+    /// order to explain what it counts, and T284's needed a second rule because the paragraph above the
+    /// parse writes the family with a trailing dash. Each hand rule is right about the case that produced
+    /// it and blind to the next one — and a scan whose exclusion is approximate fails by asserting
+    /// <em>less</em>, which still passes.</para>
+    ///
+    /// <para><b>So the question is answered once, lexically, instead of by pattern.</b> A comment is not a
+    /// line that looks like one; it is a region C# would not compile. Strings are kept because they are
+    /// what the scans are looking for — a header name and a flag are both literals — and they are the whole
+    /// reason stripping to the first <c>//</c> is wrong: <c>"https://x"</c> would end the line.</para>
+    ///
+    /// <para>Every literal form this repository actually contains is handled, raw strings included, because
+    /// this file has them: desynchronising on <c>$$"""…"""</c> would silently skip the rest of the largest
+    /// source here and answer with confidence. Newlines are preserved so a caller may still count by line.</para>
+    /// </summary>
+    internal static string CodeOf(string source)
+    {
+        var code = new StringBuilder(source.Length);
+        int i = 0;
+
+        // Emit the newlines inside a skipped region, so nothing that counts lines is thrown off by a
+        // comment or a multi-line string being removed.
+        void Skip(int from, int to)
+        {
+            for (int k = from; k < to && k < source.Length; k++)
+                if (source[k] == '\n') code.Append('\n');
+        }
+
+        while (i < source.Length)
+        {
+            char c = source[i];
+
+            if (c == '/' && i + 1 < source.Length && source[i + 1] == '/')
+            {
+                int end = source.IndexOf('\n', i);
+                if (end < 0) break;
+                Skip(i, end);
+                i = end;
+                continue;
+            }
+
+            if (c == '/' && i + 1 < source.Length && source[i + 1] == '*')
+            {
+                int end = source.IndexOf("*/", i + 2, StringComparison.Ordinal);
+                end = end < 0 ? source.Length : end + 2;
+                Skip(i, end);
+                i = end;
+                continue;
+            }
+
+            // A string may carry any of $, @ and $$ in front of it. The prefix decides how it ends, so it
+            // is read before the quote rather than guessed after one.
+            int p = i;
+            bool verbatim = false, interpolated = false;
+            while (p < source.Length && (source[p] == '@' || source[p] == '$'))
+            {
+                verbatim |= source[p] == '@';
+                interpolated |= source[p] == '$';
+                p++;
+            }
+            if (p < source.Length && source[p] == '"')
+            {
+                int quotes = 0;
+                while (p + quotes < source.Length && source[p + quotes] == '"') quotes++;
+                int end = quotes >= 3
+                    ? RawStringEnd(source, p + quotes, quotes)
+                    : verbatim ? VerbatimEnd(source, p + 1) : QuotedEnd(source, p + 1);
+                code.Append(source, i, end - i);
+                i = end;
+                continue;
+            }
+            _ = interpolated;   // read for the prefix, not needed once the terminator is known
+
+            if (c == '\'')
+            {
+                int end = CharEnd(source, i + 1);
+                code.Append(source, i, end - i);
+                i = end;
+                continue;
+            }
+
+            code.Append(c);
+            i++;
+        }
+
+        return code.ToString();
+    }
+
+    /// <summary>Past the closing quote of a <c>"…"</c>, where a backslash escapes the next character.</summary>
+    private static int QuotedEnd(string s, int i)
+    {
+        while (i < s.Length)
+        {
+            if (s[i] == '\\') { i += 2; continue; }
+            if (s[i] == '"' || s[i] == '\n') return i + 1;
+            i++;
+        }
+        return s.Length;
+    }
+
+    /// <summary>Past the closing quote of an <c>@"…"</c>, where <c>""</c> is one quote and a backslash is
+    /// an ordinary character — the form every regex in this file is written in.</summary>
+    private static int VerbatimEnd(string s, int i)
+    {
+        while (i < s.Length)
+        {
+            if (s[i] != '"') { i++; continue; }
+            if (i + 1 < s.Length && s[i + 1] == '"') { i += 2; continue; }
+            return i + 1;
+        }
+        return s.Length;
+    }
+
+    /// <summary>Past the closing fence of a raw string: the first run of at least as many quotes as opened
+    /// it. A shorter run is content, which is the entire point of the form.</summary>
+    private static int RawStringEnd(string s, int i, int opened)
+    {
+        while (i < s.Length)
+        {
+            if (s[i] != '"') { i++; continue; }
+            int run = 0;
+            while (i + run < s.Length && s[i + run] == '"') run++;
+            if (run >= opened) return i + run;
+            i += run;
+        }
+        return s.Length;
+    }
+
+    /// <summary>Past the closing quote of a char literal, so <c>'"'</c> does not open a string.</summary>
+    private static int CharEnd(string s, int i)
+    {
+        while (i < s.Length)
+        {
+            if (s[i] == '\\') { i += 2; continue; }
+            if (s[i] == '\'' || s[i] == '\n') return i + 1;
+            i++;
+        }
+        return s.Length;
+    }
+
     internal static IEnumerable<string> FlagsRead(string source) =>
         FlagComparison.Matches(source).Select(m => m.Groups["flag"].Value);
 
@@ -2828,7 +3044,13 @@ internal static class SelfTestCli
         string[] accepted = (Directory.Exists(src)
                 ? Directory.GetFiles(src, "*.cs", SearchOption.AllDirectories)
                 : Array.Empty<string>())
-            .SelectMany(f => FlagsRead(File.ReadAllText(f)))
+            // Over the code, not the file (T285). Matching the comparison shape is what keeps a flag merely
+            // *named* in a paragraph out of this list, and it is not enough on its own: a paragraph that
+            // quotes the shape — `Contains("--x")`, written to explain what is matched — is read as a flag
+            // the .exe accepts. That is this scan's version of the failure T283's and T284's each had, and
+            // it turned up the moment CodeOf existed to be used here. FlagsRead's own contract is unchanged:
+            // its fixtures still hand it prose directly, because what they assert is the shape rule.
+            .SelectMany(f => FlagsRead(CodeOf(File.ReadAllText(f))))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(f => f, StringComparer.Ordinal).ToArray();
 

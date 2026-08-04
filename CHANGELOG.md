@@ -51,7 +51,7 @@
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
-| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
+| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 
 ## Block A — Foundation (tray, icon, API, projection)
@@ -591,6 +591,7 @@
 - **T282** — The readership block and the --all sentence are returned as values built from one derived count, so --selftest holds each summary against the marked lines it is a summary of rather than against the classifier both came from.
 - **T283** — The console goes to UTF-8 once where the flags are dispatched, so every read-out prints its dashes and its section pointers, and a source scan fails the build if a second file sets it.
 - **T284** — Every header name ApiClient spells is held against the list the parser derives by enumerating itself, both directions, so a read placed behind a branch fails the build instead of being reported unread by the instrument built to prove otherwise.
+- **T285** — Every check that reads this repository sources now takes them through one lexical reader that removes comments and keeps literals, which caught the flag catalogue counting a flag named only in a paragraph, and its own answer is held against synthetic source in every literal form here.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

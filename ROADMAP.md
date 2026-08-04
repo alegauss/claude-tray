@@ -63,8 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T285** (deps: —) **two source scans exclude prose by hand where the one that works matches the code shape instead** — T283 read its own doc comment as a thirteenth copy on its first run and T284 needed a second guard, while `FlagsRead` has matched comparison shapes since T248 and needs neither. → §XX.5
-
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization
