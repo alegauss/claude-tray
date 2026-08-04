@@ -18,15 +18,26 @@
 | [§XV](#xv--what-block-zs-own-work-left-behind-block-ab) | What Block Z's own work left behind (Block AB) |
 | [§XVI](#xvi--the-tray-reports-the-switch-it-performed-not-the-switch-the-machine-got-block-ac) | The tray reports the switch it performed, not the switch the machine got (Block AC) |
 | [§XVIII](#xviii--extra-usage-is-money-and-the-tray-is-asleep-for-it-block-ae) | Extra usage is money, and the tray is asleep for it (Block AE) |
-| [§XX](#xx--the-interaction-check-grew-two-cases-and-nobody-runs-it-block-ag) | The interaction check grew two cases, and nobody runs it (Block AG) |
-| [§XXI](#xxi--what-block-afs-own-captures-turned-up-block-ah) | What Block AF's own captures turned up (Block AH) |
+| [§XX](#xx-verification--the-checks-that-prove-a-change-block-ai) | Verification — the checks that prove a change (Block AI) |
+| [§XXI](#xxi-numbers-in-prose--one-convention-or-a-stated-split-block-g) | Numbers in prose — one convention, or a stated split (Block G) |
+| [§XXII](#xxii-working-here--what-earns-a-byte-of-agentsmd-block-aj) | Working here — what earns a byte of AGENTS.md (Block AJ) |
+| [§XXIII](#xxiii-what-the-api-says-about-permission-and-what-the-app-infers-instead-block-d) | What the API says about permission, and what the app infers instead (Block D) |
+| [§XXIV](#xxiv-this-machines-install-read-from-a-file-another-program-writes-block-n) | This machine's install, read from a file another program writes (Block N) |
+| [§XXV](#xxv-toast-cards--what-the-card-actually-draws-block-e) | Toast cards — what the card actually draws (Block E) |
+| [§XXVI](#xxvi-one-setting-two-places-that-change-it-block-s) | One setting, two places that change it (Block S) |
+| [§XXVIII](#xxviii-input-focus-and-being-readable-block-q) | Input, focus, and being readable (Block Q) |
+| [§XXIX](#xxix-the-context-load-inspectors-own-read-out-block-i) | The Context Load Inspector's own read-out (Block I) |
+| [§XXX](#xxx-dates--the-words-are-translated-and-the-order-is-not-block-g) | Dates — the words are translated and the order is not (Block G) |
+| [§XXXI](#xxxi-the-release-path-from-the-machine-it-is-run-on-block-b) | The release path, from the machine it is run on (Block B) |
+| [§XXXII](#xxxii-the-activity-read-out-as-a-picture-block-j) | The activity read-out, as a picture (Block J) |
+| [§XXXIII](#xxxiii-since-when-not-just-that-it-is-happening-block-a) | Since when, not just that it is happening (Block A) |
 
 > Block I's design sections (§II), Block J's (§IV), Block V's (§XII), Block Z's (§XIII), Block AA's
 > (§XIV), Block AD's (§XVII) and Block AF's (§XIX) are gone: every one of them shipped, and `git log` plus
 > [CHANGELOG.md](CHANGELOG.md) are the history. §III stays because it is a **measurement** — the
 > numbers the rule thresholds and the base-overhead constant were calibrated against.
 >
-> Section numbers are **never reused**: §II, §IV–§XIV, §XVII and §XIX have all been retired, so a new block
+> Section numbers are **never reused**: §II, §IV–§XIV, §XVII, §XIX and §XXVII have all been retired, so a new block
 > takes the next unused numeral rather than the next free-looking one. A `→ §V` in an old commit
 > message must keep pointing at what it pointed at.
 
@@ -216,6 +227,24 @@ controls asserted on three. None of them ever went red. That is why the exit cod
 degraded run from a clean one, and why an assertion that could have run and did not is named and
 counted rather than mentioned.
 
+### XX.1 An instrument that says what it ignores
+
+`--probe` prints the rate-limit headers verbatim, and T211 added the other half: which names each
+account is sent, and which it never is. Both are about the *response*. Neither says anything about
+the **app**, and the space between them is where a header arrives for months unread.
+
+Of the fourteen names received today, `ApiClient` reads four families. `overage-in-use`,
+`5h-surpassed-threshold`, `upgrade-paths`, `representative-claim` and `fallback-percentage` reach no
+field. That was established by grepping the source — which is the work a read-out exists to make
+unnecessary, and it is how the header deciding whether work has stopped went unread through the
+release that shipped the state it decides.
+
+The names the parser reads sit in one method, so the read-out can be driven from the parser rather
+than from a table beside it; a second table is a second thing to forget. Mark each printed header
+read or unread, and have `--selftest` assert the two against each other: a name the parser reads
+that the probe calls unread is a defect in the read-out, and a name nothing reads is permitted but
+has to be impossible to miss in `--probe --all`.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
@@ -229,10 +258,97 @@ displaces something, and nothing records which rules have earned the bytes they 
 
 ## XXIII What the API says about permission, and what the app infers instead (Block D)
 
-Every signal this app has about whether an account may spend past its included quota is inferred
-from a file or from an effect. The API states it directly, on every response, and nothing here has
-ever been able to read the statement — because until a second account was probed there was only one
-sample and it could not be told apart from a default.
+Every signal this app has about whether an account may spend past its quota is inferred from a file
+or from an effect. The API states it directly, and until 2026-08-04 nothing here could read the
+statement: `overage-status: allowed` arrives on an account inside its quota whose flag is already
+set, so one sample cannot be told from a default.
+
+A second kind of sample now exists. On the monitored account
+`anthropic-ratelimit-unified-overage-in-use` was **absent** on nine consecutive readings inside the
+quota — including one at 0.91 eighteen minutes before — and arrived as `true` on the first reading
+past it, at 5h `1.02` with `5h-status: rejected`. Not a value every response carries, which is the
+one property `Allows` needed and could not find.
+
+Two constraints from §XVIII carry over. Rate-limit headers are quota metadata, so §I.1 is not in
+tension; the "profiles are contexts, not quota pools" non-goal is, because every task here makes
+overage more visible and *this account is out, the other has room* is the sentence the roadmap
+forbids — §I.7, and §XVI.4 has the shape of the answer: a receipt, not a reward.
+
+What binds the whole block: the amount is still unstated. The overage window has a utilization that
+read `0.0` throughout the spell and a reset on a calendar month; no header says what 100% of it
+amounts to. So every task here reports **that** it is happening, or **when**, or an estimate marked
+as one — never a share of a denominator nothing measured.
+
+### XXIII.1 The header that says it is happening
+
+`ApiClient` parses four header families — the three windows' utilization, reset and status, plus
+`overage-disabled-reason` — and `overage-in-use` is in none of them. The name appears nowhere in the
+source, so the one statement the API makes about the state this app is trying to infer is received
+on every response and dropped.
+
+The work is a field on `UsageData`, the same name in the capture log, and the post in
+`QuotaStates.Resolve` that `hasExtraUsageEnabled` holds today. That order is the point, and its
+reasoning is already written: the flag is read out of a file Claude Code writes, and T224 put the
+API's refusal above it for exactly that reason. The affirmative earns the same rank now that a
+reading distinguishes it — above the file, below an observed figure, and still below a measured
+refusal, since nothing has ever sent `rejected` and `in-use: true` together.
+
+What does not change: `Allows` keeps failing to affirm on `overage-status`, because that header is
+the one that could not be told from a default. This adds a second signal beside it rather than
+reinterpreting the first, and `--selftest`'s quota section is where the two are held apart.
+
+### XXIII.2 A window has a scope, and this fact has none
+
+`CurrentQuotaState` resolves from `d.Metric(_metric)`, and the comment above it defends that choice
+for the *caption*: the icon shows one number and the tooltip's at-limit sentence names that same
+scope, so answering about another window would caption the wrong figure. Correct for the sentence,
+wrong for the state.
+
+Measured on the reporting machine with the metric on `5h`: 5h `1.02` / `rejected`, 7d `0.47` /
+`allowed`. Switch the icon to the week — a display option, one menu click — and the same reading
+resolves to `InQuota`: green bar, on-track projection, no billing sentence anywhere, and the account
+spending money throughout.
+
+Whether an account is paying is a property of the account, not of the window the icon happens to
+show. The split to make is between the *verdict*, resolved from whichever window is rejected, and
+the *caption*, which goes on naming the metric's own scope so the tooltip still cannot label the
+wrong percentage. Both halves are text, so `--tooltip` is where the pairs get checked — and the pair
+worth a variant of its own is the one this task exists for: a rejected session behind a week at 47%.
+
+### XXIII.3 A spell that is over, and nothing that recorded it
+
+`usage-history.jsonl` carries `ux` and `rx` per reading and both come from the overage figure, so
+the crossing recorded `{"u5":1.02,"ux":0}` four times over and nothing else. The store is pruned at
+eight days and `HourlyUsage` folds out spend and coverage before that, neither keeping a trace that
+the account was past its quota at all — so a week reviewed afterwards shows a ceiling and no account
+of how work continued through it.
+
+Downstream, `UsageReport`'s week keeps `ExtraCurve` and `ExtraMax`, and T247 fixed the *opposite*
+defect there: measured zeros were drawing a flat line as if it were data. So this spell cannot be
+got onto the chart by relaxing that guard — a zero series is still not a series.
+
+What the picture wants is a **stretch** rather than a curve: the interval over which the boolean was
+true, shaded behind the utilization line, with the second axis appearing only when there is a figure
+to rule. That needs the boolean in the store beside the figure, which is this task and why T279 and
+T280 both depend on it. `--stats overage` is the preview it has to be visible in.
+
+### XXIII.4 What the spell cost, from what is already read
+
+The honest version of "extra usage is paying" is a number in money, and the app is closer to one
+than the overage percentage suggests. `UsageInsights` already reads the last 24h of transcripts into
+a cost-weighted breakdown and owns the per-model `Price` table the whole app shares; T275 puts the
+crossing in the store with a timestamp. The turns taken after that timestamp are therefore priceable
+with nothing new read and no endpoint added.
+
+Three things have to hold for it to ship, and the third is why this is an idea rather than a design.
+It is an **estimate**, carrying the same visible "≈" every token count here does — §I.3. It is a
+**receipt**: what it cost, with no suggestion, no comparison against another profile, nothing that
+reads as a reward for spending — §I.7 and §XVI.4. And the price table has to be right about which
+models the overage even bills: `.claude.json` caches a `tengu_usage_overage_included_models` list,
+so some models appear not to count against it, and pricing turns the account was never billed for is
+worse than saying nothing.
+
+Measure that list against a real spell before writing a figure on screen.
 
 ## XXIV This machine's install, read from a file another program writes (Block N)
 
@@ -244,6 +360,42 @@ therefore not this app's decision, and a count taken over them is a claim about 
 
 Two things the toasts got wrong that no capture ever objected to, both found by looking at a card
 rather than at the code that built it.
+
+### XXV.1 A rise that never happens
+
+`NoteExtraUsage` arms on `QuotaStates.StartsSpending`, which is a *rise*: the current figure above
+zero and the previous one a measured zero. T184 chose that deliberately and the reasoning holds —
+`null` is not zero, and announcing a start from a reading nobody took is how a notification loses
+its credibility.
+
+The reading of 2026-08-04 is the case the rule cannot see. The figure was `0.0` before the crossing,
+`0.0` after it, and `0.0` on every reading of the spell, while `overage-in-use` went from absent to
+`true`. So the account crossed 100%, went on working, and the toast that exists for precisely that
+moment was correctly suppressed.
+
+Arm it on the boolean's rise instead, with T184's asymmetry kept intact: absent is not `false`, so
+the previous reading must have been *taken* and have said so, and a process starting mid-spell still
+seeds from the store rather than announcing a beginning it did not witness. The figure stays a
+second route — an account whose overage utilization does climb should fire once and not twice, so
+both routes share one already-announced latch. `NotifyOnExtraUsage` still governs whether either
+speaks at all.
+
+### XXV.2 A card with no number to draw
+
+The card is handed `1 − extra` because its bar renders quota still available, so the filled sliver
+reads as the extra spent so far and matches the label beside it. With the figure at `0.0` that bar
+is drawn **full**: a card whose whole message is that the quota is spent and money is being charged,
+showing a complete allowance behind the sentence.
+
+So the toast T276 arms needs a second form — the news, the reset, and no bar at all. `ToastWindow`'s
+palette already carries `ExtraUsage`, the clay `#D97757` the icon and the chart share, so the
+variant costs no new colour. `--check-toasts` asks every card in every language whether it fits,
+which is where a bar-less form is held to the same test as the rest, and `--capture-toast` writes
+the picture to the explicit path T198 requires.
+
+The rule worth keeping past the task: a card may not draw a meter for a quantity its reading does
+not carry. A bar with nothing behind it is not a neutral default — it is a claim, and here it is the
+opposite of the one the card was opened to make.
 
 ## XXVI One setting, two places that change it (Block S)
 
@@ -273,3 +425,21 @@ installed.
 ## XXXII The activity read-out, as a picture (Block J)
 
 What the grid shows and what the sentences around it claim, which are not the same axis.
+
+## XXXIII Since when, not just that it is happening (Block A)
+
+The tooltip's billing sentence states a condition: *o uso extra está pagando*. Nothing anywhere says
+when the spell began, and a spell is an event — it started at a reading, and that reading is in the
+store once T275 lands.
+
+Worth a line of its own because of what a user does with it. "You are paying" invites "since when",
+and the answer decides whether the next hour of work is a considered choice or something found at
+the end of the month. It is also the cheapest honest thing this app can say about cost while the
+amount is unstated (§XXIII.4): a duration is measured, a figure would not be.
+
+The budget is the constraint rather than the wording. `NOTIFYICONDATA.szTip` allows 127 characters
+and `--tooltip` reports every variant against that cap in every language; the two billing variants
+measure 114/127 and 103/127 in pt-BR, so a duration fits where a timestamp carrying a date does not.
+It belongs in the same fitting ladder as the projection sentence — full form, compact form, dropped
+— with the readings above it kept, and `--tooltip` is what says which of the three each language
+ends up with.

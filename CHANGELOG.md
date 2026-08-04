@@ -17,11 +17,11 @@
 
 | Block | Theme |
 |---|---|
-| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
+| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection (active — see ROADMAP) |
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
-| [D](#block-d--auth--api-resilience) | Auth & API resilience |
-| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
+| [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
+| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts (active — see ROADMAP) |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
@@ -51,7 +51,7 @@
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
-| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
+| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 
 ## Block A — Foundation (tray, icon, API, projection)
