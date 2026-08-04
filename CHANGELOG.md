@@ -25,7 +25,7 @@
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
-| [I](#block-i--context-load-inspector) | Context Load Inspector |
+| [I](#block-i--context-load-inspector) | Context Load Inspector (active — see ROADMAP) |
 | [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
 | [K](#block-k--live-throughput) | Live throughput |
 | [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app |
