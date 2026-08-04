@@ -645,6 +645,25 @@ internal static class SelfTestCli
               && TrayContext.BlockedUntilUnix(1.00, Now + 60, 0.10, Now + 600, null, false, (long)Now,
                                               "rejected", null, true) > 0);
 
+        // T274. The verdict is about the account, not about the window the icon happens to show. The
+        // reading is the one measured on 2026-08-04: 5h at 1.02 rejected beside 7d at 0.47 allowed, with
+        // the overage figure at zero throughout — so nothing but the bounded windows can carry it.
+        var crossed = new UsageData
+        {
+            Session5h = 1.02, Week7d = 0.47, Extra = 0, HasExtra = true,
+            Status = "rejected", Status7d = "allowed", StatusExtra = "allowed",
+        };
+        Check("an account past its quota on the session reads as billing whichever window is shown",
+              QuotaStates.Resolve(crossed, true) == QuotaState.Billing);
+        Check("and the week alone would have said in-quota, which is the display option that hid it",
+              QuotaStates.Resolve(crossed.Week7d, crossed.ExtraUtil, true) == QuotaState.InQuota);
+        Check("the overage window does not vote: its 100% denominates nothing any header states",
+              QuotaStates.Resolve(new UsageData { Session5h = 0.40, Week7d = 0.40, Extra = 1.0,
+                                                  HasExtra = true }, true) == QuotaState.InQuota);
+        Check("and an account inside both bounded windows is still in quota",
+              QuotaStates.Resolve(new UsageData { Session5h = 0.40, Week7d = 0.90 }, true)
+              == QuotaState.InQuota);
+
         // The cause, as words. Only one value has ever been sent, so only one is translated: anything else
         // is shown verbatim rather than explained, because a wrong reason for stopped work is worse than a
         // raw token — and `RefusalReason` must stay null where there is nothing to explain, or the sub-line
@@ -1647,6 +1666,35 @@ internal static class SelfTestCli
             }
             Check("billing with nothing spent yet still has a sentence to say it with", silent.Count == 0,
                   $"{string.Join(", ", silent)} — merged away the line that had nothing to merge into");
+
+            // T274. The verdict is about the account and the caption is about the window on the icon, so
+            // the one case where they disagree is the one that has to be read: a rejected session behind a
+            // week at 47%. The news must arrive in every language — that is T222's property, and the whole
+            // point of rescoping the state is that it now arrives here too — and it must arrive *without*
+            // the week's name on it, because "Week 7d: past your included quota" captions 47%.
+            var unscoped = new List<string>();
+            foreach (string code in codes)
+            {
+                L.Apply(code);
+                string elsewhere = TooltipText.Compose(Elsewhere(Now));
+                if (!elsewhere.Contains(L.T("tip.billingCompact"), StringComparison.Ordinal)
+                    || elsewhere.Contains(L.T("tip.billingFull", L.T("tip.week")), StringComparison.Ordinal))
+                    unscoped.Add($"{code}: {elsewhere.Replace("\n", " | ")}");
+            }
+            Check("billing on a window the icon is not showing says so, and captions no percentage",
+                  unscoped.Count == 0, string.Join("  //  ", unscoped));
+
+            L.Apply("en");
+            // And the scoped form is not gone — it is what the window that actually crossed still gets.
+            // Asked with the budget slack for the reason the merge is: at the real cap the full form does
+            // not fit either way, so a rule that had stopped choosing it would pass on the fallback.
+            string crossedHere = TooltipText.Compose(Roomy(Now) with
+            {
+                Data = new UsageData { Session5h = 0.40, Week7d = 1.0, Status = "allowed", Status7d = "allowed" },
+            });
+            Check("the window that did cross keeps the scoped sentence, given room for it",
+                  crossedHere.Contains(L.T("tip.billingFull", L.T("tip.week")), StringComparison.Ordinal),
+                  crossedHere.Replace("\n", " | "));
         }
         finally { L.Apply(L.Codes[(int)saved]); }
     }
@@ -1704,6 +1752,21 @@ internal static class SelfTestCli
             Reset5h = now + 2 * 3600, Reset7d = now + 3 * 86400,
             Status = "allowed", Status7d = "allowed", StatusExtra = "unknown",
         },
+    };
+
+    /// <summary>The field report of 2026-08-04 as a tooltip input (T274): the session rejected at 102%, the
+    /// week at 47%, the icon on the week, and the overage figure at zero the whole way through — so nothing
+    /// on this reading except the state itself can say money is being spent.</summary>
+    private static TooltipText.Input Elsewhere(long now) => Overflowing(now) with
+    {
+        Data = new UsageData
+        {
+            Session5h = 1.02, Week7d = 0.47, Extra = 0, HasExtra = true,
+            Reset5h = now + 2 * 3600, Reset7d = now + 3 * 86400,
+            Status = "rejected", Status7d = "allowed", StatusExtra = "allowed",
+        },
+        Verdict = Projection.Ok,
+        Eta = 4 * 3600,
     };
 
     // ---------------------------------------------------------------- Block AI: the flag surface

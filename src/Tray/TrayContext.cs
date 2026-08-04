@@ -1405,17 +1405,26 @@ internal sealed class TrayContext : ApplicationContext
         if (oldHandle != IntPtr.Zero) DestroyIcon(oldHandle);
     }
 
-    /// <summary>Which of the three states the icon's own metric is in (T182). The metric, not the worst
-    /// window: the icon shows one number and the tooltip's at-limit sentence names that same scope, so
-    /// answering about another window would caption the wrong figure.</summary>
+    /// <summary>Which of the three states the <em>account</em> is in (T182, rescoped by T274).
+    ///
+    /// <para>It used to resolve from <c>d.Metric(_metric)</c>, and the argument for that was about the
+    /// caption: the icon shows one number and the tooltip's at-limit sentence names that same scope, so
+    /// answering about another window would label the wrong percentage. Correct for the sentence and wrong
+    /// for the state — whether an account is paying is a property of the account, not of the window the
+    /// icon happens to show. Measured on 2026-08-04: 5h at 1.02 <c>rejected</c> beside 7d at 0.47
+    /// <c>allowed</c>, and one menu click onto the week made the same reading resolve <c>InQuota</c> —
+    /// green bar, on-track projection, no billing sentence anywhere, money being spent throughout.</para>
+    ///
+    /// <para>So the utilization here is the worst of the two <b>bounded</b> windows, which is as near as a
+    /// figure gets to "whichever window was rejected". The overage window is deliberately not among them:
+    /// its 100% denominates nothing any header states (§XVIII), so letting it decide would be a ceiling
+    /// nobody measured. The caption stays with the metric, in <see cref="TooltipText"/>.</para></summary>
     private QuotaState CurrentQuotaState()
     {
         if (_data is not { Error: null } d) return QuotaState.InQuota;
-        bool? extraEnabled = _watched.Count > 0 ? _watched[0].ExtraUsage : null;
-        // The refusal goes in with the flag it overrides (T224): `extraEnabled` comes out of a file Claude
-        // Code writes, and these two are the response's own answer about the same permission.
-        return QuotaStates.Resolve(d.Metric(_metric), d.ExtraUtil, extraEnabled,
-                                   d.StatusExtra, d.ExtraDisabledReason, d.ExtraInUse);
+        // The decision itself is in QuotaStates, where --selftest can reach it: the refusal goes in with
+        // the flag it overrides (T224), and the reading picks its own utilization (T274).
+        return QuotaStates.Resolve(d, _watched.Count > 0 ? _watched[0].ExtraUsage : null);
     }
 
     /// <summary>The tray's own reading, handed to <see cref="TooltipText.Compose"/> — which owns the text

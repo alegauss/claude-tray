@@ -105,20 +105,34 @@ internal static class TooltipText
         // percentage it always showed, which reads naturally as a ceiling you climb toward.
         string hits = i.ShowRemaining ? L.T("tip.hitsLeft") : L.T("tip.hitsUsed");
         double pct = Math.Min(1.0, data.Metric(i.Metric));
+        // Whether the window the icon is about has itself reached a limit — which is the *caption's*
+        // question now that the state answers about the account (T274). The overage window is excluded:
+        // its 100% denominates nothing any header states (§XVIII), so "at limit" there would caption a
+        // ceiling nobody measured, and with the state no longer resolved from the metric that is the
+        // branch an `extra` icon at 100% would now fall into.
+        bool metricAtLimit = i.Metric != "extra" && pct >= QuotaStates.AtLimitThreshold;
         // Each projection verdict has a full form and a compact fallback for when the tooltip is
         // tight (see the budget below). null => no projection line at all.
-        (string full, string compact)? projection = pct >= QuotaStates.AtLimitThreshold
-            // Already maxed: state it plainly rather than "projecting" a limit you've reached — and say
-            // *which* kind of maxed, because "you have stopped" and "you are paying to carry on" are
-            // opposite pieces of news and this line used to give the first for both (T182).
-            ? i.State == QuotaState.Billing
-                // Already said, on the reading above. Billing without a figure to show it on — extra usage
-                // enabled and not yet spent — has no line to merge into, and there the sentence is both
-                // affordable and the only thing that would say so at all.
-                ? payingOnItsOwnLine
-                    ? null
-                    : (L.T("tip.billingFull", scope), L.T("tip.billingCompact"))
-                : (L.T("tip.atLimitFull", scope, limit), L.T("tip.atLimitCompact", limit))
+        (string full, string compact)? projection = i.State == QuotaState.Billing
+            // Past the included quota and paying. Said plainly rather than "projected", because a limit
+            // already reached is not a forecast — and said as *this* kind of maxed, since "you have
+            // stopped" and "you are paying to carry on" are opposite pieces of news and this line used to
+            // give the first for both (T182).
+            //
+            // Already said, on the reading above. Billing without a figure to show it on — extra usage
+            // enabled and not yet spent — has no line to merge into, and there the sentence is both
+            // affordable and the only thing that would say so at all.
+            ? payingOnItsOwnLine
+                ? null
+                // The caption names the metric's own scope, or it names nothing. A week at 47% behind a
+                // rejected session is billing, and "Week 7d: past your included quota" would caption the
+                // wrong percentage — so the scoped form is kept for the window that actually crossed and
+                // the news goes out unscoped for every other one (T274).
+                : metricAtLimit
+                    ? (L.T("tip.billingFull", scope), L.T("tip.billingCompact"))
+                    : (L.T("tip.billingCompact"), L.T("tip.billingCompact"))
+            : metricAtLimit
+                ? (L.T("tip.atLimitFull", scope, limit), L.T("tip.atLimitCompact", limit))
             : i.Verdict switch
             {
                 Projection.Danger => hasEta

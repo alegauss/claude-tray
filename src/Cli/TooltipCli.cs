@@ -66,6 +66,12 @@ internal static class TooltipCli
             now => Reading(now, 0.40, 1.0, metric: "7d", verdict: Projection.Unknown, eta: 0,
                            state: QuotaState.Billing)),
 
+        new("billingelsewhere", "the session rejected at 102% behind a week at 47%, with the icon on the " +
+                                "week: the account is paying and the caption cannot say so about THIS " +
+                                "window, so the news goes out unscoped (T274)",
+            now => Reading(now, 1.02, 0.47, metric: "7d", verdict: Projection.Ok, eta: 4 * 3600,
+                           state: QuotaState.Billing, status5h: "rejected")),
+
         new("atlimit", "the week's quota reached with no extra usage: work has stopped",
             now => Reading(now, 0.40, 1.0, metric: "7d", verdict: Projection.Unknown, eta: 0,
                            state: QuotaState.Stopped)),
@@ -84,7 +90,8 @@ internal static class TooltipCli
     /// stable text rather than something that changes between two runs of this flag.</summary>
     private static TooltipText.Input Reading(long now, double session, double week, string metric,
                                              Projection verdict, double eta,
-                                             double extra = 0, QuotaState state = QuotaState.InQuota)
+                                             double extra = 0, QuotaState state = QuotaState.InQuota,
+                                             string status5h = "allowed")
         => new(
             Data: new UsageData
             {
@@ -95,7 +102,9 @@ internal static class TooltipCli
                 Reset5h = now + 2 * 3600,
                 Reset7d = now + 3 * 86400,
                 ResetExtra = extra > 0 ? now + 3 * 86400 : 0,
-                Status = "allowed",
+                // Named rather than derived, because the row this exists for is the one where the session
+                // is the rejected window and the week — the one on the icon — is nowhere near its limit.
+                Status = status5h,
                 // Keyed on the state, not on the figure: an account that is billing has a weekly window
                 // that still permits work whether or not a cent of the allowance has been spent yet, and
                 // keying on `extra` alone made that one row read as refused while it says it is paying.

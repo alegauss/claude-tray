@@ -152,6 +152,26 @@ internal static class QuotaStates
          : QuotaState.Stopped;
 
     /// <summary>
+    /// The state of the <em>account</em> behind one reading (T274) — the same decision as the overload
+    /// above, over the utilization that answers about the account rather than about a window.
+    ///
+    /// <para>That utilization is the worst of the two <b>bounded</b> windows, which is as near as a figure
+    /// gets to "whichever window was rejected": 5h at 1.02 beside 7d at 0.47 is an account past its quota,
+    /// and reading it through the week alone made a display option — one menu click — decide whether money
+    /// being spent was mentioned anywhere. The overage window is deliberately not among them, because its
+    /// 100% denominates nothing any header states (§XVIII) and letting it decide would be a ceiling nobody
+    /// measured.</para>
+    ///
+    /// <para>Here rather than on the tray for the reason the rest of this type is: a tray cannot be
+    /// constructed under <c>--selftest</c>, and a rule that only exists inside one is a rule nothing
+    /// checks. What stays with the tray's own metric is the <em>caption</em> — see
+    /// <see cref="TooltipText"/>, which may not label the wrong percentage.</para>
+    /// </summary>
+    public static QuotaState Resolve(UsageData d, bool? extraUsageEnabled)
+        => Resolve(Math.Max(d.Session5h, d.Week7d), d.ExtraUtil, extraUsageEnabled,
+                   d.StatusExtra, d.ExtraDisabledReason, d.ExtraInUse);
+
+    /// <summary>
     /// The refusal's cause as a sentence, or null when nothing was refused (T224). The one value measured so
     /// far — <c>org_level_disabled</c> — gets words; anything else is shown verbatim rather than guessed at,
     /// because a wrong explanation of why work stopped is worse than the raw token.

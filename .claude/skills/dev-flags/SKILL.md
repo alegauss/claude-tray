@@ -65,9 +65,11 @@ Three different hosts, and the difference matters — see UI convention 7 in AGE
 --tooltip [variant]                   # the TRAY TOOLTIP's composed text, printed with its char count
                                       #   against the 127 cap (T214). No variant prints them all: ok
                                       #   (the default) | track | danger | remaining | profile | extra
-                                      #   | extraunspent | atlimit | connecting | signedout | error. The
-                                      #   two billing rows differ by whether a cent has been spent, which
-                                      #   is what decides where the news is written (T222). The surface no
+                                      #   | extraunspent | billingelsewhere | atlimit | connecting |
+                                      #   signedout | error. The first two billing rows differ by whether a
+                                      #   cent has been spent, which is what decides where the news is
+                                      #   written (T222); the third is the window on the icon not being the
+                                      #   one that crossed, where the sentence loses its scope (T274). The surface no
                                       #   capture can photograph - the shell draws it - so this is how it
                                       #   gets reviewed at all. Add --lang to read it in a translation.
 --simulate-reset [variant]            # a toast card on screen: unexpected (the default early weekly reset)
