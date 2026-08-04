@@ -281,6 +281,26 @@ the CLI is dispatched — once, before the verb runs — with the per-file copie
 remembered and one forgot; the next flag added has the same coin flip, and `--selftest` cannot
 assert what a caller must remember to write.
 
+### XX.4 A list derived by walking the only path it has
+
+T278 replaced a table of header names with the parser enumerating itself: `ReadHeaders` takes a
+lookup, `FetchAsync` hands it the response, and `NamesRead` hands it one that records the name and
+answers `null`. That is what makes the read-out impossible to forget to update — and it is exact
+only because `ReadHeaders` is a flat object initializer with no branch in it.
+
+Nothing states that. A read added as `get("…-in-use") is "true" ? get("…-overage-reset") : null` is
+perfectly ordinary code, and under the recording lookup the second name is never asked for: it would
+be marked UNREAD, in the very read-out that exists to say which names reach a field, with all
+twenty-one of the section's checks green. The failure is silent and it points the wrong way — a
+header the app reads, reported as one nothing does.
+
+The property is that the enumeration is total, and this repository already has the idiom for
+asserting it: a source scan, as `FlagCatalogue` does for the flags and `ConsoleCodePage` now does
+for the code page. Every `anthropic-ratelimit-` literal in `ApiClient.cs` is a name the parse
+mentions, so the count of them against `NamesRead.Count` holds the enumeration total without asking
+anything about branches — and a conditional read fails it the moment it is written, rather than the
+month somebody trusts the mark.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of

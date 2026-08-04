@@ -63,6 +63,8 @@
 
 ## Block AI — Verification — the checks that prove a change
 
+- 📋 **T284** (deps: —) **the parser enumerating itself is complete only while every read is unconditional, and nothing says so** — `NamesRead` runs the parse against a lookup answering null, so a name read inside a branch that null never takes would be reported unread by the read-out built to prove otherwise. → §XX.4
+
 ## Block AJ — Working here — the repo's own docs and flags
 
 ## Block G — Localization
