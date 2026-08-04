@@ -622,6 +622,29 @@ internal static class SelfTestCli
                                            "rejected", "org_level_disabled") > 0
               && TrayContext.BlockedUntilUnix(1.00, Now + 60, 0.10, Now + 600, null, true, (long)Now) == 0);
 
+        // T273. The affirmative that can be told from a default. `overage-status: allowed` arrives on an
+        // account inside its quota, so it may buy a poll and may not paint a screen; `overage-in-use` was
+        // absent on nine readings inside the quota — one at 0.91 — and true on the first past it. The two
+        // are held apart here or the next reader collapses them into one rule.
+        Check("the in-use header paints the screen the allowed status may not",
+              QuotaStates.Resolve(1.00, null, false, "allowed", null, extraInUse: true) == QuotaState.Billing
+              && QuotaStates.Resolve(1.00, null, false, "allowed") == QuotaState.Stopped);
+        Check("it beats the local flag, which is read out of a file Claude Code writes",
+              QuotaStates.Resolve(1.00, null, false, null, null, extraInUse: true) == QuotaState.Billing);
+        Check("and only its affirmative moves anything — absent and false both leave the flag answering",
+              QuotaStates.Resolve(1.00, null, false, null, null, extraInUse: false) == QuotaState.Stopped
+              && QuotaStates.Resolve(1.00, null, false, null, null, extraInUse: null) == QuotaState.Stopped
+              && QuotaStates.Resolve(1.00, null, true, null, null, extraInUse: false) == QuotaState.Billing);
+        Check("a measured refusal still outranks it — nothing has sent rejected and in-use together",
+              QuotaStates.Resolve(1.00, null, true, "rejected", "org_level_disabled", true) == QuotaState.Stopped);
+        Check("under the limit it is not a state of its own either",
+              QuotaStates.Resolve(0.90, null, false, null, null, extraInUse: true) == QuotaState.InQuota);
+        Check("and the poll stays awake wherever the display says billing on it",
+              TrayContext.BlockedUntilUnix(1.00, Now + 60, 0.10, Now + 600, null, false, (long)Now,
+                                           null, null, true) == 0
+              && TrayContext.BlockedUntilUnix(1.00, Now + 60, 0.10, Now + 600, null, false, (long)Now,
+                                              "rejected", null, true) > 0);
+
         // The cause, as words. Only one value has ever been sent, so only one is translated: anything else
         // is shown verbatim rather than explained, because a wrong reason for stopped work is worse than a
         // raw token — and `RefusalReason` must stay null where there is nothing to explain, or the sub-line
@@ -3880,6 +3903,12 @@ internal static class SelfTestCli
         Check("and the parser's list is the parser's own, not an empty one",
               read.All(n => ApiClient.NamesRead.Contains(n, StringComparer.OrdinalIgnoreCase)),
               string.Join("; ", read.Where(n => !ApiClient.NamesRead.Contains(n, StringComparer.OrdinalIgnoreCase))));
+        // T273's name is not in the list above and should not be: that list is the reading of 2026-08-03,
+        // and this header was not sent to an account inside its quota. It is asserted separately because the
+        // whole point of reading it is that it arrives on the reading nobody had yet.
+        Check("and the header that says overage is happening is read, a day after the list above",
+              ApiClient.NamesRead.Contains("anthropic-ratelimit-unified-overage-in-use",
+                                           StringComparer.OrdinalIgnoreCase));
         Check("a name no line of the parser asks for is not marked read",
               unread.All(n => !HeaderProbe.IsRead(n)),
               string.Join("; ", unread.Where(HeaderProbe.IsRead)));

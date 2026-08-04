@@ -47,14 +47,21 @@ internal static class QuotaStates
     /// zero is evidence after the fact. See <see cref="Allows"/> for why passing it is a caller's decision
     /// rather than this method's default.</para>
     ///
+    /// <para>A fourth says it, and every caller may believe this one: <paramref name="extraInUse"/>, the
+    /// <c>overage-in-use</c> header (T273). It is the response stating the same thing as the status and it
+    /// carries what the status could not — an absence on every reading inside the quota — so it needs none
+    /// of that caller-by-caller care. It is still below a refusal, because nothing has ever sent
+    /// <c>rejected</c> and <c>in-use: true</c> together and the negative is the one this app may believe.</para>
+    ///
     /// <para>Note what is <em>not</em> decided here: whether the extra-usage allowance is itself spent.
     /// T181 established the window — its own utilization, resetting on a calendar month — and not the
     /// amount, so reading 1.0 as "stopped again" would still invent a denominator nothing has measured.</para>
     /// </summary>
     public static bool CanSpendPastQuota(double? extraUtil, bool? extraUsageEnabled, string? extraStatus = null,
-                                         string? disabledReason = null)
+                                         string? disabledReason = null, bool? extraInUse = null)
         => extraUtil > 0
-           || (!Refuses(extraStatus, disabledReason) && (extraUsageEnabled == true || Allows(extraStatus)));
+           || (!Refuses(extraStatus, disabledReason)
+               && (extraInUse == true || extraUsageEnabled == true || Allows(extraStatus)));
 
     /// <summary>
     /// Whether a window's status string is one of the permitted ones. The observed family is
@@ -112,26 +119,35 @@ internal static class QuotaStates
     /// Which state a reading puts the account in — a colour and a sentence, so every signal it takes has to
     /// have been measured.
     ///
-    /// <para>It still does not take the affirmative: <see cref="Allows"/> says why an <c>allowed</c> nobody
-    /// can tell from a default may not paint a screen, and that has not changed. What T224 added is the
-    /// other direction. The order below is the whole decision:</para>
+    /// <para>It still does not take <see cref="Allows"/>: an <c>allowed</c> nobody can tell from a default
+    /// may not paint a screen, and that has not changed. What T224 added is the other direction, and what
+    /// T273 adds is an affirmative that <em>can</em> be told from a default. The order below is the whole
+    /// decision:</para>
     /// <list type="number">
     /// <item>an overage figure above zero is the account <em>observed</em> doing it, and outranks anything
     /// said about it — refusal included, a pair nothing has ever sent together;</item>
-    /// <item>a measured refusal beats <paramref name="extraUsageEnabled"/>, because that flag is read out of
-    /// a file Claude Code writes and the refusal is the API's own answer. This is the case T182's sentence
-    /// was written to prevent, arriving from the other side: enabled locally, disabled by the organisation,
-    /// and a clay bar reading "extra usage is paying" in front of somebody whose work had stopped;</item>
+    /// <item>a measured refusal beats both the API's affirmative and <paramref name="extraUsageEnabled"/>.
+    /// Against the flag, because that flag is read out of a file Claude Code writes and the refusal is the
+    /// API's own answer — the case T182's sentence was written to prevent, arriving from the other side:
+    /// enabled locally, disabled by the organisation, and a clay bar reading "extra usage is paying" in
+    /// front of somebody whose work had stopped. Against <paramref name="extraInUse"/>, because the two have
+    /// never been sent together and a shape nobody has measured is not one to resolve a screen from;</item>
+    /// <item><paramref name="extraInUse"/> — the response saying the account is spending past its quota
+    /// right now — beats the local flag for the same reason the refusal does, and it is believable where
+    /// the status is not: absent on every reading inside the quota, <c>true</c> on the first past it
+    /// (T273);</item>
     /// <item>otherwise the local flag answers, as before.</item>
     /// </list>
-    /// <para>Omitting the last two arguments means <em>no refusal has been read</em> — which is what a caller
-    /// with no live response has, and what every caller had before T224.</para>
+    /// <para>Omitting the trailing arguments means <em>no refusal and no affirmative have been read</em> —
+    /// which is what a caller with no live response has, and what every caller had before T224.</para>
     /// </summary>
     public static QuotaState Resolve(double util, double? extraUtil, bool? extraUsageEnabled,
-                                     string? extraStatus = null, string? disabledReason = null)
+                                     string? extraStatus = null, string? disabledReason = null,
+                                     bool? extraInUse = null)
         => util < AtLimitThreshold ? QuotaState.InQuota
          : extraUtil > 0 ? QuotaState.Billing
          : Refuses(extraStatus, disabledReason) ? QuotaState.Stopped
+         : extraInUse == true ? QuotaState.Billing
          : extraUsageEnabled == true ? QuotaState.Billing
          : QuotaState.Stopped;
 

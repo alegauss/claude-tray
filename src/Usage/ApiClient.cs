@@ -32,6 +32,15 @@ internal sealed class UsageData
     /// did, and <see cref="QuotaStates.Refuses"/> is what reads it (T224).</summary>
     public string? ExtraDisabledReason;
 
+    /// <summary>The API stating that this account is spending past its included quota, right now —
+    /// <c>overage-in-use</c>, and the only signal here that is neither read out of a file nor inferred from
+    /// an effect (T273). <c>null</c> is the header not being sent, which is the measurement rather than an
+    /// absence to shrug at: it was absent on nine consecutive readings inside the quota — one of them at
+    /// 0.91, eighteen minutes before — and arrived as <c>true</c> on the first reading past it. That is the
+    /// one property <see cref="QuotaStates.Allows"/> needed of <c>overage-status</c> and could not find,
+    /// which is why this affirmative may paint a screen and that one may not.</summary>
+    public bool? ExtraInUse;
+
     /// <summary>Every <c>anthropic-ratelimit-*</c> response header, verbatim, exactly as the API sent it
     /// (T181). The parsed fields above are this app's *reading* of four of them; this is the reading
     /// nobody has made yet — what the overage percentage denominates, and what the status header says
@@ -190,6 +199,7 @@ internal sealed class ApiClient
             Status7d  = get("anthropic-ratelimit-unified-7d-status") ?? "unknown",
             StatusExtra = get("anthropic-ratelimit-unified-overage-status") ?? "unknown",
             ExtraDisabledReason = get("anthropic-ratelimit-unified-overage-disabled-reason"),
+            ExtraInUse = B(get, "anthropic-ratelimit-unified-overage-in-use"),
         };
         // Read the presence separately from the value: an account without extra usage sends no overage
         // header, and one that has it enabled but has spent nothing sends 0. N() collapses both to 0.0, so
@@ -286,6 +296,12 @@ internal sealed class ApiClient
         return v != null && double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out double d)
             ? d : 0.0;
     }
+
+    /// <summary>A header whose value is a word for true or false, read as three states: the header was not
+    /// sent, it said so, or it said otherwise. <c>N</c>'s collapse of an absent header to 0.0 is exactly what
+    /// must not happen here — absence is what the nine readings inside the quota measured (T273).</summary>
+    private static bool? B(Func<string, string?> get, string name)
+        => get(name) is { } v && bool.TryParse(v.Trim(), out bool b) ? b : null;
 
     private static string? S(HttpResponseMessage r, string name)
         => r.Headers.TryGetValues(name, out var vals) ? vals.FirstOrDefault() : null;

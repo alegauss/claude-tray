@@ -69,17 +69,16 @@
 
 ## Block D — Auth & API resilience
 
-- 📋 **T273** (deps: —) **the header that states the account is spending past its quota reaches no field in the app** — The response sent `overage-in-use: true` on the first reading past 100% and on none of the nine inside the quota, so the affirmative nothing could believe is now a measurement. → §XXIII.1
-- 📋 **T274** (deps: T273) **the billing verdict follows the metric on the icon, so watching the week hides money being spent** — The state resolves from the metric utilization alone, and 5h at 1.02 rejected beside 7d at 0.47 reads as in-quota with no billing on any surface. → §XXIII.2
-- 📋 **T275** (deps: T273) **an overage spell leaves nothing behind in the store, so it cannot be read back after the reset** — Every reading through the crossing recorded `ux:0`, and the burn-up chart needs a figure above zero before it draws an overage axis at all. → §XXIII.3
-- 💭 **T279** (deps: T273, T275) **the app can say that extra usage is paying and never what the spell cost** — The overage percentage is a share of an amount no header states, while the turns taken after the crossing and the price table already here would estimate it in money. → §XXIII.4
+- 📋 **T274** (deps: T273 ✅) **the billing verdict follows the metric on the icon, so watching the week hides money being spent** — The state resolves from the metric utilization alone, and 5h at 1.02 rejected beside 7d at 0.47 reads as in-quota with no billing on any surface. → §XXIII.2
+- 📋 **T275** (deps: T273 ✅) **an overage spell leaves nothing behind in the store, so it cannot be read back after the reset** — Every reading through the crossing recorded `ux:0`, and the burn-up chart needs a figure above zero before it draws an overage axis at all. → §XXIII.3
+- 💭 **T279** (deps: T273 ✅, T275) **the app can say that extra usage is paying and never what the spell cost** — The overage percentage is a share of an amount no header states, while the turns taken after the crossing and the price table already here would estimate it in money. → §XXIII.4
 - 📋 **T281** (deps: —) **the API states which threshold the window crossed, and the app flashes on a constant it picked itself** — `5h-surpassed-threshold` was absent on three readings inside the quota, arrived as 0.9 beside `allowed_warning` at 0.91, and read 1.0 beside `rejected` at 1.02. → §XXIII.5
 
 ## Block N — System information — your plan, your install, this machine
 
 ## Block E — Reset notifications & toasts
 
-- 📋 **T276** (deps: T273) **the notification about extra usage cannot fire on an account whose overage figure never leaves zero** — It arms on that figure rising above zero, which read 0.0 on every reading through the crossing, so the one alert about money never came. → §XXV.1
+- 📋 **T276** (deps: T273 ✅) **the notification about extra usage cannot fire on an account whose overage figure never leaves zero** — It arms on that figure rising above zero, which read 0.0 on every reading through the crossing, so the one alert about money never came. → §XXV.1
 - 📋 **T277** (deps: T276) **the card announcing that extra usage is paying draws a bar that reads as full quota** — The bar renders the complement of the overage figure, so a spell with no figure fills it completely and the news arrives contradicted by its own picture. → §XXV.2
 
 ## Block S — Settings round-trip
