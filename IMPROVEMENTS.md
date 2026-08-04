@@ -263,6 +263,24 @@ The fix is the shape the file already uses twice: a pure function returning the 
 the caller. It is small, and the reason to file it rather than fold it into T278 is that T278's own
 commit is what demonstrates the pattern being incomplete here.
 
+### XX.3 An instrument whose own read-out is unreadable
+
+A WinExe's console starts on the OEM code page, and this repository has known it for a long time:
+twelve entry points open with `try { Console.OutputEncoding = UTF8; } catch { }`, two of them
+carrying a comment that names the symptom outright. `ProbeCli` is not one of the twelve.
+
+So the read-out most dense in non-ASCII is the one that loses it. Every em dash in `readership — 9 of 17
+name(s)` prints as `?`, and so does every `§` in the three pointers the command exists to send a reader
+to — `§XVIII.9`, `§XVIII.10`, `§XVIII`. Measured on this machine's own logs, one `--probe --recorded
+--all` run mangles well over a hundred characters, and a pointer is the one kind that cannot be guessed
+back from context: `see IMPROVEMENTS ?XVIII.9` names no section.
+
+The fix is one line copied a thirteenth time, and that is the reason to file it rather than paste
+it. The line is a property of *being a console read-out*, not of any one flag, so it belongs where
+the CLI is dispatched — once, before the verb runs — with the per-file copies removed. Twelve
+remembered and one forgot; the next flag added has the same coin flip, and `--selftest` cannot
+assert what a caller must remember to write.
+
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of
