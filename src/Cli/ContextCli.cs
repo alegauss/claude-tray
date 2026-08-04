@@ -293,7 +293,10 @@ internal static class ContextCli
             ? ContextScanner.DefaultClaudeRoot
             : project.Path.Length > 0 ? project.Path : project.ShortPath;
 
-        Console.WriteLine(ContextPrompt.Build(title, findings, Array.Empty<ContextSource>(), 0));
+        // The truncation goes INTO the text, not just into the header above it (T267): what a person
+        // copies starts at the `#`, and this is read by something that will act on the list.
+        Console.WriteLine(ContextPrompt.Build(title, findings, Array.Empty<ContextSource>(), 0,
+                                              truncated: scan.Truncated));
     }
 
     // The evidence report (`--context --usage`): every skill and agent the scan found, with how often

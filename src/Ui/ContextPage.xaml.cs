@@ -651,7 +651,10 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
             title = ContextScanner.DefaultClaudeRoot;
         }
 
-        string prompt = ContextPrompt.Build(title, findings, candidates, candidateTokens);
+        // The footer says the walk was capped; the clipboard has to say it too (T267). This text goes to
+        // Claude Code, and the window it was copied from is not there to be read.
+        string prompt = ContextPrompt.Build(title, findings, candidates, candidateTokens,
+                                            truncated: row.Scan.Truncated);
         try
         {
             System.Windows.Clipboard.SetText(prompt);

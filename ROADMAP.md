@@ -79,8 +79,6 @@
 
 ## Block I — Context Load Inspector
 
-- 📋 **T267** (deps: —) **The prompt handed to an agent does not say the scan that produced it was capped** — The markdown report carries a warning inside itself when the walk hit its cap, and the cleanup prompt - which leaves the app for another agent to act on - carries none. → §XXIX.2
-
 ## Block B — Packaging, self-update, CI
 
 ## Non-goals (do NOT add as tasks)

@@ -261,29 +261,6 @@ assistive technology nothing gets filed.
 The headless side of the inspector: what a script driving it can tell about a run, as opposed to
 what a person reading the output can.
 
-### XXIX.2 The caveat that stayed on screen
-
-Measured: `--context --prompt claude-tray` on a machine whose walk is capped printed the caveat `!
-the walk hit its file/directory cap - totals below are a floor, not a total` in the SCAN header, and
-then a prompt that never mentions it. The caveat is above the `#`, so it is not in what a person
-copies.
-
-`ContextReport` already decided this the other way. When the scan is truncated it writes, inside the
-document it produces, a blockquote saying the totals are a floor - the same fact about the same
-scan, carried by the artifact rather than by whatever was on screen. And the prompt is the artifact
-that travels furthest: to the clipboard, then into Claude Code, then into an agent that edits files.
-
-What the prompt does say is careful about evidence, which is what makes the gap visible rather than
-academic. Its closing paragraph tells the agent the limits of what it was handed - some of these
-files may matter more than their size suggests, and you can read them; the measurements above cannot
-- while its opening presents the list as the findings. A capped walk means findings never reached,
-so `Work through the findings above` is a list the agent has no way to know is partial.
-
-The fix is one blockquote and the wording exists in `ContextReport`. Worth settling with it: whether
-the prompt should say more than the report does. A document is read by a person who can notice a
-gap; a prompt is consumed by something that acts, so the honest sentence there may be an instruction
-- say what is missing before working the list - rather than a note.
-
 ## XXX Dates — the words are translated and the order is not (Block G)
 
 What a date reads like once the month name is French and the arrangement is still English.

@@ -168,6 +168,9 @@ internal static class SelfTestCli
         Section("map — every source file has a row, and every row a file (Block AJ)");
         FileMap();
 
+        Section("prompt — what the cleanup prompt carries out of the app (Block I)");
+        CleanupPrompt();
+
         Section("fixture — the overage preview produces the state it exists for (Block AI)");
         OveragePreview();
 
@@ -2106,6 +2109,48 @@ internal static class SelfTestCli
                               .OrderBy(f => f, StringComparer.Ordinal).ToArray();
         Check("and every folder it names is still there", gone.Length == 0,
               $"{string.Join(", ", gone)} — a placement rule for a folder that no longer exists");
+    }
+
+    /// <summary>
+    /// T267. The cleanup prompt is the only text this app writes that <b>leaves</b> it — clipboard, then
+    /// Claude Code, then something that edits files. So what it carries is a property worth holding, and the
+    /// one it was missing is that the list may be partial: a capped walk means findings never reached, and
+    /// the caveat was printed in the scan header, above the <c>#</c>, which is outside what a person copies.
+    ///
+    /// <para>Both directions, because a caveat that is always there is noise a reader learns to skip. And
+    /// the two promises the class doc already makes are asserted with it — no file contents, and it asks
+    /// before deleting — since those are the reasons this text is safe to hand to an agent at all.</para>
+    /// </summary>
+    private static void CleanupPrompt()
+    {
+        var findings = new List<Finding>
+        {
+            new("eager-large", RuleSeverity.High, "acme/atlas", "AGENTS.md is 23 KB", "Trim it",
+                @"D:\acme\atlas\AGENTS.md"),
+        };
+        var none = Array.Empty<ContextSource>();
+
+        string capped = ContextPrompt.Build("acme/atlas", findings, none, 0, truncated: true);
+        string whole = ContextPrompt.Build("acme/atlas", findings, none, 0, truncated: false);
+
+        Check("a capped scan says so inside the text, not above it",
+              capped.Contains("floor, not a total", StringComparison.Ordinal));
+        Check("and tells the reader to say the list is partial before acting on it",
+              capped.Contains("say that this list is partial", StringComparison.Ordinal));
+        Check("an uncapped scan says neither — a caveat that is always there is one nobody reads",
+              !whole.Contains("floor, not a total", StringComparison.Ordinal)
+              && !whole.Contains("partial", StringComparison.Ordinal));
+
+        // The two promises the prompt exists under, on both shapes: this text is handed to something that
+        // edits files, and these are the reasons that is safe.
+        foreach ((string what, string text) in new[] { ("capped", capped), ("whole", whole) })
+        {
+            Check($"{what}: it says what was measured and what was not",
+                  text.Contains("never file contents", StringComparison.Ordinal));
+            Check($"{what}: and it asks before anything is deleted or moved",
+                  text.Contains("Do not delete or move any file without", StringComparison.Ordinal)
+                  && text.Contains("showing me the plan first", StringComparison.Ordinal));
+        }
     }
 
     /// <summary>
