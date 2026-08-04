@@ -28,8 +28,21 @@ internal static class ActivityCli
             List<UsageSample> raw = UsageHistory.Load(ProfileStore.Monitored, 0);
             int before = HourlyUsage.Load(ProfileStore.Monitored).Count;
             HourlyUsage.Fold(ProfileStore.Monitored, raw, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-            int after = HourlyUsage.Load(ProfileStore.Monitored).Count;
+            List<HourlyDay> folded = HourlyUsage.Load(ProfileStore.Monitored);
+            int after = folded.Count;
             Console.WriteLine($"folded {raw.Count:N0} readings — {after} days in the store (+{after - before})");
+            // The spell the fold now keeps (T287), printed beside the days so the column can be checked
+            // against the raw log it came from rather than believed. "unknown" is its own count, because a
+            // day folded before the column existed cannot answer the question either way.
+            int overHours = 0, overDays = 0, unknown = 0;
+            foreach (HourlyDay d in folded)
+            {
+                if (!d.OverKnown) { unknown++; continue; }
+                int h = d.OverHours;
+                if (h > 0) { overDays++; overHours += h; }
+            }
+            Console.WriteLine($"past the included quota: {overHours} hours on {overDays} days" +
+                              (unknown > 0 ? $" ({unknown} folded before the column existed)" : ""));
             Console.WriteLine();
         }
 

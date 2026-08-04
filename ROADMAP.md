@@ -89,8 +89,6 @@
 
 ## Block J — Activity-aware pacing
 
-- 📋 **T287** (deps: —) **the permanent aggregate folds a week down and drops every trace that the account was over its quota** — HourlyUsage keeps spend and coverage per hour; T275's ix column lives only in the 8-day store, so a spell reviewed a fortnight later is a ceiling and no account of it. → §XXXII.1
-
 ## Block A — Foundation — tray, icon, API, projection
 
 - 📋 **T280** (deps: T275 ✅) **nothing on screen says when the overage spell started** — The store dates the crossing at its first reading past the threshold, and saying since when is the difference between reporting a state and reporting an event. → §XXXIII

@@ -3,9 +3,14 @@ using System.Text.Json;
 
 namespace ClaudeTray;
 
-/// <summary>One local day of folded readings: 24 hourly quota spends and how many readings covered
-/// each hour. <paramref name="Key"/> is the local date as <c>yyyyMMdd</c>.</summary>
-internal readonly record struct HourlyDay(int Key, double[] Spend, int[] Count)
+/// <summary>One local day of folded readings: 24 hourly quota spends, how many readings covered each
+/// hour, and which of those hours carried a reading that said the account was past its included quota.
+/// <paramref name="Key"/> is the local date as <c>yyyyMMdd</c>.</summary>
+/// <param name="Over">One bit per hour (T287): <c>true</c> where at least one reading in that hour said
+/// the account was over. <c>null</c> for a day folded before the column existed — its raw readings are
+/// long pruned, so nothing can be said about it, which is not the same as saying it was never over. Read
+/// it through <see cref="WasOver"/> and gate on <see cref="OverKnown"/>.</param>
+internal readonly record struct HourlyDay(int Key, double[] Spend, int[] Count, bool[]? Over = null)
 {
     public DateTime Date => new(Key / 10000, Key / 100 % 100, Key % 100);
 
@@ -14,6 +19,17 @@ internal readonly record struct HourlyDay(int Key, double[] Spend, int[] Count)
 
     /// <summary>Hours with at least one reading — coverage, not activity.</summary>
     public int Covered { get { int n = 0; foreach (int c in Count) if (c > 0) n++; return n; } }
+
+    /// <summary>Whether this day was folded with the over-quota column at all. False is "unknown", so a
+    /// caller that would draw or word a "not over" has to ask this first.</summary>
+    public bool OverKnown => Over is not null;
+
+    /// <summary>Whether any reading in <paramref name="hour"/> said the account was past its included
+    /// quota. False both for a measured no and for a day with no column — see <see cref="OverKnown"/>.</summary>
+    public bool WasOver(int hour) => Over is { } o && (uint)hour < 24u && o[hour];
+
+    /// <summary>Hours of this day measured past the included quota; 0 for a day with no column.</summary>
+    public int OverHours { get { int n = 0; if (Over is { } o) foreach (bool b in o) if (b) n++; return n; } }
 }
 
 /// <summary>
@@ -32,8 +48,17 @@ internal readonly record struct HourlyDay(int Key, double[] Spend, int[] Count)
 /// work, so it contributes nothing. Coverage is counted separately precisely so a gap can't read as a
 /// quiet hour.</para>
 ///
-/// <para>One compact object per local day: <c>{"d":20260720,"s":[…24…],"c":[…24…]}</c>. Best-effort
-/// throughout — a failure here must never disturb a poll.</para>
+/// <para>The third column is the spell (T287): <c>x</c>, one bit per hour, true where a reading said the
+/// account was past its included quota. T275 recorded that in <c>usage-history.jsonl</c>, which is pruned
+/// at eight days, so without a column here a week reviewed a fortnight later shows a ceiling and no
+/// account of the account having worked on past it and paid. It is a bit rather than a figure because the
+/// measured spell wrote <c>ux:0</c> throughout: an hour either carried such a reading or it did not, and
+/// coverage already answers how much of the hour was seen. Absent on a day folded before it existed, which
+/// is unknown rather than a measured no — hence <see cref="HourlyDay.OverKnown"/>, and hence the column is
+/// written even when no hour was over, so its absence keeps meaning that.</para>
+///
+/// <para>One compact object per local day: <c>{"d":20260720,"s":[…24…],"c":[…24…],"x":[…24…]}</c>.
+/// Best-effort throughout — a failure here must never disturb a poll.</para>
 /// </summary>
 internal static class HourlyUsage
 {
@@ -99,9 +124,15 @@ internal static class HourlyUsage
                 if (key >= today || existing.ContainsKey(key)) continue;
 
                 if (!built.TryGetValue(key, out HourlyDay day))
-                    built[key] = day = new HourlyDay(key, new double[24], new int[24]);
+                    built[key] = day = new HourlyDay(key, new double[24], new int[24], new bool[24]);
 
                 day.Count[at.Hour]++;
+
+                // The spell, on the same reading the coverage was counted from (T287). Only `true` sets the
+                // bit: `false` is a reading inside the quota and `null` is a response that carried no
+                // header, and the hour is covered either way — so the bit says "was any of it over", never
+                // "was it seen".
+                if (cur.InUse == true && day.Over is { } over) over[at.Hour] = true;
 
                 // A reset (utilization dropping, or a new reset deadline) ends the accounting for that
                 // step: the two readings belong to different windows and their difference is not work.
@@ -458,7 +489,16 @@ internal static class HourlyUsage
                     var count = new int[24];
                     ReadArray(r, "s", i => spend[i] = 0, (i, e) => spend[i] = e.GetDouble());
                     ReadArray(r, "c", i => count[i] = 0, (i, e) => count[i] = e.GetInt32());
-                    map[key] = new HourlyDay(key, spend, count);
+
+                    // Presence is tested before the values are read, because an absent column and a column
+                    // of zeros are different facts about the day (T287): the first is a day folded before
+                    // this existed, whose raw readings are gone.
+                    bool[]? over = r.TryGetProperty("x", out JsonElement xs)
+                                   && xs.ValueKind == JsonValueKind.Array ? new bool[24] : null;
+                    if (over is not null)
+                        ReadArray(r, "x", i => over[i] = false, (i, e) => over[i] = e.GetInt32() != 0);
+
+                    map[key] = new HourlyDay(key, spend, count, over);
                 }
                 catch { /* one bad line costs one day, nothing more */ }
             }
@@ -505,6 +545,18 @@ internal static class HourlyUsage
             {
                 if (h > 0) sb.Append(',');
                 sb.Append(d.Count[h].ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+            // Written for every day this fold touched, all-zero included, so that a line *without* the
+            // column keeps meaning the one thing it has to mean: folded before the column existed (T287).
+            // A day already in the store is rewritten as it was read, so its absence survives too.
+            if (d.Over is { } over)
+            {
+                sb.Append("],\"x\":[");
+                for (int h = 0; h < 24; h++)
+                {
+                    if (h > 0) sb.Append(',');
+                    sb.Append(over[h] ? '1' : '0');
+                }
             }
             sb.AppendLine("]}");
         }

@@ -1083,6 +1083,50 @@ internal static class SelfTestCli
         Near("a day's spend is the sum of its positive deltas", spentOnce, 0.10, 1e-9);
         Check("the day was folded whole", twice.Count == once.Count);
 
+        // T287. `usage-history.jsonl` is pruned at eight days, so the spell T275 records there has to leave
+        // a bit behind in the fold or a week reviewed a fortnight later is a ceiling with no account of the
+        // account having worked on past it. The column is written even when no hour was over, precisely so
+        // that a line without it keeps meaning "folded before this existed".
+        Check("a day where nothing was over still carries the column",
+              once is [{ OverKnown: true, OverHours: 0 }]);
+
+        // Folded into a store whose days were written before the column existed, so both halves are tested
+        // at once: the new day keeps its bits, and rewriting the file invents no "never over" for the old.
+        WriteStore(FoldedWeek(coverage: 1.0, perHour: 0.004));
+        DateTime spellDay = DateTime.Today.AddDays(-10);
+        int spellKey = spellDay.Year * 10000 + spellDay.Month * 100 + spellDay.Day;
+        HourlyUsage.Fold(ProfileKey, new List<UsageSample>
+        {
+            new(Unix(spellDay.AddHours(8)), 0, 0, 0.20, reset),
+            new(Unix(spellDay.AddHours(9)), 0, 0, 0.21, reset),                                 // no header
+            new(Unix(spellDay.AddHours(13)), 0, 0, 0.30, reset, Extra: 0, InUse: true),          // the spell
+            new(Unix(spellDay.AddHours(13).AddMinutes(5)), 0, 0, 0.31, reset, Extra: 0, InUse: true),
+            new(Unix(spellDay.AddHours(15)), 0, 0, 0.33, reset, InUse: false),                   // measured no
+        }, nowUnix);
+
+        List<HourlyDay> withSpell = HourlyUsage.Load(ProfileKey);
+        HourlyDay spellFold = withSpell.FirstOrDefault(d => d.Key == spellKey);
+        if (Check("the day the account went over folds down", spellFold.Key == spellKey, $"{withSpell.Count} days"))
+        {
+            Check("the hour a reading said it was over keeps a bit", spellFold.WasOver(13));
+            Check("an hour whose readings carried no header is not a spell", !spellFold.WasOver(9));
+            Check("nor is an hour the API said was inside the quota", !spellFold.WasOver(15));
+            Check("the hours around it are covered either way — the bit is not coverage",
+                  spellFold.Covered == 3, $"{spellFold.Covered} covered");
+            Check("two readings in one hour are one bit, not a count",
+                  spellFold.OverHours == 1, $"{spellFold.OverHours} hours over");
+        }
+
+        // The absence has to be in the *line*: an "x" of zeros written for a day nobody asked would satisfy
+        // OverKnown and still assert a fortnight of quota nobody measured.
+        List<string> lines = File.ReadLines(HourlyUsage.FilePath(ProfileKey)).ToList();
+        Check("the bit is in the line, not only in the parse",
+              lines.Any(l => l.Contains($"\"d\":{spellKey}") && l.Contains("\"x\":")));
+        Check("a day folded before the column existed keeps no column when the store is rewritten",
+              lines.Any(l => !l.Contains($"\"d\":{spellKey}") && !l.Contains("\"x\":")));
+        Check("...and reads back as unknown rather than as never over",
+              withSpell.Any(d => d.Key != spellKey && !d.OverKnown && !d.WasOver(13)));
+
         // T89's two gates. A ghost that is really a record of the app having been closed would read as
         // a quiet week, which is the one thing it must not do.
         WriteStore(FoldedWeek(coverage: 1.0, perHour: 0.004));
