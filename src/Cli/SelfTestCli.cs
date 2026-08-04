@@ -203,6 +203,9 @@ internal static class SelfTestCli
         Section("console — the code page is set where the flags are dispatched (Block AI)");
         ConsoleCodePage();
 
+        Section("parser — the names it spells and the names it reports are one set (Block AI)");
+        ParserNames();
+
         Section("scanning — the flag scan reads code, not the prose about it (Block AI)");
         FlagScanning();
 
@@ -2552,6 +2555,66 @@ internal static class SelfTestCli
         Check($"every .ps1 is ASCII or carries a UTF-8 mark ({scripts.Length})", unreadable.Count == 0,
               $"{string.Join(", ", unreadable)} — 5.1 reads these in the ANSI code page, so a dash inside a "
               + "string closes it and the script does not parse");
+    }
+
+    /// <summary>
+    /// T284. <see cref="ApiClient.NamesRead"/> is the parser enumerating itself: the same method that
+    /// parses a response is run against a lookup that records the name it was asked for and answers
+    /// <c>null</c>. That is what makes the <c>--probe</c> read-out impossible to forget to update — and it
+    /// is exact only while the parse has no branch in it.
+    ///
+    /// <para><b>The failure it cannot see.</b> A read written as <c>get("…-in-use") is "true" ?
+    /// get("…-overage-reset") : null</c> is ordinary code. Under the recording lookup the condition is
+    /// false, the second name is never asked for, and it is reported UNREAD — by the instrument built to
+    /// say which names reach a field, with every check of the classifier green. Silent, and pointing the
+    /// wrong way: a header the app reads, reported as one nothing does.</para>
+    ///
+    /// <para><b>So the property asserted is totality, from the source.</b> Every header name spelled in
+    /// <c>ApiClient.cs</c> is a name the enumeration reports, and every name it reports is spelled there —
+    /// which holds without asking anything about branches, and fails the moment a conditional read is
+    /// written rather than the month somebody trusts the mark. The bare family prefix is excluded: it is
+    /// what the verbatim copy filters on, not a name read into a field.</para>
+    /// </summary>
+    private static void ParserNames() =>
+        Repo("every header name the parser spells is one it reports reading", ParserNames, "src");
+
+    private static void ParserNames(string root)
+    {
+        string path = Path.Combine(root, "src", "Usage", "ApiClient.cs");
+        if (!Check("the parser is in the checkout", File.Exists(path), path)) return;
+
+        // Comment lines are dropped for the reason ConsoleCodePage's are, and here there is a second: the
+        // paragraphs above the parse write the family as `anthropic-ratelimit-unified-*`, which matches as
+        // a name ending in a dash. Names are required not to end in one, so a comment that slips past the
+        // first rule still cannot invent a header.
+        var spelled = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string line in File.ReadLines(path))
+        {
+            if (line.TrimStart().StartsWith("//")) continue;
+            foreach (System.Text.RegularExpressions.Match m in
+                     System.Text.RegularExpressions.Regex.Matches(line, "\"(anthropic-ratelimit-[a-z0-9-]+)\""))
+            {
+                string name = m.Groups[1].Value;
+                if (!name.EndsWith("-")) spelled.Add(name);
+            }
+        }
+
+        if (!Check($"the parser spells header names at all ({spelled.Count})", spelled.Count > 0,
+                   "none found — the scan reads nothing, so it would pass on a parser that read nothing"))
+            return;
+
+        string[] unreported = spelled.Where(n => !ApiClient.NamesRead.Contains(n, StringComparer.OrdinalIgnoreCase))
+                                     .ToArray();
+        Check("every name the source spells is one the enumeration reports", unreported.Length == 0,
+              $"{string.Join(", ", unreported)} — read behind a branch the recording lookup does not take, "
+              + "so --probe would mark it UNREAD (T284)");
+
+        string[] unspelled = ApiClient.NamesRead.Where(n => !spelled.Contains(n)).ToArray();
+        Check("and every name it reports is spelled in the source, not assembled", unspelled.Length == 0,
+              $"{string.Join(", ", unspelled)} — a name the scan cannot see is one it cannot hold");
+
+        Check($"so the two are the same set ({ApiClient.NamesRead.Count})",
+              spelled.Count == ApiClient.NamesRead.Count, $"{spelled.Count} spelled, {ApiClient.NamesRead.Count} reported");
     }
 
     /// <summary>
