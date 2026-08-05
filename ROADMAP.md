@@ -103,6 +103,8 @@
 
 ## Block F — Statistics window (pace report)
 
+- 📋 **T318** (deps: —) **in remaining mode one line falls as the other rises and both mean spending** — Ye never consults Disp, so the left axis flips to quota-left and the clay right axis stays quota-used: the two cross mid-plot, which reads as an event and is an artifact of inverting one of them. → §LIII
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
