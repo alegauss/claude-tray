@@ -72,6 +72,7 @@
   "tip.billingCompact": "• extra usage is paying",
   "tip.spellFull": "• paying since {0}",
   "tip.spellCompact": "• since {0}",
+  "tip.spellBare": "← {0}",
   "tip.dangerEtaFull": "⚠ {0} projection: {1} in {2} (before reset)",
   "tip.dangerEtaCompact": "⚠ {0} in {1}",
   "tip.dangerPaceFull": "⚠ {0} projection: above safe pace (before reset)",

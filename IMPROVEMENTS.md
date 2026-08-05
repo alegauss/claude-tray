@@ -793,29 +793,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## XXXVII A ladder of two rungs, and the language that needs three (T302)
-
-T280 fits the overage duration the way the projection sentence is fitted: full form, compact form,
-or dropped. `--tooltip` then measured what each language ends up with, and the answer is not the
-same in all five. Against the read-out's own fixtures — both resets far out, a refresh time on the
-status line — pt-BR and pt-PT take it in both billing states, `en` and `es` in one of the two, and
-`fr` in neither.
-
-French misses by one character. `• L'usage supplémentaire paie : 47%` leaves 15 of the 127, and `•
-depuis 3h 20m` needs 16 counting its newline. There is no shorter honest French for it: `depuis` is
-the word, and the two-character bullet is what every other line of this tooltip wears.
-
-So the ladder is what changes, not the wording. A third rung — the marker and the duration alone, no
-word — costs 9 characters and would fit every case measured. What has to be got right is that it
-cannot be misread: the line above it already ends in `⟳ 3d 0h`, so a bare duration under a bare
-countdown is two numbers with nothing saying which is which. Whatever marks it has to say *elapsed*,
-never *remaining*.
-
-Worth doing because the state this line is about is the one that costs money, and a French user is
-told they are paying and never told for how long. The assertion is already in place: `--selftest`
-fails a form that would have fitted and was dropped anyway, so a third rung is checked the moment it
-exists.
-
 ## XXXVIII A reading that arrives after the switch (T303)
 
 `RefreshAsync` reads `_api` and awaits it. WinForms is single-threaded, so nothing interleaves

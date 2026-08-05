@@ -1944,6 +1944,7 @@ internal static class SelfTestCli
             // would have fitted is never dropped anyway, which is the same rule the compact projection keeps
             // above, and the one a translation spending four more characters breaks silently.
             var wasted = new List<string>();
+            var reached = new HashSet<string>();
             foreach (string code in codes)
             {
                 L.Apply(code);
@@ -1952,18 +1953,47 @@ internal static class SelfTestCli
                     TooltipText.Input built = v.Build(Now);
                     if (built.SpellSince <= 0) continue;
                     string dur = TrayContext.FmtDays(built.Now - built.SpellSince);
-                    string full = L.T("tip.spellFull", dur), compact = L.T("tip.spellCompact", dur);
+                    string[] rungs =
+                    {
+                        L.T("tip.spellFull", dur), L.T("tip.spellCompact", dur), L.T("tip.spellBare", dur),
+                    };
                     string text = TooltipText.Compose(built);
-                    if (text.Contains(full, StringComparison.Ordinal)
-                        || text.Contains(compact, StringComparison.Ordinal)) continue;
-                    // Nothing was emitted, so every character of the room is still there to measure.
+                    if (rungs.Any(r => text.Contains(r, StringComparison.Ordinal)))
+                    {
+                        reached.Add(code);
+                        continue;
+                    }
+                    // Nothing was emitted, so every character of the room is still there to measure — and the
+                    // cheapest rung is the one the room has to be judged against (T302).
                     int room = TooltipText.Cap - text.Length;
-                    if (room >= compact.Length + 1)
-                        wasted.Add($"{code}/{v.Name} (room {room}, compact {compact.Length})");
+                    if (room >= rungs[^1].Length + 1)
+                        wasted.Add($"{code}/{v.Name} (room {room}, cheapest {rungs[^1].Length})");
                 }
             }
             Check("the spell's duration is taken whenever it fits, never dropped", wasted.Count == 0,
                   string.Join(", ", wasted));
+
+            // T302's own property, and the reason the cheapest rung has no words in it: a language whose
+            // billing sentences are long must still be able to say how long the spell has run *somewhere*.
+            // Not "in every state" — en's own overage reading leaves five characters and nothing fits there,
+            // which the ladder is right to answer by dropping. In at least one billing state, in all five.
+            Check($"every language says how long somewhere ({reached.Count} of {codes.Length})",
+                  reached.Count == codes.Length,
+                  $"silent: {string.Join(", ", codes.Except(reached))} — a state that costs money, with the " +
+                  "duration behind it unsayable in that language");
+
+            // The cheapest rung is a glyph and a duration, and the glyph carries the whole meaning. It must
+            // not be the one that already means "resets in": the line above ends in `⟳ 3d 0h`, so reusing it
+            // would put two identical markers on one card pointing in opposite directions in time.
+            var confusable = new List<string>();
+            foreach (string code in codes)
+            {
+                L.Apply(code);
+                if (L.T("tip.spellBare", "3h 20m").Contains('⟳')) confusable.Add(code);
+            }
+            Check("and the marker it leads with is not the one that means 'resets in'",
+                  confusable.Count == 0,
+                  $"{string.Join(", ", confusable)} — elapsed and remaining cannot wear one glyph");
 
             // And where it is taken it is taken in full whenever the full form fits, so the compact rung is a
             // fallback rather than what every language silently ends up with.

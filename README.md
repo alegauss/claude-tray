@@ -68,8 +68,9 @@ rate limit reports **for that same window** — *Week 7d status: allowed*, never
 window you aren't watching. While extra usage is paying it also says **since when** — *paying since
 3h 20m* — measured from the first reading past your included quota. If the app wasn't watching when
 you crossed, it says nothing rather than counting from the day its log starts. A tray tooltip is
-capped at 127 characters by Windows, so this is the line that goes first when the rest of the
-reading needs the room.
+capped at 127 characters by Windows, so this line shortens before anything else does — first to
+*since 3h 20m*, then to **`← 3h 20m`**, an arrow pointing back at the line above it. The arrow means
+*elapsed*, and it is never `⟳`, which everywhere in this tooltip means *time remaining*.
 
 ## Projection (observability)
 

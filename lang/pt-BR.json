@@ -68,6 +68,7 @@
   "tip.billingCompact": "• o uso extra está pagando",
   "tip.spellFull": "• pagando há {0}",
   "tip.spellCompact": "• há {0}",
+  "tip.spellBare": "← {0}",
   "tip.dangerEtaFull": "⚠ projeção {0}: {1} em {2} (antes do reset)",
   "tip.dangerEtaCompact": "⚠ {0} em {1}",
   "tip.dangerPaceFull": "⚠ projeção {0}: acima do ritmo seguro (antes do reset)",

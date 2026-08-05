@@ -94,7 +94,6 @@
 
 ## Block A — Foundation — tray, icon, API, projection
 
-- 📋 **T302** (deps: —) **the tightest language never sees the overage duration, and only a read-out says so** — T280's two rungs cost 16 characters in fr where the billing reading leaves 15, so it is dropped in both billing states — en and es lose it in one each. → §XXXVII
 - 📋 **T303** (deps: —) **a reading fetched for one account can be written into the state of the account that replaced it** — RefreshAsync awaits the fetch; a switch during it replaces MonitoredAccount, and the resumed poll writes the outgoing account's reading and snapshot into the incoming one. → §XXXVIII
 
 ## Block F — Statistics window (pace report)

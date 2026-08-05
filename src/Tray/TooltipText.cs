@@ -156,11 +156,18 @@ internal static class TooltipText
         // timestamp because of the budget: 114 of 127 characters are already spent in pt-BR on the two
         // billing variants, and a date does not fit where "3h 20m" does. Only shown when the crossing is on
         // file — see OverageSpell, which answers null rather than dating it from the log's own beginning.
-        (string full, string compact)? spell = i.State == QuotaState.Billing && i.SpellSince > 0
-                                              && i.Now > i.SpellSince
-            ? (L.T("tip.spellFull", TrayContext.FmtDays(i.Now - i.SpellSince)),
-               L.T("tip.spellCompact", TrayContext.FmtDays(i.Now - i.SpellSince)))
-            : null;
+        //
+        // Three rungs, not two (T302). The two worded ones cost 16 characters in fr where this reading
+        // leaves 15, so `--tooltip` measured the line as dropped in *both* French billing states and in one
+        // each for en and es. The third is a glyph and a duration with no word in it, so it costs the same
+        // in every language — which is the point: the rung that rescues the tightest language cannot be
+        // spent away by a future translation, because there is nothing in it to translate.
+        (string full, string compact, string bare)? spell =
+            i.State == QuotaState.Billing && i.SpellSince > 0 && i.Now > i.SpellSince
+                ? (L.T("tip.spellFull", TrayContext.FmtDays(i.Now - i.SpellSince)),
+                   L.T("tip.spellCompact", TrayContext.FmtDays(i.Now - i.SpellSince)),
+                   L.T("tip.spellBare", TrayContext.FmtDays(i.Now - i.SpellSince)))
+                : null;
 
         string statusLine = TrayContext.StatusLine(data, i.Metric, i.Updated);
 
@@ -175,23 +182,25 @@ internal static class TooltipText
         if (Length(lines) + statusLine.Length > Cap)
             lines.Remove(i.Metric == "5h" ? week : session);
 
-        // The refresh time sits on the last line, so a blind end-truncation would chop it mid-value.
-        // Keep the status/time line intact and fit each optional sentence in: full form if it fits, else
-        // compact, else not at all. Measured against what is on `lines` at the time, so an earlier rung
-        // taken means less room for a later one — which is what makes the order below a priority.
-        void Fit((string full, string compact)? candidate)
+        // The refresh time sits on the last line, so a blind end-truncation would chop it mid-value. Keep the
+        // status/time line intact and take the first rung that fits, or none of them. Measured against what
+        // is on `lines` at the time, so an earlier sentence taken means less room for a later one — which is
+        // what makes the order of the two calls below a priority rather than a sequence.
+        //
+        // A count of rungs rather than a pair (T302): the projection has two and the spell has three, and
+        // "the first of these that fits" is the whole rule either way.
+        void Fit(params string[] rungs)
         {
-            if (candidate is not { } c) return;
             int room = Cap - Length(lines) - statusLine.Length;
-            if (c.full.Length + 1 <= room) lines.Add(c.full);
-            else if (c.compact.Length + 1 <= room) lines.Add(c.compact);
+            foreach (string rung in rungs)
+                if (rung.Length + 1 <= room) { lines.Add(rung); return; }
         }
 
-        Fit(projection);
+        if (projection is { } p) Fit(p.full, p.compact);
         // After the projection, because it qualifies news the lines above it carry rather than carrying its
         // own: a duration under nothing that says money is being spent is a number about nothing, and the
         // sentence it modifies is the one that must survive if only one of them can.
-        Fit(spell);
+        if (spell is { } s) Fit(s.full, s.compact, s.bare);
         lines.Add(statusLine);
         return string.Join("\n", lines);
     }
