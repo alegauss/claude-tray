@@ -367,6 +367,8 @@
   "stats.legend.extra": "extra usage (right-hand scale)",
   "stats.legend.overQuota": "past your plan's quota",
   "stats.legend.overQuota.tip": "Drawn in clay wherever the API reported you past the quota included in your plan: this week as a stretch shaded top to bottom, last week as a short mark at the ceiling. Hover either one for the stretch it covers.",
+  "stats.legend.overQuota.tipBand": "Drawn in clay where the API reported you past the quota included in your plan: the stretch shaded top to bottom on the chart. Hover it for the hours it covers.",
+  "stats.legend.overQuota.tipCeiling": "Drawn in clay where the API reported last week past the quota included in your plan: the short mark at the 100% line. Hover it for the hours it covers.",
   "stats.methodTitle": "How these numbers are measured",
   "stats.methodNote": "“Used” and the reset come live from Anthropic's rate limits; the curve is your real measured utilization over the window (until enough is logged, it's reconstructed from local transcripts). The projection assumes the current average pace.",
   "stats.methodNote.shape": "The weekly projection follows the hours you're usually active ({0} weeks of local transcripts{1}), so it stays flat overnight instead of spending quota evenly around the clock — it's a habit, not a schedule. Usage from another machine or from claude.ai counts against the same limit but leaves no transcript here, so an hour that looks idle may not be.",

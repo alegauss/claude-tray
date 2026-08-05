@@ -867,27 +867,3 @@ element in one unbroken `///` run, and no `///` run may be separated from the de
 precedes by a blank line or a non-comment line. Both are the same defect from the two directions an
 edit can cause it — an insertion after the comment, and an insertion before the member. Neither
 needs the compiler, so it costs one file walk in `--selftest` and no build-configuration change.
-
-## XLVIII A sentence written for a hover, reused where there is nothing under the cursor (T313)
-
-`stats.chart.overSpan` and `stats.chart.lastWeekOverSpan` were written for hit targets on the chart.
-Both say *over this stretch* — correct when the cursor is on the stretch, which is the only place
-either was used until T308 gave the 5-hour legend entry the first as its tooltip and T311 gave the
-ceiling-only weekly entry the second.
-
-On a legend entry there is no stretch under the cursor. "Shaded: the API reported you past the quota
-included in your plan over this stretch" invites the reader to look at *which* stretch, and the
-answer is that the pointer is on a swatch. It is the same failure the two tasks that introduced it
-were about — naming something the reader then cannot find — arrived at by reusing a string instead
-of a shape.
-
-The reuse itself was the right instinct and the wrong unit. What a legend entry and a chart element
-share is the *claim* (past the included quota, and work carried on as extra usage); what they cannot
-share is the pointing. So each entry needs its own sentence, saying which shape means this and where
-on the chart to look for it, and the two chart tips stay as they are because they are right where
-they are used. That is two new keys across five languages, and it puts the strings in step with the
-swatch halves T311 already decides per render.
-
-While that method is open: `ApplyOverLegend` takes `UIElement` and then tests `is FrameworkElement`
-before setting the tooltip. Every caller passes a `StackPanel`, so the branch cannot fail and its
-else is a tooltip silently not set — the parameter should be the type that has the property.

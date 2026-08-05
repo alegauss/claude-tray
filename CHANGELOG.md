@@ -22,7 +22,7 @@
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
-| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) (active — see ROADMAP) |
+| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
@@ -155,6 +155,7 @@
 - **T308** — Being past the included quota is a fact about the account, so both charts draw the band and the second axis and each legend names what its own chart carried: the 5-hour tab gets the two entries it never had, band-only where the week carries a mark it cannot draw, and both overage previews now put the session past its quota so either is lookable at.
 - **T309** — OverQuotaMarks is the one reader: the band loop and the ghost loop draw what it yields, filtered by shape so the z-order stays where the drawing is, and the legend counts the same list — with the fraction test as the only claim and the plot minimum applied at paint, where a mark the legend names is widened rather than dropped.
 - **T311** — The clay entry describes only what its chart drew: swatch halves and tooltip come per render from OverQuotaMarks, so the ghost-only case that is most weeks names the ceiling mark alone, both tabs decide it through one reader, and a new ghost-over preview finally puts that state on screen.
+- **T313** — Each legend entry has its own sentence in all five languages, naming its shape and where on the chart to find it, so the chart hit targets keep the deixis that only works under a cursor on the stretch — asserted by key, so borrowing one back is a red build, and the method now takes the element type that has the property instead of testing for it.
 
 ## Block G — Localization
 

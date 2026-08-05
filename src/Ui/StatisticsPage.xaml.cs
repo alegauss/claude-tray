@@ -534,15 +534,18 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     /// <summary>Put one window's clay entry on screen: shown or not, the halves of the swatch its chart
     /// actually drew, and the one sentence true of those (T311). Both tabs, one reader — the tab differs
     /// only in the window it is handed.</summary>
-    private static void ApplyOverLegend(WindowPace w, UIElement entry, UIElement band, UIElement ceiling)
+    private static void ApplyOverLegend(WindowPace w, FrameworkElement entry,
+                                        UIElement band, UIElement ceiling)
     {
         OverLegend g = OverLegendFor(w);
         entry.Visibility = g.Show ? Visibility.Visible : Visibility.Collapsed;
         band.Visibility = g.Band ? Visibility.Visible : Visibility.Collapsed;
         ceiling.Visibility = g.Ceiling ? Visibility.Visible : Visibility.Collapsed;
         // Only when there is an entry: a tooltip left on a collapsed one is a string nobody can reach, and
-        // `TipKey` is deliberately empty in that state rather than carrying a stale sentence.
-        if (entry is FrameworkElement fe) fe.ToolTip = g.Show ? L.T(g.TipKey) : null;
+        // `TipKey` is deliberately empty in that state rather than carrying a stale sentence. Typed as the
+        // element that *has* the property (T313), rather than tested for it — every caller passes a panel,
+        // so the test could not fail and its else was a tooltip quietly not set.
+        entry.ToolTip = g.Show ? L.T(g.TipKey) : null;
     }
 
     // The static captions/legend labels that change wording between "used" and "remaining" framing.

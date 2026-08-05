@@ -363,6 +363,8 @@
   "stats.legend.extra": "uso extra (escala da direita)",
   "stats.legend.overQuota": "além da cota do plano",
   "stats.legend.overQuota.tip": "Desenhado em terracota onde a API informou que você estava além da cota incluída no seu plano: esta semana como um trecho sombreado de cima a baixo, a semana passada como uma marca curta no teto. Passe o mouse em qualquer um deles para ver o trecho que cobre.",
+  "stats.legend.overQuota.tipBand": "Desenhado em terracota onde a API informou que você estava além da cota incluída no seu plano: o trecho sombreado de cima a baixo no gráfico. Passe o mouse nele para ver as horas que cobre.",
+  "stats.legend.overQuota.tipCeiling": "Desenhado em terracota onde a API informou que a semana passada esteve além da cota incluída no seu plano: a marca curta na linha de 100%. Passe o mouse nela para ver as horas que cobre.",
   "stats.methodTitle": "Como estes números são medidos",
   "stats.methodNote": "“Usado” e o reset vêm ao vivo dos limites de taxa da Anthropic; a curva é sua utilização real medida ao longo da janela (até haver registro suficiente, é reconstruída a partir das transcrições locais). A projeção assume o ritmo médio atual.",
   "stats.methodNote.shape": "A projeção semanal segue as horas em que você costuma estar ativo ({0} semanas de transcrições locais{1}), então fica plana de madrugada em vez de gastar a cota de modo uniforme — é um hábito, não uma agenda. Uso em outra máquina ou no claude.ai conta para o mesmo limite mas não deixa transcrição aqui, então uma hora que parece ociosa pode não ser.",

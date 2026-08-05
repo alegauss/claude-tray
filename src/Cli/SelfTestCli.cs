@@ -1651,12 +1651,12 @@ internal static class SelfTestCli
               $"{gBoth}");
         var gBand = StatisticsPage.OverLegendFor(bandOnly);
         Check("a shaded stretch alone draws no bar at the ceiling and promises none",
-              gBand is { Show: true, Band: true, Ceiling: false, TipKey: "stats.chart.overSpan" },
+              gBand is { Show: true, Band: true, Ceiling: false, TipKey: "stats.legend.overQuota.tipBand" },
               $"{gBand}");
         // The state that is most weeks, and the one T300 was wrong about: last week over, this week not.
         var gCeil = StatisticsPage.OverLegendFor(ceilOnly);
         Check("a ghost mark alone draws no band and promises no shaded stretch",
-              gCeil is { Show: true, Band: false, Ceiling: true, TipKey: "stats.chart.lastWeekOverSpan" },
+              gCeil is { Show: true, Band: false, Ceiling: true, TipKey: "stats.legend.overQuota.tipCeiling" },
               $"{gCeil}");
         var gNone = StatisticsPage.OverLegendFor(neither);
         Check("no mark, no entry — and no sentence left behind on it",
@@ -1664,6 +1664,15 @@ internal static class SelfTestCli
         Check("the entry's own visibility is that same reading, not a second one",
               StatisticsPage.HasOverQuotaMark(ceilOnly) == gCeil.Show
               && StatisticsPage.HasOverQuotaMark(neither) == gNone.Show);
+
+        // T313. The claim the fix rests on, asserted as a claim: no legend entry wears a sentence written
+        // for a hit target on the chart. Those say "over this stretch", which has a referent under a cursor
+        // on the stretch and none under one on a swatch — so borrowing one back is a red build, not a review
+        // note. Named by key rather than by wording: what is wrong is where the string is used.
+        string[] chartHoverTips = { "stats.chart.overSpan", "stats.chart.lastWeekOverSpan" };
+        Check("no legend entry borrows a chart hover's own sentence",
+              new[] { gBoth, gBand, gCeil }.All(g => !chartHoverTips.Contains(g.TipKey)),
+              string.Join(", ", new[] { gBoth, gBand, gCeil }.Select(g => g.TipKey)));
 
         // ---- which shaping path ran
         Check($"the real-history path needs {UsageReport.MinRealSamples} logged points",

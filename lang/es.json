@@ -363,6 +363,8 @@
   "stats.legend.extra": "uso extra (escala derecha)",
   "stats.legend.overQuota": "por encima de la cuota del plan",
   "stats.legend.overQuota.tip": "Dibujado en terracota donde la API informó de que estabas por encima de la cuota incluida en tu plan: esta semana como un tramo sombreado de arriba abajo, la semana pasada como una marca corta en el techo. Pasa el ratón por cualquiera de los dos para ver el tramo que cubre.",
+  "stats.legend.overQuota.tipBand": "Dibujado en terracota donde la API informó de que estabas por encima de la cuota incluida en tu plan: el tramo sombreado de arriba abajo en el gráfico. Pasa el ratón por él para ver las horas que cubre.",
+  "stats.legend.overQuota.tipCeiling": "Dibujado en terracota donde la API informó de que la semana pasada estuvo por encima de la cuota incluida en tu plan: la marca corta en la línea del 100 %. Pasa el ratón por ella para ver las horas que cubre.",
   "stats.methodTitle": "Cómo se miden estos números",
   "stats.methodNote": "«Usado» y el reinicio vienen en directo de los límites de tasa de Anthropic; la curva es tu utilización real medida a lo largo de la ventana (hasta que hay registro suficiente, se reconstruye a partir de las transcripciones locales). La proyección asume el ritmo medio actual.",
   "stats.methodNote.shape": "La proyección semanal sigue las horas en las que sueles estar activo ({0} semanas de transcripciones locales{1}), así que se mantiene plana de madrugada en vez de gastar la cuota de forma uniforme — es un hábito, no un horario. El uso desde otra máquina o desde claude.ai cuenta para el mismo límite pero no deja transcripción aquí, así que una hora que parece inactiva puede no serlo.",

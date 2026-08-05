@@ -136,8 +136,11 @@ internal partial class StatisticsPage
     /// and <paramref name="TipKey"/> is empty.</param>
     /// <param name="Band">Draw the shaded-stretch half of the swatch — this window went over.</param>
     /// <param name="Ceiling">Draw the bar-at-the-ceiling half — the ghost week behind it went over.</param>
-    /// <param name="TipKey">The one sentence true of what was drawn. Three states, three strings, all of
-    /// which already existed: the pair's own tip, the band's, and the ghost mark's.</param>
+    /// <param name="TipKey">The one sentence true of what was drawn — three states, three strings, each
+    /// written for a legend entry (T313). The chart elements' own tips are not reusable here despite making
+    /// the same claim: they say <em>over this stretch</em>, which has a referent under a cursor on the
+    /// stretch and none under a cursor on a swatch, so a legend tip has to name the shape and say where on
+    /// the chart to find it instead of pointing at where it already is.</param>
     internal readonly record struct OverLegend(bool Show, bool Band, bool Ceiling, string TipKey);
 
     /// <summary>The legend's clay entry, decided from the marks the chart drew (T311) — and with it whether
@@ -161,8 +164,8 @@ internal partial class StatisticsPage
         if (!band && !ceiling) return new OverLegend(false, false, false, "");
         return new OverLegend(true, band, ceiling,
             band && ceiling ? "stats.legend.overQuota.tip"
-            : band ? "stats.chart.overSpan"
-            : "stats.chart.lastWeekOverSpan");
+            : band ? "stats.legend.overQuota.tipBand"
+            : "stats.legend.overQuota.tipCeiling");
     }
 
     /// <summary>Whether this window puts a clay over-quota mark on the chart at all — the legend's one entry
