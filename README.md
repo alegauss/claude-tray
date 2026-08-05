@@ -240,11 +240,12 @@ when it happened than invent how much.
 **On both tabs, because it is a fact about the account.** Being past your included quota isn't a
 property of a five-hour stretch or of a week — so the shaded stretch and the extra-usage axis appear
 on whichever chart you're looking at, and each tab's legend names what that tab actually drew. The
-weekly one has one entry, **past your plan's quota**, covering both clay marks it can carry: this
-week's shaded stretch and last week's mark at the ceiling, one fact about two different weeks, with
-the hover saying which shape belongs to which. The 5-hour tab has no previous window to draw, so its
-entry is the shaded stretch alone. Either way, an entry only shows up when the thing it names is on
-the chart.
+weekly one has a single entry, **past your plan's quota**, covering both clay marks it can carry: this
+week's shaded stretch and last week's mark at the ceiling. One fact about two different weeks — so the
+entry names the fact, and its swatch and its hover describe only the shapes that particular chart
+actually drew. Last week over and this week inside its quota is the common case, and there the entry is
+the ceiling mark alone; the 5-hour tab has no previous window at all, so it is always the shaded stretch
+alone. An entry never mentions something that isn't on the chart in front of you.
 
 ## ✨ Reset notifications — color-coded, at a glance
 

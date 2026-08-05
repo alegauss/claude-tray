@@ -273,14 +273,17 @@
                                 <TextBlock Text="{local:Loc stats.legend.extra}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
-                            <!-- Band only, where the weekly swatch carries a line along its ceiling too: the
-                                 ghost is a weekly idea and nothing sets Session.Ghost, so a mark at the
-                                 ceiling is a shape this tab cannot draw — and naming one is the defect T300
-                                 shipped against. Its tooltip is the band's own sentence for the same reason,
-                                 rather than the weekly entry's, which distinguishes two weeks. -->
-                            <StackPanel x:Name="LegendOverS" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed"
-                                        ToolTip="{local:Loc stats.chart.overSpan}">
-                                <Rectangle Width="16" Height="10" RadiusX="2" RadiusY="2" VerticalAlignment="Center" Fill="#3DD97757" />
+                            <!-- Both halves declared and each shown only when its shape was drawn (T311); the
+                                 tooltip is set per render for the same reason. On this tab that resolves to
+                                 band-only, because nothing sets Session.Ghost — decided by the same reader as
+                                 the weekly entry rather than hardcoded here, so a session that ever grows a
+                                 ghost gets a right legend instead of a quietly wrong one. -->
+                            <StackPanel x:Name="LegendOverS" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
+                                <Grid Width="16" Height="10" VerticalAlignment="Center">
+                                    <Rectangle x:Name="OverSwatchBandS" RadiusX="2" RadiusY="2" Fill="#3DD97757" />
+                                    <Rectangle x:Name="OverSwatchCeilingS" Width="10" Height="3" HorizontalAlignment="Left"
+                                               VerticalAlignment="Top" Fill="#D97757" Opacity="0.8" />
+                                </Grid>
                                 <TextBlock Text="{local:Loc stats.legend.overQuota}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
@@ -372,17 +375,20 @@
                             <!-- The two clay marks, named once (T300): this week's shaded stretch (T275) and
                                  last week's mark at the ceiling (T295) are one fact about two different
                                  weeks, so they get one entry and the week is left to the hover — which the
-                                 tooltip here is what makes findable at all. Shown when *either* is on the
-                                 chart, because most weeks carry only one: an entry for a mark nobody drew
-                                 is the same defect one step on. The swatch carries both forms — a band
-                                 with a line along its ceiling — since the entry names the idea and not a
-                                 placement, and the band is brightened the way the idle one is, because
-                                 0.14 over 10px is nothing to look at. -->
-                            <StackPanel x:Name="LegendOverW" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed"
-                                        ToolTip="{local:Loc stats.legend.overQuota.tip}">
+                                 tooltip is what makes findable at all. Shown when *either* is on the chart,
+                                 because most weeks carry only one: an entry for a mark nobody drew is the
+                                 same defect one step on.
+                                 Which is why the swatch's two halves are shown per render and the tooltip is
+                                 set with them (T311) — describing both shapes on a chart carrying one was
+                                 that defect, inside the entry. The band is brightened the way the idle one
+                                 is, because 0.14 over 10px is nothing to look at, and the ceiling bar is
+                                 short and thick like the chart's, which also keeps it apart from the
+                                 full-width 2px line of the extra-usage entry beside it. -->
+                            <StackPanel x:Name="LegendOverW" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
                                 <Grid Width="16" Height="10" VerticalAlignment="Center">
-                                    <Rectangle RadiusX="2" RadiusY="2" Fill="#3DD97757" />
-                                    <Rectangle Height="2" VerticalAlignment="Top" Fill="#D97757" Opacity="0.8" />
+                                    <Rectangle x:Name="OverSwatchBandW" RadiusX="2" RadiusY="2" Fill="#3DD97757" />
+                                    <Rectangle x:Name="OverSwatchCeilingW" Width="10" Height="3" HorizontalAlignment="Left"
+                                               VerticalAlignment="Top" Fill="#D97757" Opacity="0.8" />
                                 </Grid>
                                 <TextBlock Text="{local:Loc stats.legend.overQuota}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />

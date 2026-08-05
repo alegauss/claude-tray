@@ -369,6 +369,12 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     /// and <see cref="FillDemoOverSpell"/>.</summary>
     internal bool PreviewDemoOverSpell { get; init; }
 
+    /// <summary>Put the demo ghost past its included quota <em>without</em> putting the week in front of it
+    /// there (T311). Every other route to a ghost mark goes through an overage variant, which also shades
+    /// this week — so the ceiling mark had never been drawn without a band behind it, and that is the state
+    /// most weeks are in and the one the legend used to describe wrongly.</summary>
+    internal bool PreviewDemoGhostOver { get; init; }
+
     /// <summary>The shape of a week that ran out mid-way and kept working: flat nothing until the quota is
     /// spent, then a climb that does not stop at the ceiling because it is not measured against one.</summary>
     /// <remarks>
@@ -457,7 +463,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         // looked at — and the picture that shows the band and the stretch are not the same claim.
         if (PreviewDemoGhost && r.Weekly.Ghost is null && r.Weekly.HasWindow)
         {
-            bool ghostOver = PreviewDemoOverage || PreviewDemoOverSpell;
+            bool ghostOver = PreviewDemoOverage || PreviewDemoOverSpell || PreviewDemoGhostOver;
             r.Weekly.Ghost = HourlyUsage.Demo(
                 DateTimeOffset.FromUnixTimeSeconds((long)(r.Weekly.ResetUnix - r.Weekly.WindowSeconds)).LocalDateTime,
                 r.Weekly.WindowSeconds, r.Weekly.ElapsedFraction, 0.86, ghostOver);
@@ -520,9 +526,23 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         // legend sits under: `hasExtra` is what DrawChart rules a second axis by, and HasOverQuotaMark is
         // the predicate the marks themselves are drawn under.
         LegendExtraW.Visibility = HasExtraAxis(r.Weekly) ? Visibility.Visible : Visibility.Collapsed;
-        LegendOverW.Visibility = HasOverQuotaMark(r.Weekly) ? Visibility.Visible : Visibility.Collapsed;
         LegendExtraS.Visibility = HasExtraAxis(r.Session) ? Visibility.Visible : Visibility.Collapsed;
-        LegendOverS.Visibility = HasOverQuotaMark(r.Session) ? Visibility.Visible : Visibility.Collapsed;
+        ApplyOverLegend(r.Weekly, LegendOverW, OverSwatchBandW, OverSwatchCeilingW);
+        ApplyOverLegend(r.Session, LegendOverS, OverSwatchBandS, OverSwatchCeilingS);
+    }
+
+    /// <summary>Put one window's clay entry on screen: shown or not, the halves of the swatch its chart
+    /// actually drew, and the one sentence true of those (T311). Both tabs, one reader — the tab differs
+    /// only in the window it is handed.</summary>
+    private static void ApplyOverLegend(WindowPace w, UIElement entry, UIElement band, UIElement ceiling)
+    {
+        OverLegend g = OverLegendFor(w);
+        entry.Visibility = g.Show ? Visibility.Visible : Visibility.Collapsed;
+        band.Visibility = g.Band ? Visibility.Visible : Visibility.Collapsed;
+        ceiling.Visibility = g.Ceiling ? Visibility.Visible : Visibility.Collapsed;
+        // Only when there is an entry: a tooltip left on a collapsed one is a string nobody can reach, and
+        // `TipKey` is deliberately empty in that state rather than carrying a stale sentence.
+        if (entry is FrameworkElement fe) fe.ToolTip = g.Show ? L.T(g.TipKey) : null;
     }
 
     // The static captions/legend labels that change wording between "used" and "remaining" framing.

@@ -22,7 +22,7 @@
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
-| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) (active — see ROADMAP) |
+| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
@@ -154,6 +154,7 @@
 - **T300** — The clay pair has one legend entry — past your plan quota — shown exactly when this week shaded stretch or last week mark at the ceiling is actually drawn, from the one predicate the marks are drawn under, with the week left to a hover the entry now makes findable.
 - **T308** — Being past the included quota is a fact about the account, so both charts draw the band and the second axis and each legend names what its own chart carried: the 5-hour tab gets the two entries it never had, band-only where the week carries a mark it cannot draw, and both overage previews now put the session past its quota so either is lookable at.
 - **T309** — OverQuotaMarks is the one reader: the band loop and the ghost loop draw what it yields, filtered by shape so the z-order stays where the drawing is, and the legend counts the same list — with the fraction test as the only claim and the plot minimum applied at paint, where a mark the legend names is widened rather than dropped.
+- **T311** — The clay entry describes only what its chart drew: swatch halves and tooltip come per render from OverQuotaMarks, so the ghost-only case that is most weeks names the ceiling mark alone, both tabs decide it through one reader, and a new ghost-over preview finally puts that state on screen.
 
 ## Block G — Localization
 

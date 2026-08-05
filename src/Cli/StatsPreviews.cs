@@ -35,6 +35,7 @@ internal static class StatsPreviews
         bool Ghost = false,
         bool Overage = false,
         bool OverSpell = false,
+        bool GhostOver = false,
         bool Thin = false,
         bool MethodOpen = false,
         bool Error = false,
@@ -78,6 +79,15 @@ internal static class StatsPreviews
             now => new PaceSnapshot(1.0, now + 2 * 3600, 1.0, now + 2 * 86400,
                                     Extra: 0, ResetExtra: now + 2 * 86400),
             OverSpell: true),
+
+        // The one clay state no other row can produce, and the one most weeks are actually in (T311): the
+        // ghost went past its quota and the week in front of it has not. Everywhere else the ghost's mark
+        // only exists on a variant that also puts *this* week over, so the ceiling mark had never been seen
+        // without a band behind it — which is exactly the case the legend used to describe wrongly.
+        new("ghost-over", "last week past its included quota and this week comfortably inside it: the clay " +
+                          "mark at the ceiling with no band, and the legend entry that must name only it",
+            now => new PaceSnapshot(0.0, now + 5 * 3600, 0.38, now + 3 * 86400),
+            Ghost: true, GhostOver: true),
 
         new("live", "a deterministic synthetic three minutes in the throughput strip, instead of the real " +
                     "tail — which cannot be screenshotted twice the same way",
@@ -184,6 +194,7 @@ internal static class StatsPreviews
             PreviewDemoGhost = c.Ghost,
             PreviewDemoOverage = c.Variant.Overage,
             PreviewDemoOverSpell = c.Variant.OverSpell,
+            PreviewDemoGhostOver = c.Variant.GhostOver,
             PreviewDemoThin = c.Variant.Thin,
             PreviewMethodOpen = c.Variant.MethodOpen,
         };

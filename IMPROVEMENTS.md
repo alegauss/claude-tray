@@ -845,31 +845,6 @@ rather than onto whichever surface happened to be assertable. WinForms and WPF c
 and converted at each edge. The check then asserts what it means to assert: every surface that says
 "paying" says it in the same clay, and a new surface that wants clay has one place to get it from.
 
-## XLVI One entry for two shapes, describing both either way (T311)
-
-T300 was right that the clay pair is one idea and gets one legend entry, and right that the entry
-appears when either mark is drawn. What it left is that the entry then *describes* both marks
-unconditionally, in the two places it has room to: the swatch draws a band with a bar along its
-ceiling, and the tooltip says "this week as a stretch shaded top to bottom, last week as a short
-mark at the ceiling".
-
-On the state that is most weeks, half of that is false. A week that has not yet passed its quota
-with a previous week that did carries `ghost.OverSpans` and no `ExtraSpans` — one ceiling mark, no
-band — and the entry still shows a band in its swatch and still promises a shaded stretch. The
-reader looks for it and it is not there. That is the sentence T300 wrote about itself: an entry for
-a mark nobody drew is the same defect one step further on. It arrived here because T300 reasoned
-about the *entry's visibility* and left its *content* fixed, and the visibility is the half
-`--selftest` drives.
-
-The 5-hour tab already has the shape of the answer. T308 gave it a band-only swatch and the band's
-own sentence, because a ceiling mark is a shape that tab cannot draw. The week can draw either, so
-the choice is per render rather than per tab: the swatch shows the forms `OverQuotaMarks` actually
-yielded, and the tooltip names those forms and no others. Three states, not one — band only, ceiling
-only, both — and `OverQuotaMarks` already reports which, so nothing new has to be computed.
-
-Two strings become three at most, and one of them exists: the band-only case can say what the 5-hour
-entry says.
-
 ## XLVII The comment that documents the wrong member (T312)
 
 Measured in this repository today, on the commit that shipped T308. An insertion went in between a

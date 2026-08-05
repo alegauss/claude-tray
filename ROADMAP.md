@@ -100,8 +100,6 @@
 
 ## Block F — Statistics window (pace report)
 
-- 📋 **T311** (deps: —) **the clay entry's swatch and tooltip both name two shapes when one is usually absent** — It shows on either mark alone, and most weeks are the ghost-only case: the swatch draws a band and the tip promises a stretch shaded top to bottom, neither of which is on that chart. → §XLVI
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

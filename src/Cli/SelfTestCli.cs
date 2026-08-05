@@ -1637,6 +1637,34 @@ internal static class SelfTestCli
         Check("and a ghost too thin to draw keeps its spans out of the list",
               StatisticsPage.OverQuotaMarks(tooThin).All(m => m.kind == StatisticsPage.OverMark.Band));
 
+        // T311. The entry's *content*, which T300 left fixed while making its visibility conditional. The
+        // claim is that no state describes a shape the chart did not draw, so each of the three is asserted
+        // on both halves of the swatch and on which sentence it gets.
+        var bandOnly = Win(reset, window, now, 1.0);
+        bandOnly.ExtraSpans = new List<(double, double)> { (0.2, 0.3) };
+        var ceilOnly = Win(reset, window, now, 0.5);
+        ceilOnly.Ghost = GhostWith(ghostOver);
+
+        var gBoth = StatisticsPage.OverLegendFor(both);
+        Check("both shapes drawn: both halves of the swatch, and the tip that distinguishes the weeks",
+              gBoth is { Show: true, Band: true, Ceiling: true, TipKey: "stats.legend.overQuota.tip" },
+              $"{gBoth}");
+        var gBand = StatisticsPage.OverLegendFor(bandOnly);
+        Check("a shaded stretch alone draws no bar at the ceiling and promises none",
+              gBand is { Show: true, Band: true, Ceiling: false, TipKey: "stats.chart.overSpan" },
+              $"{gBand}");
+        // The state that is most weeks, and the one T300 was wrong about: last week over, this week not.
+        var gCeil = StatisticsPage.OverLegendFor(ceilOnly);
+        Check("a ghost mark alone draws no band and promises no shaded stretch",
+              gCeil is { Show: true, Band: false, Ceiling: true, TipKey: "stats.chart.lastWeekOverSpan" },
+              $"{gCeil}");
+        var gNone = StatisticsPage.OverLegendFor(neither);
+        Check("no mark, no entry — and no sentence left behind on it",
+              gNone is { Show: false, Band: false, Ceiling: false, TipKey: "" }, $"{gNone}");
+        Check("the entry's own visibility is that same reading, not a second one",
+              StatisticsPage.HasOverQuotaMark(ceilOnly) == gCeil.Show
+              && StatisticsPage.HasOverQuotaMark(neither) == gNone.Show);
+
         // ---- which shaping path ran
         Check($"the real-history path needs {UsageReport.MinRealSamples} logged points",
               w.Curve.Count > 2 && Math.Abs(w.Curve[0].frac) < 1e-9,

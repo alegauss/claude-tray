@@ -129,9 +129,45 @@ internal partial class StatisticsPage
                 if (f1 > f0) yield return (OverMark.Ceiling, f0, f1);
     }
 
+    /// <summary>What the legend's one clay entry should be, for the marks this window actually carries
+    /// (T311): whether to show it at all, which halves of its swatch to draw, and which sentence explains
+    /// it.</summary>
+    /// <param name="Show">False when the chart carries no clay mark, in which case the rest means nothing
+    /// and <paramref name="TipKey"/> is empty.</param>
+    /// <param name="Band">Draw the shaded-stretch half of the swatch — this window went over.</param>
+    /// <param name="Ceiling">Draw the bar-at-the-ceiling half — the ghost week behind it went over.</param>
+    /// <param name="TipKey">The one sentence true of what was drawn. Three states, three strings, all of
+    /// which already existed: the pair's own tip, the band's, and the ghost mark's.</param>
+    internal readonly record struct OverLegend(bool Show, bool Band, bool Ceiling, string TipKey);
+
+    /// <summary>The legend's clay entry, decided from the marks the chart drew (T311) — and with it whether
+    /// there is an entry at all, which is the question T300 asked and T309 gave one reader.
+    ///
+    /// <para>T300 made the entry appear when <em>either</em> mark is drawn and left its content fixed,
+    /// describing both. On the state that is most weeks — a previous week that went over, a current one that
+    /// has not — the swatch drew a band and the tip promised a shaded stretch, neither of which was on the
+    /// chart: an entry for a mark nobody drew, which is the defect T300 exists against. So the content is
+    /// per render, from the same enumerator, and the three states are the three the chart can be in.</para>
+    ///
+    /// <para>Both tabs come through here rather than the 5-hour one carrying a hand-written band-only case
+    /// (T308): nothing sets <c>Session.Ghost</c> today, so it resolves to band-only on its own — and if
+    /// something ever does, the legend is already right instead of quietly wrong.</para></summary>
+    internal static OverLegend OverLegendFor(WindowPace w)
+    {
+        bool band = false, ceiling = false;
+        foreach (var (kind, _, _) in OverQuotaMarks(w))
+            if (kind == OverMark.Band) band = true; else ceiling = true;
+
+        if (!band && !ceiling) return new OverLegend(false, false, false, "");
+        return new OverLegend(true, band, ceiling,
+            band && ceiling ? "stats.legend.overQuota.tip"
+            : band ? "stats.chart.overSpan"
+            : "stats.chart.lastWeekOverSpan");
+    }
+
     /// <summary>Whether this window puts a clay over-quota mark on the chart at all — the legend's one entry
-    /// for the pair (T300), now asking the same enumerator the marks are drawn from (T309).</summary>
-    internal static bool HasOverQuotaMark(WindowPace w) => OverQuotaMarks(w).Any();
+    /// for the pair (T300), asking the same enumerator the marks are drawn from (T309).</summary>
+    internal static bool HasOverQuotaMark(WindowPace w) => OverLegendFor(w).Show;
 
     private void Chart_SizeChanged(object sender, SizeChangedEventArgs e)
     {
