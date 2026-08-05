@@ -270,7 +270,9 @@
                                  the weekly pair, because it is the same news about a shorter window. -->
                             <StackPanel x:Name="LegendExtraS" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
                                 <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#D97757" />
-                                <TextBlock Text="{local:Loc stats.legend.extra}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
+                                <!-- Text set per mode (T318): this axis does not flip with the left one, so
+                                     in remaining mode it has to say it is still counting what was spent. -->
+                                <TextBlock x:Name="LegendExtraTextS" Text="{local:Loc stats.legend.extra}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
                             <!-- Both halves declared and each shown only when its shape was drawn (T311); the
@@ -372,7 +374,8 @@
                                  on this chart that is NOT read against the percentage axis. -->
                             <StackPanel x:Name="LegendExtraW" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
                                 <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#D97757" />
-                                <TextBlock Text="{local:Loc stats.legend.extra}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
+                                <!-- Text set per mode — see the 5h twin (T318). -->
+                                <TextBlock x:Name="LegendExtraTextW" Text="{local:Loc stats.legend.extra}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
                             <!-- The two clay marks, named once (T300): this week's shaded stretch (T275) and

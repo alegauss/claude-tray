@@ -228,6 +228,12 @@ left axis is "of the quota included in your plan", and the clay line is **of you
 allowance**, a window with its own limit and its own reset. Sharing one axis would read as one
 number twice. It's not a second projection: "when do you run out" has already been answered.
 
+That right-hand scale is the one thing **Show remaining instead of used** does not invert, and it
+cannot be: the API tells the app what share of the allowance you have *spent* and never how big the
+allowance is, so there is no "left" figure to flip to. With the setting on you therefore get one line
+falling as your quota runs out and the clay one climbing as the allowance goes — so both the axis and
+its legend entry say **spent**, and the two never claim to be measuring the same direction.
+
 ![Statistics — the weekly chart past the included quota: the clay extra-usage line on its own right-hand scale](docs/statistics-overage.png)
 
 **And when there is no figure, there is still a stretch.** Some accounts spend past the included

@@ -563,6 +563,13 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         string actual = L.T(_remaining ? "stats.legend.actualLeft" : "stats.legend.actual");
         LegendActualS.Text = actual;
         LegendActualW.Text = actual;
+
+        // The overage line's own entry (T318). It belongs here and not with the visibility, because what
+        // changes is the *wording* and the mode is what changes it — the same reason the caption above is
+        // here. The axis caption it has to agree with is drawn from `ExtraAxisKey`, its pair.
+        string extra = L.T(ExtraLegendKey(_remaining));
+        LegendExtraTextS.Text = extra;
+        LegendExtraTextW.Text = extra;
     }
 
     // A consumption fraction (0=empty, 1=at limit) as its displayed value: the same number when

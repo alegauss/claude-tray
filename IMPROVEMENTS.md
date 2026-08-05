@@ -916,27 +916,3 @@ that name them move in the same commit: two in the `roadmap-docs` skill, one in 
 
 Worth checking first whether `[rules.<role>]` can give the strategy role its own anchor pattern,
 which would be the answer that does not depend on picking numbers that happen to be free.
-
-## LIII One chart, two axes, and only one of them flips (T318)
-
-The used/remaining toggle inverts the consumption axis through `Disp`, and every reader of the left
-axis goes through it — `Yc`, the gridline labels' meaning, the projection's landing, the ghost's
-ceiling mark since T316. The overage series' own axis does not: `Ye` scales `v / eTop` from the
-bottom up and has never consulted the mode.
-
-Captured on `--stats overage remaining`, which appears to be the first picture ever taken of that
-combination. The accent line descends 100% → 0% as the included quota runs out. The clay line climbs
-0% → 42% as the extra-usage allowance is spent. Both movements mean *you are spending*, in opposite
-directions, on one plot — and they cross around the fourth day, where a crossing normally marks an
-event and here marks nothing but one axis having been inverted.
-
-T183 built the second axis on the premise that the two are percentages of different things and must
-never be conflated, and that premise is what makes this a real question rather than a formatting
-slip. Two answers are available and this task should pick one, not both. Flip it too, so the clay
-line reads "allowance left" and down means worse everywhere — which needs the extra window's own
-limit, and the app only ever receives a percentage used. Or leave the scale and say so on the axis,
-which already carries a rotated "extra usage" label with room to be "extra usage (used)" beside a
-left axis reading "left".
-
-The second is the smaller change and survives the app never learning the allowance's size, which is
-the constraint the first one dies on.

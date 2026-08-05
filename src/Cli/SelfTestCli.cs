@@ -1703,6 +1703,22 @@ internal static class SelfTestCli
         Check("the ceiling is the top of the plot exactly when the axis is not flipped",
               StatisticsPage.CeilingAtTop(false) && !StatisticsPage.CeilingAtTop(true));
 
+        // T318. The overage axis does not flip with the consumption one, so in remaining mode both surfaces
+        // naming its line have to say what the line counts — and they have to say it together. One of them
+        // wording it while the other did not is the shape T311, T313 and T316 each shipped against.
+        Check("used mode leaves both the overage axis and its legend entry plain",
+              StatisticsPage.ExtraAxisKey(false) == "stats.chart.extraAxis"
+              && StatisticsPage.ExtraLegendKey(false) == "stats.legend.extra");
+        Check("and remaining mode moves both of them, not one",
+              StatisticsPage.ExtraAxisKey(true) != StatisticsPage.ExtraAxisKey(false)
+              && StatisticsPage.ExtraLegendKey(true) != StatisticsPage.ExtraLegendKey(false),
+              $"{StatisticsPage.ExtraAxisKey(true)}, {StatisticsPage.ExtraLegendKey(true)}");
+        // And the pair a mode picks is a pair `en.json` actually holds, which is the one direction the
+        // parity check cannot see (T314) and the way a key becomes its own caption on screen.
+        foreach (bool rem in new[] { false, true })
+            foreach (string key in new[] { StatisticsPage.ExtraAxisKey(rem), StatisticsPage.ExtraLegendKey(rem) })
+                Check($"{key} is a string and not its own name", L.Strings("en").ContainsKey(key));
+
         // ---- which shaping path ran
         Check($"the real-history path needs {UsageReport.MinRealSamples} logged points",
               w.Curve.Count > 2 && Math.Abs(w.Curve[0].frac) < 1e-9,

@@ -113,6 +113,26 @@ internal partial class StatisticsPage
     internal static VerticalAlignment CeilingSwatchEdge(bool remaining)
         => CeilingAtTop(remaining) ? VerticalAlignment.Top : VerticalAlignment.Bottom;
 
+    /// <summary>The overage axis' own caption, and the legend entry naming the line on it (T318). Both have
+    /// to change in remaining mode and for one reason, so they are chosen here rather than at their two
+    /// draw sites.
+    ///
+    /// <para><b>What this says and why.</b> The used/remaining toggle inverts the consumption axis through
+    /// <see cref="Disp"/>, and this second axis does not — the app receives a percentage of the extra-usage
+    /// allowance <em>spent</em> and never that allowance's size, so there is no remaining figure to flip to.
+    /// The consequence on screen is two lines moving oppositely for one meaning: the accent falls as the
+    /// included quota runs out while the clay climbs as the allowance is spent, and they cross mid-plot where
+    /// a crossing normally marks an event. Left as it is and said out loud, which is the honest half of that
+    /// pair: in remaining mode both strings name what the line counts.</para></summary>
+    internal static string ExtraAxisKey(bool remaining)
+        => remaining ? "stats.chart.extraAxisSpent" : "stats.chart.extraAxis";
+
+    /// <summary>The legend's wording for the same line, flipping with <see cref="ExtraAxisKey"/> — one
+    /// surface saying "spent" while the other did not is the disagreement T311, T313 and T316 each
+    /// were.</summary>
+    internal static string ExtraLegendKey(bool remaining)
+        => remaining ? "stats.legend.extraSpent" : "stats.legend.extra";
+
     /// <summary>Whether this window gets the overage series and the second right-hand axis that rules it
     /// (T183) — the gutter, the clay curve, its own 0–max labels, and the legend entry that says the
     /// percentage is of a different denominator (T308). Written here, beside the chart it decides the width
@@ -605,7 +625,7 @@ internal partial class StatisticsPage
             // Which gutter is which, said once rather than inferred from two columns of percentages.
             var cap = new TextBlock
             {
-                Text = L.T("stats.chart.extraAxis"), FontSize = 9, Foreground = BillingBrush,
+                Text = L.T(ExtraAxisKey(_remaining)), FontSize = 9, Foreground = BillingBrush,
                 LayoutTransform = new RotateTransform(90),
             };
             Canvas.SetLeft(cap, X(1) + 66);
