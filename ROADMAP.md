@@ -77,6 +77,7 @@
 ## Block D — Auth & API resilience
 
 - 📋 **T288** (deps: —) **the stopped verdict still follows the window on the icon, so a blocked session hides behind a quiet week** — T274 split the billing verdict from the caption and left this half: 5h rejected beside 7d at 0.47 draws an on-track projection and says nowhere that work has stopped. → §XXIII.6
+- 📋 **T305** (deps: —) **an observing tray appends to the probe store, and rewrites it, on a machine it promised only to read** — T239 gates UsageHistory and HourlyUsage; HeaderProbe.Record does neither, and ObservingTray drives every other write entry point but not this one — the hole that comment names. → §XL
 
 ## Block N — System information — your plan, your install, this machine
 
@@ -93,6 +94,9 @@
 ## Block J — Activity-aware pacing
 
 ## Block A — Foundation — tray, icon, API, projection
+
+- 📋 **T304** (deps: —) **six call sites can start a poll while another is still awaiting, and nothing serialises them** — The tick, the menu item, the constructor and three switch paths call it unguarded, so two polls interleave at each await — two fetches, two appends seconds apart, one reset notified twice. → §XXXIX
+- 📋 **T306** (deps: —) **the busiest language never sees the duration in the state that is actually spending** — T302 got five of five languages saying it somewhere, and en's overage reading leaves five characters: shedding the window the icon is not about would buy the room and cost a percentage. → §XLI
 
 ## Block F — Statistics window (pace report)
 

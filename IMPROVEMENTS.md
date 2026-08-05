@@ -792,3 +792,81 @@ included in your plan* — distinguished by where it is drawn, so one entry that
 week left to the tooltip, is the whole change. It also has to survive the case that only one of the
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
+
+## XXXIX A poll that can start while a poll is running (T304)
+
+`RefreshAsync` is `await`ed from six places: the poll timer's tick, the **Refresh now** menu item,
+the constructor's first fetch, and the three paths that switch the monitored profile. Nothing holds
+an "already polling" flag, and WinForms hands the message loop back at every `await` — so a tick
+landing while an earlier poll is inside `_api.FetchAsync()` starts a second poll that runs
+interleaved with the first.
+
+What that costs, in order of how repairable it is. Two fetches spend two polls of quota to learn one
+number. Two `RecordReading` calls append two lines seconds apart, which the burn-up chart reads as
+real cadence and `HourlyUsage.Fold` makes permanent. Both polls call `Burn.Record`, so one reset can
+be detected twice and notified twice. And `ConsecutiveErrors` is incremented by whichever finishes
+last, which is then not the count of consecutive failures of anything.
+
+The comment on `RefreshOthersAsync` already claims the protection this does not have — *"awaited
+rather than fired and forgotten … a slow second account must not overlap the next poll of the
+first"*. That is true within one call and says nothing across two, which is exactly the gap: it
+reads as a guarantee and holds only for the sequence inside one invocation.
+
+What to get right is which caller wins. Dropping a tick while a poll runs is right; dropping the
+*user's* **Refresh now** is not, because they asked and would see nothing happen. So a flag that makes
+the timer skip is not the same rule as one that makes a click wait, and the switch paths want a third
+answer again — their whole point is that what is on screen is stale the moment they are called.
+
+## XL The one store the observing gate never reached (T305)
+
+`ProfileStore.Observing` carries the rule in its own doc comment: **a store that writes a file must
+consult this**, the gate lives in the store rather than at the tray's call sites "because the call
+sites are a list with no owner, and the one it forgets is the one that keeps writing."
+
+`HeaderProbe.Record` writes a file and consults nothing. `UsageHistory.Append` and
+`HourlyUsage.Fold` both open with `if (ProfileStore.Observing) return;`. So a second tray —
+`Program.cs` calls `Observe()` for exactly that mode — polls, reaches `RecordReading`, and on a
+shape it has not seen appends to the real `header-probe.jsonl`. Worse than an append: `Trim` then
+rewrites the whole file with `File.WriteAllLines`, so an observing process can shorten a store it
+promised not to touch.
+
+The same comment names why nobody noticed: `--selftest`'s `ObservingTray` drives every write entry
+point it knows — `UsageHistory.Append`, `HourlyUsage.Fold`, `ContextNudges.Mark`, the two shared
+context caches, `Settings.Save`, `EnvironmentProfile.Adopt` — and compares the whole store tree
+before and after. It does not drive this one. *"A store added later that this does not drive is the
+hole the doc comment on `ProfileStore.Observing` names."* This is that hole, found by reading the
+list rather than by a defect report.
+
+So the fix is two lines in two files and neither is optional: the gate in `Record`, and the call in
+`ObservingTray` that would have failed without it. Add the drive first and watch it go red, or the
+check is being written from the same reading that already missed it once.
+
+One thing to decide: `Record` returns `bool` — whether it wrote. An observing tray should get
+`false`, which is what "nothing was recorded" already means to every caller.
+
+## XLI Two states with no room, and the reading that could give it up (T306)
+
+T302 took the spell's duration from three languages to five by adding a wordless rung. Two of the
+ten measured billing states still drop it, and `--tooltip` names them: `en`/`extra` has five
+characters free and `fr`/`extraunspent` three. Nothing fits in either, and the ladder is right to
+drop rather than overrun.
+
+`en`/`extra` is the one that matters. It is the default language and the state where money is
+*actually* being spent, and the reason it is tight is not the wording: it is the only billing row that
+keeps **both** bounded windows. pt-BR sheds one and has room; `en` stays under the cap with both, so
+T215's shed never triggers and there is nothing left over.
+
+So the room exists and it is a reading. T215 already sheds "the bounded window the icon is NOT
+about" when the readings alone overrun, and extending that condition — shed it when a billing spell
+has something to say and no room to say it — would fit the full worded rung in `en` with characters
+to spare.
+
+What makes this a decision rather than a patch is that §XXXIII settled the opposite once: the
+duration is fitted "with the readings above it kept". That was the right call for a line nothing
+else could pay for. It is a different question now that the payer is identified — the off-metric
+percentage, in the one state where the account is past its included quota. Someone watching the week
+while paying does not obviously need the session figure on the same card.
+
+Measure before choosing. If shedding buys `en`/`extra` the worded rung and leaves
+`fr`/`extraunspent` still empty, that is one state fixed and one accepted, and the accepted one
+should be said out loud rather than left to the next reader of the read-out.
