@@ -74,6 +74,8 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
+- 📋 **T315** (deps: —) **the project's own non-goals point at prose no verb here can read** — IMPROVEMENTS and STRATEGY both declare a section I and a III, so one anchor names two and resolves to neither: the ten §I.n citations under Non-goals reach nothing, and lint has never exited clean. → §L
+
 ## Block G — Localization
 
 ## Block D — Auth & API resilience

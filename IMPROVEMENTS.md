@@ -891,3 +891,28 @@ be seen — `ApplyOverLegend` passes `g.TipKey`, and that is the shape T313 intr
 covers the literals and says so. And it is a subset check in one direction only: a key in `en` that
 no call site names is dead weight, not a defect on screen, and pruning it is a different task from
 this one.
+
+## L Two prose files, one numbering sequence, and the constraints at the collision (T315)
+
+`IMPROVEMENTS.md` opens at `§I — House constraints` and `STRATEGY.md` opens at `§I — What this is`;
+both also declare a `§III`. Anchors are one namespace across a project's prose files, deliberately
+and settled upstream — a pointer resolving to two resolves to neither, and `lint` reports
+`section.ambiguous` at each heading. It has done so on every run here, four findings, and they were
+read as permanent noise about someone else's tool. They are not. They are this repository's files,
+correctly reported.
+
+What sits at the collision is the worst possible thing to have there. `§I` in `IMPROVEMENTS.md` is
+**House constraints** — the binding non-goals — and the roadmap's Non-goals block cites it ten times,
+`§I` for the full text and `§I.1` through `§I.8` for the individual constraints. Every one of those
+pointers reaches nothing. `brief` prints those constraints as its `not` lines from the roadmap's summary,
+so the short form survives, but the full text a person is sent to read is unreachable through the tool
+that is supposed to serve it. `§III` is the same defect over the measured context baseline and the licence.
+
+Only two addresses collide: `STRATEGY.md` declares `§I`–`§VII` and `IMPROVEMENTS.md` uses `§I`,
+`§III` and then `§XV` upward, so `§II` and `§IV`–`§VII` are already unambiguous. Moving the
+improvements side is the wrong direction — it is the cited one, seventeen pointers against two. So
+`STRATEGY.md`'s two sections take addresses this project has never declared, and the three citations
+that name them move in the same commit: two in the `roadmap-docs` skill, one in the release note.
+
+Worth checking first whether `[rules.<role>]` can give the strategy role its own anchor pattern,
+which would be the answer that does not depend on picking numbers that happen to be free.
