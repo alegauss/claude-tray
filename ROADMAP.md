@@ -97,7 +97,6 @@
 
 ## Block F — Statistics window (pace report)
 
-- 📋 **T289** (deps: —) **one rule about what counts as a break in the readings is computed twice in the same file** — T275 gave MergeSpans a measured bridge and FindGaps still derives the identical median-and-floor inline, so the two can drift and only one of them has a name. → §XXXIV
 - 📋 **T300** (deps: —) **two clay marks on one chart, and the legend beside them names neither** — The band is this week past its quota and the mark is last week's, both clay; the legend lists four lines that are neither, so the only explanation is a tooltip nobody knows to hover. → §XXXVI
 
 ## Non-goals (do NOT add as tasks)

@@ -150,6 +150,7 @@
 - **T55** — API-outage handling: charts keep drawing from the last known local data, with an error banner and the outage marked as red "unavailable" spans along the usage line; `--stats error` / `gapdemo` / `history` previews. (`4c1993f`, `8a4b4c7`)
 - **T56** — Day boundaries on multi-day spans. (`6e3c40f`)
 - **T57** — Open the weekly tab by default when the session is idle (a flat 5h chart has nothing to show); projection landing time on the chart. (`839f913`, `a0f2bd0`)
+- **T289** — The outage threshold and the overage bridge are one derivation: FindGaps reads BridgeSeconds over its own points, so the median-and-floor rule has one name, one place a change lands, and no way for the two elements on one chart to part without a check noticing.
 
 ## Block G — Localization
 

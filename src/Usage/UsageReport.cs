@@ -351,11 +351,12 @@ internal static class UsageReport
     private const double GapFloorSeconds = 15 * 60;   // absolute floor, regardless of a fast cadence
     private const double GapCadenceFactor = 3.0;      // ...or this many times the measured poll spacing
 
-    /// <summary>How far apart two readings may be and still belong to one spell (T275): the same
-    /// <see cref="GapFloorSeconds"/> / <see cref="GapCadenceFactor"/> rule <see cref="FindGaps"/> uses to
-    /// decide the opposite question. It has to be measured rather than fixed, because the poll interval is
-    /// a setting — at a fifteen-minute cadence a constant floor would end the spell at every reading and
-    /// draw a comb where there was a stretch. <paramref name="times"/> must be sorted.</summary>
+    /// <summary>How far apart two readings may be and still belong to one spell (T275) — and, since T289,
+    /// the one place the <see cref="GapFloorSeconds"/> / <see cref="GapCadenceFactor"/> rule is derived:
+    /// <see cref="FindGaps"/> asks the opposite question of the same silence and reads its threshold from
+    /// here. It has to be measured rather than fixed, because the poll interval is a setting — at a
+    /// fifteen-minute cadence a constant floor would end the spell at every reading and draw a comb where
+    /// there was a stretch. <paramref name="times"/> must be sorted.</summary>
     internal static double BridgeSeconds(List<double> times)
     {
         if (times.Count < 2) return GapFloorSeconds;
@@ -407,14 +408,13 @@ internal static class UsageReport
         var gaps = new List<(double, double, double, double)>();
         if (pts.Count < 2) return gaps;
 
-        // Typical spacing = median of consecutive deltas (in seconds), a cadence estimate robust to the
-        // one big outage delta that would skew a mean.
-        var deltas = new List<double>();
-        for (int i = 1; i < pts.Count; i++)
-            deltas.Add((pts[i].f - pts[i - 1].f) * windowSeconds);
-        deltas.Sort();
-        double median = deltas[deltas.Count / 2];
-        double threshold = Math.Max(GapFloorSeconds, GapCadenceFactor * median);
+        // One derivation, not two (T289): the silence that ends an overage spell and the silence that
+        // opens an outage are the same question, so the threshold comes from BridgeSeconds over these
+        // points' own times rather than from a second copy of the median-and-floor rule here. Both are
+        // drawn on one chart, and a reader would take a disagreement between them for data.
+        var times = new List<double>(pts.Count);
+        foreach (var p in pts) times.Add(p.f * windowSeconds);
+        double threshold = BridgeSeconds(times);
 
         for (int i = 1; i < pts.Count; i++)
         {
