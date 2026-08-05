@@ -1618,6 +1618,25 @@ internal static class SelfTestCli
         Check("a real overage curve rules one, so the legend can name its scale",
               StatisticsPage.HasExtraAxis(w), $"{w.ExtraCurve.Count} points, max {w.ExtraMax}");
 
+        // T309. The legend counts what the chart draws because both read one enumerator, so what is asserted
+        // is the enumerator: which kinds it yields, and that its count is what the predicate answers from.
+        var both = Win(reset, window, now, 1.0);
+        both.ExtraSpans = new List<(double, double)> { (0.2, 0.3), (0.5, 0.55) };
+        both.Ghost = GhostWith(ghostOver);
+        var marks = StatisticsPage.OverQuotaMarks(both).ToList();
+        Check("a window carrying both shapes yields both, band before ceiling",
+              marks.Count == 3
+              && marks.Take(2).All(m => m.kind == StatisticsPage.OverMark.Band)
+              && marks[2].kind == StatisticsPage.OverMark.Ceiling,
+              string.Join(", ", marks.Select(m => m.kind)));
+        Check("the legend's answer is that list being non-empty, not a second walk of the same fields",
+              StatisticsPage.HasOverQuotaMark(both) == marks.Count > 0);
+        Check("a zero-width span is yielded by neither, so neither draws nor names it",
+              StatisticsPage.OverQuotaMarks(
+                  new WindowPace { ExtraSpans = new List<(double, double)> { (0.4, 0.4) } }).Any() == false);
+        Check("and a ghost too thin to draw keeps its spans out of the list",
+              StatisticsPage.OverQuotaMarks(tooThin).All(m => m.kind == StatisticsPage.OverMark.Band));
+
         // ---- which shaping path ran
         Check($"the real-history path needs {UsageReport.MinRealSamples} logged points",
               w.Curve.Count > 2 && Math.Abs(w.Curve[0].frac) < 1e-9,

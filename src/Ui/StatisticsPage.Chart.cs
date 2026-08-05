@@ -93,28 +93,45 @@ internal partial class StatisticsPage
     /// that edge, small enough to still read as part of the curve it hugs.</summary>
     private const double GhostOverOffset = 4;
 
-    /// <summary>Whether this window puts a clay over-quota mark on the chart at all (T300) — either this
-    /// week's shaded stretch (T275) or last week's mark at the ceiling (T295), which is one entry in the
-    /// legend because it is one fact about two weeks.
-    ///
-    /// <para>One reader for a question two places ask: the legend's visibility and the loops that draw the
-    /// marks would otherwise be free to disagree, and the failure has a direction — a legend entry for a
-    /// mark nobody drew names a colour the reader cannot find, which is the defect T300 is about, one step
-    /// further on. The `f1 &gt; f0` and the ghost's curve count are the drawing guards themselves, spelled
-    /// once.</para></summary>
     /// <summary>Whether this window gets the overage series and the second right-hand axis that rules it
-    /// (T183) — the gutter, the clay curve, its own 0–max labels, and now the legend entry that says the
+    /// (T183) — the gutter, the clay curve, its own 0–max labels, and the legend entry that says the
     /// percentage is of a different denominator (T308). Written here, beside the chart it decides the width
     /// of, so the legend cannot claim a scale nobody drew.</summary>
     internal static bool HasExtraAxis(WindowPace w) => w.ExtraCurve.Count >= 2 && w.ExtraMax > 0;
 
-    internal static bool HasOverQuotaMark(WindowPace w)
+    /// <summary>Which of the two clay shapes a mark is: a stretch shaded top to bottom for the window in
+    /// front of you (T275), or a short bar at the ceiling for the ghost week behind it (T295). Same fact,
+    /// same colour, told apart by where it is drawn — which is why the legend names them together and the
+    /// z-order has to keep them apart.</summary>
+    internal enum OverMark { Band, Ceiling }
+
+    /// <summary>Every clay over-quota mark this window carries, in draw order (T309). <b>The one reader</b>
+    /// of that question: the loops below draw what this yields and the legend counts it, where before each
+    /// loop tested `f1 &gt; f0` and the ghost's curve length for itself and a predicate beside them spelled
+    /// the same two things a third time.
+    ///
+    /// <para>An enumerator rather than a draw call, because the two shapes cannot share one loop: the band
+    /// goes down before the usage line and the ceiling bar inside the ghost's own block, so the caller
+    /// filters by <see cref="OverMark"/> and the z-order stays a decision made where the drawing is. What it
+    /// does not leave to the caller is <em>which spans count</em>, which is the thing that could disagree.
+    /// </para>
+    ///
+    /// <para><b>Fractions, not pixels.</b> A span narrower than a device pixel still counts here, and the
+    /// paint sites give it a visible minimum instead of dropping it: <see cref="UsageReport.MergeSpans"/>
+    /// widens a lone reading to a sliver precisely so a measurement is not lost to the plot's width, and a
+    /// mark the legend names has to be findable on the chart.</para></summary>
+    internal static IEnumerable<(OverMark kind, double f0, double f1)> OverQuotaMarks(WindowPace w)
     {
-        foreach (var (f0, f1) in w.ExtraSpans) if (f1 > f0) return true;
+        foreach (var (f0, f1) in w.ExtraSpans)
+            if (f1 > f0) yield return (OverMark.Band, f0, f1);
         if (w.Ghost is { } ghost && ghost.Curve.Count >= 2)
-            foreach (var (f0, f1) in ghost.OverSpans) if (f1 > f0) return true;
-        return false;
+            foreach (var (f0, f1) in ghost.OverSpans)
+                if (f1 > f0) yield return (OverMark.Ceiling, f0, f1);
     }
+
+    /// <summary>Whether this window puts a clay over-quota mark on the chart at all — the legend's one entry
+    /// for the pair (T300), now asking the same enumerator the marks are drawn from (T309).</summary>
+    internal static bool HasOverQuotaMark(WindowPace w) => OverQuotaMarks(w).Any();
 
     private void Chart_SizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -183,7 +200,8 @@ internal partial class StatisticsPage
         // when it was happening — and it is drawn first so the usage line, the ghost and the projection all
         // stay on top of it. The same clay as the second axis and the tray's paying icon, at the strength
         // a background can carry without competing with the line it sits behind.
-        foreach (var (f0, f1) in w.ExtraSpans)
+        bool anyBand = false;
+        foreach (var (_, f0, f1) in OverQuotaMarks(w).Where(m => m.kind == OverMark.Band))
         {
             double x0 = X(f0), x1 = X(f1);
             var band = new Rectangle
@@ -194,12 +212,12 @@ internal partial class StatisticsPage
             Canvas.SetLeft(band, x0);
             Canvas.SetTop(band, top);
             c.Children.Add(band);
-        }
-        if (w.ExtraSpans.Count > 0)
-        {
             // Said once, on the first stretch, rather than per band: several spans are one piece of news.
-            var (bf0, bf1) = w.ExtraSpans[0];
-            AddHit(c, (X(bf0) + X(bf1)) / 2, top + ph / 2, L.T("stats.chart.overSpan"));
+            if (!anyBand)
+            {
+                anyBand = true;
+                AddHit(c, (x0 + x1) / 2, top + ph / 2, L.T("stats.chart.overSpan"));
+            }
         }
 
         // Day boundaries: a faint dashed vertical at each local midnight, so a multi-day span (the 7-day
@@ -275,12 +293,14 @@ internal partial class StatisticsPage
             // middle of the plot contradicting the very axis it was placed on — so the stretch goes where
             // the claim lives, and the disagreement is said in words below instead of drawn.
             double lift = _remaining ? -GhostOverOffset : GhostOverOffset;
-            foreach (var (f0, f1) in ghost.OverSpans)
+            foreach (var (_, f0, f1) in OverQuotaMarks(w).Where(m => m.kind == OverMark.Ceiling))
             {
-                if (X(f1) - X(f0) <= 0) continue;
+                // Widened to the band's own minimum rather than dropped when the plot rounds it to nothing
+                // (T309): the fraction test above is the claim, and a mark the legend names has to be there.
+                double x0 = X(f0), x1 = Math.Max(X(f1), X(f0) + 1.5);
                 var line = new Polyline
                 {
-                    Points = new PointCollection { new(X(f0), Yc(1) + lift), new(X(f1), Yc(1) + lift) },
+                    Points = new PointCollection { new(x0, Yc(1) + lift), new(x1, Yc(1) + lift) },
                     Stroke = BillingBrush, StrokeThickness = 3, Opacity = 0.8,
                 };
                 line.ToolTip = L.T("stats.chart.lastWeekOverSpan");

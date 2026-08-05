@@ -820,29 +820,6 @@ check is being written from the same reading that already missed it once.
 One thing to decide: `Record` returns `bool` — whether it wrote. An observing tray should get
 `false`, which is what "nothing was recorded" already means to every caller.
 
-## XLIV One predicate, and the loops that still spell it themselves (T309)
-
-`HasOverQuotaMark` was added so the legend's clay entry and the marks on the chart could not
-disagree, and it half succeeded. The legend has one reader. The chart does not read it: the band
-loop iterates `w.ExtraSpans` and lets a zero-width span fall out on `X(f1) - X(f0) <= 0`, and the
-ghost loop gates on `w.Ghost is { } ghost && ghost.Curve.Count >= 2` before the same test on
-`ghost.OverSpans`. The predicate restates all of it.
-
-That is the shape T289 folded and T297 is open about: two writers of one rule, agreeing today
-because one was copied from the other, with nothing making them go on agreeing. The failure has a
-direction. Tighten a drawing guard and the legend keeps an entry for a mark nobody drew — a colour
-the reader is told to look for and cannot find, T300's defect one step on, and the one state a
-capture cannot report, because the legend it photographs is *there* and merely wrong. Loosen one and
-a mark appears with nothing naming it, which is T300 exactly.
-
-The fix is the direction T289 took: the loops ask the predicate rather than the predicate mirroring
-the loops. `X(f1) - X(f0)` is pixels and the predicate is fractions, so they are not one expression
-— but the sliver `MergeSpans` widens a lone reading to survives any plot wide enough to draw, so the
-fraction test is the claim and the pixel test is a paint-time guard that should not decide anything
-the legend has an opinion about. A shared iterator over the over-quota marks a window carries,
-yielding the spans both draw and count, is one reader with no arithmetic to copy. `--selftest`
-drives the four legend states; what it cannot do is fail when the chart leaves them.
-
 ## XLV The colour that means paying, and its eight spellings (T310)
 
 Clay is the one colour in this app whose value is not a free choice. It means *past the quota

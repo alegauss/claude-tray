@@ -99,8 +99,6 @@
 
 ## Block F — Statistics window (pace report)
 
-- 📋 **T309** (deps: —) **the legend's clay entry mirrors the guards the marks are drawn under** — T300 named HasOverQuotaMark the one reader, but DrawChart still tests f1 > f0 and the ghost's curve count in its own loops, so moving either leaves an entry for a mark nobody drew. → §XLIV
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
