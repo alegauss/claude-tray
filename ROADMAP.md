@@ -94,8 +94,6 @@
 
 ## Block A — Foundation — tray, icon, API, projection
 
-- 📋 **T303** (deps: —) **a reading fetched for one account can be written into the state of the account that replaced it** — RefreshAsync awaits the fetch; a switch during it replaces MonitoredAccount, and the resumed poll writes the outgoing account's reading and snapshot into the incoming one. → §XXXVIII
-
 ## Block F — Statistics window (pace report)
 
 - 📋 **T289** (deps: —) **one rule about what counts as a break in the readings is computed twice in the same file** — T275 gave MergeSpans a measured bridge and FindGaps still derives the identical median-and-floor inline, so the two can drift and only one of them has a name. → §XXXIV

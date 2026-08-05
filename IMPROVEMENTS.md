@@ -792,27 +792,3 @@ included in your plan* — distinguished by where it is drawn, so one entry that
 week left to the tooltip, is the whole change. It also has to survive the case that only one of the
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
-
-## XXXVIII A reading that arrives after the switch (T303)
-
-`RefreshAsync` reads `_api` and awaits it. WinForms is single-threaded, so nothing interleaves
-except at that await — and a menu click during it is exactly what does: `AdoptMonitored` runs,
-`RefreshWatched` replaces `MonitoredAccount`, and then the awaited fetch resumes and writes its
-reading into the object belonging to the incoming account.
-
-Everything downstream believes it. `Data` and `LastRefresh` put the outgoing account's percentages
-under the incoming account's name; `LastGood` becomes the snapshot the Statistics window charts
-from; and `UsageHistory.Append` and `HeaderProbe.Record` are keyed on `ProfileStore.Monitored`,
-which by then is the *new* profile — so one account's reading is appended to another's series, the
-one file here that cannot be repaired, because the permanent hourly aggregate is folded out of it.
-
-This predates T293: the same window existed while the fields were loose, and it was invisible
-because there was nothing to compare a reading against. T293 gives it one. `MonitoredAccount.Key` is
-the account the state belongs to, so the guard is a comparison at the top of the `if (ok)` block —
-and `ExtraUsageAlarm` already asks that question for its own reason (T292), which is also the
-precedent for the answer when they disagree: re-baseline quietly rather than repair.
-
-What to get right is whether the reading is *dropped* or *routed*. Dropping loses a poll the account
-paid for; routing it to the outgoing account's own series is the truthful option and costs a lookup.
-The append and the probe take a key already, so routing is available to those two even where the
-on-screen half is simply dropped.

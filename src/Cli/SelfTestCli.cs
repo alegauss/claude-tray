@@ -2120,6 +2120,50 @@ internal static class SelfTestCli
                   $"{owner} — the switch has to be detected and dropped in the same place, or a route that " +
                   "changes the monitored profile without going through a click carries the old state across");
         }, "src/Tray/TrayContext.cs");
+
+        // T303. The poll awaits a fetch, and a switch can land inside that await — so the reading that comes
+        // back is a fact about the account the poll *started* on, not about whichever one is monitored when it
+        // finishes. Two things keep that true and neither can be reached without a tray, so both are asked of
+        // the source: the guard exists, and nothing in the body attributes anything to the live monitored key.
+        Repo("the poll attributes its reading to the account it started on", root =>
+        {
+            string[] body = MethodBody(File.ReadAllLines(Path.Combine(root, "src/Tray/TrayContext.cs")),
+                                       "private async Task RefreshAsync()");
+            if (!Check("RefreshAsync's body can be read", body.Length > 0,
+                       "the method was renamed or its signature moved — this check is reading nothing"))
+                return;
+
+            string[] code = body.Where(l => !l.TrimStart().StartsWith("//", StringComparison.Ordinal)).ToArray();
+            Check("the poll compares the account it started on with the one it ended on",
+                  code.Any(l => l.Contains("ReferenceEquals(account, _monitored)", StringComparison.Ordinal)),
+                  "no guard: a reading fetched for one account is written into the state of the next");
+
+            string[] live = code.Where(l => l.Contains("ProfileStore.Monitored", StringComparison.Ordinal))
+                                .Select(l => l.Trim()).ToArray();
+            Check("and nothing in it is keyed on whichever account is monitored now", live.Length == 0,
+                  $"{string.Join(" // ", live)} — resolved after the await, so a switch mid-flight files one " +
+                  "account's reading under another's key, in the one store that cannot be rebuilt");
+        }, "src/Tray/TrayContext.cs");
+    }
+
+    /// <summary>The lines inside one method, found by its signature and closed by brace depth. Crude on
+    /// purpose: it is reading this repository's own C#, where a brace inside a string literal at method scope
+    /// does not occur, and a parser would be a second language implementation to keep.</summary>
+    private static string[] MethodBody(string[] lines, string signature)
+    {
+        int start = Array.FindIndex(lines, l => l.Contains(signature, StringComparison.Ordinal));
+        if (start < 0) return Array.Empty<string>();
+
+        var body = new List<string>();
+        int depth = 0;
+        for (int i = start; i < lines.Length; i++)
+        {
+            int before = depth;
+            depth += lines[i].Count(c => c == '{') - lines[i].Count(c => c == '}');
+            if (before > 0 || depth > 0) body.Add(lines[i]);
+            if (before > 0 && depth == 0) break;
+        }
+        return body.ToArray();
     }
 
     // ---------------------------------------------------------------- Block A: dating the overage spell

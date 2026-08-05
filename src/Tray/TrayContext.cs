@@ -1007,13 +1007,29 @@ internal sealed class TrayContext : ApplicationContext
             string key = ProfileStore.KeyFor(profile);
             _otherData[key] = d;
             // Its own series, so its history is ready if the icon ever follows it (T125).
-            if (d.Error == null)
-            {
-                UsageHistory.Append(key, now, d.Session5h, d.Reset5h, d.Week7d, d.Reset7d, d.ExtraUtil,
-                                    d.ResetExtra, d.ExtraInUse);
-                HeaderProbe.Record(key, now, d.RateHeaders);
-            }
+            if (d.Error == null) RecordReading(key, now, d);
         }
+    }
+
+    /// <summary>
+    /// The two per-profile stores one good reading belongs in: the utilization series the charts are drawn
+    /// from, and the header capture behind <c>--probe</c>.
+    ///
+    /// <para><b>The key is a parameter, and that is the whole point (T303).</b> Three callers reach here and
+    /// only one of them is the monitored account's own poll — the others are a profile the icon is not
+    /// following (T125) and a poll whose account was switched away from while its fetch was in flight. Read
+    /// from <see cref="ProfileStore.Monitored"/> instead, the third of those would append one account's
+    /// reading to another's series, and that file is the one thing here that cannot be repaired: the
+    /// permanent hourly aggregate is folded out of it before its lines are pruned.</para>
+    /// </summary>
+    private static void RecordReading(string profileKey, long now, UsageData d)
+    {
+        UsageHistory.Append(profileKey, now, d.Session5h, d.Reset5h, d.Week7d, d.Reset7d,
+                            d.ExtraUtil, d.ResetExtra, d.ExtraInUse);
+        // Keep the headers themselves whenever their shape moves (T181). The reading that says what the
+        // overage percentage denominates can only be taken while an account is in overage, which is a moment
+        // nobody can schedule — so it is recorded rather than waited for.
+        HeaderProbe.Record(profileKey, now, d.RateHeaders);
     }
 
     private async Task RefreshAsync()
@@ -1021,7 +1037,29 @@ internal sealed class TrayContext : ApplicationContext
         // Which profile the icon is about is decided before the number it shows is fetched (T126).
         await FollowActiveProfileAsync();
 
+        // Whose poll this is, taken before the await that can outlive it (T303). WinForms is
+        // single-threaded, so nothing interleaves except at an await — and a click on the Profile submenu
+        // during this one is exactly what does: the switch replaces `_monitored`, and the fetch below is
+        // still the outgoing account's, because `_api` was read before it was replaced.
+        MonitoredAccount account = _monitored;
         UsageData fresh = await _api.FetchAsync();
+
+        if (!ReferenceEquals(account, _monitored))
+        {
+            // The reading is real, and it is a fact about an account this tray no longer describes. So the
+            // screen, the projection, the alarm and the toasts are all refused — every one of them would be
+            // the outgoing account's news under the incoming account's name.
+            //
+            // The two stores are the exception, because they take a key: the reading goes to the series it
+            // belongs to rather than being dropped. Throwing it away would leave a gap in the outgoing
+            // account's chart for a poll that did happen and did cost quota, and `usage-history.jsonl` is
+            // the one file here that cannot be reconstructed — the permanent hourly aggregate is folded out
+            // of it. Quiet and no repair, which is the answer T292 settled for the same shape of question.
+            if (fresh.Error == null)
+                RecordReading(account.Key, DateTimeOffset.UtcNow.ToUnixTimeSeconds(), fresh);
+            return;
+        }
+
         bool ok = fresh.Error == null;
         bool transientHiccup = !ok && fresh.Transient && !fresh.Unauthorized;
         _monitored.ConsecutiveErrors = transientHiccup ? _monitored.ConsecutiveErrors + 1 : 0;
@@ -1048,15 +1086,10 @@ internal sealed class TrayContext : ApplicationContext
             _monitored.LastGood = new PaceSnapshot(fresh.Session5h, fresh.Reset5h, fresh.Week7d,
                                                    fresh.Reset7d, fresh.ExtraUtil, fresh.ResetExtra);
 
-            // Log the live reading so the Statistics charts can draw the real utilization curve over
-            // time, rather than inferring the burn shape from transcript token counts.
-            UsageHistory.Append(ProfileStore.Monitored, now, fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d,
-                                fresh.ExtraUtil, fresh.ResetExtra, fresh.ExtraInUse);
-
-            // Keep the headers themselves whenever their shape moves (T181). The reading that says what
-            // the overage percentage denominates can only be taken while an account is in overage, which
-            // is a moment nobody can schedule — so it is recorded rather than waited for.
-            HeaderProbe.Record(ProfileStore.Monitored, now, fresh.RateHeaders);
+            // Both per-profile stores, under the key of the account this poll started on rather than
+            // whichever one is monitored now (T303). Identical here by the guard above — and written that
+            // way so it is true because of what this line says, not because of a check ten lines up.
+            RecordReading(account.Key, now, fresh);
 
             // The moment the meter starts (T184) — checked against the reading before this one, so the
             // toast marks a transition rather than the mere fact of being in overage. Both headers, since
@@ -1068,7 +1101,7 @@ internal sealed class TrayContext : ApplicationContext
             // one asks about a change between two readings and this one asks how long a state has held. The
             // guard is what keeps an ordinary poll from reading the log at all.
             _monitored.SpellSince = QuotaStates.Spending(fresh.ExtraUtil, fresh.ExtraInUse)
-                ? OverageSpell.StartedAt(ProfileStore.Monitored) ?? 0
+                ? OverageSpell.StartedAt(account.Key) ?? 0
                 : 0;
 
             foreach (string key in Metrics)

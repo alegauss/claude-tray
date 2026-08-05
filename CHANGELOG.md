@@ -17,7 +17,7 @@
 
 | Block | Theme |
 |---|---|
-| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection (active — see ROADMAP) |
+| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
@@ -68,6 +68,7 @@
 - **T280** — **The tooltip now dates the spell, not just the state.** While extra usage is paying it reads "paying since 3h 20m", measured from the first reading past the included quota — and says nothing at all when the crossing is not on file, because the store's own beginning is not an event. Last rung of the fitting ladder, so it is the first line dropped: at the 127-character cap pt-BR gets it in both billing states, en and es in one, fr in neither.
 - **T293** — **A switch is one assignment now.** Everything held about the followed account lives on `MonitoredAccount`, replaced where `RefreshWatched` already detects the icon changed hands — so a route that switches without a click gets it too. Building it found three fields nobody had listed, two of them live: a leftover error count drew a red icon on an account whose polls had never failed, and a leftover auth latch suppressed the sign-in prompt on the account you switched to in order to sign in. `--selftest` reads the source and fails a second assigner.
 - **T302** — **A third rung, and it has no words in it.** `← 3h 20m` costs 8 characters in every language because there is nothing in it to translate, so fr now says how long in the state that is actually spending and es in the one that is not — five of five languages reach it somewhere, against three before. Two of ten states still drop it, both with under six characters free. The arrow is asserted never to be `⟳`, which means time remaining.
+- **T303** — **A poll now attributes its reading to the account it started on.** The account is captured before the fetch await and compared after it: on a mismatch the screen, projection, alarm and toasts are refused, and the reading is filed under its own key rather than dropped — it cost quota, and `usage-history.jsonl` cannot be rebuilt. `RecordReading` makes that key a parameter for all three callers, and `--selftest` fails both a missing guard and any line keyed on the live monitored profile.
 
 ## Block B — Packaging, self-update, CI
 
