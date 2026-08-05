@@ -97,8 +97,6 @@
 
 ## Block F — Statistics window (pace report)
 
-- 📋 **T300** (deps: —) **two clay marks on one chart, and the legend beside them names neither** — The band is this week past its quota and the mark is last week's, both clay; the legend lists four lines that are neither, so the only explanation is a tooltip nobody knows to hover. → §XXXVI
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

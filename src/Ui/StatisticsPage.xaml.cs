@@ -513,6 +513,8 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         LegendGhostW.Visibility = r.Weekly.Ghost is not null ? Visibility.Visible : Visibility.Collapsed;
         LegendExtraW.Visibility = r.Weekly.ExtraCurve.Count >= 2 && r.Weekly.ExtraMax > 0
             ? Visibility.Visible : Visibility.Collapsed;
+        // The clay pair's one entry (T300), from the same predicate the marks are drawn under.
+        LegendOverW.Visibility = HasOverQuotaMark(r.Weekly) ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // The static captions/legend labels that change wording between "used" and "remaining" framing.

@@ -361,6 +361,8 @@
   "stats.legend.usualIdle": "habituellement inactif",
   "stats.legend.lastWeek": "semaine dernière",
   "stats.legend.extra": "usage suppl. (échelle de droite)",
+  "stats.legend.overQuota": "au-delà du quota de l'offre",
+  "stats.legend.overQuota.tip": "Tracé en terre cuite là où l'API a signalé que vous dépassiez le quota inclus dans votre offre : cette semaine sous forme de période ombrée de haut en bas, la semaine dernière sous forme de courte marque au plafond. Survolez l'une ou l'autre pour connaître la période couverte.",
   "stats.methodTitle": "Comment ces chiffres sont mesurés",
   "stats.methodNote": "« Utilisé » et la réinitialisation viennent en direct des limites de débit d'Anthropic ; la courbe est votre utilisation réelle mesurée sur la fenêtre (jusqu'à ce qu'assez de points soient enregistrés, elle est reconstruite depuis les transcriptions locales). La projection suppose le rythme moyen actuel.",
   "stats.methodNote.shape": "La projection hebdomadaire suit les heures où vous êtes habituellement actif ({0} semaines de transcriptions locales{1}) : elle reste donc plate la nuit au lieu de dépenser le quota uniformément — c'est une habitude, pas un horaire. L'usage depuis une autre machine ou depuis claude.ai compte sur la même limite mais ne laisse aucune transcription ici, donc une heure qui semble inactive ne l'est pas forcément.",

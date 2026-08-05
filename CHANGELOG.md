@@ -22,7 +22,7 @@
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
-| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) (active — see ROADMAP) |
+| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
@@ -151,6 +151,7 @@
 - **T56** — Day boundaries on multi-day spans. (`6e3c40f`)
 - **T57** — Open the weekly tab by default when the session is idle (a flat 5h chart has nothing to show); projection landing time on the chart. (`839f913`, `a0f2bd0`)
 - **T289** — The outage threshold and the overage bridge are one derivation: FindGaps reads BridgeSeconds over its own points, so the median-and-floor rule has one name, one place a change lands, and no way for the two elements on one chart to part without a check noticing.
+- **T300** — The clay pair has one legend entry — past your plan quota — shown exactly when this week shaded stretch or last week mark at the ceiling is actually drawn, from the one predicate the marks are drawn under, with the week left to a hover the entry now makes findable.
 
 ## Block G — Localization
 

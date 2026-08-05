@@ -237,6 +237,11 @@ usage line, and says so in words: extra usage is paying, and no header states wh
 No second axis appears, because there is no figure to rule one with. The app would rather show you
 when it happened than invent how much.
 
+Both clay marks — this week's shaded stretch and last week's mark at the ceiling — are named by one
+legend entry, **past your plan's quota**, because they are one fact about two different weeks. It
+shows up only when at least one of them is actually on the chart, and hovering it says which shape
+belongs to which week.
+
 ## ✨ Reset notifications — color-coded, at a glance
 
 When a usage window hands your quota back, the app celebrates it with a **bespoke, on-brand

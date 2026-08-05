@@ -362,6 +362,8 @@
   "stats.legend.usualIdle": "normalmente inativo",
   "stats.legend.lastWeek": "semana passada",
   "stats.legend.extra": "uso extra (escala da direita)",
+  "stats.legend.overQuota": "além da quota do plano",
+  "stats.legend.overQuota.tip": "Desenhado em terracota onde a API indicou que estava além da quota incluída no seu plano: esta semana como um troço sombreado de cima a baixo, a semana passada como uma marca curta no topo. Passe o rato sobre qualquer um deles para ver o troço que cobre.",
   "stats.methodTitle": "Como estes números são medidos",
   "stats.methodNote": "“Utilizado” e a reposição vêm em direto dos limites de taxa da Anthropic; a curva é a sua utilização real medida ao longo da janela (até haver registo suficiente, é reconstruída a partir das transcrições locais). A projeção assume o ritmo médio atual.",
   "stats.methodNote.shape": "A projeção semanal segue as horas em que costuma estar ativo ({0} semanas de transcrições locais{1}), pelo que fica plana de madrugada em vez de gastar a quota de modo uniforme — é um hábito, não um horário. Utilização noutra máquina ou no claude.ai conta para o mesmo limite mas não deixa transcrição aqui, por isso uma hora que parece inativa pode não o ser.",

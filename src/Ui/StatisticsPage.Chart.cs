@@ -93,6 +93,23 @@ internal partial class StatisticsPage
     /// that edge, small enough to still read as part of the curve it hugs.</summary>
     private const double GhostOverOffset = 4;
 
+    /// <summary>Whether this window puts a clay over-quota mark on the chart at all (T300) — either this
+    /// week's shaded stretch (T275) or last week's mark at the ceiling (T295), which is one entry in the
+    /// legend because it is one fact about two weeks.
+    ///
+    /// <para>One reader for a question two places ask: the legend's visibility and the loops that draw the
+    /// marks would otherwise be free to disagree, and the failure has a direction — a legend entry for a
+    /// mark nobody drew names a colour the reader cannot find, which is the defect T300 is about, one step
+    /// further on. The `f1 &gt; f0` and the ghost's curve count are the drawing guards themselves, spelled
+    /// once.</para></summary>
+    internal static bool HasOverQuotaMark(WindowPace w)
+    {
+        foreach (var (f0, f1) in w.ExtraSpans) if (f1 > f0) return true;
+        if (w.Ghost is { } ghost && ghost.Curve.Count >= 2)
+            foreach (var (f0, f1) in ghost.OverSpans) if (f1 > f0) return true;
+        return false;
+    }
+
     private void Chart_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         var canvas = (Canvas)sender;

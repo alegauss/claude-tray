@@ -347,6 +347,24 @@
                                 <TextBlock Text="{local:Loc stats.legend.extra}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
+                            <!-- The two clay marks, named once (T300): this week's shaded stretch (T275) and
+                                 last week's mark at the ceiling (T295) are one fact about two different
+                                 weeks, so they get one entry and the week is left to the hover — which the
+                                 tooltip here is what makes findable at all. Shown when *either* is on the
+                                 chart, because most weeks carry only one: an entry for a mark nobody drew
+                                 is the same defect one step on. The swatch carries both forms — a band
+                                 with a line along its ceiling — since the entry names the idea and not a
+                                 placement, and the band is brightened the way the idle one is, because
+                                 0.14 over 10px is nothing to look at. -->
+                            <StackPanel x:Name="LegendOverW" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed"
+                                        ToolTip="{local:Loc stats.legend.overQuota.tip}">
+                                <Grid Width="16" Height="10" VerticalAlignment="Center">
+                                    <Rectangle RadiusX="2" RadiusY="2" Fill="#3DD97757" />
+                                    <Rectangle Height="2" VerticalAlignment="Top" Fill="#D97757" Opacity="0.8" />
+                                </Grid>
+                                <TextBlock Text="{local:Loc stats.legend.overQuota}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
                             <!-- Shown only when enough of last week was recorded to draw its ghost. -->
                             <StackPanel x:Name="LegendGhostW" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
                                 <Rectangle Width="16" Height="2" VerticalAlignment="Center" Opacity="0.32"

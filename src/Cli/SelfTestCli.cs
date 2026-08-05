@@ -1566,6 +1566,33 @@ internal static class SelfTestCli
         Check("and no second axis is invented for it: every figure on those readings was zero",
               spell.ExtraMax == 0, $"max {spell.ExtraMax}");
 
+        // T300. The legend's one entry for the clay pair turns on the same predicate the marks are drawn
+        // under, and all four states matter: the interesting ones are the two where only one mark is on the
+        // chart, which is most weeks. A legend entry for a mark nobody drew names a colour the reader cannot
+        // find — the defect T300 is about, one step further on.
+        var ghostFlat = new List<(double frac, double cum)>();
+        for (int i = 0; i <= 24; i++) ghostFlat.Add((i / 24.0, i / 24.0));
+        var ghostOver = new List<(double f0, double f1)> { (0.5, 0.6) };
+        HourlyUsage.GhostWeek GhostWith(List<(double f0, double f1)> spans)
+            => new(ghostFlat, 1, 0.5, 1.0, spans, true);
+
+        Check("this week's shaded stretch alone names the clay in the legend",
+              StatisticsPage.HasOverQuotaMark(spell));
+        var ghostOnly = Win(reset, window, now, 0.8);
+        ghostOnly.Ghost = GhostWith(ghostOver);
+        Check("...and so does last week's mark alone, with nothing shaded for this one",
+              ghostOnly.ExtraSpans.Count == 0 && StatisticsPage.HasOverQuotaMark(ghostOnly));
+        var neither = Win(reset, window, now, 0.8);
+        neither.Ghost = GhostWith(new List<(double f0, double f1)>());
+        Check("a week with a ghost that never went over names nothing",
+              !StatisticsPage.HasOverQuotaMark(neither));
+        Check("and neither does one with no ghost and nothing shaded",
+              !StatisticsPage.HasOverQuotaMark(none));
+        var tooThin = Win(reset, window, now, 0.8);
+        tooThin.Ghost = GhostWith(ghostOver) with { Curve = new List<(double frac, double cum)>() };
+        Check("a ghost too thin to draw takes its mark out of the legend with it",
+              !StatisticsPage.HasOverQuotaMark(tooThin));
+
         // ---- which shaping path ran
         Check($"the real-history path needs {UsageReport.MinRealSamples} logged points",
               w.Curve.Count > 2 && Math.Abs(w.Curve[0].frac) < 1e-9,
