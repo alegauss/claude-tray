@@ -103,7 +103,6 @@
 
 ## Block F — Statistics window (pace report)
 
-- 📋 **T316** (deps: —) **the legend's ceiling bar sits at the top of its swatch in the mode that draws it at the bottom** — In remaining mode Yc(1) is the 0% edge and the mark's offset flips to follow it, but the swatch pins its bar to the top — so one of the two modes has a swatch pointing the wrong way. → §LI
 - 📋 **T317** (deps: —) **a fixed cadence rule survives behind a default argument no caller uses** — MergeSpans defaults bridgeSeconds to the 15-minute floor and every caller passes the measured value, so the constant is unreachable today and is the comb-not-a-stretch bug waiting for one omission. → §LII
 
 ## Non-goals (do NOT add as tasks)

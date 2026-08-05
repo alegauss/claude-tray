@@ -917,29 +917,6 @@ that name them move in the same commit: two in the `roadmap-docs` skill, one in 
 Worth checking first whether `[rules.<role>]` can give the strategy role its own anchor pattern,
 which would be the answer that does not depend on picking numbers that happen to be free.
 
-## LI A swatch that does not flip with the axis it explains (T316)
-
-The ghost's over-quota mark is drawn at `Yc(1)`, which is the 100% gridline in *used* mode and the
-0% gridline in *remaining* mode, where `Disp` flips the consumption axis. T295 handled that: the
-offset that keeps the mark inside the plot flips with it, and its comment says so.
-
-The legend swatch T300 introduced did not. Its clay bar is `VerticalAlignment="Top"` inside a 10px
-box, unconditionally. In used mode that agrees with the chart — bar at the top of the swatch, mark
-at the top of the plot. In remaining mode it does not: captured on `--stats ghost-over remaining`,
-the mark is a clay bar just above the 0% line at the bottom of the plot while the legend beside it
-shows a bar at the top of its box. A swatch's whole job is *this shape, there*, and in one of the
-app's two modes it points the wrong way.
-
-Small and exactly parallel to T311, which is the argument for filing rather than living with it:
-that task was the entry describing a shape the chart had not drawn, and this is the entry drawing a
-shape in a place the chart does not put it. Both are the swatch being written once for the case its
-author was looking at.
-
-`ApplyModeLabels` is where the mode already reaches the legend, flipping the actual-usage caption
-between "actual usage" and "actual remaining", so there is a seam and no new plumbing. What it needs
-is the bar's alignment following `_remaining` the way `lift` does, and a check that the two agree
-rather than each being asserted alone — the shape of the fix T309 took for the marks themselves.
-
 ## LII The second spelling that a default argument keeps alive (T317)
 
 T289 folded two derivations of the cadence rule into `BridgeSeconds`. One copy survived, in a place

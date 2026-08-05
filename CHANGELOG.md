@@ -156,6 +156,7 @@
 - **T309** — OverQuotaMarks is the one reader: the band loop and the ghost loop draw what it yields, filtered by shape so the z-order stays where the drawing is, and the legend counts the same list — with the fraction test as the only claim and the plot minimum applied at paint, where a mark the legend names is widened rather than dropped.
 - **T311** — The clay entry describes only what its chart drew: swatch halves and tooltip come per render from OverQuotaMarks, so the ghost-only case that is most weeks names the ceiling mark alone, both tabs decide it through one reader, and a new ghost-over preview finally puts that state on screen.
 - **T313** — Each legend entry has its own sentence in all five languages, naming its shape and where on the chart to find it, so the chart hit targets keep the deixis that only works under a cursor on the stretch — asserted by key, so borrowing one back is a red build, and the method now takes the element type that has the property instead of testing for it.
+- **T316** — The ceiling edge is one fact read once: the mark offset and the swatch bar alignment both derive from CeilingAtTop, so remaining mode flips the legend with the chart instead of leaving a bar at the top of its box while the mark sat above the 0% line, and a check pins the two together rather than each alone.
 
 ## Block G — Localization
 

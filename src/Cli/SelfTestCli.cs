@@ -1674,6 +1674,20 @@ internal static class SelfTestCli
               new[] { gBoth, gBand, gCeil }.All(g => !chartHoverTips.Contains(g.TipKey)),
               string.Join(", ", new[] { gBoth, gBand, gCeil }.Select(g => g.TipKey)));
 
+        // T316. The mark's offset and its swatch's edge are two types carrying one fact, so what is asserted
+        // is that they agree — either alone would pass while the legend pointed the wrong way, which is the
+        // state remaining mode was in. The lift is signed *into* the plot, so its sign is the claim.
+        Check("used mode puts the mark and its swatch bar on the same edge",
+              StatisticsPage.CeilingLift(false) > 0
+              && StatisticsPage.CeilingSwatchEdge(false) == System.Windows.VerticalAlignment.Top,
+              $"lift {StatisticsPage.CeilingLift(false)}, edge {StatisticsPage.CeilingSwatchEdge(false)}");
+        Check("and remaining mode flips both of them, not one",
+              StatisticsPage.CeilingLift(true) < 0
+              && StatisticsPage.CeilingSwatchEdge(true) == System.Windows.VerticalAlignment.Bottom,
+              $"lift {StatisticsPage.CeilingLift(true)}, edge {StatisticsPage.CeilingSwatchEdge(true)}");
+        Check("the ceiling is the top of the plot exactly when the axis is not flipped",
+              StatisticsPage.CeilingAtTop(false) && !StatisticsPage.CeilingAtTop(true));
+
         // ---- which shaping path ran
         Check($"the real-history path needs {UsageReport.MinRealSamples} logged points",
               w.Curve.Count > 2 && Math.Abs(w.Curve[0].frac) < 1e-9,

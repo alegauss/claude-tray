@@ -93,6 +93,26 @@ internal partial class StatisticsPage
     /// that edge, small enough to still read as part of the curve it hugs.</summary>
     private const double GhostOverOffset = 4;
 
+    /// <summary>Whether the ceiling — 100% consumed — is the top edge of the plot. It is, except in
+    /// remaining mode, where <see cref="Disp"/> flips the axis so <c>Yc(1)</c> lands on the bottom.
+    ///
+    /// <para>One reader for one fact, because two things follow from it in two different types and they were
+    /// free to disagree (T316): the offset that keeps the ghost's over-quota mark inside the plot, and the
+    /// edge its legend swatch puts its bar on. T295 flipped the offset and the swatch T300 added never
+    /// flipped at all, so in remaining mode the mark sat above the 0% line and the legend showed a bar at the
+    /// top of its box — a swatch pointing the wrong way in one of the app's two modes.</para></summary>
+    internal static bool CeilingAtTop(bool remaining) => !remaining;
+
+    /// <summary>How far, and which way, the ghost's mark sits off the ceiling: always <em>into</em> the plot,
+    /// which is downward when the ceiling is the top edge and upward when it is the bottom one.</summary>
+    internal static double CeilingLift(bool remaining)
+        => CeilingAtTop(remaining) ? GhostOverOffset : -GhostOverOffset;
+
+    /// <summary>Which edge of its box the legend swatch's ceiling bar sits against — the same fact as
+    /// <see cref="CeilingLift"/>, in the type the markup needs.</summary>
+    internal static VerticalAlignment CeilingSwatchEdge(bool remaining)
+        => CeilingAtTop(remaining) ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+
     /// <summary>Whether this window gets the overage series and the second right-hand axis that rules it
     /// (T183) — the gutter, the clay curve, its own 0–max labels, and the legend entry that says the
     /// percentage is of a different denominator (T308). Written here, beside the chart it decides the width
@@ -331,7 +351,7 @@ internal partial class StatisticsPage
             // these hours while its line peaks at 80%. Drawn on that line the stretch would sit in the
             // middle of the plot contradicting the very axis it was placed on — so the stretch goes where
             // the claim lives, and the disagreement is said in words below instead of drawn.
-            double lift = _remaining ? -GhostOverOffset : GhostOverOffset;
+            double lift = CeilingLift(_remaining);
             foreach (var (_, f0, f1) in OverQuotaMarks(w).Where(m => m.kind == OverMark.Ceiling))
             {
                 // Widened to the band's own minimum rather than dropped when the plot rounds it to nothing

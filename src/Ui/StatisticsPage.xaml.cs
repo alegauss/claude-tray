@@ -527,20 +527,25 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         // the predicate the marks themselves are drawn under.
         LegendExtraW.Visibility = HasExtraAxis(r.Weekly) ? Visibility.Visible : Visibility.Collapsed;
         LegendExtraS.Visibility = HasExtraAxis(r.Session) ? Visibility.Visible : Visibility.Collapsed;
-        ApplyOverLegend(r.Weekly, LegendOverW, OverSwatchBandW, OverSwatchCeilingW);
-        ApplyOverLegend(r.Session, LegendOverS, OverSwatchBandS, OverSwatchCeilingS);
+        ApplyOverLegend(r.Weekly, _remaining, LegendOverW, OverSwatchBandW, OverSwatchCeilingW);
+        ApplyOverLegend(r.Session, _remaining, LegendOverS, OverSwatchBandS, OverSwatchCeilingS);
     }
 
     /// <summary>Put one window's clay entry on screen: shown or not, the halves of the swatch its chart
-    /// actually drew, and the one sentence true of those (T311). Both tabs, one reader — the tab differs
-    /// only in the window it is handed.</summary>
-    private static void ApplyOverLegend(WindowPace w, FrameworkElement entry,
-                                        UIElement band, UIElement ceiling)
+    /// actually drew, the one sentence true of those (T311), and the edge the ceiling bar sits against
+    /// (T316). Both tabs, one reader — the tab differs only in the window it is handed. <paramref
+    /// name="remaining"/> is passed rather than read off the page, so the whole decision is in the
+    /// arguments and <c>--selftest</c> can drive both modes.</summary>
+    private static void ApplyOverLegend(WindowPace w, bool remaining, FrameworkElement entry,
+                                        UIElement band, FrameworkElement ceiling)
     {
         OverLegend g = OverLegendFor(w);
         entry.Visibility = g.Show ? Visibility.Visible : Visibility.Collapsed;
         band.Visibility = g.Band ? Visibility.Visible : Visibility.Collapsed;
         ceiling.Visibility = g.Ceiling ? Visibility.Visible : Visibility.Collapsed;
+        // The ceiling is the top of the plot in used mode and the bottom in remaining mode, and the swatch
+        // has to say the same thing the mark does — one fact, read once (T316).
+        ceiling.VerticalAlignment = CeilingSwatchEdge(remaining);
         // Only when there is an entry: a tooltip left on a collapsed one is a string nobody can reach, and
         // `TipKey` is deliberately empty in that state rather than carrying a stale sentence. Typed as the
         // element that *has* the property (T313), rather than tested for it — every caller passes a panel,

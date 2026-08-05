@@ -281,8 +281,11 @@
                             <StackPanel x:Name="LegendOverS" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
                                 <Grid Width="16" Height="10" VerticalAlignment="Center">
                                     <Rectangle x:Name="OverSwatchBandS" RadiusX="2" RadiusY="2" Fill="#3DD97757" />
+                                    <!-- No VerticalAlignment here: which edge the ceiling is on flips with
+                                         the used/remaining axis, so it is set per render from the same fact
+                                         the mark's own offset comes from (T316). -->
                                     <Rectangle x:Name="OverSwatchCeilingS" Width="10" Height="3" HorizontalAlignment="Left"
-                                               VerticalAlignment="Top" Fill="#D97757" Opacity="0.8" />
+                                               Fill="#D97757" Opacity="0.8" />
                                 </Grid>
                                 <TextBlock Text="{local:Loc stats.legend.overQuota}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -387,8 +390,9 @@
                             <StackPanel x:Name="LegendOverW" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
                                 <Grid Width="16" Height="10" VerticalAlignment="Center">
                                     <Rectangle x:Name="OverSwatchBandW" RadiusX="2" RadiusY="2" Fill="#3DD97757" />
+                                    <!-- Alignment set per render, with the mark's offset — see the 5h twin. -->
                                     <Rectangle x:Name="OverSwatchCeilingW" Width="10" Height="3" HorizontalAlignment="Left"
-                                               VerticalAlignment="Top" Fill="#D97757" Opacity="0.8" />
+                                               Fill="#D97757" Opacity="0.8" />
                                 </Grid>
                                 <TextBlock Text="{local:Loc stats.legend.overQuota}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
