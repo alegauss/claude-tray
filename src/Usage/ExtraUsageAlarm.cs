@@ -52,8 +52,11 @@ internal sealed class ExtraUsageAlarm
     /// <c>true</c> and finds no rise, while the figure route would still read a mid-spell 0.0 → 0.03 as a
     /// beginning and announce the middle of a spell as its start. So the latch starts set. An absent
     /// reading arms nothing either way — it is not an observation of spending any more than it is one of
-    /// quiet.</para></summary>
-    private static bool Spending(double? extra, bool? inUse) => inUse is true || extra > 0;
+    /// quiet.</para>
+    ///
+    /// <para>The predicate itself is <see cref="QuotaStates.Spending"/>, which is where it moved once
+    /// <see cref="OverageSpell"/> needed the same question answered the same way (T280).</para></summary>
+    private static bool Spending(double? extra, bool? inUse) => QuotaStates.Spending(extra, inUse);
 
     /// <summary>
     /// Take one reading, and answer whether it is the moment to announce.

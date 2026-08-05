@@ -66,6 +66,8 @@
   "tip.atLimitCompact": "⚠ en el límite ({0})",
   "tip.billingFull": "• {0}: más allá de tu cuota incluida — el uso extra está pagando",
   "tip.billingCompact": "• el uso extra está pagando",
+  "tip.spellFull": "• pagando desde {0}",
+  "tip.spellCompact": "• desde {0}",
   "tip.dangerEtaFull": "⚠ proyección {0}: {1} en {2} (antes del reinicio)",
   "tip.dangerEtaCompact": "⚠ {0} en {1}",
   "tip.dangerPaceFull": "⚠ proyección {0}: por encima del ritmo seguro (antes del reinicio)",

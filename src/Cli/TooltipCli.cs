@@ -57,18 +57,21 @@ internal static class TooltipCli
                    with { ProfileLabel = "Personal" }),
 
         new("extra", "past the included quota and billing: the overage reading, carrying the news that " +
-                     "work is continuing rather than stopped (T182, merged onto it by T222)",
+                     "work is continuing rather than stopped (T182, merged onto it by T222), and how long " +
+                     "the spell has been running (T280)",
             now => Reading(now, 0.40, 1.0, metric: "7d", verdict: Projection.Unknown, eta: 0,
-                           extra: 0.47, state: QuotaState.Billing)),
+                           extra: 0.47, state: QuotaState.Billing, spellAgo: 3 * 3600 + 20 * 60)),
 
         new("extraunspent", "extra usage enabled and not a cent of it spent: no overage reading to carry " +
-                            "the news, so the sentence stands on its own",
+                            "the news, so the sentence stands on its own — and the spell is still datable, " +
+                            "because the header saying so is what the store records (T280)",
             now => Reading(now, 0.40, 1.0, metric: "7d", verdict: Projection.Unknown, eta: 0,
-                           state: QuotaState.Billing)),
+                           state: QuotaState.Billing, spellAgo: 26 * 3600)),
 
         new("billingelsewhere", "the session rejected at 102% behind a week at 47%, with the icon on the " +
                                 "week: the account is paying and the caption cannot say so about THIS " +
-                                "window, so the news goes out unscoped (T274)",
+                                "window, so the news goes out unscoped (T274) — and the crossing is not on " +
+                                "file, so nothing dates it (T280)",
             now => Reading(now, 1.02, 0.47, metric: "7d", verdict: Projection.Ok, eta: 4 * 3600,
                            state: QuotaState.Billing, status5h: "rejected")),
 
@@ -88,10 +91,14 @@ internal static class TooltipCli
 
     /// <summary>One synthetic reading, with the resets placed far enough out that their countdowns are
     /// stable text rather than something that changes between two runs of this flag.</summary>
+    /// <param name="spellAgo">How long ago the overage spell was first measured, in seconds, or 0 for a
+    /// spell whose crossing is not on file (T280). Given as an offset from <paramref name="now"/> rather
+    /// than as an instant, for the same reason the resets are: the printed duration has to be the same text
+    /// on two runs of this flag.</param>
     private static TooltipText.Input Reading(long now, double session, double week, string metric,
                                              Projection verdict, double eta,
                                              double extra = 0, QuotaState state = QuotaState.InQuota,
-                                             string status5h = "allowed")
+                                             string status5h = "allowed", double spellAgo = 0)
         => new(
             Data: new UsageData
             {
@@ -120,7 +127,8 @@ internal static class TooltipCli
             // A fixed time, not the clock: two runs of a read-out must produce the same text, or a
             // comparison against a published picture is noise.
             Updated: "  ⟳ 14:32:05",
-            Now: now);
+            Now: now,
+            SpellSince: spellAgo > 0 ? now - (long)spellAgo : 0);
 
     internal static int Run(string[] args)
     {

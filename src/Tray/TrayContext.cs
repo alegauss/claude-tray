@@ -180,6 +180,16 @@ internal sealed class TrayContext : ApplicationContext
     /// </summary>
     private ExtraUsageAlarm _extraAlarm;
 
+    /// <summary>
+    /// When the overage spell the latest reading belongs to was first measured, or 0 when the account is not
+    /// spending past its quota or the crossing is not on file (T280).
+    ///
+    /// <para>Held as a field rather than read where the tooltip is composed because the tooltip is rebuilt
+    /// on every render — a menu opening, a setting changing — and the answer only moves when a reading does.
+    /// Recomputed by the poll, from the store, so it survives a restart in the middle of a spell.</para>
+    /// </summary>
+    private long _spellSince;
+
     /// <summary>A fresh alarm for whichever account the icon now follows, seeded from that account's own
     /// history. Both callers are places where the store provably holds nothing this process wrote for that
     /// account yet, which is the whole of what makes the seed the <em>previous</em> reading (T290).</summary>
@@ -966,6 +976,11 @@ internal sealed class TrayContext : ApplicationContext
         _data = null;
         _lastGoodSnapshot = null;
         _burn.Clear();
+        // The fifth of these, and found the same way the fourth was (T292): by asking, while adding it,
+        // what a switch would carry across. An outgoing account's crossing dated under the incoming
+        // account's percentage is the tooltip stating a spell that never happened on this login. T293 is
+        // about the list itself — every entry here has been added by hand after a defect named it.
+        _spellSince = 0;
         RefreshWatched();
 
         // Below `RefreshWatched` and not beside the three above, which is the whole reason this was
@@ -1065,6 +1080,14 @@ internal sealed class TrayContext : ApplicationContext
             // toast marks a transition rather than the mere fact of being in overage. Both headers, since
             // the figure can sit at zero across the whole crossing (T276).
             NoteExtraUsage(fresh.ExtraUtil, fresh.ResetExtra, fresh.ExtraInUse);
+
+            // How far back the spell reaches (T280), read *after* the append above so this reading is part
+            // of the run it dates — the opposite of the ordering the alarm above must avoid, because that
+            // one asks about a change between two readings and this one asks how long a state has held. The
+            // guard is what keeps an ordinary poll from reading the log at all.
+            _spellSince = QuotaStates.Spending(fresh.ExtraUtil, fresh.ExtraInUse)
+                ? OverageSpell.StartedAt(ProfileStore.Monitored) ?? 0
+                : 0;
 
             foreach (string key in Metrics)
             {
@@ -1493,7 +1516,8 @@ internal sealed class TrayContext : ApplicationContext
             Eta: eta,
             State: CurrentQuotaState(),
             Updated: _lastRefresh is { } t ? $"  ⟳ {t:HH:mm:ss}" : "",
-            Now: DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
+            Now: DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+            SpellSince: _spellSince));
     }
 
     /// <summary>

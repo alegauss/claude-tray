@@ -65,6 +65,7 @@
 - **T7** — Multi-resolution app `.ico` generated from the same GDI+ logo renderer (`--makeicon`), plus the `--render` / `--social` dev helpers. (`9577a0c`, `bea59a3`)
 - **T8** — Icon legibility pass: text fitting, glyph centering and scaling verified at 16 / 20 / 32 px. (`849a576`, `ad2ec09`, `8f282b7`)
 - **T9** — Last-refresh timestamp in the tooltip; and red (not green) once a window sits at 100%. (`a611198`, `a0b6176`)
+- **T280** — **The tooltip now dates the spell, not just the state.** While extra usage is paying it reads "paying since 3h 20m", measured from the first reading past the included quota — and says nothing at all when the crossing is not on file, because the store's own beginning is not an event. Last rung of the fitting ladder, so it is the first line dropped: at the 127-character cap pt-BR gets it in both billing states, en and es in one, fr in neither.
 
 ## Block B — Packaging, self-update, CI
 

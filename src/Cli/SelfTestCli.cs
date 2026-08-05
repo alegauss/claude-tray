@@ -131,6 +131,9 @@ internal static class SelfTestCli
         Section("tooltip — what fits in the tray's 127 characters (Block AI)");
         Tooltip();
 
+        Section("spell — how far back the overage reaches (Block A)");
+        Spell();
+
         Section("out — the directory a capture flag was given (Block AF)");
         Temp(OutputPaths);
 
@@ -1930,8 +1933,166 @@ internal static class SelfTestCli
             Check("the window that did cross keeps the scoped sentence, given room for it",
                   crossedHere.Contains(L.T("tip.billingFull", L.T("tip.week")), StringComparison.Ordinal),
                   crossedHere.Replace("\n", " | "));
+
+            // T280. A spell is an event, and "since when" is the half no line carried. Deliberately NOT
+            // T222's property: that one is "the news arrives whatever the budget", and this line is not news
+            // — it qualifies news the sentence above it carries, so it is the last rung of the ladder and the
+            // first thing dropped. What can be asserted is that the ladder is honest about it: a form that
+            // would have fitted is never dropped anyway, which is the same rule the compact projection keeps
+            // above, and the one a translation spending four more characters breaks silently.
+            var wasted = new List<string>();
+            foreach (string code in codes)
+            {
+                L.Apply(code);
+                foreach (TooltipCli.Variant v in variants)
+                {
+                    TooltipText.Input built = v.Build(Now);
+                    if (built.SpellSince <= 0) continue;
+                    string dur = TrayContext.FmtDays(built.Now - built.SpellSince);
+                    string full = L.T("tip.spellFull", dur), compact = L.T("tip.spellCompact", dur);
+                    string text = TooltipText.Compose(built);
+                    if (text.Contains(full, StringComparison.Ordinal)
+                        || text.Contains(compact, StringComparison.Ordinal)) continue;
+                    // Nothing was emitted, so every character of the room is still there to measure.
+                    int room = TooltipText.Cap - text.Length;
+                    if (room >= compact.Length + 1)
+                        wasted.Add($"{code}/{v.Name} (room {room}, compact {compact.Length})");
+                }
+            }
+            Check("the spell's duration is taken whenever it fits, never dropped", wasted.Count == 0,
+                  string.Join(", ", wasted));
+
+            // And where it is taken it is taken in full whenever the full form fits, so the compact rung is a
+            // fallback rather than what every language silently ends up with.
+            var shortchanged = new List<string>();
+            foreach (string code in codes)
+            {
+                L.Apply(code);
+                string dated = TooltipText.Compose(Roomy(Now) with { SpellSince = Now - 3 * 3600 - 20 * 60 });
+                string full = L.T("tip.spellFull", "3h 20m"), compact = L.T("tip.spellCompact", "3h 20m");
+                if (!dated.Contains(full, StringComparison.Ordinal)
+                    && dated.Contains(compact, StringComparison.Ordinal)
+                    && TooltipText.Cap - dated.Length + compact.Length >= full.Length)
+                    shortchanged.Add($"{code} ({dated.Length}/{TooltipText.Cap})");
+            }
+            Check("and in full whenever the full form fits", shortchanged.Count == 0,
+                  string.Join(", ", shortchanged));
+
+            // And the duration ages with the clock rather than freezing at the poll that measured it: the
+            // input is the moment, not the elapsed time, which is the whole reason it is stored that way.
+            L.Apply("en");
+            string later = TooltipText.Compose(Roomy(Now) with
+            {
+                SpellSince = Now - 3 * 3600 - 20 * 60,
+                Now = Now + 3600,
+            });
+            Check("and the same crossing an hour later reads an hour longer",
+                  later.Contains(L.T("tip.spellCompact", "4h 20m"), StringComparison.Ordinal)
+                  || later.Contains(L.T("tip.spellFull", "4h 20m"), StringComparison.Ordinal),
+                  later.Replace("\n", " | "));
+
+            // The line is about a spell, so a reading not in one may not carry it whatever the budget allows.
+            // Both halves matter: an account inside its quota, and a billing account whose crossing is not on
+            // file — the field-report shape, where the honest answer is to say nothing.
+            string inQuota = TooltipText.Compose(Roomy(Now) with
+            {
+                State = QuotaState.InQuota,
+                SpellSince = Now - 3 * 3600,
+            });
+            string nothingOnFile = TooltipText.Compose(Roomy(Now));
+            Check("a reading with no spell to date carries no duration",
+                  !inQuota.Contains(L.T("tip.spellCompact", "3h 0m"), StringComparison.Ordinal)
+                  && !nothingOnFile.Contains(L.T("tip.spellCompact", "3h 20m"), StringComparison.Ordinal)
+                  && !nothingOnFile.Contains(L.T("tip.spellFull", "3h 20m"), StringComparison.Ordinal),
+                  $"{inQuota.Replace("\n", " | ")}  //  {nothingOnFile.Replace("\n", " | ")}");
+
+            // And it is the rung that goes first. The billing sentence is the news; the duration qualifies
+            // it, so a tooltip that could afford only one of them must keep the sentence.
+            L.Apply("fr");
+            string tightSpell = TooltipText.Compose(Elsewhere(Now) with { SpellSince = Now - 26 * 3600 });
+            Check("at the cap the duration is dropped before the sentence it qualifies",
+                  tightSpell.Length <= TooltipText.Cap
+                  && tightSpell.Contains(L.T("tip.billingCompact"), StringComparison.Ordinal),
+                  $"{tightSpell.Length}/{TooltipText.Cap}: {tightSpell.Replace("\n", " | ")}");
         }
         finally { L.Apply(L.Codes[(int)saved]); }
+    }
+
+    // ---------------------------------------------------------------- Block A: dating the overage spell
+
+    /// <summary>
+    /// <see cref="OverageSpell"/>: which reading the current spell started at, and when there is no answer
+    /// (T280).
+    ///
+    /// <para>The tooltip's half of this is asserted above, from an <c>Input</c> carrying a moment. This is
+    /// the half that decides whether there <em>is</em> a moment, and it is a walk backwards through a run of
+    /// readings with three ways to end — which is exactly the kind of rule that goes unchecked when it can
+    /// only be reached through a resident tray. Fixtures rather than the store, so no test writes to a real
+    /// profile's log.</para>
+    /// </summary>
+    private static void Spell()
+    {
+        const long Now = 1_800_000_000;
+        const long Step = 300;   // the default poll cadence, so the runs read like real ones
+
+        // `ix` on and `ux` flat at zero the whole way — the spell of 2026-08-04, and the shape the figure
+        // route is blind to (T276). Two quiet readings before the crossing, so the event is observed.
+        UsageSample Inside(int n) => new(Now - (10 - n) * Step, 0.4, 0, 0.9, 0, Extra: 0, InUse: false);
+        UsageSample Over(int n) => new(Now - (10 - n) * Step, 0.4, 0, 1.0, 0, Extra: 0, InUse: true);
+
+        var run = new List<UsageSample> { Inside(0), Inside(1), Over(2), Over(3), Over(4) };
+        Check("the spell is dated at the first reading past the threshold, not the latest one",
+              OverageSpell.StartedAt(run) == (long)run[2].T,
+              $"{OverageSpell.StartedAt(run)} vs {(long)run[2].T}");
+
+        // The figure route, on an account whose utilization does climb — the same walk, the other signal.
+        var byFigure = new List<UsageSample>
+        {
+            Inside(0),
+            new(Now - 8 * Step, 0.4, 0, 1.0, 0, Extra: 0.02, InUse: null),
+            new(Now - 7 * Step, 0.4, 0, 1.0, 0, Extra: 0.05, InUse: null),
+        };
+        Check("a spell measured only by the overage figure is dated the same way",
+              OverageSpell.StartedAt(byFigure) == (long)byFigure[1].T,
+              $"{OverageSpell.StartedAt(byFigure)} vs {(long)byFigure[1].T}");
+
+        // Not in a spell now: whatever happened last week, there is no current one to date.
+        var ended = new List<UsageSample> { Inside(0), Over(1), Over(2), Inside(3) };
+        Check("a reading back inside the quota dates nothing", OverageSpell.StartedAt(ended) is null,
+              $"{OverageSpell.StartedAt(ended)}");
+
+        // The three ways there is no *event* on file. A run reaching the log's own beginning is the one a
+        // restart mid-spell produces, and dating it from the first line would report the day the log starts
+        // as the crossing. A reading carrying neither header is not an observation of quiet (T179, T276).
+        Check("a run reaching the oldest line on file is not a dated crossing",
+              OverageSpell.StartedAt(new List<UsageSample> { Over(0), Over(1), Over(2) }) is null);
+        Check("an empty log dates nothing", OverageSpell.StartedAt(new List<UsageSample>()) is null);
+        var absent = new List<UsageSample>
+        {
+            new(Now - 10 * Step, 0.4, 0, 0.9, 0),   // no `ux`, no `ix` — a line written before either existed
+            Over(1), Over(2),
+        };
+        Check("and a reading carrying neither header is not the quiet side of a crossing",
+              OverageSpell.StartedAt(absent) is null, $"{OverageSpell.StartedAt(absent)}");
+
+        // A gap inside the run is not a break: readings stop while the tray is closed, and the alternative
+        // would be to invent a return to the quota nobody measured.
+        var gapped = new List<UsageSample>
+        {
+            Inside(0), Over(1),
+            new(Now, 0.4, 0, 1.0, 0, Extra: 0, InUse: true),   // a day later, still over
+        };
+        Check("a gap in the readings does not restart the spell",
+              OverageSpell.StartedAt(gapped) == (long)gapped[1].T,
+              $"{OverageSpell.StartedAt(gapped)} vs {(long)gapped[1].T}");
+
+        // One predicate, two callers (T280 moved it): the alarm's latch and this walk must agree about what
+        // a reading says, or a spell can be announced and then not datable, or the reverse.
+        Check("`Spending` reads absent as neither yes nor no",
+              !QuotaStates.Spending(null, null)
+              && QuotaStates.Spending(null, true)
+              && QuotaStates.Spending(0.02, null)
+              && !QuotaStates.Spending(0, false));
     }
 
     /// <summary>A reading whose projection has both a full and a compact form, so the budget has

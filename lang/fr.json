@@ -66,6 +66,8 @@
   "tip.atLimitCompact": "⚠ limite atteinte ({0})",
   "tip.billingFull": "• {0} : au-delà de votre quota inclus — l’usage supplémentaire paie",
   "tip.billingCompact": "• l’usage supplémentaire paie",
+  "tip.spellFull": "• paie depuis {0}",
+  "tip.spellCompact": "• depuis {0}",
   "tip.dangerEtaFull": "⚠ projection {0} : {1} dans {2} (avant réinit.)",
   "tip.dangerEtaCompact": "⚠ {0} dans {1}",
   "tip.dangerPaceFull": "⚠ projection {0} : au-dessus du rythme sûr (avant réinit.)",

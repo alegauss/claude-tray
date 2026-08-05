@@ -34,6 +34,10 @@ internal static class TooltipText
     /// <param name="ProfileLabel">The watched profile's name, or null when only one is watched — a
     /// percentage without an owner is a lie, and this line is kept even when the budget is tight.</param>
     /// <param name="Updated">The already-formatted "when this was read" suffix, or empty.</param>
+    /// <param name="SpellSince">The unix second the current overage spell was first measured at, or 0 when
+    /// the account is not spending past its quota or the crossing is not on file (T280). A moment rather
+    /// than a duration, so the line ages between two polls instead of freezing at the last one — and
+    /// <see cref="OverageSpell"/>, not this, decides when there is one to state.</param>
     internal sealed record Input(
         UsageData? Data,
         string Metric,
@@ -43,15 +47,18 @@ internal static class TooltipText
         double Eta,
         QuotaState State,
         string Updated,
-        long Now);
+        long Now,
+        long SpellSince = 0);
 
     /// <summary>
     /// The tooltip for one reading, newline-separated and already within <see cref="Cap"/>.
     ///
     /// <para>The budget is the interesting part and the reason this is worth being able to read: the
     /// status line carries the refresh time and must survive whole, so a blind end-truncation would chop
-    /// it mid-value. Instead the projection sentence is fitted — full form if it fits, else its compact
-    /// fallback, else dropped entirely — and everything above it is kept.</para>
+    /// it mid-value. Instead each optional sentence is fitted — full form if it fits, else its compact
+    /// fallback, else dropped entirely — and everything above it is kept. There are two of them now, the
+    /// projection and the overage spell's duration (T280), fitted in that order because the later one
+    /// qualifies news the earlier one carries.</para>
     /// </summary>
     internal static string Compose(Input i)
     {
@@ -144,6 +151,17 @@ internal static class TooltipText
                 _ => null,
             };
 
+        // T280. "You are paying" invites "since when", and the answer decides whether the next hour of work
+        // is a considered choice or something found at the end of the month. A duration rather than a
+        // timestamp because of the budget: 114 of 127 characters are already spent in pt-BR on the two
+        // billing variants, and a date does not fit where "3h 20m" does. Only shown when the crossing is on
+        // file — see OverageSpell, which answers null rather than dating it from the log's own beginning.
+        (string full, string compact)? spell = i.State == QuotaState.Billing && i.SpellSince > 0
+                                              && i.Now > i.SpellSince
+            ? (L.T("tip.spellFull", TrayContext.FmtDays(i.Now - i.SpellSince)),
+               L.T("tip.spellCompact", TrayContext.FmtDays(i.Now - i.SpellSince)))
+            : null;
+
         string statusLine = TrayContext.StatusLine(data, i.Metric, i.Updated);
 
         // The readings themselves can already be over budget before there is any projection to ration
@@ -158,13 +176,22 @@ internal static class TooltipText
             lines.Remove(i.Metric == "5h" ? week : session);
 
         // The refresh time sits on the last line, so a blind end-truncation would chop it mid-value.
-        // Keep the status/time line intact and fit the projection in: full form if it fits, else compact.
-        int used = Length(lines) + statusLine.Length;
-        if (projection is { } p)
+        // Keep the status/time line intact and fit each optional sentence in: full form if it fits, else
+        // compact, else not at all. Measured against what is on `lines` at the time, so an earlier rung
+        // taken means less room for a later one — which is what makes the order below a priority.
+        void Fit((string full, string compact)? candidate)
         {
-            if (used + p.full.Length + 1 <= Cap) lines.Add(p.full);
-            else if (used + p.compact.Length + 1 <= Cap) lines.Add(p.compact);
+            if (candidate is not { } c) return;
+            int room = Cap - Length(lines) - statusLine.Length;
+            if (c.full.Length + 1 <= room) lines.Add(c.full);
+            else if (c.compact.Length + 1 <= room) lines.Add(c.compact);
         }
+
+        Fit(projection);
+        // After the projection, because it qualifies news the lines above it carry rather than carrying its
+        // own: a duration under nothing that says money is being spent is a number about nothing, and the
+        // sentence it modifies is the one that must survive if only one of them can.
+        Fit(spell);
         lines.Add(statusLine);
         return string.Join("\n", lines);
     }

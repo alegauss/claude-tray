@@ -104,6 +104,21 @@ internal static class QuotaStates
            || !string.IsNullOrWhiteSpace(disabledReason);
 
     /// <summary>
+    /// Whether one reading is the account observed spending past its included quota — the <em>state</em>
+    /// the two <see cref="StartsSpending"/> overloads detect the entry into.
+    ///
+    /// <para>Either signal is enough, and neither is inverted: <c>overage-in-use</c> saying so is the
+    /// response's own statement, an overage figure above zero is the account demonstrably doing it, and
+    /// absence is neither — a reading carrying no header at all is what every reading inside the quota
+    /// looks like, so it says nothing rather than "no" (T179, T273).</para>
+    ///
+    /// <para>Here rather than beside each caller because there are now two: the alarm's latch, which asks
+    /// whether a spell is one it walked in on (T290), and <see cref="OverageSpell"/>, which asks how far
+    /// back the current one reaches (T280). One predicate in two places is two places that can drift onto
+    /// different answers about the same reading.</para></summary>
+    public static bool Spending(double? extraUtil, bool? extraInUse) => extraInUse is true || extraUtil > 0;
+
+    /// <summary>
     /// Whether this pair of consecutive readings is the moment the meter started (T184).
     ///
     /// <para>A <em>rise</em>, not a state: the previous reading must be a measured zero. <c>null</c> is

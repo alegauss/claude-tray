@@ -65,7 +65,11 @@ generated as a multi-resolution `.ico` from the same GDI+ renderer (`ClaudeTray.
 Tooltip (hover): 5h session, 7d week, extra usage, countdown to reset, the **projected
 time to 100%** (labelled with the active window, e.g. *Week 7d projection*), and the status the
 rate limit reports **for that same window** — *Week 7d status: allowed*, never a word about a
-window you aren't watching.
+window you aren't watching. While extra usage is paying it also says **since when** — *paying since
+3h 20m* — measured from the first reading past your included quota. If the app wasn't watching when
+you crossed, it says nothing rather than counting from the day its log starts. A tray tooltip is
+capped at 127 characters by Windows, so this is the line that goes first when the rest of the
+reading needs the room.
 
 ## Projection (observability)
 
@@ -81,7 +85,9 @@ At 100% there is a third thing the tile can mean, and it gets its own color:
 
 - **extra usage is paying** — you're past the quota included in your plan and still working,
   because the account has extra usage enabled → the fill bar turns **clay**, not red. Red means
-  *stopped*; clay means *this is costing money*. The tooltip says which, and the **System
+  *stopped*; clay means *this is costing money*. The tooltip says which — and **how long it has been
+  going on**, because "you are paying" invites "since when", and the answer is what makes the next
+  hour of work a choice rather than something you find at the end of the month. The **System
   information** page tells you whether the allowance is merely enabled or actually in use.
 
 How the verdict is computed depends on the window:

@@ -94,7 +94,6 @@
 
 ## Block A — Foundation — tray, icon, API, projection
 
-- 📋 **T280** (deps: T275 ✅) **nothing on screen says when the overage spell started** — The store dates the crossing at its first reading past the threshold, and saying since when is the difference between reporting a state and reporting an event. → §XXXIII
 - 📋 **T293** (deps: —) **the fields a profile switch must drop are a list kept by hand, and each new one is found by the defect it causes** — AdoptMonitored nulls three and clears a fourth by name, so a fifth is carried into the incoming account until somebody notices what it made the tray say. → §XXXV
 
 ## Block F — Statistics window (pace report)
