@@ -844,3 +844,51 @@ rather than onto whichever surface happened to be assertable. WinForms and WPF c
 — GDI+ wants a `Color`, the markup wants a resource — so the shared thing is the value, exposed once
 and converted at each edge. The check then asserts what it means to assert: every surface that says
 "paying" says it in the same clay, and a new surface that wants clay has one place to get it from.
+
+## XLVI One entry for two shapes, describing both either way (T311)
+
+T300 was right that the clay pair is one idea and gets one legend entry, and right that the entry
+appears when either mark is drawn. What it left is that the entry then *describes* both marks
+unconditionally, in the two places it has room to: the swatch draws a band with a bar along its
+ceiling, and the tooltip says "this week as a stretch shaded top to bottom, last week as a short
+mark at the ceiling".
+
+On the state that is most weeks, half of that is false. A week that has not yet passed its quota
+with a previous week that did carries `ghost.OverSpans` and no `ExtraSpans` — one ceiling mark, no
+band — and the entry still shows a band in its swatch and still promises a shaded stretch. The
+reader looks for it and it is not there. That is the sentence T300 wrote about itself: an entry for
+a mark nobody drew is the same defect one step further on. It arrived here because T300 reasoned
+about the *entry's visibility* and left its *content* fixed, and the visibility is the half
+`--selftest` drives.
+
+The 5-hour tab already has the shape of the answer. T308 gave it a band-only swatch and the band's
+own sentence, because a ceiling mark is a shape that tab cannot draw. The week can draw either, so
+the choice is per render rather than per tab: the swatch shows the forms `OverQuotaMarks` actually
+yielded, and the tooltip names those forms and no others. Three states, not one — band only, ceiling
+only, both — and `OverQuotaMarks` already reports which, so nothing new has to be computed.
+
+Two strings become three at most, and one of them exists: the band-only case can say what the 5-hour
+entry says.
+
+## XLVII The comment that documents the wrong member (T312)
+
+Measured in this repository today, on the commit that shipped T308. An insertion went in between a
+`<summary>` block and the member it described, so `HasExtraAxis` arrived carrying two summaries —
+its own and the one written for `HasOverQuotaMark` — and `HasOverQuotaMark` carried none. The build
+was green with 0 warnings, `--selftest` passed 725, and it was caught only because the next task
+rewrote that region and a person read it.
+
+The stakes here are higher than in most codebases, which is the argument for the id. This project
+puts the *reasoning* in the comments — which task, which measurement, which alternative was rejected
+and why — and AGENTS.md makes that a rule rather than a habit. A comment attached to the wrong
+member is therefore not a cosmetic slip: it is a claim about the wrong code, in the file where the
+claim is meant to be authoritative, and it survives every check the repository has. Worse, it reads
+as deliberate. The next reader takes "the legend cannot claim a scale nobody drew" as
+`HasExtraAxis`'s reason for existing when it was written about a different predicate.
+
+The check is cheap and mechanical, which is why it is worth having rather than trusting the next
+reading: over the `src` tree, no member declaration may be preceded by more than one `<summary>`
+element in one unbroken `///` run, and no `///` run may be separated from the declaration it
+precedes by a blank line or a non-comment line. Both are the same defect from the two directions an
+edit can cause it — an insertion after the comment, and an insertion before the member. Neither
+needs the compiler, so it costs one file walk in `--selftest` and no build-configuration change.
