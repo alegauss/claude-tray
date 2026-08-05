@@ -1062,6 +1062,21 @@ internal static class SelfTestCli
               && lone.f1 > lone.f0);
         Check("and no readings is no stretch at all",
               UsageReport.MergeSpans(new List<double>(), week, bridge).Count == 0);
+
+        // T317 removed a `= GapFloorSeconds` default no caller used, so the omission it invited is now a
+        // compile error and cannot be asserted. What can is *why* it had to go: with the poll interval set
+        // slower than the floor, the constant splits a spell the measured bridge keeps whole. The difference
+        // is the argument's whole reason for existing, and it lived only in a comment.
+        const double slowPoll = 20 * 60;                       // slower than the 15-minute floor
+        var slowSpell = new List<double>();
+        for (int i = 0; i < 5; i++) slowSpell.Add(Frac(i * slowPoll));
+        double measured = UsageReport.BridgeSeconds(slowSpell.Select(f => f * week).ToList());
+        Check("a spell polled slower than the floor is one stretch on the measured bridge",
+              UsageReport.MergeSpans(slowSpell, week, measured).Count == 1,
+              $"bridge {measured}s over a {slowPoll}s cadence");
+        Check("...and five, a comb, on the constant the default used to supply",
+              UsageReport.MergeSpans(slowSpell, week, 15 * 60).Count == 5,
+              "the floor alone ends the spell at every reading — the picture the default invited");
     }
 
     // ---------------------------------------------------------------- Block J: the stores

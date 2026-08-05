@@ -377,9 +377,16 @@ internal static class UsageReport
     /// because the app being closed for six hours is not evidence that the account was over the whole
     /// time. A lone reading still becomes a span of its own poll's width rather than a zero-width line
     /// nobody could see — it is a measurement, and a picture that drops it is the store's problem again one
-    /// layer up.</para></summary>
+    /// layer up.</para>
+    ///
+    /// <para><b>Required, not defaulted</b> (T317). It carried <c>= GapFloorSeconds</c>, which no caller ever
+    /// used and which was the second spelling T289 thought it had folded — a fixed bridge, kept alive by a
+    /// language feature instead of a copy. A default is a claim that omitting the argument is reasonable, and
+    /// there is no window whose spans should be bridged by a constant: at a fifteen-minute poll cadence the
+    /// floor alone ends the spell at every reading and draws a comb where there was a stretch, silently and
+    /// with a right-looking call at the site. Required makes that omission a compile error.</para></summary>
     internal static List<(double f0, double f1)> MergeSpans(List<double> fracs, double windowSeconds,
-                                                           double bridgeSeconds = GapFloorSeconds)
+                                                           double bridgeSeconds)
     {
         var spans = new List<(double, double)>();
         if (fracs.Count == 0 || windowSeconds <= 0) return spans;

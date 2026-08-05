@@ -22,7 +22,7 @@
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
-| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) (active — see ROADMAP) |
+| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
@@ -157,6 +157,7 @@
 - **T311** — The clay entry describes only what its chart drew: swatch halves and tooltip come per render from OverQuotaMarks, so the ghost-only case that is most weeks names the ceiling mark alone, both tabs decide it through one reader, and a new ghost-over preview finally puts that state on screen.
 - **T313** — Each legend entry has its own sentence in all five languages, naming its shape and where on the chart to find it, so the chart hit targets keep the deixis that only works under a cursor on the stretch — asserted by key, so borrowing one back is a red build, and the method now takes the element type that has the property instead of testing for it.
 - **T316** — The ceiling edge is one fact read once: the mark offset and the swatch bar alignment both derive from CeilingAtTop, so remaining mode flips the legend with the chart instead of leaving a bar at the top of its box while the mark sat above the 0% line, and a check pins the two together rather than each alone.
+- **T317** — The bridge is a required argument, so the fixed floor can no longer be reached by omitting it — a compile error where it was a silent comb instead of a stretch — and the suite now carries the difference the argument exists for: one stretch on the measured bridge, five on the constant. The one other default in the file was read and is legitimate.
 
 ## Block G — Localization
 

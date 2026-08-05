@@ -916,26 +916,3 @@ that name them move in the same commit: two in the `roadmap-docs` skill, one in 
 
 Worth checking first whether `[rules.<role>]` can give the strategy role its own anchor pattern,
 which would be the answer that does not depend on picking numbers that happen to be free.
-
-## LII The second spelling that a default argument keeps alive (T317)
-
-T289 folded two derivations of the cadence rule into `BridgeSeconds`. One copy survived, in a place
-a reader does not look for arithmetic: `MergeSpans(fracs, windowSeconds, double bridgeSeconds =
-GapFloorSeconds)`.
-
-Nothing uses it. The single production caller passes `BridgeSeconds(seen)` and all four checks pass
-a measured `bridge`, so the default is unreachable code today. What it is instead is a trap with a
-documented failure mode. `BridgeSeconds`'s own summary says why the bridge cannot be a constant: the
-poll interval is a setting, and at a fifteen-minute cadence a fixed floor ends the spell at every
-reading and draws a comb where there was a stretch. That is precisely what a caller who omits the
-third argument gets, silently, with the right-looking call at the site and no red build — the same
-disagreement T289 removed, reintroduced by a language feature rather than by a copy.
-
-A default is a claim that omitting the argument is reasonable, and here it is not: there is no
-window whose spans should be bridged by a constant. So the parameter becomes required, which turns
-the omission from a wrong picture into a compile error, and `GapFloorSeconds` goes back to being
-read only where it belongs — as the floor inside `BridgeSeconds`.
-
-Worth checking the other defaults in this file while it is open. This one was found by grepping the
-callers of one method, not by reading the signature, which suggests reading the rest of them is
-cheap and has not been done.

@@ -103,8 +103,6 @@
 
 ## Block F — Statistics window (pace report)
 
-- 📋 **T317** (deps: —) **a fixed cadence rule survives behind a default argument no caller uses** — MergeSpans defaults bridgeSeconds to the 15-minute floor and every caller passes the measured value, so the constant is unreachable today and is the comb-not-a-stretch bug waiting for one omission. → §LII
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
