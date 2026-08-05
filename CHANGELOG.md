@@ -17,7 +17,7 @@
 
 | Block | Theme |
 |---|---|
-| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection (active — see ROADMAP) |
+| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
@@ -66,6 +66,7 @@
 - **T8** — Icon legibility pass: text fitting, glyph centering and scaling verified at 16 / 20 / 32 px. (`849a576`, `ad2ec09`, `8f282b7`)
 - **T9** — Last-refresh timestamp in the tooltip; and red (not green) once a window sits at 100%. (`a611198`, `a0b6176`)
 - **T280** — **The tooltip now dates the spell, not just the state.** While extra usage is paying it reads "paying since 3h 20m", measured from the first reading past the included quota — and says nothing at all when the crossing is not on file, because the store's own beginning is not an event. Last rung of the fitting ladder, so it is the first line dropped: at the 127-character cap pt-BR gets it in both billing states, en and es in one, fr in neither.
+- **T293** — **A switch is one assignment now.** Everything held about the followed account lives on `MonitoredAccount`, replaced where `RefreshWatched` already detects the icon changed hands — so a route that switches without a click gets it too. Building it found three fields nobody had listed, two of them live: a leftover error count drew a red icon on an account whose polls had never failed, and a leftover auth latch suppressed the sign-in prompt on the account you switched to in order to sign in. `--selftest` reads the source and fails a second assigner.
 
 ## Block B — Packaging, self-update, CI
 

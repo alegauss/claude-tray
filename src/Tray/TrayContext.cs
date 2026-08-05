@@ -25,7 +25,6 @@ internal sealed class TrayContext : ApplicationContext
     private readonly NotifyIcon _tray;
     // Rebuilt by RefreshWatched: it reads the *monitored* profile's token (T127).
     private ApiClient _api = new();
-    private readonly BurnTracker _burn = new();
     private readonly Updater _updater = new();
     // Not readonly: ApplySettings replaces the whole instance with a total copy of the edited one
     // (T141) instead of assigning field by field. The tray is the only holder of this reference — it is
@@ -43,18 +42,22 @@ internal sealed class TrayContext : ApplicationContext
     private readonly List<ToolStripMenuItem> _metricItems = new();
     private ToolStripMenuItem _updateItem = null!;
 
-    private UsageData? _data;
-    private DateTime? _lastRefresh;
-    // The last successful live reading, kept so the Statistics window can still draw its charts from
-    // local data (usage-history + transcripts) during an API outage. The chart marks the unavailable
-    // stretch itself, from the gap in the logged readings (see UsageReport.WindowPace.Gaps).
-    private PaceSnapshot? _lastGoodSnapshot;
+    /// <summary>
+    /// Everything held about the account the icon follows — the reading, when it was taken, the last good
+    /// snapshot, the burn tracker, the extra-usage alarm, the overage spell's start, the transient-error
+    /// count and the auth auto-open latch (T293).
+    ///
+    /// <para>One object because a switch has to drop all of it and the list used to be a run of statements
+    /// nobody could check; see <see cref="MonitoredAccount"/>. <c>null!</c> because
+    /// <see cref="RefreshWatched"/> is the first statement of the constructor and the only thing that ever
+    /// assigns this — the same reason <see cref="_updateItem"/> is written that way.</para>
+    /// </summary>
+    private MonitoredAccount _monitored = null!;
+
     private UpdateInfo? _update;
     private string _metric;
     private bool _flashOn;
     private bool _updating;
-    private bool _autoOpenedForAuth; // guards auto-open so we launch once per signed-out spell
-    private int _consecutiveErrors;  // transient failures since the last good poll
     private IntPtr _iconHandle = IntPtr.Zero;
 
     private const int ErrorTolerance = 2; // transient blips to ride out before showing an error
@@ -72,11 +75,12 @@ internal sealed class TrayContext : ApplicationContext
     public TrayContext()
     {
         _metric = _settings.Metric; // restore the last-selected window (BuildMenu reads it)
-        RefreshWatched();           // which profiles to poll, and which one the icon follows (T127)
-
-        // Here and nowhere later (T290): the first line at which the monitored profile is known, and
-        // ahead of every poll that appends to the history this reads.
-        _extraAlarm = NewExtraAlarm();
+        // Which profiles to poll, which one the icon follows (T127), and — because launching is the first
+        // switch — the MonitoredAccount everything below reads. It is the first statement to touch it, which
+        // is what lets the field be `null!`, and it is where the extra-usage alarm gets its seed: the first
+        // line at which the monitored profile is known, and ahead of every poll that appends to the history
+        // that seed is read from (T290).
+        RefreshWatched();
 
         _tray = new NotifyIcon
         {
@@ -170,39 +174,6 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     /// <summary>
-    /// The extra-usage transition for the account the icon follows, seeded with that account's history
-    /// <b>as it stood before the next poll appends to it</b> (T290) — see <see cref="ExtraUsageAlarm"/>
-    /// for why the reading is handed in rather than fetched. Assigned rather than initialised inline: a
-    /// field initialiser runs before <see cref="RefreshWatched"/>, and until that has run
-    /// <see cref="ProfileStore.Monitored"/> is the empty key, so the seed would come from no profile's
-    /// history at all. Rebuilt when the monitored account changes, because a rise is two readings compared
-    /// and two accounts' readings compare to nothing (T292).
-    /// </summary>
-    private ExtraUsageAlarm _extraAlarm;
-
-    /// <summary>
-    /// When the overage spell the latest reading belongs to was first measured, or 0 when the account is not
-    /// spending past its quota or the crossing is not on file (T280).
-    ///
-    /// <para>Held as a field rather than read where the tooltip is composed because the tooltip is rebuilt
-    /// on every render — a menu opening, a setting changing — and the answer only moves when a reading does.
-    /// Recomputed by the poll, from the store, so it survives a restart in the middle of a spell.</para>
-    /// </summary>
-    private long _spellSince;
-
-    /// <summary>A fresh alarm for whichever account the icon now follows, seeded from that account's own
-    /// history. Both callers are places where the store provably holds nothing this process wrote for that
-    /// account yet, which is the whole of what makes the seed the <em>previous</em> reading (T290).</summary>
-    private static ExtraUsageAlarm NewExtraAlarm()
-    {
-        string key = ProfileStore.Monitored;
-        // Best-effort, as the history is everywhere else it is touched: an unreadable one means no seed,
-        // not no tray and not a poll that throws.
-        try { return new ExtraUsageAlarm(key, UsageHistory.Latest(key)); }
-        catch { return new ExtraUsageAlarm(key, null); }
-    }
-
-    /// <summary>
     /// Announce the start of the meter, once (T184).
     ///
     /// <para><b>Why this interrupts at all.</b> The tray already interrupts to say quota came *back* —
@@ -225,7 +196,7 @@ internal sealed class TrayContext : ApplicationContext
     /// </summary>
     private void NoteExtraUsage(double? extra, double resetExtra, bool? inUse)
     {
-        if (!_extraAlarm.Note(ProfileStore.Monitored, extra, inUse)) return;
+        if (!_monitored.ExtraAlarm.Note(ProfileStore.Monitored, extra, inUse)) return;
         if (!_settings.NotifyOnExtraUsage) return;
 
         string title = L.T("toast.extra.title");
@@ -517,9 +488,9 @@ internal sealed class TrayContext : ApplicationContext
     // genuinely never logged a reading (first run), which keeps that hint for a true cold start.
     private PaceSnapshot? CurrentSnapshot()
     {
-        if (_data is { Error: null } d)
+        if (_monitored.Data is { Error: null } d)
             return new PaceSnapshot(d.Session5h, d.Reset5h, d.Week7d, d.Reset7d, d.ExtraUtil, d.ResetExtra);
-        if (_lastGoodSnapshot is { } s)
+        if (_monitored.LastGood is { } s)
             return s;
         return UsageHistory.Latest(ProfileStore.Monitored) is { } h
             ? new PaceSnapshot(h.Util5h, h.Reset5h, h.Util7d, h.Reset7d, h.Extra, h.ResetExtra)
@@ -530,7 +501,7 @@ internal sealed class TrayContext : ApplicationContext
     // to the window's own "connect" hint; only a real API error (e.g. a 403 payment-past-due) is passed
     // through so the window shows the reason instead of appearing blank.
     private string? CurrentError()
-        => _data is { Error: { } e, Unauthorized: false } ? e : null;
+        => _monitored.Data is { Error: { } e, Unauthorized: false } ? e : null;
 
     // Persist the edited settings and apply the new values immediately.
     private void ApplySettings(Settings updated, Settings opened)
@@ -666,7 +637,9 @@ internal sealed class TrayContext : ApplicationContext
     private List<ClaudeInfo> _watched = new();
 
     /// <summary>Latest reading per profile key for the profiles the icon is *not* showing — what the
-    /// Profile submenu reads. The monitored profile keeps using <see cref="_data"/>, unchanged.</summary>
+    /// Profile submenu reads. The monitored profile keeps using <see cref="MonitoredAccount.Data"/>, and is
+    /// deliberately not folded into it (T293): this is keyed per profile on purpose, so a switch replacing
+    /// the monitored state must not take these readings with it.</summary>
     private readonly Dictionary<string, UsageData> _otherData = new();
 
     /// <summary>Rebuild the watch list and adopt the monitored profile. The monitored one is the user's
@@ -686,9 +659,26 @@ internal sealed class TrayContext : ApplicationContext
         _watched.Insert(0, monitored);
         ProfileStore.SetMonitored(monitored);
         _api = new ApiClient(monitored.ConfigDir);
-        // Only when the icon changed hands: the cache is keyed per profile, so a plain re-discovery
-        // (every menu open since T137) must not throw away readings the submenu would then show as "…".
-        if (ProfileStore.KeyFor(_watched[0]) != before) _otherData.Clear();
+
+        // Only when the icon changed hands, which is the one condition this method already knew how to
+        // spot: the caches are keyed per profile, so a plain re-discovery (every menu open since T137)
+        // must not throw away readings the submenu would then show as "…".
+        //
+        // The launch is the first switch, and it has to be: `before` is empty and no real key is, since
+        // KeyFor always prefixes "acct-" or "dir-". The field is asked as well rather than resting on that,
+        // because what the `null!` above costs if that is ever untrue is a NullReferenceException before the
+        // first icon is drawn — two files away from the fact it depended on.
+        if (_monitored is not null && ProfileStore.KeyFor(_watched[0]) == before) return;
+        _otherData.Clear();
+
+        // And the whole of what is held about the outgoing account goes with it, in one assignment (T293).
+        // Here rather than in AdoptMonitored because this is where a switch is *detected*, and a switch does
+        // not have to come through a click: a pinned profile removed from the machine makes PickMonitored
+        // fall back above, and until now that path carried the old account's reading, alarm and burn history
+        // into the new one with nothing saying so. Below SetMonitored, because the alarm is seeded from the
+        // incoming account's own history and the monitored key is what names it — and ahead of every poll
+        // that appends to that history, which is the ordering T290 exists for.
+        _monitored = new MonitoredAccount(ProfileStore.Monitored);
     }
 
     /// <summary>The "Profile" submenu, hidden while there is only one profile to speak of.</summary>
@@ -781,7 +771,7 @@ internal sealed class TrayContext : ApplicationContext
         {
             ClaudeInfo p = _watched[i];
             bool monitored = i == 0;
-            UsageData? d = monitored ? _data : _otherData.GetValueOrDefault(ProfileStore.KeyFor(p));
+            UsageData? d = monitored ? _monitored.Data : _otherData.GetValueOrDefault(ProfileStore.KeyFor(p));
 
             string reading = !p.CountsAgainstSubscription
                 // An API-key/Bedrock/Vertex profile has no quota window to read (T124), and polling it
@@ -952,8 +942,16 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     /// <summary>
-    /// Make <paramref name="profile"/> the one the icon shows: remember it, re-key the stores, take its
-    /// token, and drop the previous account's numbers so none of them can be drawn as this one's.
+    /// Make <paramref name="profile"/> the one the icon shows: remember the choice, then re-key the stores
+    /// and take its token.
+    ///
+    /// <para><b>Dropping the previous account's numbers is no longer written here (T293).</b> It was a run of
+    /// statements in this body — three nulled, a tracker cleared, an alarm rebuilt below
+    /// <see cref="RefreshWatched"/> because it had to read the incoming account's history — and every entry
+    /// in it had been added after a defect named it. <see cref="RefreshWatched"/> already detects that the
+    /// icon changed hands, for <c>_otherData</c>, so that is where the whole of
+    /// <see cref="MonitoredAccount"/> is now replaced: one assignment, and a switch arriving by any other
+    /// route gets it too.</para>
     ///
     /// <para>An automatic switch takes the same path but must not interrupt: a settings file that cannot
     /// be written is worth a modal dialog when the user just clicked, and worth nothing at all when the
@@ -972,25 +970,9 @@ internal sealed class TrayContext : ApplicationContext
                     L.T("dialog.appName"), MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
-        // The icon must not keep drawing the old account's percentage while the new one is fetched.
-        _data = null;
-        _lastGoodSnapshot = null;
-        _burn.Clear();
-        // The fifth of these, and found the same way the fourth was (T292): by asking, while adding it,
-        // what a switch would carry across. An outgoing account's crossing dated under the incoming
-        // account's percentage is the tooltip stating a spell that never happened on this login. T293 is
-        // about the list itself — every entry here has been added by hand after a defect named it.
-        _spellSince = 0;
+        // Which also drops everything held about the outgoing account, so the icon cannot keep drawing its
+        // percentage while the new one is fetched.
         RefreshWatched();
-
-        // Below `RefreshWatched` and not beside the three above, which is the whole reason this was
-        // missed (T292): those drop what is already held, while this one has to *read* the incoming
-        // account's history, and until `RefreshWatched` has run the monitored key is still the outgoing
-        // account's. The alarm is the fourth thing a switch must not carry across — a previous reading
-        // belonging to one account and a current one belonging to another compare to nothing, and the
-        // comparison is what decides whether somebody is told they have started paying.
-        _extraAlarm = NewExtraAlarm();
-
         Render();
     }
 
@@ -1042,18 +1024,18 @@ internal sealed class TrayContext : ApplicationContext
         UsageData fresh = await _api.FetchAsync();
         bool ok = fresh.Error == null;
         bool transientHiccup = !ok && fresh.Transient && !fresh.Unauthorized;
-        _consecutiveErrors = transientHiccup ? _consecutiveErrors + 1 : 0;
+        _monitored.ConsecutiveErrors = transientHiccup ? _monitored.ConsecutiveErrors + 1 : 0;
 
         // A single timeout or network blip shouldn't flip the icon to a scary red error: keep the
         // last good reading (or the "connecting…" state) on screen and quietly retry on the next
         // poll. Only surface the error once it persists across a few polls.
         bool keepLastGood = transientHiccup
-                            && _consecutiveErrors < ErrorTolerance
-                            && _data is null or { Error: null };
+                            && _monitored.ConsecutiveErrors < ErrorTolerance
+                            && _monitored.Data is null or { Error: null };
         if (!keepLastGood)
         {
-            _data = fresh;
-            _lastRefresh = DateTime.Now;
+            _monitored.Data = fresh;
+            _monitored.LastRefresh = DateTime.Now;
         }
 
         if (ok)
@@ -1063,8 +1045,8 @@ internal sealed class TrayContext : ApplicationContext
             // Remember this good reading so the Statistics window can keep drawing its charts from
             // local data during a later API outage, and mark when it was taken (the outage gap starts
             // here).
-            _lastGoodSnapshot = new PaceSnapshot(fresh.Session5h, fresh.Reset5h, fresh.Week7d, fresh.Reset7d,
-                                                 fresh.ExtraUtil, fresh.ResetExtra);
+            _monitored.LastGood = new PaceSnapshot(fresh.Session5h, fresh.Reset5h, fresh.Week7d,
+                                                   fresh.Reset7d, fresh.ExtraUtil, fresh.ResetExtra);
 
             // Log the live reading so the Statistics charts can draw the real utilization curve over
             // time, rather than inferring the burn shape from transcript token counts.
@@ -1085,13 +1067,13 @@ internal sealed class TrayContext : ApplicationContext
             // of the run it dates — the opposite of the ordering the alarm above must avoid, because that
             // one asks about a change between two readings and this one asks how long a state has held. The
             // guard is what keeps an ordinary poll from reading the log at all.
-            _spellSince = QuotaStates.Spending(fresh.ExtraUtil, fresh.ExtraInUse)
+            _monitored.SpellSince = QuotaStates.Spending(fresh.ExtraUtil, fresh.ExtraInUse)
                 ? OverageSpell.StartedAt(ProfileStore.Monitored) ?? 0
                 : 0;
 
             foreach (string key in Metrics)
             {
-                BurnTracker.ResetEvent? ev = _burn.Record(key, fresh.Metric(key), fresh.ResetOf(key), now);
+                BurnTracker.ResetEvent? ev = _monitored.Burn.Record(key, fresh.Metric(key), fresh.ResetOf(key), now);
                 if (ev is not { } reset) continue;
 
                 // Each window decides by its own opt-in. Weekly: the routine on-time reset uses the
@@ -1129,7 +1111,7 @@ internal sealed class TrayContext : ApplicationContext
     // restore the normal cadence and re-arm the one-shot auto-open for the next signed-out spell.
     private void AdjustForAuthState()
     {
-        bool unauthorized = _data is { Unauthorized: true };
+        bool unauthorized = _monitored.Data is { Unauthorized: true };
 
         int desiredMs = DesiredPollMs();
         if (_poll.Interval != desiredMs)
@@ -1141,11 +1123,11 @@ internal sealed class TrayContext : ApplicationContext
 
         if (!unauthorized)
         {
-            _autoOpenedForAuth = false;
+            _monitored.AutoOpenedForAuth = false;
         }
-        else if (_settings.AutoOpenOnUnauthenticated && !_autoOpenedForAuth)
+        else if (_settings.AutoOpenOnUnauthenticated && !_monitored.AutoOpenedForAuth)
         {
-            _autoOpenedForAuth = true;
+            _monitored.AutoOpenedForAuth = true;
             OpenClaudeCode(forReauth: true);
         }
     }
@@ -1158,7 +1140,7 @@ internal sealed class TrayContext : ApplicationContext
     // the normal cadence applies (T180 — see BlockedUntilUnix for the premise and the double-check floor).
     private int DesiredPollMs()
     {
-        if (_data is { Unauthorized: true })
+        if (_monitored.Data is { Unauthorized: true })
             return _settings.AuthRetrySeconds * 1000;
 
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
@@ -1182,7 +1164,7 @@ internal sealed class TrayContext : ApplicationContext
     // maxed the next DesiredPollMs simply re-idles to its reset. 0 when nothing is blocked.
     private double BlockedUntilUnix(long now)
     {
-        if (_data is not { Error: null } d) return 0;
+        if (_monitored.Data is not { Error: null } d) return 0;
         // The monitored profile is _watched[0] (RefreshWatched keeps it first), and its account flag is
         // the one that says whether hitting 100% stops the work or starts charging for it.
         bool? extraEnabled = _watched.Count > 0 ? _watched[0].ExtraUsage : null;
@@ -1375,12 +1357,12 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     private double CurrentPct()
-        => _data != null && _data.Error == null ? Math.Min(1.0, _data.Metric(_metric)) : 0.0;
+        => _monitored.Data is { Error: null } d ? Math.Min(1.0, d.Metric(_metric)) : 0.0;
 
     // Projection for the currently displayed metric (session vs. week vs. extra).
     private (Projection verdict, double eta) CurrentProjection()
     {
-        if (_data is not { Error: null }) return (Projection.Unknown, 0);
+        if (_monitored.Data is not { Error: null } d) return (Projection.Unknown, 0);
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         // Both bounded windows use the proportional "pace line" for their verdict, matching the
         // Statistics chart's projection (average pace since the window started) so the tray and the
@@ -1392,7 +1374,8 @@ internal sealed class TrayContext : ApplicationContext
             "7d" => 7.0 * 24 * 3600,
             _ => 0,
         };
-        var (verdict, eta, _) = _burn.Project(_metric, _data.Metric(_metric), _data.ResetOf(_metric), now, window);
+        var (verdict, eta, _) = _monitored.Burn.Project(_metric, d.Metric(_metric), d.ResetOf(_metric),
+                                                       now, window);
         return (verdict, eta);
     }
 
@@ -1424,8 +1407,8 @@ internal sealed class TrayContext : ApplicationContext
     private void Render()
     {
         IconRenderer.State state =
-            _data == null ? IconRenderer.State.Connecting :
-            _data.Error != null ? IconRenderer.State.Error :
+            _monitored.Data == null ? IconRenderer.State.Connecting :
+            _monitored.Data.Error != null ? IconRenderer.State.Error :
             IconRenderer.State.Ok;
 
         bool flash = CurrentlyWarned() && _flashOn;
@@ -1438,9 +1421,9 @@ internal sealed class TrayContext : ApplicationContext
         // triangle. On a live API error (e.g. an HTTP 403) show the same logo but with a red error dot
         // in the corner, instead of an amber tile with a misleading usage number. Once a poll succeeds
         // the usage icon takes over.
-        bool apiError = state == IconRenderer.State.Error && _data is not { Unauthorized: true };
+        bool apiError = state == IconRenderer.State.Error && _monitored.Data is not { Unauthorized: true };
         using Bitmap bmp =
-            _data is { Unauthorized: true } || state == IconRenderer.State.Connecting || apiError
+            _monitored.Data is { Unauthorized: true } || state == IconRenderer.State.Connecting || apiError
                 ? IconRenderer.RenderLogo(size, apiError)
                 : IconRenderer.Render(CurrentPct(), state, flash, size, verdict, _settings.ShowPercentage,
                     _settings.ShowRemaining, AccentSlot(), CurrentQuotaState() == QuotaState.Billing);
@@ -1478,7 +1461,7 @@ internal sealed class TrayContext : ApplicationContext
     private bool CurrentlyWarned()
         => _settings.FlashNearLimit
            && QuotaStates.Warns(CurrentPct(),
-                                _metric == "5h" && _data is { Error: null } d ? d.Surpassed5h : null);
+                                _metric == "5h" && _monitored.Data is { Error: null } d ? d.Surpassed5h : null);
 
     /// <summary>Which of the three states the <em>account</em> is in (T182, rescoped by T274).
     ///
@@ -1496,7 +1479,7 @@ internal sealed class TrayContext : ApplicationContext
     /// nobody measured. The caption stays with the metric, in <see cref="TooltipText"/>.</para></summary>
     private QuotaState CurrentQuotaState()
     {
-        if (_data is not { Error: null } d) return QuotaState.InQuota;
+        if (_monitored.Data is not { Error: null } d) return QuotaState.InQuota;
         // The decision itself is in QuotaStates, where --selftest can reach it: the refusal goes in with
         // the flag it overrides (T224), and the reading picks its own utilization (T274).
         return QuotaStates.Resolve(d, _watched.Count > 0 ? _watched[0].ExtraUsage : null);
@@ -1508,16 +1491,16 @@ internal sealed class TrayContext : ApplicationContext
     {
         var (verdict, eta) = CurrentProjection();
         return TooltipText.Compose(new TooltipText.Input(
-            Data: _data,
+            Data: _monitored.Data,
             Metric: _metric,
             ShowRemaining: _settings.ShowRemaining,
             ProfileLabel: _watched.Count > 1 ? _watched[0].Label : null,
             Verdict: verdict,
             Eta: eta,
             State: CurrentQuotaState(),
-            Updated: _lastRefresh is { } t ? $"  ⟳ {t:HH:mm:ss}" : "",
+            Updated: _monitored.LastRefresh is { } t ? $"  ⟳ {t:HH:mm:ss}" : "",
             Now: DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            SpellSince: _spellSince));
+            SpellSince: _monitored.SpellSince));
     }
 
     /// <summary>
@@ -1689,7 +1672,7 @@ internal sealed class TrayContext : ApplicationContext
             string launch = LaunchCommandFor(profile);
             string command = !forReauth
                 ? $"/k {launch}"
-                : _data is { NeedsFullLogin: true }
+                : _monitored.Data is { NeedsFullLogin: true }
                     ? $"/k echo {L.T("cli.loginHint")} & {launch}"
                     : $"/k echo {L.T("cli.refreshHint")} & {launch}";
             var psi = new ProcessStartInfo

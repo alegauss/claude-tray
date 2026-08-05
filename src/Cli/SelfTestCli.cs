@@ -134,6 +134,9 @@ internal static class SelfTestCli
         Section("spell — how far back the overage reaches (Block A)");
         Spell();
 
+        Section("switch — what a change of monitored account drops (Block A)");
+        MonitoredHandover();
+
         Section("out — the directory a capture flag was given (Block AF)");
         Temp(OutputPaths);
 
@@ -2016,6 +2019,77 @@ internal static class SelfTestCli
                   $"{tightSpell.Length}/{TooltipText.Cap}: {tightSpell.Replace("\n", " | ")}");
         }
         finally { L.Apply(L.Codes[(int)saved]); }
+    }
+
+    // ---------------------------------------------------------------- Block A: the handover between accounts
+
+    /// <summary>
+    /// What a change of monitored account drops (T293).
+    ///
+    /// <para>§XXXV argued no assertion was available, because a check would have to know which fields are the
+    /// monitored account's — the same knowledge the old method failed to keep. That is true of the <em>list</em>
+    /// and it is not true of the <em>rule</em>: once the list is one object, the property the whole design
+    /// rests on is that <c>RefreshWatched</c> is its only assigner. A partial reset re-added to
+    /// <c>AdoptMonitored</c>, or a second place that builds one, is exactly how this decays back into prose —
+    /// and it is a thing the source text can be asked about, the way the header parse already is (T284).</para>
+    ///
+    /// <para>The rest is the constructor's own promise: a fresh instance carries nothing of the outgoing
+    /// account, and its alarm is seeded from the incoming account's history rather than left blank.</para>
+    /// </summary>
+    private static void MonitoredHandover()
+    {
+        // The state is drawn from the key, so an invented profile's key is safe to build one for: nothing
+        // here writes, and AccountFixture's own key is a hash of an invented account uuid.
+        var fresh = new MonitoredAccount("acct-selftest-nonexistent");
+        Check("a fresh monitored account carries no reading, and no time one was taken",
+              fresh.Data is null && fresh.LastRefresh is null && fresh.LastGood is null,
+              "one assignment has to be a complete drop, or the switch is back to being a list");
+        Check("nor a spell, an error count, or a fired auth prompt",
+              fresh.SpellSince == 0 && fresh.ConsecutiveErrors == 0 && !fresh.AutoOpenedForAuth,
+              "the three fields building this object found — two of them live defects (T293)");
+        Check("and its burn tracker is a new one rather than a cleared one",
+              fresh.Burn.Project("7d", 0.5, 0, 1_800_000_000, 7 * 24 * 3600).verdict == Projection.Unknown,
+              "a tracker with history behind it projects the outgoing account's slope");
+        Check("it knows whose state it is", fresh.Key == "acct-selftest-nonexistent", fresh.Key);
+
+        // The rule the design rests on, asked of the source text. Counting assignments rather than parsing:
+        // one `_monitored =` in the file, and it is inside RefreshWatched.
+        Repo("the monitored account is replaced in one place and nowhere else", root =>
+        {
+            string[] lines = File.ReadAllLines(Path.Combine(root, "src/Tray/TrayContext.cs"));
+            var assigns = new List<int>();
+            for (int i = 0; i < lines.Length; i++)
+            {
+                string t = lines[i].TrimStart();
+                if (t.StartsWith("//") || t.StartsWith("///")) continue;
+                // The declaration itself is `private MonitoredAccount _monitored = null!;` — a declaration,
+                // not a handover, and the one line allowed to look like one.
+                if (t.Contains("_monitored =", StringComparison.Ordinal)
+                    && !t.Contains("MonitoredAccount _monitored", StringComparison.Ordinal))
+                    assigns.Add(i + 1);
+            }
+
+            if (!Check("the monitored account is assigned exactly once", assigns.Count == 1,
+                       $"lines {string.Join(", ", assigns)} — a second assigner is a second opinion about " +
+                       "what a switch drops, which is the prose T293 removed"))
+                return;
+
+            // Which method it is in: the nearest preceding line that declares one.
+            int at = assigns[0] - 1;
+            string owner = "(none found)";
+            for (int i = at; i >= 0; i--)
+            {
+                string t = lines[i].TrimStart();
+                if (!t.StartsWith("private ") && !t.StartsWith("internal ") && !t.StartsWith("public ")) continue;
+                if (!t.Contains('(') || t.Contains(" _") || t.EndsWith(";", StringComparison.Ordinal)) continue;
+                owner = t;
+                break;
+            }
+            Check("and it is RefreshWatched that assigns it",
+                  owner.Contains("RefreshWatched", StringComparison.Ordinal),
+                  $"{owner} — the switch has to be detected and dropped in the same place, or a route that " +
+                  "changes the monitored profile without going through a click carries the old state across");
+        }, "src/Tray/TrayContext.cs");
     }
 
     // ---------------------------------------------------------------- Block A: dating the overage spell

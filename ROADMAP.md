@@ -94,8 +94,6 @@
 
 ## Block A — Foundation — tray, icon, API, projection
 
-- 📋 **T293** (deps: —) **the fields a profile switch must drop are a list kept by hand, and each new one is found by the defect it causes** — AdoptMonitored nulls three and clears a fourth by name, so a fifth is carried into the incoming account until somebody notices what it made the tray say. → §XXXV
-
 ## Block F — Statistics window (pace report)
 
 - 📋 **T289** (deps: —) **one rule about what counts as a break in the readings is computed twice in the same file** — T275 gave MergeSpans a measured bridge and FindGaps still derives the identical median-and-floor inline, so the two can drift and only one of them has a name. → §XXXIV
