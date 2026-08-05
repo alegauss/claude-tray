@@ -17,12 +17,12 @@
 
 | Block | Theme |
 |---|---|
-| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
+| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection (active — see ROADMAP) |
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
-| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
+| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) (active — see ROADMAP) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |

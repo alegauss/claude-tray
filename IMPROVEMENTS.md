@@ -819,3 +819,76 @@ check is being written from the same reading that already missed it once.
 
 One thing to decide: `Record` returns `bool` — whether it wrote. An observing tray should get
 `false`, which is what "nothing was recorded" already means to every caller.
+
+## XLIII The session chart carries the clay too, and names none of it (T308)
+
+T300 gave the weekly legend one entry for the two clay marks. The 5-hour legend was never in scope,
+and it turns out to need the same entry and more.
+
+`DrawChart` is one method over two canvases. Everything it draws from a `WindowPace` it draws for
+whichever window it was handed, and `PaceReport.Build` calls `FillCurve` on `r.Session` with the
+same sample list it gives `r.Weekly`. The overage header bit is not window-scoped — `InUse` says
+*this account is past the quota included in its plan*, a fact about the account and not about a
+five-hour stretch — so a session whose readings carry it gets `Session.ExtraSpans` filled, and the
+5-hour chart gets the shaded stretch and its hit-target tooltip. `hasExtra` reads the same way, so
+the same chart can also grow the second right-hand axis and the clay series that rules it.
+
+Beside all of that, the 5-hour legend names three things: actual usage, even pace, projection. It
+has no conditional entries at all — no `LegendExtraS`, no `LegendOverS` — where the weekly one now
+has four. That is the defect T300 shipped against, on the other tab, one step worse: on the week a
+reader at least finds a tooltip on the band; here the second axis appears with nothing in the legend
+tying its percentage to a different denominator, which is the specific misreading T183 built that
+axis to prevent.
+
+It has gone unseen because it cannot be seen: `FillDemoOverage` and `FillDemoOverSpell` both take
+`r.Weekly`, so no preview and no capture puts the session window past its included quota. The fix is
+the pair of entries the weekly tab has, shown on the same predicates, and the previews that make
+either one look at.
+
+## XLIV One predicate, and the loops that still spell it themselves (T309)
+
+`HasOverQuotaMark` was added so the legend's clay entry and the marks on the chart could not
+disagree, and it half succeeded. The legend has one reader. The chart does not read it: the band
+loop iterates `w.ExtraSpans` and lets a zero-width span fall out on `X(f1) - X(f0) <= 0`, and the
+ghost loop gates on `w.Ghost is { } ghost && ghost.Curve.Count >= 2` before the same test on
+`ghost.OverSpans`. The predicate restates all of it.
+
+That is the shape T289 folded and T297 is open about: two writers of one rule, agreeing today
+because one was copied from the other, with nothing making them go on agreeing. The failure has a
+direction. Tighten a drawing guard and the legend keeps an entry for a mark nobody drew — a colour
+the reader is told to look for and cannot find, T300's defect one step on, and the one state a
+capture cannot report, because the legend it photographs is *there* and merely wrong. Loosen one and
+a mark appears with nothing naming it, which is T300 exactly.
+
+The fix is the direction T289 took: the loops ask the predicate rather than the predicate mirroring
+the loops. `X(f1) - X(f0)` is pixels and the predicate is fractions, so they are not one expression
+— but the sliver `MergeSpans` widens a lone reading to survives any plot wide enough to draw, so the
+fraction test is the claim and the pixel test is a paint-time guard that should not decide anything
+the legend has an opinion about. A shared iterator over the over-quota marks a window carries,
+yielding the spans both draw and count, is one reader with no arithmetic to copy. `--selftest`
+drives the four legend states; what it cannot do is fail when the chart leaves them.
+
+## XLV The colour that means paying, and its eight spellings (T310)
+
+Clay is the one colour in this app whose value is not a free choice. It means *past the quota
+included in your plan*, and T182, T183, T184 and T188 each turned on it meaning that in one place
+and nothing else meaning it anywhere. `--selftest` says so out loud: one row's value "is a
+cross-surface agreement rather than a free choice".
+
+It is nonetheless written out eight times. `IconRenderer` builds it twice from bytes (`ClaudeClay`,
+`BarBilling`), `StatisticsPage` once more (`BillingBrush`), `ToastWindow`'s palette once as a
+string, and the markup four times as literal hex — the settings gradient, the extra-usage legend
+line, and the two rectangles T300 added for the over-quota swatch. The check pins exactly one of the
+eight: the toast palette's `Mid` against the literal `"#D97757"`. Seven can move without a red
+build, and the failure is quiet — a tray icon and a chart band in two clays a screenshot would not
+settle, saying two things where the whole point was one.
+
+AGENTS.md already forbids this shape in markup: no hardcoded hex. The rule is right and the drift
+predates it, and T300 made it worse rather than better, which is what makes this worth an id instead
+of a passing note.
+
+What it needs is one declared colour the eight readers resolve, and the check moved onto *that*
+rather than onto whichever surface happened to be assertable. WinForms and WPF cannot share a brush
+— GDI+ wants a `Color`, the markup wants a resource — so the shared thing is the value, exposed once
+and converted at each edge. The check then asserts what it means to assert: every surface that says
+"paying" says it in the same clay, and a new surface that wants clay has one place to get it from.
