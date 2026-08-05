@@ -222,7 +222,7 @@ mark, and hovering says so — the line is a floor, not the whole week. A week o
 record of any of this answers **nothing** rather than claiming it stayed inside.
 
 **Extra usage, on an axis of its own.** If you go past the quota included in your plan and keep
-working, the weekly chart draws what you're spending past it as a **clay** line — with its **own
+working, the chart draws what you're spending past it as a **clay** line — with its **own
 right-hand scale**, never against the 0–100% one. The two are percentages of different things: the
 left axis is "of the quota included in your plan", and the clay line is **of your extra-usage
 allowance**, a window with its own limit and its own reset. Sharing one axis would read as one
@@ -232,15 +232,19 @@ number twice. It's not a second projection: "when do you run out" has already be
 
 **And when there is no figure, there is still a stretch.** Some accounts spend past the included
 quota with the allowance percentage reading **0%** the whole time — the API says *you are over*
-without saying *by how much*. The week then shades the stretch you were over in clay, behind the
+without saying *by how much*. The chart then shades the stretch you were over in clay, behind the
 usage line, and says so in words: extra usage is paying, and no header states what it amounts to.
 No second axis appears, because there is no figure to rule one with. The app would rather show you
 when it happened than invent how much.
 
-Both clay marks — this week's shaded stretch and last week's mark at the ceiling — are named by one
-legend entry, **past your plan's quota**, because they are one fact about two different weeks. It
-shows up only when at least one of them is actually on the chart, and hovering it says which shape
-belongs to which week.
+**On both tabs, because it is a fact about the account.** Being past your included quota isn't a
+property of a five-hour stretch or of a week — so the shaded stretch and the extra-usage axis appear
+on whichever chart you're looking at, and each tab's legend names what that tab actually drew. The
+weekly one has one entry, **past your plan's quota**, covering both clay marks it can carry: this
+week's shaded stretch and last week's mark at the ceiling, one fact about two different weeks, with
+the hover saying which shape belongs to which. The 5-hour tab has no previous window to draw, so its
+entry is the shaded stretch alone. Either way, an entry only shows up when the thing it names is on
+the chart.
 
 ## ✨ Reset notifications — color-coded, at a glance
 

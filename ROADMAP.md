@@ -99,7 +99,6 @@
 
 ## Block F — Statistics window (pace report)
 
-- 📋 **T308** (deps: —) **the 5-hour chart draws clay its own legend names nowhere** — InUse is an account fact, so FillCurve fills Session.ExtraSpans and the shared DrawChart shades it, while that legend lists three lines and every demo fills only the week, so no capture has shown it. → §XLIII
 - 📋 **T309** (deps: —) **the legend's clay entry mirrors the guards the marks are drawn under** — T300 named HasOverQuotaMark the one reader, but DrawChart still tests f1 > f0 and the ghost's curve count in its own loops, so moving either leaves an entry for a mark nobody drew. → §XLIV
 
 ## Non-goals (do NOT add as tasks)

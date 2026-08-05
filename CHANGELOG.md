@@ -152,6 +152,7 @@
 - **T57** — Open the weekly tab by default when the session is idle (a flat 5h chart has nothing to show); projection landing time on the chart. (`839f913`, `a0f2bd0`)
 - **T289** — The outage threshold and the overage bridge are one derivation: FindGaps reads BridgeSeconds over its own points, so the median-and-floor rule has one name, one place a change lands, and no way for the two elements on one chart to part without a check noticing.
 - **T300** — The clay pair has one legend entry — past your plan quota — shown exactly when this week shaded stretch or last week mark at the ceiling is actually drawn, from the one predicate the marks are drawn under, with the week left to a hover the entry now makes findable.
+- **T308** — Being past the included quota is a fact about the account, so both charts draw the band and the second axis and each legend names what its own chart carried: the 5-hour tab gets the two entries it never had, band-only where the week carries a mark it cannot draw, and both overage previews now put the session past its quota so either is lookable at.
 
 ## Block G — Localization
 

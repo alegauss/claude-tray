@@ -62,16 +62,20 @@ internal static class StatsPreviews
                      "staircase's landing marker and the usually-idle bands are drawn",
             now => new PaceSnapshot(0.0, now + 5 * 3600, 0.74, now + 3 * 86400)),
 
+        // Both overage rows put the *session* past its quota too, 3h into its 5h (T308). The header bit is a
+        // fact about the account, so a real machine over its included quota carries the band on both charts —
+        // and these previews used to leave the 5-hour window at 0% with nothing elapsed, which draws a
+        // zero-width band and is why the clay states on that tab had never been looked at.
         new("overage", "a week whose included quota ran out part-way through and which kept working and " +
-                       "billing: the clay series on a second axis (T183)",
-            now => new PaceSnapshot(0.0, now + 5 * 3600, 1.0, now + 2 * 86400,
+                       "billing: the clay series on a second axis (T183), on both windows",
+            now => new PaceSnapshot(1.0, now + 2 * 3600, 1.0, now + 2 * 86400,
                                     Extra: 0.47, ResetExtra: now + 2 * 86400),
             Overage: true),
 
         new("overage-noamount", "the spell as it was actually measured (T275): the API said the account " +
-                                "was past its included quota for a stretch of the week while the overage " +
+                                "was past its included quota for a stretch while the overage " +
                                 "figure stayed at 0, so the band is drawn and there is no second axis",
-            now => new PaceSnapshot(0.0, now + 5 * 3600, 1.0, now + 2 * 86400,
+            now => new PaceSnapshot(1.0, now + 2 * 3600, 1.0, now + 2 * 86400,
                                     Extra: 0, ResetExtra: now + 2 * 86400),
             OverSpell: true),
 

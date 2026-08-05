@@ -262,6 +262,28 @@
                             <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#E0A030" />
                             <TextBlock Text="{local:Loc stats.legend.projection}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <!-- The two clay entries this tab was missing entirely (T308). DrawChart is one
+                                 method over both canvases and the overage header bit is a fact about the
+                                 account rather than about a five-hour stretch, so a session past the
+                                 included quota gets the band, and the second axis when a figure rules one —
+                                 beside a legend that named three lines. Same strings and same predicates as
+                                 the weekly pair, because it is the same news about a shorter window. -->
+                            <StackPanel x:Name="LegendExtraS" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
+                                <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#D97757" />
+                                <TextBlock Text="{local:Loc stats.legend.extra}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <!-- Band only, where the weekly swatch carries a line along its ceiling too: the
+                                 ghost is a weekly idea and nothing sets Session.Ghost, so a mark at the
+                                 ceiling is a shape this tab cannot draw — and naming one is the defect T300
+                                 shipped against. Its tooltip is the band's own sentence for the same reason,
+                                 rather than the weekly entry's, which distinguishes two weeks. -->
+                            <StackPanel x:Name="LegendOverS" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed"
+                                        ToolTip="{local:Loc stats.chart.overSpan}">
+                                <Rectangle Width="16" Height="10" RadiusX="2" RadiusY="2" VerticalAlignment="Center" Fill="#3DD97757" />
+                                <TextBlock Text="{local:Loc stats.legend.overQuota}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
                         </StackPanel>
 
                         <!-- Throughput. Two numbers on two clocks: this window's average (still by

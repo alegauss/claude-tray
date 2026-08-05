@@ -444,8 +444,13 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         _session = r.Session;
         _weekly = r.Weekly;
 
-        if (PreviewDemoOverage) FillDemoOverage(r.Weekly);
-        if (PreviewDemoOverSpell) FillDemoOverSpell(r.Weekly);
+        // Both windows, because being past the included quota is one fact about the account and `InUse` says
+        // so on every reading either window selects (T308). Filling only the week is what kept the 5-hour
+        // chart's clay states out of every preview and every capture, which is how the legend they had no
+        // entry in went unnoticed. The session's snapshot on these variants is partway through and at its
+        // limit for the same reason: a window with nothing elapsed leaves the band zero-width.
+        if (PreviewDemoOverage) { FillDemoOverage(r.Weekly); FillDemoOverage(r.Session); }
+        if (PreviewDemoOverSpell) { FillDemoOverSpell(r.Weekly); FillDemoOverSpell(r.Session); }
 
         // The demo ghost follows the week in front of it: on an overage preview it is a week that also ran
         // out and kept working, which is the only reading on which T295's shaded stretch exists to be
@@ -511,10 +516,13 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         LegendIdleW.Visibility = shaped && r.Weekly.Shape!.IdleBands.Count > 0
             ? Visibility.Visible : Visibility.Collapsed;
         LegendGhostW.Visibility = r.Weekly.Ghost is not null ? Visibility.Visible : Visibility.Collapsed;
-        LegendExtraW.Visibility = r.Weekly.ExtraCurve.Count >= 2 && r.Weekly.ExtraMax > 0
-            ? Visibility.Visible : Visibility.Collapsed;
-        // The clay pair's one entry (T300), from the same predicate the marks are drawn under.
+        // The clay pair, on both tabs (T300, T308). One question per entry, asked of whichever window the
+        // legend sits under: `hasExtra` is what DrawChart rules a second axis by, and HasOverQuotaMark is
+        // the predicate the marks themselves are drawn under.
+        LegendExtraW.Visibility = HasExtraAxis(r.Weekly) ? Visibility.Visible : Visibility.Collapsed;
         LegendOverW.Visibility = HasOverQuotaMark(r.Weekly) ? Visibility.Visible : Visibility.Collapsed;
+        LegendExtraS.Visibility = HasExtraAxis(r.Session) ? Visibility.Visible : Visibility.Collapsed;
+        LegendOverS.Visibility = HasOverQuotaMark(r.Session) ? Visibility.Visible : Visibility.Collapsed;
     }
 
     // The static captions/legend labels that change wording between "used" and "remaining" framing.

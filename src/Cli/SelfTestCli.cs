@@ -1593,6 +1593,31 @@ internal static class SelfTestCli
         Check("a ghost too thin to draw takes its mark out of the legend with it",
               !StatisticsPage.HasOverQuotaMark(tooThin));
 
+        // T308. Both predicates are asked of whichever window the legend sits under, and the 5-hour one is
+        // the case that had no entry at all: `InUse` is a fact about the account, so FillCurve fills
+        // Session.ExtraSpans from the same readings and the shared DrawChart shades them.
+        // Its own clock: a 5-hour window resetting two hours from now, so three of it have elapsed and the
+        // readings below land inside it. Sharing the week's `reset` would put the session's start days after
+        // `now` and select nothing, which is a fixture asserting the absence it built.
+        double sReset = now + 2 * 3600;
+        var session = Win(sReset, UsageReport.SessionSeconds, now, 1.0);
+        UsageSample Sat(double secondsAgo) =>
+            new(now - secondsAgo, 1.0, sReset, 1.0, sReset, 0.0, sReset, true);
+        UsageReport.FillCurve(session, new(), new() { Sat(1800), Sat(1500), Sat(1200) },
+                              s => (s.Util5h, s.Reset5h), now);
+        Check("a session past the included quota is shaded, as the week is",
+              session.ExtraSpans.Count > 0, $"{session.ExtraSpans.Count} spans");
+        Check("...and the 5-hour legend names it, from the same predicate",
+              StatisticsPage.HasOverQuotaMark(session));
+
+        // The second axis is one question too, and the entry that says the percentage is of a different
+        // denominator must appear exactly when the axis it explains does.
+        Check("a window with no overage figure rules no second axis", !StatisticsPage.HasExtraAxis(none));
+        Check("and one measured figure is not a series either",
+              !StatisticsPage.HasExtraAxis(spell), $"max {spell.ExtraMax}");
+        Check("a real overage curve rules one, so the legend can name its scale",
+              StatisticsPage.HasExtraAxis(w), $"{w.ExtraCurve.Count} points, max {w.ExtraMax}");
+
         // ---- which shaping path ran
         Check($"the real-history path needs {UsageReport.MinRealSamples} logged points",
               w.Curve.Count > 2 && Math.Abs(w.Curve[0].frac) < 1e-9,

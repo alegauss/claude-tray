@@ -102,6 +102,12 @@ internal partial class StatisticsPage
     /// mark nobody drew names a colour the reader cannot find, which is the defect T300 is about, one step
     /// further on. The `f1 &gt; f0` and the ghost's curve count are the drawing guards themselves, spelled
     /// once.</para></summary>
+    /// <summary>Whether this window gets the overage series and the second right-hand axis that rules it
+    /// (T183) — the gutter, the clay curve, its own 0–max labels, and now the legend entry that says the
+    /// percentage is of a different denominator (T308). Written here, beside the chart it decides the width
+    /// of, so the legend cannot claim a scale nobody drew.</summary>
+    internal static bool HasExtraAxis(WindowPace w) => w.ExtraCurve.Count >= 2 && w.ExtraMax > 0;
+
     internal static bool HasOverQuotaMark(WindowPace w)
     {
         foreach (var (f0, f1) in w.ExtraSpans) if (f1 > f0) return true;
@@ -133,7 +139,7 @@ internal partial class StatisticsPage
 
         // Right margin leaves room for the 0/50/100% gridline labels past the plot's right edge — and a
         // second gutter beyond them when there is an overage series to scale (T183).
-        bool hasExtra = w.ExtraCurve.Count >= 2 && w.ExtraMax > 0;
+        bool hasExtra = HasExtraAxis(w);
         const double left = 6, top = 10, bottom = 22;
         double right = hasExtra ? 78 : 36;
         double pw = W - left - right, ph = H - top - bottom;

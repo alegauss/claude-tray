@@ -136,7 +136,9 @@ internal readonly record struct TokenBits(long Input, long Output, long CacheCre
 
 internal static class UsageReport
 {
-    private const double SessionSeconds = 5 * 3600;
+    // Internal rather than private so `--selftest` drives the session window on the length the app gives it
+    // (T308): a check that spells 5h itself is a second writer of the one number both windows are told apart by.
+    internal const double SessionSeconds = 5 * 3600;
     private const double WeekSeconds = 7 * 86400;
 
     /// <summary>Build the pacing report for both windows from the live snapshot plus the transcripts.</summary>
