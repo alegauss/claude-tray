@@ -95,6 +95,8 @@
 
 ## Block A — Foundation — tray, icon, API, projection
 
+- 📋 **T307** (deps: —) **the shed decision predicts what the fitter will choose, by computing the fitter's rule a second time** — SpellSurvives re-derives 'first rung that fits' to subtract what the projection will take, so a third projection rung would make the prediction wrong while it went on answering. → §XLII
+
 ## Block F — Statistics window (pace report)
 
 - 📋 **T289** (deps: —) **one rule about what counts as a break in the readings is computed twice in the same file** — T275 gave MergeSpans a measured bridge and FindGaps still derives the identical median-and-floor inline, so the two can drift and only one of them has a name. → §XXXIV
