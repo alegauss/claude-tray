@@ -100,6 +100,8 @@
 
 ## Block F — Statistics window (pace report)
 
+- 📋 **T313** (deps: —) **two legend tooltips say 'this stretch' while pointing at no stretch at all** — The band's and the ghost mark's own sentences were reused as legend tips by T308 and T311; on a chart element the deixis has a referent, on a legend entry it has none and the reader looks for one. → §XLVIII
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
