@@ -2077,6 +2077,12 @@ internal static class SelfTestCli
         Check("nor a spell, an error count, or a fired auth prompt",
               fresh.SpellSince == 0 && fresh.ConsecutiveErrors == 0 && !fresh.AutoOpenedForAuth,
               "the three fields building this object found — two of them live defects (T293)");
+        // T304. The poll gate is per account for the switch's sake, so the incoming one must arrive able to
+        // poll. A carried `Polling` would not be a stale reading — it would be an account that never polls
+        // again, because nothing but a completed poll clears it.
+        Check("and no poll in flight, so the incoming account can start one at once",
+              !fresh.Polling && !fresh.PollAgain,
+              "a carried flag is not a stale number, it is a tray that stops refreshing");
         Check("and its burn tracker is a new one rather than a cleared one",
               fresh.Burn.Project("7d", 0.5, 0, 1_800_000_000, 7 * 24 * 3600).verdict == Projection.Unknown,
               "a tracker with history behind it projects the outgoing account's slope");
@@ -2127,9 +2133,11 @@ internal static class SelfTestCli
         // the source: the guard exists, and nothing in the body attributes anything to the live monitored key.
         Repo("the poll attributes its reading to the account it started on", root =>
         {
+            // The poll's own body, which T304 split out of RefreshAsync — and this precondition is what said
+            // so, by failing rather than passing over a method it could no longer find.
             string[] body = MethodBody(File.ReadAllLines(Path.Combine(root, "src/Tray/TrayContext.cs")),
-                                       "private async Task RefreshAsync()");
-            if (!Check("RefreshAsync's body can be read", body.Length > 0,
+                                       "private async Task PollOnceAsync(MonitoredAccount account)");
+            if (!Check("the poll's body can be read", body.Length > 0,
                        "the method was renamed or its signature moved — this check is reading nothing"))
                 return;
 
@@ -2143,6 +2151,33 @@ internal static class SelfTestCli
             Check("and nothing in it is keyed on whichever account is monitored now", live.Length == 0,
                   $"{string.Join(" // ", live)} — resolved after the await, so a switch mid-flight files one " +
                   "account's reading under another's key, in the one store that cannot be rebuilt");
+        }, "src/Tray/TrayContext.cs");
+
+        // T304. The gate's whole design is an asymmetry between two callers, and an asymmetry is the one
+        // thing a source check can hold that a headless run cannot: the behaviour needs a message pump, while
+        // "which caller is marked" is a fact about two lines. Marking the tick would make every tick coalesce
+        // and the gate would stop gating, silently, with the timer still ticking.
+        Repo("the timer and the button ask for different things", root =>
+        {
+            string[] lines = File.ReadAllLines(Path.Combine(root, "src/Tray/TrayContext.cs"));
+            // Both matched on the call as well as the wiring: there is a second `refresh.Click +=` in this
+            // file — the insights menu's — and picking the right one by which comes first is a check that
+            // passes for a reason nothing states.
+            string? tick = lines.FirstOrDefault(l => l.Contains("_poll.Tick +=", StringComparison.Ordinal)
+                                                     && l.Contains("RefreshAsync", StringComparison.Ordinal));
+            string? click = lines.FirstOrDefault(l => l.Contains("refresh.Click +=", StringComparison.Ordinal)
+                                                      && l.Contains("RefreshAsync", StringComparison.Ordinal));
+
+            if (!Check("both wirings are still here to compare", tick != null && click != null,
+                       $"tick: {tick ?? "(gone)"} // click: {click ?? "(gone)"}"))
+                return;
+
+            Check("a tick asks for no reading of its own",
+                  !tick!.Contains("userAsked", StringComparison.Ordinal),
+                  $"{tick.Trim()} — a coalescing tick re-runs the poll it was meant to skip");
+            Check("and Refresh now says a person asked",
+                  click!.Contains("userAsked: true", StringComparison.Ordinal),
+                  $"{click.Trim()} — a click landing during a poll is dropped, so the menu does nothing");
         }, "src/Tray/TrayContext.cs");
     }
 

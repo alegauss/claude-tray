@@ -95,7 +95,6 @@
 
 ## Block A — Foundation — tray, icon, API, projection
 
-- 📋 **T304** (deps: —) **six call sites can start a poll while another is still awaiting, and nothing serialises them** — The tick, the menu item, the constructor and three switch paths call it unguarded, so two polls interleave at each await — two fetches, two appends seconds apart, one reset notified twice. → §XXXIX
 - 📋 **T306** (deps: —) **the busiest language never sees the duration in the state that is actually spending** — T302 got five of five languages saying it somewhere, and en's overage reading leaves five characters: shedding the window the icon is not about would buy the room and cost a percentage. → §XLI
 
 ## Block F — Statistics window (pace report)

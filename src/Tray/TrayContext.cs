@@ -367,7 +367,7 @@ internal sealed class TrayContext : ApplicationContext
         menu.Items.Add(insights);
 
         var refresh = new ToolStripMenuItem(L.T("menu.refreshNow"));
-        refresh.Click += async (_, _) => await RefreshAsync();
+        refresh.Click += async (_, _) => await RefreshAsync(userAsked: true);
         menu.Items.Add(refresh);
 
         // Launches the Claude Code CLI so it can refresh the OAuth token in
@@ -862,7 +862,7 @@ internal sealed class TrayContext : ApplicationContext
         // Releasing the pin is the user saying "stop choosing for me", so the machine-wide variable
         // the pin wrote goes back to what it was (T145). Auto-follow never writes one.
         SyncEnvironmentToPin(null);
-        _ = RefreshAsync();
+        _ = RefreshAsync(userAsked: true);
     }
 
     /// <summary>
@@ -907,7 +907,7 @@ internal sealed class TrayContext : ApplicationContext
         _settings.FollowActiveProfile = on;
         SaveSettingsQuietly();
         if (!on) _lastTurn.Clear();      // stale ages must not outlive the feature that fills them
-        else _ = RefreshAsync();         // which begins by asking where the last turn landed
+        else _ = RefreshAsync(userAsked: true);   // which begins by asking where the last turn landed
     }
 
     /// <summary>
@@ -938,7 +938,7 @@ internal sealed class TrayContext : ApplicationContext
         _profilePinned = true;
         AdoptMonitored(profile, automatic: false);
         SyncEnvironmentToPin(profile);
-        _ = RefreshAsync();
+        _ = RefreshAsync(userAsked: true);
     }
 
     /// <summary>
@@ -1032,16 +1032,69 @@ internal sealed class TrayContext : ApplicationContext
         HeaderProbe.Record(profileKey, now, d.RateHeaders);
     }
 
-    private async Task RefreshAsync()
+    /// <summary>
+    /// One poll of the monitored account: fetch, judge, draw, and record.
+    ///
+    /// <para><b>One at a time, per account (T304).</b> Six places call this and WinForms hands the message
+    /// loop back at every <c>await</c>, so a tick landing while an earlier poll was inside its fetch used to
+    /// start a second one — two fetches for one number, two history lines seconds apart that the chart reads
+    /// as real cadence, and one reset detected twice. The gate is <see cref="MonitoredAccount.Polling"/>, and
+    /// the three kinds of caller get three answers because they are asking three things:</para>
+    /// <list type="bullet">
+    /// <item>a <b>tick</b> is skipped — the number it would fetch is the number already being fetched;</item>
+    /// <item>a <b>click</b> (<paramref name="userAsked"/>) is remembered and run when the current poll lands,
+    /// because a <b>Refresh now</b> that quietly did nothing is the user being ignored;</item>
+    /// <item>a <b>switch</b> needs no answer here at all, which is the point of putting the flag on the
+    /// account: the incoming one arrives with it clear, so its first poll starts immediately.</item>
+    /// </list>
+    /// <para>Check and set with no <c>await</c> between them, which on a single-threaded pump is all the
+    /// atomicity there is to have.</para>
+    /// </summary>
+    /// <param name="userAsked">True when a person asked for this reading, so it is coalesced rather than
+    /// dropped. False for the timer and for the first fetch at launch.</param>
+    private async Task RefreshAsync(bool userAsked = false)
     {
-        // Which profile the icon is about is decided before the number it shows is fetched (T126).
+        // Which profile the icon is about is decided before the number it shows is fetched (T126). Above the
+        // gate, because it decides *whose* poll this would be — and a follow that switches lands on an
+        // account whose flag is its own.
         await FollowActiveProfileAsync();
 
-        // Whose poll this is, taken before the await that can outlive it (T303). WinForms is
-        // single-threaded, so nothing interleaves except at an await — and a click on the Profile submenu
-        // during this one is exactly what does: the switch replaces `_monitored`, and the fetch below is
-        // still the outgoing account's, because `_api` was read before it was replaced.
         MonitoredAccount account = _monitored;
+        if (account.Polling)
+        {
+            if (userAsked) account.PollAgain = true;
+            return;
+        }
+
+        account.Polling = true;
+        try
+        {
+            do
+            {
+                // Cleared before the poll it authorises, so a click arriving during *that* poll is a fresh
+                // request rather than the one being served.
+                account.PollAgain = false;
+                await PollOnceAsync(account);
+            }
+            // A coalesced request is dropped if the account changed under it: the switch fired its own poll,
+            // and this one would be about an account the icon no longer follows.
+            while (account.PollAgain && ReferenceEquals(account, _monitored));
+        }
+        finally { account.Polling = false; }
+    }
+
+    /// <summary>
+    /// The poll itself, for the account it started on.
+    ///
+    /// <para><paramref name="account"/> is handed in rather than read (T303): the fetch below is awaited, a
+    /// switch can land inside that await, and the reading that comes back is a fact about the account this
+    /// poll <em>started</em> on. WinForms is single-threaded, so nothing interleaves except at an await — and
+    /// a click on the Profile submenu during this one is exactly what does: the switch replaces
+    /// <c>_monitored</c>, while the fetch is still the outgoing account's because <c>_api</c> was read before
+    /// it was replaced.</para>
+    /// </summary>
+    private async Task PollOnceAsync(MonitoredAccount account)
+    {
         UsageData fresh = await _api.FetchAsync();
 
         if (!ReferenceEquals(account, _monitored))

@@ -594,7 +594,8 @@ What this means for this tool:
   rate-limit headers only exist on subscription OAuth credentials; an API key (the path
   Anthropic points developers to) would report *API* limits, not your subscription's.
 - **To minimize exposure**, keep the refresh interval conservative (Settings → refresh interval)
-  — every poll is one automated API call.
+  — every poll is one automated API call, and the tray never has two polls of one account in flight
+  at once, so the interval you set is a ceiling rather than an average.
 
 Governing terms: [Consumer Terms](https://www.anthropic.com/legal/consumer-terms) (Free/Pro/Max),
 [Commercial Terms](https://www.anthropic.com/legal/commercial-terms) (Team/Enterprise/API),

@@ -72,6 +72,23 @@ internal sealed class MonitoredAccount
     /// </summary>
     public bool AutoOpenedForAuth;
 
+    /// <summary>
+    /// Whether a poll of <em>this</em> account is in flight (T304).
+    ///
+    /// <para><b>Why it lives here and not on the tray.</b> The rule is one poll per account, not one poll per
+    /// process: a switch means the fetch already in flight is the outgoing account's, and the incoming
+    /// account's first poll must start at once rather than wait behind it. On the tray that would be a third
+    /// mechanism to write and remember. Here it is free — a switch replaces this whole object (T293), so the
+    /// incoming account arrives with the flag clear and the outgoing poll goes on holding its own.</para>
+    /// </summary>
+    public bool Polling;
+
+    /// <summary>Whether somebody <em>asked</em> for a reading while one was in flight, so the poll runs once
+    /// more when it lands (T304). A timer tick sets nothing — the number it would fetch is the number already
+    /// being fetched — but a click on <b>Refresh now</b> that quietly did nothing is the user being ignored,
+    /// and that is the whole difference between the two callers.</summary>
+    public bool PollAgain;
+
     /// <summary>This account's utilization history, and the projection over it. A fresh one rather than a
     /// cleared one, so there is no <c>Clear()</c> for a switch to forget to call.</summary>
     public BurnTracker Burn { get; } = new();

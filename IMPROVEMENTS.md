@@ -793,30 +793,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## XXXIX A poll that can start while a poll is running (T304)
-
-`RefreshAsync` is `await`ed from six places: the poll timer's tick, the **Refresh now** menu item,
-the constructor's first fetch, and the three paths that switch the monitored profile. Nothing holds
-an "already polling" flag, and WinForms hands the message loop back at every `await` — so a tick
-landing while an earlier poll is inside `_api.FetchAsync()` starts a second poll that runs
-interleaved with the first.
-
-What that costs, in order of how repairable it is. Two fetches spend two polls of quota to learn one
-number. Two `RecordReading` calls append two lines seconds apart, which the burn-up chart reads as
-real cadence and `HourlyUsage.Fold` makes permanent. Both polls call `Burn.Record`, so one reset can
-be detected twice and notified twice. And `ConsecutiveErrors` is incremented by whichever finishes
-last, which is then not the count of consecutive failures of anything.
-
-The comment on `RefreshOthersAsync` already claims the protection this does not have — *"awaited
-rather than fired and forgotten … a slow second account must not overlap the next poll of the
-first"*. That is true within one call and says nothing across two, which is exactly the gap: it
-reads as a guarantee and holds only for the sequence inside one invocation.
-
-What to get right is which caller wins. Dropping a tick while a poll runs is right; dropping the
-*user's* **Refresh now** is not, because they asked and would see nothing happen. So a flag that makes
-the timer skip is not the same rule as one that makes a click wait, and the switch paths want a third
-answer again — their whole point is that what is on screen is stale the moment they are called.
-
 ## XL The one store the observing gate never reached (T305)
 
 `ProfileStore.Observing` carries the rule in its own doc comment: **a store that writes a file must
