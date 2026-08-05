@@ -201,15 +201,20 @@ internal static class TooltipText
                 if (rung.Length + 1 <= room) { lines.Add(rung); return; }
         }
 
-        // Whether any rung of the spell would survive, given what the projection above it will take. A
-        // calculation rather than an attempt, because the answer decides whether a *reading* is given up
-        // and that has to be settled before anything is committed to `lines`.
+        // The projection first, so the room below it is a fact rather than a forecast (T307). This used to sit
+        // under the shed decision, which meant the decision had to *predict* which rung `Fit` would take —
+        // the same "first that fits" walk, written a second time, three lines from the method it was
+        // predicting. Both halves agreed only while the projection had exactly two rungs; T302 had just given
+        // the other sentence a third, and a third here would have left the prediction confidently wrong with
+        // nothing to notice, deciding whether a measured percentage was given up.
+        if (projection is { } p) Fit(p.full, p.compact);
+
+        // Whether any rung of the spell would survive — asked of what is actually on `lines`, with `freed`
+        // standing for a reading not yet given up. Still a calculation rather than an attempt, because the
+        // answer decides whether that reading goes.
         bool SpellSurvives((string full, string compact, string bare) rungs, int freed, out bool worded)
         {
             int room = Cap - Length(lines) - statusLine.Length + freed;
-            if (projection is { } q)
-                foreach (string rung in new[] { q.full, q.compact })
-                    if (rung.Length + 1 <= room) { room -= rung.Length + 1; break; }
             worded = rungs.full.Length + 1 <= room || rungs.compact.Length + 1 <= room;
             return worded || rungs.bare.Length + 1 <= room;
         }
@@ -234,10 +239,10 @@ internal static class TooltipText
                 lines.Remove(offMetric);
         }
 
-        if (projection is { } p) Fit(p.full, p.compact);
         // After the projection, because it qualifies news the lines above it carry rather than carrying its
         // own: a duration under nothing that says money is being spent is a number about nothing, and the
-        // sentence it modifies is the one that must survive if only one of them can.
+        // sentence it modifies is the one that must survive if only one of them can. `Remove` above takes the
+        // reading out from under a line already appended, and the list keeps its order either way.
         if (spell is { } s) Fit(s.full, s.compact, s.bare);
         lines.Add(statusLine);
         return string.Join("\n", lines);

@@ -819,28 +819,3 @@ check is being written from the same reading that already missed it once.
 
 One thing to decide: `Record` returns `bool` — whether it wrote. An observing tray should get
 `false`, which is what "nothing was recorded" already means to every caller.
-
-## XLII A prediction of the line below it (T307)
-
-`Fit` takes the first rung that fits and subtracts its cost. `SpellSurvives`, three lines above it,
-does the same walk over the projection's rungs for the same reason — it has to know what the
-projection will take before it can say whether the spell has room. Two derivations of one rule, in
-one method, where one of them is a *prediction* of the other.
-
-They agree today. The projection has had exactly two rungs since T215 and the loop in
-`SpellSurvives` spells both. What breaks it is the change T302 just made to the *other* sentence: a
-third rung. Give the projection one and `SpellSurvives` stops seeing it, keeps returning
-`true`/`false` with no complaint, and the shed decision — whether a measured percentage is given up
-— is made on arithmetic about a line that is not the line `Fit` will write. Nothing goes red,
-because both halves are internally consistent.
-
-There is a restructure that removes the prediction rather than syncing it: commit the projection line
-*first*, then decide the shed, then fit the spell. `SpellSurvives` becomes a question about real room —
-`Cap` minus what is actually on `lines` — and the projection's rung is a fact instead of a forecast. The
-duplicated loop goes away entirely.
-
-One consequence to weigh rather than discover. The projection would then choose its rung against un-shed
-room, so a shed could leave it in a compact form the freed characters would have covered. In the billing
-states that is the difference between T274's scoped and unscoped sentence, which is a decision about
-*which percentage a caption names* and not about length — so the compact form staying may well be
-correct. Measure the ten billing states before and after; `--tooltip` prints them.
