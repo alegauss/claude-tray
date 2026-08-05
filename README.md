@@ -72,6 +72,12 @@ capped at 127 characters by Windows, so this line shortens before anything else 
 *since 3h 20m*, then to **`← 3h 20m`**, an arrow pointing back at the line above it. The arrow means
 *elapsed*, and it is never `⟳`, which everywhere in this tooltip means *time remaining*.
 
+In two languages even the arrow didn't fit, and there the tooltip drops **the window you are not
+watching** — the 5h line while the icon shows the week, or the reverse — rather than say nothing about
+money being spent. That is the only thing that can displace a reading, it happens only while extra
+usage is paying, and it never happens to buy the bare arrow: a percentage is given up for words or
+not at all.
+
 ## Projection (observability)
 
 Beyond the current percentage, the app projects when usage would reach 100% and warns you

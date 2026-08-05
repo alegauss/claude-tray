@@ -55,10 +55,15 @@ internal static class TooltipText
     ///
     /// <para>The budget is the interesting part and the reason this is worth being able to read: the
     /// status line carries the refresh time and must survive whole, so a blind end-truncation would chop
-    /// it mid-value. Instead each optional sentence is fitted — full form if it fits, else its compact
-    /// fallback, else dropped entirely — and everything above it is kept. There are two of them now, the
-    /// projection and the overage spell's duration (T280), fitted in that order because the later one
-    /// qualifies news the earlier one carries.</para>
+    /// it mid-value. Instead each optional sentence is fitted — the first of its rungs that fits, else
+    /// dropped entirely. There are two of them, the projection and the overage spell's duration (T280),
+    /// fitted in that order because the later one qualifies news the earlier one carries.</para>
+    ///
+    /// <para>The readings above them are kept, with one exception measured into being (T306): where the
+    /// spell would otherwise be <em>silent</em>, the bounded window the icon is not about — the one T215
+    /// already sheds when the readings alone overrun, and the one the user's display setting did not choose
+    /// — is given up to make room. Only against silence, and only for a worded rung: a measured percentage
+    /// is not traded for a glyph.</para>
     /// </summary>
     internal static string Compose(Input i)
     {
@@ -194,6 +199,39 @@ internal static class TooltipText
             int room = Cap - Length(lines) - statusLine.Length;
             foreach (string rung in rungs)
                 if (rung.Length + 1 <= room) { lines.Add(rung); return; }
+        }
+
+        // Whether any rung of the spell would survive, given what the projection above it will take. A
+        // calculation rather than an attempt, because the answer decides whether a *reading* is given up
+        // and that has to be settled before anything is committed to `lines`.
+        bool SpellSurvives((string full, string compact, string bare) rungs, int freed, out bool worded)
+        {
+            int room = Cap - Length(lines) - statusLine.Length + freed;
+            if (projection is { } q)
+                foreach (string rung in new[] { q.full, q.compact })
+                    if (rung.Length + 1 <= room) { room -= rung.Length + 1; break; }
+            worded = rungs.full.Length + 1 <= room || rungs.compact.Length + 1 <= room;
+            return worded || rungs.bare.Length + 1 <= room;
+        }
+
+        // T306. Two of the ten measured billing states said nothing at all: `en`/`extra` had five characters
+        // free and `fr`/`extraunspent` three, and both are the rows that keep BOTH bounded windows — the row
+        // that sheds one already had the room. So the room exists and it is a reading.
+        //
+        // §XXXIII settled the opposite once, "with the readings above it kept". That was right while there
+        // was no principled candidate; there is one now, and it is the line T215 already sheds — the bounded
+        // window the icon is *not* about, which is the window the user's own display setting did not choose.
+        //
+        // Two conditions, and both matter. Only when the spell would otherwise be **silent**: where the bare
+        // rung already fits, both readings stay, so no state loses a percentage it was keeping. And only when
+        // shedding buys a **worded** form — a measured reading is not given up for a glyph, which is the trade
+        // this would be if the freed room bought only `← 3h 20m`.
+        if (spell is { } sp && !SpellSurvives(sp, 0, out _))
+        {
+            string offMetric = i.Metric == "5h" ? week : session;
+            if (lines.Contains(offMetric)
+                && SpellSurvives(sp, offMetric.Length + 1, out bool worded) && worded)
+                lines.Remove(offMetric);
         }
 
         if (projection is { } p) Fit(p.full, p.compact);

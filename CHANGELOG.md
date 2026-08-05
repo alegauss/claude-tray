@@ -17,7 +17,7 @@
 
 | Block | Theme |
 |---|---|
-| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection (active — see ROADMAP) |
+| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
@@ -70,6 +70,7 @@
 - **T302** — **A third rung, and it has no words in it.** `← 3h 20m` costs 8 characters in every language because there is nothing in it to translate, so fr now says how long in the state that is actually spending and es in the one that is not — five of five languages reach it somewhere, against three before. Two of ten states still drop it, both with under six characters free. The arrow is asserted never to be `⟳`, which means time remaining.
 - **T303** — **A poll now attributes its reading to the account it started on.** The account is captured before the fetch await and compared after it: on a mismatch the screen, projection, alarm and toasts are refused, and the reading is filed under its own key rather than dropped — it cost quota, and `usage-history.jsonl` cannot be rebuilt. `RecordReading` makes that key a parameter for all three callers, and `--selftest` fails both a missing guard and any line keyed on the live monitored profile.
 - **T304** — **One poll per account, and the gate lives on the account.** A tick arriving mid-poll is skipped, a click is remembered and run when the poll lands, and a switch needs no rule at all — the incoming account arrives with the flag clear, because T293 replaces the whole object. So the refresh interval is a ceiling on API calls rather than an average, and one reading can no longer be appended twice seconds apart into the store that folds into a permanent aggregate.
+- **T306** — **All ten billing states now say how long, and the measurement chose the rule.** Where the duration would otherwise be silent, the bounded window the icon is not about — the one T215 already sheds, and the one the display setting did not choose — is given up for it. Both brakes are asserted: never where a rung already fitted, and never to buy the wordless form. en and fr each traded a percentage and got the full sentence; the two states that showed the glyph kept both readings.
 
 ## Block B — Packaging, self-update, CI
 

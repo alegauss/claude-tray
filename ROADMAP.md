@@ -95,8 +95,6 @@
 
 ## Block A — Foundation — tray, icon, API, projection
 
-- 📋 **T306** (deps: —) **the busiest language never sees the duration in the state that is actually spending** — T302 got five of five languages saying it somewhere, and en's overage reading leaves five characters: shedding the window the icon is not about would buy the room and cost a percentage. → §XLI
-
 ## Block F — Statistics window (pace report)
 
 - 📋 **T289** (deps: —) **one rule about what counts as a break in the readings is computed twice in the same file** — T275 gave MergeSpans a measured bridge and FindGaps still derives the identical median-and-floor inline, so the two can drift and only one of them has a name. → §XXXIV

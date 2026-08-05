@@ -1944,7 +1944,6 @@ internal static class SelfTestCli
             // would have fitted is never dropped anyway, which is the same rule the compact projection keeps
             // above, and the one a translation spending four more characters breaks silently.
             var wasted = new List<string>();
-            var reached = new HashSet<string>();
             foreach (string code in codes)
             {
                 L.Apply(code);
@@ -1958,11 +1957,7 @@ internal static class SelfTestCli
                         L.T("tip.spellFull", dur), L.T("tip.spellCompact", dur), L.T("tip.spellBare", dur),
                     };
                     string text = TooltipText.Compose(built);
-                    if (rungs.Any(r => text.Contains(r, StringComparison.Ordinal)))
-                    {
-                        reached.Add(code);
-                        continue;
-                    }
+                    if (rungs.Any(r => text.Contains(r, StringComparison.Ordinal))) continue;
                     // Nothing was emitted, so every character of the room is still there to measure — and the
                     // cheapest rung is the one the room has to be judged against (T302).
                     int room = TooltipText.Cap - text.Length;
@@ -1973,14 +1968,63 @@ internal static class SelfTestCli
             Check("the spell's duration is taken whenever it fits, never dropped", wasted.Count == 0,
                   string.Join(", ", wasted));
 
-            // T302's own property, and the reason the cheapest rung has no words in it: a language whose
-            // billing sentences are long must still be able to say how long the spell has run *somewhere*.
-            // Not "in every state" — en's own overage reading leaves five characters and nothing fits there,
-            // which the ladder is right to answer by dropping. In at least one billing state, in all five.
-            Check($"every language says how long somewhere ({reached.Count} of {codes.Length})",
-                  reached.Count == codes.Length,
-                  $"silent: {string.Join(", ", codes.Except(reached))} — a state that costs money, with the " +
-                  "duration behind it unsayable in that language");
+            // T302 got this to "somewhere in every language"; T306 makes it every state, by letting the one
+            // reading the user's own display setting did NOT choose be given up rather than say nothing.
+            // Counted rather than named: which language runs out of room is a fact about translations, and a
+            // list of the ones that do is a list that goes stale on the next rewording.
+            var unsaid = new List<string>();
+            // The same readings with no spell to state, so the two compositions differ only by this line —
+            // which is how "did a reading get given up for it" can be asked at all.
+            int Readings(string text)
+            {
+                string s5 = L.T("tip.session"), w7 = L.T("tip.week");
+                return text.Split('\n').Count(l => l.Contains('%')
+                    && (l.StartsWith(s5, StringComparison.Ordinal) || l.StartsWith(w7, StringComparison.Ordinal)));
+            }
+
+            var paidForAGlyph = new List<string>();
+            var shedWithoutNeed = new List<string>();
+            foreach (string code in codes)
+            {
+                L.Apply(code);
+                foreach (TooltipCli.Variant v in variants)
+                {
+                    TooltipText.Input built = v.Build(Now);
+                    if (built.SpellSince <= 0) continue;
+                    string dur = TrayContext.FmtDays(built.Now - built.SpellSince);
+                    string full = L.T("tip.spellFull", dur), compact = L.T("tip.spellCompact", dur);
+                    string bare = L.T("tip.spellBare", dur);
+
+                    string with = TooltipText.Compose(built);
+                    string without = TooltipText.Compose(built with { SpellSince = 0 });
+                    bool worded = with.Contains(full, StringComparison.Ordinal)
+                                  || with.Contains(compact, StringComparison.Ordinal);
+                    if (!worded && !with.Contains(bare, StringComparison.Ordinal))
+                    {
+                        unsaid.Add($"{code}/{v.Name}");
+                        continue;
+                    }
+
+                    if (Readings(with) >= Readings(without)) continue;
+                    // A reading was given up for this line, and both halves of T306's rule bind here. It must
+                    // buy words — and it may only happen where the alternative was silence, which `without`
+                    // answers: it is this same composition carrying both readings and no spell line, so the
+                    // room it leaves is exactly the room a rung would have had if nothing were shed.
+                    if (!worded) paidForAGlyph.Add($"{code}/{v.Name}");
+                    if (TooltipText.Cap - without.Length >= bare.Length + 1)
+                        shedWithoutNeed.Add($"{code}/{v.Name} (room was {TooltipText.Cap - without.Length})");
+                }
+            }
+            Check($"every billing state says how long, in every language " +
+                  $"({codes.Length * variants.Count(v => v.Build(Now).SpellSince > 0)} combinations)",
+                  unsaid.Count == 0,
+                  $"silent: {string.Join(", ", unsaid)} — a state that costs money, with the duration behind " +
+                  "it unsayable");
+            Check("a reading is never given up for a wordless duration", paidForAGlyph.Count == 0,
+                  $"{string.Join(", ", paidForAGlyph)} — a measured percentage traded for a glyph");
+            Check("nor given up where the duration would have fitted anyway", shedWithoutNeed.Count == 0,
+                  $"{string.Join(", ", shedWithoutNeed)} — §XXXIII's rule stands except against silence, so a " +
+                  "state with room for a rung keeps both windows");
 
             // The cheapest rung is a glyph and a duration, and the glyph carries the whole meaning. It must
             // not be the one that already means "resets in": the line above ends in `⟳ 3d 0h`, so reusing it

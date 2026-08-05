@@ -819,30 +819,3 @@ check is being written from the same reading that already missed it once.
 
 One thing to decide: `Record` returns `bool` — whether it wrote. An observing tray should get
 `false`, which is what "nothing was recorded" already means to every caller.
-
-## XLI Two states with no room, and the reading that could give it up (T306)
-
-T302 took the spell's duration from three languages to five by adding a wordless rung. Two of the
-ten measured billing states still drop it, and `--tooltip` names them: `en`/`extra` has five
-characters free and `fr`/`extraunspent` three. Nothing fits in either, and the ladder is right to
-drop rather than overrun.
-
-`en`/`extra` is the one that matters. It is the default language and the state where money is
-*actually* being spent, and the reason it is tight is not the wording: it is the only billing row that
-keeps **both** bounded windows. pt-BR sheds one and has room; `en` stays under the cap with both, so
-T215's shed never triggers and there is nothing left over.
-
-So the room exists and it is a reading. T215 already sheds "the bounded window the icon is NOT
-about" when the readings alone overrun, and extending that condition — shed it when a billing spell
-has something to say and no room to say it — would fit the full worded rung in `en` with characters
-to spare.
-
-What makes this a decision rather than a patch is that §XXXIII settled the opposite once: the
-duration is fitted "with the readings above it kept". That was the right call for a line nothing
-else could pay for. It is a different question now that the payer is identified — the off-metric
-percentage, in the one state where the account is past its included quota. Someone watching the week
-while paying does not obviously need the session figure on the same card.
-
-Measure before choosing. If shedding buys `en`/`extra` the worded rung and leaves
-`fr`/`extraunspent` still empty, that is one state fixed and one accepted, and the accepted one
-should be said out loud rather than left to the next reader of the read-out.
