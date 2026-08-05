@@ -867,3 +867,27 @@ element in one unbroken `///` run, and no `///` run may be separated from the de
 precedes by a blank line or a non-comment line. Both are the same defect from the two directions an
 edit can cause it — an insertion after the comment, and an insertion before the member. Neither
 needs the compiler, so it costs one file walk in `--selftest` and no build-configuration change.
+
+## XLIX The keys the code asks for, against the table that has them (T314)
+
+`L.T` ends `Table(en).TryGetValue(key, out var en) ? en : key` — an unknown key is returned
+verbatim, so a misspelled one renders `stats.legend.overQuota.tipBand` where a sentence belongs. The
+T313 pass came within one character of it: the checks assert which key each legend state *chooses*,
+comparing a C# literal to a C# literal, which passes whether or not any table holds it.
+
+The parity check does not close this. It loads `en` and compares the other four to it, keys and
+placeholders both, and its own summary says where it stops — a string hardcoded in XAML, which has
+no key to be missing. The opposite direction is unstated and unchecked: `en` is treated as the
+source of truth for what exists, and nothing asks whether the keys the *code* names are a subset of
+it. Every failure it can find is a translation gap. This one is an English gap, and English is the
+fallback, so there is nothing behind it.
+
+The check is a file walk and a regex, which is the argument for it. Collect `L.T("…")` literals from
+`src\**\*.cs` and `{local:Loc …}` from the markup, and assert each is a key `en.json` holds. Naming
+the offending keys, as the parity check already does.
+
+Two limits belong in its own summary rather than in a later surprise. A key built at run time cannot
+be seen — `ApplyOverLegend` passes `g.TipKey`, and that is the shape T313 introduced — so the check
+covers the literals and says so. And it is a subset check in one direction only: a key in `en` that
+no call site names is dead weight, not a defect on screen, and pruning it is a different task from
+this one.
