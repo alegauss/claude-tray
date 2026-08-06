@@ -137,6 +137,9 @@ internal static class SelfTestCli
         Section("switch — what a change of monitored account drops (Block A)");
         MonitoredHandover();
 
+        Section("picker — the report follows the icon by key, not by position (Block F)");
+        ProfilePicker();
+
         Section("out — the directory a capture flag was given (Block AF)");
         Temp(OutputPaths);
 
@@ -2396,6 +2399,92 @@ internal static class SelfTestCli
             if (before > 0 && depth == 0) break;
         }
         return body.ToArray();
+    }
+
+    // ---------------------------------------------------------------- Block F: the report's profile picker
+
+    /// <summary>
+    /// Where the Statistics window lands when the tray hands it a rebuilt watch list (T319).
+    ///
+    /// <para>The picker was filled once, when the window was built, and everything after that rested on
+    /// "index 0 is the account the poll is about" — which stops being true the moment the icon changes
+    /// hands with the window open, because the list is monitored-first and the switch reorders it. The
+    /// reported symptom was a work account's 86% drawn under a personal account's name, while picking the
+    /// account actually being worked in read as the empty one.</para>
+    ///
+    /// <para>Two halves, and each is asserted where it can be. The decision is
+    /// <see cref="StatisticsPage.PickerIndex"/> — pure, over keys, no window — and the wiring is a call
+    /// site that has to exist in the one method that detects a switch, which is asked of the source the
+    /// way T293's single assigner already is.</para>
+    /// </summary>
+    private static void ProfilePicker()
+    {
+        static ClaudeInfo P(string label, string dir) => new() { Label = label, ConfigDir = dir };
+        static string K(ClaudeInfo p) => ProfileStore.KeyFor(p);
+
+        ClaudeInfo personal = P("Pessoal", @"C:\Users\x\.claude");
+        ClaudeInfo work = P("VILT", @"C:\Users\x\.claude-vilt");
+        ClaudeInfo third = P("Cliente", @"C:\Users\x\.claude-cliente");
+
+        // Before the switch: the icon is on Pessoal, so that is what the list leads with.
+        var before = new List<ClaudeInfo> { personal, work };
+        // After it: the same two accounts, and the tray puts the monitored one first.
+        var after = new List<ClaudeInfo> { work, personal };
+
+        Check("a window following the icon follows it through the switch",
+              StatisticsPage.PickerIndex(after, K(personal), followingMonitored: true) == 0,
+              "the icon moved and the report did not: the pushed reading lands under the old name");
+
+        Check("and a profile picked by hand is found where the reorder put it",
+              StatisticsPage.PickerIndex(after, K(personal), followingMonitored: false) == 1,
+              "position 1 after a switch is not the profile position 1 named before it — this is the " +
+              "whole defect: by index, the pick silently becomes the other account");
+
+        Check("a pick that is no longer on the machine falls back to the icon's",
+              StatisticsPage.PickerIndex(new List<ClaudeInfo> { work, third }, K(personal),
+                                         followingMonitored: false) == 0,
+              "an unregistered profile must not leave the picker pointing at nothing");
+
+        Check("and an empty list answers 0 rather than throwing",
+              StatisticsPage.PickerIndex(new List<ClaudeInfo>(), K(personal), followingMonitored: false) == 0);
+
+        // The other half of the rebuild: when it may be skipped. The tray re-discovers on every menu open
+        // (T137), so most calls change nothing, and rebuilding the items would shut an open dropdown.
+        Check("two discoveries of the same machine build the same picker",
+              StatisticsPage.Same(before, new List<ClaudeInfo> { P("Pessoal", @"C:\Users\x\.claude"), work }),
+              "a fresh ClaudeInfo per discovery must compare by what the picker shows, not by reference");
+        Check("a switch is not the same picker, because the order is the answer",
+              !StatisticsPage.Same(before, after),
+              "the reorder IS the switch — skipping it here is the frozen list all over again");
+        Check("and neither is a renamed profile",
+              !StatisticsPage.Same(before, new List<ClaudeInfo> { P("Casa", @"C:\Users\x\.claude"), work }),
+              "the label is the whole of what an entry shows");
+        Check("nor a profile added to the machine",
+              !StatisticsPage.Same(before, new List<ClaudeInfo> { personal, work, third }));
+
+        // The wiring. Behaviour here needs a window and a tray; that the call exists, in the method that
+        // detects a switch, and above the early return that only a switch passes, does not.
+        Repo("the open report is told where the switch is detected", root =>
+        {
+            string[] body = MethodBody(File.ReadAllLines(Path.Combine(root, "src/Tray/TrayContext.cs")),
+                                       "private void RefreshWatched()");
+            if (!Check("RefreshWatched's body can be read", body.Length > 0,
+                       "the method was renamed — this check is reading nothing"))
+                return;
+
+            string[] code = body.Where(l => !l.TrimStart().StartsWith("//", StringComparison.Ordinal)).ToArray();
+            int told = Array.FindIndex(code, l => l.Contains("Statistics.SetProfiles(", StringComparison.Ordinal));
+            if (!Check("the watch list reaches an open Statistics page from here", told >= 0,
+                       "filled once at window-open, the picker names accounts the poll is no longer about"))
+                return;
+
+            // The early return is the switch check: below it, only a change of monitored account runs.
+            int switched = Array.FindIndex(code, l => l.Contains("== before) return;", StringComparison.Ordinal));
+            Check("and before the return that only a switch gets past",
+                  switched < 0 || told < switched,
+                  "a profile added or removed reorders the picker without the icon moving, and a rebuild " +
+                  "below that return never sees it");
+        }, "src/Tray/TrayContext.cs");
     }
 
     // ---------------------------------------------------------------- Block A: dating the overage spell

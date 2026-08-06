@@ -660,6 +660,14 @@ internal sealed class TrayContext : ApplicationContext
         ProfileStore.SetMonitored(monitored);
         _api = new ApiClient(monitored.ConfigDir);
 
+        // An open report's picker is this list, and it was filled once — when the window was built (T319).
+        // The icon can change hands long after that, from the menu or on its own (T126), and the page reads
+        // "the account the poll is about" off position 0; leaving the list frozen is what let a pushed
+        // reading land under another account's name. Unconditional, above the switch check below: a profile
+        // added or removed reorders the picker without the monitored one moving, and the page carries the
+        // user's pick across by key either way.
+        _window?.Statistics.SetProfiles(_watched);
+
         // Only when the icon changed hands, which is the one condition this method already knew how to
         // spot: the caches are keyed per profile, so a plain re-discovery (every menu open since T137)
         // must not throw away readings the submenu would then show as "…".
