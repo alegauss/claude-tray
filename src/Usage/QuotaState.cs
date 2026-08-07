@@ -213,8 +213,42 @@ internal static class QuotaStates
     /// <see cref="TooltipText"/>, which may not label the wrong percentage.</para>
     /// </summary>
     public static QuotaState Resolve(UsageData d, bool? extraUsageEnabled)
-        => Resolve(Math.Max(d.Session5h, d.Week7d), d.ExtraUtil, extraUsageEnabled,
+        => Resolve(d.Metric(WorstBounded(d)), d.ExtraUtil, extraUsageEnabled,
                    d.StatusExtra, d.ExtraDisabledReason, d.ExtraInUse);
+
+    /// <summary>Which of the two <b>bounded</b> windows is the one this account is worst against — the
+    /// utilization <see cref="Resolve(UsageData, bool?)"/> answers from, named rather than maximised, so the
+    /// figure and the window it belongs to cannot come from two different lines (T320).
+    ///
+    /// <para>The overage window is not a candidate, for the reason the overload above gives: its 100%
+    /// denominates nothing any header states (§XVIII), so letting it answer would name a ceiling nobody
+    /// measured. Ties go to the week, which is the window a tie is about — two windows at 1.00 is an account
+    /// out of quota until the later reset, and the week's is always the later one.</para></summary>
+    public static string WorstBounded(UsageData d) => d.Week7d >= d.Session5h ? "7d" : "5h";
+
+    /// <summary>
+    /// Which window the <em>figure on the icon</em> is about (T320) — the metric the menu picked while the
+    /// account is inside its quota, and the window that crossed once it is not.
+    ///
+    /// <para><b>Why the figure moves and not just the verdict.</b> T274 gave the state to the account and
+    /// left the number with the metric, on an argument about the caption. Measured on 2026-08-07 with the
+    /// display set to <em>remaining</em>: 5h <c>0.58</c>, 7d <c>1.00</c>, <c>overage-in-use: true</c> — and a
+    /// tray reading <b>42</b> over a clay bar. The colour said money was being spent and the digits said
+    /// there was quota left, on one tile. <em>Used</em> is a reading of a window and 58% is honest about the
+    /// session; <em>left</em> is a claim about what may still be spent, and at the account level nothing may.
+    /// </para>
+    ///
+    /// <para><b>Why <c>extra</c> is exempt.</b> It is the one metric that exists only for this state: a user
+    /// watching the overage window asked for the window the account is now in, and moving them onto the week
+    /// would take away the reading they chose exactly when it starts having one.</para>
+    ///
+    /// <para>Here rather than on the tray for the reason the rest of this type is: a tray cannot be
+    /// constructed under <c>--selftest</c>. What the tooltip then owes it is the <em>caption</em> — its scope
+    /// must follow this answer, or T274's rule breaks from the other side and labels a window the icon is not
+    /// about.</para>
+    /// </summary>
+    public static string IconWindow(UsageData d, string metric, QuotaState state)
+        => state == QuotaState.InQuota || metric == "extra" ? metric : WorstBounded(d);
 
     /// <summary>
     /// Whether this reading is far enough along to warrant the near-limit flash (T281) — the API's own

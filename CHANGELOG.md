@@ -117,6 +117,7 @@
 - **T275** — **A spell with no figure now leaves a record.** `usage-history.jsonl` carries `ix` beside `ux`, so the week shades the stretch the API said the account was over — behind the usage line, with no second axis, because no header states an amount.
 - **T279** — **Measured before deciding, and the premise did not survive.** `tengu_usage_overage_included_models` is a cached GrowthBook flag reading ["Fable", "Fable 5"]; 8 days of transcripts here are 34,595 Opus turns, 195 Sonnet, 0 Fable. Now a non-goal.
 - **T281** — **The tray now flashes on the threshold the API named, not the one this repository picked.** `5h-surpassed-threshold` reaches a field, and `QuotaStates.Warns` prefers it wherever it is sent — falling back to the 0.90 constant on the four readings in six that carry none.
+- **T320** — **The number on the icon now belongs to the account, not to a menu pick.** Past the included quota it reports the window that crossed — 0% left in remaining mode, 100% used in the other — with the tooltip's caption, the projection and the near-limit flash all moved onto that same window, and Show-on-icon Extra exempt as the one metric the state exists for.
 
 ## Block E — Reset notifications & toasts
 

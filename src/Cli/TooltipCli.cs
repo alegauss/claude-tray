@@ -75,6 +75,13 @@ internal static class TooltipCli
             now => Reading(now, 1.02, 0.47, metric: "7d", verdict: Projection.Ok, eta: 4 * 3600,
                            state: QuotaState.Billing, status5h: "rejected")),
 
+        new("billingremaining", "the reported reading (T320): the week gone, the session still with room, " +
+                                "and the display set to quota LEFT — so the icon reads 0% and the caption " +
+                                "has to name which window that zero is about",
+            now => Reading(now, 0.58, 1.0, metric: "7d", verdict: Projection.Unknown, eta: 0,
+                           state: QuotaState.Billing, spellAgo: 20 * 60)
+                   with { ShowRemaining = true }),
+
         new("atlimit", "the week's quota reached with no extra usage: work has stopped",
             now => Reading(now, 0.40, 1.0, metric: "7d", verdict: Projection.Unknown, eta: 0,
                            state: QuotaState.Stopped)),

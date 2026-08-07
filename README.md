@@ -114,6 +114,13 @@ How the verdict is computed depends on the window:
 The bar color and the tooltip's projected time follow whichever metric you have **Show on
 icon** set to (session 5h, week 7d, or extra). Resets are detected and clear the history.
 
+**Once the quota included in your plan is gone, the number follows the account instead of your
+pick.** A 5-hour session with room left cannot report quota the account no longer has, so the icon
+reports the window that actually crossed: **0% left**, or **100% used**, whichever way you display
+it. Your pick is remembered and comes back when that window resets, and the tooltip names the window
+the number is about. Setting **Show on icon** to *Extra* is the exception — that is the window an
+account past its included quota is in, so it is never moved off it.
+
 ### The weekly chart is paced to your hours, not the clock
 
 In the **Statistics** window, the weekly projection doesn't spend quota uniformly across the

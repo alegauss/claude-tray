@@ -1450,25 +1450,36 @@ internal sealed class TrayContext : ApplicationContext
         catch { /* logging is best-effort */ }
     }
 
-    private double CurrentPct()
-        => _monitored.Data is { Error: null } d ? Math.Min(1.0, d.Metric(_metric)) : 0.0;
+    /// <summary>Which window the number on the icon is about (T320): the metric the menu picked, or — once
+    /// the included quota is gone — the window that crossed. <see cref="QuotaStates.IconWindow"/> owns the
+    /// rule; every surface scoped to the figure reads it here so none of them can be about a different
+    /// window than the digits are. <c>_metric</c> itself is untouched, so the pick is still there when the
+    /// window resets, and the menu still shows it checked.</summary>
+    private string IconMetric()
+        => _monitored.Data is { Error: null } d
+            ? QuotaStates.IconWindow(d, _metric, CurrentQuotaState())
+            : _metric;
 
-    // Projection for the currently displayed metric (session vs. week vs. extra).
+    private double CurrentPct()
+        => _monitored.Data is { Error: null } d ? Math.Min(1.0, d.Metric(IconMetric())) : 0.0;
+
+    // Projection for the window the icon's number is about (session vs. week vs. extra).
     private (Projection verdict, double eta) CurrentProjection()
     {
         if (_monitored.Data is not { Error: null } d) return (Projection.Unknown, 0);
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        string metric = IconMetric();
         // Both bounded windows use the proportional "pace line" for their verdict, matching the
         // Statistics chart's projection (average pace since the window started) so the tray and the
         // chart never disagree. "extra" is uncapped overage with no fixed window, so it keeps the
         // regression-based verdict (windowSeconds = 0).
-        double window = _metric switch
+        double window = metric switch
         {
             "5h" => 5.0 * 3600,
             "7d" => 7.0 * 24 * 3600,
             _ => 0,
         };
-        var (verdict, eta, _) = _monitored.Burn.Project(_metric, d.Metric(_metric), d.ResetOf(_metric),
+        var (verdict, eta, _) = _monitored.Burn.Project(metric, d.Metric(metric), d.ResetOf(metric),
                                                        now, window);
         return (verdict, eta);
     }
@@ -1555,7 +1566,7 @@ internal sealed class TrayContext : ApplicationContext
     private bool CurrentlyWarned()
         => _settings.FlashNearLimit
            && QuotaStates.Warns(CurrentPct(),
-                                _metric == "5h" && _monitored.Data is { Error: null } d ? d.Surpassed5h : null);
+                                IconMetric() == "5h" && _monitored.Data is { Error: null } d ? d.Surpassed5h : null);
 
     /// <summary>Which of the three states the <em>account</em> is in (T182, rescoped by T274).
     ///
@@ -1586,7 +1597,9 @@ internal sealed class TrayContext : ApplicationContext
         var (verdict, eta) = CurrentProjection();
         return TooltipText.Compose(new TooltipText.Input(
             Data: _monitored.Data,
-            Metric: _metric,
+            // The window the number is about, not the one the menu picked (T320): the caption names the
+            // figure's own scope or it labels the wrong percentage, which is T274's rule from either side.
+            Metric: IconMetric(),
             ShowRemaining: _settings.ShowRemaining,
             ProfileLabel: _watched.Count > 1 ? _watched[0].Label : null,
             Verdict: verdict,

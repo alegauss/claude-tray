@@ -702,6 +702,39 @@ internal static class SelfTestCli
               QuotaStates.Resolve(new UsageData { Session5h = 0.40, Week7d = 0.90 }, true)
               == QuotaState.InQuota);
 
+        // T320. The other half of the same split: the figure on the icon, not just the verdict behind it.
+        // The reading is the one measured on 2026-08-07 — a session with room behind a week that crossed,
+        // with `overage-in-use` carrying the news and no overage figure at all.
+        var weekGone = new UsageData
+        {
+            Session5h = 0.58, Week7d = 1.00, Extra = 0, HasExtra = true,
+            Status = "allowed", Status7d = "allowed", ExtraInUse = true,
+        };
+        Check("inside the quota the menu's pick is what the number is about, all three of them",
+              QuotaStates.IconWindow(weekGone, "5h", QuotaState.InQuota) == "5h"
+              && QuotaStates.IconWindow(weekGone, "7d", QuotaState.InQuota) == "7d"
+              && QuotaStates.IconWindow(weekGone, "extra", QuotaState.InQuota) == "extra");
+        Check("past it the figure moves to the window that crossed, not the one the menu picked",
+              QuotaStates.IconWindow(weekGone, "5h", QuotaState.Billing) == "7d");
+        Check("and it is the crossed window either way round: a rejected session behind a week with room",
+              QuotaStates.IconWindow(crossed, "7d", QuotaState.Billing) == "5h");
+        Check("stopped moves it too — work having actually halted is not a reason to show a window with room",
+              QuotaStates.IconWindow(weekGone, "5h", QuotaState.Stopped) == "7d");
+        Check("`extra` is exempt: it is the one metric that exists for exactly this state",
+              QuotaStates.IconWindow(weekGone, "extra", QuotaState.Billing) == "extra"
+              && QuotaStates.IconWindow(weekGone, "extra", QuotaState.Stopped) == "extra");
+        // The pairing that makes the number honest, asserted rather than reasoned: whenever the state says
+        // the included quota is gone, the window the icon names is one whose own reading says so. Held over
+        // both measured crossings, in either order, because `WorstBounded` is what Resolve maximised.
+        foreach (UsageData d in new[] { weekGone, crossed })
+            foreach (string picked in new[] { "5h", "7d" })
+            {
+                QuotaState st = QuotaStates.Resolve(d, true);
+                Check($"the window the icon names is one that crossed ({d.Session5h:0.00}/{d.Week7d:0.00}, {picked})",
+                      st == QuotaState.InQuota
+                      || d.Metric(QuotaStates.IconWindow(d, picked, st)) >= QuotaStates.AtLimitThreshold);
+            }
+
         // T281. The threshold the window crossed, named by the API instead of chosen here. The readings are
         // the ones on file: absent inside the quota, 0.9 beside the first `allowed_warning` at 0.91, 1.0
         // beside `rejected` at 1.02.
