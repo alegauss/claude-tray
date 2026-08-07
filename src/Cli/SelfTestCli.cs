@@ -1858,6 +1858,25 @@ internal static class SelfTestCli
               IconRenderer.NumberInk("5h").ToArgb() == Color.White.ToArgb());
         Check("and a scope nobody here spells falls back to it rather than picking a colour",
               IconRenderer.NumberInk("90d").ToArgb() == IconRenderer.NumberInk("5h").ToArgb());
+
+        // T322. Which fact the ink states when there are two: an account that is paying outranks the window
+        // the figure happens to be about, because T320 moves that figure onto the week and the state the
+        // colour exists for would otherwise read as an ordinary week — with no bar to say otherwise, since
+        // "0 left" draws none.
+        foreach (string scope in new[] { "5h", "7d", "extra", "90d" })
+            Check($"billing outranks the window the number is about ({scope})",
+                  IconRenderer.NumberInk(scope, billing: true).ToArgb()
+                  == IconRenderer.NumberInk("extra").ToArgb());
+        // And it is billing alone: stopped work is not paid work, so it keeps the window's own colour rather
+        // than claiming money is being spent (T182's rule, in the one place a colour could break it).
+        Check("a window that is merely spent keeps its own colour, since orange means paying",
+              IconRenderer.NumberInk("7d").ToArgb() == IconRenderer.NumberInk("7d", billing: false).ToArgb()
+              && IconRenderer.NumberInk("7d").ToArgb() != IconRenderer.NumberInk("extra").ToArgb());
+        // The pale pair T322 replaced, named by value: a hue this washed out is a white with a cast at 16px,
+        // and nothing but a number here can keep the two from being chosen again on an 8x sheet.
+        Check("neither ink is one of the washed-out values the tray was reported as drawing white",
+              IconRenderer.NumberInk("7d").ToArgb() != Color.FromArgb(255, 255, 233, 160).ToArgb()
+              && IconRenderer.NumberInk("extra").ToArgb() != Color.FromArgb(255, 255, 179, 71).ToArgb());
     }
 
     // ---------------------------------------------------------------- Block AF: the capture's output path

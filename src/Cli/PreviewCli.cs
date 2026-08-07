@@ -271,9 +271,15 @@ internal static class PreviewCli
     ///
     /// <para>The hard states are here on purpose. Clay under orange digits is the pair that shares a hue.
     /// The flash covers its deep blue with a nearly full bar, so what it tests is the tile's edge rather
-    /// than a new background. And the last one is <b>the state T320 produces</b>: nothing left, stated as
-    /// <em>remaining</em>, so the bar drains to nothing and the digits sit on bare slate — the one cell where
-    /// the colour is the only thing on the tile naming the window its <c>0</c> is about.</para>
+    /// than a new background. And the last two are <b>the states T320 produces</b>: nothing left, stated as
+    /// <em>remaining</em>, so the bar drains to nothing and the digits sit on bare slate — paying, where the
+    /// ink is the only thing that says so, and merely spent, where it is the only thing naming the window.</para>
+    ///
+    /// <para><b>Every band twice: 8× and then at the real 16px</b> (T322). The washed-out first pair was
+    /// chosen on the magnified cells alone, which is the one size a tray never draws — blown up, a pale hue
+    /// looks deliberate; at 16px inside a dark outline it is a white with a cast, which is how it was
+    /// reported. The magnified band is still what shows <em>which</em> pixels are wrong, so both are here and
+    /// the judgement belongs to the small one.</para>
     /// </summary>
     private static void SaveScopeSheet(string path)
     {
@@ -286,12 +292,15 @@ internal static class PreviewCli
             (0.92, Projection.Danger, false, false, false),   // orange→red: about to run out
             (1.00, Projection.Danger, false, true, false),    // clay: past the quota and paying
             (0.95, Projection.Danger, true, false, false),    // the near-limit flash
-            (1.00, Projection.Danger, false, true, true),     // T320: "0 left", so no bar at all
+            (1.00, Projection.Danger, false, true, true),     // T320 paying: "0 left", so no bar at all
+            (1.00, Projection.Danger, false, false, true),    // ...and stopped, where the ink names the window
         };
 
         int cell = px * zoom + gap;
+        int strip = px + gap;                     // the real-pixel band under each magnified one
+        int band = cell + strip;
         int w = gap + states.Length * scopes.Length * cell;
-        int h = gap + 2 * cell;
+        int h = gap + 2 * band;
 
         using var sheet = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
         using var g = Graphics.FromImage(sheet);
@@ -300,8 +309,9 @@ internal static class PreviewCli
 
         for (int row = 0; row < 2; row++)
         {
+            int top = gap / 2 + row * band;
             using (var bg = new SolidBrush(row == 0 ? Color.FromArgb(32, 32, 32) : Color.FromArgb(240, 240, 240)))
-                g.FillRectangle(bg, 0, gap / 2 + row * cell, w, cell);
+                g.FillRectangle(bg, 0, top, w, band);
 
             int col = 0;
             foreach (var (pct, verdict, flash, billing, remaining) in states)
@@ -310,7 +320,10 @@ internal static class PreviewCli
                     using var bmp = IconRenderer.Render(pct, IconRenderer.State.Ok, flash, px, verdict,
                                                         showRemaining: remaining, billing: billing,
                                                         scope: scope);
-                    g.DrawImage(bmp, gap + col * cell, gap + row * cell, px * zoom, px * zoom);
+                    g.DrawImage(bmp, gap + col * cell, gap + row * band, px * zoom, px * zoom);
+                    // The same tile at the size the notification area asks for, spaced the way icons sit
+                    // beside each other there — this is the band the colour is judged on.
+                    g.DrawImage(bmp, gap + col * (px + 4), gap + row * band + cell, px, px);
                     col++;
                 }
         }

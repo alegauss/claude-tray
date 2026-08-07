@@ -52,20 +52,15 @@ internal static class IconRenderer
     // `Cream`, so the ordinary tray is unchanged and the colour appears only when the number is about
     // something else.
     //
-    // Both are pale rather than saturated, and that is the constraint rather than a taste: these are 16px
-    // glyphs read against a dark outline over a slate tile and over every bar colour under them, so a hue
-    // deep enough to be unmistakable is one that stops being readable. The orange is deliberately lighter
-    // than `BarBilling`'s clay and than `BarOrange`, the two it can sit on top of.
-    //
-    // Judged on `--render`'s scope sheet rather than argued, and it names its own weakest pair: orange
-    // digits over the clay bar, which is not an edge case but the ordinary one — an icon watching the
-    // overage window is an account that is paying, so the bar under those digits is nearly always clay.
-    // They stay legible there on the dark outline alone, and the two scopes stay tellable apart because
-    // one is pale and one is warm. The cell that decides this is the *last* one on that sheet: "0 left"
-    // draws no bar at all (T320), so on the state this exists for the colour is the only thing on the
-    // tile that names the window.
-    private static readonly Color InkWeek  = Color.FromArgb(255, 233, 160);  // week 7d — a light yellow
-    private static readonly Color InkExtra = Color.FromArgb(255, 179,  71);  // extra usage — orange
+    // Saturated, and T322 is why: these were `#FFE9A0` and `#FFB347`, picked against `--render`'s scope
+    // sheet, which magnifies 8×. That is the one size the tray never uses — at 16px, over slate, inside a
+    // dark outline, a pale warm hue is a white with a cast, which is exactly how the first one was reported.
+    // The sheet is still the instrument (the pixels have to be visible at all), but the judgement belongs to
+    // what a taskbar shows. They stay clear of the bar colours under them: `BarBilling`'s clay is duller
+    // than either, and `BarOrange` is a fill that only appears under a *danger* verdict, which billing
+    // outranks — so orange digits never sit on it.
+    private static readonly Color InkWeek  = Color.FromArgb(255, 214, 61);   // week 7d — yellow
+    private static readonly Color InkExtra = Color.FromArgb(255, 138, 40);   // extra usage — orange
 
     // Per-profile accent (T147), used only for the top-edge identity band. Chosen to be disjoint from
     // every color that already carries meaning here — the green/orange/red of the projection, the cyan
@@ -109,8 +104,9 @@ internal static class IconRenderer
     /// <paramref name="billing"/> is the account past its included quota and paying to keep working
     /// (T182): the bar goes clay instead of the alarming red, which is for work that has stopped.
     /// <paramref name="scope"/> is which window the number is about (T321) — <c>5h</c>, <c>7d</c> or
-    /// <c>extra</c> — which the digits state as their own fill. It defaults to the session, so a caller
-    /// that has nothing to say about scope draws the cream digits this icon always had.
+    /// <c>extra</c> — which the digits state as their own fill, unless <paramref name="billing"/> gives them
+    /// something more urgent to say (T322). It defaults to the session, so a caller that has nothing to say
+    /// about scope draws the cream digits this icon always had.
     /// </summary>
     public static Bitmap Render(double pct, State state, bool flash, int size, Projection verdict = Projection.Unknown, bool showNumber = true, bool showRemaining = false, int accent = -1, bool billing = false, string scope = "5h")
     {
@@ -206,22 +202,34 @@ internal static class IconRenderer
         float penW = Math.Max(1.2f, size * 0.11f);
         using (var pen = new Pen(Stroke, penW) { LineJoin = LineJoin.Round })
             g.DrawPath(pen, text);
-        using (var fill = new SolidBrush(NumberInk(scope)))
+        using (var fill = new SolidBrush(NumberInk(scope, billing)))
             g.FillPath(fill, text);
 
         return bmp;
     }
 
-    /// <summary>What colour the digits are drawn in, for the window they are about (T321). One switch, and
-    /// <c>internal</c> so <c>--selftest</c> can assert that the three windows get three colours and that a
-    /// key nobody here spells falls back to the cream the icon always had — a scope silently reading as the
-    /// session is the one failure this cannot be looked at to catch.</summary>
-    internal static Color NumberInk(string scope) => scope switch
-    {
-        "7d" => InkWeek,
-        "extra" => InkExtra,
-        _ => Cream,
-    };
+    /// <summary>
+    /// What colour the digits are drawn in: the news where there is news, and otherwise the window the
+    /// number is about (T321, rescoped by T322).
+    ///
+    /// <para><b>Orange is about the account, not about a menu pick.</b> It was wired to the metric
+    /// <c>extra</c> — the overage window — and an account past its included quota is rarely watching that
+    /// window: T320 moves the figure onto the week, so the state this colour existed for drew the week's
+    /// yellow and said nothing about money. Worst in <em>remaining</em> mode, where at 0% left the bar drains
+    /// to nothing and takes the clay with it, leaving the digits as the tile's only channel.</para>
+    ///
+    /// <para><b><paramref name="billing"/> only, never stopped.</b> Orange says <em>paying</em>, and putting
+    /// it over work that has actually halted is T182's defect in a new place — so a stopped account keeps its
+    /// window's colour, which is the honest reading: that window is spent.</para>
+    ///
+    /// <para><c>internal</c> so <c>--selftest</c> holds the three apart, asserts that billing outranks the
+    /// window and that a scope nobody here spells falls back to the cream the icon always had — a window
+    /// silently reading as the session is the one failure no picture can catch, because it looks like a
+    /// session.</para></summary>
+    internal static Color NumberInk(string scope, bool billing = false)
+        => billing || scope == "extra" ? InkExtra
+         : scope == "7d" ? InkWeek
+         : Cream;
 
     /// <summary>
     /// Render the application icon (used for the .exe / installer / shortcuts): the same
