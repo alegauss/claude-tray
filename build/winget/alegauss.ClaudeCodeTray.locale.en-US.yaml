@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 PackageIdentifier: alegauss.ClaudeCodeTray
-PackageVersion: 1.6.1
+PackageVersion: 1.6.2
 PackageLocale: en-US
 Publisher: Alexandre Oliveira
 PublisherUrl: https://github.com/alegauss
@@ -36,6 +36,6 @@ Tags:
   - system-tray
   - usage-monitor
   - windows
-ReleaseNotesUrl: https://github.com/alegauss/claude-tray/releases/tag/v1.6.1
+ReleaseNotesUrl: https://github.com/alegauss/claude-tray/releases/tag/v1.6.2
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0
