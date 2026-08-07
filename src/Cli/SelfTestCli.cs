@@ -1661,6 +1661,45 @@ internal static class SelfTestCli
         Check("...and the 5-hour legend names it, from the same predicate",
               StatisticsPage.HasOverQuotaMark(session));
 
+        // T323. The state the chip and the sentence both read, and the fixtures are two: `spell` and `session`
+        // above are stretches that ended twenty minutes before `now`, which is exactly the case this must NOT
+        // call present tense — the same readings that put a band on the chart. So the live one is built here,
+        // running up to `now`.
+        var liveSpell = Win(reset, window, now, 1.0);
+        UsageSample OverAt(double secondsAgo, bool? inUse) =>
+            new(now - secondsAgo, 1.0, reset, 1.0, reset, 0.0, reset, inUse);
+        UsageReport.FillCurve(liveSpell, new(), new()
+        {
+            OverAt(900, true), OverAt(600, true), OverAt(300, true), OverAt(0, true),
+        }, s => (s.Util7d, s.Reset7d), now);
+        Check("a window whose newest reading says the account is over reads as billing now",
+              StatisticsPage.BillingNow(liveSpell), $"{liveSpell.ExtraSpans.Count} spans");
+        var liveSession = Win(sReset, UsageReport.SessionSeconds, now, 1.0);
+        UsageReport.FillCurve(liveSession, new(), new() { Sat(600), Sat(300), Sat(0) },
+                              s => (s.Util5h, s.Reset5h), now);
+        Check("...on the session too, which is the pane that showed a pace verdict instead",
+              StatisticsPage.BillingNow(liveSession), $"{liveSession.ExtraSpans.Count} spans");
+        Check("and a window with no overage reading anywhere does not",
+              !StatisticsPage.BillingNow(none));
+        // The recency rule is what makes this present tense rather than "at some point this week", and the
+        // shapes it has to tell apart are already on file: a spell that ended earlier still has its band.
+        Check("a spell that ended earlier in the window is not billing *now*",
+              spell.ExtraSpans.Count > 0 && !StatisticsPage.BillingNow(spell),
+              $"{spell.ExtraSpans.Count} spans, last ends at {(spell.ExtraSpans.Count > 0 ? spell.ExtraSpans[^1].f1 : -1):0.####} of {spell.ElapsedFraction:0.####} elapsed");
+        // The figure route follows the same rule, and only on the *newest* figure: ExtraCurve carries a point
+        // for every reading that had the header, zeros included, so a recent zero is a spell that is over.
+        var figureStale = Win(reset, window, now, 1.0);
+        figureStale.ExtraCurve.Add((0.20, 0.42));
+        figureStale.ExtraCurve.Add((figureStale.ElapsedFraction, 0.0));
+        figureStale.ExtraMax = 0.42;
+        Check("an overage figure back at zero is not billing now, whatever the window's peak was",
+              !StatisticsPage.BillingNow(figureStale) && StatisticsPage.HasBillingFigure(figureStale));
+        var figureLive = Win(reset, window, now, 1.0);
+        figureLive.ExtraCurve.Add((figureLive.ElapsedFraction, 0.42));
+        figureLive.ExtraMax = 0.42;
+        Check("and a figure above zero on the newest reading is, with no span needed",
+              StatisticsPage.BillingNow(figureLive) && figureLive.ExtraSpans.Count == 0);
+
         // The second axis is one question too, and the entry that says the percentage is of a different
         // denominator must appear exactly when the axis it explains does.
         Check("a window with no overage figure rules no second axis", !StatisticsPage.HasExtraAxis(none));

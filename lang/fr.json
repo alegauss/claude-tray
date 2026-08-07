@@ -390,6 +390,7 @@
   "stats.verdict.onTrack": "Dans les temps",
   "stats.verdict.tooFast": "Trop rapide",
   "stats.verdict.atLimit": "Limite atteinte",
+  "stats.verdict.billing": "Usage suppl.",
   "stats.verdict.noData": "Aucune donnée",
 
   // Throughput

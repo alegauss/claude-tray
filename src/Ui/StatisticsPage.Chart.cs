@@ -48,18 +48,16 @@ internal partial class StatisticsPage
         // At the limit *and* still spending: the window said "until then, usage is blocked" while the
         // account was working and being charged for it — the tooltip's defect (T182) in the one surface
         // that also draws the evidence. Said before either mode's switch, because both were wrong.
-        if (w.Verdict == PaceVerdict.AtLimit && w.ExtraCurve.Count > 0 && w.ExtraMax > 0)
-            return L.T("stats.proj.billing", Pct(w.ExtraCurve[^1].val), toReset);
-
-        // The same news with nothing to put a percentage on (T275). The spell that prompted this recorded
-        // `ux:0` on every reading, so the branch above cannot fire and the window fell through to "usage is
-        // blocked" — the sentence T182 removed, back again for the shape T182 never saw. The band beside it
-        // is drawn from the header alone, and so is this: it says the state and no amount, because no header
-        // states one. Only while it is *still* happening — a spell that ended earlier in the window has a
-        // band to look at and no claim to make about right now.
-        if (w.Verdict == PaceVerdict.AtLimit && w.ExtraSpans.Count > 0
-            && w.WindowSeconds > 0 && w.ElapsedFraction - w.ExtraSpans[^1].f1 <= 900 / w.WindowSeconds)
-            return L.T("stats.proj.billingNoAmount", toReset);
+        //
+        // The state is `BillingNow` and only the *wording* is chosen here (T323): with a figure, the
+        // percentage of the allowance spent; without one, the state and no amount, because no header states
+        // one — the spell that prompted T275 recorded `ux:0` on every reading through the crossing. Both
+        // still need `AtLimit`, and that is not the state's condition but the string's: each says "the quota
+        // included in **this window**", which is false of a session with room behind a week that crossed.
+        if (w.Verdict == PaceVerdict.AtLimit && BillingNow(w))
+            return HasBillingFigure(w)
+                ? L.T("stats.proj.billing", Pct(w.ExtraCurve[^1].val), toReset)
+                : L.T("stats.proj.billingNoAmount", toReset);
 
         if (_remaining)
         {
@@ -87,6 +85,51 @@ internal partial class StatisticsPage
                 L.T("stats.proj.ok", Pct(w.IdealNow), toReset),
         };
     }
+
+    /// <summary>Whether this window carries an overage <em>figure</em> to state a percentage from — the
+    /// reading only some accounts send (T183), kept apart from the state itself because the spell that
+    /// prompted T275 had the state and no figure at all.</summary>
+    internal static bool HasBillingFigure(WindowPace w) => w.ExtraCurve.Count > 0 && w.ExtraMax > 0;
+
+    /// <summary>How recent the last over-quota reading has to be for this window to be called <em>still</em>
+    /// paying: a spell that ended earlier in the window has a band to look at and no claim to make about
+    /// right now. Fifteen minutes, which is <see cref="UsageReport.BridgeSeconds"/>' own floor — the same
+    /// silence that ends a span is the silence that stops this being present tense.</summary>
+    private const double SpellStillLiveSeconds = 900;
+
+    /// <summary>Whether a reading at this fraction of the window is recent enough to speak in the present
+    /// tense — asked of the span's end and of the figure's last point, which is what keeps the two routes
+    /// below on one rule.</summary>
+    private static bool StillCurrent(WindowPace w, double frac)
+        => w.WindowSeconds > 0 && w.ElapsedFraction - frac <= SpellStillLiveSeconds / w.WindowSeconds;
+
+    /// <summary>
+    /// Whether this window's own readings say the account is past its included quota <em>right now</em>
+    /// (T323) — read by the projection sentence and by the chip above it, which is the whole point of its
+    /// being here.
+    ///
+    /// <para>The chip used to answer a different question. <see cref="Populate"/> maps
+    /// <see cref="PaceVerdict"/> to a colour and a two-word label, and that enum has four values, none of
+    /// which is billing — so a paying account wore <c>#C43E3E</c>, this page's <em>at-limit</em> red, which on
+    /// a quota surface means <b>stopped</b>, directly above a sentence saying extra usage was paying and a
+    /// chart shading the stretch. T182's defect, in the last surface nothing had moved out of it.</para>
+    ///
+    /// <para><b>Either route, one recency rule.</b> The header's span and the overage figure are two ways to
+    /// have measured the same state (T273, T275), and both are asked whether their newest reading is still
+    /// current — which also tightens the figure route the sentence took before: a percentage recorded early in
+    /// a week whose spell had ended was being read out in the present tense.</para>
+    ///
+    /// <para><c>internal static</c> so <c>--selftest</c> can drive it, and one reader rather than two because
+    /// a second copy three hundred lines away is two things free to disagree about one pane. It settles the
+    /// <em>scope</em> for both at once: a pane speaks from <b>its own</b> readings, so the session pane says
+    /// this too, over the band its own chart is already drawing.</para></summary>
+    internal static bool BillingNow(WindowPace w)
+        => (w.ExtraSpans.Count > 0 && StillCurrent(w, w.ExtraSpans[^1].f1))
+           // The *newest* figure above zero, not merely one somewhere in the window: `ExtraCurve` carries a
+           // point for every reading that had the header at all, zeros included (T179), so a spell that ended
+           // leaves a recent 0 behind — and reading that as "paying now" is the opposite mistake.
+           || (w.ExtraCurve.Count > 0 && w.ExtraCurve[^1].val > 0
+               && StillCurrent(w, w.ExtraCurve[^1].frac));
 
     /// <summary>How far into the plot the ghost's over-quota stretch sits from the ghost's own line, in
     /// device-independent pixels (T295) — enough to clear the 100% gridline and the projection that share

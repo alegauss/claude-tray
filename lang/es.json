@@ -390,6 +390,7 @@
   "stats.verdict.onTrack": "En ritmo",
   "stats.verdict.tooFast": "Demasiado rápido",
   "stats.verdict.atLimit": "En el límite",
+  "stats.verdict.billing": "Cuota extra",
   "stats.verdict.noData": "Sin datos",
 
   // Throughput

@@ -394,6 +394,7 @@
   "stats.verdict.onTrack": "On track",
   "stats.verdict.tooFast": "Too fast",
   "stats.verdict.atLimit": "At limit",
+  "stats.verdict.billing": "Extra usage",
   "stats.verdict.noData": "No data",
 
   // Throughput

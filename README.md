@@ -100,7 +100,10 @@ At 100% there is a third thing the tile can mean, and it gets its own color:
   *stopped*; clay means *this is costing money*. The tooltip says which — and **how long it has been
   going on**, because "you are paying" invites "since when", and the answer is what makes the next
   hour of work a choice rather than something you find at the end of the month. The **System
-  information** page tells you whether the allowance is merely enabled or actually in use.
+  information** page tells you whether the allowance is merely enabled or actually in use. In the
+  **Statistics** window each pane's verdict chip goes clay and reads **Extra usage** — instead of the
+  red *At limit*, which on a quota surface means *stopped* — for as long as that pane's own readings
+  say the spell is still running
 
 How the verdict is computed depends on the window:
 

@@ -584,7 +584,15 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         ideal.Text = w.HasWindow ? Pct(Disp(w.IdealNow)) : "—";
         reset.Text = w.HasWindow ? Dur(w.SecondsToReset) : "—";
 
-        var (chipBg, chipLabel) = w.Verdict switch
+        // The state outranks the pace, and the colour is why (T323): #C43E3E is this page's at-limit red and
+        // red on a quota surface means *stopped*, so a paying account wore "work has halted" over a sentence
+        // saying the opposite. Clay is what that state wears on every other surface here, and the predicate is
+        // the sentence's own — see StatisticsPage.Chart's BillingNow, which both read so they cannot disagree
+        // about one pane. A pace verdict about a window whose limit is no longer what gates the work is the
+        // thing worth displacing; the sentence below still reports it.
+        var (chipBg, chipLabel) = BillingNow(w)
+            ? (Color.FromRgb(0xD9, 0x77, 0x57), L.T("stats.verdict.billing"))
+            : w.Verdict switch
         {
             PaceVerdict.Adequate => (Color.FromRgb(0x2E, 0x7D, 0x46), L.T("stats.verdict.onTrack")),
             PaceVerdict.Ahead => (Color.FromRgb(0xC7, 0x77, 0x00), L.T("stats.verdict.tooFast")),

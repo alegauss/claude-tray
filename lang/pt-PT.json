@@ -391,6 +391,7 @@
   "stats.verdict.onTrack": "No ritmo",
   "stats.verdict.tooFast": "Depressa demais",
   "stats.verdict.atLimit": "No limite",
+  "stats.verdict.billing": "Quota extra",
   "stats.verdict.noData": "Sem dados",
 
   // Throughput
