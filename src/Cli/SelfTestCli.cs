@@ -1835,6 +1835,29 @@ internal static class SelfTestCli
         Check("extra usage keeps the clay the icon and the chart use",
               ToastWindow.Palette(ToastWindow.ToastTheme.ExtraUsage).Mid.Equals("#D97757", StringComparison.OrdinalIgnoreCase),
               ToastWindow.Palette(ToastWindow.ToastTheme.ExtraUsage).Mid);
+
+        // T321. The digits' own colour, on the same rule as the table above: three windows, three colours,
+        // no two alike. Driven off the metric list the tray offers, so a fourth window would arrive here
+        // uncoloured rather than silently wearing the session's cream — which is the one failure a contact
+        // sheet cannot show, because a scope reading as the session looks exactly like a session.
+        var inks = new Dictionary<int, string>();
+        foreach (string scope in new[] { "5h", "7d", "extra" })
+        {
+            int argb = IconRenderer.NumberInk(scope).ToArgb();
+            if (inks.TryGetValue(argb, out string? other))
+                Fail($"the {scope} number has a colour of its own",
+                     $"it is drawn in {other}'s ink, so the two windows are one number on screen");
+            else
+            {
+                _passed++;
+                Console.WriteLine($"  ok    the {scope} number has a colour of its own");
+                inks[argb] = scope;
+            }
+        }
+        Check("the session keeps the cream the icon always drew, so an ordinary tray is unchanged",
+              IconRenderer.NumberInk("5h").ToArgb() == Color.White.ToArgb());
+        Check("and a scope nobody here spells falls back to it rather than picking a colour",
+              IconRenderer.NumberInk("90d").ToArgb() == IconRenderer.NumberInk("5h").ToArgb());
     }
 
     // ---------------------------------------------------------------- Block AF: the capture's output path

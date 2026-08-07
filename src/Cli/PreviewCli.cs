@@ -184,6 +184,11 @@ internal static class PreviewCli
         // confuse, and one image carrying two claims is how a reader stops knowing which of them failed.
         SaveBillingSheet(Path.Combine(dir, "billing_sheet.png"));
 
+        // And the third claim about this tile's colours (T321), on the same terms and in its own file: the
+        // digits now say which window their number is about, and that is only worth having if the three are
+        // tellable apart at 16px over every bar colour they can land on.
+        SaveScopeSheet(Path.Combine(dir, "scope_sheet.png"));
+
         // The same cases carrying each profile accent (T147), plus a contact sheet magnified 8x with
         // the real 16px pixels preserved — the band has to be judged at tray size, and a 16px PNG
         // viewed at 16px cannot be judged at all.
@@ -251,6 +256,66 @@ internal static class PreviewCli
         }
         using (FileStream fs = OutFile.Create(path)) sheet.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
         Console.WriteLine("billing sheet: " + Path.GetFullPath(path));
+    }
+
+    /// <summary>
+    /// The sheet for the claim T321 makes: the digits' colour says which window the number is about, and the
+    /// three have to be tellable apart <em>at 16px</em> and legible over every bar colour that can sit under
+    /// them.
+    ///
+    /// <para><b>Grouped by bar state, three scopes adjacent</b>, for the reason
+    /// <see cref="SaveBillingSheet"/> pairs its two: the claim is about a comparison, so the things compared
+    /// are neighbours, and separating them by a column would be asking something else. 16px only, and that is
+    /// the point rather than an economy — 20 and 32 are the easy cases, and a sheet that includes them
+    /// invites the judgement to be made on those.</para>
+    ///
+    /// <para>The hard states are here on purpose. Clay under orange digits is the pair that shares a hue.
+    /// The flash covers its deep blue with a nearly full bar, so what it tests is the tile's edge rather
+    /// than a new background. And the last one is <b>the state T320 produces</b>: nothing left, stated as
+    /// <em>remaining</em>, so the bar drains to nothing and the digits sit on bare slate — the one cell where
+    /// the colour is the only thing on the tile naming the window its <c>0</c> is about.</para>
+    /// </summary>
+    private static void SaveScopeSheet(string path)
+    {
+        const int px = 16, zoom = 8, gap = 8;
+        string[] scopes = { "5h", "7d", "extra" };
+        (double pct, Projection verdict, bool flash, bool billing, bool remaining)[] states =
+        {
+            (0.35, Projection.Unknown, false, false, false),  // cyan: no projection yet
+            (0.35, Projection.Ok, false, false, false),       // green: on track
+            (0.92, Projection.Danger, false, false, false),   // orange→red: about to run out
+            (1.00, Projection.Danger, false, true, false),    // clay: past the quota and paying
+            (0.95, Projection.Danger, true, false, false),    // the near-limit flash
+            (1.00, Projection.Danger, false, true, true),     // T320: "0 left", so no bar at all
+        };
+
+        int cell = px * zoom + gap;
+        int w = gap + states.Length * scopes.Length * cell;
+        int h = gap + 2 * cell;
+
+        using var sheet = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using var g = Graphics.FromImage(sheet);
+        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
+
+        for (int row = 0; row < 2; row++)
+        {
+            using (var bg = new SolidBrush(row == 0 ? Color.FromArgb(32, 32, 32) : Color.FromArgb(240, 240, 240)))
+                g.FillRectangle(bg, 0, gap / 2 + row * cell, w, cell);
+
+            int col = 0;
+            foreach (var (pct, verdict, flash, billing, remaining) in states)
+                foreach (string scope in scopes)
+                {
+                    using var bmp = IconRenderer.Render(pct, IconRenderer.State.Ok, flash, px, verdict,
+                                                        showRemaining: remaining, billing: billing,
+                                                        scope: scope);
+                    g.DrawImage(bmp, gap + col * cell, gap + row * cell, px * zoom, px * zoom);
+                    col++;
+                }
+        }
+        using (FileStream fs = OutFile.Create(path)) sheet.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
+        Console.WriteLine("scope sheet: " + Path.GetFullPath(path));
     }
 
     /// <summary>

@@ -42,6 +42,31 @@ internal static class IconRenderer
     // tile that means a category rather than a severity, which is exactly what this is.
     private static readonly Color BarBilling  = Color.FromArgb(217, 119, 87);
 
+    // Which window the digits are about (T321), as the digits' own fill. T320 can move the figure off the
+    // window the menu picked — a `0` may be the week on a tray with `5h` ticked — and the tooltip was the
+    // only surface that said so, which is the one that is not on screen.
+    //
+    // The fill is the one attribute on this tile that had never carried meaning, so §XI.3's rule survives
+    // intact: the *level* rising from the bottom is still the only thing that means projection, the 2px rule
+    // at the top is still identity, and this is a third form again — the glyphs themselves. `5h` keeps
+    // `Cream`, so the ordinary tray is unchanged and the colour appears only when the number is about
+    // something else.
+    //
+    // Both are pale rather than saturated, and that is the constraint rather than a taste: these are 16px
+    // glyphs read against a dark outline over a slate tile and over every bar colour under them, so a hue
+    // deep enough to be unmistakable is one that stops being readable. The orange is deliberately lighter
+    // than `BarBilling`'s clay and than `BarOrange`, the two it can sit on top of.
+    //
+    // Judged on `--render`'s scope sheet rather than argued, and it names its own weakest pair: orange
+    // digits over the clay bar, which is not an edge case but the ordinary one — an icon watching the
+    // overage window is an account that is paying, so the bar under those digits is nearly always clay.
+    // They stay legible there on the dark outline alone, and the two scopes stay tellable apart because
+    // one is pale and one is warm. The cell that decides this is the *last* one on that sheet: "0 left"
+    // draws no bar at all (T320), so on the state this exists for the colour is the only thing on the
+    // tile that names the window.
+    private static readonly Color InkWeek  = Color.FromArgb(255, 233, 160);  // week 7d — a light yellow
+    private static readonly Color InkExtra = Color.FromArgb(255, 179,  71);  // extra usage — orange
+
     // Per-profile accent (T147), used only for the top-edge identity band. Chosen to be disjoint from
     // every color that already carries meaning here — the green/orange/red of the projection, the cyan
     // of "no projection yet", the amber of an API error and the slate of the tile itself — so the band
@@ -83,8 +108,11 @@ internal static class IconRenderer
     /// <see cref="Accents"/>, or -1 for none — see the mark block below.
     /// <paramref name="billing"/> is the account past its included quota and paying to keep working
     /// (T182): the bar goes clay instead of the alarming red, which is for work that has stopped.
+    /// <paramref name="scope"/> is which window the number is about (T321) — <c>5h</c>, <c>7d</c> or
+    /// <c>extra</c> — which the digits state as their own fill. It defaults to the session, so a caller
+    /// that has nothing to say about scope draws the cream digits this icon always had.
     /// </summary>
-    public static Bitmap Render(double pct, State state, bool flash, int size, Projection verdict = Projection.Unknown, bool showNumber = true, bool showRemaining = false, int accent = -1, bool billing = false)
+    public static Bitmap Render(double pct, State state, bool flash, int size, Projection verdict = Projection.Unknown, bool showNumber = true, bool showRemaining = false, int accent = -1, bool billing = false, string scope = "5h")
     {
         // pct is always the *used* fraction. In "remaining" mode we display its complement (full
         // at 100%, draining to 0%), but the danger color still keys off `used` so the bar warms to
@@ -178,11 +206,22 @@ internal static class IconRenderer
         float penW = Math.Max(1.2f, size * 0.11f);
         using (var pen = new Pen(Stroke, penW) { LineJoin = LineJoin.Round })
             g.DrawPath(pen, text);
-        using (var fill = new SolidBrush(Cream))
+        using (var fill = new SolidBrush(NumberInk(scope)))
             g.FillPath(fill, text);
 
         return bmp;
     }
+
+    /// <summary>What colour the digits are drawn in, for the window they are about (T321). One switch, and
+    /// <c>internal</c> so <c>--selftest</c> can assert that the three windows get three colours and that a
+    /// key nobody here spells falls back to the cream the icon always had — a scope silently reading as the
+    /// session is the one failure this cannot be looked at to catch.</summary>
+    internal static Color NumberInk(string scope) => scope switch
+    {
+        "7d" => InkWeek,
+        "extra" => InkExtra,
+        _ => Cream,
+    };
 
     /// <summary>
     /// Render the application icon (used for the .exe / installer / shortcuts): the same

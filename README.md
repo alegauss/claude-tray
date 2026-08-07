@@ -54,7 +54,11 @@ To build from source instead, see [Build and run](#build-and-run).
   icon starts full at 100% and drains to 0%, and the tooltip reads "… left" (color and alerts
   are unchanged)
 - **3D bevel border**: light highlight on the top/left and shadow on the bottom/right → relief
-- Number: large digits, white with a **dark outline** (readable at any size)
+- Number: large digits with a **dark outline** (readable at any size), and their colour says **which
+  window the number is about** — **white** for the 5h session, a **light yellow** for the 7d week,
+  **orange** for extra usage. It matters most when you didn't choose it: the number moves to the
+  window that crossed once your included quota is gone (below), and on that tile — *0 left*, no fill
+  bar — the colour is the only thing naming the window
 - Near the limit: the background flashes — at the threshold **the API itself names** on the response
   that crosses it, falling back to ≥90% on the readings where it names none
 - Amber = API error · while connecting (before the first reading) it shows the **app logo**

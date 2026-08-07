@@ -1531,7 +1531,11 @@ internal sealed class TrayContext : ApplicationContext
             _monitored.Data is { Unauthorized: true } || state == IconRenderer.State.Connecting || apiError
                 ? IconRenderer.RenderLogo(size, apiError)
                 : IconRenderer.Render(CurrentPct(), state, flash, size, verdict, _settings.ShowPercentage,
-                    _settings.ShowRemaining, AccentSlot(), CurrentQuotaState() == QuotaState.Billing);
+                    _settings.ShowRemaining, AccentSlot(), CurrentQuotaState() == QuotaState.Billing,
+                    // Which window the digits are about (T321) — the same answer everything else scoped to
+                    // the figure reads, because a colour naming one window over a number from another is
+                    // worse than saying nothing.
+                    IconMetric());
         SetTrayIcon(bmp);
         // Tagged at the FRONT under --second-tray (T237), so it survives the 127-character truncation and
         // so a check can tell this icon from the resident tray's: the notification area's elements belong
