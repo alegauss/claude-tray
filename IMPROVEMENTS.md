@@ -1046,3 +1046,29 @@ segmentation task is the dep because it is where both rules live.
 
 The reading a person takes from it is theirs to act on. The app says `/loop` was 57% of the week; it
 does not say run fewer loops, for the same reason it never says work less.
+
+## LXIII The one thing a row may say that a person wrote (T334)
+
+Claude Code writes no title. Searched for: `"type":"summary"` appears in none of this machine's 664
+transcripts, `~/.claude.json` keeps nothing per session, and the string `/resume` shows as a title
+is `history.jsonl`'s `display` field — the prompt as typed. There is no derived label to borrow, so
+the question the Sessions list cannot answer has exactly one answer available.
+
+The owner has decided to permit it, after the constraint was put in front of them. That makes this
+an amendment to a binding constraint before it is a column, and the order matters: the promise is
+written in several places a user reads, and a column shipping ahead of them would make each one a
+lie.
+
+**What the amendment says.** Not that the app may read message content — that stays refused
+everywhere else, and the parser is still the promise. One bounded exception: the prompt that opened
+a conversation, capped at 200 characters, stored in the index and drawn on the Sessions row under
+the project it belongs to, because which repo a prompt was typed in is half of recognising it.
+Nothing else is read, nothing is exported, no other surface gains it.
+
+**What moves with it.** The house constraint; the roadmap's non-goal summary; the README and the
+published page, where "no prompt, no title, no summary" is an argument in prose today; and the row's
+own doc comment, which states the rule as absolute. The five language files gain nothing — the
+prompt is the user's own text and is never translated.
+
+Truncation is the whole safety margin, so it is a named constant rather than a literal at a call
+site, and the cache holds the truncated string only: what is not stored cannot leak from the store.
