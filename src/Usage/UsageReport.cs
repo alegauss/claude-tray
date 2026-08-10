@@ -489,8 +489,17 @@ internal static class UsageReport
     /// <see cref="ContextScanner"/> already resolves paths with.</param>
     public static bool TryParseSample(string line, double startUnix, double nowUnix,
         out double t, out TokenBits bits, out string? id, out string? cwd)
+        => TryParseSample(line, startUnix, nowUnix, out t, out bits, out id, out cwd, out _);
+
+    /// <inheritdoc cref="TryParseSample(string, double, double, out double, out TokenBits, out string?, out string?)"/>
+    /// <param name="model">The model that answered, when the line names one. Already read here — it is
+    /// what <c>&lt;synthetic&gt;</c> is tested against — so exposing it adds no field to the promise
+    /// above, which is the whole reason <see cref="SessionIndex"/> asks for it here rather than opening
+    /// the line a second time (T327).</param>
+    public static bool TryParseSample(string line, double startUnix, double nowUnix,
+        out double t, out TokenBits bits, out string? id, out string? cwd, out string? model)
     {
-        t = 0; bits = default; id = null; cwd = null;
+        t = 0; bits = default; id = null; cwd = null; model = null;
         try
         {
             using var doc = JsonDocument.Parse(line);
@@ -512,8 +521,11 @@ internal static class UsageReport
                 return false;
             if (!msg.TryGetProperty("usage", out var usage) || usage.ValueKind != JsonValueKind.Object)
                 return false;
-            if (msg.TryGetProperty("model", out var m) && m.GetString() == "<synthetic>")
-                return false;
+            if (msg.TryGetProperty("model", out var m) && m.GetString() is { } name)
+            {
+                if (name == "<synthetic>") return false;
+                if (name.Length > 0) model = name;
+            }
 
             var b = new TokenBits(
                 Input: (long)Num(usage, "input_tokens"),
@@ -533,6 +545,22 @@ internal static class UsageReport
         }
         catch { return false; }
     }
+
+    /// <summary>
+    /// Could this line possibly be a sample? Three ordinal substring tests, and the only honest claim
+    /// about them is the negative one: a line this rejects can never parse, so a whole-tree scan can
+    /// skip <see cref="JsonDocument.Parse"/> on it. A line it accepts still has to be parsed.
+    ///
+    /// <para>It exists because the alternative is measured: parsing every line of months of transcripts
+    /// — hundreds of megabytes — to reach one field costs seconds. It sits beside the parser rather
+    /// than beside either of its callers so the two can never drift into disagreeing about what a
+    /// sample looks like.</para>
+    /// </summary>
+    public static bool LooksLikeSample(string line)
+        => line.Length > 0
+           && line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal)
+           && line.Contains("\"input_tokens\"", StringComparison.Ordinal)
+           && !line.Contains("\"<synthetic>\"", StringComparison.Ordinal);
 
     private static double Num(JsonElement obj, string name)
         => obj.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.Number

@@ -230,6 +230,9 @@ internal static class SelfTestCli
         Section("catalogue — every flag the sources accept is declared (Block AJ)");
         FlagCatalogue();
 
+        Section("anchoring — a transcript reached by a route nobody walked (Block AK)");
+        Anchoring();
+
         Section("surfaces — what a stranger reads: the README and the page (Block AJ)");
         Repo("the README and the published page point at things that exist", UserSurfaces,
              "README.md", "docs/index.html", "docs");
@@ -252,6 +255,9 @@ internal static class SelfTestCli
 
             Section("tail — what 'sessions active' counts (Block K)");
             Temp(Active);
+
+            Section("sessions — one row per conversation (Block AK)");
+            Temp(Sessions);
         }
 
         // Last, and nothing may be added after it: sampling the environment is one-way for the process
@@ -4395,6 +4401,10 @@ internal static class SelfTestCli
         // observing tray runs leaves the cache alone, not that a method exists.
         ContextScanner.Scan(DateTime.UtcNow);
         ContextUsage.Compute(DateTime.UtcNow);
+        // The third shared cache (T327). Driven against the real tree and the real cache path for the
+        // same reason as the two above: a store this section does not drive is a store nothing here
+        // promises anything about.
+        SessionIndex.Load();
         new Settings().Save();
         var settings = new Settings();
         EnvironmentProfile.Adopt(settings, @"C:\Users\nobody\.claude-observing");
@@ -5747,6 +5757,101 @@ internal static class SelfTestCli
         Check("a workflow's agent carries both ids",
               Sample(3) is { Workflow: "wf_475bc61a-315", Agent: "agent-bbb" },
               $"{Sample(3).Workflow ?? "-"} / {Sample(3).Agent ?? "-"}");
+    }
+
+    // ---------------------------------------------------- Block AK: one row per conversation (T327)
+
+    /// <summary>
+    /// T327: the four properties a session row stands or falls on — a fan-out folds into the session
+    /// that spawned it, one response is one call however many lines it wrote, the models are all of
+    /// them, and the per-file cache returns what the scan did without re-reading anything.
+    ///
+    /// <para>The cache is driven rather than skipped, which is why <see cref="SessionIndex.Load"/>
+    /// takes a cache path: a fixture that can only turn the cache off leaves the one thing that can be
+    /// silently wrong — a stale row served as a fresh one — unfalsifiable.</para>
+    /// </summary>
+    private static void Sessions(string root)
+    {
+        string projects = Path.Combine(root, "projects");
+        string slug = Path.Combine(projects, "d--selftest");
+        string flow = Path.Combine(slug, "sess-1", "subagents", "workflows", "wf_a1b2-315");
+        Directory.CreateDirectory(flow);
+        string cache = Path.Combine(root, "session-index.json");
+
+        DateTime now = DateTime.Now;
+        // The conversation's own transcript: two turns, and the second written twice — one response,
+        // two content blocks, the same usage on each, which is what Claude Code actually writes.
+        string twice = Turn(now.AddMinutes(-30), "req-2", 500);
+        File.WriteAllText(Path.Combine(slug, "sess-1.jsonl"),
+                          Turn(now.AddHours(-1), "req-1", 100) + "\n" + twice + "\n" + twice + "\n");
+        // Its fan-out, in a different file, under a different model.
+        File.WriteAllText(Path.Combine(flow, "agent-aaa.jsonl"),
+                          Turn(now, "req-3", 900).Replace("claude-selftest", "claude-selftest-mini") + "\n");
+
+        IReadOnlyList<SessionRow> rows = SessionIndex.Load(out SessionScanStats cold, projectsDir: projects,
+                                                           cacheFile: cache);
+        if (!Check("three transcripts of one conversation produce one row", rows.Count == 1,
+                   $"{rows.Count} rows from {cold.Files} files")) return;
+
+        SessionRow r = rows[0];
+        Check("a fan-out's cost is inside the session that spawned it, not beside it",
+              r.Bits.Input == 100 + 500 + 900, $"{r.Bits.Input} input tokens, expected 1500");
+        Check("and the row says how many transcripts the fan-out wrote", r.Agents == 1, $"{r.Agents}");
+        Check("one response is one call, however many lines carried it",
+              r.Calls == 3, $"{r.Calls} calls, expected 3");
+        Check("the row spans first turn to last", Math.Abs(r.Seconds - 3600) <= 1, $"{r.Seconds}s");
+        Check("every model that answered is named, not just the first",
+              r.Models.Length == 2 && r.Models.Contains("claude-selftest") &&
+              r.Models.Contains("claude-selftest-mini"), string.Join(",", r.Models));
+        Check("the project is the slug, and its name comes from a cwd the transcript carried",
+              r.Project == "d--selftest" && r.Name.Length > 0, $"{r.Project} / {r.Name}");
+
+        // The cache: same answer, nothing re-read. A row served from the cache that disagrees with the
+        // row the scan produced is the failure this exists for.
+        IReadOnlyList<SessionRow> warm = SessionIndex.Load(out SessionScanStats hot, projectsDir: projects,
+                                                            cacheFile: cache);
+        Check("a warm pass opens no transcript at all", hot.Read == 0 && hot.Files == cold.Files,
+              $"{hot.Read} of {hot.Files} re-read");
+        // Field by field, not record equality: the row carries a string[], and two arrays holding the
+        // same names are not equal — a synthesized Equals would compare them by reference and this
+        // would fail on a cache that is perfectly correct.
+        Check("and answers exactly what the cold pass did",
+              warm.Count == 1 && warm[0].Session == r.Session && warm[0].Project == r.Project &&
+              warm[0].Name == r.Name && warm[0].Bits == r.Bits && warm[0].Calls == r.Calls &&
+              warm[0].Agents == r.Agents && warm[0].FirstUnix == r.FirstUnix &&
+              warm[0].LastUnix == r.LastUnix && warm[0].Models.SequenceEqual(r.Models));
+
+        // Rebuild is the escape hatch that makes the two above falsifiable rather than circular.
+        SessionIndex.Load(out SessionScanStats forced, projectsDir: projects,
+                          mode: ActivityProfile.SweepCacheMode.Rebuild, cacheFile: cache);
+        Check("--refresh re-reads every transcript past the cache",
+              forced.Read == forced.Files, $"{forced.Read} of {forced.Files}");
+    }
+
+    /// <summary>
+    /// T327: the path derivation has to survive the file arriving by a route the caller did not walk.
+    /// A profile whose <c>projects\</c> is one junction per repo — the dev machine's is — hands
+    /// <see cref="SafeWalk"/> a reparse point, which it resolves, so every transcript comes back living
+    /// under a root nobody passed. Pure, so it needs no junction on disk to assert.
+    /// </summary>
+    private static void Anchoring()
+    {
+        const string walked = @"C:\u\.claude-pessoal\projects";
+        const string real = @"C:\u\.claude\projects\d--slug\sess-1\subagents\workflows\wf_x-9\agent-a.jsonl";
+
+        TranscriptTail.Locate(walked, real, out string p, out string s, out string? wf, out string? ag);
+        Check("a resolved junction target still lands in the right project",
+              p == "d--slug", p);
+        Check("and under the session that spawned it", s == "sess-1", s);
+        Check("with its workflow and agent ids intact", wf == "wf_x-9" && ag == "agent-a",
+              $"{wf ?? "-"} / {ag ?? "-"}");
+
+        // The re-anchor is a fallback, not the rule: where the walked root does contain the file, that
+        // root is the answer even if a directory of the same name appears deeper in the path.
+        TranscriptTail.Locate(@"C:\u\.claude\projects", @"C:\u\.claude\projects\projects\sess.jsonl",
+                              out string p2, out string s2, out _, out _);
+        Check("a root that does contain the file is used as given",
+              p2 == "projects" && s2 == "sess", $"{p2} / {s2}");
     }
 
     // ------------------------------------------------------- Block K: what "sessions active" counts

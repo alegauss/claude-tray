@@ -234,6 +234,15 @@ internal static class Program
             return;
         }
 
+        // Headless view of the session index (T327): one row per conversation, which is the unit no
+        // other reader here produces. Exists before the page does, so the scan and its per-file cache
+        // can be falsified without a window.
+        if (args.Length >= 1 && args[0] == "--sessions")
+        {
+            SessionsCli.PrintSessions(args.Skip(1).ToArray());
+            return;
+        }
+
         // Headless view of the weekly activity shape behind the projection: 168 buckets of
         // p(active), the coverage that backs them, and what they predict for the hours ahead.
         if (args.Length >= 1 && args[0] == "--activity")

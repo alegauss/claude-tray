@@ -308,6 +308,46 @@ internal sealed class TranscriptTail : IDisposable
         }
     }
 
+    private static readonly char[] Separators =
+        { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar };
+
+    /// <summary>
+    /// The path's segments below <paramref name="root"/>, or nothing when it does not lie below one.
+    ///
+    /// <para>The plain reading is <see cref="System.IO.Path.GetRelativePath"/>, and it is not enough,
+    /// because the file never had to arrive by the route the caller walked. <see cref="SafeWalk"/>
+    /// resolves a reparse point to its target, and a profile whose <c>projects\</c> is one junction per
+    /// repo — this machine's is, 55 of them into <c>~\.claude\projects</c> — hands back files that live
+    /// under a root nobody passed. Measured: every one of 664 transcripts fell out of the derivation
+    /// that way, so the whole tree read as one project called "?" and each fan-out agent as a session
+    /// of its own.</para>
+    ///
+    /// <para>So a path that escaped is re-anchored on the root's own <em>leaf</em> name, which the
+    /// target still passes through whichever tree it physically lives in. Re-anchoring is deliberately
+    /// the fallback and not the rule: when the walked path and the real one agree, the answer should
+    /// come from the root the caller actually named.</para>
+    /// </summary>
+    private static string[] Under(string root, string path)
+    {
+        string[] none = Array.Empty<string>();
+        string rel;
+        try { rel = System.IO.Path.GetRelativePath(root, path); }
+        catch { return none; }
+
+        if (!System.IO.Path.IsPathRooted(rel) && !rel.StartsWith("..", StringComparison.Ordinal))
+            return rel.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+
+        string leaf = System.IO.Path.GetFileName(root.TrimEnd(Separators));
+        if (leaf.Length == 0) return none;
+        string[] all = path.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+        // Backwards, and never the last segment: the file itself is not a directory the tree passed
+        // through, and the *nearest* enclosing "projects" is the one this transcript sits under.
+        for (int i = all.Length - 2; i >= 0; i--)
+            if (string.Equals(all[i], leaf, StringComparison.OrdinalIgnoreCase))
+                return all[(i + 1)..];
+        return none;
+    }
+
     // A transcript's modification time, filed under the conversation it belongs to. This is the whole
     // of what T326 needed and it costs nothing: the sweep is already holding the FileInfo, so the
     // broader reading of "active" needs no second scan of the tree.
@@ -527,13 +567,7 @@ internal sealed class TranscriptTail : IDisposable
         workflow = null;
         agent = null;
 
-        string rel;
-        try { rel = System.IO.Path.GetRelativePath(root, path); }
-        catch { return; }
-        if (System.IO.Path.IsPathRooted(rel) || rel.StartsWith("..", StringComparison.Ordinal)) return;
-
-        string[] parts = rel.Split(new[] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar },
-                                   StringSplitOptions.RemoveEmptyEntries);
+        string[] parts = Under(root, path);
         if (parts.Length < 2) return;   // directly in the root: no slug to file it under
 
         project = parts[0];

@@ -210,6 +210,12 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   seconds bounds the run (default 90), and --raw prints the
                                       #   unsmoothed box filter beside it, which is what the attack-only
                                       #   smoothing is judged against
+--sessions [--all|--refresh] [--project <slug-or-name>] [--root <dir>]
+                                      # one row per CONVERSATION — the unit no other reader produces:
+                                      #   last turn, duration, calls, billed tokens, cache reads, how
+                                      #   many transcripts the fan-out wrote, models. Newest 20 unless
+                                      #   --all; --refresh re-reads every transcript past the per-file
+                                      #   cache, which is the only way a wrong cached row is falsifiable
 --activity [--numbers|--refresh|--measured|--fold] [--root <dir>]
                                       # the weekly activity shape behind the projection as a 24x7 grid;
                                       #   --measured is the same week out of the folded hourly store and

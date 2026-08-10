@@ -917,37 +917,6 @@ that name them move in the same commit: two in the `roadmap-docs` skill, one in 
 Worth checking first whether `[rules.<role>]` can give the strategy role its own anchor pattern,
 which would be the answer that does not depend on picking numbers that happen to be free.
 
-## LVI The session as a type (T327)
-
-Every reader in this app aggregates over a **window** (`UsageReport`, five hours and seven days), a
-**project** (`LiveRate.Projects`, the strip), or an **hour** (`ActivityProfile`). None of them
-aggregates over the thing a person actually remembers: *the conversation I had this morning that
-took an hour and felt expensive*. The session is on disk — it is the file name — and it has no type
-here.
-
-`SessionIndex` is that type, and it is a scan, not a tail: one pass over a profile's
-`projects/**/*.jsonl` producing one row per session. Per row, from lines the app already parses:
-project slug and display name, first and last turn, calls, the four token classes, the models seen,
-and whether it fanned out. Nothing is read that `UsageReport.TryParseSample` does not already read,
-so §I.1 holds by construction — the parser is the promise.
-
-Three things it must get right, all learned from `measure-usage.mjs` doing them:
-
-**Subagents fold into their parent.** A fan-out's cost lives in a different file from the session
-that caused it, so a scan that treats files as sessions reports the coordinator as cheap. T324's
-path derivation is the dep.
-
-**One response is several lines.** Claude Code writes one line per content block, each repeating the
-same `usage`, so a scan that does not dedupe on `requestId` inflates every total. `UsageReport`
-already does this; the index must too, and for the same reason.
-
-**A profile's own transcripts, not the machine's.** `ProfileRef` travels into every other reader
-since T128 and travels into this one.
-
-Cost is the open question and belongs in this task: the full sweep is ~15s cold on this machine, so
-the index is cached per profile with the file-identity key T92 already established, and rebuilt from
-mtimes rather than from scratch.
-
 ## LVII A Sessions pane, and what a row may say (T328)
 
 A fourth pane on the Statistics window — beside Session, Week and Throughput — listing the profile's

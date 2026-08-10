@@ -750,19 +750,14 @@ internal sealed class ActivityProfile
         catch { /* the cache is an optimization; failing to write it costs one slow sweep */ }
     }
 
-    // Substring tests rather than JsonDocument.Parse: this walks months of transcripts — hundreds of
-    // megabytes — and parsing every line to reach one field costs seconds, for a grid whose buckets
-    // are an hour wide. `input_tokens` is what distinguishes a real request from a synthetic or
-    // tool-result line, and `<synthetic>` turns (interrupts, replays) are not user presence.
+    // The substring prefilter that lets this walk months of transcripts without parsing every line;
+    // it lives next to the parser it stands in for (T327), because two spellings of "what a sample
+    // looks like" is one spelling too many.
     //
     // This is the one reader that does NOT need T102's de-duplication: the grid records *presence*
     // ("this hour saw work"), so the extra lines one response writes set a bit that is already set.
     // Only `Samples` counts them, which is why it is reported as lines and not as requests.
-    private static bool IsRequestLine(string line)
-        => line.Length > 0
-           && line.Contains("\"type\":\"assistant\"", StringComparison.Ordinal)
-           && line.Contains("\"input_tokens\"", StringComparison.Ordinal)
-           && !line.Contains("\"<synthetic>\"", StringComparison.Ordinal);
+    private static bool IsRequestLine(string line) => UsageReport.LooksLikeSample(line);
 
     private const string TimestampKey = "\"timestamp\":\"";
 
