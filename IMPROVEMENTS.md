@@ -917,31 +917,6 @@ that name them move in the same commit: two in the `roadmap-docs` skill, one in 
 Worth checking first whether `[rules.<role>]` can give the strategy role its own anchor pattern,
 which would be the answer that does not depend on picking numbers that happen to be free.
 
-## LVII A Sessions pane, and what a row may say (T328)
-
-A fourth pane on the Statistics window — beside Session, Week and Throughput — listing the profile's
-conversations, newest first. One row per session: when it ran, how long it lasted, which project,
-how many turns, and its tokens. The list is the destination; what a row *opens into* is the next
-task, and keeping them apart is deliberate — a list that nobody can read is a failure the drill-down
-would hide.
-
-**Why a tab and not a column somewhere.** The existing panes answer *how much is left* and *how fast
-is it going*. This one answers *where did it go*, and that question is only askable against a list
-of nameable things. The projects strip is the nearest thing today and it names four repos and an
-"others" bucket, which is the right resolution for a chart and the wrong one for a search.
-
-**What a row may say.** Project, clock, duration, turns, tokens, models. **Not the prompt, not a
-title, not a summary** — §I.1 is absolute and this is the surface that would erode it, since a list
-of conversations is where a person wants a subject line. Project plus clock is enough to recognise
-the morning being looked for; the session id sits on hover, for matching against `--resume`.
-
-**Bounded by default.** The index covers everything on disk; the list does not. It opens on the last
-seven days — the window the app already reports on — with the range picker the Week pane uses, so a
-machine with 549 sessions does not render 549 rows to answer a question about today.
-
-Sorting is by clock, and by tokens on the column header. Empty is a legible state: a profile with no
-transcripts says so rather than drawing a frame around nothing.
-
 ## LVIII The call tree under one session (T329)
 
 The request that opened this block was for a **stack trace of a session**, and the shape is right:

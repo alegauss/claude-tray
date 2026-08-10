@@ -218,6 +218,28 @@ is not.
 `ClaudeTray.exe --activity` prints the measured week as a heatmap if you want to see the shape
 the projection is following.
 
+### Where it went — the Sessions tab
+
+The other three tabs answer *how much is left* and *how fast is it going*. A fourth one answers
+**where did it go**, and that question is only askable against a list of nameable things — the
+projects strip names four repos and an "others" bucket, which is the right resolution for a chart and
+the wrong one for a search.
+
+![Statistics — the Sessions tab](docs/statistics-sessions.png)
+
+One row per **conversation**, newest first: project, when its last turn landed, how long it ran, how
+many turns and how many tokens. A fan-out is one row, not twelve — a workflow's agents are folded into
+the session that spawned them, which is where their cost actually belongs. Sort by clock or by tokens
+on the column header, and pick the range: the last 7 days by default, 30 days, or everything on disk.
+
+Rows carry **no prompt, no title and no summary**, and that is a decision rather than an omission: a
+list of conversations is exactly where a subject line would be wanted, which makes it the one surface
+that could erode "never reads what you wrote". Project plus clock is enough to find the morning you
+are looking for, and the hover carries the session id — the string `claude --resume` takes.
+
+`ClaudeTray.exe --sessions` prints the same list in a terminal, with `--all`, `--project <name>` and
+`--refresh`.
+
 **It also tells you what to do about it.** When the shaped projection says you'll run out early,
 the sentence under the chart doesn't stop at the warning — it names the earliest hour you could
 stop and resume at and still finish the week under the limit: *"Stop now and pick it back up

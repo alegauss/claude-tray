@@ -56,6 +56,63 @@
             </Setter>
         </Style>
 
+        <!-- ===== One conversation, as a row (T328). Five columns and no sixth: project, clock,
+             duration, turns, tokens. A subject line is what a list like this invites and what §I.1
+             forbids, so the identifiers that make a row actionable live on the hover instead. -->
+        <DataTemplate x:Key="SessionRowTemplate">
+            <Border Padding="8,7" CornerRadius="5" Background="Transparent" ToolTip="{Binding Tip}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="120" />
+                        <ColumnDefinition Width="112" />
+                        <ColumnDefinition Width="76" />
+                        <ColumnDefinition Width="64" />
+                        <ColumnDefinition Width="84" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{Binding Project}" FontSize="13"
+                               TextTrimming="CharacterEllipsis" Margin="0,0,10,0"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <TextBlock Grid.Column="1" Text="{Binding When}" FontSize="13"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Column="2" Text="{Binding Duration}" FontSize="13"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Column="3" Text="{Binding Turns}" FontSize="13"
+                               HorizontalAlignment="Right" Margin="0,0,12,0"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Column="4" Text="{Binding Tokens}" FontSize="13"
+                               HorizontalAlignment="Right"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- A column header that sorts. Looks like a label and behaves like a button, because it is
+             one: a heading that reorders the list on click and gives no affordance is a feature only
+             its author finds. -->
+        <Style x:Key="SortHeader" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <TextBlock Text="{TemplateBinding Content}" FontSize="{TemplateBinding FontSize}"
+                                   FontWeight="{TemplateBinding FontWeight}"
+                                   HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                   Foreground="{TemplateBinding Foreground}" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Colored verdict pill; background + text are set in code from the pace verdict. -->
         <Style x:Key="VerdictChip" TargetType="Border">
             <Setter Property="CornerRadius" Value="12" />
@@ -516,6 +573,94 @@
                         </StackPanel>
                     </StackPanel>
                     </ScrollViewer>
+                </TabItem>
+
+                <!-- ============ SESSIONS (where it went) ============
+                     The other three panes answer how much is left and how fast it is going; this one
+                     answers where it went, and that is only askable against a list of nameable
+                     things (T328). Not a ScrollViewer around a StackPanel like its neighbours: the
+                     header row has to stay put while the list under it scrolls, or the columns are
+                     labelled only until you look for something. -->
+                <TabItem Header="{local:Loc stats.tab.sessions}">
+                    <Grid Margin="4,18,14,10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="{local:Loc stats.sessions.hint}" FontSize="13"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+
+                        <Grid Grid.Row="1" Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="SessionsCount" Grid.Column="0" VerticalAlignment="Center"
+                                       FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <!-- Bounded by default: the index covers every transcript on disk and the
+                                 list opens on the seven days the rest of the window reports on. -->
+                            <ComboBox x:Name="SessionsRange" Grid.Column="1" MinWidth="150"
+                                      SelectedIndex="0" VerticalAlignment="Center"
+                                      AutomationProperties.Name="{local:Loc stats.sessions.range}">
+                                <ComboBoxItem Content="{local:Loc stats.sessions.range7}" />
+                                <ComboBoxItem Content="{local:Loc stats.sessions.range30}" />
+                                <ComboBoxItem Content="{local:Loc stats.sessions.rangeAll}" />
+                            </ComboBox>
+                        </Grid>
+
+                        <!-- The sixth column is the scrollbar's gutter, widened in code from
+                             SystemParameters so the header's columns sit over the rows' rather than
+                             a scrollbar's width to the right of them. The list below always shows its
+                             scrollbar for the same reason: a gutter that comes and goes moves the
+                             rows out from under their own headings. -->
+                        <Border Grid.Row="2" Margin="0,12,0,0" Padding="8,0,8,6"
+                                BorderThickness="0,0,0,1"
+                                BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" MinWidth="120" />
+                                    <ColumnDefinition Width="112" />
+                                    <ColumnDefinition Width="76" />
+                                    <ColumnDefinition Width="64" />
+                                    <ColumnDefinition Width="84" />
+                                    <ColumnDefinition x:Name="SessionsGutter" Width="0" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{local:Loc stats.sessions.col.project}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                <Button Grid.Column="1" x:Name="SortByWhen" Style="{StaticResource SortHeader}"
+                                        Content="{local:Loc stats.sessions.col.when}"
+                                        HorizontalContentAlignment="Left" />
+                                <TextBlock Grid.Column="2" Text="{local:Loc stats.sessions.col.duration}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                <TextBlock Grid.Column="3" Text="{local:Loc stats.sessions.col.turns}"
+                                           FontSize="12" HorizontalAlignment="Right" Margin="0,0,12,0"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                <Button Grid.Column="4" x:Name="SortByTokens" Style="{StaticResource SortHeader}"
+                                        Content="{local:Loc stats.sessions.col.tokens}"
+                                        HorizontalContentAlignment="Right" />
+                            </Grid>
+                        </Border>
+
+                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Visible"
+                                      HorizontalScrollBarVisibility="Disabled" Margin="0,2,0,0">
+                            <ItemsControl x:Name="SessionList"
+                                          ItemTemplate="{StaticResource SessionRowTemplate}" />
+                        </ScrollViewer>
+
+                        <!-- Empty is a sentence, not a frame drawn around nothing — and "no
+                             transcripts at all" and "none in this range" are different facts. -->
+                        <TextBlock x:Name="SessionsEmpty" Grid.Row="3" Margin="8,24,8,0"
+                                   FontSize="13" TextWrapping="Wrap" VerticalAlignment="Top"
+                                   Visibility="Collapsed"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    </Grid>
                 </TabItem>
             </TabControl>
 

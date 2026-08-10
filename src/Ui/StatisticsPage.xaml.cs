@@ -164,6 +164,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
             LiveTick();
             RenderLive(animate: false);
         };
+        WireSessionsTab();
 
         if (_snapshot is not null)
             Reload();
@@ -269,14 +270,20 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     }
 
     /// <summary>Snapshot each tab in turn to <c>{basePath}-5h.png</c> / <c>-7d.png</c> /
-    /// <c>-throughput.png</c>. Selecting a tab realizes its chart (its <c>SizeChanged</c> draws it), so
-    /// each one renders fully.</summary>
+    /// <c>-throughput.png</c> / <c>-sessions.png</c>. Selecting a tab realizes its chart (its
+    /// <c>SizeChanged</c> draws it), so each one renders fully.</summary>
+    /// <remarks>The loop stops at the shorter of the two lengths, so a tab added without a suffix is
+    /// silently not captured — which is how T328's pane would have been missed. Adding the suffix is
+    /// part of adding a pane.</remarks>
     internal void SaveAllTabs(string basePath)
     {
-        string[] suffixes = { "-5h.png", "-7d.png", "-throughput.png" };
+        string[] suffixes = { "-5h.png", "-7d.png", "-throughput.png", "-sessions.png" };
         for (int i = 0; i < PanesBody.Items.Count && i < suffixes.Length; i++)
         {
             PanesBody.SelectedIndex = i;
+            // The one pane whose content arrives asynchronously. Photographing it before the scan
+            // lands writes a PNG of the placeholder and calls it a capture (T286/T298's defect).
+            if (i == SessionsTab) WaitForSessions();
             UpdateLayout();
             // Flush the render queue so the chart drawn on this tab's SizeChanged is present.
             Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
@@ -488,6 +495,9 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         Populate(r.Session, ChipS, ChipTextS, UsedS, IdealS, ResetS, ProjectionS, ChartS, TpsHeadS, TpsLegendS);
         Populate(r.Weekly, ChipW, ChipTextW, UsedW, IdealW, ResetW, ProjectionW, ChartW, TpsHeadW, TpsLegendW);
         PopulateThroughputTab();
+        // The conversation list is about the profile, not about the reading, so it is loaded once per
+        // reload rather than per poll — and off the UI thread, because a cold cache is seconds (T328).
+        LoadSessions();
 
         // Which paragraphs the note yields is a real decision over four inputs, and it lives in
         // `MethodNoteParts` where `--selftest` can call it (T168). What is left here is the rendering:

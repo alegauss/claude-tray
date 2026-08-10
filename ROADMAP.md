@@ -105,8 +105,7 @@
 
 ## Block AK — Sessions — what one conversation cost, and what it did
 
-- 📋 **T328** (deps: T327 ✅) **the window has nowhere that lists the conversations, only totals that already summed them away** — Session, Week and Throughput each answer how much is left or how fast it is going, and where it went is only askable against a list of nameable things. → §LVII
-- 📋 **T329** (deps: T328) **a session is one number, and the turns, commands and agents that produced it are not reachable from it** — A task is cuttable at each human prompt and a fan-out already writes its agents under the session folder, so the call tree is on disk and no surface here walks it. → §LVIII
+- 📋 **T329** (deps: T328 ✅) **a session is one number, and the turns, commands and agents that produced it are not reachable from it** — A task is cuttable at each human prompt and a fan-out already writes its agents under the session folder, so the call tree is on disk and no surface here walks it. → §LVIII
 - 📋 **T330** (deps: T327 ✅) **cache writes are one number here, so a 2x one-hour write and a 1.25x five-minute one are indistinguishable** — The transcript splits them and TokenBits does not: 50.5M one-hour tokens against 1.17M five-minute ones in this repo alone, mispriced by nearly two on the write component. → §LIX
 - 📋 **T331** (deps: T327 ✅) **the effort a turn ran at is on every assistant line and no reader in the app opens it** — Effort buys calls rather than longer answers - a median of 19 at high against 51 at xhigh - so two sessions of the same length differ several-fold with nothing saying why. → §LX
 - 📋 **T332** (deps: T327 ✅) **the 5h window is only ever read where the API anchors it, never where the spending actually piled up** — A plan meters a rolling window and the busiest five hours of a day hold a median 63% of its work, so the heaviest window on record is in the transcripts and nothing reports it. → §LXI

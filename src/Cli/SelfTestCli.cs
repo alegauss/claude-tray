@@ -5420,6 +5420,7 @@ internal static class SelfTestCli
         typeof(ContextText),      // file sizes, and the tray's context nudge
         typeof(SettingsPage),     // the poll cadence, its cost estimate, the extra-usage share
         typeof(TokenEstimate),    // "≈4.9k", on every one of the above
+        typeof(SessionListRow),   // a conversation's length, in the Sessions list
         typeof(Nums),             // the rule itself
     };
 

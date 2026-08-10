@@ -442,7 +442,7 @@
     <div class="sec-head reveal">
       <div class="eyebrow">Consumption pace</div>
       <h2>See your burn, not just a number</h2>
-      <p>The <b>Statistics</b> window draws each rate-limit window as a burn-up chart: your <b>real utilization</b> against the even-pace line, with a dashed projection of where your current pace lands. Two tabs — the <b>5-hour session</b> and the <b>7-day week</b> — each with its own verdict, plus a third, <b>Throughput</b>, for what is running right now.</p>
+      <p>The <b>Statistics</b> window draws each rate-limit window as a burn-up chart: your <b>real utilization</b> against the even-pace line, with a dashed projection of where your current pace lands. Two tabs — the <b>5-hour session</b> and the <b>7-day week</b> — each with its own verdict, plus <b>Throughput</b> for what is running right now and <b>Sessions</b> for where it all went.</p>
     </div>
     <div class="notify-grid reveal">
       <figure class="shot-frame" style="margin:0">
@@ -467,6 +467,12 @@
         <img class="shot" src="statistics-throughput.png" alt="Statistics — the Throughput tab: two three-minute line charts of the rolling rate, one line per project above and one per token type below, each ceiling labelled in tokens per second, with a hover readout naming one second, each series' rate through it and the tokens that landed in it, and both window averages beneath them">
         <figcaption style="color:var(--muted-2);font-size:.86rem;text-align:center;margin-top:12px">
           <b style="color:var(--text)">Throughput</b> — the last three minutes of the rolling rate: one line per repo, one per token type, each ceiling labelled in tok/s. Point at a second to read what landed in it, and see what the cache re-read costs per turn.
+        </figcaption>
+      </figure>
+      <figure class="shot-frame" style="margin:0">
+        <img class="shot" src="statistics-sessions.png" alt="Statistics — the Sessions tab: one row per conversation, newest first, with the project, the clock of its last turn, how long it ran, how many turns and how many tokens, a range picker set to the last 7 days, and sortable clock and token headers">
+        <figcaption style="color:var(--muted-2);font-size:.86rem;text-align:center;margin-top:12px">
+          <b style="color:var(--text)">Sessions</b> — where it went, one row per conversation instead of a total. A workflow's agents fold into the session that spawned them, so a fan-out is one row and not twelve. No prompt, no title, no summary: project and clock find the morning you are looking for, and the hover carries the id <code>--resume</code> takes.
         </figcaption>
       </figure>
     </div>

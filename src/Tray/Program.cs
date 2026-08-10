@@ -612,7 +612,7 @@ internal static class Program
                 }
                 settle.Stop();
                 if (choice.Refresh) statsPage.UpdateSnapshot(choice.Variant.Snapshot(now));
-                try { statsPage.SaveAllTabs(outBase); Console.WriteLine("wrote " + outBase + "-5h.png / -7d.png / -throughput.png"); }
+                try { statsPage.SaveAllTabs(outBase); Console.WriteLine("wrote " + outBase + "-5h.png / -7d.png / -throughput.png / -sessions.png"); }
                 finally { previewApp.Shutdown(); }
             };
             settle.Start();
