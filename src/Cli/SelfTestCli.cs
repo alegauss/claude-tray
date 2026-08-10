@@ -249,6 +249,9 @@ internal static class SelfTestCli
 
             Section("tail — where a fan-out's agents file (Block K)");
             Temp(FanOut);
+
+            Section("tail — what 'sessions active' counts (Block K)");
+            Temp(Active);
         }
 
         // Last, and nothing may be added after it: sampling the environment is one-way for the process
@@ -5744,6 +5747,59 @@ internal static class SelfTestCli
         Check("a workflow's agent carries both ids",
               Sample(3) is { Workflow: "wf_475bc61a-315", Agent: "agent-bbb" },
               $"{Sample(3).Workflow ?? "-"} / {Sample(3).Agent ?? "-"}");
+    }
+
+    // ------------------------------------------------------- Block K: what "sessions active" counts
+
+    /// <summary>
+    /// T326: the three readings the headline's <c>N sessions active</c> has to get right at once — a
+    /// fan-out is one conversation, a tab that has written something but produced no assistant turn is
+    /// working, and a transcript nobody has touched for an hour is not.
+    ///
+    /// <para>The middle one is why the count is over writes rather than over reported turns, and the
+    /// last one is why the window was not simply widened until the middle one looked right: that repair
+    /// counts a terminal left open all week, which is what the 120 seconds exists to exclude.</para>
+    /// </summary>
+    private static void Active(string root)
+    {
+        string projects = Path.Combine(root, "projects");
+        string slug = Path.Combine(projects, "d--selftest");
+        string flow = Path.Combine(slug, "sess-1", "subagents", "workflows", "wf_a1b2-315");
+        Directory.CreateDirectory(flow);
+
+        DateTime now = DateTime.Now;
+        File.WriteAllText(Path.Combine(slug, "sess-1.jsonl"), Turn(now, "main", 1) + "\n");
+        File.WriteAllText(Path.Combine(flow, "agent-aaa.jsonl"), Turn(now, "wf-a", 2) + "\n");
+        File.WriteAllText(Path.Combine(flow, "agent-bbb.jsonl"), Turn(now, "wf-b", 3) + "\n");
+
+        // The waiting tab: a line the sample parser declines, so this session is live on the disk and
+        // invisible to any reading built on reported turns. Freshly written, like the others.
+        File.WriteAllText(Path.Combine(slug, "sess-2.jsonl"),
+                          "{\"type\":\"user\",\"timestamp\":\"" +
+                          now.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ",
+                              System.Globalization.CultureInfo.InvariantCulture) + "\"}\n");
+
+        // The terminal left open: a real transcript with a real turn, untouched for an hour.
+        string stale = Path.Combine(slug, "sess-3.jsonl");
+        File.WriteAllText(stale, Turn(now.AddHours(-1), "old", 4) + "\n");
+        File.SetLastWriteTimeUtc(stale, DateTime.UtcNow.AddHours(-1));
+
+        using var tail = new TranscriptTail(projects);
+        var rate = new LiveRate(tail);
+        tail.Start();
+
+        if (!Check("the sweep reaches every transcript in the tree",
+                   Wait(() => rate.ActiveSessions >= 2), $"{rate.ActiveSessions} active")) return;
+
+        Check("a workflow's agents count as the one conversation that spawned them",
+              rate.ActiveSessions == 2, $"{rate.ActiveSessions} active, expected 2");
+        Check("a session that has written but not answered still counts as working",
+              tail.SessionsWrittenSince(Now - LiveRate.ActiveSeconds) == 2);
+        // Not "it falls outside the 120s": a transcript past the sweep's freshness floor is never
+        // opened and never remembered, so no window a caller widens to can bring it back.
+        Check("and a terminal left open for an hour is not in the reading at any width",
+              tail.SessionsWrittenSince(Now - 7200) == 2,
+              $"{tail.SessionsWrittenSince(Now - 7200)} within two hours, expected 2");
     }
 
     private static int Count(List<TailSample> seen) { lock (seen) return seen.Count; }

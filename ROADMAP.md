@@ -113,10 +113,6 @@
 - 📋 **T332** (deps: T327) **the 5h window is only ever read where the API anchors it, never where the spending actually piled up** — A plan meters a rolling window and the busiest five hours of a day hold a median 63% of its work, so the heaviest window on record is in the transcripts and no reading reports it. → §LXI
 - 📋 **T333** (deps: T329) **the app can say which repo is eating the week and never which kind of work is** — Measured, 443 slash-command tasks carried 57% of all spend at a $9.55 median against $1.69 for a typed prompt, and a per-project breakdown cannot separate them. → §LXII
 
-## Block K — Live throughput
-
-- 📋 **T326** (deps: T324 ✅) **the live headline counts transcript files, so a fan-out reads as many sessions and a waiting tab as none** — Session is the .jsonl name and a turn must have landed inside 120s, so eleven workflow agents read as eleven and a tab on a long build reads as zero while it works. → §LV
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

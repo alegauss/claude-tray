@@ -69,8 +69,10 @@ internal sealed class LiveRate
     /// within a turn or two, long enough to take the stair-steps off the box filter.</summary>
     public const double SmoothingTau = 8;
 
-    /// <summary>A session counts as active if a turn landed in this many seconds — presence of a file
-    /// is not activity, or every terminal left open all week would inflate the count.</summary>
+    /// <summary>A session counts as active if its transcript was written in this many seconds —
+    /// presence of a file is not activity, or every terminal left open all week would inflate the
+    /// count. Raising it until a waiting tab stayed in was the repair T326 rejected; what changed
+    /// instead is what counts as a sign of life. See <see cref="ActiveSessions"/>.</summary>
     public const double ActiveSeconds = 120;
 
     /// <summary>Categorical series the chart will draw before folding the rest into "others". Four is
@@ -104,8 +106,6 @@ internal sealed class LiveRate
     // A chart of lines needs this: with the slot recomputed from the current ranking, a project's line
     // would change colour mid-flight every time the heaviest repo changed, which is unreadable.
     private readonly Dictionary<string, int> _slots = new(StringComparer.OrdinalIgnoreCase);
-    // Session id → when it last produced a turn. Pruned to ActiveSeconds on every tick.
-    private readonly Dictionary<string, double> _sessions = new(StringComparer.OrdinalIgnoreCase);
     private long _head;              // unix second the newest bucket represents
     private bool _started;
 
@@ -118,7 +118,15 @@ internal sealed class LiveRate
 
     /// <param name="tail">The feed. Subscribing here rather than polling it keeps the arrival path
     /// event-driven; <see cref="Tick"/> only ever reads what has already landed.</param>
-    public LiveRate(TranscriptTail tail) => tail.Appended += Add;
+    public LiveRate(TranscriptTail tail)
+    {
+        _tail = tail;
+        tail.Appended += Add;
+    }
+
+    // Kept, not merely subscribed to, since T326: the count of live conversations is a question about
+    // which transcripts were *written*, which is the feed's knowledge and not this class's.
+    private readonly TranscriptTail _tail;
 
     /// <summary>Smoothed non-cache-read tokens/second over the trailing window. This is the headline.</summary>
     public double TokensPerSecond { get { lock (_gate) return _smoothed; } }
@@ -305,16 +313,13 @@ internal sealed class LiveRate
                 _head = sec;
             }
 
-            // Drop projects that have nothing left in the strip, and sessions that have gone quiet.
-            // Both are bounded by activity rather than by uptime.
+            // Drop projects that have nothing left in the strip: bounded by activity, not by uptime.
             foreach (string slug in _byProject.Where(kv => Sum(kv.Value) == 0).Select(kv => kv.Key).ToList())
             {
                 _byProject.Remove(slug);
                 _projectNames.Remove(slug);
                 _slots.Remove(slug);            // the slot is free again only once the line is gone
             }
-            foreach (string id in _sessions.Where(kv => nowUnix - kv.Value > ActiveSeconds).Select(kv => kv.Key).ToList())
-                _sessions.Remove(id);
 
             long input = 0, output = 0, create = 0, read = 0;
             double weighted = 0;
@@ -383,8 +388,6 @@ internal sealed class LiveRate
                     ring[Index(sec)] += s.Bits.Input + s.Bits.Output + s.Bits.CacheCreate;
                     if (s.Name.Length > 0) _projectNames[s.Project] = s.Name;
                 }
-                if (s.Session.Length > 0 && s.Unix > _sessions.GetValueOrDefault(s.Session))
-                    _sessions[s.Session] = s.Unix;
 
                 if (s.Unix > _newestSample) _newestSample = s.Unix;
                 _turns++;
@@ -392,9 +395,30 @@ internal sealed class LiveRate
         }
     }
 
-    /// <summary>Sessions that produced a turn in the last <see cref="ActiveSeconds"/>. A count, never
-    /// a list — the useful fact is "three things are running", and session ids are not for display.</summary>
-    public int ActiveSessions { get { lock (_gate) return _sessions.Count; } }
+    /// <summary>
+    /// Conversations with something written to them in the last <see cref="ActiveSeconds"/>. A count,
+    /// never a list — the useful fact is "three things are running", and session ids are not for display.
+    /// </summary>
+    /// <remarks>
+    /// Until T326 this counted <em>transcript file names that produced a turn</em>, and both halves of
+    /// that were wrong for the question the label asks. A fan-out writes one file per agent, so a
+    /// workflow of eleven read as eleven sessions plus the one that spawned it; and a turn is an
+    /// assistant response, so a tab waiting on a build or on the user typing reported nothing while it
+    /// was plainly working. T324's parent-session identifier fixes the first, and
+    /// <see cref="TranscriptTail.SessionsWrittenSince"/> — the file's own timestamp, which covers the
+    /// pause a turn does not — fixes the second.
+    /// </remarks>
+    public int ActiveSessions
+    {
+        get
+        {
+            // Read the clock under the gate, then leave it: the tail keeps its own lock, and nesting
+            // the two would be an ordering nobody else in this class has to honour.
+            double now;
+            lock (_gate) now = _lastTick > 0 ? _lastTick : DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            return _tail.SessionsWrittenSince(now - ActiveSeconds);
+        }
+    }
 
     /// <summary>
     /// The history split by project, in <b>slot order</b>, capped at <see cref="MaxProjects"/> with the

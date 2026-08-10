@@ -209,8 +209,11 @@ nothing is running: work on another machine or on claude.ai leaves no transcript
 If you run Claude Code in **more than one repo at once**, that upper chart is the answer to the
 question you actually have — not *how fast* but *where*. The heaviest four repos get a line and a
 direct label with their own rate; anything past that folds into a single grey "others", and the row
-above says how many sessions are active (a session counts as active when it has produced a turn in the
-last two minutes, not merely because a terminal is open).
+above says how many **conversations** are active — one per conversation, so a `/workflow` that fanned
+out to eleven agents still counts as the one session you started. Active means *something was written
+to its transcript in the last two minutes*, which is deliberately broader than "answered": a tab
+waiting on a three-minute build is still working and still counted. A terminal left open and untouched
+is not.
 
 `ClaudeTray.exe --activity` prints the measured week as a heatmap if you want to see the shape
 the projection is following.

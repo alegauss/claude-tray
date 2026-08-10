@@ -917,31 +917,6 @@ that name them move in the same commit: two in the `roadmap-docs` skill, one in 
 Worth checking first whether `[rules.<role>]` can give the strategy role its own anchor pattern,
 which would be the answer that does not depend on picking numbers that happen to be free.
 
-## LV What 'sessions active' is counting (T326)
-
-The headline on the Throughput tab ends in *"2 sessions active"*, and the number is
-`LiveRate.ActiveSessions`: transcript file names that carried a turn in the last `ActiveSeconds` —
-120. Two things follow that nobody chose, and they pull in opposite directions.
-
-**It over-counts a fan-out.** Every `agent-<id>.jsonl` is its own file, so a workflow of eleven
-agents reports eleven sessions plus the one that spawned them. Reproduced: one main transcript and
-one workflow agent read as `2 act`, and there is one conversation there. T324's parent-session
-identifier is what makes this countable, which is why it is the dep.
-
-**It under-counts a person.** Reported from use — two tabs open on this repo, only one session on
-screen — and the transcripts say the reading was right on the definition and wrong on the question.
-A turn is an assistant response; a tab waiting on a three-minute build, on a long tool call, or on
-the user typing produces none, so it ages out at 120 seconds while it is plainly working. Measured
-across the two claude-tray transcripts open that day, the pair was never inside one window at all.
-
-So the count answers *"how many conversations produced a turn in the last two minutes"* and is
-labelled *"sessions active"*, which reads as *"how many are open"*. Either the label moves to the
-narrower claim or the reading moves to the broader one — and the broader one is available without a
-second scan, because the tail already knows each session's last write and the file's own timestamp
-covers the pause a turn does not. What must not happen is the third option: raising `ActiveSeconds`
-until the two readings look the same, which would count a terminal left open all week and is the
-reason the 120 was chosen.
-
 ## LVI The session as a type (T327)
 
 Every reader in this app aggregates over a **window** (`UsageReport`, five hours and seven days), a

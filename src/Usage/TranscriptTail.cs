@@ -113,6 +113,10 @@ internal sealed class TranscriptTail : IDisposable
     private readonly Dictionary<string, double> _seen = new(StringComparer.Ordinal);
     // Slug → the project's real folder name, learned from any line's cwd. One entry per project.
     private readonly Dictionary<string, string> _names = new(StringComparer.OrdinalIgnoreCase);
+    // Session id → when its transcript was last *written*, whether or not the write held a reportable
+    // turn (T326). One entry per conversation seen inside the freshness window; a fan-out's agents fold
+    // into the session that spawned them, because that is what Locate calls their session.
+    private readonly Dictionary<string, double> _written = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _gate = new();
 
     // Paths the watcher named since the last sweep — the cheap sweep's whole work list (T103).
@@ -257,6 +261,7 @@ internal sealed class TranscriptTail : IDisposable
                 // Metadata only — a transcript nobody has written to since the freshness floor cannot
                 // hold a turn worth reporting, so it is never opened.
                 if (fi.LastWriteTimeUtc < cutoffUtc) continue;
+                Note(fi);
                 ReadAppended(fi, floor, ceiling, ref found);
             }
 
@@ -269,6 +274,11 @@ internal sealed class TranscriptTail : IDisposable
                 if (_seen.Count > 0)
                     foreach (string old in _seen.Where(kv => kv.Value < floor).Select(kv => kv.Key).ToList())
                         _seen.Remove(old);
+                // Same bound, same reason: a session nothing has written to since the floor cannot be
+                // active under any window a caller may ask for, so it stops being remembered.
+                if (_written.Count > 0)
+                    foreach (string old in _written.Where(kv => kv.Value < floor).Select(kv => kv.Key).ToList())
+                        _written.Remove(old);
 
                 _sweeps++;
                 _lastSweepMs = Stopwatch.GetElapsedTime(t0).TotalMilliseconds;
@@ -295,6 +305,44 @@ internal sealed class TranscriptTail : IDisposable
         if (found is { Count: > 0 })
         {
             try { Appended?.Invoke(found); } catch { /* a bad handler must not kill the feed */ }
+        }
+    }
+
+    // A transcript's modification time, filed under the conversation it belongs to. This is the whole
+    // of what T326 needed and it costs nothing: the sweep is already holding the FileInfo, so the
+    // broader reading of "active" needs no second scan of the tree.
+    private void Note(FileInfo fi)
+    {
+        double at;
+        try { at = new DateTimeOffset(fi.LastWriteTimeUtc, TimeSpan.Zero).ToUnixTimeSeconds(); }
+        catch { return; }   // an unrepresentable stamp is not a session
+        Locate(_dir, fi.FullName, out _, out string session, out _, out _);
+        if (session.Length == 0) return;
+        lock (_gate)
+            if (at > _written.GetValueOrDefault(session)) _written[session] = at;
+    }
+
+    /// <summary>
+    /// How many distinct conversations have had something written to them since <paramref name="sinceUnix"/>.
+    ///
+    /// <para>A <em>write</em>, deliberately, and not a reported turn (T326). A turn is an assistant
+    /// response, so a tab waiting on a three-minute build or on a long tool call produces none and used
+    /// to age out of the count while it was plainly working; the transcript, meanwhile, carries user
+    /// lines, tool results and everything else <see cref="UsageReport.TryParseSample"/> declines, and
+    /// every one of them moves the file's timestamp. What this still refuses to count is a terminal
+    /// left open and untouched — presence of a file is not activity, and widening the window until an
+    /// idle session looked busy was the wrong repair.</para>
+    ///
+    /// <para>Only what the sweep looked at is in here, which is the freshness window and no more; a
+    /// caller asking about something older than that gets what the window holds, not a full history.</para>
+    /// </summary>
+    public int SessionsWrittenSince(double sinceUnix)
+    {
+        lock (_gate)
+        {
+            int n = 0;
+            foreach (double at in _written.Values) if (at >= sinceUnix) n++;
+            return n;
         }
     }
 
