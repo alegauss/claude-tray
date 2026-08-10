@@ -4,17 +4,22 @@ using System.Text;
 namespace ClaudeTray;
 
 /// <summary>One assistant turn seen by the tail reader: when it landed, what it cost, the
-/// <c>~/.claude/projects/&lt;slug&gt;</c> directory it landed in, and which session file carried it.</summary>
+/// <c>~/.claude/projects/&lt;slug&gt;</c> directory it landed in, and which conversation carried it.</summary>
 /// <remarks><paramref name="Project"/> is the encoded slug — unique, and the right grouping key, since
 /// two worktrees of the same repo share a folder name but never a slug. <paramref name="Name"/> is
 /// that project's display name (its last two path segments, <c>turing/2026.3</c>) resolved from the
 /// session's <c>cwd</c>, which is the only way to get it
 /// right: the slug encodes path separators and literal dashes identically, so
 /// <c>d--Git-acme-claude-tray</c> cannot be split back into "claude-tray" without guessing (and
-/// guessing turns <c>...-shio-2026-3</c> into "3"). <paramref name="Session"/> is the transcript's
-/// file name. All three are identifiers the path or the header already carries — no content.</remarks>
+/// guessing turns <c>...-shio-2026-3</c> into "3"). <paramref name="Session"/> is the conversation the
+/// turn belongs to — the session <em>id</em>, which for a fan-out's transcript is the folder it was
+/// written under and not that file's own stem, so an agent's tokens land on the session that spawned
+/// it. <paramref name="Workflow"/> and <paramref name="Agent"/> are the fan-out's own ids where the
+/// path carries them and <c>null</c> on a plain session transcript (T324). All of them are
+/// identifiers the path or the header already carries — no content.</remarks>
 internal readonly record struct TailSample(
-    double Unix, TokenBits Bits, string Project, string Session, string Name);
+    double Unix, TokenBits Bits, string Project, string Session, string Name,
+    string? Workflow = null, string? Agent = null);
 
 /// <summary>What the last sweep cost, so "only the bytes appended" is a number and not a claim.
 /// <paramref name="Files"/> is what the last <em>full</em> sweep enumerated; <paramref name="Sweeps"/>
@@ -414,8 +419,8 @@ internal sealed class TranscriptTail : IDisposable
 
         lock (_gate) _bytesRead += read;
 
-        string project = ProjectOf(fi);
-        string session = System.IO.Path.GetFileNameWithoutExtension(fi.Name);
+        Locate(_dir, fi.FullName, out string project, out string session,
+               out string? workflow, out string? agent);
         double skip = cur.SkipUpTo;
         cur.SkipUpTo = 0;
 
@@ -442,14 +447,57 @@ internal sealed class TranscriptTail : IDisposable
             }
             string name;
             lock (_gate) name = _names.TryGetValue(project, out string? n) ? n : ProjectSlug.Tail(project);
-            (found ??= new()).Add(new TailSample(t, bits, project, session, name));
+            (found ??= new()).Add(new TailSample(t, bits, project, session, name, workflow, agent));
         }
     }
 
-    // The transcript path already encodes the project directory — the same key ContextScanner groups
-    // by — so attribution is free and needs no content.
-    private static string ProjectOf(FileInfo fi)
-        => fi.Directory?.Name ?? "?";
+    /// <summary>
+    /// Everything the transcript's <em>path</em> says about a turn: the project it belongs to, the
+    /// conversation inside that project, and — for a fan-out — the workflow and agent that produced it.
+    /// Attribution stays free and reads no content, because these are directory names.
+    ///
+    /// <para>The three shapes Claude Code writes, all relative to <c>~/.claude/projects</c>:
+    /// <c>&lt;slug&gt;/&lt;session&gt;.jsonl</c> for a conversation,
+    /// <c>&lt;slug&gt;/&lt;session&gt;/subagents/agent-&lt;id&gt;.jsonl</c> for one it fanned out to, and
+    /// <c>&lt;slug&gt;/&lt;session&gt;/subagents/workflows/wf_&lt;id&gt;/agent-&lt;id&gt;.jsonl</c> under a
+    /// workflow. Taking the <em>containing</em> folder was right for the first shape only, and against
+    /// the third it filed a workflow's tokens under a project named after the workflow folder — which
+    /// <see cref="ProjectSlug.Tail"/> then shortened to the digits after its last dash, so
+    /// <c>wf_475bc61a-315</c> drew a legend row called "315" holding tokens that were the repo's
+    /// (T324). The grouping key is the first segment under the root, which is the only derivation that
+    /// survives a layout with subdirectories.</para>
+    ///
+    /// <para>A path this does not recognise — a stray <c>.jsonl</c> at the root, or something outside
+    /// it entirely — keeps the old fallbacks rather than guessing: no project, and the file stem as the
+    /// session.</para>
+    /// </summary>
+    internal static void Locate(string root, string path, out string project, out string session,
+                                out string? workflow, out string? agent)
+    {
+        project = "?";
+        session = System.IO.Path.GetFileNameWithoutExtension(path);
+        workflow = null;
+        agent = null;
+
+        string rel;
+        try { rel = System.IO.Path.GetRelativePath(root, path); }
+        catch { return; }
+        if (System.IO.Path.IsPathRooted(rel) || rel.StartsWith("..", StringComparison.Ordinal)) return;
+
+        string[] parts = rel.Split(new[] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar },
+                                   StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2) return;   // directly in the root: no slug to file it under
+
+        project = parts[0];
+        if (parts.Length == 2) return;  // <slug>/<session>.jsonl — the stem already is the session id
+
+        // Anything deeper was written *under* a session's own folder, so that folder names the
+        // conversation and this file is one of its agents.
+        session = parts[1];
+        agent = System.IO.Path.GetFileNameWithoutExtension(path);
+        foreach (string segment in parts)
+            if (segment.StartsWith("wf_", StringComparison.Ordinal)) { workflow = segment; break; }
+    }
 
     /// <summary>
     /// The project's display name, resolved by matching the slug against the recorded <c>cwd</c> —

@@ -917,31 +917,6 @@ that name them move in the same commit: two in the `roadmap-docs` skill, one in 
 Worth checking first whether `[rules.<role>]` can give the strategy role its own anchor pattern,
 which would be the answer that does not depend on picking numbers that happen to be free.
 
-## LIV The project a subagent's tokens are filed under (T324)
-
-`TranscriptTail.ProjectOf` is one line — `fi.Directory?.Name` — and it is right for exactly the
-layout that existed when it was written. Since then Claude Code writes a fan-out's agents beside the
-session that spawned them: `<slug>/<session>/subagents/agent-<id>.jsonl`, and under a workflow
-`<slug>/<session>/subagents/workflows/wf_<id>/agent-<id>.jsonl`. The containing directory of those
-files is not the project slug. There are 31 such directories on this machine today.
-
-Reproduced against a synthetic tree of exactly that shape, with one turn in the main transcript and
-one in a workflow agent: `--live` drew two lines, the second a project named **315** — the workflow
-folder `wf_475bc61a-315` fell through `ProjectSlug.Tail`, which splits on dashes because a slug
-encodes path separators as dashes. It took palette slot 1, a legend row and half the rate, and every
-token of it belonged to the repo on slot 0.
-
-The fix is that the grouping key is the **first path segment under the tail's root**, not the parent
-folder — the same derivation `measure-usage.mjs` uses, and the only one that survives a layout with
-subdirectories. `TailSample` grows the two identifiers the path already carries beside it: the
-**session** it belongs to (the segment, not the file stem) and, when present, the **workflow** and
-**agent** ids. Nothing new is read from a line, so §I.1 is untouched — these are path segments.
-
-The identifiers are what T326 needs to count a session once, and what Block AK's drill-down draws a
-call tree from, so they are added here rather than invented twice. A fixture with a workflow subtree
-belongs in `--selftest`: the defect is invisible on a tree that has none, which is why three months
-of real use never showed it.
-
 ## LV What 'sessions active' is counting (T326)
 
 The headline on the Throughput tab ends in *"2 sessions active"*, and the number is

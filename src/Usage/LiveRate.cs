@@ -374,7 +374,8 @@ internal sealed class LiveRate
                     b.CacheRead + s.Bits.CacheRead);
 
                 // Attribution is free: the transcript's path already names the project directory and
-                // the session file. Same non-cache-read definition as the headline rate.
+                // the conversation — including for a fan-out's agents, which file under the session
+                // that spawned them (T324). Same non-cache-read definition as the headline rate.
                 if (s.Project.Length > 0)
                 {
                     if (!_byProject.TryGetValue(s.Project, out long[]? ring))

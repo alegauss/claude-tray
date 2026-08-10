@@ -246,6 +246,9 @@ internal static class SelfTestCli
 
             Section("tail — the primed cursor over a large transcript (Block K)");
             Temp(Primed);
+
+            Section("tail — where a fan-out's agents file (Block K)");
+            Temp(FanOut);
         }
 
         // Last, and nothing may be added after it: sampling the environment is one-way for the process
@@ -5684,6 +5687,63 @@ internal static class SelfTestCli
         Check("an append after a primed read is not re-aligned away",
               Wait(() => Count(seen) == expected + 1), $"{Count(seen)} samples, expected {expected + 1}");
         lock (seen) Check("and arrives whole", seen.Any(s => s.Bits.Input == 9999));
+    }
+
+    // ---------------------------------------------------------------- Block K: where a fan-out files
+
+    /// <summary>
+    /// T324: a tree with the two shapes a fan-out writes — <c>subagents/agent-&lt;id&gt;.jsonl</c> and
+    /// <c>subagents/workflows/wf_&lt;id&gt;/agent-&lt;id&gt;.jsonl</c> — beside a plain session transcript.
+    ///
+    /// <para>Every tail fixture until now was one file in one folder, which is exactly the layout the
+    /// old "containing directory is the project" rule was right for; that is why three months of real
+    /// use never showed a workflow's tokens being drawn as a project of their own, named after the
+    /// <c>wf_</c> folder. The turns carry distinct input counts so an assertion can say <em>which</em>
+    /// file a sample came from.</para>
+    /// </summary>
+    private static void FanOut(string root)
+    {
+        string projects = Path.Combine(root, "projects");
+        string slug = Path.Combine(projects, "d--selftest");
+        string session = Path.Combine(slug, "sess-1");
+        string agents = Path.Combine(session, "subagents");
+        string flow = Path.Combine(agents, "workflows", "wf_475bc61a-315");
+        Directory.CreateDirectory(flow);
+
+        DateTime now = DateTime.Now;
+        File.WriteAllText(Path.Combine(slug, "sess-1.jsonl"), Turn(now, "main", 1) + "\n");
+        File.WriteAllText(Path.Combine(agents, "agent-aaa.jsonl"), Turn(now, "sub", 2) + "\n");
+        File.WriteAllText(Path.Combine(flow, "agent-bbb.jsonl"), Turn(now, "wf", 3) + "\n");
+
+        using var tail = new TranscriptTail(projects);
+        var seen = new List<TailSample>();
+        tail.Appended += batch => { lock (seen) seen.AddRange(batch); };
+        tail.Start();
+
+        if (!Check("all three transcripts of a fan-out are read", Wait(() => Count(seen) >= 3),
+                   $"{Count(seen)} of 3")) return;
+
+        TailSample[] got;
+        lock (seen) got = seen.ToArray();
+        TailSample Sample(int input) => got.First(s => s.Bits.Input == input);
+
+        Check("a workflow agent's tokens are not a project of their own",
+              got.All(s => s.Project == "d--selftest"),
+              string.Join(", ", got.Select(s => s.Project).Distinct()));
+        Check("and the display name never becomes the digits after the workflow folder's last dash",
+              got.All(s => s.Name != ProjectSlug.Tail("wf_475bc61a-315")),
+              ProjectSlug.Tail("wf_475bc61a-315"));
+        Check("every agent files under the session that spawned it, not under its own file name",
+              got.All(s => s.Session == "sess-1"),
+              string.Join(", ", got.Select(s => s.Session).Distinct()));
+        Check("a plain session transcript carries no workflow and no agent",
+              Sample(1) is { Workflow: null, Agent: null });
+        Check("a subagent carries its own id and no workflow",
+              Sample(2) is { Workflow: null, Agent: "agent-aaa" },
+              $"{Sample(2).Workflow ?? "-"} / {Sample(2).Agent ?? "-"}");
+        Check("a workflow's agent carries both ids",
+              Sample(3) is { Workflow: "wf_475bc61a-315", Agent: "agent-bbb" },
+              $"{Sample(3).Workflow ?? "-"} / {Sample(3).Agent ?? "-"}");
     }
 
     private static int Count(List<TailSample> seen) { lock (seen) return seen.Count; }
