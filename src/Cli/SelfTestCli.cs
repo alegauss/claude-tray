@@ -258,6 +258,9 @@ internal static class SelfTestCli
 
             Section("sessions — one row per conversation (Block AK)");
             Temp(Sessions);
+
+            Section("sessions — the one field a person wrote (Block AK)");
+            Temp(OpeningPrompt);
         }
 
         // Last, and nothing may be added after it: sampling the environment is one-way for the process
@@ -5784,6 +5787,14 @@ internal static class SelfTestCli
         // two content blocks, the same usage on each, which is what Claude Code actually writes.
         string twice = Turn(now.AddMinutes(-30), "req-2", 500);
         File.WriteAllText(Path.Combine(slug, "sess-1.jsonl"),
+                          // Three `user` lines before the first turn, in the order a real transcript
+                          // has them: the IDE announcing a file, a system reminder, and only then the
+                          // person. The first two are the harness writing about itself, and taking
+                          // either as the prompt is what the first capture of that column did.
+                          Prompt("<ide_opened_file>The user opened the file d:\\x\\y.cs") + "\n" +
+                          Prompt("<system-reminder>a reminder</system-reminder>") + "\n" +
+                          Prompt("  the real\n  question  ") + "\n" +
+                          Prompt("a later message that is not the opening one") + "\n" +
                           Turn(now.AddHours(-1), "req-1", 100) + "\n" + twice + "\n" + twice + "\n");
         // Its fan-out, in a different file, under a different model.
         File.WriteAllText(Path.Combine(flow, "agent-aaa.jsonl"),
@@ -5806,6 +5817,8 @@ internal static class SelfTestCli
               r.Models.Contains("claude-selftest-mini"), string.Join(",", r.Models));
         Check("the project is the slug, and its name comes from a cwd the transcript carried",
               r.Project == "d--selftest" && r.Name.Length > 0, $"{r.Project} / {r.Name}");
+        Check("the opening prompt is the first line a person actually typed",
+              r.Prompt == "the real question", r.Prompt);
 
         // The cache: same answer, nothing re-read. A row served from the cache that disagrees with the
         // row the scan produced is the failure this exists for.
@@ -5827,6 +5840,53 @@ internal static class SelfTestCli
                           mode: ActivityProfile.SweepCacheMode.Rebuild, cacheFile: cache);
         Check("--refresh re-reads every transcript past the cache",
               forced.Read == forced.Files, $"{forced.Read} of {forced.Files}");
+    }
+
+    /// <summary>One <c>user</c> line carrying one text block — the shape §I.1's amended exception reads,
+    /// and the only line type in this file that is not a turn.</summary>
+    private static string Prompt(string text)
+        => "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":" +
+           System.Text.Json.JsonSerializer.Serialize(text) + "}]}}";
+
+    /// <summary>
+    /// T334: the three rules the opening prompt stands on, none of which are about tokens — the harness's
+    /// own <c>user</c> lines are declined, a slash command is reassembled from the tags that carry it,
+    /// and the cap is applied before anything is stored. Pure, so it asserts the reader and not a scan.
+    /// </summary>
+    private static void OpeningPrompt(string root)
+    {
+        string projects = Path.Combine(root, "projects");
+        string slug = Path.Combine(projects, "d--selftest");
+        Directory.CreateDirectory(slug);
+        DateTime now = DateTime.Now;
+
+        string Only(string first)
+        {
+            string file = Path.Combine(slug, "sess-p.jsonl");
+            File.WriteAllText(file, first + "\n" + Turn(now, "req", 10) + "\n");
+            IReadOnlyList<SessionRow> rows = SessionIndex.Load(projectsDir: projects);
+            return rows.Count == 1 ? rows[0].Prompt : "<" + rows.Count + " rows>";
+        }
+
+        Check("a slash command is what the person typed, name and arguments together",
+              Only(Prompt("<command-message>loop</command-message>\n<command-name>/loop</command-name>\n" +
+                          "<command-args>1m do the thing</command-args>")) == "/loop 1m do the thing",
+              Only(Prompt("<command-message>loop</command-message>\n<command-name>/loop</command-name>\n" +
+                          "<command-args>1m do the thing</command-args>")));
+        Check("a command with no arguments is still the command",
+              Only(Prompt("<command-name>/status</command-name>")) == "/status");
+        Check("a tool result is never the opening prompt",
+              Only("{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":" +
+                   "[{\"type\":\"tool_result\",\"content\":\"ok\"}]}}") == "");
+        Check("nor is a subagent's own prompt",
+              Only("{\"type\":\"user\",\"isSidechain\":true,\"message\":{\"role\":\"user\"," +
+                   "\"content\":[{\"type\":\"text\",\"text\":\"agent brief\"}]}}") == "");
+
+        // The cap is the whole safety margin, and it is applied before the value is stored — so this
+        // asserts the *stored* length, not a display that could be trimming a longer string.
+        string huge = Only(Prompt(new string('x', SessionIndex.PromptChars * 3)));
+        Check($"a long prompt is cut to {SessionIndex.PromptChars} characters, with an ellipsis saying so",
+              huge.Length == SessionIndex.PromptChars + 1 && huge.EndsWith('…'), $"{huge.Length} chars");
     }
 
     /// <summary>

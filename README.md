@@ -232,10 +232,12 @@ many turns and how many tokens. A fan-out is one row, not twelve — a workflow'
 the session that spawned them, which is where their cost actually belongs. Sort by clock or by tokens
 on the column header, and pick the range: the last 7 days by default, 30 days, or everything on disk.
 
-Rows carry **no prompt, no title and no summary**, and that is a decision rather than an omission: a
-list of conversations is exactly where a subject line would be wanted, which makes it the one surface
-that could erode "never reads what you wrote". Project plus clock is enough to find the morning you
-are looking for, and the hover carries the session id — the string `claude --resume` takes.
+Under each project sits **the prompt that opened the conversation, truncated to 200 characters** —
+the one place in this app that shows something you wrote, and the reason it exists is that there is
+nothing else to show: Claude Code stores no title anywhere, and what `/resume` displays as one is your
+own first message. The cap is applied before the text is stored, so the cache never holds more than
+the row does; nothing further into the conversation is read, and no other screen, toast, report or
+published screenshot carries it. The hover adds the session id — the string `claude --resume` takes.
 
 `ClaudeTray.exe --sessions` prints the same list in a terminal, with `--all`, `--project <name>` and
 `--refresh`.
@@ -377,7 +379,7 @@ weighted by per-model price (Opus/Sonnet/Haiku/Fable) so each percentage reflect
 - **>150k context** — share of usage from requests with a large prompt context
 - **By model** — top models by share of usage
 
-Only token counts, model ids, and flags are read — never message content. The scan is
+This scan reads only token counts, model ids, and flags — never message content. It is
 bounded to files touched in the last 24h and runs in the background (refreshed on each poll).
 
 ## Context load — what every session costs before you type

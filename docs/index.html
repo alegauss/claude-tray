@@ -740,7 +740,10 @@
       <div class="lock">🔒</div>
       <h2>Privacy by design</h2>
       <p>
-        Only token counts, model ids, and flags are ever read — <b>never your message content</b>.
+        Only token counts, model ids, and flags are read — <b>never your message content</b>, with one
+        exception you can see: the <b>Sessions</b> list shows the first 200 characters of the prompt that
+        opened each conversation, because nothing else identifies one. It is truncated before it is
+        stored, it appears on that one screen, and nothing further into a conversation is ever read.
         The insights scan is bounded to files touched in the last 24h and runs in the background.
         The rate-limit reading is a single 1-token API call every 5 minutes. Nothing leaves your machine
         beyond that, and there's nothing to log into.

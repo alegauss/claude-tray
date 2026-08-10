@@ -349,7 +349,7 @@
   "stats.tab.week": "Semana (7 días)",
   "stats.tab.throughput": "Rendimiento",
   "stats.tab.sessions": "Sesiones",
-  "stats.sessions.hint": "Adónde fue — cada conversación en esta máquina, la más reciente primero. Leído de tus transcripciones locales: proyecto, reloj y tamaño solamente, nunca lo que se dijo. Pasa el cursor por una fila para ver el id de sesión, que es el que le pasas a --resume.",
+  "stats.sessions.hint": "Adónde fue — cada conversación en esta máquina, la más reciente primero. Leído de tus transcripciones locales: el proyecto, el reloj, el tamaño y los primeros 200 caracteres del prompt que la abrió — nada más allá en la conversación. Pasa el cursor por una fila para ver el id de sesión, que es el que le pasas a --resume.",
   "stats.sessions.range": "Periodo",
   "stats.sessions.range7": "Últimos 7 días",
   "stats.sessions.range30": "Últimos 30 días",

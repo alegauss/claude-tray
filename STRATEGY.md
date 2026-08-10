@@ -48,8 +48,9 @@ manifests and the update check all derive from it. Releases are tagged `vX.Y.Z`.
 
 The privacy promise is not a feature, it is the reason a developer is willing to point this at
 `~/.claude`: the app reads only usage counts, model ids, flags, tool/skill names and the session
-`cwd` — **never message content** — and talks to nothing but the usage API and GitHub Releases. No
-telemetry, no analytics, no crash reporting.
+`cwd` — **never message content**, save one amended exception that is visible on screen: the opening
+prompt of a conversation, truncated, on the Sessions list and nowhere else (§I.1) — and talks to
+nothing but the usage API and GitHub Releases. No telemetry, no analytics, no crash reporting.
 
 Every feature that touches `~/.claude` inherits this, and it is restated in user-facing docs on
 purpose. See [IMPROVEMENTS.md](IMPROVEMENTS.md) §I.1–§I.2 for the binding engineering form.

@@ -350,7 +350,7 @@
   "stats.tab.week": "Semana (7 dias)",
   "stats.tab.throughput": "Débito",
   "stats.tab.sessions": "Sessões",
-  "stats.sessions.hint": "Para onde foi — cada conversa nesta máquina, da mais recente para a mais antiga. Lido das suas transcrições locais: projeto, relógio e dimensão apenas, nunca o que foi dito. Passe o rato sobre uma linha para ver o id da sessão, que é o que passa ao --resume.",
+  "stats.sessions.hint": "Para onde foi — cada conversa nesta máquina, da mais recente para a mais antiga. Lido das suas transcrições locais: o projeto, o relógio, a dimensão e os primeiros 200 caracteres do prompt que a abriu — nada mais adiante na conversa. Passe o rato sobre uma linha para ver o id da sessão, que é o que passa ao --resume.",
   "stats.sessions.range": "Período",
   "stats.sessions.range7": "Últimos 7 dias",
   "stats.sessions.range30": "Últimos 30 dias",

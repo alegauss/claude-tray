@@ -56,9 +56,10 @@
             </Setter>
         </Style>
 
-        <!-- ===== One conversation, as a row (T328). Five columns and no sixth: project, clock,
-             duration, turns, tokens. A subject line is what a list like this invites and what §I.1
-             forbids, so the identifiers that make a row actionable live on the hover instead. -->
+        <!-- ===== One conversation, as a row (T328). Project, clock, duration, turns, tokens — and,
+             since T334, the opening prompt under the project. That last one is §I.1's single amended
+             exception and the only thing here a person wrote; it is truncated by the index before it
+             is stored, so this template is a display and not a second place the cap is decided. -->
         <DataTemplate x:Key="SessionRowTemplate">
             <Border Padding="8,7" CornerRadius="5" Background="Transparent" ToolTip="{Binding Tip}">
                 <Grid>
@@ -69,17 +70,27 @@
                         <ColumnDefinition Width="64" />
                         <ColumnDefinition Width="84" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{Binding Project}" FontSize="13"
-                               TextTrimming="CharacterEllipsis" Margin="0,0,10,0"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                    <TextBlock Grid.Column="1" Text="{Binding When}" FontSize="13"
+                    <!-- Project over prompt, in that order and in that weight: which repo a prompt
+                         was typed in is half of recognising it, so the identifier leads and the
+                         person's own words sit under it, dimmer and on one trimmed line. The numeric
+                         columns are top-aligned against that first line rather than centred on a
+                         two-line cell, so the eye still reads straight across a row. -->
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="{Binding Project}" FontSize="13"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                        <TextBlock Text="{Binding Prompt}" Visibility="{Binding PromptVisibility}"
+                                   FontSize="12" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="{Binding When}" FontSize="13" VerticalAlignment="Top"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                    <TextBlock Grid.Column="2" Text="{Binding Duration}" FontSize="13"
+                    <TextBlock Grid.Column="2" Text="{Binding Duration}" FontSize="13" VerticalAlignment="Top"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                    <TextBlock Grid.Column="3" Text="{Binding Turns}" FontSize="13"
+                    <TextBlock Grid.Column="3" Text="{Binding Turns}" FontSize="13" VerticalAlignment="Top"
                                HorizontalAlignment="Right" Margin="0,0,12,0"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                    <TextBlock Grid.Column="4" Text="{Binding Tokens}" FontSize="13"
+                    <TextBlock Grid.Column="4" Text="{Binding Tokens}" FontSize="13" VerticalAlignment="Top"
                                HorizontalAlignment="Right"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 </Grid>

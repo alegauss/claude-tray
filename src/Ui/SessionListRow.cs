@@ -1,3 +1,5 @@
+using System.Windows;
+
 namespace ClaudeTray;
 
 /// <summary>
@@ -8,10 +10,13 @@ namespace ClaudeTray;
 /// it silently.</para>
 ///
 /// <para><b>What a row may say is the whole design (§I.1).</b> Project, clock, duration, turns,
-/// tokens. Not the prompt, not a title, not a summary: a list of conversations is precisely where a
-/// person wants a subject line, which makes this the surface that would erode the promise. Project
-/// plus clock is enough to recognise the morning being looked for, and the session id sits on the
-/// hover for matching against <c>--resume</c> — an identifier, not content.</para>
+/// tokens — and, since T334, the prompt that opened the conversation, truncated to
+/// <see cref="SessionIndex.PromptChars"/>. That last one is the constraint's <em>one</em> amended
+/// exception and not a precedent: it is here because Claude Code stores no title (measured: no
+/// <c>summary</c> line in 664 transcripts), so nothing else makes a row recognisable. It is read
+/// once, truncated before it is stored, and shown under the project it was typed in — because which
+/// repo a prompt belongs to is half of recognising it. No other surface in the app gains it, and the
+/// session id still sits on the hover for matching against <c>--resume</c>.</para>
 /// </summary>
 public sealed class SessionListRow
 {
@@ -35,6 +40,10 @@ public sealed class SessionListRow
         Tokens = TokenEstimate.Format((int)Math.Min(int.MaxValue,
             row.Bits.Input + row.Bits.Output + row.Bits.CacheCreate));
 
+        // Already truncated by the index — this is a display, not a second place the cap is decided.
+        Prompt = row.Prompt;
+        PromptVisibility = row.Prompt.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+
         // The hover carries the identifiers, which is what makes a row actionable without making it
         // descriptive: the id is what `claude --resume` takes.
         Tip = L.T("stats.sessions.tip", row.Session,
@@ -45,6 +54,10 @@ public sealed class SessionListRow
     internal SessionRow Row { get; }
 
     public string Project { get; }
+    public string Prompt { get; }
+    /// <summary>Collapsed when there is no readable opening prompt, so a row without one is the same
+    /// height as its neighbours rather than carrying an empty second line.</summary>
+    public Visibility PromptVisibility { get; }
     public string When { get; }
     public string Duration { get; }
     public string Turns { get; }

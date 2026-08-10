@@ -51,8 +51,19 @@ wrong even if it works.
 ### §I.1 Privacy promise
 
 The app reads only what Claude Code already stores locally, and from transcripts **only** usage
-counts, model ids, flags, tool/skill *names* and the session `cwd` — **never message content**. This
-is the app's whole trust model. Any new reader of `~/.claude` inherits it.
+counts, model ids, flags, tool/skill *names*, the session `cwd` and the **one bounded exception**
+below — never message content otherwise. This is the app's whole trust model. Any new reader of
+`~/.claude` inherits it.
+
+**The exception (T334): the opening prompt of a conversation, capped at
+`SessionIndex.PromptChars` characters, on the Sessions list and nowhere else.** It exists because
+Claude Code stores no title — measured, `"type":"summary"` appears in none of this machine's 664
+transcripts, and what `/resume` shows as one is `history.jsonl`'s `display` field, the prompt as
+typed — so the only thing that makes a row recognisable is the text that opened it. Bounded on every
+axis that can be bounded: one field, one surface, truncated before it is stored so the cache cannot
+hold what the app may not show, never exported, never in a toast, a tooltip elsewhere, a report or a
+capture published from this repo. Every other reader of a transcript stays under the sentence above,
+and `UsageReport.TryParseSample` — the parser that *is* the promise — still never returns content.
 
 ### §I.2 No network beyond two endpoints
 
@@ -83,7 +94,8 @@ cover.
 - **No tokenizer dependency.** Token counts stay estimates with a visible "≈". A real
   tokenizer would mean a native/managed dependency and break §I.3.
 - **Not a memory editor / not a config manager.** Measure and advise; hand the edit to Claude.
-- **No content display or export**, anywhere, ever — sizes, names, frontmatter, timestamps, counts.
+- **No content display or export** beyond §I.1's one amended exception — sizes, names, frontmatter,
+  timestamps, counts. Nothing is exported at all, in any case: the exception is a screen, not a file.
 - **Don't swap the UI stack.** WinForms owns the tray icon (WPF has no native tray support); WPF owns
   windows. Both live on one STA thread pumped by `Application.Run(new TrayContext())`. This is
   settled — see [AGENTS.md](AGENTS.md).
@@ -1046,29 +1058,3 @@ segmentation task is the dep because it is where both rules live.
 
 The reading a person takes from it is theirs to act on. The app says `/loop` was 57% of the week; it
 does not say run fewer loops, for the same reason it never says work less.
-
-## LXIII The one thing a row may say that a person wrote (T334)
-
-Claude Code writes no title. Searched for: `"type":"summary"` appears in none of this machine's 664
-transcripts, `~/.claude.json` keeps nothing per session, and the string `/resume` shows as a title
-is `history.jsonl`'s `display` field — the prompt as typed. There is no derived label to borrow, so
-the question the Sessions list cannot answer has exactly one answer available.
-
-The owner has decided to permit it, after the constraint was put in front of them. That makes this
-an amendment to a binding constraint before it is a column, and the order matters: the promise is
-written in several places a user reads, and a column shipping ahead of them would make each one a
-lie.
-
-**What the amendment says.** Not that the app may read message content — that stays refused
-everywhere else, and the parser is still the promise. One bounded exception: the prompt that opened
-a conversation, capped at 200 characters, stored in the index and drawn on the Sessions row under
-the project it belongs to, because which repo a prompt was typed in is half of recognising it.
-Nothing else is read, nothing is exported, no other surface gains it.
-
-**What moves with it.** The house constraint; the roadmap's non-goal summary; the README and the
-published page, where "no prompt, no title, no summary" is an argument in prose today; and the row's
-own doc comment, which states the rule as absolute. The five language files gain nothing — the
-prompt is the user's own text and is never translated.
-
-Truncation is the whole safety margin, so it is a named constant rather than a literal at a call
-site, and the cache holds the truncated string only: what is not stored cannot leak from the store.

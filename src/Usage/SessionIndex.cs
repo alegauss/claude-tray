@@ -18,9 +18,13 @@ namespace ClaudeTray;
 /// <param name="Agents">How many separate transcripts the fan-out wrote — 0 for a session that never
 /// fanned out. Their cost is already inside <paramref name="Bits"/>; this says how much of the
 /// conversation is not in its own file.</param>
+/// <param name="Prompt">The text that opened the conversation, truncated to
+/// <see cref="SessionIndex.PromptChars"/> — §I.1's one amended exception (T334), and the only field
+/// here a person wrote. Empty when the transcript carries no readable opening prompt.</param>
 internal readonly record struct SessionRow(
     string Session, string Project, string Name,
-    double FirstUnix, double LastUnix, int Calls, TokenBits Bits, string[] Models, int Agents)
+    double FirstUnix, double LastUnix, int Calls, TokenBits Bits, string[] Models, int Agents,
+    string Prompt = "")
 {
     /// <summary>Wall-clock seconds from the first answered turn to the last. Zero for a session with a
     /// single turn, which is a real answer and not a missing one.</summary>
@@ -62,6 +66,25 @@ internal static class SessionIndex
     /// <summary>The same ceiling the hour sweep uses, and for the same reason: a tree far larger than
     /// any real one is a bug somewhere else, and a scan that never returns is worse than a short one.</summary>
     public const int MaxFiles = 20_000;
+
+    /// <summary>
+    /// How much of a conversation's opening prompt may be kept — §I.1's one amended exception (T334).
+    ///
+    /// <para>A named constant rather than a literal at the call site because it <b>is</b> the safety
+    /// margin: it bounds what the store holds, not merely what the list draws, so the truncation
+    /// happens before anything is written and what is not stored cannot leak from the store. Changing
+    /// this number changes the promise, which is the reason it is spelled once.</para>
+    /// </summary>
+    public const int PromptChars = 200;
+
+    /// <summary>
+    /// Cache schema generation. Bumped whenever a cached entry gains a field <em>or an existing field
+    /// changes meaning</em> — T334 added the prompt at 2 and taught it to skip the harness's own
+    /// <c>user</c> lines at 3, and the second of those is the instructive one: the files had not
+    /// changed, so a size+mtime key kept serving the old answer and the fix was invisible on every row
+    /// that had not been touched since. See <see cref="FileEntry.V"/>.
+    /// </summary>
+    private const int Schema = 3;
 
     private static readonly StringComparer PathComparer = StringComparer.OrdinalIgnoreCase;
 
@@ -144,6 +167,7 @@ internal static class SessionIndex
 
         var entry = new FileEntry
         {
+            V = Schema,
             Path = file.FullName,
             Bytes = SafeLength(file),
             Ticks = SafeTicks(file),
@@ -160,6 +184,11 @@ internal static class SessionIndex
             foreach (string line in File.ReadLines(file.FullName))
             {
                 read += line.Length;
+                // The one field a person wrote, taken once, from the conversation's own transcript
+                // and never from an agent's (§I.1's exception is about the prompt *you* typed).
+                if (!entry.Agent && entry.Prompt.Length == 0 && TryReadOpeningPrompt(line, out string opening))
+                    entry.Prompt = opening;
+
                 if (!UsageReport.LooksLikeSample(line)) continue;
                 if (!UsageReport.TryParseSample(line, 0, double.MaxValue, out double t, out TokenBits bits,
                                                 out string? id, out string? cwd, out string? model))
@@ -187,6 +216,110 @@ internal static class SessionIndex
         return entry;
     }
 
+    /// <summary>
+    /// The text that opened a conversation, truncated to <see cref="PromptChars"/>.
+    ///
+    /// <para><b>This is the only content reader in the app, and it is deliberately not in the
+    /// parser.</b> <see cref="UsageReport.TryParseSample(string, double, double, out double, out TokenBits, out string?, out string?, out string?)"/>
+    /// is the promise every other transcript reader stands on and it still returns no content; putting
+    /// this beside it would quietly widen what all of them may see. It lives here, named for exactly
+    /// what it does, so an audit of §I.1 has one place to look.</para>
+    ///
+    /// <para>Refused, not merely skipped: a <c>tool_result</c> (a user-typed line is not the only kind
+    /// of <c>user</c> line), a sidechain — a subagent's prompt is the app's own fan-out and not
+    /// something the person typed — and a meta line, which is Claude Code talking to itself. The first
+    /// line that survives all three is the opening prompt, and nothing after it is read.</para>
+    ///
+    /// <para>Truncation happens <em>here</em>, before the value reaches an entry, so the cache holds
+    /// no more than the list may show. Newlines and runs of whitespace collapse to single spaces
+    /// because the destination is one row of a table, and a pasted block would otherwise arrive as a
+    /// hundred blank characters.</para>
+    /// </summary>
+    private static bool TryReadOpeningPrompt(string line, out string prompt)
+    {
+        prompt = "";
+        // Ordinal rejects first: this runs on every line of every transcript, and all but a handful
+        // of them can be dismissed without JsonDocument.
+        if (!line.Contains("\"type\":\"user\"", StringComparison.Ordinal)) return false;
+        if (line.Contains("\"tool_result\"", StringComparison.Ordinal)) return false;
+        if (line.Contains("\"isSidechain\":true", StringComparison.Ordinal)) return false;
+        if (line.Contains("\"isMeta\":true", StringComparison.Ordinal)) return false;
+
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(line);
+            System.Text.Json.JsonElement root = doc.RootElement;
+            if (!root.TryGetProperty("type", out var ty) || ty.GetString() != "user") return false;
+            if (!root.TryGetProperty("message", out var msg) ||
+                msg.ValueKind != System.Text.Json.JsonValueKind.Object) return false;
+            if (!msg.TryGetProperty("content", out var content)) return false;
+
+            string? text = null;
+            if (content.ValueKind == System.Text.Json.JsonValueKind.String)
+                text = content.GetString();
+            else if (content.ValueKind == System.Text.Json.JsonValueKind.Array)
+                foreach (System.Text.Json.JsonElement block in content.EnumerateArray())
+                {
+                    if (block.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
+                    if (!block.TryGetProperty("type", out var bt) || bt.GetString() != "text") continue;
+                    if (block.TryGetProperty("text", out var tx)) text = tx.GetString();
+                    break;   // the first text block is the prompt; the rest is not a title
+                }
+
+            if (text is not { Length: > 0 }) return false;
+            prompt = Typed(text);
+            return prompt.Length > 0;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// What the <em>person</em> typed, out of a <c>user</c> line that is often not that at all.
+    ///
+    /// <para>Measured on the first capture of this column, where nine rows in ten read
+    /// <c>&lt;command-message&gt;loop&lt;/command-message&gt; &lt;command-name&gt;/l…</c> or
+    /// <c>&lt;ide_opened_file&gt;The user opened the file d:\…</c>. Both are the harness writing a
+    /// <c>user</c> line about itself, and showing them made the column worse than empty: it looked
+    /// like content and carried none.</para>
+    ///
+    /// <para>Two rules. A <b>slash command</b> is real input, so it is reassembled from the two tags
+    /// that hold it — the name and its arguments — and reads as the person typed it. Anything else
+    /// that <em>opens</em> with a tag is the harness announcing something (an IDE file, a system
+    /// reminder, a local command's stdout), and the honest answer is to decline this line entirely so
+    /// the scan keeps looking for the first one a person wrote.</para>
+    /// </summary>
+    private static string Typed(string text)
+    {
+        if (Tag(text, "command-name") is { Length: > 0 } name)
+            return Flatten(Tag(text, "command-args") is { Length: > 0 } args ? name + " " + args : name);
+        return text.TrimStart().StartsWith('<') ? "" : Flatten(text);
+    }
+
+    private static string? Tag(string text, string name)
+    {
+        int open = text.IndexOf('<' + name + '>', StringComparison.Ordinal);
+        if (open < 0) return null;
+        open += name.Length + 2;
+        int close = text.IndexOf("</" + name + '>', open, StringComparison.Ordinal);
+        return close < 0 ? null : text[open..close];
+    }
+
+    /// <summary>One row's worth: whitespace collapsed, then cut to <see cref="PromptChars"/> with an
+    /// ellipsis so a truncated prompt is visibly truncated rather than quietly ending mid-word.</summary>
+    private static string Flatten(string text)
+    {
+        var sb = new System.Text.StringBuilder(Math.Min(text.Length, PromptChars + 1));
+        bool space = false;
+        foreach (char c in text)
+        {
+            if (char.IsWhiteSpace(c)) { space = sb.Length > 0; continue; }
+            if (space) { sb.Append(' '); space = false; }
+            if (sb.Length >= PromptChars) return sb.ToString().TrimEnd() + "…";
+            sb.Append(c);
+        }
+        return sb.ToString();
+    }
+
     // ---------------------------------------------------------------- many files → one row each
 
     private static List<SessionRow> Merge(IEnumerable<FileEntry> entries)
@@ -208,7 +341,7 @@ internal static class SessionIndex
             long input = 0, output = 0, create = 0, cached = 0;
             int calls = 0, agents = 0;
             double first = 0, last = 0;
-            string cwd = "";
+            string cwd = "", prompt = "";
             var models = new List<string>();
             foreach (FileEntry e in group)
             {
@@ -218,6 +351,7 @@ internal static class SessionIndex
                 if (e.Last > last) last = e.Last;
                 if (e.Agent) agents++;
                 if (cwd.Length == 0) cwd = e.Cwd;
+                if (prompt.Length == 0) prompt = e.Prompt;
                 foreach (string m in e.Models)
                     if (!models.Contains(m, StringComparer.Ordinal)) models.Add(m);
             }
@@ -227,7 +361,7 @@ internal static class SessionIndex
                 any.Session, any.Project,
                 cwd.Length > 0 ? ProjectSlug.NameFor(any.Project, cwd) : ProjectSlug.Tail(any.Project),
                 first, last, calls, new TokenBits(input, output, create, cached),
-                models.ToArray(), agents));
+                models.ToArray(), agents, prompt));
         }
 
         rows.Sort((a, b) => b.LastUnix.CompareTo(a.LastUnix));
@@ -240,6 +374,11 @@ internal static class SessionIndex
     /// file-identity key T92 established and T92's cache has used ever since.</summary>
     private sealed class FileEntry
     {
+        /// <summary>Schema generation. An entry written before a field existed deserializes with that
+        /// field empty and its size+mtime still matching, so it would be served as fresh forever — the
+        /// one way this cache can be silently wrong. Bumping this retires the old entries instead.</summary>
+        public int V { get; set; }
+
         public string Path { get; set; } = "";
         public long Bytes { get; set; }
         public long Ticks { get; set; }
@@ -250,6 +389,8 @@ internal static class SessionIndex
         public string Cwd { get; set; } = "";
         /// <summary>This transcript is a fan-out's, not the conversation's own file.</summary>
         public bool Agent { get; set; }
+        /// <summary>Already truncated to <see cref="PromptChars"/> — see <see cref="TryReadOpeningPrompt"/>.</summary>
+        public string Prompt { get; set; } = "";
         public double First { get; set; }
         public double Last { get; set; }
         public int Calls { get; set; }
@@ -281,7 +422,7 @@ internal static class SessionIndex
             var list = JsonSerializer.Deserialize<List<FileEntry>>(File.ReadAllText(path));
             var map = new Dictionary<string, FileEntry>(PathComparer);
             foreach (FileEntry e in list ?? new())
-                if (e.Path.Length > 0 && e.Session.Length > 0) map[e.Path] = e;
+                if (e.V == Schema && e.Path.Length > 0 && e.Session.Length > 0) map[e.Path] = e;
             return map;
         }
         catch { return new(PathComparer); }
