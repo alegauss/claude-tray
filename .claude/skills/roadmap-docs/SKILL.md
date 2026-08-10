@@ -99,6 +99,7 @@ next*.
 | The Context Load Inspector | **I** | `src\Context\*`, `ContextPage` |
 | Activity-aware pacing | **J** | `ActivityProfile`, `ActivityShape`, `HourlyUsage` |
 | Live throughput | **K** | `LiveRate`, `LiveChart`, `TranscriptTail` |
+| Sessions — one conversation, drilled into | **AK** | `SessionIndex`, the Sessions page, per-task attribution |
 | System information — this machine's install | **N** | `ClaudeAccount`, the System page |
 | Profiles — several logins on one machine | **O** | `src\Profiles\*`, `ProfileStore`, `EnvironmentProfile` |
 | Repo layout — where a file lives | **P** | the `src\` folders, `build\`, `scripts\` |

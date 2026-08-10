@@ -916,3 +916,239 @@ that name them move in the same commit: two in the `roadmap-docs` skill, one in 
 
 Worth checking first whether `[rules.<role>]` can give the strategy role its own anchor pattern,
 which would be the answer that does not depend on picking numbers that happen to be free.
+
+## LIV The project a subagent's tokens are filed under (T324)
+
+`TranscriptTail.ProjectOf` is one line — `fi.Directory?.Name` — and it is right for exactly the
+layout that existed when it was written. Since then Claude Code writes a fan-out's agents beside the
+session that spawned them: `<slug>/<session>/subagents/agent-<id>.jsonl`, and under a workflow
+`<slug>/<session>/subagents/workflows/wf_<id>/agent-<id>.jsonl`. The containing directory of those
+files is not the project slug. There are 31 such directories on this machine today.
+
+Reproduced against a synthetic tree of exactly that shape, with one turn in the main transcript and
+one in a workflow agent: `--live` drew two lines, the second a project named **315** — the workflow
+folder `wf_475bc61a-315` fell through `ProjectSlug.Tail`, which splits on dashes because a slug
+encodes path separators as dashes. It took palette slot 1, a legend row and half the rate, and every
+token of it belonged to the repo on slot 0.
+
+The fix is that the grouping key is the **first path segment under the tail's root**, not the parent
+folder — the same derivation `measure-usage.mjs` uses, and the only one that survives a layout with
+subdirectories. `TailSample` grows the two identifiers the path already carries beside it: the
+**session** it belongs to (the segment, not the file stem) and, when present, the **workflow** and
+**agent** ids. Nothing new is read from a line, so §I.1 is untouched — these are path segments.
+
+The identifiers are what T326 needs to count a session once, and what Block AK's drill-down draws a
+call tree from, so they are added here rather than invented twice. A fixture with a workflow subtree
+belongs in `--selftest`: the defect is invisible on a tree that has none, which is why three months
+of real use never showed it.
+
+## LV What 'sessions active' is counting (T326)
+
+The headline on the Throughput tab ends in *"2 sessions active"*, and the number is
+`LiveRate.ActiveSessions`: transcript file names that carried a turn in the last `ActiveSeconds` —
+120. Two things follow that nobody chose, and they pull in opposite directions.
+
+**It over-counts a fan-out.** Every `agent-<id>.jsonl` is its own file, so a workflow of eleven
+agents reports eleven sessions plus the one that spawned them. Reproduced: one main transcript and
+one workflow agent read as `2 act`, and there is one conversation there. T324's parent-session
+identifier is what makes this countable, which is why it is the dep.
+
+**It under-counts a person.** Reported from use — two tabs open on this repo, only one session on
+screen — and the transcripts say the reading was right on the definition and wrong on the question.
+A turn is an assistant response; a tab waiting on a three-minute build, on a long tool call, or on
+the user typing produces none, so it ages out at 120 seconds while it is plainly working. Measured
+across the two claude-tray transcripts open that day, the pair was never inside one window at all.
+
+So the count answers *"how many conversations produced a turn in the last two minutes"* and is
+labelled *"sessions active"*, which reads as *"how many are open"*. Either the label moves to the
+narrower claim or the reading moves to the broader one — and the broader one is available without a
+second scan, because the tail already knows each session's last write and the file's own timestamp
+covers the pause a turn does not. What must not happen is the third option: raising `ActiveSeconds`
+until the two readings look the same, which would count a terminal left open all week and is the
+reason the 120 was chosen.
+
+## LVI The session as a type (T327)
+
+Every reader in this app aggregates over a **window** (`UsageReport`, five hours and seven days), a
+**project** (`LiveRate.Projects`, the strip), or an **hour** (`ActivityProfile`). None of them
+aggregates over the thing a person actually remembers: *the conversation I had this morning that
+took an hour and felt expensive*. The session is on disk — it is the file name — and it has no type
+here.
+
+`SessionIndex` is that type, and it is a scan, not a tail: one pass over a profile's
+`projects/**/*.jsonl` producing one row per session. Per row, from lines the app already parses:
+project slug and display name, first and last turn, calls, the four token classes, the models seen,
+and whether it fanned out. Nothing is read that `UsageReport.TryParseSample` does not already read,
+so §I.1 holds by construction — the parser is the promise.
+
+Three things it must get right, all learned from `measure-usage.mjs` doing them:
+
+**Subagents fold into their parent.** A fan-out's cost lives in a different file from the session
+that caused it, so a scan that treats files as sessions reports the coordinator as cheap. T324's
+path derivation is the dep.
+
+**One response is several lines.** Claude Code writes one line per content block, each repeating the
+same `usage`, so a scan that does not dedupe on `requestId` inflates every total. `UsageReport`
+already does this; the index must too, and for the same reason.
+
+**A profile's own transcripts, not the machine's.** `ProfileRef` travels into every other reader
+since T128 and travels into this one.
+
+Cost is the open question and belongs in this task: the full sweep is ~15s cold on this machine, so
+the index is cached per profile with the file-identity key T92 already established, and rebuilt from
+mtimes rather than from scratch.
+
+## LVII A Sessions pane, and what a row may say (T328)
+
+A fourth pane on the Statistics window — beside Session, Week and Throughput — listing the profile's
+conversations, newest first. One row per session: when it ran, how long it lasted, which project,
+how many turns, and its tokens. The list is the destination; what a row *opens into* is the next
+task, and keeping them apart is deliberate — a list that nobody can read is a failure the drill-down
+would hide.
+
+**Why a tab and not a column somewhere.** The existing panes answer *how much is left* and *how fast
+is it going*. This one answers *where did it go*, and that question is only askable against a list
+of nameable things. The projects strip is the nearest thing today and it names four repos and an
+"others" bucket, which is the right resolution for a chart and the wrong one for a search.
+
+**What a row may say.** Project, clock, duration, turns, tokens, models. **Not the prompt, not a
+title, not a summary** — §I.1 is absolute and this is the surface that would erode it, since a list
+of conversations is where a person wants a subject line. Project plus clock is enough to recognise
+the morning being looked for; the session id sits on hover, for matching against `--resume`.
+
+**Bounded by default.** The index covers everything on disk; the list does not. It opens on the last
+seven days — the window the app already reports on — with the range picker the Week pane uses, so a
+machine with 549 sessions does not render 549 rows to answer a question about today.
+
+Sorting is by clock, and by tokens on the column header. Empty is a legible state: a profile with no
+transcripts says so rather than drawing a frame around nothing.
+
+## LVIII The call tree under one session (T329)
+
+The request that opened this block was for a **stack trace of a session**, and the shape is right:
+the call tree is on disk, and no surface in this app walks it.
+
+**Cutting a session into tasks.** A task begins when a person asks for something and ends when the
+next person-ask arrives; everything between is that task's turns. Telling a person-ask from the
+other `role:user` lines is the whole trick, and `measure-usage.mjs` has it working: skip
+`isSidechain` and `isMeta`, skip anything carrying a `tool_result` or an image, skip
+`<local-command-stdout>`, `<system-reminder>`, `Caveat:` and `[Request interrupted`. A slash command
+is **not** skipped — it is a person starting work, and those are the expensive ones. Requests
+predating the file's first prompt become one *continuation* task, or a resumed session's spend
+disappears.
+
+**The tree under a task.** A fan-out writes its agents under the session's own folder, so the
+provenance is the path: task → workflow → agent, each with its own turns and tokens. Three levels,
+drawn as a tree, and the node's own cost beside its subtree's — which is the reading that says
+whether the coordinator or the fleet was expensive.
+
+**What a node is allowed to be labelled.** The slash command's *name* (`/loop`, `/code-review`), the
+task's clock and duration, its turn count, its tokens, the agent type where the path names one. For
+a typed prompt: `Prompt` and its **length in characters**, never its text. That line is the same one
+§I.1 has always drawn — names and counts, never content — and it is drawn here explicitly because a
+drill-down is the feature most likely to argue for crossing it.
+
+Selecting a task cross-highlights the Throughput strip where the two overlap in time, so a spike on
+the chart becomes a task with a name.
+
+## LIX The cache TTL the token count throws away, and what a session is worth (T330)
+
+`TokenBits` carries four longs, and `CacheCreate` is one of them. The transcript is finer: beside
+`cache_creation_input_tokens` sits a `cache_creation` object splitting that number into
+`ephemeral_1h_input_tokens` and `ephemeral_5m_input_tokens`, and nothing here has opened it.
+Measured over this repo's transcripts: **50.5M** one-hour write tokens against **1.17M** five-minute
+ones, across 18,468 lines. Claude Code writes almost entirely at the one-hour TTL.
+
+The two are not priced alike. Against a model's base input rate a cache read is 0.1×, a five-minute
+write 1.25×, a **one-hour write 2×**. Blending them wrong misses the write component by nearly two —
+the same error the usage simulator made until it looked, where an assumed 0.2475 input multiplier
+turned out to be **0.1335** because 98.2% of context is reads.
+
+Read the split, and it is worth something: a session's tokens become a **list-price equivalent**,
+per model. Tokens rank sessions; money explains them, and a $2 conversation beside a $40 one is a
+sentence a token count does not say.
+
+**This is not T279, and the difference is the whole permission.** That task asked what an *overage
+spell actually bills*, and died because the model set is a cached flag disagreeing with observed
+traffic — it needed a fact about someone's account. This needs none: it is arithmetic over tokens
+already counted, at published rates.
+
+So the wording must never drift into the other claim. A subscription exposes no dollar balance and
+this app does not know what anyone pays. The label reads *"≈ $X at API list prices"*, with the
+method note behind an ⓘ — Block M's pattern — and never *"cost"* bare. Rates live in a table with
+the date they were read, so a stale one is visible rather than silent.
+
+## LX Effort, the lever nothing here reads (T331)
+
+Every assistant line carries an `effort` — checked here, 18,327 of 18,473 lines in this repo's own
+transcripts name one — and no reader in this app has ever looked at it. It is a flag, not content,
+so §I.1 permits it on the same footing as the model id already read beside it.
+
+It is worth reading because effort is the largest lever on what a task costs, and it does not work
+the way it sounds. Measured across 1,864 tasks: effort buys **more calls, not longer answers**. A
+`high` task takes a median of 19 calls at ~650 output tokens each; an `xhigh` one takes 51, and
+output per call barely moves. So two conversations of the same length, in the same repo on the same
+model, differ several-fold in tokens with nothing on screen saying why.
+
+What this task adds is small and specific: the index keeps the effort mix per session and per task,
+the Sessions pane shows the dominant one, and the drill-down shows it per task. Where a session is
+mixed, the mix is what is shown rather than a majority vote that hides the expensive minority.
+
+**The temptation to resist is a recommendation.** The app must not say *"drop to medium"*: it cannot
+see whether the answer was right, and effort traded for a wrong answer is not a saving. It reports
+what ran and what it cost, and the reader decides. That is the same line the projection verdict
+already holds — it says on track or not, never *work less*.
+
+Two levels have no separate reading yet because nothing here has run at them: `max` and the `xhigh`
+floor that `ultracode` imposes. Both are named in the table so a first sighting is legible rather
+than blank.
+
+## LXI The heaviest five hours, which is what a limit saw (T332)
+
+The app reads a five-hour window in exactly one place and in exactly one way: the one the API
+anchors, running from the reset it reports. That is the right window for *"how much is left"* and it
+is the only one there has ever been. It answers nothing about a window that has already closed.
+
+The transcripts hold every other one. Slide a five-hour frame across a day's turns and the peak is
+the window a limit actually saw — measured across 32 active days, the busiest five hours hold a
+median of **63%** of a day's work, so a daily total understates what the meter was pointed at.
+
+What this adds is one reading, in the Sessions pane and per session: **the heaviest five-hour window
+in the range on screen**, when it started, and what went through it. Beside it, the same figure for
+the range's median day, because a peak with nothing to compare it against is a large number and not
+a fact.
+
+**It is a measurement, never a prediction.** The app does not know the plan's real allowance — no
+figure for it is published, and Block D's quota state is a percentage, not a budget — so this must
+not become *"you can do 1.6 of these"*. It says what the busiest window held, and the reader who has
+hit a limit already knows which window it was.
+
+Two consequences make it worth its own task rather than a column. The sweep is over the index rather
+than over a live tail, so it is the first reading here that looks **backwards** across days; and it
+is the natural home for *"today against your usual day"*, which the Week pane cannot say because it
+sums the week away.
+
+## LXII Which command ate the week (T333)
+
+The strip attributes spend to a **project**, which answers *which repo is eating the week*. The
+measurement that produced this block says the sharper question is *which kind of work*, and the
+numbers are not close: across 1,864 tasks, **443 slash-command tasks carried 57% of all spend**, at
+a median of $9.55 against $1.69 for a typed prompt — and a single command, `/loop`, accounted for
+all 443 of them. A repo-level breakdown cannot see that, because the expensive command and the cheap
+prompt land in the same repo.
+
+A slash command's **name** is a name, on the same footing as the model id, the tool names and the
+skill names §I.1 already permits. The prompt that follows it is not, and is not read.
+
+So the Sessions pane gains a second grouping: by task kind — `command`, `prompt`, `continuation` —
+and, within commands, by name. Per group: tasks, median and total, share of the range. That is one
+table, and it is the table that says whether a week went on conversation or on automation.
+
+**Two ways to get this wrong, both already made and corrected upstream.** A command's *expanded*
+instructions arrive as a `role:user` line and are not a person asking, so counting them starts a
+phantom task; and a slash command is not chrome to be filtered out with `<system-reminder>` and
+`<local-command-stdout>` — filtering it away deletes the most expensive half of the data. The
+segmentation task is the dep because it is where both rules live.
+
+The reading a person takes from it is theirs to act on. The app says `/loop` was 57% of the week; it
+does not say run fewer loops, for the same reason it never says work less.

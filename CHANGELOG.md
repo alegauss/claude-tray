@@ -27,7 +27,7 @@
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
 | [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
-| [K](#block-k--live-throughput) | Live throughput |
+| [K](#block-k--live-throughput) | Live throughput (active — see ROADMAP) |
 | [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app |
 | [M](#block-m--explain-on-demand) | Explain on demand — the method note behind an ⓘ |
 | [N](#block-n--system-information) | System information — your plan, your install, this machine |
@@ -53,6 +53,7 @@
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
 | [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags (active — see ROADMAP) |
+| [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did (active — see ROADMAP) |
 
 ## Block A — Foundation (tray, icon, API, projection)
 
@@ -658,3 +659,6 @@
 - **T172** — The Profile submenu now reads CLAUDE_CONFIG_DIR back and marks the profile it names when that is not the one the icon draws - or names the folder outright when it covers no registered profile - so whose numbers these are and which profile a new session starts in stop being one answer. Agreement passes without ceremony; the divergence is the signal.
 - **T173** — A queued environment write now reports how it went: the value is read back off the registry once the queue reaches it, and the outcome - landed, did not land, or threw with the reason - is raised per write and kept as the last one, so a write that was merely accepted is no longer indistinguishable from one that took. The click still returns at once and nothing shows a dialog.
 - **T174** — A machine-wide profile write now confirms itself, on the read-back rather than on the click: a slate card naming the profile, the directory and the one claim the non-goal permits - sessions from now on, never one already running. No confetti and, deliberately, no quota bar: animating one account's remaining quota into another's would say switch accounts because this one has room. The failure arm names what CLAUDE_CONFIG_DIR still reads.
+
+## Block AK — Sessions — what one conversation cost, and what it did
+
