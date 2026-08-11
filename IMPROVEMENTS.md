@@ -1187,3 +1187,30 @@ it is `STRATEGY.md` §IV: publish output must not change by one byte.
 
 **What would settle it.** Time a no-op build with the four properties conditioned to the publish
 path, and diff the published `.exe` against one built before. Anything less is T253's mistake.
+
+## LXX The case list has outgrown the every-turn file (T342)
+
+Adding T294's case to the interaction list put `AGENTS.md` **786 bytes and 5 lines** over its
+budget. Fitting it back took eleven edits, only two of them to the new bullet. The other nine
+compressed rules the task never touched: **Panes/Names**, **Profiles**, the **Menu** bullet's three
+refusals, the **Unchecked** rule, the exit-code sentence, the invocation comment. A `-UseRunning`
+refusal was dropped from the new bullet because the script enforces it at runtime — true, and
+decided by the byte count rather than by the rule.
+
+The file now sits at **24199 of 24200 bytes**. There is one byte of headroom, so the seventh case
+cannot be added at all without another round of this.
+
+**This is the budget working, not failing.** The ceiling is declared *"a ceiling to come down, not a
+target"*, and the grinding is the pressure it exists to apply. What it points at is that the
+six-case list is the wrong content for a file loaded every turn. `AGENTS.md` states the test itself
+— a rule earns its bytes if getting it wrong produced a defect and `--selftest` cannot assert it —
+and a per-case description of a script is not a rule. It is reference material, about a script whose
+own header this file calls **the full text**.
+
+**An argument this repo has accepted twice.** T191 moved the flag catalogue to `dev-flags`; T219
+moved the per-file map to `file-map`. Both times the ceiling came down with the content rather than
+the room being spent.
+
+**So: the case list moves to a skill**, the section keeps the invocation, the exit codes and the two
+actual rules — reading nothing is a FAIL, and an assertion that could have run and did not is
+`Unchecked` — and the ceiling comes down by what left.
