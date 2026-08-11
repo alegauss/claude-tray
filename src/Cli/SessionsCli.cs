@@ -64,6 +64,11 @@ internal static class SessionsCli
                 $"{last:MM-dd HH:mm}     {Trim(r.Name, NameWidth),-NameWidth}  {Dur(r.Seconds),6}  " +
                 $"{r.Calls,6}  {billed,12:N0}  {r.Bits.CacheRead,12:N0}  {(r.Agents > 0 ? r.Agents.ToString() : "-"),6}  " +
                 $"{string.Join(",", r.Models.Select(Short))}");
+            // What the conversation is called, on its own line: the generated title, or the opening
+            // prompt where there is none. Indented under the row, never in a column, because it is as
+            // long as somebody made it (T336).
+            if ((r.Title.Length > 0 ? r.Title : r.Prompt) is { Length: > 0 } label)
+                Console.WriteLine($"{"",16}{Trim(label, 96)}");
         }
 
         if (show < rows.Count)

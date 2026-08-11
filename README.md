@@ -232,12 +232,13 @@ many turns and how many tokens. A fan-out is one row, not twelve — a workflow'
 the session that spawned them, which is where their cost actually belongs. Sort by clock or by tokens
 on the column header, and pick the range: the last 7 days by default, 30 days, or everything on disk.
 
-Under each project sits **the prompt that opened the conversation, truncated to 200 characters** —
-the one place in this app that shows something you wrote, and the reason it exists is that there is
-nothing else to show: Claude Code stores no title anywhere, and what `/resume` displays as one is your
-own first message. The cap is applied before the text is stored, so the cache never holds more than
-the row does; nothing further into the conversation is read, and no other screen, toast, report or
-published screenshot carries it. The hover adds the session id — the string `claude --resume` takes.
+Under each project sits **what the conversation is called** — the title Claude Code generated for it,
+or the prompt that opened it where there is no title. This is the one place in the app that shows
+anything derived from what was said, and it is here because a list of conversations you cannot name is
+a list you cannot search. Both are capped at 200 characters *before* being stored, so the cache never
+holds more than the row shows; nothing further into the conversation is read, and no other screen,
+toast, report or published screenshot carries it. The hover adds the session id — the string
+`claude --resume` takes.
 
 **Open a row and it becomes a stack trace of that conversation.** A task starts every time you ask for
 something and ends when you ask for the next thing, so the row unfolds into the tasks that actually

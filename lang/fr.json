@@ -349,7 +349,7 @@
   "stats.tab.week": "Semaine (7 jours)",
   "stats.tab.throughput": "Débit",
   "stats.tab.sessions": "Sessions",
-  "stats.sessions.hint": "Où c'est parti — chaque conversation sur cette machine, la plus récente en premier. Lu dans vos transcriptions locales : le projet, l'horloge, la taille et les 200 premiers caractères du prompt qui l'a ouverte — rien de plus loin dans la conversation. Survolez une ligne pour son identifiant de session, celui que vous passez à --resume.",
+  "stats.sessions.hint": "Où c'est parti — chaque conversation sur cette machine, la plus récente en premier. Lu dans vos transcriptions locales : le projet, l'horloge, la taille et le nom de la conversation — le titre que Claude Code lui a donné, ou le prompt qui l'a ouverte. Les deux plafonnés à 200 caractères, et rien de plus loin dans la conversation. Survolez une ligne pour son identifiant de session ; cliquez pour les tâches qui l'ont produite.",
   "stats.sessions.range": "Période",
   "stats.sessions.range7": "7 derniers jours",
   "stats.sessions.range30": "30 derniers jours",

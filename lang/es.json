@@ -349,7 +349,7 @@
   "stats.tab.week": "Semana (7 días)",
   "stats.tab.throughput": "Rendimiento",
   "stats.tab.sessions": "Sesiones",
-  "stats.sessions.hint": "Adónde fue — cada conversación en esta máquina, la más reciente primero. Leído de tus transcripciones locales: el proyecto, el reloj, el tamaño y los primeros 200 caracteres del prompt que la abrió — nada más allá en la conversación. Pasa el cursor por una fila para ver el id de sesión, que es el que le pasas a --resume.",
+  "stats.sessions.hint": "Adónde fue — cada conversación en esta máquina, la más reciente primero. Leído de tus transcripciones locales: el proyecto, el reloj, el tamaño y cómo se llama la conversación — el título que Claude Code le generó, o el prompt que la abrió. Ambos limitados a 200 caracteres, y nada más allá en la conversación. Pasa el cursor por una fila para ver el id de sesión; haz clic para ver las tareas que la produjeron.",
   "stats.sessions.range": "Periodo",
   "stats.sessions.range7": "Últimos 7 días",
   "stats.sessions.range30": "Últimos 30 días",

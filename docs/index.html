@@ -472,7 +472,7 @@
       <figure class="shot-frame" style="margin:0">
         <img class="shot" src="statistics-sessions.png" alt="Statistics — the Sessions tab: one row per conversation, newest first, with the project, the clock of its last turn, how long it ran, how many turns and how many tokens, a range picker set to the last 7 days, and sortable clock and token headers">
         <figcaption style="color:var(--muted-2);font-size:.86rem;text-align:center;margin-top:12px">
-          <b style="color:var(--text)">Sessions</b> — where it went, one row per conversation instead of a total, with the prompt that opened it under the project it was typed in. A workflow's agents fold into the session that spawned them, so a fan-out is one row and not twelve. Open a row and it unfolds into the tasks that produced it, each with the workflows and agents it fanned out to and its <b>own cost beside its subtree's</b> — which is how you tell a coordinator that was cheap from a fleet that was not.
+          <b style="color:var(--text)">Sessions</b> — where it went, one row per conversation instead of a total, named by the title Claude Code gave it under the project it ran in. A workflow's agents fold into the session that spawned them, so a fan-out is one row and not twelve. Open a row and it unfolds into the tasks that produced it, each with the workflows and agents it fanned out to and its <b>own cost beside its subtree's</b> — which is how you tell a coordinator that was cheap from a fleet that was not.
         </figcaption>
       </figure>
     </div>
@@ -741,9 +741,10 @@
       <h2>Privacy by design</h2>
       <p>
         Only token counts, model ids, and flags are read — <b>never your message content</b>, with one
-        exception you can see: the <b>Sessions</b> list shows the first 200 characters of the prompt that
-        opened each conversation, because nothing else identifies one. It is truncated before it is
-        stored, it appears on that one screen, and nothing further into a conversation is ever read.
+        exception you can see: the <b>Sessions</b> list names each conversation, using the title Claude Code
+        generated for it or the prompt that opened it, because a list you cannot name is a list you cannot
+        search. Both are capped at 200 characters before they are stored, they appear on that one screen,
+        and nothing further into a conversation is ever read.
         The insights scan is bounded to files touched in the last 24h and runs in the background.
         The rate-limit reading is a single 1-token API call every 5 minutes. Nothing leaves your machine
         beyond that, and there's nothing to log into.

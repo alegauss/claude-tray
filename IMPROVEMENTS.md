@@ -55,15 +55,19 @@ counts, model ids, flags, tool/skill *names*, the session `cwd` and the **one bo
 below — never message content otherwise. This is the app's whole trust model. Any new reader of
 `~/.claude` inherits it.
 
-**The exception (T334): the opening prompt of a conversation, capped at
-`SessionIndex.PromptChars` characters, on the Sessions list and nowhere else.** It exists because
-Claude Code stores no title — measured, `"type":"summary"` appears in none of this machine's 664
-transcripts, and what `/resume` shows as one is `history.jsonl`'s `display` field, the prompt as
-typed — so the only thing that makes a row recognisable is the text that opened it. Bounded on every
-axis that can be bounded: one field, one surface, truncated before it is stored so the cache cannot
-hold what the app may not show, never exported, never in a toast, a tooltip elsewhere, a report or a
-capture published from this repo. Every other reader of a transcript stays under the sentence above,
-and `UsageReport.TryParseSample` — the parser that *is* the promise — still never returns content.
+**The exception (T334, T336): what a conversation is called — its generated `aiTitle`, or its opening
+prompt where there is no title — capped at `SessionIndex.PromptChars` characters, on the Sessions
+list and nowhere else.** It exists because a list of conversations that cannot name one is a list
+nobody can search. The title is the *narrower* half and is preferred wherever it exists (529 of this
+machine's 664 transcripts): it is derived from content rather than being content. The prompt carries
+the rest.
+
+Bounded on every axis that can be bounded: two fields, one surface, truncated before either is
+stored so the cache cannot hold what the app may not show, never exported, never in a toast, a
+tooltip elsewhere, a report or a capture published from this repo. Every other reader of a transcript
+stays under the sentence above, and `UsageReport.TryParseSample` — the parser that *is* the promise —
+still never returns content; the two readers that do are named for what they read, so an audit has
+one file to open.
 
 ### §I.2 No network beyond two endpoints
 
@@ -1057,32 +1061,6 @@ segmentation task is the dep because it is where both rules live.
 
 The reading a person takes from it is theirs to act on. The app says `/loop` was 57% of the week; it
 does not say run fewer loops, for the same reason it never says work less.
-
-## LXIV The title Claude Code does write (T336)
-
-Claude Code does write a title, and T334 shipped saying it does not. The search that produced that
-claim looked for `"type":"summary"` and found none in 664 transcripts; the key is `ai-title`, and
-`{"type":"ai-title","aiTitle":"…","sessionId":"…"}` is present in **528 of them**. The measurement
-was right about the string it looked for and wrong about the question it was asked.
-
-That matters beyond the correction, because a generated title is a **narrower** thing to show than
-the prompt now on the row. It is a label about a conversation rather than the words a person typed —
-still derived from content, so it stays inside §I.1's exception rather than outside it, but it is
-the better half of that exception and the one a reader would rather have.
-
-**What this does.** The index reads the last `aiTitle` a transcript carries — last, not first,
-because Claude Code rewrites it as a conversation turns out to be about something else — and the row
-shows it where the prompt is today. The prompt stays as the fallback for the 136 transcripts
-carrying no title, and as the second line under one, since a title and a prompt answer different
-questions.
-
-**What has to be re-stated.** §I.1's exception names the prompt and now names both, with the same
-bound; the row's doc comment carries the "no title exists" measurement as its reason and has to
-carry the corrected one; and the README says the app shows the prompt "because there is nothing else
-to show", which is the sentence this task falsifies.
-
-The cap applies to the title too. It is generated, so it is short in practice — but a bound that
-holds only for well-behaved input is the kind discovered by the first badly-behaved one.
 
 ## LXV The join between a spike and a task, in the direction that has data (T337)
 

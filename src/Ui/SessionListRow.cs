@@ -91,8 +91,13 @@ public sealed class SessionListRow : INotifyPropertyChanged
             row.Bits.Input + row.Bits.Output + row.Bits.CacheCreate));
 
         // Already truncated by the index — this is a display, not a second place the cap is decided.
-        Prompt = row.Prompt;
-        PromptVisibility = row.Prompt.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        // Title over prompt where there is one, because a generated label is the narrower thing to
+        // show and the shorter thing to read; the prompt drops to a third line and carries the 135
+        // transcripts that have no title on its own (T336).
+        Title = row.Title.Length > 0 ? row.Title : row.Prompt;
+        TitleVisibility = Title.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        Prompt = row.Title.Length > 0 ? row.Prompt : "";
+        PromptVisibility = Prompt.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         // The hover carries the identifiers, which is what makes a row actionable without making it
         // descriptive: the id is what `claude --resume` takes.
@@ -104,9 +109,14 @@ public sealed class SessionListRow : INotifyPropertyChanged
     internal SessionRow Row { get; }
 
     public string Project { get; }
+    /// <summary>What the conversation is called: its generated title, or its opening prompt where
+    /// there is no title. Never both on this line.</summary>
+    public string Title { get; }
+    public Visibility TitleVisibility { get; }
+    /// <summary>The opening prompt, on its own third line and only when a title took the second one.
+    /// Collapsed otherwise, so a row is the same height as its neighbours rather than carrying an
+    /// empty line or the same text twice.</summary>
     public string Prompt { get; }
-    /// <summary>Collapsed when there is no readable opening prompt, so a row without one is the same
-    /// height as its neighbours rather than carrying an empty second line.</summary>
     public Visibility PromptVisibility { get; }
     public string When { get; }
     public string Duration { get; }

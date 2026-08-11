@@ -19,12 +19,15 @@ namespace ClaudeTray;
 /// fanned out. Their cost is already inside <paramref name="Bits"/>; this says how much of the
 /// conversation is not in its own file.</param>
 /// <param name="Prompt">The text that opened the conversation, truncated to
-/// <see cref="SessionIndex.PromptChars"/> — §I.1's one amended exception (T334), and the only field
-/// here a person wrote. Empty when the transcript carries no readable opening prompt.</param>
+/// <see cref="SessionIndex.PromptChars"/> — §I.1's amended exception (T334), and the only field here a
+/// person wrote. Empty when the transcript carries no readable opening prompt.</param>
+/// <param name="Title">The title Claude Code generated for the conversation, same cap (T336). Derived
+/// from content rather than being content, which makes it the narrower half of that exception and the
+/// one a reader would rather have. Empty for the transcripts that carry none — 135 of 664 here.</param>
 internal readonly record struct SessionRow(
     string Session, string Project, string Name,
     double FirstUnix, double LastUnix, int Calls, TokenBits Bits, string[] Models, int Agents,
-    string Prompt = "")
+    string Prompt = "", string Title = "")
 {
     /// <summary>Wall-clock seconds from the first answered turn to the last. Zero for a session with a
     /// single turn, which is a real answer and not a missing one.</summary>
@@ -94,11 +97,11 @@ internal static class SessionIndex
     /// <summary>
     /// Cache schema generation. Bumped whenever a cached entry gains a field <em>or an existing field
     /// changes meaning</em> — T334 added the prompt at 2 and taught it to skip the harness's own
-    /// <c>user</c> lines at 3, and the second of those is the instructive one: the files had not
+    /// <c>user</c> lines at 3, and gained the title at 4 — and the second of those is the instructive one: the files had not
     /// changed, so a size+mtime key kept serving the old answer and the fix was invisible on every row
     /// that had not been touched since. See <see cref="FileEntry.V"/>.
     /// </summary>
-    private const int Schema = 3;
+    private const int Schema = 4;
 
     private static readonly StringComparer PathComparer = StringComparer.OrdinalIgnoreCase;
 
@@ -203,6 +206,13 @@ internal static class SessionIndex
                 if (!entry.Agent && entry.Prompt.Length == 0 && TryReadPersonAsk(line, out PersonAsk ask))
                     entry.Prompt = ask.Text;
 
+                // The title, taken *last* rather than once: Claude Code rewrites it as a conversation
+                // turns out to be about something else, and it did so in 322 of the 529 transcripts
+                // here that carry one. Keeping the first would label a third of them by what they
+                // started as (T336).
+                if (!entry.Agent && TryReadTitle(line, out string title))
+                    entry.Title = title;
+
                 if (!UsageReport.LooksLikeSample(line)) continue;
                 if (!UsageReport.TryParseSample(line, 0, double.MaxValue, out double t, out TokenBits bits,
                                                 out string? id, out string? cwd, out string? model))
@@ -298,6 +308,37 @@ internal static class SessionIndex
             if (flat.Length == 0) return false;
             ask = new PersonAsk(Cut(flat), flat.Length, command);
             return true;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// The title Claude Code generated for a conversation, capped like everything else here.
+    ///
+    /// <para>Its own line — <c>{"type":"ai-title","aiTitle":"…","sessionId":"…"}</c> — and the reason
+    /// T334 said no title existed is that the search that looked for one looked for
+    /// <c>"type":"summary"</c>, which appears nowhere. Measured after the correction: 529 of this
+    /// machine's 664 transcripts carry a title.</para>
+    ///
+    /// <para>It is <b>derived from</b> content rather than <b>being</b> content, which makes it the
+    /// narrower half of §I.1's amended exception and the better half to show — a label about a
+    /// conversation instead of the words a person typed. It is still inside the exception, and it is
+    /// still capped: a generated string is short in practice, and a bound that holds only for
+    /// well-behaved input is the kind the first badly-behaved one finds.</para>
+    /// </summary>
+    private static bool TryReadTitle(string line, out string title)
+    {
+        title = "";
+        if (!line.Contains("\"ai-title\"", StringComparison.Ordinal)) return false;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(line);
+            System.Text.Json.JsonElement root = doc.RootElement;
+            if (!root.TryGetProperty("type", out var ty) || ty.GetString() != "ai-title") return false;
+            if (!root.TryGetProperty("aiTitle", out var t) || t.GetString() is not { Length: > 0 } s)
+                return false;
+            title = Cut(Flatten(s));
+            return title.Length > 0;
         }
         catch { return false; }
     }
@@ -416,7 +457,7 @@ internal static class SessionIndex
             long input = 0, output = 0, create = 0, cached = 0;
             int calls = 0, agents = 0;
             double first = 0, last = 0;
-            string cwd = "", prompt = "";
+            string cwd = "", prompt = "", title = "";
             var models = new List<string>();
             foreach (FileEntry e in group)
             {
@@ -427,6 +468,7 @@ internal static class SessionIndex
                 if (e.Agent) agents++;
                 if (cwd.Length == 0) cwd = e.Cwd;
                 if (prompt.Length == 0) prompt = e.Prompt;
+                if (title.Length == 0) title = e.Title;
                 foreach (string m in e.Models)
                     if (!models.Contains(m, StringComparer.Ordinal)) models.Add(m);
             }
@@ -436,7 +478,7 @@ internal static class SessionIndex
                 any.Session, any.Project,
                 cwd.Length > 0 ? ProjectSlug.NameFor(any.Project, cwd) : ProjectSlug.Tail(any.Project),
                 first, last, calls, new TokenBits(input, output, create, cached),
-                models.ToArray(), agents, prompt));
+                models.ToArray(), agents, prompt, title));
         }
 
         rows.Sort((a, b) => b.LastUnix.CompareTo(a.LastUnix));
@@ -466,6 +508,8 @@ internal static class SessionIndex
         public bool Agent { get; set; }
         /// <summary>Already truncated to <see cref="PromptChars"/> — see <see cref="TryReadPersonAsk"/>.</summary>
         public string Prompt { get; set; } = "";
+        /// <summary>The last title the transcript carried, already truncated — see <see cref="TryReadTitle"/>.</summary>
+        public string Title { get; set; } = "";
         public double First { get; set; }
         public double Last { get; set; }
         public int Calls { get; set; }

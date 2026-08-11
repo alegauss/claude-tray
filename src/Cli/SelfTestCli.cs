@@ -5890,7 +5890,38 @@ internal static class SelfTestCli
         string huge = Only(Prompt(new string('x', SessionIndex.PromptChars * 3)));
         Check($"a long prompt is cut to {SessionIndex.PromptChars} characters, with an ellipsis saying so",
               huge.Length == SessionIndex.PromptChars + 1 && huge.EndsWith('…'), $"{huge.Length} chars");
+
+        // ---- the title (T336), which is the half of the exception that is preferred ----
+
+        string Titled(params string[] lines)
+        {
+            File.WriteAllText(Path.Combine(slug, "sess-p.jsonl"),
+                              string.Join("\n", lines) + "\n" + Turn(now, "req", 10) + "\n");
+            IReadOnlyList<SessionRow> rows = SessionIndex.Load(projectsDir: projects);
+            return rows.Count == 1 ? rows[0].Title : "<" + rows.Count + " rows>";
+        }
+
+        Check("a conversation is called by the title Claude Code generated for it",
+              Titled(Title("Ship the sessions pane")) == "Ship the sessions pane");
+        // Measured before it was assumed: 322 of the 529 titled transcripts on this machine had the
+        // title rewritten mid-conversation, so keeping the first would label a third of them by what
+        // they started as.
+        Check("and by the LAST one, because a rewritten title is the corrected one",
+              Titled(Title("What it started as"), Prompt("hello"), Title("What it turned out to be"))
+              == "What it turned out to be");
+        Check("a conversation with no title has none, rather than borrowing a prompt here",
+              Titled(Prompt("hello")) == "");
+        string bigTitle = Titled(Title(new string('y', SessionIndex.PromptChars * 2)));
+        Check("and a title is capped exactly like a prompt is",
+              bigTitle.Length == SessionIndex.PromptChars + 1 && bigTitle.EndsWith('…'),
+              $"{bigTitle.Length} chars");
     }
+
+    /// <summary>The line Claude Code writes when it names a conversation. Its own type, which is why
+    /// T334's search for <c>"type":"summary"</c> found nothing and concluded there was no title.</summary>
+    private static string Title(string text)
+        => "{\"type\":\"ai-title\",\"sessionId\":\"sess-p\",\"aiTitle\":" +
+           System.Text.Json.JsonSerializer.Serialize(text) + "}";
 
     /// <summary>
     /// T329: a session cut into the tasks that produced it, with the fan-out hanging under the right

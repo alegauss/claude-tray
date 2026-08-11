@@ -353,7 +353,7 @@
   "stats.tab.week": "Week (7 days)",
   "stats.tab.throughput": "Throughput",
   "stats.tab.sessions": "Sessions",
-  "stats.sessions.hint": "Where it went — every conversation on this machine, newest first. Read from your local transcripts: the project, the clock, the size, and the first 200 characters of the prompt that opened it — nothing further into the conversation. Hover a row for its session id, which is what you pass to --resume.",
+  "stats.sessions.hint": "Where it went — every conversation on this machine, newest first. Read from your local transcripts: the project, the clock, the size, and what the conversation is called — the title Claude Code generated for it, or the prompt that opened it. Both capped at 200 characters, and nothing further into the conversation. Hover a row for its session id; click it for the tasks that produced it.",
   "stats.sessions.range": "Range",
   "stats.sessions.range7": "Last 7 days",
   "stats.sessions.range30": "Last 30 days",

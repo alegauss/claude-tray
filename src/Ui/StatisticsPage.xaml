@@ -117,8 +117,11 @@
                             <TextBlock Text="{Binding Project}" FontSize="13"
                                        TextTrimming="CharacterEllipsis"
                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <TextBlock Text="{Binding Prompt}" Visibility="{Binding PromptVisibility}"
+                            <TextBlock Text="{Binding Title}" Visibility="{Binding TitleVisibility}"
                                        FontSize="12" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            <TextBlock Text="{Binding Prompt}" Visibility="{Binding PromptVisibility}"
+                                       FontSize="11" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"
                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                         </StackPanel>
                     </StackPanel>
