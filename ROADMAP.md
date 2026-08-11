@@ -110,6 +110,8 @@
 - 📋 **T331** (deps: T327 ✅) **the effort a turn ran at is on every assistant line and no reader in the app opens it** — Effort buys calls rather than longer answers - a median of 19 at high against 51 at xhigh - so two sessions of the same length differ several-fold with nothing saying why. → §LX
 - 📋 **T332** (deps: T327 ✅) **the 5h window is only ever read where the API anchors it, never where the spending actually piled up** — A plan meters a rolling window and the busiest five hours of a day hold a median 63% of its work, so the heaviest window on record is in the transcripts and nothing reports it. → §LXI
 - 📋 **T333** (deps: T329 ✅) **the app can say which repo is eating the week and never which kind of work is** — Measured, 443 slash-command tasks carried 57% of all spend at a $9.55 median against $1.69 for a typed prompt, and a per-project breakdown cannot separate them. → §LXII
+- 📋 **T336** (deps: T334 ✅) **the row shows the prompt because no title was found, and the search looked for the wrong key** — ai-title is in 528 of this machine's 664 transcripts and T334 shipped on a search for summary that found none - and a generated label is the narrower half of the exception. → §LXIV
+- 📋 **T337** (deps: T329 ✅) **a spike on the live strip has no name, and the join was designed in the direction with no data** — The strip is a 300-second ring and the list opens on seven days, so a task-to-chart highlight is blank for 142 of 143 rows - the direction with data is the chart naming the live task. → §LXV
 
 ## Non-goals (do NOT add as tasks)
 

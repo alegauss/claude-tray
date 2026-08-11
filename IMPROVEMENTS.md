@@ -1057,3 +1057,54 @@ segmentation task is the dep because it is where both rules live.
 
 The reading a person takes from it is theirs to act on. The app says `/loop` was 57% of the week; it
 does not say run fewer loops, for the same reason it never says work less.
+
+## LXIV The title Claude Code does write (T336)
+
+Claude Code does write a title, and T334 shipped saying it does not. The search that produced that
+claim looked for `"type":"summary"` and found none in 664 transcripts; the key is `ai-title`, and
+`{"type":"ai-title","aiTitle":"…","sessionId":"…"}` is present in **528 of them**. The measurement
+was right about the string it looked for and wrong about the question it was asked.
+
+That matters beyond the correction, because a generated title is a **narrower** thing to show than
+the prompt now on the row. It is a label about a conversation rather than the words a person typed —
+still derived from content, so it stays inside §I.1's exception rather than outside it, but it is
+the better half of that exception and the one a reader would rather have.
+
+**What this does.** The index reads the last `aiTitle` a transcript carries — last, not first,
+because Claude Code rewrites it as a conversation turns out to be about something else — and the row
+shows it where the prompt is today. The prompt stays as the fallback for the 136 transcripts
+carrying no title, and as the second line under one, since a title and a prompt answer different
+questions.
+
+**What has to be re-stated.** §I.1's exception names the prompt and now names both, with the same
+bound; the row's doc comment carries the "no title exists" measurement as its reason and has to
+carry the corrected one; and the README says the app shows the prompt "because there is nothing else
+to show", which is the sentence this task falsifies.
+
+The cap applies to the title too. It is generated, so it is short in practice — but a bound that
+holds only for well-behaved input is the kind discovered by the first badly-behaved one.
+
+## LXV The join between a spike and a task, in the direction that has data (T337)
+
+T329's design ends with a sentence it did not build: selecting a task cross-highlights the
+Throughput strip where the two overlap in time. It was left out because the premise does not hold as
+stated, and approximating it would have been worse than saying so.
+
+**The measurement.** `LiveRate` keeps `HistorySeconds = 300` — five minutes of per-second buckets,
+of which the chart draws three. The Sessions list opens on seven days. So the overlap between a
+selected task and anything the strip can draw is empty for every row except one: the task running
+right now. A highlight that is correct and blank for 142 of 143 rows is a feature nobody sees fire,
+and widening the strip to make it fire is the repair T326 already refused for a different reading.
+
+**What is worth building instead is the inverse.** The strip's question is *what is burning right
+now*, and the useful join is from the chart to the list: a spike on the strip becomes a task with a
+name. That works because the spike is by definition inside the strip's window, so the task it
+belongs to is the currently-running one — which the list can already identify and could scroll to
+and open.
+
+So: a click on the live chart selects the running task in the Sessions pane, rather than a selection
+in the Sessions pane painting the live chart. Same join, the direction that has data behind it.
+
+**What would make the original real** is a chart over the *session's own* timeline rather than over
+the last three minutes — a different chart, not a highlight on this one, and a bigger task than
+either. Filed here so the next person does not re-derive the reason.
