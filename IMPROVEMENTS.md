@@ -1191,3 +1191,29 @@ writing"* — and it has forgotten three. The durable form is the one T293 and T
 source, enumerate every `File.WriteAll` / `AppendAll` / `Move` / `Delete` under the store-owning
 folders, and fail one whose method does not consult the gate. A fixture opts out by name, so an
 exemption is a decision somebody made rather than a call nobody looked at.
+
+## LXXIII Seven checks that read files and wait for a linker (T345)
+
+Seven checks in `--selftest` answer questions about **text on disk** and nothing else. They open
+files under `src/`, count something, and compare: the monitored account is assigned once (T293), the
+folded store's line is composed once (T297), clay is spelled once (T310), every doc comment is
+attached to its member (T312), plus `FlagsRead`, `ParserNames` and `CodeOf`. None of them constructs
+a window, reads a store, or needs the app to have started.
+
+All seven nonetheless run only inside a WPF executable that takes **about four minutes to build with
+nothing changed** (T341) — and up to fifteen when something did. So the loop for a check about a
+comment's position is: edit, build, run, read, edit, build again.
+
+**Measured while shipping T312, not argued.** That check found seven violations, and each fix needed
+the answer again. Asking through the build cost enough that the work was finished against a
+fifteen-line PowerShell script in the scratchpad, answering in about two seconds. That script is a
+second implementation of a rule this repository owns — the shape T297 had just removed elsewhere —
+written because the first was too slow to use while fixing what it found.
+
+**What this is not.** Not a request to move the checks out of `--selftest`: CI runs that one binary,
+the exit code is the gate, and splitting the gate would be worse than the wait.
+
+**What it might be.** A second entry point over the same methods — the source checks, run without
+constructing anything — so the same code answers in seconds during an edit and still answers inside
+`--selftest` for CI. Whether that is a flag on the existing binary (which still needs the build) or
+a separate small target is the thing to decide, and T341's measurement is what decides it.
