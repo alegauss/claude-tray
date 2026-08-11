@@ -95,7 +95,6 @@
 
 ## Block AK — Sessions — what one conversation cost, and what it did
 
-- 📋 **T338** (deps: T336 ✅) **the row's title and prompt lines are cut mid-word with no ellipsis, running under the next column** — TextTrimming cannot fire inside a horizontal StackPanel, measured at infinite width, so the Grid column clips instead - shipped in T334, unseen because no capture followed. → §LXVI
 - 📋 **T346** (deps: —) **tokens rank sessions and money explains them, and a $2 conversation reads the same as a $40 one** — T330 read the split and nothing prices it, and SessionRow aggregates the models that answered — so per-model attribution is what a list price needs first. → §LXXIV
 
 ## Non-goals (do NOT add as tasks)

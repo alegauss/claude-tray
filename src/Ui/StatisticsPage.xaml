@@ -110,14 +110,24 @@
                          person's own words sit under it, dimmer and on one trimmed line. The numeric
                          columns are top-aligned against that first line rather than centred on a
                          two-line cell, so the eye still reads straight across a row. -->
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0" Orientation="Horizontal">
+                    <!-- A Grid and not a horizontal StackPanel, which is the whole of T338: a
+                         horizontal StackPanel measures its children at *infinite* width, so every
+                         TextTrimming below reported that nothing was too wide, and the Grid column
+                         clipped the text mid-word instead. A `*` column measures at the width it
+                         actually has, so the ellipsis lands where the text ends. A fixed Width or
+                         MaxWidth would be the same bug at every other window size. -->
+                    <Grid Grid.Column="0" Margin="0,0,10,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
                         <!-- The disclosure glyph is the affordance: a row that opens into a call
                              tree and looks exactly like one that does not is a feature only its
                              author finds (T329). -->
-                        <TextBlock Text="{Binding Chevron}" FontFamily="Segoe MDL2 Assets" FontSize="9"
-                                   Margin="0,4,8,0" VerticalAlignment="Top"
+                        <TextBlock Grid.Column="0" Text="{Binding Chevron}" FontFamily="Segoe MDL2 Assets"
+                                   FontSize="9" Margin="0,4,8,0" VerticalAlignment="Top"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                        <StackPanel>
+                        <StackPanel Grid.Column="1">
                             <TextBlock Text="{Binding Project}" FontSize="13"
                                        TextTrimming="CharacterEllipsis"
                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -134,7 +144,7 @@
                                        FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
                                        Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
                         </StackPanel>
-                    </StackPanel>
+                    </Grid>
                     <TextBlock Grid.Column="1" Text="{Binding When}" FontSize="13" VerticalAlignment="Top"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     <TextBlock Grid.Column="2" Text="{Binding Duration}" FontSize="13" VerticalAlignment="Top"

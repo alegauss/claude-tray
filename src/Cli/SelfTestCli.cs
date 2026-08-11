@@ -258,6 +258,9 @@ internal static class SelfTestCli
         Section("running — which conversation a spike on the strip belongs to (Block AK)");
         RunningSession();
 
+        Section("layout — trimming that can never fire (Block AI)");
+        TrimmingInStacks();
+
         Section("anchoring — a transcript reached by a route nobody walked (Block AK)");
         Anchoring();
 
@@ -6952,6 +6955,84 @@ internal static class SelfTestCli
         Check("a command is labelled by its own name and a kind by the string table",
               WorkKinds.Label(loop) == "/loop" &&
               WorkKinds.Label(prompts) != "stats.kind.prompt", WorkKinds.Label(prompts));
+    }
+
+    /// <summary>
+    /// T338. No <c>TextTrimming</c> sits inside a horizontal <c>StackPanel</c>, where it cannot fire.
+    ///
+    /// <para>A horizontal <c>StackPanel</c> measures its children at <em>infinite</em> available width.
+    /// So a <c>TextBlock</c> inside one always reports the width of its longest line, never discovers
+    /// that it is too wide, and never trims — while whatever contains the panel clips the text
+    /// mid-word. Every symptom points at the <c>TextBlock</c>, and the cause is two elements up.</para>
+    ///
+    /// <para>It shipped that way in the Sessions row and survived two releases, because the published
+    /// capture of that pane predates the line it broke, so no picture ever showed it. That is the
+    /// argument for a check rather than an eye: this is invisible in every screenshot that was
+    /// <em>not</em> taken.</para>
+    ///
+    /// <para>Nesting is what makes it worth scanning rather than reading — the trimmed line was two
+    /// levels below the horizontal panel, in an inner stack, which is exactly where a reviewer stops
+    /// looking. So the scan tracks depth rather than matching adjacent lines.</para>
+    /// </summary>
+    private static void TrimmingInStacks() =>
+        Repo("no TextTrimming sits where it can never fire", root =>
+        {
+            var bad = new List<string>();
+            foreach (string path in Directory.GetFiles(Path.Combine(root, "src"), "*.xaml",
+                                                       SearchOption.AllDirectories))
+            {
+                string[] lines = File.ReadAllLines(path);
+                // Depth of the innermost open horizontal StackPanel, or -1 for none.
+                var open = new Stack<bool>();
+                int horizontal = 0;
+                foreach (string raw in lines)
+                {
+                    string line = raw.Trim();
+                    if (line.StartsWith("<StackPanel", StringComparison.Ordinal))
+                    {
+                        bool isHorizontal = line.Contains("Orientation=\"Horizontal\"", StringComparison.Ordinal);
+                        bool selfClosed = line.EndsWith("/>", StringComparison.Ordinal);
+                        if (!selfClosed) { open.Push(isHorizontal); if (isHorizontal) horizontal++; }
+                    }
+                    else if (line.StartsWith("</StackPanel>", StringComparison.Ordinal) && open.Count > 0)
+                    {
+                        if (open.Pop()) horizontal--;
+                    }
+                    else if (horizontal > 0 && line.Contains("TextTrimming", StringComparison.Ordinal))
+                    {
+                        // A width of its own is the exception, and it is a real one: a TextBlock with
+                        // Width or MaxWidth is measured against that, so trimming does fire. It is the
+                        // weaker fix — a number chosen once is wrong at every other window size — but
+                        // it is correct where the width is not proportional, which is where the scan
+                        // found one and was wrong about it.
+                        string element = Element(lines, line);
+                        if (element.Contains("MaxWidth=", StringComparison.Ordinal) ||
+                            element.Contains("Width=", StringComparison.Ordinal)) continue;
+                        bad.Add($"{Path.GetFileName(path)}: {line[..Math.Min(60, line.Length)]}");
+                    }
+                }
+            }
+            Check($"no TextTrimming is nested in a horizontal StackPanel ({bad.Count})", bad.Count == 0,
+                  $"{string.Join("; ", bad)} — a horizontal StackPanel measures at infinite width, so " +
+                  "trimming never fires and the container clips mid-word instead (T338)");
+        }, "src");
+
+    /// <summary>The whole element a line belongs to, so an attribute on another line of the same tag
+    /// counts — XAML wraps, and a scan that reads one line at a time answers about half a tag.</summary>
+    private static string Element(string[] lines, string line)
+    {
+        int at = Array.FindIndex(lines, l => l.Trim() == line);
+        if (at < 0) return line;
+        int from = at;
+        while (from > 0 && !lines[from].TrimStart().StartsWith('<')) from--;
+        var sb = new StringBuilder();
+        for (int i = from; i < lines.Length; i++)
+        {
+            sb.Append(lines[i].Trim()).Append(' ');
+            if (lines[i].Contains("/>", StringComparison.Ordinal) ||
+                lines[i].TrimEnd().EndsWith('>')) break;
+        }
+        return sb.ToString();
     }
 
     /// <summary>

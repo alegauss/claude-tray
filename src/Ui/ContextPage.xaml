@@ -323,16 +323,23 @@
                     </StackPanel>
 
                     <StackPanel x:Name="ProjectDetail">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="ProjectTitle" FontSize="17" FontWeight="SemiBold"
+                        <!-- Grid, not a horizontal StackPanel: the title has to trim against the
+                             chip beside it, and a horizontal StackPanel measures at infinite width
+                             so it never would (T338). -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" x:Name="ProjectTitle" FontSize="17" FontWeight="SemiBold"
                                        TextTrimming="CharacterEllipsis"
                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <Border x:Name="GradeChip" Margin="10,0,0,0" CornerRadius="5" Padding="8,2"
-                                    VerticalAlignment="Center">
+                            <Border Grid.Column="1" x:Name="GradeChip" Margin="10,0,0,0" CornerRadius="5"
+                                    Padding="8,2" VerticalAlignment="Center">
                                 <TextBlock x:Name="GradeText" FontSize="12" FontWeight="Bold"
                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                             </Border>
-                        </StackPanel>
+                        </Grid>
                         <TextBlock x:Name="ProjectPath" FontSize="12" Margin="0,3,0,0"
                                    TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
