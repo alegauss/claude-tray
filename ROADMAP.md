@@ -68,6 +68,7 @@
 - 📋 **T343** (deps: T298 ✅) **the sessions pane is still captured mid-scan, because its wait proceeds at the deadline where the report's now refuses** — Two waits in one capture answer one deadline differently: the report refuses and writes nothing, the sessions scan proceeds and announces its placeholder. → §LXXI
 - 📋 **T344** (deps: T305 ✅) **two more stores write without consulting the observing gate: the reset log appends and the profile migration moves files** — The reading that found T305 finds two more, and one moves files rather than appending - so the list of call sites needs an owner, not a fourth fix. → §LXXII
 - 📋 **T345** (deps: T312 ✅) **the source-reading checks need a four-minute WPF build to answer questions about text on disk** — Seven checks open files under src and compare text, and all seven need the WPF binary built to answer - so fixing what one of them found was done against a scratch script instead. → §LXXIII
+- 📋 **T347** (deps: —) **one source file is binary to git, so every change to it lands with no line diff and no blame** — A literal NUL byte at SessionIndex.cs:453 makes git call the file binary, so T330's nine-line change was reported as 1141 lines rewritten and Grep refuses to read it at all. → §LXXV
 
 ## Block AJ — Working here — the repo's own docs and flags
 
