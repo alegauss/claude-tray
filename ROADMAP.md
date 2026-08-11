@@ -75,6 +75,7 @@
 ## Block AJ — Working here — the repo's own docs and flags
 
 - 📋 **T315** (deps: —) **the project's own non-goals point at prose no verb here can read** — IMPROVEMENTS and STRATEGY both declare a section I and a III, so one anchor names two and resolves to neither: the ten §I.n citations under Non-goals reach nothing, and lint has never exited clean. → §L
+- 📋 **T339** (deps: —) **roadkeep lint reports two problems in this repo's own prose that no task has taken** — A check that fails every run stops being read, and a new finding lands in a wall of expected ones - T301 went over on a dep annotation it never typed, and §I.8 spends an id on an example. → §LXVII
 
 ## Block G — Localization
 
