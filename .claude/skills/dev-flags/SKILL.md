@@ -109,6 +109,12 @@ Preview popups are held open by `PageWindow` for every popup, not per call site.
                                       #   that gets published. Interactive --settings System still shows
                                       #   the real account - only the path that writes a file is refused.
 --capture-stats [outBase] [variant] [modifiers] [profile=<n>[,<n>]] [--sample]
+                                      # REFUSES, writing no file and exiting 1, when the report has not
+                                      #   finished (T298): the settle is a fixed 2.5s and the pace is
+                                      #   computed on a task, so on a slower machine this photographed
+                                      #   "Computing your consumption pace..." and announced four PNGs -
+                                      #   twice in five runs. `refresh` is exempt, since capturing
+                                      #   mid-recompute is exactly what that modifier is for (T118).
                                       # all three tabs -> <outBase>-5h.png / -7d.png / -throughput.png.
                                       #   profile=1,0 walks the picker one settle apart (the T164 round
                                       #   trip). Refuses a variant it cannot show rather than capturing

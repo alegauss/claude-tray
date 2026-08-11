@@ -611,6 +611,25 @@ internal static class Program
                     return;
                 }
                 settle.Stop();
+                // T298. The settle above is a fixed 2.5s, and the report is not: it is computed on a task
+                // and swapped in when it resolves, so on a machine where that takes longer the capture
+                // photographed "Computing your consumption pace…" and announced four PNGs — twice in five
+                // runs while T295 was being shipped, caught only by looking at the picture.
+                //
+                // Behind `refresh`, deliberately. That modifier exists to snapshot *mid-recompute* (T118),
+                // which is exactly what every other run must stop calling a success — so the one flag that
+                // asks for the in-progress page is the one this does not refuse.
+                if (!choice.Refresh && !statsPage.WaitForReport())
+                {
+                    Console.Error.WriteLine(
+                        "the report never finished, so nothing was written: the page is still showing its " +
+                        "computing line, and a PNG of that is not a slower picture of the report, it is " +
+                        "none (T298). Re-run, or add the `refresh` modifier if the in-progress page is " +
+                        "what you meant to capture.");
+                    Environment.ExitCode = 1;
+                    previewApp.Shutdown();
+                    return;
+                }
                 if (choice.Refresh) statsPage.UpdateSnapshot(choice.Variant.Snapshot(now));
                 try { statsPage.SaveAllTabs(outBase); Console.WriteLine("wrote " + outBase + "-5h.png / -7d.png / -throughput.png / -sessions.png"); }
                 finally { previewApp.Shutdown(); }

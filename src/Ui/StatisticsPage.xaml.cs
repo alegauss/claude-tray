@@ -294,6 +294,34 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     // The footer's Close closes the shell, not the page: a destination has nothing to close.
     private void Close_Click(object sender, RoutedEventArgs e) => Window.GetWindow(this)?.Close();
 
+    /// <summary>
+    /// Block the capture path until the report is a report (T298) — true when it arrived, false when the
+    /// page is still showing <c>stats.computing</c> at the deadline.
+    ///
+    /// <para>The same pump, bound and reason as <see cref="WaitForSessions"/>, and the same defect one
+    /// surface over: <c>--capture-stats</c> settled on a fixed 2.5s timer, so on a machine where the pace
+    /// takes longer it photographed the heading, the subtitle and "Computing your consumption pace…" and
+    /// printed <c>wrote …-5h.png</c> for all four. Measured while shipping T295: twice in five runs.</para>
+    ///
+    /// <para>Unlike the sessions wait this one <b>answers</b> rather than proceeding, because the callers
+    /// differ in what a timeout means. There, an in-progress list is still a picture of the pane. Here the
+    /// placeholder is the whole page, and §XX.6's rule applies: a capture that lands on it is not slower
+    /// evidence, it is none — so the caller refuses and writes nothing.</para>
+    /// </summary>
+    internal bool WaitForReport(int millis = 30_000)
+    {
+        DateTime deadline = DateTime.UtcNow.AddMilliseconds(millis);
+        while (_session is null && DateTime.UtcNow < deadline)
+        {
+            // Draining to Background lets the Normal-priority Dispatcher.Invoke that carries ComputePace's
+            // result run — a blocking wait on this thread would deadlock against the callback it awaits.
+            Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            System.Threading.Thread.Sleep(25);
+        }
+        UpdateLayout();
+        return _session is not null;
+    }
+
     private void Reload()
     {
         if (_snapshot is not { } snap) return;
