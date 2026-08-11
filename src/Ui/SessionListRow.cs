@@ -31,6 +31,11 @@ public sealed class TaskLine
         // is large is a fan-out, and one number cannot say that. Blank when they agree, so the column
         // carries information rather than repeating the one beside it.
         Tree = all == own ? "" : TokenEstimate.Format((int)Math.Min(int.MaxValue, all));
+
+        // The subtree's mix, not the node's own: a fan-out's agents run at their own levels, and the
+        // line the reader is looking at is the whole branch (T331).
+        Effort = EffortMix.Line(node.SubtreeEfforts);
+        EffortVisibility = Effort.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
     internal TaskNode Node { get; }
@@ -42,6 +47,9 @@ public sealed class TaskLine
     public string Calls { get; }
     public string Own { get; }
     public string Tree { get; }
+    /// <summary>The effort this branch ran at — one level, or the mix with each level's share.</summary>
+    public string Effort { get; }
+    public Visibility EffortVisibility { get; }
 
     private static string Name(TaskNode n) => n.Kind switch
     {
@@ -99,12 +107,23 @@ public sealed class SessionListRow : INotifyPropertyChanged
         Prompt = row.Title.Length > 0 ? row.Prompt : "";
         PromptVisibility = Prompt.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
+        // Effort is the largest lever on what a conversation costs and it buys calls rather than
+        // longer answers, so two rows of the same length can differ several-fold with nothing else on
+        // screen saying why. Shown as the mix it ran at, never as advice about it (T331).
+        Effort = EffortMix.Line(row.Efforts);
+        EffortVisibility = Effort.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+
         // The hover carries the identifiers, which is what makes a row actionable without making it
         // descriptive: the id is what `claude --resume` takes.
         Tip = L.T("stats.sessions.tip", row.Session,
                   row.Models.Length > 0 ? string.Join(", ", row.Models) : "—",
                   row.Agents);
     }
+
+    /// <summary>The effort levels this conversation's calls ran at, with each level's share where it
+    /// ran at more than one. Empty for a session whose lines named none.</summary>
+    public string Effort { get; } = "";
+    public Visibility EffortVisibility { get; } = Visibility.Collapsed;
 
     internal SessionRow Row { get; }
 

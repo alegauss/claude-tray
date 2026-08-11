@@ -836,31 +836,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## LX Effort, the lever nothing here reads (T331)
-
-Every assistant line carries an `effort` — checked here, 18,327 of 18,473 lines in this repo's own
-transcripts name one — and no reader in this app has ever looked at it. It is a flag, not content,
-so §I.1 permits it on the same footing as the model id already read beside it.
-
-It is worth reading because effort is the largest lever on what a task costs, and it does not work
-the way it sounds. Measured across 1,864 tasks: effort buys **more calls, not longer answers**. A
-`high` task takes a median of 19 calls at ~650 output tokens each; an `xhigh` one takes 51, and
-output per call barely moves. So two conversations of the same length, in the same repo on the same
-model, differ several-fold in tokens with nothing on screen saying why.
-
-What this task adds is small and specific: the index keeps the effort mix per session and per task,
-the Sessions pane shows the dominant one, and the drill-down shows it per task. Where a session is
-mixed, the mix is what is shown rather than a majority vote that hides the expensive minority.
-
-**The temptation to resist is a recommendation.** The app must not say *"drop to medium"*: it cannot
-see whether the answer was right, and effort traded for a wrong answer is not a saving. It reports
-what ran and what it cost, and the reader decides. That is the same line the projection verdict
-already holds — it says on track or not, never *work less*.
-
-Two levels have no separate reading yet because nothing here has run at them: `max` and the `xhigh`
-floor that `ultracode` imposes. Both are named in the table so a first sighting is legible rather
-than blank.
-
 ## LXI The heaviest five hours, which is what a limit saw (T332)
 
 The app reads a five-hour window in exactly one place and in exactly one way: the one the API

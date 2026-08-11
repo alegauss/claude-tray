@@ -237,6 +237,9 @@ internal static class SelfTestCli
         Section("cache — the write, at the TTL it was written for (Block AK)");
         CacheTtl();
 
+        Section("effort — the lever a turn ran at, kept as a mix (Block AK)");
+        Effort();
+
         Section("anchoring — a transcript reached by a route nobody walked (Block AK)");
         Anchoring();
 
@@ -6665,6 +6668,84 @@ internal static class SelfTestCli
               sum.CacheCreate == 150 && sum.CacheCreate1h == 110 && sum.CacheCreate5m == 40,
               $"{sum.CacheCreate} written, {sum.CacheCreate1h} at 1h, {sum.CacheCreate5m} at 5m — " +
               "expected 150/110/40");
+    }
+
+    /// <summary>
+    /// T331. The effort a turn ran at, and the mix that is shown instead of a winner.
+    ///
+    /// <para>Effort is the largest lever on what a task costs and it does not work the way it sounds:
+    /// it buys <em>more calls</em>, not longer answers. So a session's mix is the reading, and the
+    /// dear level is usually the minority — 127,292 calls at <c>high</c> against 6,254 at
+    /// <c>xhigh</c> over this machine's transcripts. A majority vote would round the expensive part
+    /// away, which is why <see cref="EffortMix"/> keeps every level that ran.</para>
+    ///
+    /// <para><b>Two things a scan of the tree cannot hold up.</b> The field sits at the line's
+    /// <em>root</em>, not inside <c>message</c> beside the model id — the one detail about reading it
+    /// that is not guessable, and a fixture is the only way to assert it. And three of the five
+    /// levels have never run here, so the ladder's order is asserted against synthetic input or not
+    /// at all: <c>xhigh</c> between <c>high</c> and <c>max</c> is exactly the order no alphabetical
+    /// sort produces.</para>
+    /// </summary>
+    private static void Effort()
+    {
+        static string Line(string body) =>
+            "{\"type\":\"assistant\",\"timestamp\":\"2026-08-11T12:00:00.000Z\"," + body +
+            "\"message\":{\"model\":\"claude-selftest\",\"usage\":{\"input_tokens\":10," +
+            "\"output_tokens\":20,\"cache_read_input_tokens\":0,\"cache_creation_input_tokens\":0}}}";
+
+        (string What, string Body, string? Expected)[] lines =
+        {
+            ("an effort at the line's root", "\"effort\":\"xhigh\",", "xhigh"),
+            ("a line naming none", "", null),
+            // The shape that would pass a reader looking in the wrong object: the model id lives in
+            // `message`, and effort does not.
+            ("an effort nested where the model id lives", "\"cwd\":\"D:\\\\x\",", null),
+        };
+
+        var wrong = new List<string>();
+        foreach ((string what, string body, string? expected) in lines)
+        {
+            if (!UsageReport.TryParseSample(Line(body), 0, double.MaxValue, out _, out _, out _, out _,
+                                            out _, out string? got))
+                wrong.Add($"{what} → not parsed");
+            else if (got != expected)
+                wrong.Add($"{what} → '{got ?? "null"}', expected '{expected ?? "null"}'");
+        }
+        Check($"the effort a turn ran at is read from the line's root ({lines.Length} shapes)",
+              wrong.Count == 0, string.Join("; ", wrong));
+
+        // The ladder is an order, and it is not the alphabet: `xhigh` sits between `high` and `max`.
+        var mix = new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            ["max"] = 1, ["high"] = 40, ["xhigh"] = 10, ["low"] = 2,
+        };
+        string[] order = EffortMix.Ordered(mix).Select(p => p.Name).ToArray();
+        Check("and a mix is ordered by the ladder, not alphabetically",
+              order.SequenceEqual(new[] { "low", "high", "xhigh", "max" }), string.Join(" ", order));
+
+        // A level this app has never seen is news: it is kept and shown as the transcript spelled it,
+        // rather than dropped for not being on the ladder.
+        var unknown = new Dictionary<string, int>(StringComparer.Ordinal) { ["high"] = 1, ["ludicrous"] = 1 };
+        Check("an effort the ladder does not name is still counted and still shown",
+              EffortMix.Ordered(unknown).Select(p => p.Name).SequenceEqual(new[] { "high", "ludicrous" }) &&
+              EffortMix.Line(unknown).Contains("ludicrous", StringComparison.Ordinal),
+              EffortMix.Line(unknown));
+
+        // The whole point: the minority survives. One level renders as its own name, several render
+        // as shares, and the dear 20% must appear in the line.
+        string one = EffortMix.Line(new Dictionary<string, int>(StringComparer.Ordinal) { ["high"] = 9 });
+        string many = EffortMix.Line(new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            ["high"] = 40, ["xhigh"] = 10,
+        });
+        Check("a single level is its own name and a mix keeps the expensive minority",
+              !one.Contains('%') && many.Contains("80%", StringComparison.Ordinal) &&
+              many.Contains("20%", StringComparison.Ordinal),
+              $"one → '{one}', mixed → '{many}'");
+
+        Check("and a session that named no effort renders nothing rather than a level",
+              EffortMix.Line(new Dictionary<string, int>()).Length == 0 && EffortMix.Line(null).Length == 0,
+              $"'{EffortMix.Line(null)}'");
     }
 
     /// <summary>One assistant line in the shape the transcript readers parse — a timestamp, a usage

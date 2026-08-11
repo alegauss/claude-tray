@@ -24,10 +24,14 @@ namespace ClaudeTray;
 /// <param name="Title">The title Claude Code generated for the conversation, same cap (T336). Derived
 /// from content rather than being content, which makes it the narrower half of that exception and the
 /// one a reader would rather have. Empty for the transcripts that carry none — 135 of 664 here.</param>
+/// <param name="Efforts">Calls at each effort level the transcript named, unrendered — the mix rather
+/// than a winner, because the dearer level is usually the minority and a vote would drop it (T331).
+/// Empty for a session whose lines named none.</param>
 internal readonly record struct SessionRow(
     string Session, string Project, string Name,
     double FirstUnix, double LastUnix, int Calls, TokenBits Bits, string[] Models, int Agents,
-    string Prompt = "", string Title = "")
+    string Prompt = "", string Title = "",
+    IReadOnlyDictionary<string, int>? Efforts = null)
 {
     /// <summary>Wall-clock seconds from the first answered turn to the last. Zero for a session with a
     /// single turn, which is a real answer and not a missing one.</summary>
@@ -101,9 +105,10 @@ internal static class SessionIndex
     /// changed, so a size+mtime key kept serving the old answer and the fix was invisible on every row
     /// that had not been touched since. 5 splits the cache write by TTL (T330), which is the same trap:
     /// the totals were already right, so nothing on an untouched row would have looked wrong.
+    /// 6 keeps the effort each call ran at (T331), which no earlier entry recorded at all.
     /// See <see cref="FileEntry.V"/>.
     /// </summary>
-    private const int Schema = 5;
+    private const int Schema = 6;
 
     private static readonly StringComparer PathComparer = StringComparer.OrdinalIgnoreCase;
 
@@ -217,7 +222,8 @@ internal static class SessionIndex
 
                 if (!UsageReport.LooksLikeSample(line)) continue;
                 if (!UsageReport.TryParseSample(line, 0, double.MaxValue, out double t, out TokenBits bits,
-                                                out string? id, out string? cwd, out string? model))
+                                                out string? id, out string? cwd, out string? model,
+                                                out string? effort))
                     continue;
                 // One response, several content blocks, the same usage repeated on each: keyed on the
                 // response, a thinking-plus-tool-use turn is one call and one set of tokens.
@@ -235,6 +241,10 @@ internal static class SessionIndex
                 if (entry.Cwd.Length == 0 && cwd is { Length: > 0 }) entry.Cwd = cwd;
                 if (model is { Length: > 0 } && !models.Contains(model, StringComparer.Ordinal))
                     models.Add(model);
+                // Counted per call, not per session: the mix is the reading, and a session that ran
+                // ten of fifty calls at the dear level is not an instance of that level (T331).
+                if (effort is { Length: > 0 })
+                    entry.Efforts[effort] = entry.Efforts.TryGetValue(effort, out int had) ? had + 1 : 1;
             }
         }
         catch { /* a transcript being written, or an unreadable file — keep what we got */ }
@@ -463,6 +473,7 @@ internal static class SessionIndex
             double first = 0, last = 0;
             string cwd = "", prompt = "", title = "";
             var models = new List<string>();
+            var efforts = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (FileEntry e in group)
             {
                 calls += e.Calls;
@@ -476,6 +487,7 @@ internal static class SessionIndex
                 if (title.Length == 0) title = e.Title;
                 foreach (string m in e.Models)
                     if (!models.Contains(m, StringComparer.Ordinal)) models.Add(m);
+                EffortMix.Merge(efforts, e.Efforts);
             }
 
             FileEntry any = group[0];
@@ -483,7 +495,7 @@ internal static class SessionIndex
                 any.Session, any.Project,
                 cwd.Length > 0 ? ProjectSlug.NameFor(any.Project, cwd) : ProjectSlug.Tail(any.Project),
                 first, last, calls, new TokenBits(input, output, create, cached, hour, five),
-                models.ToArray(), agents, prompt, title));
+                models.ToArray(), agents, prompt, title, efforts));
         }
 
         rows.Sort((a, b) => b.LastUnix.CompareTo(a.LastUnix));
@@ -527,6 +539,8 @@ internal static class SessionIndex
         /// <inheritdoc cref="C1h"/>
         public long C5m { get; set; }
         public string[] Models { get; set; } = Array.Empty<string>();
+        /// <summary>Calls at each effort level this file recorded — see <see cref="EffortMix"/> (T331).</summary>
+        public Dictionary<string, int> Efforts { get; set; } = new(StringComparer.Ordinal);
 
         /// <summary>Bytes this pass read for the entry — 0 when it came from the cache. Not persisted.</summary>
         [System.Text.Json.Serialization.JsonIgnore]

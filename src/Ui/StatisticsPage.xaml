@@ -77,6 +77,10 @@
                                FontSize="11" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"
                                Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                 </StackPanel>
+                <TextBlock Grid.Column="1" Text="{Binding Effort}" Visibility="{Binding EffortVisibility}"
+                           FontSize="11" VerticalAlignment="Top" Margin="0,4,10,0"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                 <TextBlock Grid.Column="2" Text="{Binding Calls}" FontSize="12" VerticalAlignment="Top"
                            Margin="0,3,12,0" HorizontalAlignment="Right"
                            Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
@@ -123,6 +127,12 @@
                             <TextBlock Text="{Binding Prompt}" Visibility="{Binding PromptVisibility}"
                                        FontSize="11" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"
                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <!-- Effort under the identity rather than in a column of its own: a mix
+                                 is two or three words wide, and the columns beside it are numbers
+                                 that have to stay aligned to be comparable (T331). -->
+                            <TextBlock Text="{Binding Effort}" Visibility="{Binding EffortVisibility}"
+                                       FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
                         </StackPanel>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="{Binding When}" FontSize="13" VerticalAlignment="Top"

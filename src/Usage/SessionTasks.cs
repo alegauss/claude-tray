@@ -28,9 +28,12 @@ internal enum TaskKind
 /// no prompt to measure.</param>
 /// <param name="Own">What this node itself spent — for a task, its own turns; for a workflow, nothing,
 /// because a workflow has no turns of its own.</param>
+/// <param name="Efforts">Calls at each effort level this node's own turns ran at — the mix, not a
+/// winner (T331). See <see cref="EffortMix"/>.</param>
 internal sealed record TaskNode(
     TaskKind Kind, string Label, string Prompt, int Chars,
-    double FirstUnix, double LastUnix, int Calls, TokenBits Own, List<TaskNode> Children)
+    double FirstUnix, double LastUnix, int Calls, TokenBits Own, List<TaskNode> Children,
+    IReadOnlyDictionary<string, int>? Efforts = null)
 {
     /// <summary>This node plus everything under it. The pair <see cref="Own"/>/<see cref="Subtree"/> is
     /// the reading the tree exists for: whether the coordinator or the fleet was the expensive one.</summary>
@@ -52,6 +55,19 @@ internal sealed record TaskNode(
 
     /// <summary>Calls in this node and everything under it.</summary>
     public int SubtreeCalls => Calls + Children.Sum(c => c.SubtreeCalls);
+
+    /// <summary>The effort mix of this node and everything under it — a fan-out's agents run at their
+    /// own levels, so a coordinator's own mix is not the tree's (T331).</summary>
+    public IReadOnlyDictionary<string, int> SubtreeEfforts
+    {
+        get
+        {
+            var all = new Dictionary<string, int>(StringComparer.Ordinal);
+            EffortMix.Merge(all, Efforts);
+            foreach (TaskNode child in Children) EffortMix.Merge(all, child.SubtreeEfforts);
+            return all;
+        }
+    }
 
     public double Seconds => Math.Max(0, LastUnix - FirstUnix);
 }
@@ -151,12 +167,12 @@ internal static class SessionTasks
 
                 if (!UsageReport.LooksLikeSample(line)) continue;
                 if (!UsageReport.TryParseSample(line, 0, double.MaxValue, out double t, out TokenBits bits,
-                                                out string? id, out _, out _))
+                                                out string? id, out _, out _, out string? effort))
                     continue;
 
                 current ??= Continuation(tasks);
                 if (id != null && !current.Seen.Add(id)) continue;
-                current.Add(t, bits);
+                current.Add(t, bits, effort);
             }
         }
         catch { /* a transcript being written, or an unreadable file — keep what we cut */ }
@@ -239,10 +255,10 @@ internal static class SessionTasks
             {
                 if (!UsageReport.LooksLikeSample(line)) continue;
                 if (!UsageReport.TryParseSample(line, 0, double.MaxValue, out double t, out TokenBits bits,
-                                                out string? id, out _, out _))
+                                                out string? id, out _, out _, out string? effort))
                     continue;
                 if (id != null && !b.Seen.Add(id)) continue;
-                b.Add(t, bits);
+                b.Add(t, bits, effort);
             }
         }
         catch { /* same rule as everywhere: keep what was read */ }
@@ -262,9 +278,13 @@ internal static class SessionTasks
         private long _in, _out, _cc, _cr, _c1h, _c5m;
         private double _first, _last;
 
-        public void Add(double t, TokenBits bits)
+        public readonly Dictionary<string, int> Efforts = new(StringComparer.Ordinal);
+
+        public void Add(double t, TokenBits bits, string? effort = null)
         {
             Calls++;
+            if (effort is { Length: > 0 })
+                Efforts[effort] = Efforts.TryGetValue(effort, out int had) ? had + 1 : 1;
             _in += bits.Input; _out += bits.Output; _cc += bits.CacheCreate; _cr += bits.CacheRead;
             _c1h += bits.CacheCreate1h; _c5m += bits.CacheCreate5m;
             if (_first == 0 || t < _first) _first = t;
@@ -272,6 +292,7 @@ internal static class SessionTasks
         }
 
         public TaskNode Build() => new(Kind, Label, Prompt, Chars, _first, _last, Calls,
-                                       new TokenBits(_in, _out, _cc, _cr, _c1h, _c5m), new List<TaskNode>());
+                                       new TokenBits(_in, _out, _cc, _cr, _c1h, _c5m), new List<TaskNode>(),
+                                       Efforts);
     }
 }

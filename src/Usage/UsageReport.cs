@@ -517,8 +517,18 @@ internal static class UsageReport
     /// the line a second time (T327).</param>
     public static bool TryParseSample(string line, double startUnix, double nowUnix,
         out double t, out TokenBits bits, out string? id, out string? cwd, out string? model)
+        => TryParseSample(line, startUnix, nowUnix, out t, out bits, out id, out cwd, out model, out _);
+
+    /// <inheritdoc cref="TryParseSample(string, double, double, out double, out TokenBits, out string?, out string?, out string?)"/>
+    /// <param name="effort">The effort level the turn ran at, where the line names one — a flag beside
+    /// the model id and permitted on the same footing (§I.1), never content. It sits at the line's
+    /// <em>root</em> rather than inside <c>message</c>, which is the one thing about reading it that is
+    /// not guessable: measured here, 133,546 of 147,324 assistant lines carry it, all at the root (T331).</param>
+    public static bool TryParseSample(string line, double startUnix, double nowUnix,
+        out double t, out TokenBits bits, out string? id, out string? cwd, out string? model,
+        out string? effort)
     {
-        t = 0; bits = default; id = null; cwd = null; model = null;
+        t = 0; bits = default; id = null; cwd = null; model = null; effort = null;
         try
         {
             using var doc = JsonDocument.Parse(line);
@@ -571,6 +581,10 @@ internal static class UsageReport
                 : msg.TryGetProperty("id", out var mid) ? mid.GetString() : null;
 
             if (root.TryGetProperty("cwd", out var cw) && cw.GetString() is { Length: > 0 } c) cwd = c;
+
+            if (root.TryGetProperty("effort", out var ef) && ef.ValueKind == JsonValueKind.String &&
+                ef.GetString() is { Length: > 0 } e)
+                effort = e;
 
             t = u; bits = b;
             return true;

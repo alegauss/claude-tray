@@ -246,6 +246,14 @@ holds more than the row shows; nothing further into the conversation is read, an
 toast, report or published screenshot carries it. The hover adds the session id — the string
 `claude --resume` takes.
 
+Each row also names the **effort** its calls ran at. Effort is the biggest lever on what a
+conversation costs, and it does not work the way it sounds — it buys *more calls*, not longer
+answers, so two conversations of the same length can differ several-fold with nothing else on screen
+saying why. Where a conversation ran at more than one level you get the mix with each level's share,
+not a winner: the dearer level is usually the minority, and that is exactly the part worth seeing.
+The app reports what ran and leaves the decision to you — it never suggests running cheaper, because
+it cannot see whether the answer was right, and effort traded for a wrong answer is not a saving.
+
 **Open a row and it becomes a stack trace of that conversation.** A task starts every time you ask for
 something and ends when you ask for the next thing, so the row unfolds into the tasks that actually
 produced it — and under each one, the workflows and agents it fanned out to. Every node carries **its
