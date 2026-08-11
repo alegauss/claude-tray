@@ -63,7 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T297** (deps: —) **the folded store's line format has a second writer inside the check, kept in step by hand** — WriteStore composes the day line itself, so T287's column reached every fixture as absent — the one state a fixture cannot notice it is asserting, because absent is a legitimate reading. → §XX.9
 - 📋 **T298** (deps: T286 ✅) **the in-app capture writes a PNG of the loading placeholder and reports it written** — --capture-stats photographed the computing placeholder twice in five runs today; T286 is about the screen-copy script, and this path is in the app, where the report finishing is awaitable. → §XX.30
 - 📋 **T301** (deps: T299 ✅) **the state T299 exists for has no preview, so only an assertion has ever seen it** — A ghost whose bits say over while its line peaks at 80% needs a fold seen in pieces, which no --stats variant produces, so the mark and its floor sentence were asserted in code and never looked at. → §XX.31
 - 📋 **T312** (deps: —) **an orphaned doc comment is adopted by the next member and nothing says so** — Measured today: an edit left HasOverQuotaMark's summary above HasExtraAxis, so one member carried two and the other none, at 0 warnings — and a comment is the one claim no assertion reads. → §XLVII

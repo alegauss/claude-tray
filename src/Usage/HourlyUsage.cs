@@ -610,7 +610,19 @@ internal static class HourlyUsage
     // Rewritten whole rather than appended: folding can add several days at once (a machine that was
     // off for a week), the file is a few hundred lines, and one atomic replace is easier to reason
     // about than an append plus a separate prune.
-    private static void WriteAll(string profileKey, Dictionary<int, HourlyDay> days, long nowUnix)
+    //
+    /// <summary>
+    /// <c>internal</c> rather than private so <c>--selftest</c>'s fixtures write through it (T297), the
+    /// seam <see cref="UsageReport.FillCurve"/> was opened up for by T189.
+    ///
+    /// <para>The fixtures need a folded week that was never folded, which is a real need and was met by a
+    /// second copy of this format inside the check. Nothing held the two in step, and the drift only ever
+    /// went one way: T287 added the <c>x</c> column here and every fixture went on writing three, so
+    /// every day they described was one folded before the column existed. That is a legitimate reading —
+    /// which is exactly what made it dangerous, because a fixture silently meaning <em>unknown</em>
+    /// asserts nothing about the column and the check over it still passes.</para>
+    /// </summary>
+    internal static void WriteAll(string profileKey, Dictionary<int, HourlyDay> days, long nowUnix)
     {
         int cutoff = KeyOf(Local(nowUnix).AddDays(-RetentionDays));
         var keys = new List<int>(days.Keys);

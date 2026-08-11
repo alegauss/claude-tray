@@ -2515,6 +2515,37 @@ internal static class SelfTestCli
                   "changes the monitored profile without going through a click carries the old state across");
         }, "src/Tray/TrayContext.cs");
 
+        // T297, the same question about a different single-writer rule, and asked the same way. The folded
+        // store's line format had a second writer inside `--selftest` itself, kept in step by hand — and it
+        // was not: T287 added the `x` column to the real one and the fixture went on writing three, so three
+        // checks quietly described days folded before the column existed and none of them failed. Counting
+        // the composer rather than parsing it: the `"d":` key opens every line, and exactly one place in the
+        // repository may write it.
+        Repo("the folded store's line is composed in one place and nowhere else", root =>
+        {
+            var writers = new List<string>();
+            foreach (string path in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.cs",
+                                                             SearchOption.AllDirectories))
+            {
+                string[] lines = File.ReadAllLines(path);
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    string t = lines[i].TrimStart();
+                    if (t.StartsWith("//") || t.StartsWith("///")) continue;
+                    // Appending it is writing it. Reading a line back to assert what is in it — which the
+                    // checks above do, by `Contains` — is not, and is the distinction this looks for.
+                    if (t.Contains("\\\"d\\\":", StringComparison.Ordinal)
+                        && t.Contains("Append", StringComparison.Ordinal))
+                        writers.Add($"{Path.GetFileName(path)}:{i + 1}");
+                }
+            }
+            Check("exactly one place appends the day key",
+                  writers.Count == 1 && writers[0].StartsWith("HourlyUsage.cs", StringComparison.Ordinal),
+                  $"{(writers.Count == 0 ? "(none)" : string.Join(", ", writers))} — a second writer of this " +
+                  "format is a fixture free to describe a store the fold cannot produce, and it drifts one " +
+                  "way: the copy loses the column the real one gains (T287, T297)");
+        }, "src/Usage/HourlyUsage.cs");
+
         // T303. The poll awaits a fetch, and a switch can land inside that await — so the reading that comes
         // back is a fact about the account the poll *started* on, not about whichever one is monitored when it
         // finishes. Two things keep that true and neither can be reached without a tray, so both are asked of
@@ -6313,25 +6344,24 @@ internal static class SelfTestCli
         return new List<HourlyDay> { new(d.Year * 10000 + d.Month * 100 + d.Day, spend, count) };
     }
 
+    /// <summary>
+    /// A folded store the fold never wrote — through the writer that writes the real one (T297).
+    ///
+    /// <para>This used to compose the line here: <c>d</c>, <c>s</c>, <c>c</c> appended into a
+    /// <c>StringBuilder</c> of its own. The fixture was right and the writer was a copy, and a copy of a
+    /// format drifts one way only — T287 added a column to <see cref="HourlyUsage.WriteAll"/> and every
+    /// fixture kept writing three, so three checks went on asserting over days that silently meant
+    /// "folded before the column existed". Nothing failed, which is the point.</para>
+    ///
+    /// <para>What a fixture still decides is <em>whether</em> a day carries the column, because absence is
+    /// a reading here and one worth testing. That choice lives on <see cref="HourlyDay.Over"/>, which is
+    /// the same field the real writer branches on — one format, one branch, two callers.</para>
+    /// </summary>
     private static void WriteStore(List<HourlyDay> days)
     {
-        var sb = new StringBuilder();
-        foreach (HourlyDay d in days)
-        {
-            sb.Append(FormattableString.Invariant($"{{\"d\":{d.Key},\"s\":["));
-            for (int h = 0; h < 24; h++) sb.Append(FormattableString.Invariant($"{(h > 0 ? "," : "")}{d.Spend[h]:0.#####}"));
-            sb.Append("],\"c\":[");
-            for (int h = 0; h < 24; h++) sb.Append($"{(h > 0 ? "," : "")}{d.Count[h]}");
-            // Only when the fixture asked for it: a day with no `Over` is a day folded before T287's
-            // column existed, and writing an all-zero one would erase the very distinction it tests.
-            if (d.Over is { } over)
-            {
-                sb.Append("],\"x\":[");
-                for (int h = 0; h < 24; h++) sb.Append($"{(h > 0 ? "," : "")}{(over[h] ? 1 : 0)}");
-            }
-            sb.AppendLine("]}");
-        }
-        File.WriteAllText(HourlyUsage.FilePath(ProfileKey), sb.ToString());
+        var map = new Dictionary<int, HourlyDay>();
+        foreach (HourlyDay d in days) map[d.Key] = d;
+        HourlyUsage.WriteAll(ProfileKey, map, (long)Now);
     }
 
     // ---------------------------------------------------------------- plumbing
