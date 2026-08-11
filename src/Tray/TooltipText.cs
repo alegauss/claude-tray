@@ -143,8 +143,29 @@ internal static class TooltipText
                 : metricAtLimit
                     ? (L.T("tip.billingFull", scope), L.T("tip.billingCompact"))
                     : (L.T("tip.billingCompact"), L.T("tip.billingCompact"))
-            : metricAtLimit
-                ? (L.T("tip.atLimitFull", scope, limit), L.T("tip.atLimitCompact", limit))
+            // The other half of the same split (T288). T274 rescoped the *state* to the account and fixed
+            // the billing sentence above; this branch kept gating on the window the icon happens to show,
+            // so an account rejected at 1.02 on the session, watched on a week at 0.47, drew the ordinary
+            // projection — *✓ Week 7d projection: on track* — while nothing it did would run until the
+            // session reset.
+            //
+            // Scoped where the metric IS the window that crossed, because there the figure and the caption
+            // agree. Where it is not, the caption names nothing and the figure is left out entirely: "Week
+            // 7d: at limit (100%)" would be false twice over about a window sitting at 47%. What is left
+            // has to read as "you are blocked now" rather than "some window somewhere is full" — the API
+            // refuses the request, not the window, so the unscoped claim is the true one.
+            //
+            // Two rungs, and they have to differ: `Fit` takes the first that fits, so the same string twice
+            // is one rung wearing a disguise. Measured with `--tooltip stoppedelsewhere` before it was
+            // assumed — the natural sentence costs 42 characters in es and 51 in fr where this reading
+            // leaves 37 and 33, so both languages rendered NO sentence at all. There is no third, wordless
+            // rung of T302's kind here: that one is a glyph and a duration, and "you are blocked" has no
+            // number in it to survive translation. If neither fits, the line is dropped — which is still
+            // the improvement, because what it replaces is the confident wrong answer.
+            : i.State == QuotaState.Stopped || metricAtLimit
+                ? metricAtLimit
+                    ? (L.T("tip.atLimitFull", scope, limit), L.T("tip.atLimitCompact", limit))
+                    : (L.T("tip.atLimitUnscoped"), L.T("tip.atLimitUnscopedCompact"))
             : i.Verdict switch
             {
                 Projection.Danger => hasEta

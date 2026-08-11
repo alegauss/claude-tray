@@ -68,6 +68,8 @@
   "tip.status": "{0} status: {1}{2}",
   "tip.atLimitFull": "⚠ {0}: at limit ({1})",
   "tip.atLimitCompact": "⚠ at limit ({0})",
+  "tip.atLimitUnscoped": "⚠ blocked until your quota resets",
+  "tip.atLimitUnscopedCompact": "⚠ blocked until reset",
   "tip.billingFull": "• {0}: past your included quota — extra usage is paying",
   "tip.billingCompact": "• extra usage is paying",
   "tip.spellFull": "• paying since {0}",
@@ -418,6 +420,7 @@
   "stats.verdict.tooFast": "Too fast",
   "stats.verdict.atLimit": "At limit",
   "stats.verdict.billing": "Extra usage",
+  "stats.verdict.blocked": "Blocked",
   "stats.verdict.noData": "No data",
 
   // Throughput
@@ -457,6 +460,7 @@
   // Projection text
   "stats.proj.noWindow": "No limit reading for this window yet.",
   "stats.proj.atLimit": "You've hit this window's limit. It resets in {0} — until then, usage is blocked.",
+  "stats.proj.stoppedElsewhere": "Usage is blocked right now — this window still has room, but another one has reached its limit and nothing is paying past it. The pace below is real and is not what's gating the work.",
   "stats.proj.billing": "You've spent the quota included in this window and are still working — extra usage is paying, now at {0} of your extra-usage allowance. The included window resets in {1}.",
   "stats.proj.billingNoAmount": "You've spent the quota included in this window and are still working — extra usage is paying. No header says how much of your extra-usage allowance that amounts to, so this app does not guess. The included window resets in {0}.",
   "stats.proj.aheadEta": "At the current pace, your quota reaches 100% in {0} — about {1} before the reset (in {2}). Worth easing off so you don't get blocked.",

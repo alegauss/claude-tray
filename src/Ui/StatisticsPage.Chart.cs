@@ -23,6 +23,18 @@ internal partial class StatisticsPage
         if (!w.HasWindow)
             return L.T("stats.proj.noWindow");
 
+        // Blocked, but not by this window (T288) — and said before every sentence below, including the
+        // shaped one. That order is the whole fix: the pane this defect lives on is by definition the pane
+        // with room left, which is exactly the pane that HAS an activity-aware projection, so a check
+        // placed after the shape branch is a check that never runs. Measured that way first — the capture
+        // came back reading "you would close the week around 65%" under a green *On track* chip, over an
+        // account that could not send a request.
+        //
+        // No reset and no percentage in it. `toReset` is this window's, and naming the other one's would
+        // caption a figure this pane is not drawing; the pace it replaces is still under it on the chart.
+        if (w.Verdict != PaceVerdict.AtLimit && StoppedNow())
+            return L.T("stats.proj.stoppedElsewhere");
+
         string toReset = Dur(w.SecondsToReset);
 
         // With a shape to follow, the sentence follows it too — and hedges. The model is a habit, not
@@ -58,6 +70,7 @@ internal partial class StatisticsPage
             return HasBillingFigure(w)
                 ? L.T("stats.proj.billing", Pct(w.ExtraCurve[^1].val), toReset)
                 : L.T("stats.proj.billingNoAmount", toReset);
+
 
         if (_remaining)
         {
@@ -130,6 +143,40 @@ internal partial class StatisticsPage
            // leaves a recent 0 behind — and reading that as "paying now" is the opposite mistake.
            || (w.ExtraCurve.Count > 0 && w.ExtraCurve[^1].val > 0
                && StillCurrent(w, w.ExtraCurve[^1].frac));
+
+    /// <summary>
+    /// Whether the <em>account</em> is refused right now (T288) — either bounded window at its limit with
+    /// nothing paying past it.
+    ///
+    /// <para>Deliberately the opposite scope from <see cref="BillingNow"/>, and for the reason that made
+    /// T274 rescope the tray's state: whether an account is <b>blocked</b> is a property of the account,
+    /// not of the pane being looked at. "Extra usage is paying" has a band on this pane's own chart to
+    /// point at, so it speaks from this pane's readings; "nothing will run" has no evidence here at all,
+    /// and the pane that draws none is exactly the one whose reader needs telling.</para>
+    ///
+    /// <para>Read off the report rather than off <c>QuotaStates.Resolve</c>, because this page has the two
+    /// windows and not the account's headers — and the two agree by construction: <c>Resolve</c> takes the
+    /// worse of the same two bounded windows and asks the same question of overage. The overage window is
+    /// left out here as it is there (§XVIII), its 100% denominating nothing any header states.</para>
+    ///
+    /// <para><c>internal static</c> over the two panes, so <c>--selftest</c> can drive it without a
+    /// window.</para></summary>
+    internal static bool StoppedNow(WindowPace? session, WindowPace? weekly)
+        => BlockedBy(session) || BlockedBy(weekly);
+
+    /// <summary>Whether this window is the one holding the account down: spent, with nothing paying past
+    /// it.
+    ///
+    /// <para>Asked of <see cref="WindowPace.Util"/> against <see cref="QuotaStates.AtLimitThreshold"/>
+    /// rather than of <see cref="PaceVerdict.AtLimit"/>, which is the same line drawn twice — and this is
+    /// the copy that has to be the account's. <c>Verdict</c> is a display grade this page computes for its
+    /// own chip; the threshold is what <c>QuotaStates.Resolve</c> reads, so taking it directly is what
+    /// makes "the two agree by construction" true rather than merely intended.</para></summary>
+    private static bool BlockedBy(WindowPace? w)
+        => w is { HasWindow: true } && w.Util >= QuotaStates.AtLimitThreshold && !BillingNow(w);
+
+    /// <summary>The page's own reading of it, over the two windows last rendered.</summary>
+    private bool StoppedNow() => StoppedNow(_session, _weekly);
 
     /// <summary>How far into the plot the ghost's over-quota stretch sits from the ghost's own line, in
     /// device-independent pixels (T295) — enough to clear the 100% gridline and the projection that share

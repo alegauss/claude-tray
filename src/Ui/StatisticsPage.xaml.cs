@@ -600,8 +600,16 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         // the sentence's own — see StatisticsPage.Chart's BillingNow, which both read so they cannot disagree
         // about one pane. A pace verdict about a window whose limit is no longer what gates the work is the
         // thing worth displacing; the sentence below still reports it.
+        // And a blocked account outranks the pace for the same reason, one window over (T288): #2E7D46 is
+        // this page's on-track green, and a green chip is the strongest thing on the pane. Leaving it there
+        // over the sentence that says nothing will run is the contradiction T323 took out of the billing
+        // state, reappearing on whichever pane still has room. The red is honest — on a quota surface it
+        // means *stopped*, which the account is — but the label may not claim it about THIS window, whose
+        // figure beside it reads 47%.
         var (chipBg, chipLabel) = BillingNow(w)
             ? (Color.FromRgb(0xD9, 0x77, 0x57), L.T("stats.verdict.billing"))
+            : w.Verdict != PaceVerdict.AtLimit && StoppedNow()
+            ? (Color.FromRgb(0xC4, 0x3E, 0x3E), L.T("stats.verdict.blocked"))
             : w.Verdict switch
         {
             PaceVerdict.Adequate => (Color.FromRgb(0x2E, 0x7D, 0x46), L.T("stats.verdict.onTrack")),

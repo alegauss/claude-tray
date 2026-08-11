@@ -1718,6 +1718,24 @@ internal static class SelfTestCli
         Check("and a figure above zero on the newest reading is, with no span needed",
               StatisticsPage.BillingNow(figureLive) && figureLive.ExtraSpans.Count == 0);
 
+        // T288: the opposite scope, deliberately. `BillingNow` asks about ONE pane because that pane draws
+        // the band; whether the account is refused is not a pane's property at all, and the pane that has to
+        // say so is the one with no evidence on it.
+        var roomy7d = Win(reset, window, now, 0.47);
+        var gone5h = Win(sReset, UsageReport.SessionSeconds, now, 1.0);
+        Check("a week with room behind a session at its limit is a blocked account",
+              StatisticsPage.StoppedNow(gone5h, roomy7d));
+        Check("...and asked of either pane, since neither owns the answer",
+              StatisticsPage.StoppedNow(roomy7d, gone5h));
+        Check("two windows with room are not blocked",
+              !StatisticsPage.StoppedNow(roomy7d, Win(sReset, UsageReport.SessionSeconds, now, 0.6)));
+        // The one that keeps this from firing on every paying account, which is the state T182 split off:
+        // at the limit and still working is not stopped, and `liveSession` is that window exactly.
+        Check("and a window at its limit that is still paying past it is not blocked either",
+              !StatisticsPage.StoppedNow(liveSession, roomy7d) && StatisticsPage.BillingNow(liveSession));
+        Check("nor is a window that has no reading at all",
+              !StatisticsPage.StoppedNow(null, null));
+
         // The second axis is one question too, and the entry that says the percentage is of a different
         // denominator must appear exactly when the axis it explains does.
         Check("a window with no overage figure rules no second axis", !StatisticsPage.HasExtraAxis(none));
@@ -2159,6 +2177,44 @@ internal static class SelfTestCli
             }
             Check("the state where extra usage is paying says so, in every language", mute.Count == 0,
                   $"{string.Join(", ", mute)} — the one state whose news never reached the screen");
+
+            // T288, the same property for the opposite outcome. The account is refused and the icon is on
+            // the window that is fine, which is exactly where the sentence used to read "on track". Asked of
+            // every language because the first draft of this fix rendered nothing at all in es and fr: the
+            // natural sentence cost more than those readings had left, and a dropped line and a wrong line
+            // are equally silent about being blocked.
+            var quiet = new List<string>();
+            foreach (string code in codes)
+            {
+                L.Apply(code);
+                string stopped = TooltipText.Compose(StoppedElsewhere(Now));
+                if (!stopped.Contains(L.T("tip.atLimitUnscoped"), StringComparison.Ordinal) &&
+                    !stopped.Contains(L.T("tip.atLimitUnscopedCompact"), StringComparison.Ordinal))
+                    quiet.Add($"{code} ({stopped.Length}/{TooltipText.Cap})");
+            }
+            Check("a blocked account says so even when the icon is on the window with room", quiet.Count == 0,
+                  $"{string.Join(", ", quiet)} — neither rung fitted, so the reading is mute about being blocked");
+
+            // And it says it *unscoped*. The whole defect is a caption about the wrong window, so a fix that
+            // captions the wrong window with a different word has not fixed anything: at 47% neither "Week
+            // 7d: at limit" nor the on-track projection may appear.
+            L.Apply("en");
+            string blocked = TooltipText.Compose(StoppedElsewhere(Now));
+            Check("and names neither the window with room nor its pace",
+                  !blocked.Contains(L.T("tip.atLimitFull", TrayContext.MetricLabel("7d"), L.T("tip.limitUsed")),
+                                    StringComparison.Ordinal) &&
+                  !blocked.Contains(L.T("tip.okTrackFull", TrayContext.MetricLabel("7d")), StringComparison.Ordinal) &&
+                  !blocked.Contains(L.T("tip.okTrackCompact"), StringComparison.Ordinal),
+                  blocked.Replace("\n", " | "));
+
+            // The other side of the same rule, which is T274's and is what stops this becoming a blanket
+            // unscoping: where the metric IS the window that crossed, the figure and the caption agree and
+            // the scoped sentence is the better one. Nothing here should have taken that away.
+            string onIt = TooltipText.Compose(StoppedElsewhere(Now) with { Metric = "5h" });
+            Check("while the window that actually crossed keeps its scoped sentence",
+                  onIt.Contains(L.T("tip.atLimitFull", TrayContext.MetricLabel("5h"), L.T("tip.limitUsed")),
+                                StringComparison.Ordinal),
+                  onIt.Replace("\n", " | "));
 
             // And it must arrive *once*: the merge exists because the reading and the sentence were the
             // same fact twice. At the real cap this cannot be tested — there is no room for both, so a
@@ -2722,6 +2778,24 @@ internal static class SelfTestCli
         Verdict = Projection.Unknown,
         Eta = 0,
         State = QuotaState.Billing,
+    };
+
+    /// <summary>T288's reading, and the one measured on 2026-08-04: the session rejected at 102% behind a
+    /// week at 47%, with the icon on the week. The account is <see cref="QuotaState.Stopped"/> and the
+    /// metric is the window that did <em>not</em> cross — which is the whole case, since a caption naming
+    /// this window would name 47%.</summary>
+    private static TooltipText.Input StoppedElsewhere(long now) => Long(now) with
+    {
+        Metric = "7d",
+        Data = new UsageData
+        {
+            Session5h = 1.02, Week7d = 0.47,
+            Reset5h = now + 2 * 3600, Reset7d = now + 3 * 86400,
+            Status = "rejected", Status7d = "allowed",
+        },
+        Verdict = Projection.Ok,
+        Eta = 4 * 3600,
+        State = QuotaState.Stopped,
     };
 
     /// <summary>The billing state with the budget deliberately slack — no refresh time, no known resets —

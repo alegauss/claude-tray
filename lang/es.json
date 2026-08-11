@@ -64,6 +64,8 @@
   "tip.status": "Estado {0}: {1}{2}",
   "tip.atLimitFull": "⚠ {0}: en el límite ({1})",
   "tip.atLimitCompact": "⚠ en el límite ({0})",
+  "tip.atLimitUnscoped": "⚠ bloqueado hasta que se reinicie tu cuota",
+  "tip.atLimitUnscopedCompact": "⚠ bloqueado hasta el reinicio",
   "tip.billingFull": "• {0}: más allá de tu cuota incluida — el uso extra está pagando",
   "tip.billingCompact": "• el uso extra está pagando",
   "tip.spellFull": "• pagando desde {0}",
@@ -414,6 +416,7 @@
   "stats.verdict.tooFast": "Demasiado rápido",
   "stats.verdict.atLimit": "En el límite",
   "stats.verdict.billing": "Cuota extra",
+  "stats.verdict.blocked": "Bloqueado",
   "stats.verdict.noData": "Sin datos",
 
   // Throughput
@@ -453,6 +456,7 @@
   // Projection text
   "stats.proj.noWindow": "Aún no hay lectura de límite para esta ventana.",
   "stats.proj.atLimit": "Has alcanzado el límite de esta ventana. Se reinicia en {0} — hasta entonces, el uso está bloqueado.",
+  "stats.proj.stoppedElsewhere": "El uso está bloqueado ahora mismo: esta ventana todavía tiene margen, pero otra ha alcanzado su límite y nada paga más allá. El ritmo de abajo es real y no es lo que frena el trabajo.",
   "stats.proj.billing": "Has gastado la cuota incluida en esta ventana y sigues trabajando — el uso extra está pagando, ahora en {0} de tu límite de uso extra. La ventana incluida se reinicia en {1}.",
   "stats.proj.billingNoAmount": "Has gastado la cuota incluida en esta ventana y sigues trabajando — el uso extra está pagando. Ninguna cabecera dice cuánto supone eso de tu límite de uso extra, así que esta app no lo adivina. La ventana incluida se reinicia en {0}.",
   "stats.proj.aheadEta": "Al ritmo actual, tu cuota llega al 100% en {0} — unos {1} antes del reinicio (en {2}). Conviene reducir el ritmo para no quedar bloqueado.",

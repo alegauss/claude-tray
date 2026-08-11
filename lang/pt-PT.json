@@ -65,6 +65,8 @@
   "tip.status": "Estado {0}: {1}{2}",
   "tip.atLimitFull": "⚠ {0}: no limite ({1})",
   "tip.atLimitCompact": "⚠ no limite ({0})",
+  "tip.atLimitUnscoped": "⚠ bloqueado até a sua quota repor",
+  "tip.atLimitUnscopedCompact": "⚠ bloqueado até à reposição",
   "tip.billingFull": "• {0}: além da quota incluída — o uso extra está a pagar",
   "tip.billingCompact": "• o uso extra está a pagar",
   "tip.spellFull": "• a pagar há {0}",
@@ -415,6 +417,7 @@
   "stats.verdict.tooFast": "Depressa demais",
   "stats.verdict.atLimit": "No limite",
   "stats.verdict.billing": "Quota extra",
+  "stats.verdict.blocked": "Bloqueado",
   "stats.verdict.noData": "Sem dados",
 
   // Throughput
@@ -454,6 +457,7 @@
   // Projection text
   "stats.proj.noWindow": "Ainda não há leitura de limite para esta janela.",
   "stats.proj.atLimit": "Atingiu o limite desta janela. Repõe em {0} — até lá, a utilização está bloqueada.",
+  "stats.proj.stoppedElsewhere": "A utilização está bloqueada neste momento: esta janela ainda tem folga, mas outra atingiu o limite e nada paga para além dele. O ritmo abaixo é real e não é o que está a travar o trabalho.",
   "stats.proj.billing": "Gastou a quota incluída nesta janela e continua a trabalhar — o uso extra está a pagar, agora em {0} do seu limite de uso extra. A janela incluída repõe em {1}.",
   "stats.proj.billingNoAmount": "Gastou a quota incluída nesta janela e continua a trabalhar — o uso extra está a pagar. Nenhum header diz quanto isso representa do seu limite de uso extra, por isso esta app não adivinha. A janela incluída repõe em {0}.",
   "stats.proj.aheadEta": "Ao ritmo atual, a sua quota chega a 100% em {0} — cerca de {1} antes da reposição (em {2}). Vale a pena abrandar para não ficar bloqueado.",

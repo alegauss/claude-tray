@@ -86,6 +86,14 @@ internal static class TooltipCli
             now => Reading(now, 0.40, 1.0, metric: "7d", verdict: Projection.Unknown, eta: 0,
                            state: QuotaState.Stopped)),
 
+        new("stoppedelsewhere", "the same reading as `billingelsewhere` with nothing paying past the " +
+                                "quota: the session rejected at 102% behind a week at 47%, icon on the " +
+                                "week. The account is blocked and the caption cannot say so about THIS " +
+                                "window, so it names no scope and no figure (T288) — where the projection " +
+                                "used to read `on track`",
+            now => Reading(now, 1.02, 0.47, metric: "7d", verdict: Projection.Ok, eta: 4 * 3600,
+                           state: QuotaState.Stopped, status5h: "rejected")),
+
         new("connecting", "before the first poll returns",
             _ => Empty with { Data = null }),
 

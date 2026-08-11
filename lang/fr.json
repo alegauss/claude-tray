@@ -64,6 +64,8 @@
   "tip.status": "Statut {0} : {1}{2}",
   "tip.atLimitFull": "⚠ {0} : limite atteinte ({1})",
   "tip.atLimitCompact": "⚠ limite atteinte ({0})",
+  "tip.atLimitUnscoped": "⚠ bloqué jusqu'à la réinitialisation de votre quota",
+  "tip.atLimitUnscopedCompact": "⚠ bloqué jusqu'au reset",
   "tip.billingFull": "• {0} : au-delà de votre quota inclus — l’usage supplémentaire paie",
   "tip.billingCompact": "• l’usage supplémentaire paie",
   "tip.spellFull": "• paie depuis {0}",
@@ -414,6 +416,7 @@
   "stats.verdict.tooFast": "Trop rapide",
   "stats.verdict.atLimit": "Limite atteinte",
   "stats.verdict.billing": "Usage suppl.",
+  "stats.verdict.blocked": "Bloqué",
   "stats.verdict.noData": "Aucune donnée",
 
   // Throughput
@@ -453,6 +456,7 @@
   // Projection text
   "stats.proj.noWindow": "Aucune lecture de limite pour cette fenêtre pour l'instant.",
   "stats.proj.atLimit": "Vous avez atteint la limite de cette fenêtre. Elle se réinitialise dans {0} — d'ici là, la consommation est bloquée.",
+  "stats.proj.stoppedElsewhere": "La consommation est bloquée en ce moment : cette fenêtre a encore de la marge, mais une autre a atteint sa limite et rien ne paie au-delà. Le rythme ci-dessous est réel et n'est pas ce qui bloque le travail.",
   "stats.proj.billing": "Vous avez épuisé le quota inclus dans cette fenêtre et continuez à travailler — l’usage supplémentaire paie, actuellement à {0} de votre limite d’usage supplémentaire. La fenêtre incluse se réinitialise dans {1}.",
   "stats.proj.billingNoAmount": "Vous avez épuisé le quota inclus dans cette fenêtre et continuez à travailler — l’usage supplémentaire paie. Aucun en-tête n’indique la part que cela représente de votre limite d’usage supplémentaire, cette application ne le devine donc pas. La fenêtre incluse se réinitialise dans {0}.",
   "stats.proj.aheadEta": "Au rythme actuel, votre quota atteint 100% dans {0} — environ {1} avant la réinitialisation (dans {2}). Mieux vaut lever le pied pour ne pas être bloqué.",

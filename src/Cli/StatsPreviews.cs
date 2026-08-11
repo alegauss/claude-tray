@@ -73,6 +73,14 @@ internal static class StatsPreviews
                                     Extra: 0.47, ResetExtra: now + 2 * 86400),
             Overage: true),
 
+        // T288's reading, and the one measured on 2026-08-04: the session refused at 102% behind a week at
+        // 47%, with nothing paying past the quota. The weekly pane is the point — its own pace is genuinely
+        // fine, and every sentence this page had for it said so while no request would run.
+        new("stopped", "the session's quota gone with no extra usage, behind a week still at 47%: the " +
+                       "account is blocked and the weekly pane's own pace is not what is gating the work " +
+                       "(T288), where it used to read as on track",
+            now => new PaceSnapshot(1.02, now + 2 * 3600, 0.47, now + 2 * 86400)),
+
         new("overage-noamount", "the spell as it was actually measured (T275): the API said the account " +
                                 "was past its included quota for a stretch while the overage " +
                                 "figure stayed at 0, so the band is drawn and there is no second axis",

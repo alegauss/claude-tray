@@ -104,6 +104,12 @@ At 100% there is a third thing the tile can mean, and it gets its own color:
   **Statistics** window each pane's verdict chip goes clay and reads **Extra usage** — instead of the
   red *At limit*, which on a quota surface means *stopped* — for as long as that pane's own readings
   say the spell is still running
+- **blocked, on the window that still has room** — when a window is spent and *nothing* is paying past
+  it, you are blocked, and that stays true on the other window. A week sitting at 47% behind a spent
+  session shows the red **Blocked** chip and says so in words, where it used to read *On track* over
+  work that would not run. The tooltip does the same, and deliberately says less: with the icon on the
+  window that still has room, it gives no percentage and no window name — just that you are blocked
+  until your quota resets, because naming *Week 7d* there would caption the wrong number
 
 How the verdict is computed depends on the window:
 

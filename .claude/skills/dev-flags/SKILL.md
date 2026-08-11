@@ -66,12 +66,18 @@ Three different hosts, and the difference matters — see UI convention 7 in AGE
                                       #   against the 127 cap (T214). No variant prints them all: ok
                                       #   (the default) | track | danger | remaining | profile | extra
                                       #   | extraunspent | billingelsewhere | billingremaining | atlimit |
-                                      #   connecting | signedout | error. The first two billing rows differ by whether a
+                                      #   stoppedelsewhere | connecting | signedout | error. The first two
+                                      #   billing rows differ by whether a
                                       #   cent has been spent, which is what decides where the news is
                                       #   written (T222); the third is the window on the icon not being the
                                       #   one that crossed, where the sentence loses its scope (T274); the
                                       #   fourth is the icon's figure moved onto the window that crossed,
-                                      #   reading 0% left (T320). The surface no
+                                      #   reading 0% left (T320). `stoppedelsewhere` is the third one again
+                                      #   with nothing paying past the quota, where the projection used to
+                                      #   read "on track" over work that would not run (T288) - and it is
+                                      #   the row to check a translation against, because the natural
+                                      #   sentence does not fit in es or fr and the compact rung is what
+                                      #   carries them. The surface no
                                       #   capture can photograph - the shell draws it - so this is how it
                                       #   gets reviewed at all. Add --lang to read it in a translation.
 --simulate-reset [variant]            # a toast card on screen: unexpected (the default early weekly reset)

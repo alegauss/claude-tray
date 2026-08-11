@@ -81,7 +81,6 @@
 
 ## Block D — Auth & API resilience
 
-- 📋 **T288** (deps: —) **the stopped verdict still follows the window on the icon, so a blocked session hides behind a quiet week** — T274 split the billing verdict from the caption and left this half: 5h rejected beside 7d at 0.47 draws an on-track projection and says nowhere that work has stopped. → §XXIII.6
 - 📋 **T305** (deps: —) **an observing tray appends to the probe store, and rewrites it, on a machine it promised only to read** — T239 gates UsageHistory and HourlyUsage; HeaderProbe.Record does neither, and ObservingTray drives every other write entry point but not this one — the hole that comment names. → §XL
 
 ## Block N — System information — your plan, your install, this machine
