@@ -572,7 +572,13 @@
                         <TextBlock Text="{local:Loc stats.throughput.byProject}" Margin="0,16,0,0"
                                    FontSize="12" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <Border x:Name="ChartProjects" Height="178" Margin="0,6,0,0" CornerRadius="6" ClipToBounds="True"
+                        <!-- A spike here has a name, and this is the direction of that join with data behind it: the
+                             strip is five minutes and the list is seven days, so a task cannot light this
+                             chart, but this chart can name the running task (T337). -->
+                        <Border x:Name="ChartProjects" Cursor="Hand"
+                                MouseLeftButtonUp="LiveChart_Clicked"
+                                ToolTip="{local:Loc stats.live.clickTip}"
+                                Height="178" Margin="0,6,0,0" CornerRadius="6" ClipToBounds="True"
                                 Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
                         <!-- The time axis, stated rather than implied: oldest second at the left, the
                              one still filling at the right. -->

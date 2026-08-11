@@ -255,6 +255,12 @@ a daily total understates what the meter was pointed at. It is a measurement and
 recommendation — the app has no figure for what your plan actually allows, so it tells you what the
 heaviest window held and stops there.
 
+Click a spike on the **Throughput** strip and it names itself: the Sessions tab opens on the
+conversation that is running right now. The join only works in that direction — the strip keeps five
+minutes and the list opens on seven days, so a conversation you pick from the list has nothing to
+light up on the chart, while a spike is by definition inside the strip's window. When nothing is
+running, a click does nothing rather than opening yesterday's conversation.
+
 Under those two lines sits **which kind of work** ate the range: one row per task kind — slash
 commands, typed prompts, inherited turns — and one row per named command, with how many tasks, what a
 usual one cost, the total and its share. The projects strip answers *which repo*; this answers *which

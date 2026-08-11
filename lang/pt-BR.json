@@ -368,6 +368,7 @@
   "stats.kind.command": "Comandos de barra",
   "stats.kind.prompt": "Prompts digitados",
   "stats.kind.continuation": "Turnos herdados",
+  "stats.live.clickTip": "Clique num pico para abrir a conversa que está rodando agora",
   "stats.sessions.peak": "As 5 horas mais pesadas do período: {0}, a partir de {1}",
   "stats.sessions.peakMedian": "no dia mediano, as 5 horas mais cheias levaram {0}, em {1} dias com trabalho",
   "stats.sessions.count": "{0} conversas",

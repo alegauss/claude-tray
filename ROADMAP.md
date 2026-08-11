@@ -95,7 +95,6 @@
 
 ## Block AK — Sessions — what one conversation cost, and what it did
 
-- 📋 **T337** (deps: T329 ✅) **a spike on the live strip has no name, and the join was designed in the direction with no data** — The strip is a 300-second ring and the list opens on seven days, so a task-to-chart highlight is blank for 142 of 143 rows - the direction with data is the chart naming the live task. → §LXV
 - 📋 **T338** (deps: T336 ✅) **the row's title and prompt lines are cut mid-word with no ellipsis, running under the next column** — TextTrimming cannot fire inside a horizontal StackPanel, measured at infinite width, so the Grid column clips instead - shipped in T334, unseen because no capture followed. → §LXVI
 - 📋 **T346** (deps: —) **tokens rank sessions and money explains them, and a $2 conversation reads the same as a $40 one** — T330 read the split and nothing prices it, and SessionRow aggregates the models that answered — so per-model attribution is what a list price needs first. → §LXXIV
 

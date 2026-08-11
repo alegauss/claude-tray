@@ -255,6 +255,9 @@ internal static class SelfTestCli
         Section("dates — a month name in the language the window is in (Block AI)");
         DateCulture();
 
+        Section("running — which conversation a spike on the strip belongs to (Block AK)");
+        RunningSession();
+
         Section("anchoring — a transcript reached by a route nobody walked (Block AK)");
         Anchoring();
 
@@ -6949,6 +6952,54 @@ internal static class SelfTestCli
         Check("a command is labelled by its own name and a kind by the string table",
               WorkKinds.Label(loop) == "/loop" &&
               WorkKinds.Label(prompts) != "stats.kind.prompt", WorkKinds.Label(prompts));
+    }
+
+    /// <summary>
+    /// T337. Which conversation a spike on the live strip belongs to.
+    ///
+    /// <para>The rule is one line and its whole value is the <em>window</em>. Without it, a click on a
+    /// strip that is drawing nothing would still open a conversation — the newest one, which may have
+    /// ended yesterday — and confidently name the wrong thing for a spike that is not there. So the
+    /// fixture puts a stale conversation and a live one side by side, and then asks the same question
+    /// of a list where everything is stale.</para>
+    ///
+    /// <para>The direction is the finding, not the mechanism: the strip keeps
+    /// <see cref="LiveRate.HistorySeconds"/> seconds and the list opens on seven days, so the inverse
+    /// join T329 sketched would be blank for every row but one.</para>
+    /// </summary>
+    private static void RunningSession()
+    {
+        const double Now = 1_800_000_000;
+        static SessionRow At(string id, double last) =>
+            new(id, "proj", id, last - 60, last, 1, default, Array.Empty<string>(), 0);
+
+        var rows = new[]
+        {
+            At("yesterday", Now - 86_400),
+            At("an-hour-ago", Now - 3_600),
+            At("running", Now - 20),
+            At("also-recent", Now - 200),
+        };
+
+        SessionRow? live = SessionIndex.Running(rows, Now, LiveRate.HistorySeconds);
+        Check("the newest conversation inside the strip's window is the running one",
+              live?.Session == "running", live?.Session ?? "none");
+
+        // The whole point of the window: a strip with nothing on it names nothing.
+        SessionRow? none = SessionIndex.Running(
+            new[] { At("yesterday", Now - 86_400), At("an-hour-ago", Now - 3_600) },
+            Now, LiveRate.HistorySeconds);
+        Check("and a list with nothing recent names no conversation at all",
+              none is null, none?.Session ?? "null");
+
+        Check("an empty list is no conversation, not a crash",
+              SessionIndex.Running(Array.Empty<SessionRow>(), Now, LiveRate.HistorySeconds) is null, "");
+
+        // The edge the window is: a conversation exactly at the far end of the ring is still in it.
+        Check($"a conversation exactly {LiveRate.HistorySeconds}s old is still inside the ring",
+              SessionIndex.Running(new[] { At("edge", Now - LiveRate.HistorySeconds) }, Now,
+                                   LiveRate.HistorySeconds)?.Session == "edge",
+              "the far end of the ring was treated as outside it");
     }
 
     /// <summary>A month name formatted through whatever culture the machine happens to run under, in a

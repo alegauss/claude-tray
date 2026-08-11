@@ -809,31 +809,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## LXV The join between a spike and a task, in the direction that has data (T337)
-
-T329's design ends with a sentence it did not build: selecting a task cross-highlights the
-Throughput strip where the two overlap in time. It was left out because the premise does not hold as
-stated, and approximating it would have been worse than saying so.
-
-**The measurement.** `LiveRate` keeps `HistorySeconds = 300` — five minutes of per-second buckets,
-of which the chart draws three. The Sessions list opens on seven days. So the overlap between a
-selected task and anything the strip can draw is empty for every row except one: the task running
-right now. A highlight that is correct and blank for 142 of 143 rows is a feature nobody sees fire,
-and widening the strip to make it fire is the repair T326 already refused for a different reading.
-
-**What is worth building instead is the inverse.** The strip's question is *what is burning right
-now*, and the useful join is from the chart to the list: a spike on the strip becomes a task with a
-name. That works because the spike is by definition inside the strip's window, so the task it
-belongs to is the currently-running one — which the list can already identify and could scroll to
-and open.
-
-So: a click on the live chart selects the running task in the Sessions pane, rather than a selection
-in the Sessions pane painting the live chart. Same join, the direction that has data behind it.
-
-**What would make the original real** is a chart over the *session's own* timeline rather than over
-the last three minutes — a different chart, not a highlight on this one, and a bigger task than
-either. Filed here so the next person does not re-derive the reason.
-
 ## LXVI The row's lower lines are clipped, not trimmed (T338)
 
 The Sessions row draws a project, the conversation's title under it, and the opening prompt under

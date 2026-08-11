@@ -122,6 +122,61 @@ internal partial class StatisticsPage
         });
     }
 
+    /// <summary>
+    /// A click on the live strip names what is burning: it moves to the Sessions pane and opens the
+    /// conversation that is running (T337).
+    ///
+    /// <para>T329's design asked for the opposite — a selected task lighting up the strip — and this is
+    /// the same join in the direction that has data. Nothing happens when nothing is running, which is
+    /// the honest answer: jumping to a conversation that ended yesterday would name the wrong thing for
+    /// a spike that is not there.</para>
+    /// </summary>
+    private void LiveChart_Clicked(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != System.Windows.Input.MouseButton.Left) return;
+        if (_sessions is not { } rows) { LoadSessions(); return; }
+
+        double now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        if (SessionIndex.Running(rows, now, LiveRate.HistorySeconds) is not { } running) return;
+
+        // The pane the row lives in, before the row: selecting inside a tab nobody is looking at is a
+        // jump the user never sees happen.
+        PanesBody.SelectedIndex = SessionsTabIndex;
+        Dispatcher.BeginInvoke(() => OpenSession(running), System.Windows.Threading.DispatcherPriority.Background);
+    }
+
+    /// <summary>Which tab the Sessions pane is, named once rather than counted at each call site.</summary>
+    private const int SessionsTabIndex = 3;
+
+    /// <summary>Open one conversation's call tree and bring it into view — the shared half of a click on
+    /// the row and a click on the live chart.</summary>
+    private void OpenSession(SessionRow model)
+    {
+        if (SessionList.ItemsSource is not IEnumerable<SessionListRow> shown) return;
+        SessionListRow? row = shown.FirstOrDefault(r => r.Row.Session == model.Session &&
+                                                        r.Row.Project == model.Project);
+        if (row == null) return;
+
+        // An ItemsControl, not a ListBox: it has no ScrollIntoView, so the row's own container is
+        // asked to come into view. Null while the container has not been realised, which is a
+        // best-effort scroll and never a crash.
+        if (SessionList.ItemContainerGenerator.ContainerFromItem(row) is FrameworkElement container)
+            container.BringIntoView();
+        if (row.Detail != null) { row.Open = true; return; }
+
+        row.Open = true;
+        ProfileRef profile = _profile;
+        System.Threading.Tasks.Task.Run(() =>
+        {
+            IReadOnlyList<TaskNode> tasks;
+            try { tasks = SessionTasks.For(model, profile, PreviewSessionsRoot); }
+            catch { tasks = Array.Empty<TaskNode>(); }
+            var lines = new List<TaskLine>();
+            foreach (TaskNode t in tasks) Flatten(t, 0, lines);
+            Dispatcher.BeginInvoke(() => row.Detail = lines);
+        });
+    }
+
     private static void Flatten(TaskNode node, int depth, List<TaskLine> into)
     {
         into.Add(new TaskLine(node, depth));

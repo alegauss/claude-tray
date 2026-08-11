@@ -372,6 +372,7 @@
   "stats.kind.command": "Slash commands",
   "stats.kind.prompt": "Typed prompts",
   "stats.kind.continuation": "Inherited turns",
+  "stats.live.clickTip": "Click a spike to open the conversation that is running now",
   "stats.sessions.peak": "Heaviest 5 hours in range: {0}, from {1}",
   "stats.sessions.peakMedian": "the median day's own busiest 5 hours held {0}, over {1} active days",
   "stats.sessions.count": "{0} conversations",

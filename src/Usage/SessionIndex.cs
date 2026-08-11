@@ -548,6 +548,28 @@ internal static class SessionIndex
     }
 
     /// <summary>
+    /// The conversation a spike on the live strip belongs to, or null when nothing is running (T337).
+    ///
+    /// <para>The join between the strip and the list only has data in this direction. The strip is a
+    /// five-minute ring of per-second buckets and the list opens on seven days, so going the other way
+    /// — a selected task highlighting the chart — is correct and blank for every row but one. A spike,
+    /// by contrast, is <em>by definition</em> inside the strip's window, so the conversation it belongs
+    /// to is simply the most recent one, and only if it is recent enough to be in that window at all.
+    /// </para>
+    ///
+    /// <para>The window is passed in rather than read from <see cref="LiveRate"/> here, so the rule can
+    /// be asserted against clocks a test chooses.</para>
+    /// </summary>
+    public static SessionRow? Running(IReadOnlyList<SessionRow> rows, double nowUnix, double windowSeconds)
+    {
+        SessionRow? best = null;
+        foreach (SessionRow r in rows)
+            if (nowUnix - r.LastUnix <= windowSeconds && (best is null || r.LastUnix > best.Value.LastUnix))
+                best = r;
+        return best;
+    }
+
+    /// <summary>
     /// A session's tasks with the fan-out folded in (T333). The cutter attaches an agent's transcript
     /// to the task whose effective start most recently precedes it; here every one of a session's files
     /// is already in hand, so the same rule runs over stored rows instead of over re-read files.

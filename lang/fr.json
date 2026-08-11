@@ -368,6 +368,7 @@
   "stats.kind.command": "Commandes slash",
   "stats.kind.prompt": "Invites saisies",
   "stats.kind.continuation": "Tours hérités",
+  "stats.live.clickTip": "Cliquez sur un pic pour ouvrir la conversation en cours",
   "stats.sessions.peak": "Les 5 heures les plus chargées de la période : {0}, à partir du {1}",
   "stats.sessions.peakMedian": "le jour médian, ses 5 heures les plus chargées ont porté {0}, sur {1} jours actifs",
   "stats.sessions.count": "{0} conversations",
