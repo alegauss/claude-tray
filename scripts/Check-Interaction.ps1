@@ -31,6 +31,14 @@
       -Case Menu       Launch the real tray, open the notification-area icon's menu, read its entries,
                        and expand "Open Claude Code" to read the per-profile entries (this is what
                        verified T137).
+      -Case Switch     Launch a tray and drive the Profile submenu entry that changes which account
+                       the ICON follows, then read back what a switch is supposed to have done: the
+                       check mark on the profile picked and on no other, and the icon's own tooltip
+                       naming it. Not the picker `-Case Profiles` walks — that one chooses whose
+                       numbers the Statistics page draws, and until this case the path that rewrites
+                       the setting, re-keys the stores and takes the other account's token ran under
+                       no check at all (T294). Refused under `-UseRunning`: the resident tray is not
+                       observing, so a pick there would repoint the icon for real.
       -Case Names      Launch `--main` and read back what the controls ANNOUNCE: the Statistics
                        picker, the method-note button, and the settings rows whose label is a
                        neighbouring element rather than their own content (T175). A picture cannot
@@ -140,7 +148,7 @@
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Menu -UseRunning
 #>
 param(
-    [ValidateSet('All', 'Keyboard', 'Panes', 'Profiles', 'Menu', 'Names')]
+    [ValidateSet('All', 'Keyboard', 'Panes', 'Profiles', 'Menu', 'Names', 'Switch')]
     [string]$Case = 'All',
     [string]$Exe = "bin\Debug\net10.0-windows\win-x64\ClaudeTray.exe",
     [string]$Lang = "en",
@@ -223,6 +231,7 @@ public static class Native {
 [Native]::Dpi()
 
 $VK_APPS = 0x5D; $VK_DOWN = 0x28; $VK_RIGHT = 0x27; $VK_LEFT = 0x25; $VK_ESC = 0x1B; $VK_UP = 0x26
+$VK_RETURN = 0x0D   # activating a focused menu entry, which is what the Switch case does (T294)
 $VK_HOME = 0x24; $VK_END = 0x23
 $AE   = [System.Windows.Automation.AutomationElement]
 $ANY  = [System.Windows.Automation.Condition]::TrueCondition
@@ -2149,6 +2158,195 @@ function Invoke-MenuCase {
   So the modes are swept here, one tray each. `agrees` is deliberately not swept: it is the state the
   ordinary pass above already ran in, and paying a launch to see it twice buys nothing.
 #>
+<#
+  Walk an OPEN submenu to one entry and activate it, the way a keyboard user does (T294).
+
+  Separate from `Expand-Item` because the gesture is a different one and so is the failure: that walks
+  the TOP-LEVEL list to open a submenu, this walks the submenu itself to fire a command. Same bounded
+  attempts and the same reason - the shell drops synthesised input often enough that one walk and one
+  Enter is a coin toss, and a retry loop with no cap turns a broken command into a slow pass.
+
+  Returns $true when the walk reached the entry and pressed Enter. It does NOT claim the command did
+  anything: what a pick was supposed to do is asserted afterwards, against the app, by the caller.
+#>
+function Select-SubItem($target, $label, $attempts = 3) {
+    $cond = New-Object System.Windows.Automation.PropertyCondition(
+        $AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::MenuItem)
+    for ($try = 1; $try -le $attempts; $try++) {
+        $subs = @($target.FindAll('Descendants', $cond))
+        if ($subs.Count -eq 0) { return $false }
+        for ($i = 1; $i -le ($subs.Count + 2); $i++) {
+            [Native]::Key($VK_DOWN)
+            $focused = @($target.FindAll('Descendants', $cond)) |
+                       Where-Object { $_.Current.HasKeyboardFocus } | Select-Object -First 1
+            if ($focused -and $focused.Current.Name -like "$label*") {
+                [Native]::Key($VK_RETURN)
+                if ($try -gt 1) { Info "'$label' was activated on attempt $try of $attempts" }
+                return $true
+            }
+        }
+        if ($try -lt $attempts) { Info "attempt $try : the walk never focused '$label', retrying" }
+    }
+    return $false
+}
+
+<#
+  The one action in this app that changes what a DIFFERENT process will do (T294).
+
+  `-Case Profiles` walks a ComboBox and is the only check that drives a profile control at all - and it
+  is not this one. That picker chooses whose numbers the Statistics page *draws*. This entry runs
+  `AdoptMonitored`: it changes which account the tray icon follows, moves `MonitoredConfigDir`,
+  re-keys the stores, drops the outgoing account's state (one assignment since T293) and takes the
+  incoming account's token. T292 was a defect on that path, found by reading rather than by running.
+
+  What is asserted is what a switch is supposed to have DONE, read back off the app: the check mark
+  moves to the profile picked and to no other, and the icon's own tooltip names it. What is deliberately
+  NOT asserted here is the settings file - `--second-tray` is an observing process and T239's promise is
+  that it writes nothing, so the file must NOT move. That claim is already made, over this case too,
+  by `Assert-StoreUntouched` at the end of the tray block; driving the one path that writes that field
+  is the strongest place it has ever been made.
+#>
+function Invoke-SwitchCase {
+    Head "Switch - the menu entry that changes which account the icon follows"
+
+    # Refused outright, not degraded: the resident tray is NOT observing, so a pick driven through it
+    # would rewrite the user's own MonitoredConfigDir and repoint the icon their tray follows. Every
+    # other case here is a read; this one is the app's most consequential write.
+    if ($UseRunning) {
+        Unchecked "the profile switch (T294)" `
+            ("-UseRunning drives the resident tray, which is not an observing process: a pick there " +
+             "would rewrite this machine's MonitoredConfigDir and repoint the icon for real. Drop " +
+             "-UseRunning so the check launches its own --second-tray.")
+        return
+    }
+
+    $want = Expected-ProfileState
+    if ($want.Labels.Count -lt 2) {
+        Unchecked "the profile switch (T294)" `
+                  "$($want.Labels.Count) profile registered, so there is nothing to switch to"
+        return
+    }
+    if (-not $want.Icon) {
+        Fail "--profiles named no followed profile, so there is no 'before' for a switch to move from"
+        return
+    }
+    $other = @($want.Labels | Where-Object { $_ -ne $want.Icon }) | Select-Object -First 1
+    Info "the icon follows '$($want.Icon)'; this case picks '$other'"
+
+    $tray = Start-CheckTray
+    if (-not $tray) { Unchecked "the profile switch (T294)" $script:TrayStartError; return }
+    $proc = $tray.Proc
+
+    try {
+        $menu = Open-TrayMenu $tray.IconPattern $proc.Id
+        if (-not $menu) { Fail "the tray menu never opened for the switch case (5 attempts)"; return }
+
+        $profLabel = Label 'menu.profiles'
+        $items = Menu-Items $menu
+        $parent = $items | Where-Object { $_.Current.Name -eq $profLabel } | Select-Object -First 1
+        $subs = Expand-Item $menu $profLabel
+        if (-not $subs -or -not $parent) {
+            Fail "'$profLabel' did not expand, so the switch could not be driven (T148's shape)"
+            return
+        }
+
+        # The before-state read off the MENU rather than off --profiles: this tray is the one being
+        # driven, and a second process's reading is a claim about a third state.
+        $before = @()
+        foreach ($lab in $want.Labels) {
+            $hit = @($subs | Where-Object { $_.Current.Name -like "$lab *" }) | Select-Object -First 1
+            if ($hit -and (Menu-Checked $hit)) { $before += $lab }
+        }
+        if ($before.Count -ne 1) {
+            Fail "$($before.Count) profile entries carry the check mark before the switch, expected exactly one"
+            return
+        }
+        Pass "before the switch the check mark is on '$($before[0])'"
+
+        if (-not (Select-SubItem $parent $other)) {
+            Fail "the walk never reached '$other' in the Profile submenu, so nothing was picked"
+            return
+        }
+        # The menu closes on activation; the tray then adopts and repaints. Polled rather than slept at,
+        # to a deadline: adopting re-keys stores and takes a token, and how long that takes is a fact
+        # about the machine.
+        Start-Sleep -Milliseconds 1200
+
+        $menu = Open-TrayMenu $tray.IconPattern $proc.Id
+        if (-not $menu) { Fail "the menu would not reopen to read the switch back"; return }
+        $parent = (Menu-Items $menu) | Where-Object { $_.Current.Name -eq $profLabel } | Select-Object -First 1
+        $subs2 = Expand-Item $menu $profLabel
+        if (-not $subs2) { Fail "'$profLabel' would not expand to read the switch back"; return }
+
+        $after = @()
+        foreach ($lab in $want.Labels) {
+            $hit = @($subs2 | Where-Object { $_.Current.Name -like "$lab *" }) | Select-Object -First 1
+            if ($hit -and (Menu-Checked $hit)) { $after += $lab }
+        }
+        if ($after.Count -ne 1) {
+            Fail "$($after.Count) profile entries carry the check mark after the switch, expected exactly one"
+        } elseif ($after[0] -ne $other) {
+            Fail ("the switch picked '$other' and the check mark is on '$($after[0])' - " +
+                  "AdoptMonitored did not move the icon's profile")
+        } else {
+            Pass "the check mark moved to '$other', the profile that was picked, and to no other"
+        }
+
+        # And the icon says so itself - WHERE it can. The shell's accessible name for a notification-area
+        # icon is the registered name followed by the live tooltip, and the profile line is the first thing
+        # `Compose` writes... but only after `Data` arrives. With no reading it returns one sentence and
+        # stops: connecting, not-signed-in, "usage will appear here", or the API's error. Measured here on
+        # the first run of this case, which is how the premise got corrected rather than assumed - the
+        # incoming account had no usable reading and the tooltip read "Once you start using Claude...".
+        #
+        # So the two outcomes are told apart rather than merged. A reading that names the wrong profile is
+        # a FAIL; no reading at all is the precondition being absent, which is Unchecked and DEGRADED - the
+        # distinction this file's header draws, and the reason a green tick is never printed over an
+        # assertion that stopped running.
+        # Only the LIVE half of that name. The shell concatenates the name the icon was REGISTERED with -
+        # frozen at "Claude Code - connecting..." - and the current tooltip, so the registered half
+        # contains `tip.connecting` on every run for ever. Testing the whole string for "no reading yet"
+        # therefore matched always, and the first draft of this check turned a real wrong-profile FAIL into
+        # a NOT CHECKED. Caught by injecting the defect and reading what came back, which is the only
+        # reason it is not still in here.
+        [Native]::Key($VK_ESC); [Native]::Key($VK_ESC)
+        $stem  = ((Label 'tip.profile') -split '\{0\}')[0].TrimEnd()
+        $mute  = @('tip.connecting', 'tip.notSignedIn', 'tip.willAppear') | ForEach-Object { Label $_ }
+        $mute += ((Label 'tip.apiError') -split '\{0\}')[0].TrimEnd()
+        $named = $false
+        $said  = $null
+        $deadline = (Get-Date).AddMilliseconds(12000)
+        do {
+            $icon = Get-TrayIcon $tray.IconPattern 3000
+            if ($icon) {
+                # `[check]` is the tag Start-CheckTray's tray registers with (T240); everything after it is
+                # what Compose wrote on the last repaint.
+                $parts = $icon.Current.Name -split '\[check\]', 2
+                $said = if ($parts.Count -eq 2) { $parts[1].Trim() } else { $icon.Current.Name }
+                if ($said -match [regex]::Escape("$stem $other")) { $named = $true; break }
+            }
+            Start-Sleep -Milliseconds 600
+        } while ((Get-Date) -lt $deadline)
+
+        $noReading = $said -and @($mute | Where-Object { $_ -and $said.Contains($_) }).Count -gt 0
+        if ($named) {
+            Pass "the icon's tooltip names '$other' as the profile it is now following"
+        } elseif ($noReading) {
+            Unchecked "the icon's tooltip naming the profile it switched to (T294)" `
+                ("the incoming account has no usable reading yet, so the tooltip is a single sentence " +
+                 "with no profile line in it: '$said'. The check mark above is what says the switch " +
+                 "landed; this claim needs a reading the machine did not produce.")
+        } else {
+            Fail ("the icon's tooltip never named '$other' after the switch - it reads " +
+                  "'$(if ($said) { $said } else { '<no icon found>' })'")
+        }
+    }
+    finally {
+        [Native]::Key($VK_ESC); [Native]::Key($VK_ESC)
+        if ($proc -and -not $proc.HasExited) { $proc.Kill() }
+    }
+}
+
 function Invoke-EnvFixtureSweep {
     if ($SampleEnv) {
         Info "-SampleEnv $SampleEnv pins this run to one mode, so the sweep is the run itself (T238)"
@@ -2326,7 +2524,17 @@ if ($Case -in @('All', 'Menu')) {
     # trays this script LAUNCHES as trays - the Menu case's and the sweep's, all of them --second-tray.
     $storeBefore = Store-Fingerprint
     Invoke-MenuCase
+    if ($Case -eq 'All') { Invoke-SwitchCase }
     Invoke-EnvFixtureSweep
+    Assert-StoreUntouched $storeBefore
+}
+
+# Its own tray, and inside its own store bracket when it runs alone. Under `All` it rides the one above:
+# the switch is the single path in this app that writes MonitoredConfigDir, so having it inside the
+# T239 comparison is the strongest form that promise has ever been asserted in.
+if ($Case -eq 'Switch') {
+    $storeBefore = Store-Fingerprint
+    Invoke-SwitchCase
     Assert-StoreUntouched $storeBefore
 }
 

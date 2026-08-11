@@ -84,7 +84,9 @@ jobs:
   # somebody chose to run it.
   #
   # Why only `-Case Keyboard`. `Panes`, `Profiles` and `Names` need a rendered report, which needs
-  # credentials and a machine's own transcripts; `Menu` needs the notification area. `Keyboard` needs
+  # credentials and a machine's own transcripts; `Menu` needs the notification area, and `Switch` needs
+  # that AND a second profile to switch to, so on a runner it could only ever report DEGRADED. `Keyboard`
+  # needs
   # none of it — it launches `--settings-tray` against an unconfigured install, clicks a sidebar item,
   # types into a TextBox, Tabs, and drives a Slider with an arrow key. Adding a case here means first
   # answering what it needs that a runner does not have.

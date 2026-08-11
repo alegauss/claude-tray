@@ -124,38 +124,39 @@ window it copied and writes nothing when that window is not ours** (T199).
 A picture proves layout. It cannot prove a key press arrives (convention 7, T135).
 `scripts\Check-Interaction.ps1` drives the real UI through UIA and asserts a pass/fail.
 **Three exit codes (T193): `0` all ran and passed, `2` DEGRADED —
-what ran passed but something could not be evaluated, `1` a failure**, and the summary names what did not.
+what ran passed but something could not be evaluated, `1` a failure**; the summary names what did not.
 
 ```
 powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 `
-  [-Case Keyboard|Menu|Profiles|Panes|Names] [-Lang pt-BR] [-UseRunning]   # no -Case runs every one
+  [-Case Keyboard|Menu|Profiles|Panes|Names|Switch] [-Lang pt-BR] [-UseRunning]  # no -Case runs all
 ```
 
-All five are below; listing *three* is how two stayed script-only (T201). The header is the full text.
+All six are below; listing *three* is how two stayed script-only (T201). The header is the full text.
 
 - **Keyboard** launches `--settings-tray` (the WinForms pump), clicks a sidebar item, types into a `TextBox`
   and reads it back through `ValuePattern`, Tabs out, drives a `Slider` with an arrow key. **`check.yml`
-  runs it on every push** (T194): synthesised input reaches a hosted runner, and it needs no credentials.
-- **Panes** and **Names** (`--main`) need no second profile either, so with Keyboard they are what a
-  one-profile machine and CI run. Panes asserts the report can be *read* — tab headers, and the pane's
-  used %, reset caption and live headline in the accessibility tree — and is the only check that would
-  notice `PART_SelectedContentHost` going missing again (T176). Names asserts what controls *announce*,
-  rows labelled by a neighbouring element included (T175).
-- **Profiles** (`--main`) is the only thing that *drives* the picker: **0 → 1 → 0** through the real
-  `ComboBox`, reading the report at each stop — the same profile must read the same coming back, the middle
-  must differ, the headline never "unavailable" at a settled stop (T165). Below two: **DEGRADED**, no skip.
+  runs it on every push** (T194): synthesised input reaches a hosted runner and it needs no credentials.
+- **Panes** and **Names** (`--main`) need no second profile, so with Keyboard they are what a one-profile
+  machine and CI run. Panes asserts the report can be *read* — tab headers, and the pane's used %, reset
+  caption and live headline in the accessibility tree — the only check that would notice
+  `PART_SelectedContentHost` going missing again (T176). Names asserts what controls *announce*, rows
+  labelled by a neighbouring element included (T175).
+- **Profiles** (`--main`) is the only thing that *drives* the page's picker: **0 → 1 → 0** through the real
+  `ComboBox`, reading the report at each stop — the same profile reads the same coming back, the middle
+  differs, the headline never "unavailable" at a settled stop (T165). Below two: **DEGRADED**, no skip.
 - **Menu** launches the tray, opens the notification icon's menu, reads its entries, then expands *Open
   Claude Code* for the per-profile ones. One rule, three refusals — **the check must look at what you
-  named**: with a tray already resident it launches `-Exe --second-tray` beside it rather than refusing
-  (T237); under `-UseRunning` labels match the language that tray resolved, not a `-Lang` it never got;
-  and a resident binary that is not `-Exe` leaves the run DEGRADED (T220, T236).
+  named**: a resident tray means `-Exe --second-tray` beside it (T237); `-UseRunning` matches the language
+  that tray resolved, not a `-Lang` it never got; a resident binary that is not `-Exe` is DEGRADED (T220, T236).
+- **Switch** drives the submenu entry that moves the **icon**'s account — `AdoptMonitored`, not the
+  page's picker above; **DEGRADED** below two (T294).
 - **An assertion that could have run and didn't is `Unchecked`, never an `Info` line.** T166's timing hung
   off `Combo-Select`'s UIA route alone, so the day `Select()` began throwing, the run would print a note and
   stay green (T193). Both halves are needed: a fallback reaching its target in **one selection change**
-  (`Home`/`End` anchor), so the observation holds on either route, and `Unchecked` counting what did not
-  run. An absent *precondition* — what can never run here — stays `Info`.
-- **Reading nothing is a FAIL, never a pass.** The script's header lists the four UIA traps behind that —
-  read it before writing any new check by hand.
+  (`Home`/`End` anchor), so the observation holds either route, and `Unchecked` counting what did not run.
+  An absent *precondition* — what can never run here — stays `Info`.
+- **Reading nothing is a FAIL, never a pass.** The script's header lists the UIA traps behind it — read
+  it before writing a check by hand.
 - **A custom `TabControl` template must name its content host `PART_SelectedContentHost`.** WPF finds
   the selected tab's content by that exact name, and the `TabItem` peer asks for it to attach the pane's
   children — so an unnamed `ContentPresenter` leaves the **whole body** of every tab out of the UI
