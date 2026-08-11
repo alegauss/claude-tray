@@ -63,7 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T312** (deps: —) **an orphaned doc comment is adopted by the next member and nothing says so** — Measured today: an edit left HasOverQuotaMark's summary above HasExtraAxis, so one member carried two and the other none, at 0 warnings — and a comment is the one claim no assertion reads. → §XLVII
 - 📋 **T314** (deps: —) **a key the code asks for and no table has renders as itself, and every check passes** — L.T falls back to the key, and the parity check compares the five JSON files to each other — so the direction that puts a raw dotted identifier on a card is the one direction nothing reads. → §XLIX
 - 📋 **T335** (deps: —) **a published capture of the Sessions pane would carry this machine's real prompts to GitHub** — --capture-stats renders that pane from the monitored profile, so the command that makes a README screenshot now makes one holding real prompts - and a screenshot cannot be un-published. → §XX.32
 - 📋 **T340** (deps: T288 ✅) **a state's sentence can be squeezed out of the tooltip in one language, and only a test written for that state notices** — T222, T302 and T288 each lost a sentence to the 127-char cap in a different language, and each was locked shut by a test written for that one key. → §LXVIII

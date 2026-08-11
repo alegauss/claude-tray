@@ -173,16 +173,6 @@ internal static class HourlyUsage
     }
 
     /// <summary>
-    /// The same 168-bucket week as <see cref="ActivityProfile"/>, but built from what the rate limit
-    /// actually recorded rather than from transcript timestamps — the independent second opinion the
-    /// inferred grid can be checked against.
-    ///
-    /// An hour counts as active only if it was <em>covered</em> (at least one reading) and spent at
-    /// least <see cref="ActiveSpendThreshold"/>; uncovered hours are left out of the denominator
-    /// entirely, so days the app was closed dilute nothing. A whole week the user was away is dropped
-    /// the same way the transcript grid drops one — see <see cref="WeeksAway"/> (T152).
-    /// </summary>
-    /// <summary>
     /// The measured week, plus how much it may be trusted <em>bucket by bucket</em>.
     /// </summary>
     /// <param name="P">p(active) per bucket, from what the rate limit recorded.</param>
@@ -216,6 +206,16 @@ internal static class HourlyUsage
         double[] Intensity, double[] Active, int Excluded, double Median,
         int[] WeekHours, int[] WeekReadings, bool[] WeekCovered, bool[] WeekAway, int CoverageBar);
 
+    /// <summary>
+    /// The same 168-bucket week as <see cref="ActivityProfile"/>, but built from what the rate limit
+    /// actually recorded rather than from transcript timestamps — the independent second opinion the
+    /// inferred grid can be checked against.
+    ///
+    /// An hour counts as active only if it was <em>covered</em> (at least one reading) and spent at
+    /// least <see cref="ActiveSpendThreshold"/>; uncovered hours are left out of the denominator
+    /// entirely, so days the app was closed dilute nothing. A whole week the user was away is dropped
+    /// the same way the transcript grid drops one — see <see cref="WeeksAway"/> (T152).
+    /// </summary>
     /// <returns>The grid, its per-bucket evidence, the number of weeks it draws on, and how many
     /// folded days were used.</returns>
     public static MeasuredWeek MeasuredProfile(string profileKey, DateTime nowLocal)

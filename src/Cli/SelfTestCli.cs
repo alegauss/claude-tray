@@ -1960,6 +1960,8 @@ internal static class SelfTestCli
                   "second spelling is a surface free to stop agreeing with the icon (T310)");
         }, "src/Ui/Brand.cs");
 
+        DocCommentsAttached();
+
         // T321. The digits' own colour, on the same rule as the table above: three windows, three colours,
         // no two alike. Driven off the metric list the tray offers, so a fourth window would arrive here
         // uncoloured rather than silently wearing the session's cream — which is the one failure a contact
@@ -3798,24 +3800,6 @@ internal static class SelfTestCli
     }
 
     /// <summary>
-    /// T284. <see cref="ApiClient.NamesRead"/> is the parser enumerating itself: the same method that
-    /// parses a response is run against a lookup that records the name it was asked for and answers
-    /// <c>null</c>. That is what makes the <c>--probe</c> read-out impossible to forget to update — and it
-    /// is exact only while the parse has no branch in it.
-    ///
-    /// <para><b>The failure it cannot see.</b> A read written as <c>get("…-in-use") is "true" ?
-    /// get("…-overage-reset") : null</c> is ordinary code. Under the recording lookup the condition is
-    /// false, the second name is never asked for, and it is reported UNREAD — by the instrument built to
-    /// say which names reach a field, with every check of the classifier green. Silent, and pointing the
-    /// wrong way: a header the app reads, reported as one nothing does.</para>
-    ///
-    /// <para><b>So the property asserted is totality, from the source.</b> Every header name spelled in
-    /// <c>ApiClient.cs</c> is a name the enumeration reports, and every name it reports is spelled there —
-    /// which holds without asking anything about branches, and fails the moment a conditional read is
-    /// written rather than the month somebody trusts the mark. The bare family prefix is excluded: it is
-    /// what the verbatim copy filters on, not a name read into a field.</para>
-    /// </summary>
-    /// <summary>
     /// T285. <see cref="CodeOf"/>'s own answer, over the literal forms this repository contains — asserted
     /// against synthetic source rather than against the tree, for T248's reason: the tree happens not to
     /// hold every case today, and a check that waits for one is a check that ships broken.
@@ -3885,6 +3869,24 @@ internal static class SelfTestCli
         }
     }
 
+    /// <summary>
+    /// T284. <see cref="ApiClient.NamesRead"/> is the parser enumerating itself: the same method that
+    /// parses a response is run against a lookup that records the name it was asked for and answers
+    /// <c>null</c>. That is what makes the <c>--probe</c> read-out impossible to forget to update — and it
+    /// is exact only while the parse has no branch in it.
+    ///
+    /// <para><b>The failure it cannot see.</b> A read written as <c>get("…-in-use") is "true" ?
+    /// get("…-overage-reset") : null</c> is ordinary code. Under the recording lookup the condition is
+    /// false, the second name is never asked for, and it is reported UNREAD — by the instrument built to
+    /// say which names reach a field, with every check of the classifier green. Silent, and pointing the
+    /// wrong way: a header the app reads, reported as one nothing does.</para>
+    ///
+    /// <para><b>So the property asserted is totality, from the source.</b> Every header name spelled in
+    /// <c>ApiClient.cs</c> is a name the enumeration reports, and every name it reports is spelled there —
+    /// which holds without asking anything about branches, and fails the moment a conditional read is
+    /// written rather than the month somebody trusts the mark. The bare family prefix is excluded: it is
+    /// what the verbatim copy filters on, not a name read into a field.</para>
+    /// </summary>
     private static void ParserNames() =>
         Repo("every header name the parser spells is one it reports reading", ParserNames, "src");
 
@@ -4113,8 +4115,6 @@ internal static class SelfTestCli
     private static void FlagCatalogue() =>
         Repo("every flag the sources accept is declared in dev-flags", FlagCatalogue, DevFlags, "src");
 
-    /// <summary>The flag literals one source file compares against. Pure, so <see cref="FlagScanning"/> can
-    /// hand it the two lines that used to be read wrong.</summary>
     /// <summary>
     /// One source file's <b>code</b>: every comment removed, every string literal kept whole (T285).
     ///
@@ -4261,6 +4261,8 @@ internal static class SelfTestCli
         return s.Length;
     }
 
+    /// <summary>The flag literals one source file compares against. Pure, so <see cref="FlagScanning"/> can
+    /// hand it the two lines that used to be read wrong.</summary>
     internal static IEnumerable<string> FlagsRead(string source) =>
         FlagComparison.Matches(source).Select(m => m.Groups["flag"].Value);
 
@@ -4349,26 +4351,6 @@ internal static class SelfTestCli
 
     // ---------------------------------------------------------------- Block AG: one id, one control
 
-    /// <summary>
-    /// An <c>x:Name</c> is a control's identity to everything outside the compiler — UI Automation, a
-    /// screen reader, <c>Check-Interaction.ps1</c> — and WPF scopes it per XAML file, so two pages could
-    /// each call a control <c>ProfileCombo</c> and the C# in both would still compile. An id lookup then
-    /// has two candidates and <c>FindFirst</c> returns whichever the tree reaches first, which depends on
-    /// which destinations have been built: a page is built on its first visit and then kept collapsed, so
-    /// the answer changes with the route a run took.
-    ///
-    /// <para>Nothing was wrong on screen when T192 was written, and that was the defect — <c>-Case Names</c>
-    /// read the Statistics picker <em>before</em> navigating to Settings, and a comment saying so was the
-    /// whole guarantee. The first case that visited Settings and then looked the picker up by id would have
-    /// driven the other control and gone on passing. So the rule is asserted here rather than remembered:
-    /// <b>an <c>x:Name</c> is unique across the app, not per XAML file.</b>
-    ///
-    /// <para>The types are <em>derived</em>, never listed: a page added later is covered without an edit
-    /// here, because a hardcoded list's failure mode is silently not checking the thing it was written
-    /// for (§XV.3). A XAML-backed type is the one that implements <c>IComponentConnector</c>, and its
-    /// generated fields are exactly the named elements — <c>internal</c> and a <see cref="DependencyObject"/>,
-    /// which is what separates them from the page's own hand-written state.</para>
-    /// </summary>
     /// <summary>
     /// T172: whose numbers the icon draws and which profile a new session would start in are two
     /// questions, and the menu marks them only when the answers differ. The states that matter — the
@@ -4495,6 +4477,66 @@ internal static class SelfTestCli
     }
 
     /// <summary>
+    /// Every doc comment is attached to the member it was written about (T312).
+    ///
+    /// <para>Measured in this repository on the commit that shipped T308: an insertion landed between a
+    /// <c>&lt;summary&gt;</c> and its member, so <c>HasExtraAxis</c> arrived carrying two summaries — its
+    /// own and the one written for <c>HasOverQuotaMark</c> — while <c>HasOverQuotaMark</c> carried none.
+    /// The build was green at 0 warnings and <c>--selftest</c> passed 725 of 725. It was found because the
+    /// next task rewrote that region and a person read it.</para>
+    ///
+    /// <para>This project puts the <em>reasoning</em> in the comments and AGENTS.md makes that a rule, so a
+    /// comment on the wrong member is not cosmetic: it is a claim about the wrong code, in the place the
+    /// claim is meant to be authoritative, and it reads as deliberate. Nothing else here reads a comment.</para>
+    ///
+    /// <para>Two directions, one defect. An insertion <b>after</b> the comment leaves a <c>///</c> run with
+    /// nothing attached to it; an insertion <b>before</b> the member merges two runs into one, and the
+    /// second summary is the giveaway. Neither needs the compiler.</para>
+    /// </summary>
+    private static void DocCommentsAttached()
+    {
+        Repo("every doc comment is attached to the member it describes", root =>
+        {
+            var doubled = new List<string>();
+            var orphaned = new List<string>();
+            foreach (string path in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.cs",
+                                                             SearchOption.AllDirectories))
+            {
+                string[] lines = File.ReadAllLines(path);
+                string name = Path.GetFileName(path);
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    if (!lines[i].TrimStart().StartsWith("///", StringComparison.Ordinal)) continue;
+
+                    // The whole unbroken run, which is what one member's documentation is.
+                    int start = i, summaries = 0;
+                    while (i < lines.Length && lines[i].TrimStart().StartsWith("///", StringComparison.Ordinal))
+                    {
+                        // Counted per line: the opening tag of a second block is what an adopted comment
+                        // looks like, and <para>/<remarks> inside one block are not that.
+                        int at = 0;
+                        while ((at = lines[i].IndexOf("<summary>", at, StringComparison.Ordinal)) >= 0)
+                        { summaries++; at += 9; }
+                        i++;
+                    }
+                    if (summaries > 1) doubled.Add($"{name}:{start + 1} ({summaries} summaries)");
+                    // What follows the run has to be the thing it documents. A blank line — or the end of
+                    // the file — means the member it was written for is no longer under it.
+                    if (i >= lines.Length || lines[i].Trim().Length == 0)
+                        orphaned.Add($"{name}:{start + 1}");
+                    i--;   // the outer loop advances
+                }
+            }
+            Check("no member carries a summary written for another one", doubled.Count == 0,
+                  $"{string.Join(", ", doubled)} — two summaries in one run means an insertion merged them, " +
+                  "so one member has both and the member above it has none (T312)");
+            Check("and no doc comment is left with nothing under it", orphaned.Count == 0,
+                  $"{string.Join(", ", orphaned)} — a blank line between a /// run and a declaration is a " +
+                  "comment about code that has moved away from it");
+        }, "src/Cli/SelfTestCli.cs");
+    }
+
+    /// <summary>
     /// An observing tray adds nothing to the user's files (T239) — asserted against the real
     /// <c>%LocalAppData%\ClaudeTray</c>, because that is the thing being promised.
     ///
@@ -4595,6 +4637,26 @@ internal static class SelfTestCli
         Check("and nothing was deleted either", readable && before.Keys.All(after.ContainsKey));
     }
 
+    /// <summary>
+    /// An <c>x:Name</c> is a control's identity to everything outside the compiler — UI Automation, a
+    /// screen reader, <c>Check-Interaction.ps1</c> — and WPF scopes it per XAML file, so two pages could
+    /// each call a control <c>ProfileCombo</c> and the C# in both would still compile. An id lookup then
+    /// has two candidates and <c>FindFirst</c> returns whichever the tree reaches first, which depends on
+    /// which destinations have been built: a page is built on its first visit and then kept collapsed, so
+    /// the answer changes with the route a run took.
+    ///
+    /// <para>Nothing was wrong on screen when T192 was written, and that was the defect — <c>-Case Names</c>
+    /// read the Statistics picker <em>before</em> navigating to Settings, and a comment saying so was the
+    /// whole guarantee. The first case that visited Settings and then looked the picker up by id would have
+    /// driven the other control and gone on passing. So the rule is asserted here rather than remembered:
+    /// <b>an <c>x:Name</c> is unique across the app, not per XAML file.</b></para>
+    ///
+    /// <para>The types are <em>derived</em>, never listed: a page added later is covered without an edit
+    /// here, because a hardcoded list's failure mode is silently not checking the thing it was written
+    /// for (§XV.3). A XAML-backed type is the one that implements <c>IComponentConnector</c>, and its
+    /// generated fields are exactly the named elements — <c>internal</c> and a <see cref="DependencyObject"/>,
+    /// which is what separates them from the page's own hand-written state.</para>
+    /// </summary>
     private static void AutomationIds()
     {
         Type connector = typeof(System.Windows.Markup.IComponentConnector);

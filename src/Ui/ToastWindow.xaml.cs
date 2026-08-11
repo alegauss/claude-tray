@@ -269,25 +269,6 @@ internal partial class ToastWindow : Window
     }
 
     /// <summary>
-    /// Every line of text this card has arranged outside itself, or been given less room than it asked
-    /// for — empty when the card fits (T228).
-    ///
-    /// <para><b>Why a card can do that at all.</b> Six of the seven have a <c>Height</c> picked against the
-    /// English wording, and every string on them is retranslatable. Found in the pt-BR capture of T174's
-    /// card: the title wrapped to a second line, the caption slid under the bottom edge, and
-    /// <c>--capture-toast</c> printed <c>wrote</c> and exited 0. T174 sized <em>that</em> card to its
-    /// content, which fixes one card and not the class.</para>
-    ///
-    /// <para><b>Why geometry rather than a rendering.</b> The card's inner grid is
-    /// <c>ClipToBounds</c>, so an overflowing caption is not drawn at all — there is nothing in the PNG
-    /// to notice, which is exactly how it survived. Layout still <em>placed</em> it, so the question is
-    /// asked of where each block landed relative to the card, transformed rather than compared
-    /// coordinate by coordinate so a nested panel's offsets are included.</para>
-    ///
-    /// <para>Call it after the settle timer, when the window has laid out for real; before that every
-    /// block is at its startup size and the answer means nothing.</para>
-    /// </summary>
-    /// <summary>
     /// Whether this card actually drew its quota meter (T291) — asked of the <em>window</em>, which is the
     /// whole point.
     ///
@@ -306,6 +287,25 @@ internal partial class ToastWindow : Window
     /// <summary>How much room the meter took, for a failure to report rather than merely assert.</summary>
     internal double BarHeight => QuotaBlock.ActualHeight;
 
+    /// <summary>
+    /// Every line of text this card has arranged outside itself, or been given less room than it asked
+    /// for — empty when the card fits (T228).
+    ///
+    /// <para><b>Why a card can do that at all.</b> Six of the seven have a <c>Height</c> picked against the
+    /// English wording, and every string on them is retranslatable. Found in the pt-BR capture of T174's
+    /// card: the title wrapped to a second line, the caption slid under the bottom edge, and
+    /// <c>--capture-toast</c> printed <c>wrote</c> and exited 0. T174 sized <em>that</em> card to its
+    /// content, which fixes one card and not the class.</para>
+    ///
+    /// <para><b>Why geometry rather than a rendering.</b> The card's inner grid is
+    /// <c>ClipToBounds</c>, so an overflowing caption is not drawn at all — there is nothing in the PNG
+    /// to notice, which is exactly how it survived. Layout still <em>placed</em> it, so the question is
+    /// asked of where each block landed relative to the card, transformed rather than compared
+    /// coordinate by coordinate so a nested panel's offsets are included.</para>
+    ///
+    /// <para>Call it after the settle timer, when the window has laid out for real; before that every
+    /// block is at its startup size and the answer means nothing.</para>
+    /// </summary>
     internal IReadOnlyList<string> Overflow()
     {
         var bad = new List<string>();

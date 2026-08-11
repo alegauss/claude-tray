@@ -836,29 +836,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## XLVII The comment that documents the wrong member (T312)
-
-Measured in this repository today, on the commit that shipped T308. An insertion went in between a
-`<summary>` block and the member it described, so `HasExtraAxis` arrived carrying two summaries —
-its own and the one written for `HasOverQuotaMark` — and `HasOverQuotaMark` carried none. The build
-was green with 0 warnings, `--selftest` passed 725, and it was caught only because the next task
-rewrote that region and a person read it.
-
-The stakes here are higher than in most codebases, which is the argument for the id. This project
-puts the *reasoning* in the comments — which task, which measurement, which alternative was rejected
-and why — and AGENTS.md makes that a rule rather than a habit. A comment attached to the wrong
-member is therefore not a cosmetic slip: it is a claim about the wrong code, in the file where the
-claim is meant to be authoritative, and it survives every check the repository has. Worse, it reads
-as deliberate. The next reader takes "the legend cannot claim a scale nobody drew" as
-`HasExtraAxis`'s reason for existing when it was written about a different predicate.
-
-The check is cheap and mechanical, which is why it is worth having rather than trusting the next
-reading: over the `src` tree, no member declaration may be preceded by more than one `<summary>`
-element in one unbroken `///` run, and no `///` run may be separated from the declaration it
-precedes by a blank line or a non-comment line. Both are the same defect from the two directions an
-edit can cause it — an insertion after the comment, and an insertion before the member. Neither
-needs the compiler, so it costs one file walk in `--selftest` and no build-configuration change.
-
 ## XLIX The keys the code asks for, against the table that has them (T314)
 
 `L.T` ends `Table(en).TryGetValue(key, out var en) ? en : key` — an unknown key is returned

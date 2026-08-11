@@ -461,21 +461,6 @@ internal static class ClaudeAccount
     private const int MaxProjectsProbed = 200;
 
     /// <summary>
-    /// Every Claude Code profile on this machine, default first. A profile is a **config dir**;
-    /// its identity is the account inside it.
-    ///
-    /// <para>Sources, in order and with no guessing: the dir this process would use, <c>~/.claude</c>,
-    /// an <c>env.CLAUDE_CONFIG_DIR</c> in that dir's <c>settings.json</c>, the same key in each
-    /// registered project's <c>.claude/settings.json</c> / <c>settings.local.json</c>, the
-    /// <c>~/.claude-*</c> convention, and <paramref name="registered"/> — the caller's own list.</para>
-    ///
-    /// <para>A candidate counts as a profile when it holds <c>.credentials.json</c>, or a
-    /// <c>.claude.json</c> naming an account, or when it was explicitly registered (the clause that
-    /// covers a profile which exists but has never been logged into). Duplicates are dropped by path
-    /// and then by <see cref="ClaudeInfo.AccountUuid"/>, so one account reached through two paths is
-    /// listed once — under the first path, which is why the default is enumerated first.</para>
-    /// </summary>
-    /// <summary>
     /// Discovery over the tray's own registered list: the same sweep, with each entry's chosen label
     /// and working directory applied on top of what the files say. A registered dir is always listed —
     /// including one that has never been logged into, which is the whole point of registering it.
@@ -515,6 +500,21 @@ internal static class ClaudeAccount
         return profiles.FirstOrDefault(p => p.IsDefault) ?? profiles[0];
     }
 
+    /// <summary>
+    /// Every Claude Code profile on this machine, default first. A profile is a **config dir**;
+    /// its identity is the account inside it.
+    ///
+    /// <para>Sources, in order and with no guessing: the dir this process would use, <c>~/.claude</c>,
+    /// an <c>env.CLAUDE_CONFIG_DIR</c> in that dir's <c>settings.json</c>, the same key in each
+    /// registered project's <c>.claude/settings.json</c> / <c>settings.local.json</c>, the
+    /// <c>~/.claude-*</c> convention, and <paramref name="registered"/> — the caller's own list.</para>
+    ///
+    /// <para>A candidate counts as a profile when it holds <c>.credentials.json</c>, or a
+    /// <c>.claude.json</c> naming an account, or when it was explicitly registered (the clause that
+    /// covers a profile which exists but has never been logged into). Duplicates are dropped by path
+    /// and then by <see cref="ClaudeInfo.AccountUuid"/>, so one account reached through two paths is
+    /// listed once — under the first path, which is why the default is enumerated first.</para>
+    /// </summary>
     public static List<ClaudeInfo> Discover(IEnumerable<string>? registered = null)
     {
         List<ClaudeInfo> found = DiscoverCore(registered);
