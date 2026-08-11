@@ -234,6 +234,9 @@ internal static class SelfTestCli
         Section("catalogue — every flag the sources accept is declared (Block AJ)");
         FlagCatalogue();
 
+        Section("cache — the write, at the TTL it was written for (Block AK)");
+        CacheTtl();
+
         Section("anchoring — a transcript reached by a route nobody walked (Block AK)");
         Anchoring();
 
@@ -488,7 +491,7 @@ internal static class SelfTestCli
 
         double t0 = Math.Floor(Now);
         rate.Tick(t0);
-        rate.Add(new[] { new TailSample(t0, new TokenBits(60_000, 0, 0, 0), "slug", "session", "slug") });
+        rate.Add(new[] { new TailSample(t0, new TokenBits(60_000, 0, 0, 0, 0, 0), "slug", "session", "slug") });
         rate.Tick(t0);
 
         Near("a burst lands at its full weight", rate.Instant, 60_000 / LiveRate.KernelSum, 1e-9);
@@ -1856,8 +1859,8 @@ internal static class SelfTestCli
         // on the live utilization, whatever the tokens happen to total.
         var thin = Win(reset, window, now, 0.60);
         UsageReport.FillCurve(thin,
-            new() { (start + 0.1 * window, new TokenBits(1000, 0, 0, 0)),
-                    (start + 0.3 * window, new TokenBits(3000, 0, 0, 0)) },
+            new() { (start + 0.1 * window, new TokenBits(1000, 0, 0, 0, 0, 0)),
+                    (start + 0.3 * window, new TokenBits(3000, 0, 0, 0, 0, 0)) },
             new() { At(0.10, 0.20, null) }, s => (s.Util7d, s.Reset7d), now);
         Check("one logged point is not enough, so the token samples shape the curve",
               thin.Curve.Count == 3, $"{thin.Curve.Count} points, expected (0,0) plus the 2 samples");
@@ -6587,6 +6590,81 @@ internal static class SelfTestCli
         TimeZoneInfo tz = TimeZoneInfo.Local;
         return tz.IsDaylightSavingTime(DateTimeOffset.FromUnixTimeSeconds((long)(w.ResetUnix - w.WindowSeconds))) !=
                tz.IsDaylightSavingTime(DateTimeOffset.FromUnixTimeSeconds((long)w.ResetUnix));
+    }
+
+    /// <summary>
+    /// T330. The cache TTL split the transcript states and <see cref="TokenBits"/> now carries.
+    ///
+    /// <para><c>cache_creation_input_tokens</c> was the whole of what this app knew about a cache write,
+    /// and the two are not priced alike: against a model's base input rate a five-minute write is 1.25×
+    /// and a one-hour write 2×, so one blended number misses the write component by nearly two. Measured
+    /// over this machine's transcripts when the split was first read: <b>804.5M</b> one-hour tokens
+    /// against <b>37.7M</b> five-minute ones, across 146,428 lines carrying a write — Claude Code writes
+    /// almost entirely at the one-hour TTL, which is the expensive one.</para>
+    ///
+    /// <para><b>The total stays authoritative and the split describes it.</b> Every one of those 146,428
+    /// lines carried the object and summed to the total exactly, so the case this fixes is not one the
+    /// tree can currently produce — which is precisely T248's argument for a synthetic fixture. A line
+    /// with the total and no object yields <c>0/0</c>, and the remainder is reported by
+    /// <see cref="TokenBits.CacheCreateUnattributed"/> rather than folded into either rate: guessing
+    /// five-minute would price the most expensive component at the cheapest number, and guessing
+    /// one-hour would do the reverse, both silently.</para>
+    /// </summary>
+    private static void CacheTtl()
+    {
+        // Assembled the way every fixture here is: the reader under test is handed the shape, not a file.
+        static string Line(string usage) =>
+            "{\"type\":\"assistant\",\"timestamp\":\"2026-08-11T12:00:00.000Z\",\"requestId\":\"ttl\"," +
+            "\"message\":{\"model\":\"claude-selftest\",\"usage\":{" + usage + "}}}";
+
+        const string Both = "\"input_tokens\":10,\"output_tokens\":20,\"cache_read_input_tokens\":30," +
+                            "\"cache_creation_input_tokens\":100," +
+                            "\"cache_creation\":{\"ephemeral_1h_input_tokens\":90,\"ephemeral_5m_input_tokens\":10}";
+        const string NoObject = "\"input_tokens\":10,\"output_tokens\":20,\"cache_read_input_tokens\":30," +
+                                "\"cache_creation_input_tokens\":100";
+        const string Short = "\"input_tokens\":10,\"output_tokens\":20,\"cache_read_input_tokens\":30," +
+                             "\"cache_creation_input_tokens\":100," +
+                             "\"cache_creation\":{\"ephemeral_1h_input_tokens\":40}";
+
+        (string What, string Usage, long Hour, long Five, long Unattributed)[] cases =
+        {
+            ("a line stating both TTLs", Both, 90, 10, 0),
+            ("a line carrying only the total", NoObject, 0, 0, 100),
+            ("a line whose split falls short of its total", Short, 40, 0, 60),
+        };
+
+        var wrong = new List<string>();
+        foreach ((string what, string usage, long hour, long five, long unattributed) in cases)
+        {
+            if (!UsageReport.TryParseSample(Line(usage), 0, double.MaxValue, out _, out TokenBits b,
+                                            out _, out _))
+            {
+                wrong.Add($"{what} → not parsed at all");
+                continue;
+            }
+            if (b.CacheCreate1h != hour || b.CacheCreate5m != five || b.CacheCreateUnattributed != unattributed)
+                wrong.Add($"{what} → 1h={b.CacheCreate1h} 5m={b.CacheCreate5m} " +
+                          $"unattributed={b.CacheCreateUnattributed}, expected {hour}/{five}/{unattributed}");
+            // The split describes the total; counting it again would inflate every token figure in the app.
+            if (b.Total != 160)
+                wrong.Add($"{what} → Total {b.Total}, expected 160 — the split is being double-counted");
+        }
+        Check($"the cache write is read at the TTL the transcript states ({cases.Length} shapes)",
+              wrong.Count == 0, string.Join("; ", wrong));
+
+        // Folding is where a split is quietly lost: the totals stay right, so nothing downstream looks
+        // wrong. Two adds and the subtree has to carry both halves.
+        var node = new TaskNode(TaskKind.Prompt, "s", "", 0, 0, 0, 1,
+                                new TokenBits(0, 0, 100, 0, 90, 10), new List<TaskNode>
+                                {
+                                    new(TaskKind.Command, "a", "", 0, 0, 0, 1,
+                                        new TokenBits(0, 0, 50, 0, 20, 30), new List<TaskNode>()),
+                                });
+        TokenBits sum = node.Subtree;
+        Check("and it survives being folded into a subtree",
+              sum.CacheCreate == 150 && sum.CacheCreate1h == 110 && sum.CacheCreate5m == 40,
+              $"{sum.CacheCreate} written, {sum.CacheCreate1h} at 1h, {sum.CacheCreate5m} at 5m — " +
+              "expected 150/110/40");
     }
 
     /// <summary>One assistant line in the shape the transcript readers parse — a timestamp, a usage

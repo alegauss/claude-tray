@@ -128,10 +128,29 @@ internal sealed class PaceReport
     public string? Error;
 }
 
-/// <summary>Token counts of one assistant turn, split by type so throughput can be broken down.</summary>
-internal readonly record struct TokenBits(long Input, long Output, long CacheCreate, long CacheRead)
+/// <summary>
+/// Token counts of one assistant turn, split by type so throughput can be broken down.
+///
+/// <para><b>The two cache-write fields are a split of <paramref name="CacheCreate"/>, not additions to
+/// it</b> (T330). <c>cache_creation_input_tokens</c> stays the authoritative total — it is the field
+/// every reader here has always summed, and it is present on lines that carry no split — so
+/// <see cref="Total"/> counts it once and the TTL fields describe how it divides. They are not priced
+/// alike: against a model's base input rate a cache read is 0.1×, a five-minute write 1.25× and a
+/// one-hour write 2×, so a number that blends them misses the write component by nearly two.</para>
+/// </summary>
+/// <param name="CacheCreate1h">Of <paramref name="CacheCreate"/>, what was written at the one-hour TTL.</param>
+/// <param name="CacheCreate5m">Of <paramref name="CacheCreate"/>, what was written at the five-minute TTL.</param>
+internal readonly record struct TokenBits(long Input, long Output, long CacheCreate, long CacheRead,
+                                          long CacheCreate1h, long CacheCreate5m)
 {
     public long Total => Input + Output + CacheCreate + CacheRead;
+
+    /// <summary>Cache-write tokens no TTL was stated for — a line whose <c>usage</c> carries the total
+    /// and not the object beside it. Measured over this machine's transcripts at the split's first
+    /// reading: <b>zero</b>, across 146,428 lines carrying a cache write. It is derived rather than
+    /// assumed to be zero, because a reader that treats an absent split as "all five-minute" prices the
+    /// most expensive component at the cheapest rate and says nothing.</summary>
+    public long CacheCreateUnattributed => CacheCreate - CacheCreate1h - CacheCreate5m;
 }
 
 internal static class UsageReport
@@ -527,11 +546,24 @@ internal static class UsageReport
                 if (name.Length > 0) model = name;
             }
 
+            // The TTL split sits in an object beside the total, and only the total is guaranteed: a line
+            // without the object yields 0/0 here, which CacheCreateUnattributed reports rather than
+            // silently folding into the cheaper rate (T330).
+            long hour = 0, five = 0;
+            if (usage.TryGetProperty("cache_creation", out var split) &&
+                split.ValueKind == JsonValueKind.Object)
+            {
+                hour = (long)Num(split, "ephemeral_1h_input_tokens");
+                five = (long)Num(split, "ephemeral_5m_input_tokens");
+            }
+
             var b = new TokenBits(
                 Input: (long)Num(usage, "input_tokens"),
                 Output: (long)Num(usage, "output_tokens"),
                 CacheCreate: (long)Num(usage, "cache_creation_input_tokens"),
-                CacheRead: (long)Num(usage, "cache_read_input_tokens"));
+                CacheRead: (long)Num(usage, "cache_read_input_tokens"),
+                CacheCreate1h: hour,
+                CacheCreate5m: five);
             if (b.Total <= 0) return false;
 
             id = root.TryGetProperty("requestId", out var rid) && rid.GetString() is { Length: > 0 } r

@@ -321,16 +321,17 @@ internal sealed class LiveRate
                 _slots.Remove(slug);            // the slot is free again only once the line is gone
             }
 
-            long input = 0, output = 0, create = 0, read = 0;
+            long input = 0, output = 0, create = 0, read = 0, h = 0, m = 0;
             double weighted = 0;
             for (int i = 0; i < WindowSeconds; i++)
             {
                 TokenBits b = _ring[Index(_head - i)];
                 input += b.Input; output += b.Output; create += b.CacheCreate; read += b.CacheRead;
+                h += b.CacheCreate1h; m += b.CacheCreate5m;
                 // Full weight at the current second, zero at the far edge of the window.
                 weighted += (b.Input + b.Output + b.CacheCreate) * (1.0 - (double)i / WindowSeconds);
             }
-            _window = new TokenBits(input, output, create, read);
+            _window = new TokenBits(input, output, create, read, h, m);
 
             // Σ weights over a sustained rate R is R·KernelSum, so dividing by it reports R — the
             // kernel changes how a burst ages, not what steady work reads as.
@@ -376,7 +377,9 @@ internal sealed class LiveRate
                     b.Input + s.Bits.Input,
                     b.Output + s.Bits.Output,
                     b.CacheCreate + s.Bits.CacheCreate,
-                    b.CacheRead + s.Bits.CacheRead);
+                    b.CacheRead + s.Bits.CacheRead,
+                    b.CacheCreate1h + s.Bits.CacheCreate1h,
+                    b.CacheCreate5m + s.Bits.CacheCreate5m);
 
                 // Attribution is free: the transcript's path already names the project directory and
                 // the conversation — including for a fan-out's agents, which file under the session

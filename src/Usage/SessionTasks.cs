@@ -39,12 +39,14 @@ internal sealed record TaskNode(
         get
         {
             long i = Own.Input, o = Own.Output, c = Own.CacheCreate, r = Own.CacheRead;
+            long h = Own.CacheCreate1h, m = Own.CacheCreate5m;
             foreach (TaskNode child in Children)
             {
                 TokenBits s = child.Subtree;
                 i += s.Input; o += s.Output; c += s.CacheCreate; r += s.CacheRead;
+                h += s.CacheCreate1h; m += s.CacheCreate5m;
             }
-            return new TokenBits(i, o, c, r);
+            return new TokenBits(i, o, c, r, h, m);
         }
     }
 
@@ -257,18 +259,19 @@ internal static class SessionTasks
         public int Chars;
         public readonly HashSet<string> Seen = new(StringComparer.Ordinal);
         public int Calls;
-        private long _in, _out, _cc, _cr;
+        private long _in, _out, _cc, _cr, _c1h, _c5m;
         private double _first, _last;
 
         public void Add(double t, TokenBits bits)
         {
             Calls++;
             _in += bits.Input; _out += bits.Output; _cc += bits.CacheCreate; _cr += bits.CacheRead;
+            _c1h += bits.CacheCreate1h; _c5m += bits.CacheCreate5m;
             if (_first == 0 || t < _first) _first = t;
             if (t > _last) _last = t;
         }
 
         public TaskNode Build() => new(Kind, Label, Prompt, Chars, _first, _last, Calls,
-                                       new TokenBits(_in, _out, _cc, _cr), new List<TaskNode>());
+                                       new TokenBits(_in, _out, _cc, _cr, _c1h, _c5m), new List<TaskNode>());
     }
 }

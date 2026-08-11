@@ -99,9 +99,11 @@ internal static class SessionIndex
     /// changes meaning</em> — T334 added the prompt at 2 and taught it to skip the harness's own
     /// <c>user</c> lines at 3, and gained the title at 4 — and the second of those is the instructive one: the files had not
     /// changed, so a size+mtime key kept serving the old answer and the fix was invisible on every row
-    /// that had not been touched since. See <see cref="FileEntry.V"/>.
+    /// that had not been touched since. 5 splits the cache write by TTL (T330), which is the same trap:
+    /// the totals were already right, so nothing on an untouched row would have looked wrong.
+    /// See <see cref="FileEntry.V"/>.
     /// </summary>
-    private const int Schema = 4;
+    private const int Schema = 5;
 
     private static readonly StringComparer PathComparer = StringComparer.OrdinalIgnoreCase;
 
@@ -226,6 +228,8 @@ internal static class SessionIndex
                 entry.Out += bits.Output;
                 entry.Cc += bits.CacheCreate;
                 entry.Cr += bits.CacheRead;
+                entry.C1h += bits.CacheCreate1h;
+                entry.C5m += bits.CacheCreate5m;
                 if (entry.First == 0 || t < entry.First) entry.First = t;
                 if (t > entry.Last) entry.Last = t;
                 if (entry.Cwd.Length == 0 && cwd is { Length: > 0 }) entry.Cwd = cwd;
@@ -454,7 +458,7 @@ internal static class SessionIndex
         var rows = new List<SessionRow>(byKey.Count);
         foreach (List<FileEntry> group in byKey.Values)
         {
-            long input = 0, output = 0, create = 0, cached = 0;
+            long input = 0, output = 0, create = 0, cached = 0, hour = 0, five = 0;
             int calls = 0, agents = 0;
             double first = 0, last = 0;
             string cwd = "", prompt = "", title = "";
@@ -463,6 +467,7 @@ internal static class SessionIndex
             {
                 calls += e.Calls;
                 input += e.In; output += e.Out; create += e.Cc; cached += e.Cr;
+                hour += e.C1h; five += e.C5m;
                 if (first == 0 || (e.First > 0 && e.First < first)) first = e.First;
                 if (e.Last > last) last = e.Last;
                 if (e.Agent) agents++;
@@ -477,7 +482,7 @@ internal static class SessionIndex
             rows.Add(new SessionRow(
                 any.Session, any.Project,
                 cwd.Length > 0 ? ProjectSlug.NameFor(any.Project, cwd) : ProjectSlug.Tail(any.Project),
-                first, last, calls, new TokenBits(input, output, create, cached),
+                first, last, calls, new TokenBits(input, output, create, cached, hour, five),
                 models.ToArray(), agents, prompt, title));
         }
 
@@ -517,6 +522,10 @@ internal static class SessionIndex
         public long Out { get; set; }
         public long Cc { get; set; }
         public long Cr { get; set; }
+        /// <summary>Of <see cref="Cc"/>, what the transcript attributed to each cache TTL (T330).</summary>
+        public long C1h { get; set; }
+        /// <inheritdoc cref="C1h"/>
+        public long C5m { get; set; }
         public string[] Models { get; set; } = Array.Empty<string>();
 
         /// <summary>Bytes this pass read for the entry — 0 when it came from the cache. Not persisted.</summary>

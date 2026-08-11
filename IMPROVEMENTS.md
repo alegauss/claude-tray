@@ -836,33 +836,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## LIX The cache TTL the token count throws away, and what a session is worth (T330)
-
-`TokenBits` carries four longs, and `CacheCreate` is one of them. The transcript is finer: beside
-`cache_creation_input_tokens` sits a `cache_creation` object splitting that number into
-`ephemeral_1h_input_tokens` and `ephemeral_5m_input_tokens`, and nothing here has opened it.
-Measured over this repo's transcripts: **50.5M** one-hour write tokens against **1.17M** five-minute
-ones, across 18,468 lines. Claude Code writes almost entirely at the one-hour TTL.
-
-The two are not priced alike. Against a model's base input rate a cache read is 0.1×, a five-minute
-write 1.25×, a **one-hour write 2×**. Blending them wrong misses the write component by nearly two —
-the same error the usage simulator made until it looked, where an assumed 0.2475 input multiplier
-turned out to be **0.1335** because 98.2% of context is reads.
-
-Read the split, and it is worth something: a session's tokens become a **list-price equivalent**,
-per model. Tokens rank sessions; money explains them, and a $2 conversation beside a $40 one is a
-sentence a token count does not say.
-
-**This is not T279, and the difference is the whole permission.** That task asked what an *overage
-spell actually bills*, and died because the model set is a cached flag disagreeing with observed
-traffic — it needed a fact about someone's account. This needs none: it is arithmetic over tokens
-already counted, at published rates.
-
-So the wording must never drift into the other claim. A subscription exposes no dollar balance and
-this app does not know what anyone pays. The label reads *"≈ $X at API list prices"*, with the
-method note behind an ⓘ — Block M's pattern — and never *"cost"* bare. Rates live in a table with
-the date they were read, so a stale one is visible rather than silent.
-
 ## LX Effort, the lever nothing here reads (T331)
 
 Every assistant line carries an `effort` — checked here, 18,327 of 18,473 lines in this repo's own
@@ -1169,3 +1142,29 @@ the exit code is the gate, and splitting the gate would be worse than the wait.
 constructing anything — so the same code answers in seconds during an edit and still answers inside
 `--selftest` for CI. Whether that is a flag on the existing binary (which still needs the build) or
 a separate small target is the thing to decide, and T341's measurement is what decides it.
+
+## LXXIV What a session was worth, at list prices (T346)
+
+T330 read the split and stopped there: `TokenBits` carries the two TTLs and nothing prices them. The
+rates are public and the arithmetic is over tokens already counted — against a model's base input
+rate a cache read is 0.1×, a five-minute write 1.25× and a one-hour write 2×, output at its own rate
+— so a session's tokens become a **list-price equivalent**, per model. Tokens rank sessions; money
+explains them, and a $2 conversation beside a $40 one is a sentence a token count does not say.
+
+**Per model is the work.** `SessionRow` carries one aggregated `TokenBits` and the list of models
+that answered: enough to name them, not enough to price them. Two models in one conversation have
+different rates, and this machine's transcripts hold four. So the per-file cache learns to attribute
+tokens per model — a persisted field and a schema generation, the same trap T330 stepped in, where
+the totals stay right and an untouched row keeps serving the old answer.
+
+**The wording is the constraint, not the arithmetic.** A subscription exposes no dollar balance and
+this app does not know what anyone pays. The label reads *"≈ $X at API list prices"*, with the
+method note behind an ⓘ — Block M's pattern — and never *"cost"* bare. Rates live in a table
+carrying the date they were read, so a stale one is visible rather than silent.
+
+**This is not T279.** That task asked what an overage spell actually *bills*, and died because the
+model set is a cached flag disagreeing with observed traffic — it needed a fact about someone's
+account. This needs none.
+
+Being user-facing, it owes the gate: five language files, the README, the published page, and a
+screenshot in at least one non-English language.
