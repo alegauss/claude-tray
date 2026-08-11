@@ -105,7 +105,8 @@ internal static class PreviewCli
         var pending = new Queue<ToastPreviews.Variant>(ToastPreviews.Catalogue);
         int spilled = 0;
 
-        Console.WriteLine($"Toast cards in {lang} — does each one fit its own frame? ({pending.Count} cards)");
+        Console.WriteLine($"Toast cards in {lang} — does each one fit its own frame, and draw a quota meter "
+                          + $"exactly where its reading carries one? ({pending.Count} cards)");
         Console.WriteLine();
 
         void Ask()
@@ -114,9 +115,11 @@ internal static class PreviewCli
             {
                 Console.WriteLine();
                 Console.WriteLine(spilled == 0
-                    ? $"all {ToastPreviews.Catalogue.Count} fit in {lang}."
-                    : $"{spilled} of {ToastPreviews.Catalogue.Count} do not fit in {lang} — a card that "
-                      + "overflows is clipped by its own grid, so a capture of it looks fine (T228).");
+                    ? $"all {ToastPreviews.Catalogue.Count} fit in {lang}, and each drew the bar its row says it has."
+                    : $"{spilled} of {ToastPreviews.Catalogue.Count} are wrong in {lang} — a card that "
+                      + "overflows is clipped by its own grid and a bar drawn for nothing is a full "
+                      + "allowance behind a sentence saying the quota is spent, so both look fine in a "
+                      + "capture (T228, T291).");
                 Environment.ExitCode = spilled == 0 ? 0 : 1;
                 app.Shutdown();
                 return;
@@ -133,12 +136,24 @@ internal static class PreviewCli
             {
                 settle.Stop();
                 IReadOnlyList<string> over = card.Overflow();
-                if (over.Count == 0) Console.WriteLine($"  ok    {v.Name}");
+                // T291. Two questions of one card, because building it is the expensive part and the second
+                // one had nowhere else to be asked: `Overflow` walks TextBlocks and the meter is a Border, so
+                // a card drawing one it has no quantity for fits perfectly well and passes.
+                bool barWrong = card.DrewBar != v.Bar;
+                if (over.Count == 0 && !barWrong) Console.WriteLine($"  ok    {v.Name}");
                 else
                 {
                     spilled++;
-                    Console.WriteLine($"  SPILL {v.Name}");
+                    Console.WriteLine($"  {(over.Count > 0 ? "SPILL" : "BAR  ")} {v.Name}");
                     foreach (string s in over) Console.WriteLine($"          {s}");
+                    if (barWrong)
+                        Console.WriteLine(v.Bar
+                            ? "          the row carries a quantity and the card drew no quota meter"
+                            : $"          the row carries no quantity and the card drew a quota meter " +
+                              // Nums, like the rectangles Overflow prints beside it: a figure this check
+                              // emits is read next to those, and two formatters in one report is the drift
+                              // T216 is about arriving somewhere nobody was watching.
+                              $"anyway, {Nums.Of(card.BarHeight)}px of it — T277's collapse is gone");
                 }
                 card.Close();
                 Ask();

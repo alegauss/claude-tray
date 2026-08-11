@@ -285,6 +285,25 @@ internal partial class ToastWindow : Window
     /// <para>Call it after the settle timer, when the window has laid out for real; before that every
     /// block is at its startup size and the answer means nothing.</para>
     /// </summary>
+    /// <summary>
+    /// Whether this card actually drew its quota meter (T291) — asked of the <em>window</em>, which is the
+    /// whole point.
+    ///
+    /// <para>T277's rule is that a card may not draw a meter for a quantity its reading does not carry, and
+    /// three things watched this card without watching that. <c>--selftest</c> asks whether
+    /// <c>ExtraUsageBar(0)</c> is null, a claim about a number one layer above any window.
+    /// <see cref="Overflow"/> walks <c>TextBlock</c>s only, and the bar is a <c>Border</c> — so a card that
+    /// drew one anyway fits perfectly well. And <c>--capture-toast extra-bare</c> writes a PNG somebody has
+    /// to look at, which is the check T277 leaned on and the one that never runs again.</para>
+    ///
+    /// <para>Read after the settle, like <see cref="Overflow"/>: before layout every block is at its
+    /// startup size and the answer means nothing.</para>
+    /// </summary>
+    internal bool DrewBar => QuotaBlock.Visibility == Visibility.Visible;
+
+    /// <summary>How much room the meter took, for a failure to report rather than merely assert.</summary>
+    internal double BarHeight => QuotaBlock.ActualHeight;
+
     internal IReadOnlyList<string> Overflow()
     {
         var bad = new List<string>();

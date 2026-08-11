@@ -130,9 +130,15 @@ Preview popups are held open by `PageWindow` for every popup, not per call site.
                                       #   Variants are one table, src\Cli\ToastPreviews.cs, which
                                       #   --simulate-reset reads too; an unknown name prints the catalogue
                                       #   and exits 1.
---check-toasts                        # every card, asked whether it FITS its own frame in the language
-                                      #   this process is in (T257). Exit 1 naming the card and the
-                                      #   rectangle. `--lang <code> --check-toasts`, five times, is the
+--check-toasts                        # every card, asked TWO things in the language this process is in:
+                                      #   whether it FITS its own frame (T257), and whether it drew a
+                                      #   quota meter exactly where its row's reading carries a quantity
+                                      #   (T291). Exit 1 naming the card and either the rectangle or the
+                                      #   bar. The second question needed its own asking: `Overflow` walks
+                                      #   TextBlocks and the meter is a Border, so a card drawing one for
+                                      #   nothing fits perfectly well - and that picture is a full
+                                      #   allowance behind a sentence saying the quota is spent.
+                                      #   `--lang <code> --check-toasts`, five times, is the
                                       #   whole sweep - the language is fixed per process - and check.yml
                                       #   runs exactly that on every push. Reads a layout, not a picture,
                                       #   so there is no settle wait and no window is activated.

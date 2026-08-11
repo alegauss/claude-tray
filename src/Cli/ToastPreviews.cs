@@ -22,7 +22,11 @@ internal static class ToastPreviews
 {
     /// <summary>One preview. <c>Build</c> takes the current unix second, so every fixture's resets sit the
     /// same distance from whenever it runs.</summary>
-    internal sealed record Variant(string Name, string What, Func<long, ToastWindow> Build);
+    /// <param name="Bar">Whether this row's reading carries a quantity, so the card must draw its quota
+    /// meter (T291). A row knows this — it is the row that chose the reading — and <c>--check-toasts</c>
+    /// asks the built window whether it agrees. Default true, because a card with a figure is the ordinary
+    /// case and the three exceptions are the interesting ones.</param>
+    internal sealed record Variant(string Name, string What, Func<long, ToastWindow> Build, bool Bar = true);
 
     /// <summary>The four reset cards, built from the same <see cref="TrayContext.ResetToastContent"/> the
     /// live notifier uses, so the wording can never drift from what a user is actually shown.</summary>
@@ -78,14 +82,18 @@ internal static class ToastPreviews
             // captured and published, and a real one puts somebody's account on the marketing page.
             _ => new ToastWindow("💻", L.T("toast.profile.title"),
                 L.T("toast.profile.subtitle", "Personal", @"C:\Users\you\.claude-personal"),
-                null, null, L.T("toast.profile.caption"), "", ToastWindow.ToastTheme.Profile)),
+                null, null, L.T("toast.profile.caption"), "", ToastWindow.ToastTheme.Profile),
+            // Bar-less since T174 and never once asked about until T291: a profile switch is not a quota
+            // event, so there is no percentage for a meter to be of.
+            Bar: false),
 
         new("profile-failed", "the same switch, not landing: the write threw or the variable still reads " +
                               "the old value, which before T173 nothing could tell you at all",
             _ => new ToastWindow("🚫", L.T("toast.profile.titleFailed"),
                 L.T("toast.profile.subtitle", "Personal", @"C:\Users\you\.claude-personal"),
                 null, null, L.T("toast.profile.captionFailed", @"C:\Users\you\.claude-work"),
-                "", ToastWindow.ToastTheme.Profile)),
+                "", ToastWindow.ToastTheme.Profile),
+            Bar: false),
 
         new("extra-bare", "the same card as the spell that produced it actually reports: overage in use " +
                           "and no figure at all, so there is no bar — the form a reading with nothing to " +
@@ -93,7 +101,11 @@ internal static class ToastPreviews
             // The reading the spell of 2026-08-04 actually sent, rather than a hand-written "no bar": the
             // bar-less card is what a measured zero produces, and if that ever stopped being true this row
             // would show it.
-            _ => Extra(0.0)),
+            _ => Extra(0.0),
+            // The row T291 exists for. `ExtraUsageBar(0)` being null is asserted a layer above the window;
+            // this is the same claim asked of the card that gets drawn, so a null coalesced away at a call
+            // site or a restored theme default brings the full-allowance bar back with something watching.
+            Bar: false),
     };
 
     /// <summary>The extra-usage card, built from a reading the way the tray builds it — the same wording,
