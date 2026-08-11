@@ -1135,3 +1135,29 @@ while explaining it.
 **What finishing this is.** Not zero findings — T315 owns the other four and is a separate argument
 about anchors. It is that every finding `lint` reports is one somebody chose to leave, so a new one
 is visible against a known floor instead of lost in a wall of expected noise.
+
+## LXVIII The news that arrives in four languages (T340)
+
+The tooltip has 127 characters. When a reading needs more, `Fit` walks the sentence's rungs and
+takes the first that fits — and takes none if none does, which is silent. That silence has now cost
+the same thing three times, in three different languages, on three different sentences:
+
+- **T222.** The paying state rendered no sentence in any language: its overage reading cost about what
+  the sentence needed. Fixed by merging the two.
+- **T302.** Both French billing states dropped the spell line — two worded rungs costing 16 characters
+  where that reading left 15. Fixed with a third rung that has no word in it.
+- **T288.** The blocked sentence rendered in en, pt-BR and pt-PT and in neither es nor fr, costing 42
+  and 51 against 37 and 33 left. Found by running `--tooltip` and reading it.
+
+Each was then locked shut by a test **written for that one state**, naming that one key. So the
+check that would have caught T288 did not exist until T288, and the check that will catch the next
+one does not exist yet.
+
+**What this is.** One assertion over the cross product: for every state that carries news — blocked,
+billing, unspent, at-limit — and every shipped language, the composition says *something* about that
+state. Not a particular string: the property is that the news arrives, which is T222's own wording
+and the thing three separate tests each re-state about one cell of the grid.
+
+**What it is not.** Not a length limit on translations. A translator who needs more words should get
+them; what may not happen is the sentence disappearing without anything noticing. The rungs are the
+mechanism for that and they already exist — this is only the check that they were used.
