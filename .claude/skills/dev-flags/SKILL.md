@@ -210,6 +210,11 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   seconds bounds the run (default 90), and --raw prints the
                                       #   unsmoothed box filter beside it, which is what the attack-only
                                       #   smoothing is judged against
+--sessions <session-id-or-prefix>     # ONE conversation as its CALL TREE instead of the list: task →
+                                      #   workflow → agent, each node's own cost beside its subtree's,
+                                      #   which is the reading that says whether the coordinator or the
+                                      #   fleet was expensive. A task is cut at each person-ask; a
+                                      #   typed prompt is named by its length, never its text
 --sessions [--all|--refresh] [--project <slug-or-name>] [--root <dir>]
                                       # one row per CONVERSATION — the unit no other reader produces:
                                       #   last turn, duration, calls, billed tokens, cache reads, how

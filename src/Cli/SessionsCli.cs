@@ -26,6 +26,15 @@ internal static class SessionsCli
 
         IReadOnlyList<SessionRow> rows = SessionIndex.Load(out SessionScanStats st, projectsDir: root, mode: mode);
 
+        // A bare argument is a session id (or a prefix of one): print that conversation's call tree
+        // instead of the list. The read-out equivalent of clicking a row (T329).
+        string? pick = flags.FirstOrDefault(f => !f.StartsWith("--") && f != root && f != project);
+        if (pick is { Length: > 0 })
+        {
+            PrintTree(rows, pick, root);
+            return;
+        }
+
         Console.WriteLine($"Sessions — {st.Sessions:N0} conversations in {st.Files:N0} transcripts");
         // Which tree, always: this reads a *profile's* transcripts, and "whose numbers are these"
         // is the question T128 exists to keep answerable.
@@ -60,6 +69,60 @@ internal static class SessionsCli
         if (show < rows.Count)
             Console.WriteLine($"… and {rows.Count - show:N0} more — --all lists them.");
     }
+
+    /// <summary>
+    /// One conversation as its call tree: task → workflow → agent, each with its own cost beside its
+    /// subtree's — the reading that says whether the coordinator or the fleet was the expensive one.
+    /// </summary>
+    private static void PrintTree(IReadOnlyList<SessionRow> rows, string pick, string? root)
+    {
+        SessionRow row = rows.FirstOrDefault(r => r.Session.StartsWith(pick, StringComparison.OrdinalIgnoreCase));
+        if (row.Session is not { Length: > 0 })
+        {
+            Console.WriteLine($"no conversation whose id starts with \"{pick}\".");
+            Environment.ExitCode = 1;
+            return;
+        }
+
+        Console.WriteLine($"{row.Name}  ·  {row.Session}");
+        Console.WriteLine($"{DateTimeOffset.FromUnixTimeSeconds((long)row.FirstUnix).LocalDateTime:MM-dd HH:mm}" +
+                          $" → {DateTimeOffset.FromUnixTimeSeconds((long)row.LastUnix).LocalDateTime:HH:mm}" +
+                          $"  ·  {Dur(row.Seconds)}  ·  {row.Calls:N0} calls");
+        Console.WriteLine();
+
+        IReadOnlyList<TaskNode> tasks = SessionTasks.For(row, projectsDir: root);
+        if (tasks.Count == 0) { Console.WriteLine("nothing to walk — its transcript could not be read."); return; }
+
+        // Own beside subtree on every line, always: printing only the total is what makes a fan-out
+        // look like the coordinator's own spend.
+        Console.WriteLine($"{"task",-46}  {"calls",5}         {"own",10}       {"tree",10}");
+        foreach (TaskNode t in tasks) Walk(t, 0);
+
+        static void Walk(TaskNode n, int depth)
+        {
+            string indent = new string(' ', depth * 2);
+            long own = n.Own.Input + n.Own.Output + n.Own.CacheCreate;
+            TokenBits sub = n.Subtree;
+            long all = sub.Input + sub.Output + sub.CacheCreate;
+            Console.WriteLine($"{indent}{Trim(Name(n), 46 - depth * 2),-46}  " +
+                              $"{n.Calls,5} calls  own {own,10:N0}  tree {all,10:N0}" +
+                              (n.Prompt.Length > 0 ? "" : ""));
+            if (n.Prompt.Length > 0) Console.WriteLine($"{indent}  \"{n.Prompt}\"");
+            foreach (TaskNode c in n.Children) Walk(c, depth + 1);
+        }
+    }
+
+    /// <summary>What a node is called. A prompt is named by its <em>length</em>, which is the line
+    /// §I.1 has always drawn and is drawn here explicitly because a drill-down is the feature most
+    /// likely to argue for crossing it.</summary>
+    private static string Name(TaskNode n) => n.Kind switch
+    {
+        TaskKind.Command => n.Label,
+        TaskKind.Prompt => n.Prompt.Length > 0 ? "prompt" : $"prompt ({n.Chars:N0} chars)",
+        TaskKind.Continuation => "(inherited turns)",
+        TaskKind.Workflow => "workflow " + n.Label,
+        _ => n.Label,
+    };
 
     /// <summary>Hours and minutes, or minutes: a session is normally minutes and occasionally a whole
     /// afternoon, and one unit that reads well at both ends does not exist.</summary>

@@ -31,6 +31,20 @@ internal readonly record struct SessionRow(
     public double Seconds => Math.Max(0, LastUnix - FirstUnix);
 }
 
+/// <summary>
+/// One line a person actually wrote, told apart from the many <c>user</c> lines that are the harness
+/// writing about itself. The unit both readers of §I.1's amended exception share: the Sessions list
+/// takes the first one of these in a transcript, and <see cref="SessionTasks"/> cuts a conversation at
+/// every one of them.
+/// </summary>
+/// <param name="Text">Flattened and cut to <see cref="SessionIndex.PromptChars"/> — never longer, and
+/// never stored longer.</param>
+/// <param name="Chars">How long it was <em>before</em> the cut, which is what a drill-down node may
+/// say about a prompt it is not allowed to quote.</param>
+/// <param name="Command">It was a slash command, so <paramref name="Text"/> is its name and arguments
+/// rather than free text — and a person starting work, which is what makes it a task boundary.</param>
+internal readonly record struct PersonAsk(string Text, int Chars, bool Command);
+
 /// <summary>What one <see cref="SessionIndex.Load"/> cost, so "the cache is doing something" is a
 /// number rather than a claim — the same reason <see cref="ActivityProfile"/> reports its own.</summary>
 internal readonly record struct SessionScanStats(
@@ -186,8 +200,8 @@ internal static class SessionIndex
                 read += line.Length;
                 // The one field a person wrote, taken once, from the conversation's own transcript
                 // and never from an agent's (§I.1's exception is about the prompt *you* typed).
-                if (!entry.Agent && entry.Prompt.Length == 0 && TryReadOpeningPrompt(line, out string opening))
-                    entry.Prompt = opening;
+                if (!entry.Agent && entry.Prompt.Length == 0 && TryReadPersonAsk(line, out PersonAsk ask))
+                    entry.Prompt = ask.Text;
 
                 if (!UsageReport.LooksLikeSample(line)) continue;
                 if (!UsageReport.TryParseSample(line, 0, double.MaxValue, out double t, out TokenBits bits,
@@ -235,9 +249,16 @@ internal static class SessionIndex
     /// because the destination is one row of a table, and a pasted block would otherwise arrive as a
     /// hundred blank characters.</para>
     /// </summary>
-    private static bool TryReadOpeningPrompt(string line, out string prompt)
+    internal static bool TryReadPersonAsk(string line, out PersonAsk ask)
     {
-        prompt = "";
+        ask = default;
+        // A message typed while a turn was already running is not a `user` line at all: Claude Code
+        // files it as an `attachment` of type `queued_command`, carrying the prompt in its own array.
+        // Measured, that is where every mid-turn ask in this repository's own transcripts lives, and a
+        // reader that only knows `user` lines reports a conversation of five asks as one (T329).
+        if (line.Contains("\"queued_command\"", StringComparison.Ordinal))
+            return TryReadQueued(line, out ask);
+
         // Ordinal rejects first: this runs on every line of every transcript, and all but a handful
         // of them can be dismissed without JsonDocument.
         if (!line.Contains("\"type\":\"user\"", StringComparison.Ordinal)) return false;
@@ -260,15 +281,57 @@ internal static class SessionIndex
             else if (content.ValueKind == System.Text.Json.JsonValueKind.Array)
                 foreach (System.Text.Json.JsonElement block in content.EnumerateArray())
                 {
+                    // An image block is a person asking, but not in words this may read — and a
+                    // content array that holds one is not a text prompt.
                     if (block.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
-                    if (!block.TryGetProperty("type", out var bt) || bt.GetString() != "text") continue;
+                    if (!block.TryGetProperty("type", out var bt)) continue;
+                    if (bt.GetString() == "image") return false;
+                    if (bt.GetString() != "text") continue;
                     if (block.TryGetProperty("text", out var tx)) text = tx.GetString();
                     break;   // the first text block is the prompt; the rest is not a title
                 }
 
             if (text is not { Length: > 0 }) return false;
-            prompt = Typed(text);
-            return prompt.Length > 0;
+
+            bool command = Tag(text, "command-name") is { Length: > 0 };
+            string flat = Typed(text);
+            if (flat.Length == 0) return false;
+            ask = new PersonAsk(Cut(flat), flat.Length, command);
+            return true;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>A queued command: the same question — what did a person type — asked of the other
+    /// shape it is stored in. Same classification and same cap, so the two routes cannot answer
+    /// differently.</summary>
+    private static bool TryReadQueued(string line, out PersonAsk ask)
+    {
+        ask = default;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(line);
+            if (!doc.RootElement.TryGetProperty("attachment", out var att) ||
+                att.ValueKind != System.Text.Json.JsonValueKind.Object) return false;
+            if (!att.TryGetProperty("type", out var at) || at.GetString() != "queued_command") return false;
+            if (!att.TryGetProperty("prompt", out var arr) ||
+                arr.ValueKind != System.Text.Json.JsonValueKind.Array) return false;
+
+            foreach (System.Text.Json.JsonElement block in arr.EnumerateArray())
+            {
+                if (block.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
+                if (!block.TryGetProperty("type", out var bt) || bt.GetString() != "text") continue;
+                if (block.TryGetProperty("text", out var tx) && tx.GetString() is { Length: > 0 } text)
+                {
+                    bool command = Tag(text, "command-name") is { Length: > 0 };
+                    string flat = Typed(text);
+                    if (flat.Length == 0) return false;
+                    ask = new PersonAsk(Cut(flat), flat.Length, command);
+                    return true;
+                }
+                break;
+            }
+            return false;
         }
         catch { return false; }
     }
@@ -292,7 +355,13 @@ internal static class SessionIndex
     {
         if (Tag(text, "command-name") is { Length: > 0 } name)
             return Flatten(Tag(text, "command-args") is { Length: > 0 } args ? name + " " + args : name);
-        return text.TrimStart().StartsWith('<') ? "" : Flatten(text);
+        string head = text.TrimStart();
+        if (head.StartsWith('<')) return "";
+        // Two the tag rule cannot catch, because Claude Code writes them as plain prose: the caveat
+        // it prepends to a resumed conversation, and the note an interrupt leaves behind.
+        if (head.StartsWith("Caveat:", StringComparison.Ordinal)) return "";
+        if (head.StartsWith("[Request interrupted", StringComparison.Ordinal)) return "";
+        return Flatten(text);
     }
 
     private static string? Tag(string text, string name)
@@ -304,21 +373,27 @@ internal static class SessionIndex
         return close < 0 ? null : text[open..close];
     }
 
-    /// <summary>One row's worth: whitespace collapsed, then cut to <see cref="PromptChars"/> with an
-    /// ellipsis so a truncated prompt is visibly truncated rather than quietly ending mid-word.</summary>
+    /// <summary>One row's worth of whitespace: newlines and runs collapse to single spaces, because the
+    /// destination is one line of a table and a pasted block would otherwise arrive as a hundred blank
+    /// characters. Length-preserving in the sense that matters — this is what <see cref="PersonAsk.Chars"/>
+    /// counts, so "85 characters" describes what a person typed and not how they laid it out.</summary>
     private static string Flatten(string text)
     {
-        var sb = new System.Text.StringBuilder(Math.Min(text.Length, PromptChars + 1));
+        var sb = new System.Text.StringBuilder(text.Length);
         bool space = false;
         foreach (char c in text)
         {
             if (char.IsWhiteSpace(c)) { space = sb.Length > 0; continue; }
             if (space) { sb.Append(' '); space = false; }
-            if (sb.Length >= PromptChars) return sb.ToString().TrimEnd() + "…";
             sb.Append(c);
         }
         return sb.ToString();
     }
+
+    /// <summary>The cap, applied in one place. An ellipsis so a truncated prompt is visibly truncated
+    /// rather than quietly ending mid-word.</summary>
+    private static string Cut(string flat)
+        => flat.Length <= PromptChars ? flat : flat[..PromptChars].TrimEnd() + "…";
 
     // ---------------------------------------------------------------- many files → one row each
 
@@ -389,7 +464,7 @@ internal static class SessionIndex
         public string Cwd { get; set; } = "";
         /// <summary>This transcript is a fan-out's, not the conversation's own file.</summary>
         public bool Agent { get; set; }
-        /// <summary>Already truncated to <see cref="PromptChars"/> — see <see cref="TryReadOpeningPrompt"/>.</summary>
+        /// <summary>Already truncated to <see cref="PromptChars"/> — see <see cref="TryReadPersonAsk"/>.</summary>
         public string Prompt { get; set; } = "";
         public double First { get; set; }
         public double Last { get; set; }

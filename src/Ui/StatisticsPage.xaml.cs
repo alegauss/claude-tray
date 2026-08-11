@@ -283,7 +283,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
             PanesBody.SelectedIndex = i;
             // The one pane whose content arrives asynchronously. Photographing it before the scan
             // lands writes a PNG of the placeholder and calls it a capture (T286/T298's defect).
-            if (i == SessionsTab) WaitForSessions();
+            if (i == SessionsTab) { WaitForSessions(); OpenFirstSession(); }
             UpdateLayout();
             // Flush the render queue so the chart drawn on this tab's SizeChanged is present.
             Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);

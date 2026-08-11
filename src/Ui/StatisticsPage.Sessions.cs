@@ -43,6 +43,11 @@ internal partial class StatisticsPage
         double gutter = SystemParameters.VerticalScrollBarWidth;
         SessionsGutter.Width = new GridLength(gutter);
         SessionList.Margin = new Thickness(0, 0, gutter, 0);
+        // The whole row opens it, not a hit-target the size of a chevron: the glyph says a row can be
+        // opened and the row is what you click.
+        SessionList.AddHandler(System.Windows.Input.Mouse.MouseUpEvent,
+                               new System.Windows.Input.MouseButtonEventHandler(Row_Clicked), handledEventsToo: true);
+
         SessionsRange.SelectionChanged += (_, _) => RenderSessions();
         SortByWhen.Click += (_, _) => { _sessionSort = SessionSort.Clock; RenderSessions(); };
         SortByTokens.Click += (_, _) => { _sessionSort = SessionSort.Tokens; RenderSessions(); };
@@ -83,6 +88,47 @@ internal partial class StatisticsPage
     }
 
     /// <summary>
+    /// Open or close a conversation's call tree (T329).
+    ///
+    /// <para>The walk is off the UI thread for the same reason the index's is, though not for the
+    /// same size: a session is a handful of files against the index's whole tree, and the cost that
+    /// actually bites is a conversation with a large fan-out. It is walked once and kept, so closing
+    /// and reopening a row is free.</para>
+    /// </summary>
+    private void Row_Clicked(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton != System.Windows.Input.MouseButton.Left) return;
+        if ((e.OriginalSource as DependencyObject) is not { } hit) return;
+
+        // Up the visual tree to the row this pixel belongs to, because the click lands on a TextBlock.
+        SessionListRow? row = null;
+        for (DependencyObject? d = hit; d != null && row == null; d = System.Windows.Media.VisualTreeHelper.GetParent(d))
+            if (d is FrameworkElement { DataContext: SessionListRow r }) row = r;
+        if (row == null) return;
+
+        if (row.Detail != null) { row.Open = !row.Open; return; }
+
+        row.Open = true;
+        SessionRow model = row.Row;
+        ProfileRef profile = _profile;
+        System.Threading.Tasks.Task.Run(() =>
+        {
+            IReadOnlyList<TaskNode> tasks;
+            try { tasks = SessionTasks.For(model, profile); }
+            catch { tasks = Array.Empty<TaskNode>(); }   // an unreadable transcript closes the row, never crashes
+            var lines = new List<TaskLine>();
+            foreach (TaskNode t in tasks) Flatten(t, 0, lines);
+            Dispatcher.BeginInvoke(() => row.Detail = lines);
+        });
+    }
+
+    private static void Flatten(TaskNode node, int depth, List<TaskLine> into)
+    {
+        into.Add(new TaskLine(node, depth));
+        foreach (TaskNode child in node.Children) Flatten(child, depth + 1, into);
+    }
+
+    /// <summary>
     /// Block the capture path until the list is a list. The scan runs off the UI thread and lands
     /// through <see cref="System.Windows.Threading.Dispatcher.BeginInvoke(Delegate)"/>, so a capture
     /// taken the moment the tab is selected photographs "Reading your transcripts…" and reports a PNG
@@ -100,6 +146,37 @@ internal partial class StatisticsPage
         {
             // Draining to Background lets the Normal-priority callback that carries the scan's result
             // run — the same "let the queue breathe" move a modal dialog makes.
+            Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
+            System.Threading.Thread.Sleep(25);
+        }
+        UpdateLayout();
+    }
+
+    /// <summary>Open the newest conversation's call tree and wait for it, so a capture of this pane
+    /// shows what the pane <em>does</em> rather than a list of rows that look inert (T329). Same pump,
+    /// same bound, same reason as <see cref="WaitForSessions"/>.</summary>
+    internal void OpenFirstSession(int millis = 20_000)
+    {
+        if (SessionList.ItemsSource is not IEnumerable<SessionListRow> rows) return;
+        SessionListRow? first = rows.FirstOrDefault();
+        if (first == null) return;
+
+        first.Open = true;
+        SessionRow model = first.Row;
+        ProfileRef profile = _profile;
+        System.Threading.Tasks.Task.Run(() =>
+        {
+            IReadOnlyList<TaskNode> tasks;
+            try { tasks = SessionTasks.For(model, profile); }
+            catch { tasks = Array.Empty<TaskNode>(); }
+            var lines = new List<TaskLine>();
+            foreach (TaskNode t in tasks) Flatten(t, 0, lines);
+            Dispatcher.BeginInvoke(() => first.Detail = lines);
+        });
+
+        DateTime deadline = DateTime.UtcNow.AddMilliseconds(millis);
+        while (first.Detail == null && DateTime.UtcNow < deadline)
+        {
             Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Background);
             System.Threading.Thread.Sleep(25);
         }

@@ -60,8 +60,39 @@
              since T334, the opening prompt under the project. That last one is §I.1's single amended
              exception and the only thing here a person wrote; it is truncated by the index before it
              is stored, so this template is a display and not a second place the cap is decided. -->
+        <!-- One line of the call tree under a conversation (T329). Own beside subtree, so a
+             coordinator that was cheap under a fleet that was not reads as exactly that. -->
+        <DataTemplate x:Key="TaskLineTemplate">
+            <Grid Margin="{Binding Indent}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="120" />
+                    <ColumnDefinition Width="188" />
+                    <ColumnDefinition Width="64" />
+                    <ColumnDefinition Width="84" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="0,3,10,3">
+                    <TextBlock Text="{Binding Label}" FontSize="12" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text="{Binding Prompt}" Visibility="{Binding PromptVisibility}"
+                               FontSize="11" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                </StackPanel>
+                <TextBlock Grid.Column="2" Text="{Binding Calls}" FontSize="12" VerticalAlignment="Top"
+                           Margin="0,3,12,0" HorizontalAlignment="Right"
+                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                <StackPanel Grid.Column="3" Margin="0,3,0,0" HorizontalAlignment="Right">
+                    <TextBlock Text="{Binding Own}" FontSize="12" HorizontalAlignment="Right"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                    <TextBlock Text="{Binding Tree}" FontSize="11" HorizontalAlignment="Right"
+                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+
         <DataTemplate x:Key="SessionRowTemplate">
-            <Border Padding="8,7" CornerRadius="5" Background="Transparent" ToolTip="{Binding Tip}">
+          <StackPanel>
+            <Border Padding="8,7" CornerRadius="5" Background="Transparent" ToolTip="{Binding Tip}"
+                    Cursor="Hand">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" MinWidth="120" />
@@ -75,13 +106,21 @@
                          person's own words sit under it, dimmer and on one trimmed line. The numeric
                          columns are top-aligned against that first line rather than centred on a
                          two-line cell, so the eye still reads straight across a row. -->
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                        <TextBlock Text="{Binding Project}" FontSize="13"
-                                   TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <TextBlock Text="{Binding Prompt}" Visibility="{Binding PromptVisibility}"
-                                   FontSize="12" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0" Orientation="Horizontal">
+                        <!-- The disclosure glyph is the affordance: a row that opens into a call
+                             tree and looks exactly like one that does not is a feature only its
+                             author finds (T329). -->
+                        <TextBlock Text="{Binding Chevron}" FontFamily="Segoe MDL2 Assets" FontSize="9"
+                                   Margin="0,4,8,0" VerticalAlignment="Top"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        <StackPanel>
+                            <TextBlock Text="{Binding Project}" FontSize="13"
+                                       TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="{Binding Prompt}" Visibility="{Binding PromptVisibility}"
+                                       FontSize="12" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        </StackPanel>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="{Binding When}" FontSize="13" VerticalAlignment="Top"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -95,6 +134,10 @@
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 </Grid>
             </Border>
+            <ItemsControl ItemsSource="{Binding Detail}" Visibility="{Binding DetailVisibility}"
+                          ItemTemplate="{StaticResource TaskLineTemplate}"
+                          Margin="8,0,0,8" />
+          </StackPanel>
         </DataTemplate>
 
         <!-- A column header that sorts. Looks like a label and behaves like a button, because it is

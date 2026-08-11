@@ -261,6 +261,9 @@ internal static class SelfTestCli
 
             Section("sessions — the one field a person wrote (Block AK)");
             Temp(OpeningPrompt);
+
+            Section("sessions — the call tree under one conversation (Block AK)");
+            Temp(Tasks);
         }
 
         // Last, and nothing may be added after it: sampling the environment is one-way for the process
@@ -5888,6 +5891,74 @@ internal static class SelfTestCli
         Check($"a long prompt is cut to {SessionIndex.PromptChars} characters, with an ellipsis saying so",
               huge.Length == SessionIndex.PromptChars + 1 && huge.EndsWith('…'), $"{huge.Length} chars");
     }
+
+    /// <summary>
+    /// T329: a session cut into the tasks that produced it, with the fan-out hanging under the right
+    /// one. Four boundaries in one transcript, in the order a real one has them — turns that predate
+    /// any ask, a slash command, a typed prompt, and a message queued while a turn was running, which
+    /// is not a <c>user</c> line at all and is where every mid-turn ask actually lives.
+    /// </summary>
+    private static void Tasks(string root)
+    {
+        string projects = Path.Combine(root, "projects");
+        string slug = Path.Combine(projects, "d--selftest");
+        string flow = Path.Combine(slug, "sess-t", "subagents", "workflows", "wf_z-1");
+        Directory.CreateDirectory(flow);
+
+        DateTime t0 = DateTime.Now.AddHours(-2);
+        File.WriteAllText(Path.Combine(slug, "sess-t.jsonl"), string.Join("\n", new[]
+        {
+            // Inherited: a turn before the first ask, which is what a resumed conversation carries.
+            Turn(t0, "req-0", 7),
+            Prompt("<command-message>loop</command-message>\n<command-name>/loop</command-name>\n" +
+                   "<command-args>do the thing</command-args>"),
+            Turn(t0.AddMinutes(10), "req-1", 100),
+            Turn(t0.AddMinutes(20), "req-2", 200),
+            Prompt("a second ask, typed"),
+            Turn(t0.AddMinutes(40), "req-3", 400),
+            Queued("a third ask, queued mid-turn"),
+            Turn(t0.AddMinutes(50), "req-4", 500),
+        }) + "\n");
+        // The fan-out, stamped inside the first task's span, so attaching by clock has a right answer.
+        File.WriteAllText(Path.Combine(flow, "agent-q.jsonl"), Turn(t0.AddMinutes(15), "req-a", 900) + "\n");
+
+        IReadOnlyList<SessionRow> rows = SessionIndex.Load(projectsDir: projects);
+        if (!Check("the session the tree is walked from is found", rows.Count == 1, $"{rows.Count} rows")) return;
+
+        IReadOnlyList<TaskNode> tasks = SessionTasks.For(rows[0], projectsDir: projects);
+        if (!Check("a transcript with three asks cuts into four tasks", tasks.Count == 4,
+                   string.Join(", ", tasks.Select(t => $"{t.Kind}:{t.Calls}")))) return;
+
+        Check("turns that predate the first ask are their own node, not the first task's",
+              tasks[0].Kind == TaskKind.Continuation && tasks[0].Own.Input == 7,
+              $"{tasks[0].Kind} with {tasks[0].Own.Input} input");
+        Check("a slash command is a task, named by the command and not by its arguments",
+              tasks[1].Kind == TaskKind.Command && tasks[1].Label == "/loop", tasks[1].Label);
+        Check("and its arguments are still readable, where the amendment allows them",
+              tasks[1].Prompt == "/loop do the thing", tasks[1].Prompt);
+        Check("a typed prompt is named by its length and never by its text",
+              tasks[2].Kind == TaskKind.Prompt && tasks[2].Prompt.Length == 0 &&
+              tasks[2].Chars == "a second ask, typed".Length, $"{tasks[2].Chars} chars, \"{tasks[2].Prompt}\"");
+        Check("a message queued mid-turn starts a task like any other ask",
+              tasks[3].Kind == TaskKind.Prompt && tasks[3].Own.Input == 500,
+              $"{tasks[3].Kind} with {tasks[3].Own.Input} input");
+
+        // The reading the tree exists for: own beside subtree, on the task that actually spawned it.
+        TaskNode command = tasks[1];
+        Check("the fan-out hangs under the task that was running when it started",
+              command.Children.Count == 1 && command.Children[0].Kind == TaskKind.Workflow,
+              $"{command.Children.Count} children");
+        Check("under its workflow, which has no turns of its own",
+              command.Children[0].Own.Total == 0 && command.Children[0].Children.Count == 1);
+        Check("so the task's own cost and its subtree's differ by exactly the agent",
+              command.Own.Input == 300 && command.Subtree.Input == 300 + 900,
+              $"own {command.Own.Input}, tree {command.Subtree.Input}");
+    }
+
+    /// <summary>A message typed while a turn was running: an <c>attachment</c>, not a <c>user</c> line.</summary>
+    private static string Queued(string text)
+        => "{\"type\":\"attachment\",\"attachment\":{\"type\":\"queued_command\",\"prompt\":" +
+           "[{\"type\":\"text\",\"text\":" + System.Text.Json.JsonSerializer.Serialize(text) + "}]}}";
 
     /// <summary>
     /// T327: the path derivation has to survive the file arriving by a route the caller did not walk.

@@ -956,34 +956,6 @@ that name them move in the same commit: two in the `roadmap-docs` skill, one in 
 Worth checking first whether `[rules.<role>]` can give the strategy role its own anchor pattern,
 which would be the answer that does not depend on picking numbers that happen to be free.
 
-## LVIII The call tree under one session (T329)
-
-The request that opened this block was for a **stack trace of a session**, and the shape is right:
-the call tree is on disk, and no surface in this app walks it.
-
-**Cutting a session into tasks.** A task begins when a person asks for something and ends when the
-next person-ask arrives; everything between is that task's turns. Telling a person-ask from the
-other `role:user` lines is the whole trick, and `measure-usage.mjs` has it working: skip
-`isSidechain` and `isMeta`, skip anything carrying a `tool_result` or an image, skip
-`<local-command-stdout>`, `<system-reminder>`, `Caveat:` and `[Request interrupted`. A slash command
-is **not** skipped — it is a person starting work, and those are the expensive ones. Requests
-predating the file's first prompt become one *continuation* task, or a resumed session's spend
-disappears.
-
-**The tree under a task.** A fan-out writes its agents under the session's own folder, so the
-provenance is the path: task → workflow → agent, each with its own turns and tokens. Three levels,
-drawn as a tree, and the node's own cost beside its subtree's — which is the reading that says
-whether the coordinator or the fleet was expensive.
-
-**What a node is allowed to be labelled.** The slash command's *name* (`/loop`, `/code-review`), the
-task's clock and duration, its turn count, its tokens, the agent type where the path names one. For
-a typed prompt: `Prompt` and its **length in characters**, never its text. That line is the same one
-§I.1 has always drawn — names and counts, never content — and it is drawn here explicitly because a
-drill-down is the feature most likely to argue for crossing it.
-
-Selecting a task cross-highlights the Throughput strip where the two overlap in time, so a spike on
-the chart becomes a task with a name.
-
 ## LIX The cache TTL the token count throws away, and what a session is worth (T330)
 
 `TokenBits` carries four longs, and `CacheCreate` is one of them. The transcript is finer: beside

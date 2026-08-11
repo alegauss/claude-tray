@@ -239,8 +239,18 @@ own first message. The cap is applied before the text is stored, so the cache ne
 the row does; nothing further into the conversation is read, and no other screen, toast, report or
 published screenshot carries it. The hover adds the session id — the string `claude --resume` takes.
 
+**Open a row and it becomes a stack trace of that conversation.** A task starts every time you ask for
+something and ends when you ask for the next thing, so the row unfolds into the tasks that actually
+produced it — and under each one, the workflows and agents it fanned out to. Every node carries **its
+own cost beside its subtree's**, which is the reading a single total cannot give you: a coordinator
+that spent 300k under a fleet that spent 900k is a very different afternoon from one that spent it all
+itself.
+
+Task nodes name a slash command by its name and a typed prompt by its **length**, not its text — the
+line the opening prompt is the single exception to.
+
 `ClaudeTray.exe --sessions` prints the same list in a terminal, with `--all`, `--project <name>` and
-`--refresh`.
+`--refresh`; `--sessions <session-id>` prints one conversation's call tree.
 
 **It also tells you what to do about it.** When the shaped projection says you'll run out early,
 the sentence under the chart doesn't stop at the warning — it names the earliest hour you could
