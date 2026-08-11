@@ -36,6 +36,7 @@ internal static class StatsPreviews
         bool Overage = false,
         bool OverSpell = false,
         bool GhostOver = false,
+        bool GhostPieces = false,
         bool Thin = false,
         bool MethodOpen = false,
         bool Error = false,
@@ -96,6 +97,16 @@ internal static class StatsPreviews
                           "mark at the ceiling with no band, and the legend entry that must name only it",
             now => new PaceSnapshot(0.0, now + 5 * 3600, 0.38, now + 3 * 86400),
             Ghost: true, GhostOver: true),
+
+        // T299's state, which no other row can produce and which nothing had ever shown: the ghost's bits
+        // say the header called the account over while its own line peaks at 80%, because the fold lost a
+        // delta at a reset. Everywhere else the spans are derived from the curve so a screenshot cannot
+        // show the two disagreeing — which is why this was shipped on an assertion and never looked at.
+        new("ghost-pieces", "last week seen in pieces (T299): hours the header called over, above a line " +
+                            "that peaks at 80% because the fold dropped a delta at a reset — the clay mark " +
+                            "pinned at the ceiling and the tooltip sentence saying the line is a floor",
+            now => new PaceSnapshot(0.0, now + 5 * 3600, 0.38, now + 3 * 86400),
+            Ghost: true, GhostPieces: true),
 
         new("live", "a deterministic synthetic three minutes in the throughput strip, instead of the real " +
                     "tail — which cannot be screenshotted twice the same way",
@@ -203,6 +214,7 @@ internal static class StatsPreviews
             PreviewDemoOverage = c.Variant.Overage,
             PreviewDemoOverSpell = c.Variant.OverSpell,
             PreviewDemoGhostOver = c.Variant.GhostOver,
+            PreviewDemoGhostPieces = c.Variant.GhostPieces,
             PreviewDemoThin = c.Variant.Thin,
             PreviewMethodOpen = c.Variant.MethodOpen,
         };

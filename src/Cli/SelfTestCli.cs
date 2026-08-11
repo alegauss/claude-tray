@@ -1299,6 +1299,16 @@ internal static class SelfTestCli
               !new HourlyUsage.GhostWeek(ceiling, 1, 0.9, 1.0, mid, true).ShadedAboveCurve);
         Check("...and the demo week the previews draw is one of those",
               !HourlyUsage.Demo(DateTime.Today.AddDays(-7), 7 * 86400, 0.5, 0.86, over: true).ShadedAboveCurve);
+        // T301: except the one variant built to disagree. A preview is worth exactly what it actually
+        // renders, so the state `--stats ghost-pieces` announces is asserted here rather than trusted —
+        // the shape T186 is about, one level up: a row that quietly stopped producing its own state would
+        // still print its description and still capture a picture of something else.
+        HourlyUsage.GhostWeek pieces =
+            HourlyUsage.Demo(DateTime.Today.AddDays(-7), 7 * 86400, 0.5, 0.80, inPieces: true);
+        Check("the ghost-pieces preview really does draw a week seen in pieces", pieces.ShadedAboveCurve);
+        Check("with hours marked over", pieces.OverSpans.Count > 0, $"{pieces.OverSpans.Count} spans");
+        Check("and a line that stops short of the ceiling, or there is nothing to disagree with",
+              pieces.Total < 1 - 0.005, $"total {pieces.Total:0.###}");
 
         // T94: one heavy hour must not become a "4× heavy" bucket. The guards are the only thing
         // between a single incident and a projection that inherits it for weeks.

@@ -517,8 +517,15 @@ internal static class HourlyUsage
     /// shades. The spans are derived from the curve rather than declared beside it, so the two cannot
     /// disagree in a screenshot. <paramref name="total"/> is ignored when it is set — a week that went past
     /// its included quota did not finish under it.</param>
+    /// <param name="inPieces">Draw the week T299 is about, and the one mode here whose two halves disagree
+    /// <em>on purpose</em> (T301): the bits mark the same stretch <paramref name="over"/> would, and the
+    /// curve still finishes at <paramref name="total"/>, short of the ceiling. That is what a week the tray
+    /// saw in pieces leaves behind — <see cref="Fold"/> drops the delta of any pair straddling a window
+    /// reset, so the line is a floor and can sit below hours the header called over. Every other mode
+    /// derives the spans from the curve precisely so a screenshot cannot show this; producing it is the
+    /// only way to look at what T299 draws, which until now had been asserted and never seen.</param>
     public static GhostWeek Demo(DateTime windowStartLocal, double windowSeconds, double nowFraction,
-                                 double total, bool over = false)
+                                 double total, bool over = false, bool inPieces = false)
     {
         int hours = (int)Math.Round(windowSeconds / 3600.0);
         var weight = new double[hours];
@@ -542,7 +549,10 @@ internal static class HourlyUsage
             double frac = (i + 1) / (double)hours;
             if (frac <= nowFraction) atSame = cum;
             curve.Add((frac, Math.Min(1, cum)));
-            spell[i] = over && cum >= 1;
+            // The bit, from the curve — except in pieces, where it comes from the clock instead. That is
+            // the whole disagreement: the header spoke at those hours, and the sum that should have shown
+            // it lost a delta at a reset, so nothing in the curve can be asked about them.
+            spell[i] = inPieces ? frac > DemoOverOnset : over && cum >= 1;
         }
         return new GhostWeek(curve, 1, Math.Min(1, atSame), Math.Min(over ? 1 : total, cum),
                              Spans(spell), OverKnown: true);

@@ -51,6 +51,12 @@ Three different hosts, and the difference matters — see UI convention 7 in AGE
                                       #   rather than falling back to this machine's real account.
 --settings-tray [page]                # ...hosted the way the TRAY hosts it (WinForms pump). The only
                                       #   preview that can see a keyboard bug.
+                                      # `ghost-pieces` is the one row whose two halves disagree ON
+                                      #   PURPOSE (T301): hours the header called over, above a ghost
+                                      #   line peaking at 80% because the fold lost a delta at a reset.
+                                      #   It is the only way to LOOK at what T299 draws - the pinned
+                                      #   mark and the floor sentence, which is on the ghost's hover, so
+                                      #   `--stats ghost-pieces` and not a capture is what shows it.
 --stats [variant] [modifiers]         # just the Statistics page on a synthetic reading. The variants and
                                       #   modifiers are one table, src\Cli\StatsPreviews.cs, which
                                       #   --capture-stats reads too; pass a name it does not know and it

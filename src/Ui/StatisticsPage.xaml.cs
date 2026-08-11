@@ -410,6 +410,12 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     /// most weeks are in and the one the legend used to describe wrongly.</summary>
     internal bool PreviewDemoGhostOver { get; init; }
 
+    /// <summary>Put the demo ghost into the state T299 draws for, which no other variant can reach (T301):
+    /// hours the header called over sitting above a curve that peaks below the ceiling, because a fold that
+    /// straddled a reset lost a delta. Every other route derives the spans from the curve so the two agree
+    /// by construction — so the pinned mark and the floor sentence had been asserted and never seen.</summary>
+    internal bool PreviewDemoGhostPieces { get; init; }
+
     /// <summary>The shape of a week that ran out mid-way and kept working: flat nothing until the quota is
     /// spent, then a climb that does not stop at the ceiling because it is not measured against one.</summary>
     /// <remarks>
@@ -499,9 +505,13 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         if (PreviewDemoGhost && r.Weekly.Ghost is null && r.Weekly.HasWindow)
         {
             bool ghostOver = PreviewDemoOverage || PreviewDemoOverSpell || PreviewDemoGhostOver;
+            // 0.80 in pieces rather than 0.86, so the gap between the line and the pinned mark is the
+            // thing the picture is of. The onset is the same one every other over-week uses, which is what
+            // makes this a fold that lost a delta rather than a differently-shaped week (T301).
             r.Weekly.Ghost = HourlyUsage.Demo(
                 DateTimeOffset.FromUnixTimeSeconds((long)(r.Weekly.ResetUnix - r.Weekly.WindowSeconds)).LocalDateTime,
-                r.Weekly.WindowSeconds, r.Weekly.ElapsedFraction, 0.86, ghostOver);
+                r.Weekly.WindowSeconds, r.Weekly.ElapsedFraction,
+                PreviewDemoGhostPieces ? 0.80 : 0.86, ghostOver, PreviewDemoGhostPieces);
         }
 
         // On the first render, open the weekly tab instead of the 5-hour one when the session is idle
