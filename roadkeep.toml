@@ -14,6 +14,15 @@ ref_scheme = "outline"
 # the thing `roadkeep next-id` removes by deriving the maximum from the files themselves.
 id_sources = ["AGENTS.md"]
 
+# Ids that are spent without a line carrying them: both were real tasks that left without shipping,
+# which `[ledger] marker = false` means the ledger cannot spell as a 🗑 — T85 was dropped in 31f9fa6
+# and T101 in 6e2f55c, and `gaps` resolves both against the history. Declared here because the prose
+# names them and the deriver would otherwise read a named id as free and step past it (T339): §I.8
+# says what T85 parked and why the signal was looked for instead of waited on, which is the sentence
+# worth keeping. `gaps` also reports T325 as never carried at all, and that one is left alone — no
+# section spells it, so nothing is claiming an id it does not have.
+reserved_ids = ["T85", "T101"]
+
 # What jumps the queue, in order. Declared and empty: this backlog's order is its block
 # order plus its deps, and `pick` names which tier answered — so a priority nobody
 # declared is never implied.

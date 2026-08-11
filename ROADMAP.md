@@ -70,7 +70,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T339** (deps: —) **roadkeep lint reports two problems in this repo's own prose that no task has taken** — A check that fails every run stops being read, and a new finding lands in a wall of expected ones - T301 went over on a dep annotation it never typed, and §I.8 spends an id on an example. → §LXVII
 - 📋 **T342** (deps: T294 ✅) **adding a sixth interaction case put AGENTS.md over budget, and fitting it meant compressing four unrelated rules** — Eleven edits to fit one bullet, nine of them compressing rules the task never touched - and one byte of headroom left, so a seventh case cannot be added. → §LXX
 
 ## Block G — Localization

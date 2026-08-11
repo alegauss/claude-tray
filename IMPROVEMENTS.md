@@ -809,30 +809,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## LXVII The two lint findings nobody owns (T339)
-
-`roadkeep lint` has never exited clean here, and that is a problem in itself: a check whose failing
-output is the normal output stops being read. Four of its findings are the known `section.ambiguous`
-pair — this repo declares `§I` and `§III` in both `IMPROVEMENTS.md` and `STRATEGY.md`, which is
-T315. Two more have no task at all, and this is that task.
-
-**`why.too-long` on T301.** The line is one character over. It went over on its own: shipping T299
-turned its dep annotation into `T299 ✅`, and a `✅` is two characters the author of the line never
-typed. T298 hit the identical wall while T286 was being shipped, where it was a hard stop — the ship
-was refused until the line was shortened, which is the tool working. T301's is the same defect
-sitting where nothing forces it.
-
-**`body.promise` on §I.8.** The section spells an id in this project's own prefix that no line
-carries — `lint` names which. That reads as a number already spent, so the next `add` derives past
-it: an illustration quietly consuming an id. `gaps` says where it went; the sentence then either
-spells the example outside the prefix, where nothing numbers it, or names the id it actually meant.
-Writing *this* section is the demonstration — `add` refused the first draft for repeating the id
-while explaining it.
-
-**What finishing this is.** Not zero findings — T315 owns the other four and is a separate argument
-about anchors. It is that every finding `lint` reports is one somebody chose to leave, so a new one
-is visible against a known floor instead of lost in a wall of expected noise.
-
 ## LXVIII The news that arrives in four languages (T340)
 
 The tooltip has 127 characters. When a reading needs more, `Fit` walks the sentence's rungs and
