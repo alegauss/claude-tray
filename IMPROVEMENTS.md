@@ -836,31 +836,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## L Two prose files, one numbering sequence, and the constraints at the collision (T315)
-
-`IMPROVEMENTS.md` opens at `§I — House constraints` and `STRATEGY.md` opens at `§I — What this is`;
-both also declare a `§III`. Anchors are one namespace across a project's prose files, deliberately
-and settled upstream — a pointer resolving to two resolves to neither, and `lint` reports
-`section.ambiguous` at each heading. It has done so on every run here, four findings, and they were
-read as permanent noise about someone else's tool. They are not. They are this repository's files,
-correctly reported.
-
-What sits at the collision is the worst possible thing to have there. `§I` in `IMPROVEMENTS.md` is
-**House constraints** — the binding non-goals — and the roadmap's Non-goals block cites it ten times,
-`§I` for the full text and `§I.1` through `§I.8` for the individual constraints. Every one of those
-pointers reaches nothing. `brief` prints those constraints as its `not` lines from the roadmap's summary,
-so the short form survives, but the full text a person is sent to read is unreachable through the tool
-that is supposed to serve it. `§III` is the same defect over the measured context baseline and the licence.
-
-Only two addresses collide: `STRATEGY.md` declares `§I`–`§VII` and `IMPROVEMENTS.md` uses `§I`,
-`§III` and then `§XV` upward, so `§II` and `§IV`–`§VII` are already unambiguous. Moving the
-improvements side is the wrong direction — it is the cited one, seventeen pointers against two. So
-`STRATEGY.md`'s two sections take addresses this project has never declared, and the three citations
-that name them move in the same commit: two in the `roadmap-docs` skill, one in the release note.
-
-Worth checking first whether `[rules.<role>]` can give the strategy role its own anchor pattern,
-which would be the answer that does not depend on picking numbers that happen to be free.
-
 ## LIX The cache TTL the token count throws away, and what a session is worth (T330)
 
 `TokenBits` carries four longs, and `CacheCreate` is one of them. The transcript is finer: beside
@@ -1084,7 +1059,7 @@ with what was measured; still a hypothesis until a conditioned build is timed ag
 **The trade-off is the work.** Every dev flag in this repo runs that exact `.exe`, and a
 framework-dependent Debug build needs the shared runtime present to start. So the question is not
 "can these move to publish" but what a developer's `.exe` should be, and the constraint that decides
-it is `STRATEGY.md` §IV: publish output must not change by one byte.
+it is `STRATEGY.md` §S:IV: publish output must not change by one byte.
 
 **What would settle it.** Time a no-op build with the four properties conditioned to the publish
 path, and diff the published `.exe` against one built before. Anything less is T253's mistake.

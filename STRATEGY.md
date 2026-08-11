@@ -64,7 +64,7 @@ es) is part of the same reach decision, not a nice-to-have.
 
 ## §VII — Deliberately not doing
 
-- **No paid tier, no accounts, no license server.** Changing this would invalidate §V.
+- **No paid tier, no accounts, no license server.** Changing this would invalidate §S:V.
 - **Not a Claude Code manager.** The app observes usage and context cost; it does not administer
   Claude Code's configuration (see [ROADMAP.md](ROADMAP.md) → Non-goals).
 - **No cross-platform port.** The premise is a *native Windows tray* icon drawn with GDI+ at the

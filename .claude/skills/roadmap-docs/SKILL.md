@@ -71,7 +71,7 @@ them easy to forget. **Every time a task ships, run this decision:**
    `preview-ui` skill, per [AGENTS.md](../../../AGENTS.md). For a localized change, screenshot at
    least one non-English language too.
 5. **Trademark discipline.** User-facing text keeps the unofficial framing: not affiliated with,
-   endorsed by, or sponsored by Anthropic (see [STRATEGY.md](../../../STRATEGY.md) §I).
+   endorsed by, or sponsored by Anthropic (see [STRATEGY.md](../../../STRATEGY.md) §S:I).
 
 These surfaces are in the same repo, so they belong in the **same commit** as the task.
 
@@ -194,5 +194,5 @@ shipped as the measurement plus the non-goal it produced.
 
 A release is not a task. When the version is bumped, `<Version>` in `ClaudeTray.csproj` is the single
 source of truth — the installer, winget manifests and the update check all derive from it (see
-[STRATEGY.md](../../../STRATEGY.md) §IV). Cutting a release is a `chore: release vX.Y.Z` commit of
+[STRATEGY.md](../../../STRATEGY.md) §S:IV). Cutting a release is a `chore: release vX.Y.Z` commit of
 its own, never bundled with a task.

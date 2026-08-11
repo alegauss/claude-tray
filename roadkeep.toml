@@ -26,6 +26,17 @@ changelog = "CHANGELOG.md"
 improvements = "IMPROVEMENTS.md"
 strategy = "STRATEGY.md"
 
+[refs]
+# Two prose files, each numbering its own outline from `§I`, are one flat set of addresses
+# without this — so `§I` named both *House constraints* and *What this is* and resolved to
+# neither, and the roadmap's Non-goals block cited `§I`–`§I.8` ten times into nothing (T315).
+# The prefix rides on the **pointer** and never on the heading: STRATEGY.md still opens at
+# `## §I — What this is`, and a citation that means that file is written `§S:I`. Strategy
+# takes it rather than improvements because improvements is the cited side, seventeen
+# pointers against two — and renumbering was the alternative, which here means opening the
+# strategy document at `§LXXIV`, the first top-level no family has ever used.
+strategy = "S"
+
 [ledger]
 # Blocks A–H were reconstructed from 110 commits when the ledger was introduced, and every
 # entry in this file shipped — so the marker is a fact about the file, stated once here
