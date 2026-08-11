@@ -125,6 +125,10 @@ internal static class SelfTestCli
         Section("lang — five files, one key set and one set of holes (Block AF)");
         Translations();
 
+        Section("keys — every key the code names is one the table holds (Block AI)");
+        KeyScanning();
+        SpelledKeys();
+
         Section("flags — the preview and capture surface (Block AI)");
         Flags();
 
@@ -2117,6 +2121,210 @@ internal static class SelfTestCli
         string list = string.Join(", ", keys.Take(12));
         return $"{keys.Length} {(keys.Length == 1 ? "key" : "keys")} {what} — {list}" +
                (keys.Length > 12 ? $", … (+{keys.Length - 12} more)" : "");
+    }
+
+    // ------------------------------------------------- Block AI: the keys the code names, against the table
+
+    /// <summary>
+    /// T314. The direction <see cref="Translations"/> cannot look: every key the <em>sources</em> name is a
+    /// key <c>en.json</c> holds.
+    ///
+    /// <para><see cref="L.T(string)"/> ends in <c>TryGetValue(key, out var en) ? en : key</c>, so a
+    /// misspelled key is returned verbatim and <c>stats.legend.overQuota.tipBand</c> renders where a
+    /// sentence belongs. Nothing saw it: the parity check loads <c>en</c> and compares the other four to
+    /// <em>it</em>, so <c>en</c> is the source of truth for what exists and every failure it can find is a
+    /// translation gap. This one is an English gap, and English is the fallback, so there is nothing behind
+    /// it. T313's checks came within one character — they assert which key each legend state
+    /// <em>chooses</em>, comparing a C# literal to a C# literal, which passes whether or not a table holds
+    /// it.</para>
+    ///
+    /// <para><b>Where this stops</b>, said here rather than in a later surprise. A key built at run time
+    /// cannot be seen — <c>ApplyOverLegend</c> passes <c>g.TipKey</c>, and the method note passes
+    /// <c>f.Key</c> — so this covers the literals and says how many it read. And it is a subset check in one
+    /// direction only: a key in <c>en</c> that no call site names is dead weight, not a defect on screen,
+    /// and pruning it is a different task.</para>
+    /// </summary>
+    private static void SpelledKeys() =>
+        Repo("every localization key the sources name is one en.json holds", SpelledKeys, "src");
+
+    /// <summary>The <c>{local:Loc key}</c> uses in markup. Every one in this repository is that bare form —
+    /// the <c>Key=</c> spelling the extension also accepts appears nowhere, so it is not matched here: a
+    /// branch no source exercises is a branch nothing checks.</summary>
+    private static readonly Regex LocMarkup = new(@"local:Loc\s+([^}\s,""]+)", RegexOptions.Compiled);
+
+    private static void SpelledKeys(string root)
+    {
+        IReadOnlyDictionary<string, string> en = L.Strings("en");
+        if (!Check($"the base table loads ({en.Count} keys)", en.Count > 0,
+                   "en.json parsed to no keys at all, so every key below would be reported missing"))
+            return;
+
+        // Ordered, and carrying where each was named: the same gap reads the same way twice, and a report
+        // that names the file is one somebody can act on without a second search.
+        var named = new SortedDictionary<string, SortedSet<string>>(StringComparer.Ordinal);
+        void Name(string key, string file) =>
+            (named.TryGetValue(key, out SortedSet<string>? at) ? at : named[key] = new(StringComparer.Ordinal))
+                .Add(file);
+
+        string src = Path.Combine(root, "src");
+        int fromCode = 0, fromMarkup = 0, calls = 0, unseen = 0;
+        foreach (string path in Directory.GetFiles(src, "*.cs", SearchOption.AllDirectories))
+            foreach (string[] keys in KeysNamed(CodeOf(File.ReadAllText(path))))
+            {
+                calls++;
+                if (keys.Length == 0) unseen++;
+                foreach (string key in keys) { Name(key, Path.GetFileName(path)); fromCode++; }
+            }
+        foreach (string path in Directory.GetFiles(src, "*.xaml", SearchOption.AllDirectories))
+            foreach (Match m in LocMarkup.Matches(File.ReadAllText(path)))
+            {
+                Name(m.Groups[1].Value, Path.GetFileName(path));
+                fromMarkup++;
+            }
+
+        // Both halves, separately: one of them going to zero while the other still finds plenty is a scan
+        // that has stopped reading, and a subset check over nothing passes. The calls this cannot see are
+        // counted in the same breath, so the limit is a number in the summary rather than a later surprise.
+        if (!Check($"the scan reads both surfaces ({fromCode} keys named in code, {fromMarkup} in markup, " +
+                   $"{named.Count} distinct — and {unseen} of {calls} calls name no literal, so the key they " +
+                   "build at run time is invisible here)", fromCode > 0 && fromMarkup > 0,
+                   "a surface yielding no key at all is a scan that has stopped reading, not a repository " +
+                   "that has stopped naming keys"))
+            return;
+
+        string[] missing = named.Keys.Where(k => !en.ContainsKey(k))
+                                .Select(k => $"{k} ({string.Join(", ", named[k])})").ToArray();
+        Check($"every key the sources name is one en.json holds ({named.Count})", missing.Length == 0,
+              Named(missing, "named by the code and held by no table, so L.T returns the key itself and a " +
+                             "dotted identifier lands where a sentence belongs"));
+    }
+
+    /// <summary>
+    /// One entry per <c>L.T(…)</c> in the source — the string literals in its <b>first argument</b>, over
+    /// code with its comments already removed (<see cref="CodeOf"/>). An empty entry is a call whose key is
+    /// built at run time, which is what lets the caller count what it cannot see.
+    ///
+    /// <para>The first argument rather than the opening literal, because the call this exists for is
+    /// <c>L.T(_remaining ? "stats.stat.left" : "stats.stat.used")</c> — a ternary, or a <c>switch</c>
+    /// expression, whose branches are keys a regex anchored on <c>L.T("</c> never sees — measured over this
+    /// tree, that anchor reaches 497 of the 564 keys, and the 67 it misses are written this way, the
+    /// legend's among them, which is the shape T313 introduced. Stopping at the first comma is what keeps a
+    /// format argument out: <c>L.T(k, "N/A")</c> names one key, not two.</para>
+    ///
+    /// <para>A literal carrying <c>$</c>, <c>@</c> or a raw fence is stepped over and not collected — an
+    /// interpolated key is built at run time — but it is stepped over with the terminator its own form
+    /// uses, because the failure that costs is the other one: a literal whose end is read wrong runs the
+    /// walk past the call and reports every string after it as a key.</para>
+    /// </summary>
+    internal static IEnumerable<string[]> KeysNamed(string code)
+    {
+        foreach (Match call in LocCall.Matches(code))
+        {
+            var keys = new List<string>();
+            int i = call.Index + call.Length, depth = 1;
+            while (i < code.Length && depth > 0)
+            {
+                char c = code[i];
+
+                // A prefix decides how the literal ends, so it is read before the quote rather than guessed
+                // after one — the same order CodeOf reads them in.
+                int p = i;
+                bool verbatim = false, decorated = false;
+                while (p < code.Length && (code[p] == '@' || code[p] == '$'))
+                {
+                    verbatim |= code[p] == '@';
+                    decorated = true;
+                    p++;
+                }
+                if (p < code.Length && code[p] == '"')
+                {
+                    int quotes = 0;
+                    while (p + quotes < code.Length && code[p + quotes] == '"') quotes++;
+                    int end = quotes >= 3 ? RawStringEnd(code, p + quotes, quotes)
+                            : verbatim ? VerbatimEnd(code, p + 1)
+                            : QuotedEnd(code, p + 1);
+                    if (!decorated && quotes == 1 && end - 1 > p) keys.Add(code[(p + 1)..(end - 1)]);
+                    i = end;
+                    continue;
+                }
+                if (decorated) { i = p; continue; }
+
+                if (c == '\'') { i = CharEnd(code, i + 1); continue; }
+                if (c is '(' or '[' or '{') depth++;
+                else if (c is ')' or ']' or '}') depth--;
+                else if (c == ',' && depth == 1) break;
+                i++;
+            }
+            yield return keys.ToArray();
+        }
+    }
+
+    private static readonly Regex LocCall = new(@"\bL\.T\(", RegexOptions.Compiled);
+
+    /// <summary>
+    /// <see cref="KeysNamed"/>'s own answer, over the argument forms this repository writes — asserted
+    /// against synthetic source rather than against the tree (T248's reason: the tree happens not to hold
+    /// every case today, and a check that waits for one ships broken).
+    ///
+    /// <para>Two directions, and the second is the quiet one. Reading <em>more</em> than is there — a
+    /// format argument taken for a key — fails loudly, in the check above, naming a string nobody meant as
+    /// a key. Reading <em>less</em> is silent: a branch of a ternary skipped is a key nothing holds up, and
+    /// the subset check still passes. So the fixtures assert the exact set, and each awkward literal is
+    /// followed by a string that must <em>not</em> be collected — a terminator read wrong runs the walk
+    /// past the closing paren and would take it.</para>
+    /// </summary>
+    private static void KeyScanning()
+    {
+        // Assembled, never written out. This file is under src\, so a fixture containing a real L.T("…")
+        // would be, to the scan that reads that folder, a key the tables have forgotten — and it would be
+        // right. Building the token means the fixture cannot be mistaken for the thing it is a fixture of.
+        const string Q = "\"";
+        static string Key(string k) => Q + k + Q;
+        static string Call(string arg) => "L" + ".T(" + arg + ")";
+
+        // The tail every case carries: a literal after the call, which only a walk that ended where the
+        // call ended leaves alone.
+        string tail = "; string s = " + Key("not.a.key") + ";";
+
+        (string What, string Arg, string[] Keys)[] cases =
+        {
+            ("a plain literal", Key("a.plain"), new[] { "a.plain" }),
+            ("both branches of a ternary", $"flag ? {Key("a.left")} : {Key("a.right")}",
+                new[] { "a.left", "a.right" }),
+            ("every arm of a switch expression",
+                $"kind switch {{ Kind.One => {Key("a.one")}, _ => {Key("a.other")} }}",
+                new[] { "a.one", "a.other" }),
+            ("a key beside a format argument", $"{Key("a.format")}, {Key("N/A")}", new[] { "a.format" }),
+            ("a key built at run time", "f.Key", Array.Empty<string>()),
+            ("an interpolated key", "$" + Q + "a.{n}" + Q, Array.Empty<string>()),
+            // Each of these ends in a way QuotedEnd alone reads wrong, which is how the walk would run on.
+            ("a verbatim literal ending in a backslash", "@" + Q + @"c:\" + Q, Array.Empty<string>()),
+            ("a raw literal carrying quotes", Q + Q + Q + "he said " + Q + "hi" + Q + " " + Q + Q + Q,
+                Array.Empty<string>()),
+            ("a char literal holding a quote", $"c == '{Q}' ? {Key("a.quote")} : {Key("a.other")}",
+                new[] { "a.quote", "a.other" }),
+        };
+
+        // Quoted, because a walk that ran off the end of a literal collects the empty string — and an
+        // unquoted report of that reads as the empty list, which is what a correct run looks like.
+        static string Show(IEnumerable<string> keys) =>
+            "[" + string.Join(", ", keys.Select(k => $"'{k}'")) + "]";
+
+        var wrong = new List<string>();
+        foreach ((string what, string arg, string[] expected) in cases)
+        {
+            string[][] read = KeysNamed(CodeOf(Call(arg) + tail)).ToArray();
+            if (read.Length != 1 || !read[0].SequenceEqual(expected))
+                wrong.Add($"{what} → {Show(read.SelectMany(r => r))} where {Show(expected)} was named");
+        }
+        Check($"every argument form is read as the keys it names ({cases.Length})", wrong.Count == 0,
+              string.Join("; ", wrong));
+
+        // A comment is not code, and the scan's input is CodeOf's output — the property that keeps this
+        // file's own prose about L.T out of the key set.
+        string[][] commented = KeysNamed(CodeOf("// " + Call(Key("a.commented")))).ToArray();
+        Check("a key quoted in a comment is named by nobody", commented.Length == 0,
+              Show(commented.SelectMany(r => r)));
     }
 
     // ---------------------------------------------------------------- Block AI: the tooltip's budget

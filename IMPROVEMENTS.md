@@ -836,30 +836,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## XLIX The keys the code asks for, against the table that has them (T314)
-
-`L.T` ends `Table(en).TryGetValue(key, out var en) ? en : key` — an unknown key is returned
-verbatim, so a misspelled one renders `stats.legend.overQuota.tipBand` where a sentence belongs. The
-T313 pass came within one character of it: the checks assert which key each legend state *chooses*,
-comparing a C# literal to a C# literal, which passes whether or not any table holds it.
-
-The parity check does not close this. It loads `en` and compares the other four to it, keys and
-placeholders both, and its own summary says where it stops — a string hardcoded in XAML, which has
-no key to be missing. The opposite direction is unstated and unchecked: `en` is treated as the
-source of truth for what exists, and nothing asks whether the keys the *code* names are a subset of
-it. Every failure it can find is a translation gap. This one is an English gap, and English is the
-fallback, so there is nothing behind it.
-
-The check is a file walk and a regex, which is the argument for it. Collect `L.T("…")` literals from
-`src\**\*.cs` and `{local:Loc …}` from the markup, and assert each is a key `en.json` holds. Naming
-the offending keys, as the parity check already does.
-
-Two limits belong in its own summary rather than in a later surprise. A key built at run time cannot
-be seen — `ApplyOverLegend` passes `g.TipKey`, and that is the shape T313 introduced — so the check
-covers the literals and says so. And it is a subset check in one direction only: a key in `en` that
-no call site names is dead weight, not a defect on screen, and pruning it is a different task from
-this one.
-
 ## L Two prose files, one numbering sequence, and the constraints at the collision (T315)
 
 `IMPROVEMENTS.md` opens at `§I — House constraints` and `STRATEGY.md` opens at `§I — What this is`;
