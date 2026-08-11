@@ -4516,6 +4516,18 @@ internal static class SelfTestCli
             new(now,        0.30, 0, 0.15, 0, null, 0),
         }, now);
         ContextNudges.Mark(key, "selftest-observing", DateTime.UtcNow);
+        // T305, and the store that had been missing from this list. `HeaderProbe.Record` writes a file and
+        // consulted nothing, so an observing tray appended to `header-probe.jsonl` on a new header shape —
+        // and `Trim` then rewrote the whole file, which is a promise broken twice. The shape is invented so
+        // the call cannot be a no-op against whatever this machine last recorded: a drive that writes
+        // nothing because nothing changed is a drive that asserts nothing.
+        Check("an observing tray records no probe reading",
+              !HeaderProbe.Record(key, now, new Dictionary<string, string>
+              {
+                  ["anthropic-ratelimit-unified-status"] = "selftest-observing",
+                  ["anthropic-ratelimit-unified-5h-status"] = "allowed",
+              }),
+              "Record answered true — it wrote a line to a store this process promised only to read");
         // The two SHARED caches, which the per-profile list above does not reach and which an end-to-end
         // run caught changing after the first five gates were in (T239). Driven through the scan and the
         // usage pass, because their writers are private: what is being asserted is that a scan an

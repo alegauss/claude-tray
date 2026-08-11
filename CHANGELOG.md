@@ -20,7 +20,7 @@
 | [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection (active — see ROADMAP) |
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI (active — see ROADMAP) |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
-| [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
+| [D](#block-d--auth--api-resilience) | Auth & API resilience |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
@@ -122,6 +122,7 @@
 - **T281** — **The tray now flashes on the threshold the API named, not the one this repository picked.** `5h-surpassed-threshold` reaches a field, and `QuotaStates.Warns` prefers it wherever it is sent — falling back to the 0.90 constant on the four readings in six that carry none.
 - **T320** — **The number on the icon now belongs to the account, not to a menu pick.** Past the included quota it reports the window that crossed — 0% left in remaining mode, 100% used in the other — with the tooltip's caption, the projection and the near-limit flash all moved onto that same window, and Show-on-icon Extra exempt as the one metric the state exists for.
 - **T288** — A blocked account says so on whichever window is being looked at. T274 rescoped the state and fixed the billing half; this is the other half, where the at-limit sentence kept gating on the window the icon shows - so a session rejected at 102% behind a week at 47% drew the ordinary on-track projection while nothing would run. Scoped where the metric is the window that crossed, unscoped and figure-less where it is not, in two distinct rungs because the natural sentence costs 42 characters in es and 51 in fr where that reading leaves 37 and 33: the first draft rendered no sentence at all in both, which is as mute about being blocked as the wrong one was. The Statistics page carries the same fix and needed the check placed before the shape branch - the pane with room is by definition the pane that has an activity-aware projection, and the first capture read as closing the week around 65% under a green On track chip. That chip goes red and says Blocked, for T323 reason one window over.
+- **T305** — HeaderProbe.Record consults the observing gate, so a second tray no longer appends to header-probe.jsonl - nor lets Trim rewrite it, which was the same promise broken twice. Written in the order the design demanded: the drive went into --selftest ObservingTray first and the run went red twice over, once on Record answering true and once on the store-tree comparison naming header-probe.jsonl as moved. That second failure is the evidence the check was already sound and only the drive was missing, which is what the doc comment on ProfileStore.Observing had said would happen - the call sites are a list with no owner, and the one it forgets is the one that keeps writing. Record answers false to an observing caller, which is what nothing was recorded already meant to every caller of it.
 
 ## Block E — Reset notifications & toasts
 

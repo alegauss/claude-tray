@@ -836,33 +836,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## XL The one store the observing gate never reached (T305)
-
-`ProfileStore.Observing` carries the rule in its own doc comment: **a store that writes a file must
-consult this**, the gate lives in the store rather than at the tray's call sites "because the call
-sites are a list with no owner, and the one it forgets is the one that keeps writing."
-
-`HeaderProbe.Record` writes a file and consults nothing. `UsageHistory.Append` and
-`HourlyUsage.Fold` both open with `if (ProfileStore.Observing) return;`. So a second tray —
-`Program.cs` calls `Observe()` for exactly that mode — polls, reaches `RecordReading`, and on a
-shape it has not seen appends to the real `header-probe.jsonl`. Worse than an append: `Trim` then
-rewrites the whole file with `File.WriteAllLines`, so an observing process can shorten a store it
-promised not to touch.
-
-The same comment names why nobody noticed: `--selftest`'s `ObservingTray` drives every write entry
-point it knows — `UsageHistory.Append`, `HourlyUsage.Fold`, `ContextNudges.Mark`, the two shared
-context caches, `Settings.Save`, `EnvironmentProfile.Adopt` — and compares the whole store tree
-before and after. It does not drive this one. *"A store added later that this does not drive is the
-hole the doc comment on `ProfileStore.Observing` names."* This is that hole, found by reading the
-list rather than by a defect report.
-
-So the fix is two lines in two files and neither is optional: the gate in `Record`, and the call in
-`ObservingTray` that would have failed without it. Add the drive first and watch it go red, or the
-check is being written from the same reading that already missed it once.
-
-One thing to decide: `Record` returns `bool` — whether it wrote. An observing tray should get
-`false`, which is what "nothing was recorded" already means to every caller.
-
 ## XLV The colour that means paying, and its eight spellings (T310)
 
 Clay is the one colour in this app whose value is not a free choice. It means *past the quota

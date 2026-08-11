@@ -77,10 +77,6 @@
 
 ## Block G — Localization
 
-## Block D — Auth & API resilience
-
-- 📋 **T305** (deps: —) **an observing tray appends to the probe store, and rewrites it, on a machine it promised only to read** — T239 gates UsageHistory and HourlyUsage; HeaderProbe.Record does neither, and ObservingTray drives every other write entry point but not this one — the hole that comment names. → §XL
-
 ## Block N — System information — your plan, your install, this machine
 
 ## Block E — Reset notifications & toasts

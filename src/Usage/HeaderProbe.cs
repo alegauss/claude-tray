@@ -100,6 +100,12 @@ internal static class HeaderProbe
     /// <returns>true when a line was written.</returns>
     public static bool Record(string profileKey, long nowUnix, IReadOnlyDictionary<string, string> headers)
     {
+        // T239's gate, in the store rather than at the call sites — this is the store it never reached
+        // (T305). An observing tray polls like any other, so on a header shape it had not seen it appended
+        // to the real log, and `Trim` then rewrote the whole file: a process that promised only to read,
+        // shortening a store. `false` is the honest answer and already means "nothing was recorded" to
+        // every caller.
+        if (ProfileStore.Observing) return false;
         if (headers.Count == 0) return false;   // a header-less response is an error, not a reading
         try
         {
