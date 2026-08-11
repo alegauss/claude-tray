@@ -68,6 +68,7 @@
 - 📋 **T335** (deps: —) **a published capture of the Sessions pane would carry this machine's real prompts to GitHub** — --capture-stats renders that pane from the monitored profile, so the command that makes a README screenshot now makes one holding real prompts - and a screenshot cannot be un-published. → §XX.32
 - 📋 **T340** (deps: T288 ✅) **a state's sentence can be squeezed out of the tooltip in one language, and only a test written for that state notices** — T222, T302 and T288 each lost a sentence to the 127-char cap in a different language, and each was locked shut by a test written for that one key. → §LXVIII
 - 📋 **T343** (deps: T298 ✅) **the sessions pane is still captured mid-scan, because its wait proceeds at the deadline where the report's now refuses** — Two waits in one capture answer one deadline differently: the report refuses and writes nothing, the sessions scan proceeds and announces its placeholder. → §LXXI
+- 📋 **T344** (deps: T305 ✅) **two more stores write without consulting the observing gate: the reset log appends and the profile migration moves files** — The reading that found T305 finds two more, and one moves files rather than appending - so the list of call sites needs an owner, not a fourth fix. → §LXXII
 
 ## Block AJ — Working here — the repo's own docs and flags
 
