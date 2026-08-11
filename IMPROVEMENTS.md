@@ -1086,3 +1086,28 @@ in the Sessions pane painting the live chart. Same join, the direction that has 
 **What would make the original real** is a chart over the *session's own* timeline rather than over
 the last three minutes — a different chart, not a highlight on this one, and a bigger task than
 either. Filed here so the next person does not re-derive the reason.
+
+## LXVI The row's lower lines are clipped, not trimmed (T338)
+
+The Sessions row draws a project, the conversation's title under it, and the opening prompt under
+that — and the lower two are cut mid-word at the column edge with no ellipsis, running on under the
+"Last turn" heading rather than ending before it. `TextTrimming="CharacterEllipsis"` is set on every
+one of them and does nothing.
+
+The reason is where they sit. The chevron and the text stack are children of a **horizontal**
+`StackPanel`, and a horizontal `StackPanel` measures its children with infinite available width. So
+the inner stack reports the desired width of its longest line, the Grid column is narrower than
+that, and the column clips whatever does not fit. Trimming never runs, because from the TextBlock's
+own point of view nothing was ever too wide.
+
+This shipped with T334's prompt line and was never seen. The published shot of this pane predates
+that line entirely, so no capture has ever shown the defect; T336 made it two clipped lines instead
+of one, which is what finally got it looked at.
+
+**The fix** is to give the text stack a real width: the chevron and the stack become the two columns
+of a `Grid`, `Auto` and `*`, instead of a horizontal `StackPanel`. A `*` column measures at the
+width it actually has, so trimming fires and the ellipsis lands where the text ends.
+
+**What is not enough** is a hard `Width` or `MaxWidth`. The window is resizable and the column is
+proportional, so a number chosen once is wrong at every other size — and it would be wrong silently,
+which is the same failure again.
