@@ -456,33 +456,6 @@ of it — which is three lines beside `FillDemoOverSpell` plus its row in the ca
 doc. What it buys is the one question an assertion cannot answer: whether a clay mark floating a
 centimetre above the line it belongs to reads as *the header said so* or as a drawing bug.
 
-### XX.32 A published shot of the Sessions pane must come from a fixture (T335)
-
-`--capture-stats` renders the Sessions pane from the monitored profile, and since T334 that pane
-carries the opening prompt of every conversation. So the one command that produces a screenshot for
-`README.md` and `docs/index.html` now produces one holding this machine's real prompts, and the
-repository is public.
-
-The precedent is already here and was written for exactly this: `--capture-settings System` renders
-this machine's login, so a published shot of it is taken over `AccountFixture` instead, and the
-`preview-ui` skill says so in its own section. §I.1's amendment permits the prompt **on the user's
-own screen**; it says nothing about a picture of somebody's screen in a git history, which is a
-different promise and a worse one to break — a screenshot cannot be un-published.
-
-The consequence is visible today: the published `docs/statistics-sessions.png` is the pre-T334
-capture, so the README describes a column its own screenshot does not show. That is the honest state
-of it, and it is the state this task closes.
-
-**What it needs.** A session fixture in the shape `ContextFixture` and `AccountFixture` already
-establish: a synthetic `projects/` tree, deterministic clocks, a fan-out under one conversation,
-obviously invented prompts, and one row long enough to exercise the truncation. Then a modifier on
-the Statistics preview table — the one `--stats` and `--capture-stats` both read — so a published
-capture comes from the fixture while a capture of the real thing stays available for looking at.
-
-The check `--selftest` can hold is the one that matters and it is cheap: a published capture of this
-pane must not be produced from a real profile. What it cannot check is whether somebody committed a
-PNG anyway, which is why the fixture has to be the easy path and not the careful one.
-
 ## XXI Numbers in prose — one convention, or a stated split (Block G)
 
 Two surfaces of this app answer the same question differently, and T167's sweep reaches only one of

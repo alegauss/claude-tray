@@ -39,6 +39,7 @@ internal static class StatsPreviews
         bool GhostPieces = false,
         bool Thin = false,
         bool MethodOpen = false,
+        bool Sessions = false,
         bool Error = false,
         Func<long, PaceReport>? Report = null)
     {
@@ -55,6 +56,12 @@ internal static class StatsPreviews
     private static readonly Variant[] All =
     {
         new("", "the default: a 5h session burning ahead of pace, a week comfortably on track", Sample),
+
+        // The Sessions pane off a synthetic tree. This is the variant a *published* shot of that pane
+        // must come from: the real one carries the opening prompt of every conversation on the machine,
+        // and a screenshot cannot be un-published (T335).
+        new("sessions", "the Sessions pane over an invented projects tree — the one to publish, because " +
+                        "the real pane carries this machine's own prompts", Sample, Sessions: true),
 
         new("idle", "the not-using-Claude state: a fresh 5h session at 0%, a week still carrying usage, " +
                     "so the window opens on the weekly tab",
@@ -217,6 +224,9 @@ internal static class StatsPreviews
             PreviewDemoGhostPieces = c.Variant.GhostPieces,
             PreviewDemoThin = c.Variant.Thin,
             PreviewMethodOpen = c.Variant.MethodOpen,
+            // Built here rather than in the page: the fixture is a tree on disk, and the page should
+            // not learn how to make one.
+            PreviewSessionsRoot = c.Variant.Sessions ? SessionFixture.Build(DateTime.UtcNow) : null,
         };
         // A whole hand-built report replaces the computed one, which can only happen once the page has
         // loaded — the same order the interactive preview used before this table existed.

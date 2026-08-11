@@ -74,7 +74,7 @@ internal partial class StatisticsPage
         System.Threading.Tasks.Task.Run(() =>
         {
             IReadOnlyList<SessionRow> rows;
-            try { rows = SessionIndex.Load(profile); }
+            try { rows = SessionIndex.Load(profile, PreviewSessionsRoot); }
             catch { rows = Array.Empty<SessionRow>(); }   // an unreadable tree is an empty list, not a crash
             Dispatcher.BeginInvoke(() =>
             {
@@ -114,7 +114,7 @@ internal partial class StatisticsPage
         System.Threading.Tasks.Task.Run(() =>
         {
             IReadOnlyList<TaskNode> tasks;
-            try { tasks = SessionTasks.For(model, profile); }
+            try { tasks = SessionTasks.For(model, profile, PreviewSessionsRoot); }
             catch { tasks = Array.Empty<TaskNode>(); }   // an unreadable transcript closes the row, never crashes
             var lines = new List<TaskLine>();
             foreach (TaskNode t in tasks) Flatten(t, 0, lines);
@@ -167,7 +167,7 @@ internal partial class StatisticsPage
         System.Threading.Tasks.Task.Run(() =>
         {
             IReadOnlyList<TaskNode> tasks;
-            try { tasks = SessionTasks.For(model, profile); }
+            try { tasks = SessionTasks.For(model, profile, PreviewSessionsRoot); }
             catch { tasks = Array.Empty<TaskNode>(); }
             var lines = new List<TaskLine>();
             foreach (TaskNode t in tasks) Flatten(t, 0, lines);
@@ -244,7 +244,9 @@ internal partial class StatisticsPage
             PeakWindow peak = HeaviestWindow.Of(minutes);
             if (!peak.Found) return "";
 
-            string when = peak.StartLocal.ToString("MMM d, HH:mm");
+            // Through the UI language's culture, not the machine's: an English window rendering a
+            // Portuguese month is what the published capture caught this doing (T335).
+            string when = peak.StartLocal.ToString("MMM d, HH:mm", L.DateCulture);
             string head = L.T("stats.sessions.peak", TokenEstimate.Format(
                 (int)Math.Min(int.MaxValue, peak.Tokens)), when);
 

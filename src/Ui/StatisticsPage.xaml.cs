@@ -127,6 +127,10 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     /// looked at. See <c>--stats method</c>.</summary>
     internal bool PreviewMethodOpen { get; init; }
 
+    /// <summary>A synthetic <c>projects/</c> tree the Sessions pane reads instead of the profile's, for
+    /// a capture that gets published (T335). Null everywhere else, which is the real pane.</summary>
+    internal string? PreviewSessionsRoot { get; init; }
+
     /// <summary>Which profile this window is reporting on (T128). Everything it draws — the charts, the
     /// projection, the activity shape, the ghost week and the live throughput — comes from this profile's
     /// own stores and its own transcripts.</summary>

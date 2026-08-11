@@ -249,6 +249,12 @@ internal static class SelfTestCli
         Section("kinds — which kind of work ate the range (Block AK)");
         Kinds();
 
+        Section("fixture — the Sessions pane a published shot may come from (Block AI)");
+        SessionsFixture();
+
+        Section("dates — a month name in the language the window is in (Block AI)");
+        DateCulture();
+
         Section("anchoring — a transcript reached by a route nobody walked (Block AK)");
         Anchoring();
 
@@ -6943,6 +6949,81 @@ internal static class SelfTestCli
         Check("a command is labelled by its own name and a kind by the string table",
               WorkKinds.Label(loop) == "/loop" &&
               WorkKinds.Label(prompts) != "stats.kind.prompt", WorkKinds.Label(prompts));
+    }
+
+    /// <summary>A month name formatted through whatever culture the machine happens to run under, in a
+    /// window the user asked for in another language. Caught by looking at a published capture — an
+    /// English shot reading <c>ago. 11</c> — which no assertion here was pointed at (T335).</summary>
+    private static void DateCulture() =>
+        Repo("every date the window formats goes through the UI language's culture", root =>
+        {
+            string ui = Path.Combine(root, "src", "Ui");
+            var bare = new List<string>();
+            foreach (string path in Directory.GetFiles(ui, "*.cs", SearchOption.AllDirectories))
+            {
+                string code = CodeOf(File.ReadAllText(path));
+                foreach (Match m in Regex.Matches(code, @"ToString\(""[^""]*(MMM|dddd|ddd)[^""]*""(?<arg>[^)]*)\)"))
+                    if (!m.Groups["arg"].Value.Contains("Culture", StringComparison.Ordinal))
+                        bare.Add($"{Path.GetFileName(path)}: {m.Value}");
+            }
+            Check($"no month or weekday is formatted in the machine's own culture ({bare.Count} bare)",
+                  bare.Count == 0,
+                  $"{string.Join("; ", bare)} — a window in one language printing a month in another is " +
+                  "what a published screenshot showed; pass L.DateCulture");
+        }, "src");
+
+    /// <summary>
+    /// T335. The fixture a published shot of the Sessions pane comes from, and the two things about it
+    /// that a check can hold.
+    ///
+    /// <para><b>What it cannot hold</b>, said first because it decides what the rest is worth: nothing
+    /// here can tell whether somebody committed a PNG taken from their own profile. That is why the
+    /// fixture has to be the <em>easy</em> path — a named preview both flags already read — rather than
+    /// a careful one. What is checkable is that the easy path exists, reads its invented tree, and
+    /// produces a pane worth photographing.</para>
+    ///
+    /// <para>So: the preview exists and is capturable, and the tree it builds exercises the pane rather
+    /// than merely populating it — several conversations, a fan-out folded into its parent row, both
+    /// task kinds so the by-kind table has more than one row, and a prompt past the cap so the
+    /// truncation is visible in the picture instead of taken on trust.</para>
+    /// </summary>
+    private static void SessionsFixture()
+    {
+        // The variant a published capture is supposed to use. A published shot cannot come from a
+        // fixture that --capture-stats refuses to render.
+        if (!Check("the Sessions pane has a preview a capture can use",
+                   StatsPreviews.Resolve(new[] { "sessions" }, capturing: true) is { } c && c.Variant.Sessions,
+                   "no capturable 'sessions' preview — a published shot would have to come from the real pane"))
+            return;
+
+        string root = SessionFixture.Build(new DateTime(2026, 3, 2, 12, 0, 0, DateTimeKind.Utc));
+        IReadOnlyList<SessionRow> rows = SessionIndex.Load(null, root);
+
+        if (!Check($"it reads as a list of conversations ({rows.Count})", rows.Count >= 3,
+                   "fewer than three rows is not a list worth a screenshot"))
+            return;
+
+        // A fan-out folded into the row that spawned it is the claim the pane makes on screen, so the
+        // picture has to contain one.
+        Check("one conversation folds a fan-out into its own row",
+              rows.Any(r => r.Agents > 0), string.Join(", ", rows.Select(r => $"{r.Name}:{r.Agents}")));
+
+        // Both kinds, or the by-kind table under the list is one row and shows nothing.
+        IReadOnlyList<WorkGroup> kinds = WorkKinds.Of(rows.SelectMany(r => r.Tasks ?? Array.Empty<TaskRow>()));
+        Check("and the by-kind table has a command and a typed prompt to compare",
+              kinds.Any(g => g.IsCommand) && kinds.Any(g => g.Kind == nameof(TaskKind.Prompt)),
+              string.Join(", ", kinds.Select(g => $"{g.Kind}/{g.Name}")));
+
+        // The truncation is a claim the README makes about this pane; the shot should show it working.
+        // At the cap, not exactly it: the stored form carries the mark that says it was cut.
+        Check($"a prompt long enough to be truncated is on screen ({SessionIndex.PromptChars})",
+              rows.Any(r => r.Prompt.Length >= SessionIndex.PromptChars),
+              string.Join(", ", rows.Select(r => r.Prompt.Length)));
+
+        // And the whole point: nothing in the picture came from a real profile.
+        Check("every row in it is invented, not this machine's",
+              rows.All(r => r.Session.StartsWith("sample-", StringComparison.Ordinal)),
+              string.Join(", ", rows.Select(r => r.Session).Where(s => !s.StartsWith("sample-"))));
     }
 
     /// <summary>One assistant line in the shape the transcript readers parse — a timestamp, a usage

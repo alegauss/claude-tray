@@ -90,7 +90,7 @@ public sealed class SessionListRow : INotifyPropertyChanged
             ? when.ToString("HH:mm")
             : when.Date == nowLocal.Date.AddDays(-1)
                 ? L.T("stats.sessions.yesterday", when.ToString("HH:mm"))
-                : when.ToString("MMM d, HH:mm");
+                : when.ToString("MMM d, HH:mm", L.DateCulture);
         Duration = Span(row.Seconds);
         Turns = Nums.Of(row.Calls, "N0");
         // Cache reads are out, as everywhere else a token figure is shown here: they are two orders of
