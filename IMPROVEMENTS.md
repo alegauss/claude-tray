@@ -1120,51 +1120,52 @@ budget. Fitting it back took eleven edits, only two of them to the new bullet. T
 compressed rules the task never touched: **Panes/Names**, **Profiles**, the **Menu** bullet's three
 refusals, the **Unchecked** rule, the exit-code sentence, the invocation comment. A `-UseRunning`
 refusal was dropped from the new bullet because the script enforces it at runtime — true, and
-decided by the byte count rather than by the rule.
+decided by the byte count rather than the rule.
 
-The file now sits at **24199 of 24200 bytes**. There is one byte of headroom, so the seventh case
-cannot be added at all without another round of this.
+The file then sat at **24199 of 24200 bytes**: one byte of headroom, so a seventh case could not be
+added at all.
 
-**This is the budget working, not failing.** The ceiling is declared *"a ceiling to come down, not a
-target"*, and the grinding is the pressure it exists to apply. What it points at is that the
-six-case list is the wrong content for a file loaded every turn. `AGENTS.md` states the test itself
-— a rule earns its bytes if getting it wrong produced a defect and `--selftest` cannot assert it —
-and a per-case description of a script is not a rule. It is reference material, about a script whose
-own header this file calls **the full text**.
+**The budget was working.** The ceiling is declared *"a ceiling to come down, not a target"*, and
+the grinding is the pressure it exists to apply. Twice before, the answer was to move content out —
+T191 to `dev-flags`, T219 to `file-map` — and both times the ceiling came down with it.
 
-**An argument this repo has accepted twice.** T191 moved the flag catalogue to `dev-flags`; T219
-moved the per-file map to `file-map`. Both times the ceiling came down with the content rather than
-the room being spent.
+**Decided otherwise, by the person who reads the file: raise the ceiling, and the case list stays.**
+The argument for moving is about *kind*: reference material in a file meant for rules. The argument
+against is about *use* — these six cases are how the checks get run, and a reader who must open a
+skill to learn `-Case Switch` exists will not run it. Two skills already hold what was moved; a
+third indirection buys tidiness and costs what the file is for.
 
-**So: the case list moves to a skill**, the section keeps the invocation, the exit codes and the two
-actual rules — reading nothing is a FAIL, and an assertion that could have run and did not is
-`Unchecked` — and the ceiling comes down by what left.
+**So the number in `roadkeep.toml` moves**, with its reason recorded beside the two that lowered it,
+and the headroom is about a dozen lines again — enough for a rule, still not for a table. What does
+not change is the test the file is kept by, or its habit of coming down when content genuinely
+leaves.
 
 ## LXXI Two waits, one deadline, two answers (T343)
 
-`SaveAllTabs` now contains two waits for two asynchronous panes, and they answer the same question
-differently at the same deadline.
+`SaveAllTabs` holds two waits for two asynchronous panes, and they answer one deadline differently.
 
-`WaitForReport` (T298) returns a bool, and the caller **refuses**: no file, a named reason, exit 1.
-`WaitForSessions` (T328) returns void and simply proceeds — so when the transcript scan outruns its
-30 seconds, `-sessions.png` is a picture of *"Reading your transcripts…"* and the run still prints
-`wrote …-sessions.png` and exits 0. That is the defect §XX.6 and §XX.30 are both about, still live
-on the fourth tab.
+`WaitForReport` (T298) returns a bool and the caller **refuses**: no file, a named reason, exit 1.
+`WaitForSessions` (T328) returns void and proceeds — so when the transcript scan outruns its 30
+seconds, `-sessions.png` is a picture of *"Reading your transcripts…"* and the run still prints
+`wrote …-sessions.png` and exits 0. The defect §XX.6 and §XX.30 are both about, live on tab four.
 
 **The reasoning that put it there was about hanging, not about proceeding.** T328's comment reads
 *"Bounded, because a capture that never returns is worse than one that shows the honest in-progress
-state"* — and the bound is what answers that. What to do *at* the bound is a separate question, and
-T298 settled it with an argument that names nothing specific to the report: a capture that lands on
-the placeholder is not slower evidence, it is none, and the read-out says the same word either way.
+state"* — and the bound answers that. What to do *at* the bound is a separate question, which T298
+settled with an argument naming nothing specific to the report: a capture landing on the placeholder
+is not slower evidence, it is none, and the read-out says the same word either way.
 
-**What makes this one harder than T298**, and worth deciding rather than copying: the sessions
-placeholder spoils one PNG of four. Refusing the whole run throws away three good captures for one
-bad one, and re-running costs the scan again. So the choice is between refusing the run, writing the
-three and naming the one omitted, or writing four and exiting non-zero. All three are honest; the
-current behaviour — four files, exit 0, one of them a placeholder — is the only one that is not.
+**What makes this harder than T298** is that the sessions placeholder spoils one PNG of four.
+Refusing the whole run discards three good captures and pays the scan again; writing four and
+failing leaves a file that is not evidence under a name saying it is.
 
-**Whatever is chosen, the two waits should read as one rule.** Two sibling methods in one capture
-disagreeing about what a deadline means is how the next pane gets the third copy of this.
+**Decided rather than copied: write the three, omit the fourth, name it, exit 1.** The panes that
+finished are real pictures somebody asked for; the one that did not is absent rather than
+misleading. The read-out must say *which* file was skipped and why, or an omission is just a missing
+file.
+
+**The two waits should then read as one rule.** They differ in what they hand back, not in what a
+deadline means — and siblings disagreeing about that is how the next pane gets a third copy of this.
 
 ## LXXII The list with no owner, read again (T344)
 
