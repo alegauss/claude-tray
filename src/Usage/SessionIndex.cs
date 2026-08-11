@@ -476,7 +476,7 @@ internal static class SessionIndex
         foreach (FileEntry e in entries)
         {
             if (e.Calls == 0) continue;   // a transcript with no answered turn is not a conversation
-            string key = e.Project + " " + e.Session;
+            string key = e.Project + "\0" + e.Session;
             if (!byKey.TryGetValue(key, out List<FileEntry>? group)) byKey[key] = group = new();
             group.Add(e);
         }

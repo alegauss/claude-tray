@@ -219,6 +219,9 @@ internal static class SelfTestCli
         Section("scripts — every .ps1 is one PowerShell 5.1 can read (Block AI)");
         ScriptEncoding();
 
+        Section("source — no file that git would call binary (Block AI)");
+        SourceIsText();
+
         Section("console — the code page is set where the flags are dispatched (Block AI)");
         ConsoleCodePage();
 
@@ -3983,6 +3986,48 @@ internal static class SelfTestCli
     /// </summary>
     private static void ScriptEncoding() =>
         Repo("every .ps1 is one PowerShell 5.1 reads as written", ScriptEncoding, "scripts", "build");
+
+    /// <summary>
+    /// T347. No source file carries a NUL byte, because git calls such a file <em>binary</em>.
+    ///
+    /// <para>The byte that prompted this was deliberate and correct as a value:
+    /// <c>SessionIndex</c> joined a cache key on a character no path can contain, which is exactly
+    /// what an unambiguous separator should be. What was wrong was writing it as a <em>literal</em>
+    /// byte in the source instead of the escape that produces one. The cost is entirely outside the
+    /// running program: the file had no line diff, ever — a nine-line change to it was reported as
+    /// <c>1141 +++---</c>, the sum of both versions — and <c>blame</c>, <c>add -p</c> and this
+    /// repository's own grep all degraded the same way, the last of them answering "binary file
+    /// matches" and nothing else.</para>
+    ///
+    /// <para>Byte-wise and deliberately not as text, for the same reason the <c>.ps1</c> check reads
+    /// bytes: the question is what a <em>decoder</em> does with the file, and reading it as text
+    /// first answers with whichever decoder this check happened to use.</para>
+    /// </summary>
+    private static void SourceIsText() =>
+        Repo("no source file is binary to git", SourceIsText, "src");
+
+    private static void SourceIsText(string root)
+    {
+        string[] sources = Directory.GetFiles(Path.Combine(root, "src"), "*.*", SearchOption.AllDirectories)
+            .Where(f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ||
+                        f.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(f => f, StringComparer.Ordinal).ToArray();
+
+        if (!Check($"the sources are there to read ({sources.Length})", sources.Length > 0,
+                   "no source file found, so this would pass over nothing"))
+            return;
+
+        var binary = new List<string>();
+        foreach (string path in sources)
+        {
+            int nuls = File.ReadAllBytes(path).Count(b => b == 0);
+            if (nuls > 0) binary.Add($"{Path.GetFileName(path)} ({nuls})");
+        }
+
+        Check($"no source file carries a NUL byte ({sources.Length} files)", binary.Count == 0,
+              $"{string.Join(", ", binary)} — git calls a file with one binary, so it has no line " +
+              "diff, no blame and no grep; write the escape rather than the byte");
+    }
 
     private static void ScriptEncoding(string root)
     {

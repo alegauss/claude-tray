@@ -1118,27 +1118,3 @@ account. This needs none.
 
 Being user-facing, it owes the gate: five language files, the README, the published page, and a
 screenshot in at least one non-English language.
-
-## LXXV The one source file git will not diff (T347)
-
-`SessionIndex.cs:453` composes a cache key as `e.Project + "␀" + e.Session`, and the separator is a
-**literal NUL byte in the source file** rather than the escape that produces one. The choice of
-character is right — a key joined on a byte no path can contain is unambiguous — and nothing about
-the running program is wrong. What is wrong is what the byte does to the file it sits in.
-
-**Git classifies a file containing a NUL as binary.** So it has no line diff, ever: T330's nine-line
-edit was reported as `1141 +++---`, the sum of both versions, and a reviewer sees the file was
-replaced rather than what changed in it. `git blame` and `git add -p` degrade the same way, and this
-repository's own `Grep` refuses it outright — *"binary file matches"* — which cost two detours in
-the session that measured this. It is the only one of the source files under `src\` that carries
-one; every other file in the tree is text.
-
-**The fix is one character and changes no behaviour.** Written `"\0"`, the C# escape compiles to the
-same NUL the key already joins on, and the file becomes 7-bit text that diffs, blames and greps like
-its neighbours. Nothing else in the composition moves.
-
-**The rule is worth a check rather than a memory**, and it has a shape to copy: the `.ps1` encoding
-check already walks a folder and asserts what a *decoder* will do with each file, byte-wise and
-deliberately not as text. The same walk over `src\**\*.cs`, asserting no source file carries a NUL,
-holds this closed — and would have caught it the day it was typed rather than the day somebody
-wondered why a diff was unreadable.
