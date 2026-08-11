@@ -95,6 +95,8 @@
 
 ## Block B — Packaging, self-update, CI
 
+- 📋 **T341** (deps: —) **a dotnet build with nothing changed takes about four minutes, because every Debug build lays down the whole runtime** — Measured at 3m41 and 4m28 with nothing changed, and the loop this repo runs on is build, run a flag, look at what came back - charged those minutes every turn. → §LXIX
+
 ## Block J — Activity-aware pacing
 
 ## Block A — Foundation — tray, icon, API, projection

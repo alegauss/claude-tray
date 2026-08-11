@@ -1161,3 +1161,29 @@ and the thing three separate tests each re-state about one cell of the grid.
 **What it is not.** Not a length limit on translations. A translator who needs more words should get
 them; what may not happen is the sentence disappearing without anything noticing. The rungs are the
 mechanism for that and they already exist — this is only the check that they were used.
+
+## LXIX The four minutes between a change and looking at it (T341)
+
+Measured 2026-08-11, twice, with **nothing changed between the runs and the previous build
+succeeding**: `dotnet build` took **3m41** and **4m28**. Not a first build and not a cold cache — a
+no-op. Single-file edits during T288 and T291 measured between 3m46 and 7m39, and one small change
+came back in 57s, so the variance is real and the floor is minutes.
+
+That is charged against the loop this repo is built around. `AGENTS.md` documents build → run a flag
+→ look at what came back, and Block AI exists to make that loop the way things get verified. A
+fault-injection check on T291 — put the defect back, confirm the check goes red, take it out again —
+cost two of those builds for six characters of change.
+
+**The likely cause, named rather than assumed.** `PublishSingleFile`, `SelfContained`,
+`RuntimeIdentifier` and `EnableCompressionInSingleFile` sit in the csproj's top `PropertyGroup`, so
+they apply to `dotnet build` and not only to publish. `bin\Debug\net10.0-windows\win-x64` holds
+**252 files, 247 of them DLLs, 155.5 MB** — the whole runtime, laid down every build. Consistent
+with what was measured; still a hypothesis until a conditioned build is timed against this one.
+
+**The trade-off is the work.** Every dev flag in this repo runs that exact `.exe`, and a
+framework-dependent Debug build needs the shared runtime present to start. So the question is not
+"can these move to publish" but what a developer's `.exe` should be, and the constraint that decides
+it is `STRATEGY.md` §IV: publish output must not change by one byte.
+
+**What would settle it.** Time a no-op build with the four properties conditioned to the publish
+path, and diff the published `.exe` against one built before. Anything less is T253's mistake.
