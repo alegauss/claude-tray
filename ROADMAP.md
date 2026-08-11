@@ -94,10 +94,6 @@
 
 ## Block J — Activity-aware pacing
 
-## Block A — Foundation — tray, icon, API, projection
-
-- 📋 **T310** (deps: —) **one clay, spelled from scratch in eight places across five files** — IconRenderer names it twice, the chart brush and the toast palette once each, XAML four more times, and the only check pins the toast string, so the icon and the band can stop meaning one thing. → §XLV
-
 ## Block F — Statistics window (pace report)
 
 ## Block AK — Sessions — what one conversation cost, and what it did

@@ -1917,9 +1917,48 @@ internal static class SelfTestCli
 
         // The one row whose value is a cross-surface agreement rather than a free choice: clay is what the
         // icon's bar and the chart's second axis mean by "past the included quota" (T182, T183, T184).
+        //
+        // Asserted against `Brand`, not against a literal (T310). This check used to pin one of twelve
+        // spellings to the hex it happened to be written in — so it held the toast still while the other
+        // eleven were free to move, which is the failure it exists to prevent wearing a green tick.
         Check("extra usage keeps the clay the icon and the chart use",
-              ToastWindow.Palette(ToastWindow.ToastTheme.ExtraUsage).Mid.Equals("#D97757", StringComparison.OrdinalIgnoreCase),
+              ToastWindow.Palette(ToastWindow.ToastTheme.ExtraUsage).Mid.Equals(Brand.ClayHex, StringComparison.OrdinalIgnoreCase),
               ToastWindow.Palette(ToastWindow.ToastTheme.ExtraUsage).Mid);
+
+        // The two edges that convert, checked against the value they convert from — GDI+ draws the icon and
+        // WPF draws everything else, so the one thing they can share is the bytes.
+        Check("and the tray icon's clay is the same three bytes",
+              Brand.ClayGdi.R == Brand.ClayR && Brand.ClayGdi.G == Brand.ClayG && Brand.ClayGdi.B == Brand.ClayB);
+        Check("as is the brush the charts and the markup resolve",
+              Brand.ClayBrush is System.Windows.Media.SolidColorBrush
+                  { Color: { R: Brand.ClayR, G: Brand.ClayG, B: Brand.ClayB } });
+
+        // And the rule that keeps the other eleven from coming back. AGENTS.md already forbids hardcoded
+        // hex in markup; this is that rule with an owner, over the code as well, because the drift it names
+        // arrived in code first and the markup copies were added later by people reading the code.
+        Repo("clay is spelled in one file and resolved everywhere else", root =>
+        {
+            // The needles come from Brand too, so this file spells the clay no more than any other does —
+            // the first draft used literals and duly reported itself, which is the check working.
+            string hex = Brand.ClayHex.TrimStart('#');
+            string bytes = $"{Brand.ClayR}, {Brand.ClayG}, {Brand.ClayB}";
+            var spellings = new List<string>();
+            foreach (string path in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.*",
+                                                             SearchOption.AllDirectories))
+            {
+                string name = Path.GetFileName(path);
+                if (name is "Brand.cs") continue;                       // where it is declared
+                if (Path.GetExtension(path) is not (".cs" or ".xaml")) continue;
+                string[] lines = File.ReadAllLines(path);
+                for (int i = 0; i < lines.Length; i++)
+                    if (lines[i].Contains(hex, StringComparison.OrdinalIgnoreCase)
+                        || lines[i].Contains(bytes, StringComparison.Ordinal))
+                        spellings.Add($"{name}:{i + 1}");
+            }
+            Check("no surface spells the clay out for itself", spellings.Count == 0,
+                  $"{string.Join(", ", spellings)} — one colour means one thing, so it has one source; a " +
+                  "second spelling is a surface free to stop agreeing with the icon (T310)");
+        }, "src/Ui/Brand.cs");
 
         // T321. The digits' own colour, on the same rule as the table above: three windows, three colours,
         // no two alike. Driven off the metric list the tray offers, so a fourth window would arrive here

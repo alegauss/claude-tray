@@ -17,7 +17,7 @@
 
 | Block | Theme |
 |---|---|
-| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection (active — see ROADMAP) |
+| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI (active — see ROADMAP) |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience |
@@ -75,6 +75,7 @@
 - **T307** — **The fitter is asked instead of predicted.** The projection line is committed before the shed decision, so `SpellSurvives` measures the room actually left on the lines and the duplicated "first rung that fits" walk is gone — a third projection rung can no longer leave a confident wrong answer behind. Verified by diffing all fifteen billing compositions in five languages: byte-identical. The residual is stated rather than left: the projection now picks its rung before a shed frees room, so a translation whose full form straddled that room would keep the unscoped sentence.
 - **T321** — **The digits now say which window their number is about.** White for the 5h session, a light yellow for the 7d week and orange for extra usage — the digits' fill being the one attribute on the tile that §XI.3's rule had never spent — judged on --render's new scope sheet at 16px over every bar colour, with --selftest holding the three apart and an unspelled scope falling back to cream.
 - **T322** — **The number's colour is now readable at the size the tray draws it, and it states the account rather than a menu pick.** Both inks are resaturated after being chosen on an 8x sheet that now carries a real-16px band beside it, and orange means billing whichever window the figure is about — stopped keeps the window's own colour, because orange says paying.
+- **T310** — One clay, declared once. Brand.cs holds the three bytes and one conversion per edge - GDI+ Color for the tray icon, a frozen WPF Brush for the charts and the markup through x:Static, the band alpha, and the hex string the toast palette takes - because a WinForms icon and a WPF chart can share a value and never a brush. The count in the design was eight and the reading found twelve, one of them added by T288 four days after the line was written, which is the drift arriving while the task about it sat open. The check moved onto the value rather than onto whichever surface happened to be assertable: it used to pin the toast palette to a literal hex, holding one of twelve still while eleven were free to move. Now it asserts both conversions against the bytes and fails a second spelling anywhere under src - and on its first run it reported itself, because the needles were literals; they come from Brand too now.
 
 ## Block B — Packaging, self-update, CI
 

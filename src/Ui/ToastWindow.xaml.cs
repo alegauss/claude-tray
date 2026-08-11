@@ -149,7 +149,9 @@ internal partial class ToastWindow : Window
         ToastTheme.Context => ("#D9A85C", "#BE8535", "#8A5E1E"),   // ochre — a nudge, not a party
         // Clay: the colour the icon's bar and the weekly chart's second axis already wear for
         // "past the included quota", so the same fact looks the same wherever it appears (T184).
-        ToastTheme.ExtraUsage => ("#E89072", "#D97757", "#B0512F"),
+        // The mid stop is the clay itself and comes from Brand (T310); the light and deep stops are shades
+        // of it, chosen for this card's gradient and not claims about the state.
+        ToastTheme.ExtraUsage => ("#E89072", Brand.ClayHex, "#B0512F"),
         // Slate: a machine-wide setting took effect (T174). Deliberately the quietest row in the table —
         // this card confirms an action the user just took, and every other colour here is a claim about
         // news that arrived on its own. Distinct from Session's blue, which is about a quota window.

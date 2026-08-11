@@ -11,8 +11,9 @@ namespace ClaudeTray;
 /// </summary>
 internal static class IconRenderer
 {
-    // Claude visual identity (brand color — kept for the app logo)
-    private static readonly Color ClaudeClay = Color.FromArgb(217, 119, 87);
+    // Claude visual identity (brand color — kept for the app logo). Resolved from Brand, not spelled
+    // here: this and BarBilling below were two of the twelve places one clay was written out (T310).
+    private static readonly Color ClaudeClay = Brand.ClayGdi;
     private static readonly Color Amber      = Color.FromArgb(227, 179, 65);  // API-error
     private static readonly Color Dim         = Color.FromArgb(90, 96, 104);  // connecting
     private static readonly Color Cream       = Color.White;                  // the number
@@ -40,7 +41,7 @@ internal static class IconRenderer
     // to the brand clay: outside the projection ramp entirely (green → orange → red), outside the cyan of
     // "no projection yet" and the amber of an API error, and calm at a glance. It is the one colour on the
     // tile that means a category rather than a severity, which is exactly what this is.
-    private static readonly Color BarBilling  = Color.FromArgb(217, 119, 87);
+    private static readonly Color BarBilling  = Brand.ClayGdi;
 
     // Which window the digits are about (T321), as the digits' own fill. T320 can move the figure off the
     // window the menu picked — a `0` may be the week on a tray with `5h` ticked — and the tooltip was the

@@ -836,31 +836,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## XLV The colour that means paying, and its eight spellings (T310)
-
-Clay is the one colour in this app whose value is not a free choice. It means *past the quota
-included in your plan*, and T182, T183, T184 and T188 each turned on it meaning that in one place
-and nothing else meaning it anywhere. `--selftest` says so out loud: one row's value "is a
-cross-surface agreement rather than a free choice".
-
-It is nonetheless written out eight times. `IconRenderer` builds it twice from bytes (`ClaudeClay`,
-`BarBilling`), `StatisticsPage` once more (`BillingBrush`), `ToastWindow`'s palette once as a
-string, and the markup four times as literal hex — the settings gradient, the extra-usage legend
-line, and the two rectangles T300 added for the over-quota swatch. The check pins exactly one of the
-eight: the toast palette's `Mid` against the literal `"#D97757"`. Seven can move without a red
-build, and the failure is quiet — a tray icon and a chart band in two clays a screenshot would not
-settle, saying two things where the whole point was one.
-
-AGENTS.md already forbids this shape in markup: no hardcoded hex. The rule is right and the drift
-predates it, and T300 made it worse rather than better, which is what makes this worth an id instead
-of a passing note.
-
-What it needs is one declared colour the eight readers resolve, and the check moved onto *that*
-rather than onto whichever surface happened to be assertable. WinForms and WPF cannot share a brush
-— GDI+ wants a `Color`, the markup wants a resource — so the shared thing is the value, exposed once
-and converted at each edge. The check then asserts what it means to assert: every surface that says
-"paying" says it in the same clay, and a new surface that wants clay has one place to get it from.
-
 ## XLVII The comment that documents the wrong member (T312)
 
 Measured in this repository today, on the commit that shipped T308. An insertion went in between a

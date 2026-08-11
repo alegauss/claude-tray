@@ -1,4 +1,4 @@
-<!-- One of the three destinations of MainWindow, not a window of its own: the shell owns the title
+﻿<!-- One of the three destinations of MainWindow, not a window of its own: the shell owns the title
      bar, the size and the theme, and this is only what sits under its nav strip. -->
 <UserControl x:Class="ClaudeTray.StatisticsPage"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -56,8 +56,8 @@
             </Setter>
         </Style>
 
-        <!-- ===== One conversation, as a row (T328). Project, clock, duration, turns, tokens — and,
-             since T334, the opening prompt under the project. That last one is §I.1's single amended
+        <!-- ===== One conversation, as a row (T328). Project, clock, duration, turns, tokens â€” and,
+             since T334, the opening prompt under the project. That last one is Â§I.1's single amended
              exception and the only thing here a person wrote; it is truncated by the index before it
              is stored, so this template is a display and not a second place the cap is decided. -->
         <!-- One line of the call tree under a conversation (T329). Own beside subtree, so a
@@ -232,7 +232,7 @@
                             <!-- The name is not decoration: TabControl finds its content host by
                                  GetTemplateChild("PART_SelectedContentHost"), and TabItem's automation
                                  peer asks for it to attach the selected tab's children. Without it the
-                                 whole pane — every number, chart legend and projection sentence — is
+                                 whole pane â€” every number, chart legend and projection sentence â€” is
                                  absent from the UI Automation tree, so a screen reader reads three tab
                                  headers over an empty body and no check can read the window either
                                  (found by writing one, T165). -->
@@ -261,7 +261,7 @@
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                        Text="{local:Loc stats.subtitle}" />
 
-            <!-- Profile picker (T128) — only when this machine has more than one Claude Code profile.
+            <!-- Profile picker (T128) â€” only when this machine has more than one Claude Code profile.
                  Everything below is recomputed from the chosen profile's own stores and transcripts. -->
             <Border x:Name="ProfileCard" Visibility="Collapsed" Margin="0,14,0,0"
                     CornerRadius="8" Padding="14,10"
@@ -379,11 +379,11 @@
                             <!-- The two clay entries this tab was missing entirely (T308). DrawChart is one
                                  method over both canvases and the overage header bit is a fact about the
                                  account rather than about a five-hour stretch, so a session past the
-                                 included quota gets the band, and the second axis when a figure rules one —
+                                 included quota gets the band, and the second axis when a figure rules one â€”
                                  beside a legend that named three lines. Same strings and same predicates as
                                  the weekly pair, because it is the same news about a shorter window. -->
                             <StackPanel x:Name="LegendExtraS" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
-                                <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#D97757" />
+                                <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="{x:Static local:Brand.ClayBrush}" />
                                 <!-- Text set per mode (T318): this axis does not flip with the left one, so
                                      in remaining mode it has to say it is still counting what was spent. -->
                                 <TextBlock x:Name="LegendExtraTextS" Text="{local:Loc stats.legend.extra}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
@@ -391,17 +391,17 @@
                             </StackPanel>
                             <!-- Both halves declared and each shown only when its shape was drawn (T311); the
                                  tooltip is set per render for the same reason. On this tab that resolves to
-                                 band-only, because nothing sets Session.Ghost — decided by the same reader as
+                                 band-only, because nothing sets Session.Ghost â€” decided by the same reader as
                                  the weekly entry rather than hardcoded here, so a session that ever grows a
                                  ghost gets a right legend instead of a quietly wrong one. -->
                             <StackPanel x:Name="LegendOverS" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
                                 <Grid Width="16" Height="10" VerticalAlignment="Center">
-                                    <Rectangle x:Name="OverSwatchBandS" RadiusX="2" RadiusY="2" Fill="#3DD97757" />
+                                    <Rectangle x:Name="OverSwatchBandS" RadiusX="2" RadiusY="2" Fill="{x:Static local:Brand.ClayBandBrush}" />
                                     <!-- No VerticalAlignment here: which edge the ceiling is on flips with
                                          the used/remaining axis, so it is set per render from the same fact
                                          the mark's own offset comes from (T316). -->
                                     <Rectangle x:Name="OverSwatchCeilingS" Width="10" Height="3" HorizontalAlignment="Left"
-                                               Fill="#D97757" Opacity="0.8" />
+                                               Fill="{x:Static local:Brand.ClayBrush}" Opacity="0.8" />
                                 </Grid>
                                 <TextBlock Text="{local:Loc stats.legend.overQuota}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -409,7 +409,7 @@
                         </StackPanel>
 
                         <!-- Throughput. Two numbers on two clocks: this window's average (still by
-                             construction — it divides by the whole elapsed window) and, under it, one
+                             construction â€” it divides by the whole elapsed window) and, under it, one
                              line of the live rate. The strip itself lives on the Throughput tab (T111):
                              it is "now", identical on both pace tabs, so it was the same picture twice.
                              The number stays here, because the pace report is where you'd miss it. -->
@@ -487,29 +487,29 @@
                                  having its own scale right here in the legend, because it is the one line
                                  on this chart that is NOT read against the percentage axis. -->
                             <StackPanel x:Name="LegendExtraW" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
-                                <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="#D97757" />
-                                <!-- Text set per mode — see the 5h twin (T318). -->
+                                <Rectangle Width="16" Height="2" VerticalAlignment="Center" Fill="{x:Static local:Brand.ClayBrush}" />
+                                <!-- Text set per mode â€” see the 5h twin (T318). -->
                                 <TextBlock x:Name="LegendExtraTextW" Text="{local:Loc stats.legend.extra}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
                             <!-- The two clay marks, named once (T300): this week's shaded stretch (T275) and
                                  last week's mark at the ceiling (T295) are one fact about two different
-                                 weeks, so they get one entry and the week is left to the hover — which the
+                                 weeks, so they get one entry and the week is left to the hover â€” which the
                                  tooltip is what makes findable at all. Shown when *either* is on the chart,
                                  because most weeks carry only one: an entry for a mark nobody drew is the
                                  same defect one step on.
                                  Which is why the swatch's two halves are shown per render and the tooltip is
-                                 set with them (T311) — describing both shapes on a chart carrying one was
+                                 set with them (T311) â€” describing both shapes on a chart carrying one was
                                  that defect, inside the entry. The band is brightened the way the idle one
                                  is, because 0.14 over 10px is nothing to look at, and the ceiling bar is
                                  short and thick like the chart's, which also keeps it apart from the
                                  full-width 2px line of the extra-usage entry beside it. -->
                             <StackPanel x:Name="LegendOverW" Orientation="Horizontal" Margin="16,0,0,0" Visibility="Collapsed">
                                 <Grid Width="16" Height="10" VerticalAlignment="Center">
-                                    <Rectangle x:Name="OverSwatchBandW" RadiusX="2" RadiusY="2" Fill="#3DD97757" />
-                                    <!-- Alignment set per render, with the mark's offset — see the 5h twin. -->
+                                    <Rectangle x:Name="OverSwatchBandW" RadiusX="2" RadiusY="2" Fill="{x:Static local:Brand.ClayBandBrush}" />
+                                    <!-- Alignment set per render, with the mark's offset â€” see the 5h twin. -->
                                     <Rectangle x:Name="OverSwatchCeilingW" Width="10" Height="3" HorizontalAlignment="Left"
-                                               Fill="#D97757" Opacity="0.8" />
+                                               Fill="{x:Static local:Brand.ClayBrush}" Opacity="0.8" />
                                 </Grid>
                                 <TextBlock Text="{local:Loc stats.legend.overQuota}" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
@@ -540,7 +540,7 @@
 
                 <!-- ============ THROUGHPUT (now) ============
                      The live strip's own tab (T111). It was duplicated under both charts because it is
-                     the one thing here that is *not* window-scoped — and squeezed into 56px, where a
+                     the one thing here that is *not* window-scoped â€” and squeezed into 56px, where a
                      minute of ordinary work sits on the 1px floor next to a single large cache write.
                      Given a tab it gets the height that makes a rate legible, and the two window
                      averages come along for comparison: same tokens, slower clock. -->
@@ -557,7 +557,7 @@
 
                         <!-- Two charts of the same rate, one per decomposition, both always on screen
                              (T116). The old single chart switched from per-type to per-project the
-                             moment a second repo started generating — the colours changed meaning
+                             moment a second repo started generating â€” the colours changed meaning
                              under the reader, which is the one thing a live chart must never do. -->
                         <TextBlock Text="{local:Loc stats.throughput.byProject}" Margin="0,16,0,0"
                                    FontSize="12" FontWeight="SemiBold"
@@ -604,7 +604,7 @@
                              (T107): cache reads are excluded from every rate above, and on real
                              traffic they are two orders of magnitude larger than the work that is
                              drawn. The absence has to be explained where it happens, and this is the
-                             per-turn price of a large eager context — the link to Context load. -->
+                             per-turn price of a large eager context â€” the link to Context load. -->
                         <TextBlock x:Name="CacheReadNote" Margin="0,10,0,0" FontSize="12"
                                    TextWrapping="Wrap" Visibility="Collapsed"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
@@ -711,7 +711,7 @@
                                           ItemTemplate="{StaticResource SessionRowTemplate}" />
                         </ScrollViewer>
 
-                        <!-- Empty is a sentence, not a frame drawn around nothing — and "no
+                        <!-- Empty is a sentence, not a frame drawn around nothing â€” and "no
                              transcripts at all" and "none in this range" are different facts. -->
                         <TextBlock x:Name="SessionsEmpty" Grid.Row="3" Margin="8,24,8,0"
                                    FontSize="13" TextWrapping="Wrap" VerticalAlignment="Top"
@@ -729,15 +729,15 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <!-- "Updated …" and, beside it, the method behind every number in this window. It used to be
+            <!-- "Updated â€¦" and, beside it, the method behind every number in this window. It used to be
                  six lines of 11px prose pinned under the panes, which is a lot of screen for something
-                 you read once — it is now on demand, same text, one click (T113). -->
+                 you read once â€” it is now on demand, same text, one click (T113). -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock x:Name="ComputedText"
                            VerticalAlignment="Center"
                            Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                 <!-- Its content is a Segoe MDL2 codepoint, so there is no text to derive a name from
-                     (T175) — the button that explains every number in this window announced itself as
+                     (T175) â€” the button that explains every number in this window announced itself as
                      "button". The tooltip's string is the note's own title; the name is the same one. -->
                 <ToggleButton x:Name="MethodInfo" Margin="10,0,0,0" Visibility="Collapsed"
                               Style="{StaticResource InfoDot}"

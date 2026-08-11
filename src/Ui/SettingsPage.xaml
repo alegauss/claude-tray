@@ -1,5 +1,5 @@
-<!-- A destination of MainWindow rather than a window: the shell owns the chrome (see StatisticsPage).
-     The sidebar below is this page's *own* second level — the six settings pages. -->
+﻿<!-- A destination of MainWindow rather than a window: the shell owns the chrome (see StatisticsPage).
+     The sidebar below is this page's *own* second level â€” the six settings pages. -->
 <UserControl x:Class="ClaudeTray.SettingsPage"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -85,7 +85,7 @@
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                         </Grid>
                         <ControlTemplate.Triggers>
-                            <!-- No description → hide the caption line so the row stays compact. -->
+                            <!-- No description â†’ hide the caption line so the row stays compact. -->
                             <Trigger Property="Description" Value="">
                                 <Setter TargetName="Desc" Property="Visibility" Value="Collapsed" />
                             </Trigger>
@@ -100,7 +100,7 @@
 
         <!-- ===== Read-only value pair, used as the trailing "control" of the information rows on the
              System information page: the reading itself, and a muted qualifier under it (the raw API
-             tier behind a friendly plan name, a path's origin, an install method…). ===== -->
+             tier behind a friendly plan name, a path's origin, an install methodâ€¦). ===== -->
         <Style x:Key="ValueText" TargetType="TextBlock">
             <Setter Property="TextAlignment" Value="Right" />
             <Setter Property="TextWrapping" Value="Wrap" />
@@ -118,7 +118,7 @@
             <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
         </Style>
 
-        <!-- A pill toggle switch (templated ToggleButton) matching the Fluent accent — the trailing
+        <!-- A pill toggle switch (templated ToggleButton) matching the Fluent accent â€” the trailing
              control for every boolean setting. IsChecked drives the track color and thumb position. -->
         <Style x:Key="ToggleSwitch" TargetType="ToggleButton">
             <Setter Property="Cursor" Value="Hand" />
@@ -160,7 +160,7 @@
     </UserControl.Resources>
 
     <!-- Two columns: a fixed navigation sidebar and a content pane that fills the rest.
-         The whole layout is declared here (declarative XAML) — no imperative z-order stacking,
+         The whole layout is declared here (declarative XAML) â€” no imperative z-order stacking,
          so what you read is exactly what renders. -->
     <Grid>
         <Grid.ColumnDefinitions>
@@ -419,7 +419,7 @@
                         <!-- ===== Profiles =====
                              A profile is a Claude Code configuration folder (CLAUDE_CONFIG_DIR): its own
                              login, projects, memory and settings. The editor lives here, on the page
-                             about launching Claude Code, because that is what a profile decides — and
+                             about launching Claude Code, because that is what a profile decides â€” and
                              because this page has the Save button. Nothing here writes into a config
                              dir; the tray only remembers which ones to offer, and launches into them. -->
                         <TextBlock Text="{local:Loc settings.cc.profiles}" Style="{StaticResource SectionHeader}" />
@@ -478,12 +478,12 @@
 
                                 <Border x:Name="ProfileTerminalDivider" Style="{StaticResource RowDivider}" />
 
-                                <!-- T143: the cheap option IMPROVEMENTS.md §X.4 settled on — a copyable
+                                <!-- T143: the cheap option IMPROVEMENTS.md Â§X.4 settled on â€” a copyable
                                      command the user runs themselves, not a toggle the app owns. Setting
                                      CLAUDE_CONFIG_DIR at the user-environment level would reach every
                                      Claude Code session on the machine, including ones the tray never
                                      launches and never sees, so the tray only shows the command and
-                                     states the consequence — it never runs it. Hidden for the default
+                                     states the consequence â€” it never runs it. Hidden for the default
                                      profile: that folder is already what a bare `claude` uses, and T136
                                      found that pointing CLAUDE_CONFIG_DIR *at* it makes Claude Code read
                                      the wrong .claude.json. -->
@@ -513,7 +513,7 @@
 
                         <!-- ===== All profiles (T156) =====
                              Both rows below are single settings for the app, not fields of the profile
-                             selected above — and inside that card, one row from the combo, they read as
+                             selected above â€” and inside that card, one row from the combo, they read as
                              the selected profile's own. They are hidden together with their header on a
                              one-profile machine: auto-follow has nowhere to follow to, and there is no
                              choice for the environment to carry (T126, T145). -->
@@ -530,7 +530,7 @@
 
                                 <Border Style="{StaticResource RowDivider}" />
 
-                                <!-- T145: the one setting that writes outside this app's own file — the
+                                <!-- T145: the one setting that writes outside this app's own file â€” the
                                      user-scope CLAUDE_CONFIG_DIR, so a hand-picked profile reaches
                                      sessions the tray never launches. Off by default, and the value
                                      under it is the live reading, so the row always shows what the
@@ -666,8 +666,8 @@
 
             <!-- ========================= SYSTEM INFORMATION PAGE =========================
                  Read-only. Every reading comes from what Claude Code already keeps on disk
-                 (ClaudeAccount) plus this process's own environment — no API call, no write.
-                 Rows are label↔value pairs in the same GroupCard pattern as the settings pages;
+                 (ClaudeAccount) plus this process's own environment â€” no API call, no write.
+                 Rows are labelâ†”value pairs in the same GroupCard pattern as the settings pages;
                  the values are filled in code-behind (LoadSystemInfo). -->
             <Grid x:Name="SystemPane" Grid.Row="0" Margin="32,28,32,0" Visibility="Collapsed">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,0,14,0">
@@ -679,7 +679,7 @@
                                    Margin="0,2,0,4" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
-                        <!-- Profile picker — shown only when this machine has more than one Claude Code
+                        <!-- Profile picker â€” shown only when this machine has more than one Claude Code
                              config dir. Changing it re-renders every row below from that profile's own
                              files; it does not switch anything in Claude Code itself. -->
                         <Border x:Name="SysProfileCard" Style="{StaticResource GroupCard}"
@@ -724,7 +724,7 @@
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="⚠" FontSize="18"
+                                <TextBlock Grid.Column="0" Text="âš " FontSize="18"
                                            VerticalAlignment="Top" Margin="0,0,12,0"
                                            Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
                                 <StackPanel Grid.Column="1">
@@ -927,7 +927,7 @@
                             <Border.Background>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                     <GradientStop Color="#E89072" Offset="0" />
-                                    <GradientStop Color="#D97757" Offset="0.55" />
+                                    <GradientStop Color="{x:Static local:Brand.Clay}" Offset="0.55" />
                                     <GradientStop Color="#B0512F" Offset="1" />
                                 </LinearGradientBrush>
                             </Border.Background>
@@ -968,7 +968,7 @@
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                        Text="{local:Loc settings.about.intro}" />
 
-                            <!-- Quick links — clickable cards (URL in each card's Tag). -->
+                            <!-- Quick links â€” clickable cards (URL in each card's Tag). -->
                             <TextBlock Text="{local:Loc settings.about.links}"
                                        FontSize="16" FontWeight="SemiBold" Margin="0,22,0,12"
                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -978,7 +978,7 @@
                                         MouseLeftButtonUp="Link_Click"
                                         Tag="https://github.com/alegauss/claude-tray">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="🐙" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                        <TextBlock Text="ðŸ™" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="{local:Loc settings.about.github}" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -992,7 +992,7 @@
                                         MouseLeftButtonUp="Link_Click"
                                         Tag="https://github.com/alegauss/claude-tray/releases">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="📦" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                        <TextBlock Text="ðŸ“¦" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="{local:Loc settings.about.releases}" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -1006,7 +1006,7 @@
                                         MouseLeftButtonUp="Link_Click"
                                         Tag="https://github.com/alegauss/claude-tray/issues/new">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="🐛" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                        <TextBlock Text="ðŸ›" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="{local:Loc settings.about.report}" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
@@ -1020,7 +1020,7 @@
                                         MouseLeftButtonUp="Link_Click"
                                         Tag="https://github.com/alegauss/claude-tray">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="⭐" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                        <TextBlock Text="â­" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="{local:Loc settings.about.star}" FontWeight="SemiBold"
                                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />

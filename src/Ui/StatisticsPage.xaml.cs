@@ -45,7 +45,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
 
     /// <summary>The overage series and its own axis (T183) — the same clay the tray icon wears for the
     /// paying state, so one colour means "past the included quota" across the whole app.</summary>
-    private static readonly Brush BillingBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xD9, 0x77, 0x57)));
+    private static readonly Brush BillingBrush = Brand.ClayBrush;
 
     // Projected-idle bands: the projection's own amber at band strength. Deliberately *not* red —
     // red already means "no reading was logged", and "we measured, and it was zero" is the opposite
@@ -645,7 +645,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         // means *stopped*, which the account is — but the label may not claim it about THIS window, whose
         // figure beside it reads 47%.
         var (chipBg, chipLabel) = BillingNow(w)
-            ? (Color.FromRgb(0xD9, 0x77, 0x57), L.T("stats.verdict.billing"))
+            ? (Brand.Clay, L.T("stats.verdict.billing"))
             : w.Verdict != PaceVerdict.AtLimit && StoppedNow()
             ? (Color.FromRgb(0xC4, 0x3E, 0x3E), L.T("stats.verdict.blocked"))
             : w.Verdict switch
