@@ -134,9 +134,10 @@ jobs:
           if ($code -eq 2) { throw "interaction check DEGRADED (exit 2) - an assertion did not run" }
           if ($code -ne 0) { throw "interaction check failed (exit $code)" }
 
-      # Every toast card, in every language, asked whether it fits its own frame (T257). On this job
-      # rather than `selftest`, because it needs the same thing this one does and that one does not: a
-      # desktop a WPF window can be laid out on.
+      # Every toast card, in every language, asked whether it fits its own frame (T257) and whether it
+      # drew a quota meter exactly where its row's reading carries a quantity (T291). On this job rather
+      # than `selftest`, because both need the same thing this one has and that one does not: a desktop a
+      # WPF window can be laid out on.
       #
       # Five runs, because the display language is fixed for the process — `L.Apply` runs once and
       # `{local:Loc}` resolves when a window is parsed — so a loop here is what one command per language
@@ -146,7 +147,9 @@ jobs:
       # The defect this exists for shipped: French's extra-usage caption sat 7.6px under the card's
       # bottom edge, clipped away by the card's own grid, so the PNG showed nothing wrong (T228). The
       # refusal T228 added fires only where somebody takes a capture, and nobody was capturing that one.
-      - name: Toast cards fit, in all five languages
+      # T291's is the same shape one layer over: a bar drawn for a quantity nobody has fits perfectly
+      # well, so the fit question could never have found it.
+      - name: Toast cards fit and draw the right bar, in all five languages
         shell: pwsh
         run: |
           $exe = 'bin\Release\net10.0-windows\win-x64\ClaudeTray.exe'
@@ -157,4 +160,4 @@ jobs:
             Get-Content "toasts-$lang.log", "toasts-$lang.err" -ErrorAction SilentlyContinue
             if ($p.ExitCode -ne 0) { $bad += $lang }
           }
-          if ($bad.Count -gt 0) { throw "a toast card does not fit in: $($bad -join ', ')" }
+          if ($bad.Count -gt 0) { throw "a toast card does not fit, or drew the wrong bar, in: $($bad -join ', ')" }
