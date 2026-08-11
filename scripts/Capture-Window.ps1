@@ -22,7 +22,23 @@
 
       1. the window handle belongs to the process this script launched;
       2. no other ClaudeTray window is open, unless -IgnoreOtherInstances says to allow it;
-      3. no foreign window in front of it overlaps the rectangle about to be copied.
+      3. no foreign window in front of it overlaps the rectangle about to be copied;
+      4. the page is not still showing its own loading text.
+
+    (4) is T286. The script knew *which* window it copied and nothing about whether that window had
+    finished drawing. Measured 2026-08-04 while shipping T275: `--stats overage-noamount` on a machine
+    with 213 recent transcript files took about 25 seconds to build its report, and at the default
+    -WaitMs 1500 the copy came back as heading, subtitle, "Computing your consumption pace…" and
+    nothing else — printed as `Captured 1738 x 1885`. Two variants captured that way are near-identical
+    for the same reason, so comparing them proves nothing; it was caught only because the picture was
+    looked at.
+
+    The script cannot know when a given page is done. It can know that a page still showing its own
+    loading text is not a picture of anything, and that string is already in `lang\*.json` — so the
+    check is a read of the accessibility tree for it, in every language the app ships, not a longer
+    wait. A longer wait is the wrong answer twice: it slows every capture, and it still reports success
+    on the page that needed longer still. -WaitMs stays for the caller who knows better; reaching it
+    with the page still loading is a named failure that writes no file.
 
     (3) was nine sampled points until T221, and nine points cannot cover a window: the capture taken to
     verify T217 passed all of them while carrying two windows of another process across its lower-right
@@ -56,6 +72,13 @@
 .PARAMETER WaitMs
     Milliseconds to wait for the window to render before capturing. Default 1500.
 
+.PARAMETER LoadingKeys
+    The `lang\*.json` keys whose text means "this page has not finished". Every language's value for
+    each key is read, so the check holds whatever locale the capture runs in. Defaulted rather than
+    hardcoded so a new asynchronous surface is one argument away — but a key none of the language
+    files carry FAILS the run: a check that silently matches nothing is the shape of defect this whole
+    file exists to stop.
+
 .PARAMETER IgnoreOtherInstances
     Capture even though another ClaudeTray already has a window open. The deliberate-override shape
     `Check-Interaction.ps1`'s `-UseRunning` takes, for the same hazard: by default this script refuses,
@@ -75,11 +98,16 @@ param(
     [string]$Out = "docs\_preview\settings.png",
     [int]$WaitMs = 1500,
     [switch]$IgnoreOtherInstances,
-    [string]$Expect
+    [string]$Expect,
+    [string[]]$LoadingKeys = @("stats.computing", "stats.sessions.loading", "context.scanning")
 )
 
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Drawing
+# The accessibility tree is how (4) asks the window what it is showing. Loaded up front so a missing
+# assembly fails before a window opens, like every other precondition here.
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
 
 $src = @"
 using System;
@@ -212,6 +240,35 @@ if (-not $outDir) { $outDir = "." }
 if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Force $outDir | Out-Null }
 $fullOut = Join-Path (Resolve-Path -LiteralPath $outDir).Path (Split-Path -Leaf $Out)
 
+# The loading text, in every language the app ships (T286). Resolved BEFORE the window opens, so a key
+# that no longer exists fails in under a second instead of after a capture that checked nothing — the
+# rename of a lang key is exactly how this assertion would rot into a silent pass.
+$loading = @{}
+$langDir = Join-Path (Split-Path -Parent $PSScriptRoot) "lang"
+foreach ($file in Get-ChildItem -Path $langDir -Filter *.json) {
+    # Read by regex, not ConvertFrom-Json: the lang files carry `//` section comments, which are not
+    # JSON. The same reading Check-Interaction.ps1 does, for the same reason.
+    $text = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8
+    foreach ($key in $LoadingKeys) {
+        $pattern = '"' + [regex]::Escape($key) + '"\s*:\s*"((?:[^"\\]|\\.)*)"'
+        if ($text -notmatch $pattern) { continue }
+        $value = ($Matches[1] -replace '\\"', '"' -replace '\\\\', '\')
+        # A formatted string cannot be matched by name against a tree that holds it already filled in.
+        # Skipping it silently is what this file does not do, so it is refused instead.
+        if ($value -match '\{\d') {
+            throw ("lang\$($file.Name): '$key' is '$value', which carries a placeholder - an " +
+                   "exact-name read of the accessibility tree can never match it. Use a key whose " +
+                   "value is literal.")
+        }
+        $loading[$value] = "$key ($($file.BaseName))"
+    }
+}
+$missing = @($LoadingKeys | Where-Object { $k = $_; -not ($loading.Values | Where-Object { $_ -like "$k (*" }) })
+if ($missing.Count -gt 0) {
+    throw ("no language file under $langDir carries $($missing -join ', ') - the loading check would " +
+           "match nothing and every capture would pass it. Fix -LoadingKeys, or the key was renamed.")
+}
+
 # Another instance's window on the desktop is the failure this script could not see — that is literally
 # what came back when Statistics was asked for — so it is refused up front rather than detected after.
 # Only a *windowed* instance counts: the tray itself is almost always running and shows no window, and a
@@ -312,7 +369,29 @@ try {
                 "the copy would photograph them: {1}") -f $covered.Count, ($covered -join '; '))
     }
 
-    # (4) The surface the flag was invoked FOR is inside what is about to be copied (T217). Three
+    # (4) The page has finished (T286). Copying the right window says nothing about that window having
+    # anything on it yet, and the two failures read identically to whoever is looking at the output.
+    # Asked of the accessibility tree rather than of the clock: the page is still loading exactly when
+    # it is still saying so, which is a fact about this run and not a guess about how long pages take.
+    $names = [System.Windows.Automation.Condition[]] @(
+        $loading.Keys | ForEach-Object {
+            New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::NameProperty, $_)
+        })
+    $stillLoading = if ($names.Count -eq 1) { $names[0] }
+                    else { New-Object System.Windows.Automation.OrCondition (,$names) }
+    $root = [System.Windows.Automation.AutomationElement]::FromHandle($h)
+    $spinner = $root.FindFirst([System.Windows.Automation.TreeScope]::Descendants, $stillLoading)
+    if ($spinner) {
+        $shown = $spinner.Current.Name
+        throw ("the page is still loading after ${WaitMs}ms: it is showing '$shown' " +
+               "($($loading[$shown])). Nothing is written - a PNG of a page's own loading text is the " +
+               "capture that reported success while the page was still computing (T286). Raise " +
+               "-WaitMs past what this page actually takes; the Statistics page has been measured at " +
+               "25s on a machine with 213 recent transcripts.")
+    }
+
+    # (5) The surface the flag was invoked FOR is inside what is about to be copied (T217). Three
     # captures of the method note came back green, named the right window, and showed no note: the
     # popup is its own top-level window, so nothing about copying the right window says the note is in
     # it. Only the app knows what it drew, so the app says so and this checks the claim.
