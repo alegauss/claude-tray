@@ -2,6 +2,15 @@ using System.Text.Json;
 
 namespace ClaudeTray;
 
+/// <summary>
+/// One task a session was cut into, as the index keeps it (T333). <paramref name="Kind"/> is
+/// <see cref="TaskKind"/>'s name and <paramref name="Name"/> is a slash command's own name — a name on
+/// the same footing as the model id and the tool names §I.1 already permits, and never the prompt that
+/// followed it. <paramref name="Tokens"/> is the task's whole subtree, fan-out included, because the
+/// question this answers is what a kind of work costs and a coordinator's own turns are not that.
+/// </summary>
+internal readonly record struct TaskRow(string Kind, string Name, double First, double Last, long Tokens);
+
 /// <summary>One conversation, summed. The unit a person actually remembers working in — "the session
 /// this morning that took an hour and felt expensive" — which until T327 was the one unit no reader
 /// here could produce.</summary>
@@ -36,7 +45,8 @@ internal readonly record struct SessionRow(
     double FirstUnix, double LastUnix, int Calls, TokenBits Bits, string[] Models, int Agents,
     string Prompt = "", string Title = "",
     IReadOnlyDictionary<string, int>? Efforts = null,
-    IReadOnlyDictionary<long, long>? Minutes = null)
+    IReadOnlyDictionary<long, long>? Minutes = null,
+    IReadOnlyList<TaskRow>? Tasks = null)
 {
     /// <summary>Wall-clock seconds from the first answered turn to the last. Zero for a session with a
     /// single turn, which is a real answer and not a missing one.</summary>
@@ -111,10 +121,11 @@ internal static class SessionIndex
     /// that had not been touched since. 5 splits the cache write by TTL (T330), which is the same trap:
     /// the totals were already right, so nothing on an untouched row would have looked wrong.
     /// 6 keeps the effort each call ran at (T331), which no earlier entry recorded at all, and 7 the
-    /// per-minute token series the heaviest-window sweep runs over (T332).
+    /// per-minute token series the heaviest-window sweep runs over (T332); 8 the tasks a transcript
+    /// was cut into, so a range-wide reading by kind of work costs no transcript reads (T333).
     /// See <see cref="FileEntry.V"/>.
     /// </summary>
-    private const int Schema = 7;
+    private const int Schema = 8;
 
     private static readonly StringComparer PathComparer = StringComparer.OrdinalIgnoreCase;
 
@@ -266,6 +277,19 @@ internal static class SessionIndex
         catch { /* a transcript being written, or an unreadable file — keep what we got */ }
 
         entry.Models = models.ToArray();
+
+        // The tasks this transcript holds, cut by the one reader that owns the rules — what a
+        // person-ask is, and that a slash command's expanded instructions are not one (T329). A
+        // second pass over the same file rather than a second state machine interleaved with the
+        // one above: it runs only when the file has changed, and two readers of "where does a task
+        // begin" is exactly the disagreement the shared cutter exists to prevent.
+        if (!entry.Agent)
+            foreach (TaskNode node in SessionTasks.Cut(file.FullName))
+                entry.Tasks.Add(new TaskRow(node.Kind.ToString(),
+                                            node.Kind == TaskKind.Command ? node.Label : "",
+                                            node.FirstUnix, node.LastUnix,
+                                            node.Own.Input + node.Own.Output + node.Own.CacheCreate));
+
         entry.Read = read;
         return entry;
     }
@@ -516,11 +540,45 @@ internal static class SessionIndex
                 any.Session, any.Project,
                 cwd.Length > 0 ? ProjectSlug.NameFor(any.Project, cwd) : ProjectSlug.Tail(any.Project),
                 first, last, calls, new TokenBits(input, output, create, cached, hour, five),
-                models.ToArray(), agents, prompt, title, efforts, minutes));
+                models.ToArray(), agents, prompt, title, efforts, minutes, JoinTasks(group)));
         }
 
         rows.Sort((a, b) => b.LastUnix.CompareTo(a.LastUnix));
         return rows;
+    }
+
+    /// <summary>
+    /// A session's tasks with the fan-out folded in (T333). The cutter attaches an agent's transcript
+    /// to the task whose effective start most recently precedes it; here every one of a session's files
+    /// is already in hand, so the same rule runs over stored rows instead of over re-read files.
+    /// </summary>
+    /// <remarks>A task that got no answer has no clock of its own, so it inherits the previous task's
+    /// last turn — otherwise it sorts before every agent and collects a fan-out an hour older than it,
+    /// which is the bug that rule exists to prevent.</remarks>
+    private static List<TaskRow> JoinTasks(List<FileEntry> group)
+    {
+        List<TaskRow> tasks = group.Where(e => !e.Agent).SelectMany(e => e.Tasks)
+                                   .OrderBy(r => r.First).ToList();
+        if (tasks.Count == 0) return tasks;
+
+        double[] starts = new double[tasks.Count];
+        double running = 0;
+        for (int i = 0; i < tasks.Count; i++)
+        {
+            starts[i] = tasks[i].First > 0 ? tasks[i].First : running;
+            if (tasks[i].Last > running) running = tasks[i].Last;
+        }
+
+        foreach (FileEntry a in group.Where(e => e.Agent))
+        {
+            long spend = a.In + a.Out + a.Cc;
+            if (spend <= 0) continue;
+
+            int at = tasks.Count - 1;
+            while (at > 0 && starts[at] > a.First) at--;
+            tasks[at] = tasks[at] with { Tokens = tasks[at].Tokens + spend };
+        }
+        return tasks;
     }
 
     // ---------------------------------------------------------------- the per-file cache
@@ -562,6 +620,10 @@ internal static class SessionIndex
         public string[] Models { get; set; } = Array.Empty<string>();
         /// <summary>Calls at each effort level this file recorded — see <see cref="EffortMix"/> (T331).</summary>
         public Dictionary<string, int> Efforts { get; set; } = new(StringComparer.Ordinal);
+        /// <summary>The tasks this transcript was cut into, own spend only — the fan-out is joined on
+        /// at group time, where every one of a session's files is in hand (T333). Empty for an agent's
+        /// own transcript, which is not a conversation and has no person-ask to cut on.</summary>
+        public List<TaskRow> Tasks { get; set; } = new();
         /// <summary>Tokens per unix minute, keyed as text because that is what a JSON object key is.
         /// Twelve thousand buckets across this machine's whole history, against eighty-three thousand
         /// turns — the resolution T332 settled on. Excludes cache reads.</summary>

@@ -246,6 +246,9 @@ internal static class SelfTestCli
         Section("peak — the heaviest five hours, swept from the index (Block AK)");
         Heaviest();
 
+        Section("kinds — which kind of work ate the range (Block AK)");
+        Kinds();
+
         Section("anchoring — a transcript reached by a route nobody walked (Block AK)");
         Anchoring();
 
@@ -6865,6 +6868,81 @@ internal static class SelfTestCli
         Check("and a minute that carried nothing makes no day active",
               HeaviestWindow.ActiveDays(withZero) == 1 && HeaviestWindow.MedianDayPeak(withZero) == 10,
               $"{HeaviestWindow.ActiveDays(withZero)} active days");
+    }
+
+    /// <summary>
+    /// T333. The by-kind table, and the three ways it could quietly say something false.
+    ///
+    /// <para><b>A mean instead of a median.</b> The reading is what a <em>usual</em> task of that kind
+    /// costs, and one overnight run among short ones moves a mean by an order of magnitude. The
+    /// fixture makes them disagree on purpose.</para>
+    ///
+    /// <para><b>Commands rolled together.</b> The finding that produced this block was about one
+    /// command carrying 57% of a range, not about automation in general — lumping every command into a
+    /// single row would report the true total under a label that names nothing to act on.</para>
+    ///
+    /// <para><b>A share of the wrong denominator.</b> Shares are taken against what the table itself
+    /// sums to, so they add to 100% by construction rather than against a token figure gathered
+    /// somewhere else, which would drift the moment either side changed what it counts.</para>
+    /// </summary>
+    private static void Kinds()
+    {
+        static TaskRow T(string kind, string name, long tokens) => new(kind, name, 0, 0, tokens);
+
+        var rows = new[]
+        {
+            // One command that is heavy and rare, another that is light and frequent: rolled together
+            // they would be one row of 1,300 and neither number would be true of either command.
+            T(nameof(TaskKind.Command), "/loop", 1000),
+            T(nameof(TaskKind.Command), "/loop", 200),
+            T(nameof(TaskKind.Command), "/loop", 100),
+            T(nameof(TaskKind.Command), "/review", 50),
+            T(nameof(TaskKind.Prompt), "", 30),
+            T(nameof(TaskKind.Prompt), "", 10),
+            T(nameof(TaskKind.Continuation), "", 5),
+            // A task that got no answer is not a size, and counting it would drag every median down.
+            T(nameof(TaskKind.Prompt), "", 0),
+        };
+
+        IReadOnlyList<WorkGroup> table = WorkKinds.Of(rows);
+
+        // Looked up rather than asserted into existence: rolling every command into one row is one of
+        // the defects under test, and a First() that throws on it takes the whole run down with it —
+        // every check after this one would never run, which is worse than the defect (seen doing it).
+        WorkGroup loop = table.FirstOrDefault(g => g.Name == "/loop");
+        WorkGroup prompts = table.FirstOrDefault(g => g.Kind == nameof(TaskKind.Prompt));
+        if (!Check("the table has a row per named command to read",
+                   loop.Tasks > 0 && prompts.Tasks > 0,
+                   $"rows: {string.Join(", ", table.Select(g => $"{g.Kind}/{g.Name}"))} — a command " +
+                   "rolled in with the rest leaves nothing here to assert against"))
+            return;
+        Check("a command's row is its own median, not the mean its heaviest task drags",
+              loop.Tasks == 3 && loop.Median == 200 && loop.Total == 1300,
+              $"{loop.Tasks} tasks, median {loop.Median}, total {loop.Total} — expected 3/200/1300");
+
+        Check("and two commands are two rows, not one lump called 'commands'",
+              table.Count(g => g.IsCommand) == 2 &&
+              table.Any(g => g.Name == "/review" && g.Total == 50),
+              string.Join(", ", table.Select(g => $"{g.Kind}:{g.Name}={g.Total}")));
+
+        Check("a task that got no answer is left out rather than counted as a zero-token task",
+              prompts.Tasks == 2, $"{prompts.Tasks} prompt tasks, expected 2");
+
+        Check("the table is ordered heaviest first",
+              table.Select(g => g.Total).SequenceEqual(table.Select(g => g.Total).OrderByDescending(v => v)),
+              string.Join(" ", table.Select(g => g.Total)));
+
+        // The denominator is the table's own sum, so the shares are of what is on screen.
+        long total = WorkKinds.Total(table);
+        Check("and every share is taken against what the table itself sums to",
+              total == 1395 && Math.Abs(table.Sum(g => (double)g.Total / total) - 1.0) < 1e-9,
+              $"{total}, expected 1395");
+
+        // The kinds that are not commands are named through the string table; a command is named as
+        // the person typed it and never translated.
+        Check("a command is labelled by its own name and a kind by the string table",
+              WorkKinds.Label(loop) == "/loop" &&
+              WorkKinds.Label(prompts) != "stats.kind.prompt", WorkKinds.Label(prompts));
     }
 
     /// <summary>One assistant line in the shape the transcript readers parse — a timestamp, a usage

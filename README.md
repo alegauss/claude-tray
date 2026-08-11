@@ -255,6 +255,15 @@ a daily total understates what the meter was pointed at. It is a measurement and
 recommendation — the app has no figure for what your plan actually allows, so it tells you what the
 heaviest window held and stops there.
 
+Under those two lines sits **which kind of work** ate the range: one row per task kind — slash
+commands, typed prompts, inherited turns — and one row per named command, with how many tasks, what a
+usual one cost, the total and its share. The projects strip answers *which repo*; this answers *which
+kind of work*, and a repo-level breakdown cannot see it, because the expensive command and the cheap
+prompt land in the same repo. On this machine over a week: one command, 89 tasks, half the range, at a
+median twenty times a typed prompt's. The median rather than the mean, because one overnight run among
+short ones moves a mean and says nothing about a usual task. A command's *name* is shown; the prompt
+that followed it is never read.
+
 Each row also names the **effort** its calls ran at. Effort is the biggest lever on what a
 conversation costs, and it does not work the way it sounds — it buys *more calls*, not longer
 answers, so two conversations of the same length can differ several-fold with nothing else on screen

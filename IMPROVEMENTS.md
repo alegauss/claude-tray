@@ -836,31 +836,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## LXII Which command ate the week (T333)
-
-The strip attributes spend to a **project**, which answers *which repo is eating the week*. The
-measurement that produced this block says the sharper question is *which kind of work*, and the
-numbers are not close: across 1,864 tasks, **443 slash-command tasks carried 57% of all spend**, at
-a median of $9.55 against $1.69 for a typed prompt — and a single command, `/loop`, accounted for
-all 443 of them. A repo-level breakdown cannot see that, because the expensive command and the cheap
-prompt land in the same repo.
-
-A slash command's **name** is a name, on the same footing as the model id, the tool names and the
-skill names §I.1 already permits. The prompt that follows it is not, and is not read.
-
-So the Sessions pane gains a second grouping: by task kind — `command`, `prompt`, `continuation` —
-and, within commands, by name. Per group: tasks, median and total, share of the range. That is one
-table, and it is the table that says whether a week went on conversation or on automation.
-
-**Two ways to get this wrong, both already made and corrected upstream.** A command's *expanded*
-instructions arrive as a `role:user` line and are not a person asking, so counting them starts a
-phantom task; and a slash command is not chrome to be filtered out with `<system-reminder>` and
-`<local-command-stdout>` — filtering it away deletes the most expensive half of the data. The
-segmentation task is the dep because it is where both rules live.
-
-The reading a person takes from it is theirs to act on. The app says `/loop` was 57% of the week; it
-does not say run fewer loops, for the same reason it never says work less.
-
 ## LXV The join between a spike and a task, in the direction that has data (T337)
 
 T329's design ends with a sentence it did not build: selecting a task cross-highlights the

@@ -654,6 +654,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
 
@@ -693,7 +694,66 @@
                              a scrollbar's width to the right of them. The list below always shows its
                              scrollbar for the same reason: a gutter that comes and goes moves the
                              rows out from under their own headings. -->
-                        <Border Grid.Row="2" Margin="0,12,0,0" Padding="8,0,8,6"
+
+                        <!-- Which kind of work ate the range (T333). Under the count and above the
+                             list, because it is a reading about the same rows: the projects strip
+                             says which repo, and this says which kind of work inside it. -->
+                        <StackPanel Grid.Row="2" Margin="0,12,0,0">
+                            <!-- Four unlabelled numbers is four numbers nobody can read: seen in the
+                                 capture, where tasks, median, total and share were indistinguishable. -->
+                            <Grid Margin="0,0,0,5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" MinWidth="120" />
+                                    <ColumnDefinition Width="70" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="52" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="1" Text="{local:Loc stats.kind.col.tasks}" FontSize="11"
+                                           HorizontalAlignment="Right" Margin="0,0,12,0"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                <TextBlock Grid.Column="2" Text="{local:Loc stats.kind.col.median}" FontSize="11"
+                                           HorizontalAlignment="Right" Margin="0,0,12,0"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                <TextBlock Grid.Column="3" Text="{local:Loc stats.kind.col.total}" FontSize="11"
+                                           HorizontalAlignment="Right" Margin="0,0,12,0"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                <TextBlock Grid.Column="4" Text="{local:Loc stats.kind.col.share}" FontSize="11"
+                                           HorizontalAlignment="Right"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            </Grid>
+                        <ItemsControl x:Name="SessionKinds">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,3">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" MinWidth="120" />
+                                            <ColumnDefinition Width="70" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="52" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="12"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Tasks}" FontSize="12"
+                                                   HorizontalAlignment="Right" Margin="0,0,12,0"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Median}" FontSize="12"
+                                                   HorizontalAlignment="Right" Margin="0,0,12,0"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        <TextBlock Grid.Column="3" Text="{Binding Total}" FontSize="12"
+                                                   HorizontalAlignment="Right" Margin="0,0,12,0"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Grid.Column="4" Text="{Binding Share}" FontSize="12"
+                                                   HorizontalAlignment="Right"
+                                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        </StackPanel>
+                        <Border Grid.Row="3" Margin="0,12,0,0" Padding="8,0,8,6"
                                 BorderThickness="0,0,0,1"
                                 BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
                             <Grid>
@@ -723,7 +783,7 @@
                             </Grid>
                         </Border>
 
-                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Visible"
+                        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Visible"
                                       HorizontalScrollBarVisibility="Disabled" Margin="0,2,0,0">
                             <ItemsControl x:Name="SessionList"
                                           ItemTemplate="{StaticResource SessionRowTemplate}" />
@@ -731,7 +791,7 @@
 
                         <!-- Empty is a sentence, not a frame drawn around nothing â€” and "no
                              transcripts at all" and "none in this range" are different facts. -->
-                        <TextBlock x:Name="SessionsEmpty" Grid.Row="3" Margin="8,24,8,0"
+                        <TextBlock x:Name="SessionsEmpty" Grid.Row="4" Margin="8,24,8,0"
                                    FontSize="13" TextWrapping="Wrap" VerticalAlignment="Top"
                                    Visibility="Collapsed"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />

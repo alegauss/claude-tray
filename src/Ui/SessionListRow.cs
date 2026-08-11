@@ -187,3 +187,30 @@ public sealed class SessionListRow : INotifyPropertyChanged
             ? L.T("stats.sessions.hours", Nums.Of(seconds / 3600, "0.0"))
             : L.T("stats.sessions.minutes", Nums.Of(Math.Max(1, Math.Round(seconds / 60)), "0"));
 }
+
+/// <summary>
+/// One row of the by-kind table under the Sessions list (T333): what kind of work it was, how many
+/// tasks, what a usual one cost, and what the kind cost altogether.
+///
+/// <para>Public for the same reason every view model here is: WPF resolves a <c>{Binding}</c> path by
+/// reflection over a public type, and an internal one binds to nothing and does it silently.</para>
+/// </summary>
+public sealed class WorkKindRow
+{
+    internal WorkKindRow(WorkGroup group, long rangeTotal)
+    {
+        Label = WorkKinds.Label(group);
+        Tasks = Nums.Of(group.Tasks, "N0");
+        Median = TokenEstimate.Format((int)Math.Min(int.MaxValue, group.Median));
+        Total = TokenEstimate.Format((int)Math.Min(int.MaxValue, group.Total));
+        // Of what the table itself sums to, so the column adds to 100% and never to a figure the
+        // reader cannot see on screen.
+        Share = rangeTotal > 0 ? Nums.Of((double)group.Total * 100 / rangeTotal, "0") + "%" : "";
+    }
+
+    public string Label { get; }
+    public string Tasks { get; }
+    public string Median { get; }
+    public string Total { get; }
+    public string Share { get; }
+}

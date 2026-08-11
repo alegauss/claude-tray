@@ -138,7 +138,7 @@ internal static class SessionTasks
     /// node, because a resumed conversation inherits its parent's turns and dropping them would make a
     /// resumed session's spend disappear.
     /// </summary>
-    private static List<TaskNode> Cut(string path)
+    internal static List<TaskNode> Cut(string path)
     {
         var tasks = new List<Builder>();
         Builder? current = null;

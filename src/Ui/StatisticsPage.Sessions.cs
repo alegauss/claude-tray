@@ -210,6 +210,16 @@ internal partial class StatisticsPage
         SessionsCount.Text = empty ? "" : L.T("stats.sessions.count", rows.Count);
         SessionsPeak.Text = empty ? "" : PeakLine(shown, floor);
 
+        // Which kind of work, over the same rows and the same range as everything else in this pane.
+        // A task is in range when it *started* in it: a task is the unit being counted, and half of
+        // one is not a task (T333).
+        IReadOnlyList<WorkGroup> kinds = empty
+            ? Array.Empty<WorkGroup>()
+            : WorkKinds.Of(shown.SelectMany(r => r.Tasks ?? (IReadOnlyList<TaskRow>)Array.Empty<TaskRow>())
+                                .Where(k => k.First >= floor));
+        long kindTotal = WorkKinds.Total(kinds);
+        SessionKinds.ItemsSource = kinds.Select(g => new WorkKindRow(g, kindTotal)).ToList();
+
         // The heaviest five hours across exactly what is listed, swept from the per-minute series the
         // rows carry (T332). Over the shown rows rather than the whole index, so changing the range
         // changes the reading — a peak from outside the list would be a number about nothing on screen.
