@@ -1214,3 +1214,29 @@ the room being spent.
 **So: the case list moves to a skill**, the section keeps the invocation, the exit codes and the two
 actual rules — reading nothing is a FAIL, and an assertion that could have run and did not is
 `Unchecked` — and the ceiling comes down by what left.
+
+## LXXI Two waits, one deadline, two answers (T343)
+
+`SaveAllTabs` now contains two waits for two asynchronous panes, and they answer the same question
+differently at the same deadline.
+
+`WaitForReport` (T298) returns a bool, and the caller **refuses**: no file, a named reason, exit 1.
+`WaitForSessions` (T328) returns void and simply proceeds — so when the transcript scan outruns its
+30 seconds, `-sessions.png` is a picture of *"Reading your transcripts…"* and the run still prints
+`wrote …-sessions.png` and exits 0. That is the defect §XX.6 and §XX.30 are both about, still live
+on the fourth tab.
+
+**The reasoning that put it there was about hanging, not about proceeding.** T328's comment reads
+*"Bounded, because a capture that never returns is worse than one that shows the honest in-progress
+state"* — and the bound is what answers that. What to do *at* the bound is a separate question, and
+T298 settled it with an argument that names nothing specific to the report: a capture that lands on
+the placeholder is not slower evidence, it is none, and the read-out says the same word either way.
+
+**What makes this one harder than T298**, and worth deciding rather than copying: the sessions
+placeholder spoils one PNG of four. Refusing the whole run throws away three good captures for one
+bad one, and re-running costs the scan again. So the choice is between refusing the run, writing the
+three and naming the one omitted, or writing four and exiting non-zero. All three are honest; the
+current behaviour — four files, exit 0, one of them a placeholder — is the only one that is not.
+
+**Whatever is chosen, the two waits should read as one rule.** Two sibling methods in one capture
+disagreeing about what a deadline means is how the next pane gets the third copy of this.
