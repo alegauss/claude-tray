@@ -246,6 +246,15 @@ holds more than the row shows; nothing further into the conversation is read, an
 toast, report or published screenshot carries it. The hover adds the session id — the string
 `claude --resume` takes.
 
+Above the list sits **the heaviest five hours in the range on screen** — when that stretch started
+and what went through it — with the median active day's own busiest five hours beside it. This is a
+different window from the one the other tabs draw: those run from the reset the API reports and
+answer *how much is left*, which says nothing about a window that has already closed. The busiest
+five hours are the window a limit actually saw, and they hold a median 72% of a day's work here, so
+a daily total understates what the meter was pointed at. It is a measurement and never a
+recommendation — the app has no figure for what your plan actually allows, so it tells you what the
+heaviest window held and stops there.
+
 Each row also names the **effort** its calls ran at. Effort is the biggest lever on what a
 conversation costs, and it does not work the way it sounds — it buys *more calls*, not longer
 answers, so two conversations of the same length can differ several-fold with nothing else on screen

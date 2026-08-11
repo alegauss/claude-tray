@@ -836,31 +836,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## LXI The heaviest five hours, which is what a limit saw (T332)
-
-The app reads a five-hour window in exactly one place and in exactly one way: the one the API
-anchors, running from the reset it reports. That is the right window for *"how much is left"* and it
-is the only one there has ever been. It answers nothing about a window that has already closed.
-
-The transcripts hold every other one. Slide a five-hour frame across a day's turns and the peak is
-the window a limit actually saw — measured across 32 active days, the busiest five hours hold a
-median of **63%** of a day's work, so a daily total understates what the meter was pointed at.
-
-What this adds is one reading, in the Sessions pane and per session: **the heaviest five-hour window
-in the range on screen**, when it started, and what went through it. Beside it, the same figure for
-the range's median day, because a peak with nothing to compare it against is a large number and not
-a fact.
-
-**It is a measurement, never a prediction.** The app does not know the plan's real allowance — no
-figure for it is published, and Block D's quota state is a percentage, not a budget — so this must
-not become *"you can do 1.6 of these"*. It says what the busiest window held, and the reader who has
-hit a limit already knows which window it was.
-
-Two consequences make it worth its own task rather than a column. The sweep is over the index rather
-than over a live tail, so it is the first reading here that looks **backwards** across days; and it
-is the natural home for *"today against your usual day"*, which the Week pane cannot say because it
-sums the week away.
-
 ## LXII Which command ate the week (T333)
 
 The strip attributes spend to a **project**, which answers *which repo is eating the week*. The

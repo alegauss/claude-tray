@@ -666,9 +666,17 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock x:Name="SessionsCount" Grid.Column="0" VerticalAlignment="Center"
-                                       FontSize="13"
-                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock x:Name="SessionsCount" FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                <!-- The heaviest five hours in the range on screen (T332). A
+                                     measurement of a window that has closed, which is a different
+                                     question from the live one the other tabs answer — and never a
+                                     recommendation, because nothing here knows the allowance. -->
+                                <TextBlock x:Name="SessionsPeak" FontSize="12" Margin="0,3,0,0"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
                             <!-- Bounded by default: the index covers every transcript on disk and the
                                  list opens on the seven days the rest of the window reports on. -->
                             <ComboBox x:Name="SessionsRange" Grid.Column="1" MinWidth="150"

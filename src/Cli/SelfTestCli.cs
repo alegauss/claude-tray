@@ -240,6 +240,9 @@ internal static class SelfTestCli
         Section("effort — the lever a turn ran at, kept as a mix (Block AK)");
         Effort();
 
+        Section("peak — the heaviest five hours, swept from the index (Block AK)");
+        Heaviest();
+
         Section("anchoring — a transcript reached by a route nobody walked (Block AK)");
         Anchoring();
 
@@ -6746,6 +6749,77 @@ internal static class SelfTestCli
         Check("and a session that named no effort renders nothing rather than a level",
               EffortMix.Line(new Dictionary<string, int>()).Length == 0 && EffortMix.Line(null).Length == 0,
               $"'{EffortMix.Line(null)}'");
+    }
+
+    /// <summary>
+    /// T332. The sliding five-hour sweep, against inputs whose answer is known by construction.
+    ///
+    /// <para>The sweep is the first reading here that looks <em>backwards</em> across days, and its
+    /// two failure modes are quiet ones. A frame that is off by one bucket reports a peak that is
+    /// nearly right — 0.018% is the whole difference between minute buckets and exact turns on this
+    /// machine, so no eyeballing of a real number would ever catch a fencepost. And a median taken
+    /// over calendar days rather than <em>active</em> ones halves itself on a machine that rests at
+    /// weekends, which reads as a peak twice as dramatic as it is.</para>
+    ///
+    /// <para>So the fixtures are arithmetic: a block whose sum is known, an empty minute the frame
+    /// has to span, a bucket exactly five hours old that has to have left it, and days whose peaks
+    /// are 10/20/30 so the median can only be 20 if active days are what was counted.</para>
+    /// </summary>
+    private static void Heaviest()
+    {
+        // Minute 0 is a real instant (1970), so the fixtures sit at a round modern one to make the
+        // local-day grouping below mean what it says.
+        long day0 = (long)(new DateTimeOffset(new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Local))
+                           .ToUnixTimeSeconds() / 60);
+
+        // A quiet hour, then a burst, then a quiet hour: the frame must find the burst and start on
+        // its first minute, not on the first minute of the series.
+        var series = new Dictionary<long, long>
+        {
+            [day0] = 1,                 // an hour before the burst
+            [day0 + 120] = 100,
+            [day0 + 121] = 200,
+            [day0 + 400] = 300,         // 4h40 after the burst's start: still inside a 5h frame
+            [day0 + 700] = 50,          // a later, lighter stretch of its own
+        };
+        PeakWindow peak = HeaviestWindow.Of(series);
+        // 600 and not 601: the frame ending at +400 has already slid past minute 0, which is the
+        // fencepost this fixture exists for. Written the other way round first, it reported 1000 —
+        // +400 and a bucket at +421 are a heavier frame than the one intended, and the check said so.
+        Check("the sweep finds the heaviest frame and starts it on the first minute that carried work",
+              peak.Tokens == 600 && peak.StartMinute == day0 + 120,
+              $"{peak.Tokens} from minute +{peak.StartMinute - day0}, expected 600 from +120");
+
+        // The half-open edge, on its own: two buckets exactly a span apart never share a frame.
+        var edge = new Dictionary<long, long> { [day0] = 5, [day0 + HeaviestWindow.Span] = 6 };
+        Check("a bucket exactly five hours older has left the frame",
+              HeaviestWindow.Of(edge).Tokens == 6, $"{HeaviestWindow.Of(edge).Tokens}, expected 6");
+
+        // Nothing in range is a state, not a zero to draw.
+        Check("an empty series is reported as nothing found, not as a peak of zero",
+              !HeaviestWindow.Of(new Dictionary<long, long>()).Found && !HeaviestWindow.Of(null).Found,
+              "a zero peak was reported as found");
+
+        // Three worked days at 10/20/30 and two idle ones. The median is 20 only if the idle days
+        // were left out; counting all five calendar days would answer 10.
+        var week = new Dictionary<long, long>
+        {
+            [day0] = 10,
+            [day0 + 1440] = 20,
+            [day0 + 2880] = 30,
+            // days 4 and 5 carry nothing at all
+        };
+        Check("the median day is the median of the days that carried work",
+              HeaviestWindow.MedianDayPeak(week) == 20 && HeaviestWindow.ActiveDays(week) == 3,
+              $"median {HeaviestWindow.MedianDayPeak(week)} over {HeaviestWindow.ActiveDays(week)} days, " +
+              "expected 20 over 3");
+
+        // A zero bucket is not a day. An index that wrote one would otherwise invent an active day
+        // and drag the median down.
+        var withZero = new Dictionary<long, long> { [day0] = 10, [day0 + 1440] = 0 };
+        Check("and a minute that carried nothing makes no day active",
+              HeaviestWindow.ActiveDays(withZero) == 1 && HeaviestWindow.MedianDayPeak(withZero) == 10,
+              $"{HeaviestWindow.ActiveDays(withZero)} active days");
     }
 
     /// <summary>One assistant line in the shape the transcript readers parse — a timestamp, a usage

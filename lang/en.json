@@ -365,6 +365,8 @@
   "stats.sessions.col.duration": "Length",
   "stats.sessions.col.turns": "Turns",
   "stats.sessions.col.tokens": "Tokens",
+  "stats.sessions.peak": "Heaviest 5 hours in range: {0}, from {1}",
+  "stats.sessions.peakMedian": "the median day's own busiest 5 hours held {0}, over {1} active days",
   "stats.sessions.count": "{0} conversations",
   "stats.sessions.loading": "Reading your transcripts…",
   "stats.sessions.none": "No conversations found for this profile — nothing has been written to its transcript folder.",

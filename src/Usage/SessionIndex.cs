@@ -27,11 +27,16 @@ namespace ClaudeTray;
 /// <param name="Efforts">Calls at each effort level the transcript named, unrendered — the mix rather
 /// than a winner, because the dearer level is usually the minority and a vote would drop it (T331).
 /// Empty for a session whose lines named none.</param>
+/// <param name="Minutes">Tokens per unix minute, so a sweep can find the heaviest five hours across
+/// exactly the sessions on screen rather than across whatever the index happens to hold (T332). A
+/// session's own peak is not a reading — most conversations are shorter than the window — which is
+/// why this is the series and not a figure.</param>
 internal readonly record struct SessionRow(
     string Session, string Project, string Name,
     double FirstUnix, double LastUnix, int Calls, TokenBits Bits, string[] Models, int Agents,
     string Prompt = "", string Title = "",
-    IReadOnlyDictionary<string, int>? Efforts = null)
+    IReadOnlyDictionary<string, int>? Efforts = null,
+    IReadOnlyDictionary<long, long>? Minutes = null)
 {
     /// <summary>Wall-clock seconds from the first answered turn to the last. Zero for a session with a
     /// single turn, which is a real answer and not a missing one.</summary>
@@ -105,10 +110,11 @@ internal static class SessionIndex
     /// changed, so a size+mtime key kept serving the old answer and the fix was invisible on every row
     /// that had not been touched since. 5 splits the cache write by TTL (T330), which is the same trap:
     /// the totals were already right, so nothing on an untouched row would have looked wrong.
-    /// 6 keeps the effort each call ran at (T331), which no earlier entry recorded at all.
+    /// 6 keeps the effort each call ran at (T331), which no earlier entry recorded at all, and 7 the
+    /// per-minute token series the heaviest-window sweep runs over (T332).
     /// See <see cref="FileEntry.V"/>.
     /// </summary>
-    private const int Schema = 6;
+    private const int Schema = 7;
 
     private static readonly StringComparer PathComparer = StringComparer.OrdinalIgnoreCase;
 
@@ -245,6 +251,16 @@ internal static class SessionIndex
                 // ten of fifty calls at the dear level is not an instance of that level (T331).
                 if (effort is { Length: > 0 })
                     entry.Efforts[effort] = entry.Efforts.TryGetValue(effort, out int had) ? had + 1 : 1;
+                // The minute this turn landed in, against the work it carried — the series the
+                // heaviest-window sweep runs over (T332). Cache reads are out here for the same
+                // reason they are out of every token figure shown: they are two orders of magnitude
+                // larger than the work and would be the only thing the peak ever measured.
+                long spend = bits.Input + bits.Output + bits.CacheCreate;
+                if (spend > 0)
+                {
+                    string minute = ((long)(t / 60)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    entry.Minutes[minute] = entry.Minutes.TryGetValue(minute, out long was) ? was + spend : spend;
+                }
             }
         }
         catch { /* a transcript being written, or an unreadable file — keep what we got */ }
@@ -474,6 +490,7 @@ internal static class SessionIndex
             string cwd = "", prompt = "", title = "";
             var models = new List<string>();
             var efforts = new Dictionary<string, int>(StringComparer.Ordinal);
+            var minutes = new Dictionary<long, long>();
             foreach (FileEntry e in group)
             {
                 calls += e.Calls;
@@ -488,6 +505,10 @@ internal static class SessionIndex
                 foreach (string m in e.Models)
                     if (!models.Contains(m, StringComparer.Ordinal)) models.Add(m);
                 EffortMix.Merge(efforts, e.Efforts);
+                foreach (KeyValuePair<string, long> kv in e.Minutes)
+                    if (long.TryParse(kv.Key, System.Globalization.NumberStyles.Integer,
+                                      System.Globalization.CultureInfo.InvariantCulture, out long min))
+                        minutes[min] = minutes.TryGetValue(min, out long had) ? had + kv.Value : kv.Value;
             }
 
             FileEntry any = group[0];
@@ -495,7 +516,7 @@ internal static class SessionIndex
                 any.Session, any.Project,
                 cwd.Length > 0 ? ProjectSlug.NameFor(any.Project, cwd) : ProjectSlug.Tail(any.Project),
                 first, last, calls, new TokenBits(input, output, create, cached, hour, five),
-                models.ToArray(), agents, prompt, title, efforts));
+                models.ToArray(), agents, prompt, title, efforts, minutes));
         }
 
         rows.Sort((a, b) => b.LastUnix.CompareTo(a.LastUnix));
@@ -541,6 +562,10 @@ internal static class SessionIndex
         public string[] Models { get; set; } = Array.Empty<string>();
         /// <summary>Calls at each effort level this file recorded — see <see cref="EffortMix"/> (T331).</summary>
         public Dictionary<string, int> Efforts { get; set; } = new(StringComparer.Ordinal);
+        /// <summary>Tokens per unix minute, keyed as text because that is what a JSON object key is.
+        /// Twelve thousand buckets across this machine's whole history, against eighty-three thousand
+        /// turns — the resolution T332 settled on. Excludes cache reads.</summary>
+        public Dictionary<string, long> Minutes { get; set; } = new(StringComparer.Ordinal);
 
         /// <summary>Bytes this pass read for the entry — 0 when it came from the cache. Not persisted.</summary>
         [System.Text.Json.Serialization.JsonIgnore]

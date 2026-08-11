@@ -208,6 +208,47 @@ internal partial class StatisticsPage
         if (empty)
             SessionsEmpty.Text = L.T(all.Count == 0 ? "stats.sessions.none" : "stats.sessions.noneInRange");
         SessionsCount.Text = empty ? "" : L.T("stats.sessions.count", rows.Count);
+        SessionsPeak.Text = empty ? "" : PeakLine(shown, floor);
+
+        // The heaviest five hours across exactly what is listed, swept from the per-minute series the
+        // rows carry (T332). Over the shown rows rather than the whole index, so changing the range
+        // changes the reading — a peak from outside the list would be a number about nothing on screen.
+        static string PeakLine(IEnumerable<SessionRow> shown, double floor)
+        {
+            // Clamped to the range, not merely to the sessions in it. A conversation is listed when its
+            // *last* turn falls inside the range, and a long one carries minutes from before that — read
+            // unclamped, a seven-day range reported nine active days, which is the picker contradicting
+            // itself on screen. Seen in the capture, not in a check (T332).
+            long from = (long)(floor / 60);
+            var minutes = new Dictionary<long, long>();
+            foreach (SessionRow r in shown)
+            {
+                if (r.Minutes is null) continue;
+                foreach (KeyValuePair<long, long> kv in r.Minutes)
+                {
+                    if (kv.Key < from) continue;
+                    minutes[kv.Key] = minutes.TryGetValue(kv.Key, out long had) ? had + kv.Value : kv.Value;
+                }
+            }
+
+            PeakWindow peak = HeaviestWindow.Of(minutes);
+            if (!peak.Found) return "";
+
+            string when = peak.StartLocal.ToString("MMM d, HH:mm");
+            string head = L.T("stats.sessions.peak", TokenEstimate.Format(
+                (int)Math.Min(int.MaxValue, peak.Tokens)), when);
+
+            // The comparison is what makes the peak a fact rather than a large number — but two days
+            // is not a usual day, so below a week of them the peak stands alone.
+            // Three days is a thin "usual day" and the line says how many it stands on, so the reader
+            // can weigh it. Below three there is no usual day to speak of and the peak stands alone.
+            long median = HeaviestWindow.MedianDayPeak(minutes);
+            int days = HeaviestWindow.ActiveDays(minutes);
+            if (median <= 0 || days < 3) return head;
+
+            return head + "  ·  " + L.T("stats.sessions.peakMedian",
+                TokenEstimate.Format((int)Math.Min(int.MaxValue, median)), days);
+        }
 
         // Which column the list is ordered by, said rather than implied: two headers that look alike
         // and one of them is doing something.

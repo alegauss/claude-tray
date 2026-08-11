@@ -361,6 +361,8 @@
   "stats.sessions.col.duration": "Duración",
   "stats.sessions.col.turns": "Turnos",
   "stats.sessions.col.tokens": "Tokens",
+  "stats.sessions.peak": "Las 5 horas más cargadas del periodo: {0}, desde {1}",
+  "stats.sessions.peakMedian": "en el día mediano, sus 5 horas más cargadas llevaron {0}, en {1} días con trabajo",
   "stats.sessions.count": "{0} conversaciones",
   "stats.sessions.loading": "Leyendo tus transcripciones…",
   "stats.sessions.none": "No se encontraron conversaciones para este perfil — no se ha escrito nada en su carpeta de transcripciones.",
