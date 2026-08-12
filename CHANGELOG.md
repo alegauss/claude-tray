@@ -21,7 +21,7 @@
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience |
-| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts (active — see ROADMAP) |
+| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
@@ -146,6 +146,7 @@
 - **T277** — The extra-usage card draws its bar only from a figure the reading carries, so a spell reported with none arrives as the sentence and its reset rather than behind a meter showing a full allowance.
 - **T290** — The extra-usage transition takes the reading that preceded the process as an input instead of fetching one the poll had already overwritten, so a crossing caught on the first poll after launch is announced, and a spell the tray only walked in on still is not.
 - **T292** — The extra-usage alarm is rebuilt from the incoming account's own history when the icon changes hands, and it carries the profile its readings belong to — so a reading from another account re-baselines quietly instead of being compared into a start nobody witnessed.
+- **T354** — The reset log is written where the store list said it belonged all along: LogResetEvent routes through ProfileStore.PathFor with the key it already had as its first argument, instead of composing %LocalAppData%\ClaudeTray itself. The flat log left behind is renamed once to reset-events.pre-profiles.log rather than merged or deleted — the user's call, and the honest one, since merging would rewrite somebody's log to save them opening a second file. Verified on this machine, though not on purpose: a run of the new binary performed the rename, and the file is there with its 1,793 bytes and its mtime intact and the flat name gone. Two shared caches were re-spelling the store root as well and now build it from Settings.DataDir, which leaves exactly one place that joins %LocalAppData% to the store folder — asserted, and confirmed by putting the second speller back and watching the check name its line. What the rename also exposed is not this task's: SetMonitored runs before any flag is dispatched, so Migrate touched the store from a --selftest run, long before the observing gate T344 put on it was thrown.
 
 ## Block F — Statistics window (pace report)
 

@@ -809,31 +809,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## LXXXI A store declared per profile, written per machine (T354)
-
-`ProfileStore.PerProfileFiles` lists `reset-events.log` among the six stores that belong to one
-profile. `TrayContext.LogResetEvent` builds its own path — `%LocalAppData%\ClaudeTray` joined with
-the file name — and appends there. The declaration and the writer have never agreed.
-
-**What the mismatch does, in the order a machine meets it.** The migration moves the flat log into
-the first profile's directory, once. The writer then recreates the flat file and appends to it
-forever, and the migration never runs again on that name because the destination now exists. So the
-log the user is pointed at is in two places, split at the moment they first ran a build with
-profiles in it. On a machine with two accounts, both write the same flat file, told apart only by
-the key that opens each line — which is a column, not a store.
-
-**Nothing reads it, and that is why it survived.** No code in the repository opens
-`reset-events.log`; it exists to be read by a person after an anomaly, which is exactly the reading
-that a file split in two and shared by two accounts makes harder. A store nothing parses cannot go
-red.
-
-**It is promised in five languages.** `settings.notif.unexpectedDesc` tells the user the event is
-saved to `reset-events.log`, so this is a user-facing file and not an internal artefact.
-
-**The fix is the path, not the list.** Route the writer through `ProfileStore.PathFor(key, …)` — the
-key is already its first argument. What to do with a flat log left behind is the open question: it
-holds real events, and the once-only migration has already had its turn on that name.
-
 ## LXXXII One trimming rule, asked about one container (T355)
 
 T338 found that a horizontal `StackPanel` measures its children at infinite width, so a

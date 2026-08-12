@@ -314,6 +314,7 @@ internal static class SelfTestCli
         // After the sampling section and after everything else: Observe() is one-way too, and it is the
         // stricter of the two — from here on this process writes nothing at all (T239).
         Section("observing tray — a check that adds nothing to the user's files (Block AI)");
+        StoreRootSpelledOnce();
         ObservingGateCallSites();
         ObservingTray();
 
@@ -5019,6 +5020,57 @@ internal static class SelfTestCli
             Check("and every exemption still names a write that exists", stale.Length == 0,
                   $"{string.Join(", ", stale)} — an exemption matching nothing is a reason attached to a "
                   + "call site that has gone, while whatever replaced it is read by nobody");
+        }, "src");
+    }
+
+    /// <summary>
+    /// Where the store lives is one fact, spelled in one place (T354).
+    ///
+    /// <para><c>TrayContext.LogResetEvent</c> composed <c>%LocalAppData%\ClaudeTray</c> itself and
+    /// appended <c>reset-events.log</c> there, while <c>ProfileStore.PerProfileFiles</c> had listed that
+    /// file as one profile's own since profiles existed. The two never agreed and nothing could notice:
+    /// the writer was right about the bytes it wrote and the list was right about where they belonged,
+    /// and no check compares a path to a declaration. What is checkable is the second speller.</para>
+    ///
+    /// <para>So: the store root is composed in <c>Settings.DataDir</c> and nowhere else. Two shared
+    /// caches were also re-spelling it — legitimately flat, since they are keyed by absolute path and
+    /// are deliberately not per-profile, but that is a fact about which directory, not about how to find
+    /// it. A path built from the root by hand is one <c>PathFor</c> nobody called.</para>
+    ///
+    /// <para>Derived, with no exemption table: the display substitution on the System page names
+    /// <c>"%LocalAppData%"</c> and not the store folder, so it is not a composition and the scan never
+    /// sees it. A list here would have been the thing T344 spent a task removing.</para>
+    /// </summary>
+    private static void StoreRootSpelledOnce()
+    {
+        Repo("the store root is composed in one place and nowhere else", root =>
+        {
+            var spellers = new List<string>();
+            foreach (string path in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.cs",
+                                                             SearchOption.AllDirectories))
+            {
+                // The check itself names both halves in its own prose, and a scanner that reads its own
+                // source is a scanner that reports itself.
+                if (Path.GetFileName(path).Equals("SelfTestCli.cs", StringComparison.OrdinalIgnoreCase)) continue;
+                string[] lines = File.ReadAllLines(path);
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    string t = lines[i].TrimStart();
+                    if (t.StartsWith("//", StringComparison.Ordinal)) continue;
+                    if (!t.Contains("SpecialFolder.LocalApplicationData", StringComparison.Ordinal)) continue;
+                    // The folder name may sit on this line or on the next — `Path.Combine` wraps either
+                    // way, and which it is is a formatting accident, not a difference.
+                    string pair = lines[i] + (i + 1 < lines.Length ? lines[i + 1] : "");
+                    if (pair.Contains("\"ClaudeTray\"", StringComparison.Ordinal))
+                        spellers.Add($"{Path.GetFileName(path)}:{i + 1}");
+                }
+            }
+            Check("exactly one place joins %LocalAppData% to the store folder",
+                  spellers.Count == 1 && spellers[0].StartsWith("Settings.cs", StringComparison.Ordinal),
+                  $"{(spellers.Count == 0 ? "(none)" : string.Join(", ", spellers))} — a second speller is a "
+                  + "path that cannot be per-profile by construction, which is how a store declared one "
+                  + "way came to be written another (T354). Build it from Settings.DataDir, or from "
+                  + "ProfileStore.PathFor where it belongs to a profile.");
         }, "src");
     }
 

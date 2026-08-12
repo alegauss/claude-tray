@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 
 namespace ClaudeTray;
@@ -128,9 +128,10 @@ internal static class ContextUsage
         public bool UseCache { get; set; } = true;
     }
 
-    private static string CachePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClaudeTray", "context-usage.json");
+    // Through Settings.DataDir, not by composing the store root again (T354): this cache is
+    // deliberately shared across profiles, but where the store lives is one fact and this file
+    // is not the place it is decided.
+    private static string CachePath => Path.Combine(Settings.DataDir, "context-usage.json");
 
     /// <summary>Mine the transcripts. Safe on a background thread; never throws.</summary>
     public static UsageEvidence Compute(DateTime nowUtc, Options? options = null)

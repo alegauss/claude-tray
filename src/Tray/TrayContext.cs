@@ -1434,7 +1434,20 @@ internal sealed class TrayContext : ApplicationContext
         };
     }
 
-    // Best-effort append to %LocalAppData%\ClaudeTray\reset-events.log; never let it disrupt a poll.
+    /// <summary>
+    /// Best-effort append to this profile's <c>reset-events.log</c>; never let it disrupt a poll.
+    ///
+    /// <para><b>Through <see cref="ProfileStore.PathFor"/> since T354.</b> It used to compose
+    /// <c>%LocalAppData%\ClaudeTray</c> itself and append there, while
+    /// <see cref="ProfileStore.PerProfileFiles"/> had listed this file as one profile's own all along —
+    /// so the migration moved the log into the first profile's directory once, the writer recreated the
+    /// flat one, and the migration never ran on that name again because the destination now existed.
+    /// Measured here before the fix: 8,323 and 257 bytes frozen under two profiles since 31 July, and
+    /// 1,793 bytes of newer events in the flat file the tray was still appending to. Two accounts shared
+    /// that file, told apart only by the key opening each line — which is a column, not a store.</para>
+    ///
+    /// <para>The key is already this method's first argument, so the fix is the path and not the list.</para>
+    /// </summary>
     private static void LogResetEvent(string key, BurnTracker.ResetEvent ev, long now)
     {
         // T344. Reached from NotifyReset on any poll where a window resets, so a check run beside the
@@ -1443,13 +1456,10 @@ internal sealed class TrayContext : ApplicationContext
         if (ProfileStore.Observing) return;
         try
         {
-            string dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClaudeTray");
-            Directory.CreateDirectory(dir);
             static string Iso(double unix) => DateTimeOffset.FromUnixTimeSeconds((long)unix).UtcDateTime.ToString("o");
             string line = System.FormattableString.Invariant(
                 $"{Iso(now)}\t{key} {ev.Kind.ToString().ToLowerInvariant()} {(int)Math.Round(ev.PrevUtil * 100)}%->{(int)Math.Round(ev.NewUtil * 100)}%\tprevReset={Iso(ev.PrevReset)}\tnewReset={Iso(ev.NewReset)}");
-            File.AppendAllText(Path.Combine(dir, "reset-events.log"), line + Environment.NewLine);
+            File.AppendAllText(ProfileStore.PathFor(key, "reset-events.log"), line + Environment.NewLine);
         }
         catch { /* logging is best-effort */ }
     }

@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -254,9 +254,10 @@ internal static class ContextScanner
             ? 1_000_000
             : 200_000;
 
-    private static string CachePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "ClaudeTray", "context-cache.json");
+    // Through Settings.DataDir, not by composing the store root again (T354): this cache is
+    // deliberately shared across profiles, but where the store lives is one fact and this file
+    // is not the place it is decided.
+    private static string CachePath => Path.Combine(Settings.DataDir, "context-cache.json");
 
     // Directories that never hold context but can hold a hundred thousand files. Skipped by name
     // at every level of the nested-instructions walk.

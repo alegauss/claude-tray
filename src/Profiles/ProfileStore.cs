@@ -187,6 +187,24 @@ internal static class ProfileStore
                 }
                 catch { /* locked or vanished — the store just starts fresh for this profile */ }
             }
+
+            // T354. The move above is once-per-name: it skips a file whose destination already exists,
+            // which is exactly the state `reset-events.log` was left in — moved into the first profile
+            // once, then recreated flat by a writer that composed its own path and appended there for
+            // weeks. The writer is fixed, so nothing recreates it; what is left is a real log of real
+            // events that belongs to no profile the move can name.
+            //
+            // Renamed rather than merged or deleted, and that was the user's call: merging would have
+            // to attribute lines, and while every line does carry its key, rewriting somebody's log to
+            // save them opening a second file is a trade nobody asked for. The new name says which era
+            // it is, which is the whole of what the split made hard to see.
+            string orphan = Path.Combine(Settings.DataDir, "reset-events.log");
+            string aside = Path.Combine(Settings.DataDir, "reset-events.pre-profiles.log");
+            try
+            {
+                if (File.Exists(orphan) && !File.Exists(aside)) File.Move(orphan, aside);
+            }
+            catch { /* locked or vanished — it is a rename for legibility, not a step anything needs */ }
         }
         catch { /* migration is a convenience; a failure must not stop the app from starting */ }
     }
