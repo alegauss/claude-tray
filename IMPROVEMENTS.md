@@ -912,3 +912,28 @@ the dangling one is *visible*. `roadkeep origin <anchor>` answers which commit w
 which took it, so each can be corrected from what it said rather than from where it sat.
 
 Ten `section amend` edits, each against the **citing** section.
+
+## LXXX One tab index, declared twice (T353)
+
+`PanesBody`'s Sessions tab is 3, and `StatisticsPage.Sessions.cs` says so twice: `SessionsTab` at
+the top of the file, and `SessionsTabIndex` a hundred lines further down, whose own doc line reads
+*"named once rather than counted at each call site."*
+
+**Neither is wrong today, and that is the whole problem.** `SaveAllTabs` waits on the pane through
+`SessionsTab`; the live-chart click that jumps to a running conversation selects the tab through
+`SessionsTabIndex`. Both resolve to the same pane, so nothing on screen and no check can tell them
+apart. The duplication is invisible until the day a pane is inserted ahead of Sessions — and then
+the edit that fixes one call site leaves the other pointing at whatever now sits at 3.
+
+**Both failures are silent.** The click would select a tab the user did not ask for. The capture
+would wait for a pane whose content arrives on a different tab, so it would photograph the wrong
+pane and T343's omission would never fire, because the wait it consults answers about somewhere
+else.
+
+**One constant, and the name to keep is the one already documented as the single name.**
+`SessionsTabIndex` states the intent in its own doc; `SessionsTab` is the earlier declaration and is
+the one to delete, with the comparison in `SaveAllTabs` repointed at the survivor.
+
+**Found while shipping T343**, which read one of the two and had no reason to look for the other —
+which is also the argument for fixing it rather than leaving a comment: the next reader will arrive
+through exactly one of the names, as this one did.
