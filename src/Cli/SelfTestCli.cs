@@ -230,6 +230,9 @@ internal static class SelfTestCli
         Section("source — no file that git would call binary (Block AI)");
         SourceIsText();
 
+        Section("source — no text that survived a round trip through CP1252 (Block C)");
+        SourceIsNotDoubleEncoded();
+
         Section("console — the code page is set where the flags are dispatched (Block AI)");
         ConsoleCodePage();
 
@@ -4059,6 +4062,105 @@ internal static class SelfTestCli
         Check($"no source file carries a NUL byte ({sources.Length} files)", binary.Count == 0,
               $"{string.Join(", ", binary)} — git calls a file with one binary, so it has no line " +
               "diff, no blame and no grep; write the escape rather than the byte");
+    }
+
+    /// <summary>
+    /// T362. No source file holds text that is UTF-8 <em>read as CP1252 and written back</em> — the
+    /// state the About page's four link cards were in, drawing four Latin-1 characters apiece where an
+    /// octopus, a package, a bug and a star belong. (This comment cannot show the broken form: it would
+    /// be an occurrence, and this check would report itself.)
+    ///
+    /// <para><b>Why the two encoding checks already here did not cover it.</b> T259 asks whether a
+    /// <c>.ps1</c> has a mark, and T347 whether a source has a NUL: both are about a <em>decoder</em>
+    /// failing loudly. Double-encoded text decodes perfectly. It is well-formed UTF-8 that happens to
+    /// spell the wrong characters, so nothing downstream complains and only a person looking at the
+    /// window can tell — which is how five visible literals and thirty-two comments survived since
+    /// T310.</para>
+    ///
+    /// <para><b>The predicate is a run, not a line.</b> Mojibake is a lead character mapping to a byte
+    /// in <c>C2..F4</c> followed by the right number of characters mapping into <c>80..BF</c>. Asking
+    /// the question of a whole line instead — does this line round-trip? — would miss any line that
+    /// also carries one correctly-encoded dash, because that dash maps to a byte no valid sequence can
+    /// start. Scanning runs makes each occurrence independent of its neighbours.</para>
+    ///
+    /// <para><b>Only <c>src</c>, and deliberately.</b> The signature needs two adjacent characters that
+    /// happen to be a lead and a continuation; in the English prose and code under <c>src</c> that
+    /// cannot occur by accident, but <c>lang\*.json</c> is nothing but accented text and is where a
+    /// false positive would live. Those files are covered instead by every key resolving.</para>
+    /// </summary>
+    private static void SourceIsNotDoubleEncoded() =>
+        Repo("no source file is UTF-8 that was read as CP1252", SourceIsNotDoubleEncoded, "src");
+
+    /// <summary>CP1252 for <c>0x80..0x9F</c>, the one range where it is not Latin-1 - written as
+    /// escapes rather than as the characters themselves, for two reasons. Five of the thirty-two are
+    /// invisible C1 controls: Windows leaves those bytes undefined and passes them through, which is
+    /// what put a U+0090 in the middle of the octopus, and an invisible character in a table is one no
+    /// reviewer can check. And a table spelled literally is a table this very check could not survive
+    /// being applied to.</summary>
+    private const string Cp1252High =
+        "\u20ac\u0081\u201a\u0192\u201e\u2026\u2020\u2021" +  // 80..87
+        "\u02c6\u2030\u0160\u2039\u0152\u008d\u017d\u008f" +  // 88..8F
+        "\u0090\u2018\u2019\u201c\u201d\u2022\u2013\u2014" +  // 90..97
+        "\u02dc\u2122\u0161\u203a\u0153\u009d\u017e\u0178";   // 98..9F
+
+    /// <summary>The byte this character would have been in CP1252, or -1 if it was never one.</summary>
+    private static int Cp1252Byte(char c)
+    {
+        if (c < 0x80 || (c >= 0xA0 && c <= 0xFF)) return c;
+        int high = Cp1252High.IndexOf(c);
+        return high < 0 ? -1 : 0x80 + high;
+    }
+
+    /// <summary>The character this run spells when read back as UTF-8, or -1 if it spells none.</summary>
+    private static int DoubleEncodedAt(string s, int at)
+    {
+        int lead = Cp1252Byte(s[at]);
+        int follow = lead >= 0xF0 ? 3 : lead >= 0xE0 ? 2 : lead >= 0xC2 ? 1 : -1;
+        if (follow < 0 || lead > 0xF4 || at + follow >= s.Length) return -1;
+
+        int code = lead & (0x7F >> (follow + 1));
+        for (int i = 1; i <= follow; i++)
+        {
+            int b = Cp1252Byte(s[at + i]);
+            if (b < 0x80 || b > 0xBF) return -1;
+            code = (code << 6) | (b & 0x3F);
+        }
+
+        // Overlong and out-of-range sequences are not what an encoder produced, so they are not this.
+        int floor = follow == 1 ? 0x80 : follow == 2 ? 0x800 : 0x10000;
+        return code < floor || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF) ? -1 : code;
+    }
+
+    private static void SourceIsNotDoubleEncoded(string root)
+    {
+        string[] sources = Directory.GetFiles(Path.Combine(root, "src"), "*.*", SearchOption.AllDirectories)
+            .Where(f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ||
+                        f.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(f => f, StringComparer.Ordinal).ToArray();
+
+        if (!Check($"the sources are there to read ({sources.Length})", sources.Length > 0,
+                   "no source file found, so this would pass over nothing"))
+            return;
+
+        var damaged = new List<string>();
+        foreach (string path in sources)
+        {
+            string[] lines = File.ReadAllLines(path);
+            for (int i = 0; i < lines.Length && damaged.Count < 8; i++)
+            {
+                for (int at = 0; at < lines[i].Length; at++)
+                {
+                    int code = DoubleEncodedAt(lines[i], at);
+                    if (code < 0) continue;
+                    damaged.Add($"{Path.GetFileName(path)}:{i + 1} reads as {char.ConvertFromUtf32(code)}");
+                    break;
+                }
+            }
+        }
+
+        Check($"no source file holds double-encoded text ({sources.Length} files)", damaged.Count == 0,
+              $"{string.Join("; ", damaged)} — this is UTF-8 an editor read as CP1252 and wrote back, " +
+              "so it decodes cleanly and spells the wrong character; save the file as UTF-8");
     }
 
     private static void ScriptEncoding(string root)
