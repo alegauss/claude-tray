@@ -265,7 +265,7 @@ internal static class SelfTestCli
         RunningSession();
 
         Section("layout — trimming that can never fire (Block AI)");
-        TrimmingInStacks();
+        TrimmingThatCannotFire();
 
         Section("tooltip — every state's news, in every language (Block AI)");
         TooltipNews();
@@ -7377,23 +7377,34 @@ internal static class SelfTestCli
     }
 
     /// <summary>
-    /// T338. No <c>TextTrimming</c> sits inside a horizontal <c>StackPanel</c>, where it cannot fire.
+    /// No <c>TextTrimming</c> sits on an element that is free to size to its own content, where it can
+    /// never fire (T338, widened by T355).
     ///
-    /// <para>A horizontal <c>StackPanel</c> measures its children at <em>infinite</em> available width.
-    /// So a <c>TextBlock</c> inside one always reports the width of its longest line, never discovers
-    /// that it is too wide, and never trims — while whatever contains the panel clips the text
-    /// mid-word. Every symptom points at the <c>TextBlock</c>, and the cause is two elements up.</para>
+    /// <para><b>The property is not about any one container.</b> Trimming fires when the element is
+    /// measured against a constraint narrower than its text. T338 found one way to escape that — a
+    /// horizontal <c>StackPanel</c> measures its children at <em>infinite</em> width, so a
+    /// <c>TextBlock</c> inside one always reports the width of its longest line, never discovers it is
+    /// too wide, and never trims, while whatever contains the panel clips mid-word. The check written
+    /// for it asked "is this inside a horizontal <c>StackPanel</c>", which is the instance and not the
+    /// rule.</para>
     ///
-    /// <para>It shipped that way in the Sessions row and survived two releases, because the published
-    /// capture of that pane predates the line it broke, so no picture ever showed it. That is the
-    /// argument for a check rather than an eye: this is invisible in every screenshot that was
-    /// <em>not</em> taken.</para>
+    /// <para><b>The second way is the element opting out.</b> A <c>HorizontalAlignment</c> of
+    /// <c>Left</c>, <c>Right</c> or <c>Center</c> makes an element size to its content whatever holds
+    /// it — only the default <c>Stretch</c> takes the parent's width. So a right-aligned <c>TextBlock</c>
+    /// in a fixed-width <c>Grid</c> column overflows sideways out of the cell with the ellipsis never
+    /// firing, which is the same defect one container over. T346 shipped exactly that in the Sessions
+    /// money heading; <c>--selftest</c> stayed green and the capture showed the heading running into
+    /// the column beside it. The fix there was <c>Stretch</c> plus <c>TextAlignment</c>, which is what
+    /// gives the column back its say.</para>
     ///
-    /// <para>Nesting is what makes it worth scanning rather than reading — the trimmed line was two
+    /// <para>Vertical alignment is deliberately not asked about: <c>TextTrimming</c> is a horizontal
+    /// property, and an element free to size to its content in height trims nothing.</para>
+    ///
+    /// <para>Nesting is what makes this worth scanning rather than reading — T338's trimmed line was two
     /// levels below the horizontal panel, in an inner stack, which is exactly where a reviewer stops
     /// looking. So the scan tracks depth rather than matching adjacent lines.</para>
     /// </summary>
-    private static void TrimmingInStacks() =>
+    private static void TrimmingThatCannotFire() =>
         Repo("no TextTrimming sits where it can never fire", root =>
         {
             var bad = new List<string>();
@@ -7404,9 +7415,9 @@ internal static class SelfTestCli
                 // Depth of the innermost open horizontal StackPanel, or -1 for none.
                 var open = new Stack<bool>();
                 int horizontal = 0;
-                foreach (string raw in lines)
+                for (int i = 0; i < lines.Length; i++)
                 {
-                    string line = raw.Trim();
+                    string line = lines[i].Trim();
                     if (line.StartsWith("<StackPanel", StringComparison.Ordinal))
                     {
                         bool isHorizontal = line.Contains("Orientation=\"Horizontal\"", StringComparison.Ordinal);
@@ -7417,31 +7428,61 @@ internal static class SelfTestCli
                     {
                         if (open.Pop()) horizontal--;
                     }
-                    else if (horizontal > 0 && line.Contains("TextTrimming", StringComparison.Ordinal))
+                    else if (line.Contains("TextTrimming", StringComparison.Ordinal))
                     {
                         // A width of its own is the exception, and it is a real one: a TextBlock with
                         // Width or MaxWidth is measured against that, so trimming does fire. It is the
                         // weaker fix — a number chosen once is wrong at every other window size — but
                         // it is correct where the width is not proportional, which is where the scan
                         // found one and was wrong about it.
-                        string element = Element(lines, line);
+                        string element = Element(lines, i);
                         if (element.Contains("MaxWidth=", StringComparison.Ordinal) ||
                             element.Contains("Width=", StringComparison.Ordinal)) continue;
-                        bad.Add($"{Path.GetFileName(path)}: {line[..Math.Min(60, line.Length)]}");
+
+                        // Anything but Stretch sizes to content, so the parent's width never reaches it.
+                        // Absent means Stretch, which is the constrained case and the common one.
+                        Match align = HorizontalAlignmentAttr.Match(element);
+                        bool sizesToContent = align.Success
+                            && !align.Groups[1].Value.Equals("Stretch", StringComparison.Ordinal);
+
+                        if (horizontal == 0 && !sizesToContent) continue;
+                        string why = horizontal > 0
+                            ? (sizesToContent ? "in a horizontal StackPanel and " + align.Value : "in a horizontal StackPanel")
+                            : align.Value;
+                        bad.Add($"{Path.GetFileName(path)}: {why} — {line[..Math.Min(52, line.Length)]}");
                     }
                 }
             }
-            Check($"no TextTrimming is nested in a horizontal StackPanel ({bad.Count})", bad.Count == 0,
-                  $"{string.Join("; ", bad)} — a horizontal StackPanel measures at infinite width, so " +
-                  "trimming never fires and the container clips mid-word instead (T338)");
+            Check($"no TextTrimming sits on an element free to size to its content ({bad.Count})",
+                  bad.Count == 0,
+                  $"{string.Join("; ", bad)} — trimming is measured against a constraint, and neither a "
+                  + "horizontal StackPanel (which measures at infinite width) nor a non-Stretch "
+                  + "HorizontalAlignment (which sizes to content) gives it one, so the text overflows "
+                  + "and the container clips it instead (T338, T355). Use Stretch plus TextAlignment, "
+                  + "or give the element its own Width/MaxWidth.");
         }, "src");
 
-    /// <summary>The whole element a line belongs to, so an attribute on another line of the same tag
-    /// counts — XAML wraps, and a scan that reads one line at a time answers about half a tag.</summary>
-    private static string Element(string[] lines, string line)
+    /// <summary>The element's own horizontal alignment, where it states one. A separate field so the
+    /// pattern is compiled once rather than per element scanned.</summary>
+    private static readonly Regex HorizontalAlignmentAttr =
+        new("HorizontalAlignment=\"([A-Za-z]+)\"", RegexOptions.Compiled);
+
+    /// <summary>
+    /// The whole element the line at <paramref name="at"/> belongs to, so an attribute on another line of
+    /// the same tag counts — XAML wraps, and a scan that reads one line at a time answers about half a tag.
+    ///
+    /// <para><b>By index, not by text (T355).</b> It used to take the line's text and find it with
+    /// <c>Array.FindIndex</c>, which returns the <em>first</em> line that reads the same — and
+    /// <c>TextTrimming="CharacterEllipsis"</c> sits alone on four identical lines of
+    /// <c>StatisticsPage.xaml</c>. So a scan of the fourth reconstructed the first, and answered about an
+    /// element the reader was not looking at. Found by injecting a defect the widened check should have
+    /// caught and watching it stay green: the element it examined had no <c>HorizontalAlignment</c>
+    /// because it was not the element with the defect. It cuts the other way too — the
+    /// <c>Width</c>/<c>MaxWidth</c> exemption could be granted from a different tag entirely.</para>
+    /// </summary>
+    private static string Element(string[] lines, int at)
     {
-        int at = Array.FindIndex(lines, l => l.Trim() == line);
-        if (at < 0) return line;
+        if (at < 0 || at >= lines.Length) return "";
         int from = at;
         while (from > 0 && !lines[from].TrimStart().StartsWith('<')) from--;
         var sb = new StringBuilder();

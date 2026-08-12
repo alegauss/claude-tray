@@ -809,34 +809,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## LXXXII One trimming rule, asked about one container (T355)
-
-T338 found that a horizontal `StackPanel` measures its children at infinite width, so a
-`TextTrimming` inside one never fires and the container clips mid-word instead. The check written
-for it scans for `TextTrimming` and asks one question: is it inside a horizontal `StackPanel`?
-
-**The property is not about `StackPanel`.** Trimming fires when the element is measured against a
-constraint. A `TextBlock` with `HorizontalAlignment="Right"` in a fixed-width `Grid` column sizes to
-its *content* too — the column does not constrain it, so the text overflows leftward out of the cell
-and no ellipsis appears. Same defect, different container, and the check is blind to it.
-
-**Found by looking, not by the check.** T346 added a Sessions column whose heading is long in four
-of five languages. The heading carried `TextTrimming="CharacterEllipsis"` and
-`HorizontalAlignment="Right"`, `--selftest` stayed green, and the captured pane showed the heading
-overflowing until it touched the column beside it. The fix was `HorizontalAlignment="Stretch"` plus
-`TextAlignment="Right"`, which is the Grid-column form of the same rule — and it is written down in
-a comment beside the two lines it fixed, which is exactly where T338's rule was before it became a
-check.
-
-**What a widened check would ask.** Not "which container is this in" but "is this element free to
-size to its content": `HorizontalAlignment` of `Left` or `Right` (or `Vertical…` `Top`/`Bottom` for
-height) with no `Width`/`MaxWidth` of its own, inside anything. The horizontal-`StackPanel` case
-then falls out as one instance rather than being the rule.
-
-**The exemption already exists and should carry over**: an element with its own `Width` or
-`MaxWidth` is measured against that, so trimming does fire. That is the weaker fix and the check
-already says so.
-
 ## LXXXIII A promise about this process, asserted about a shared tree (T356)
 
 `ObservingTray` fingerprints every file under `%LocalAppData%\ClaudeTray`, throws the one-way
