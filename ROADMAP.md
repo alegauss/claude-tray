@@ -71,6 +71,8 @@
 
 ## Block E — Reset notifications & toasts
 
+- 📋 **T354** (deps: —) **the reset log the notification settings promise is written flat, though the store list declares it per profile** — T44 wrote it before profiles existed and the writer still builds its own flat path, so the migration moves it once and two accounts then share one file. → §LXXXI
+
 ## Block S — Settings round-trip
 
 ## Block Q — Keyboard input in the windows
