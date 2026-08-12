@@ -861,3 +861,34 @@ then falls out as one instance rather than being the rule.
 **The exemption already exists and should carry over**: an element with its own `Width` or
 `MaxWidth` is measured against that, so trimming does fire. That is the weaker fix and the check
 already says so.
+
+## LXXXIII A promise about this process, asserted about a shared tree (T356)
+
+`ObservingTray` fingerprints every file under `%LocalAppData%\ClaudeTray`, throws the one-way
+observing switch, drives every writer it knows, and asserts nothing moved. The promise is *this
+process wrote nothing*; the observable is *nothing in the tree changed*, and those differ by one
+word — the tree is shared with the user's own resident tray, which polls on its own timer and writes
+whenever it likes.
+
+**Measured, twice, minutes apart.** With a resident `ClaudeTray` alive (pid 75636, started 11:03):
+
+```
+FAILED  no file under %LocalAppData%\ClaudeTray was created or changed — moved: usage-history.jsonl
+908 passed, 1 failed
+909 passed, 0 failed        # the next run, same binary, nothing changed
+```
+
+The named file is the store the poll loop appends a reading to, and the default poll is five minutes
+— so a `--selftest` that straddles a poll goes red on work the check under test did not do.
+
+**It is the strongest check in the suite and that is what makes this expensive.** T239 chose to
+assert against the real tree precisely because a fixture would not be the thing being promised, and
+T344 widened what it covers. A red that a re-run clears teaches the reader to re-run, which is the
+one habit that makes a real regression here invisible — and this check is the only thing standing
+between a check run and the user's own data.
+
+**Three shapes of fix, and the choice is the task.** Attribute the change, so only files this
+process could have written can fail it. Or gate on the precondition per T161 — another tray is
+alive, so the comparison cannot attribute anything — and state the skip, which T218 makes red when
+unexpected. Or narrow the tree to what this run could touch, which is the weakest, because the hole
+it opens is the one T239 built this to close.

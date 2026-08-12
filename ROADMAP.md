@@ -84,6 +84,7 @@
 ## Block AI — Verification — the checks that prove a change
 
 - 📋 **T355** (deps: —) **the trimming check only asks about horizontal StackPanels, and the same defect in a Grid column stayed green** — A right-aligned TextBlock sizes to its content in any container, so T346's column heading overflowed its cell with the check passing and only the capture showing it. → §LXXXII
+- 📋 **T356** (deps: —) **the observing check compares a tree the user's own tray also writes, so a poll landing mid-run turns it red** — Measured: 908 passed 1 failed naming usage-history.jsonl with a resident tray alive, then 909 passed on the next run - a red a re-run clears teaches re-running. → §LXXXIII
 
 ## Non-goals (do NOT add as tasks)
 
