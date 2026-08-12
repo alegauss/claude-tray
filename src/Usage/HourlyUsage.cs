@@ -671,10 +671,10 @@ internal static class HourlyUsage
         }
 
         string path = FilePath(profileKey);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        StoreFile.CreateDirectory(Path.GetDirectoryName(path)!);
         string tmp = path + ".tmp";
-        File.WriteAllText(tmp, sb.ToString());
-        File.Move(tmp, path, overwrite: true);
+        StoreFile.WriteAllText(tmp, sb.ToString());
+        StoreFile.Move(tmp, path, overwrite: true);
     }
 
     private static DateTime Local(double unix)

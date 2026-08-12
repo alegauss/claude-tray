@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace ClaudeTray;
 
@@ -739,10 +739,10 @@ internal static class SessionIndex
         if (ProfileStore.Observing) return;
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            StoreFile.CreateDirectory(Path.GetDirectoryName(path)!);
             string tmp = path + ".tmp";
-            File.WriteAllText(tmp, JsonSerializer.Serialize(entries.Values));
-            File.Move(tmp, path, overwrite: true);
+            StoreFile.WriteAllText(tmp, JsonSerializer.Serialize(entries.Values));
+            StoreFile.Move(tmp, path, overwrite: true);
         }
         catch { /* the cache is an optimization; failing to write it costs one slow scan */ }
     }

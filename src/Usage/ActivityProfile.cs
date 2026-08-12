@@ -744,8 +744,8 @@ internal sealed class ActivityProfile
         if (ProfileStore.Observing) return;
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(SweepCachePath)!);
-            File.WriteAllText(SweepCachePath, JsonSerializer.Serialize(entries.Values));
+            StoreFile.CreateDirectory(Path.GetDirectoryName(SweepCachePath)!);
+            StoreFile.WriteAllText(SweepCachePath, JsonSerializer.Serialize(entries.Values));
         }
         catch { /* the cache is an optimization; failing to write it costs one slow sweep */ }
     }
@@ -798,8 +798,8 @@ internal sealed class ActivityProfile
             sb.Append("]}");
 
             string path = CachePath(profileKey);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllText(path, sb.ToString());
+            StoreFile.CreateDirectory(Path.GetDirectoryName(path)!);
+            StoreFile.WriteAllText(path, sb.ToString());
         }
         catch { /* the cache is an optimization; a failed write just means another scan tomorrow */ }
     }

@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace ClaudeTray;
@@ -1459,7 +1459,7 @@ internal sealed class TrayContext : ApplicationContext
             static string Iso(double unix) => DateTimeOffset.FromUnixTimeSeconds((long)unix).UtcDateTime.ToString("o");
             string line = System.FormattableString.Invariant(
                 $"{Iso(now)}\t{key} {ev.Kind.ToString().ToLowerInvariant()} {(int)Math.Round(ev.PrevUtil * 100)}%->{(int)Math.Round(ev.NewUtil * 100)}%\tprevReset={Iso(ev.PrevReset)}\tnewReset={Iso(ev.NewReset)}");
-            File.AppendAllText(ProfileStore.PathFor(key, "reset-events.log"), line + Environment.NewLine);
+            StoreFile.AppendAllText(ProfileStore.PathFor(key, "reset-events.log"), line + Environment.NewLine);
         }
         catch { /* logging is best-effort */ }
     }

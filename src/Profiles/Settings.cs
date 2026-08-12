@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text.Json;
 
 namespace ClaudeTray;
@@ -301,8 +301,8 @@ internal sealed class Settings
         // the icon their tray follows — the settings file is one per machine, not one per process.
         if (ProfileStore.Observing) return;
         Clamp();
-        Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-        File.WriteAllText(FilePath,
+        StoreFile.CreateDirectory(Path.GetDirectoryName(FilePath)!);
+        StoreFile.WriteAllText(FilePath,
             JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
     }
 

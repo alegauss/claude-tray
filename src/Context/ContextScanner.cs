@@ -1114,8 +1114,8 @@ internal static class ContextScanner
                     .ToList(),
                 Scan = scan,
             };
-            Directory.CreateDirectory(Path.GetDirectoryName(CachePath)!);
-            File.WriteAllText(CachePath, JsonSerializer.Serialize(cache, CacheJson));
+            StoreFile.CreateDirectory(Path.GetDirectoryName(CachePath)!);
+            StoreFile.WriteAllText(CachePath, JsonSerializer.Serialize(cache, CacheJson));
         }
         catch { /* the cache is an optimization; a failure to write it costs a rescan, nothing more */ }
     }

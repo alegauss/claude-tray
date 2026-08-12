@@ -70,6 +70,11 @@ internal static class SelfTestCli
          "a temp path whose encoding cannot be rebuilt - unrepresentable, not an unwritten case (T169)"),
         ("the probe returns only directories that exist",
          "the same temp path, in the same run"),
+        ("no file under %LocalAppData%\\ClaudeTray was created or changed",
+         "another ClaudeTray writes that tree on its own timer, so a change cannot be attributed to "
+         + "this run - the counted assertion beside it is the one that answers the promise (T356). "
+         + "This skip is expected on a developer's machine and must NOT happen on CI, where no tray "
+         + "is resident: if it fires there, something started one."),
         // The repository family is not here on purpose (T247): `Repo` carries its own allowance, so the
         // seven sentences that used to sit in this list are one, and the eighth check inherits it.
     };
@@ -4977,7 +4982,15 @@ internal static class SelfTestCli
                 "Settings.DataDir", "SpecialFolder.LocalApplicationData", "DirFor(", "PathFor(",
             };
 
+            // Every mutation, in the one form that can be counted at runtime (T356).
+            string[] viaStoreFile =
+            {
+                "StoreFile.WriteAll", "StoreFile.AppendAll", "StoreFile.Move(", "StoreFile.Delete(",
+                "StoreFile.CreateDirectory(",
+            };
+
             var ungated = new List<string>();
+            var raw = new List<string>();
             var used = new HashSet<string>(StringComparer.Ordinal);
             foreach (string path in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.cs",
                                                              SearchOption.AllDirectories))
@@ -4996,7 +5009,17 @@ internal static class SelfTestCli
                 {
                     string t = lines[i].TrimStart();
                     if (t.StartsWith("//", StringComparison.Ordinal)) continue;
-                    if (!mutators.Any(m => t.Contains(m, StringComparison.Ordinal))) continue;
+
+                    // `StoreFile.WriteAllText` contains `File.WriteAllText`, and `OutFile.Create`
+                    // contains `File.Create`, so raw detection has to be blind to both prefixes or every
+                    // converted call reports itself. Masked rather than pattern-matched: the two names
+                    // are the only wrappers, and a third would have to be added here deliberately.
+                    string masked = t.Replace("StoreFile.", "Store_", StringComparison.Ordinal)
+                                     .Replace("OutFile.", "Out_", StringComparison.Ordinal);
+                    bool viaStore = viaStoreFile.Any(m => t.Contains(m, StringComparison.Ordinal));
+                    bool isRaw = mutators.Any(m => masked.Contains(m, StringComparison.Ordinal));
+                    if (!viaStore && !isRaw) continue;
+                    if (isRaw) raw.Add($"{file}:{i + 1}");
 
                     int decl = DeclaringMember(lines, i);
                     // From the declaration down to the write: a gate below the write gates nothing.
@@ -5008,6 +5031,14 @@ internal static class SelfTestCli
                     ungated.Add($"{file}:{i + 1} in {method}");
                 }
             }
+
+            // T356. A raw File/Directory mutation in one of these files is invisible to the write
+            // counter, so the runtime assertion would pass while the write happened. The counter is only
+            // as good as the layer being the only way through — that is asserted here, not assumed.
+            Check("every store mutation goes through StoreFile, so it can be counted", raw.Count == 0,
+                  $"{string.Join(", ", raw)} — a File or Directory call that bypasses StoreFile is a "
+                  + "write the observing counter cannot see, which makes a green run mean less than it "
+                  + "says (T356). Use StoreFile, whose operations are the same minus the blind spot.");
 
             Check("no write into the store skips the gate", ungated.Count == 0,
                   $"{string.Join(", ", ungated)} — each mutates a file under %LocalAppData%\\ClaudeTray "
@@ -5147,9 +5178,26 @@ internal static class SelfTestCli
         Dictionary<string, (long Len, DateTime When)> before = Snapshot();
         Check("the store tree can be read at all, or the comparison below asserts nothing", readable);
 
+        // Another ClaudeTray on this machine writes the same tree on its own timer, so the comparison
+        // below cannot attribute what it finds (T356). The counter can — it is this process's own
+        // bookkeeping — so it carries the assertion and the diff becomes the corroboration.
+        int otherTrays = 0;
+        try
+        {
+            int self = Environment.ProcessId;
+            otherTrays = System.Diagnostics.Process.GetProcessesByName("ClaudeTray").Count(p => p.Id != self);
+        }
+        catch { /* a denied process list is not a reason to fail a store check */ }
+
         ProfileStore.Observe();
         Check("observing is one-way and the environment goes with it (T231's sampling, T239's promise)",
               ProfileStore.Observing && EnvironmentProfile.IsSampled);
+
+        // From here on every mutation this process performs is counted at the point it happens (T356),
+        // so the promise — *this process wrote nothing* — is asserted directly instead of inferred from
+        // a tree two processes share. Reset rather than read-and-compare: whatever startup did before
+        // the gate was thrown is T357's, not this section's.
+        StoreFile.ResetWrites();
 
         // Real keys and real arguments: the point is that these calls would otherwise land on the files
         // fingerprinted above. `Monitored` is this machine's own profile key, which is the one a second
@@ -5191,17 +5239,40 @@ internal static class SelfTestCli
         EnvironmentProfile.Adopt(settings, @"C:\Users\nobody\.claude-observing");
         EnvironmentProfile.Drain();
 
+        // The promise itself, counted rather than inferred. This one always runs: another tray cannot
+        // increment this process's counter, so there is nothing here for a stray poll to confuse.
+        Check($"this process performed no store write while observing ({StoreFile.Writes})",
+              StoreFile.Writes == 0,
+              $"{StoreFile.Writes} mutation(s) went through StoreFile after the gate was thrown — a "
+              + "writer that consults nothing, which is what T239 promises cannot exist (T356)");
+
         Dictionary<string, (long Len, DateTime When)> after = Snapshot();
         var moved = new List<string>();
         foreach (KeyValuePair<string, (long Len, DateTime When)> kv in after)
             if (!before.TryGetValue(kv.Key, out (long Len, DateTime When) was) || was != kv.Value)
                 moved.Add(Path.GetFileName(kv.Key));
-        // `readable` covers the second snapshot too: a tree that became unreadable between the two reads
-        // produces an empty `after`, over which both comparisons would otherwise pass saying nothing.
-        Check("no file under %LocalAppData%\\ClaudeTray was created or changed"
-              + (moved.Count > 0 ? " — moved: " + string.Join(", ", moved.Distinct()) : ""),
-              readable && moved.Count == 0);
-        Check("and nothing was deleted either", readable && before.Keys.All(after.ContainsKey));
+        bool deleted = !before.Keys.All(after.ContainsKey);
+
+        // And the corroboration: nothing in the tree moved either. It catches a write that bypassed
+        // StoreFile entirely, which the counter by construction cannot — but only where this process is
+        // the only writer. With another tray alive it is stood down by name rather than left to fail on
+        // that tray's poll: a red a re-run clears teaches re-running, and this is the one check where
+        // that habit is most expensive (T356).
+        if (otherTrays > 0)
+            Skip("no file under %LocalAppData%\\ClaudeTray was created or changed",
+                 $"{otherTrays} other ClaudeTray process(es) write this tree on their own timer, so a "
+                 + "change here cannot be attributed to this run — the counted assertion above is the "
+                 + "one that answers the promise");
+        else
+        {
+            // `readable` covers the second snapshot too: a tree that became unreadable between the two
+            // reads produces an empty `after`, over which both comparisons would otherwise pass saying
+            // nothing.
+            Check("no file under %LocalAppData%\\ClaudeTray was created or changed"
+                  + (moved.Count > 0 ? " — moved: " + string.Join(", ", moved.Distinct()) : ""),
+                  readable && moved.Count == 0);
+            Check("and nothing was deleted either", readable && !deleted);
+        }
     }
 
     /// <summary>

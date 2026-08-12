@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace ClaudeTray;
 
@@ -120,8 +120,8 @@ internal static class HeaderProbe
             if (known == shape) return false;
 
             string path = FilePath(profileKey);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.AppendAllText(path, Render(nowUnix, headers) + Environment.NewLine);
+            StoreFile.CreateDirectory(Path.GetDirectoryName(path)!);
+            StoreFile.AppendAllText(path, Render(nowUnix, headers) + Environment.NewLine);
             LastShape[profileKey] = shape;
             Trim(path);
             return true;
@@ -137,7 +137,7 @@ internal static class HeaderProbe
     internal static void Clear(string profileKey)
     {
         LastShape.Remove(profileKey);
-        try { File.Delete(FilePath(profileKey)); } catch { /* a fixture rebuild is best-effort too */ }
+        try { StoreFile.Delete(FilePath(profileKey)); } catch { /* a fixture rebuild is best-effort too */ }
     }
 
     /// <summary>Every captured reading, oldest first.</summary>
@@ -381,6 +381,6 @@ internal static class HeaderProbe
     {
         var lines = new List<string>(File.ReadLines(path));
         if (lines.Count <= MaxEntries) return;
-        File.WriteAllLines(path, lines.GetRange(lines.Count - MaxEntries, MaxEntries));
+        StoreFile.WriteAllLines(path, lines.GetRange(lines.Count - MaxEntries, MaxEntries));
     }
 }

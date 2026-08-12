@@ -58,7 +58,7 @@ internal static class UsageHistory
     /// and so cannot be a real login's.</summary>
     internal static void Clear(string profileKey)
     {
-        try { File.Delete(FilePath(profileKey)); } catch { /* a fixture rebuild is best-effort too */ }
+        try { StoreFile.Delete(FilePath(profileKey)); } catch { /* a fixture rebuild is best-effort too */ }
     }
 
     /// <summary>Append one reading. Best-effort; prunes stale lines lazily.</summary>
@@ -75,7 +75,7 @@ internal static class UsageHistory
         try
         {
             string path = FilePath(profileKey);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            StoreFile.CreateDirectory(Path.GetDirectoryName(path)!);
             string line = FormattableString.Invariant(
                 $"{{\"t\":{nowUnix},\"u5\":{util5h:0.####},\"r5\":{(long)reset5h},\"u7\":{util7d:0.####},\"r7\":{(long)reset7d}}}");
             if (extraUtil is { } x)
@@ -85,7 +85,7 @@ internal static class UsageHistory
             // other: `ux:0` on every reading past the threshold, and the header saying so beside it.
             if (extraInUse is { } inUse)
                 line = $"{line[..^1]},\"ix\":{(inUse ? 1 : 0)}}}";
-            File.AppendAllText(path, line + Environment.NewLine);
+            StoreFile.AppendAllText(path, line + Environment.NewLine);
             PruneIfStale(profileKey, path, nowUnix);
         }
         catch { /* logging is best-effort */ }
@@ -170,8 +170,8 @@ internal static class UsageHistory
                 kept.Add(line);
 
         string tmp = path + ".tmp";
-        File.WriteAllLines(tmp, kept);
-        File.Move(tmp, path, overwrite: true);
+        StoreFile.WriteAllLines(tmp, kept);
+        StoreFile.Move(tmp, path, overwrite: true);
     }
 
     private static bool TryParse(string line, out UsageSample s)

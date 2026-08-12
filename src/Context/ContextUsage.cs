@@ -354,8 +354,8 @@ internal static class ContextUsage
         if (ProfileStore.Observing) return;
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(CachePath)!);
-            File.WriteAllText(CachePath, JsonSerializer.Serialize(entries));
+            StoreFile.CreateDirectory(Path.GetDirectoryName(CachePath)!);
+            StoreFile.WriteAllText(CachePath, JsonSerializer.Serialize(entries));
         }
         catch { /* the cache is an optimization; failing to write it costs one slow pass */ }
     }

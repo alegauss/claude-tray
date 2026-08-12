@@ -80,8 +80,8 @@ internal static class ContextHistory
 
             if (lines.Count == 0) return;
             string path = FilePath(profileKey);
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.AppendAllLines(path, lines);
+            StoreFile.CreateDirectory(Path.GetDirectoryName(path)!);
+            StoreFile.AppendAllLines(path, lines);
             PruneIfStale(path, now);
         }
         catch { /* history is best-effort */ }
@@ -220,7 +220,7 @@ internal static class ContextHistory
                 if (t >= cutoff) kept.Add(line);
             }
 
-            if (stale) File.WriteAllLines(path, kept);
+            if (stale) StoreFile.WriteAllLines(path, kept);
         }
         catch { /* pruning is best-effort */ }
     }

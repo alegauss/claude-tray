@@ -79,7 +79,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T356** (deps: —) **the observing check compares a tree the user's own tray also writes, so a poll landing mid-run turns it red** — Measured: 908 passed 1 failed naming usage-history.jsonl with a resident tray alive, then 909 passed on the next run - a red a re-run clears teaches re-running. → §LXXXIII
 - 📋 **T357** (deps: —) **the profile is adopted before any flag is dispatched, so the migration writes the store with the gate still off** — A --selftest run of the new binary renamed the developer's own reset-events.log, and ObservingTray cannot see it because the write lands before it takes its baseline. → §LXXXIV
 
 ## Non-goals (do NOT add as tasks)

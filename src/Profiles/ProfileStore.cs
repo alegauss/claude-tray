@@ -109,7 +109,7 @@ internal static class ProfileStore
         {
             string dir = Path.Combine(Root, Sanitize(key));
             if (Observing) return dir;
-            Directory.CreateDirectory(dir);
+            StoreFile.CreateDirectory(dir);
             return dir;
         }
         catch { return Settings.DataDir; }
@@ -183,7 +183,7 @@ internal static class ProfileStore
                 string to = Path.Combine(dir, name);
                 try
                 {
-                    if (File.Exists(from) && !File.Exists(to)) File.Move(from, to);
+                    if (File.Exists(from) && !File.Exists(to)) StoreFile.Move(from, to);
                 }
                 catch { /* locked or vanished — the store just starts fresh for this profile */ }
             }
@@ -202,7 +202,7 @@ internal static class ProfileStore
             string aside = Path.Combine(Settings.DataDir, "reset-events.pre-profiles.log");
             try
             {
-                if (File.Exists(orphan) && !File.Exists(aside)) File.Move(orphan, aside);
+                if (File.Exists(orphan) && !File.Exists(aside)) StoreFile.Move(orphan, aside);
             }
             catch { /* locked or vanished — it is a rename for legibility, not a step anything needs */ }
         }

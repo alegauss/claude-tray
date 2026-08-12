@@ -38,8 +38,8 @@ internal static class ContextNudges
         {
             Dictionary<string, long> seen = Load(profileKey);
             seen[slug] = new DateTimeOffset(nowUtc, TimeSpan.Zero).ToUnixTimeSeconds();
-            Directory.CreateDirectory(Path.GetDirectoryName(FilePath(profileKey))!);
-            File.WriteAllText(FilePath(profileKey), JsonSerializer.Serialize(seen));
+            StoreFile.CreateDirectory(Path.GetDirectoryName(FilePath(profileKey))!);
+            StoreFile.WriteAllText(FilePath(profileKey), JsonSerializer.Serialize(seen));
         }
         catch { /* worst case the nudge repeats next week rather than never */ }
     }
