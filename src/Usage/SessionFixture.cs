@@ -127,7 +127,11 @@ internal static class SessionFixture
     private static string Assistant(DateTime t, string id, int output, string name) =>
         $"{{\"type\":\"assistant\",\"timestamp\":\"{Stamp(t)}\",\"requestId\":\"{id}\"," +
         $"\"effort\":\"high\",\"cwd\":\"D:\\\\Sample\\\\{name}\"," +
-        $"\"message\":{{\"id\":\"msg-{id}\",\"model\":\"claude-sample-5\",\"usage\":{{" +
+        // A real model id, not an invented one (T346). It used to say `claude-sample-5`, which the rate
+        // card correctly refuses to price — so the published Sessions shot showed an empty money column
+        // and the feature could not be screenshotted at all. A model is not an account: naming one here
+        // reveals nothing about this machine, and the pane a reader sees is the pane the app draws.
+        $"\"message\":{{\"id\":\"msg-{id}\",\"model\":\"claude-opus-4-5\",\"usage\":{{" +
         $"\"input_tokens\":{output / 4},\"output_tokens\":{output}," +
         $"\"cache_creation_input_tokens\":{output * 3}," +
         $"\"cache_creation\":{{\"ephemeral_1h_input_tokens\":{output * 3},\"ephemeral_5m_input_tokens\":0}}," +

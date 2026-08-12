@@ -48,6 +48,12 @@ internal partial class StatisticsPage
         SessionList.AddHandler(System.Windows.Input.Mouse.MouseUpEvent,
                                new System.Windows.Input.MouseButtonEventHandler(Row_Clicked), handledEventsToo: true);
 
+        // The money column's method, behind this pane's own ⓘ (T346). Set once here rather than bound,
+        // because the one thing it interpolates is the date the rate card was read — a compile-time fact
+        // that cannot change while the window is open, and a binding would imply it could.
+        SessionsMethodBody.Text = L.T("stats.sessions.method",
+                                      ListPrices.Read.ToString("yyyy-MM-dd"));
+
         SessionsRange.SelectionChanged += (_, _) => RenderSessions();
         SortByWhen.Click += (_, _) => { _sessionSort = SessionSort.Clock; RenderSessions(); };
         SortByTokens.Click += (_, _) => { _sessionSort = SessionSort.Tokens; RenderSessions(); };

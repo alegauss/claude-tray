@@ -113,12 +113,34 @@ public sealed class SessionListRow : INotifyPropertyChanged
         Effort = EffortMix.Line(row.Efforts);
         EffortVisibility = Effort.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
+        // What those tokens come to at published API rates (T346). Tokens rank the list; this explains
+        // it — a $2 conversation beside a $40 one is a sentence a token count cannot say, because the
+        // dear model and the cheap one are the same number of tokens. Never the word "cost": the app
+        // does not know what anyone pays, and §I.7 is why it must not imply otherwise.
+        ListPrices.Equivalent price = ListPrices.Of(row.PerModel);
+        Money = price.PricedTokens > 0 ? L.T("stats.sessions.money", Nums.Of(price.Dollars, "0.00")) : "";
+        // Two different silences, and the hover is where they are told apart. A row the table could
+        // price in part is a floor and says so; one it could not price at all leaves the column empty,
+        // and the reason is the model id — which is on this hover and nowhere else.
+        MoneyTip = price.PricedTokens == 0
+            ? L.T("stats.sessions.moneyNone")
+            : price.Complete
+                ? L.T("stats.sessions.moneyTip", ListPrices.Read.ToString("yyyy-MM-dd"))
+                : L.T("stats.sessions.moneyPartial", ListPrices.Read.ToString("yyyy-MM-dd"));
+
         // The hover carries the identifiers, which is what makes a row actionable without making it
         // descriptive: the id is what `claude --resume` takes.
         Tip = L.T("stats.sessions.tip", row.Session,
                   row.Models.Length > 0 ? string.Join(", ", row.Models) : "—",
                   row.Agents);
     }
+
+    /// <summary>The conversation's tokens at API list prices, or empty where the rate table knew none of
+    /// the models that answered. Always shown with its own qualifier — see <see cref="ListPrices"/>.</summary>
+    public string Money { get; } = "";
+    /// <summary>Why the figure is what it is: the date the rates were read, and whether the total covers
+    /// every model in the conversation.</summary>
+    public string MoneyTip { get; } = "";
 
     /// <summary>The effort levels this conversation's calls ran at, with each level's share where it
     /// ran at more than one. Empty for a session whose lines named none.</summary>

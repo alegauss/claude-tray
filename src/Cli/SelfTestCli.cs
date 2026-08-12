@@ -243,6 +243,9 @@ internal static class SelfTestCli
         Section("cache — the write, at the TTL it was written for (Block AK)");
         CacheTtl();
 
+        Section("list prices — what a conversation was worth, per model (Block AK)");
+        ListPricing();
+
         Section("effort — the lever a turn ran at, kept as a mix (Block AK)");
         Effort();
 
@@ -6966,6 +6969,86 @@ internal static class SelfTestCli
               sum.CacheCreate == 150 && sum.CacheCreate1h == 110 && sum.CacheCreate5m == 40,
               $"{sum.CacheCreate} written, {sum.CacheCreate1h} at 1h, {sum.CacheCreate5m} at 5m — " +
               "expected 150/110/40");
+    }
+
+    /// <summary>
+    /// T346. What a conversation was worth at API list prices.
+    ///
+    /// <para><b>The arithmetic is asserted against a hand-computed figure</b>, because every part of it is
+    /// a multiplier somebody could plausibly get wrong in the same direction: input and output at each
+    /// model's own rate, a cache read at 0.1× the input rate, a five-minute write at 1.25× and a one-hour
+    /// write at 2×. A single blended cache rate passes a "does it produce a number" check and is wrong by
+    /// nearly two on the component this machine writes almost all of (T330).</para>
+    ///
+    /// <para><b>Per model, or the figure is meaningless.</b> Two models in one conversation is the case the
+    /// split exists for, so the fixture is exactly that — and the check that the cheap model's tokens are
+    /// not priced at the dear model's rate is the whole of why <c>SessionRow.PerModel</c> is persisted at
+    /// all.</para>
+    ///
+    /// <para><b>An unpriced model is reported, never folded in.</b> A model id the table has no row for is
+    /// the shape that arrives on its own — the next release names one — and a pricer that silently drops it
+    /// reads as a cheaper week rather than as a partial answer.</para>
+    /// </summary>
+    private static void ListPricing()
+    {
+        // One model, one of each kind of token, against a rate card read off the table by hand.
+        // claude-opus-5 is $5/MTok in, $25/MTok out.
+        var opusOnly = new Dictionary<string, TokenBits>(StringComparer.Ordinal)
+        {
+            // 1M in, 1M out, 1M cache read, 1M written (600k at 1h, 400k at 5m)
+            ["claude-opus-5"] = new TokenBits(1_000_000, 1_000_000, 1_000_000, 1_000_000, 600_000, 400_000),
+        };
+        // 5 + 25 + (1M read × 0.1 × 5) + (0.6M × 2 × 5) + (0.4M × 1.25 × 5) = 5 + 25 + 0.5 + 6 + 2.5
+        Near("a conversation is priced per token kind, each at its own multiplier",
+             ListPrices.Of(opusOnly).Dollars, 39.0, 1e-9);
+
+        // The same tokens on Haiku 4.5 ($1/$5) — a fifth of the input rate, so every component scales.
+        var haikuOnly = new Dictionary<string, TokenBits>(StringComparer.Ordinal)
+        {
+            ["claude-haiku-4-5"] = new TokenBits(1_000_000, 1_000_000, 1_000_000, 1_000_000, 600_000, 400_000),
+        };
+        Near("and a cheaper model prices the same tokens lower",
+             ListPrices.Of(haikuOnly).Dollars, 7.8, 1e-9);
+
+        // Both in one conversation: the sum, which is the figure a row shows and the reason the split is
+        // persisted. A pricer that took one model for the whole row would read 39 or 7.8, never 46.8.
+        var mixed = new Dictionary<string, TokenBits>(StringComparer.Ordinal)
+        {
+            ["claude-opus-5"] = opusOnly["claude-opus-5"],
+            ["claude-haiku-4-5"] = haikuOnly["claude-haiku-4-5"],
+        };
+        ListPrices.Equivalent both = ListPrices.Of(mixed);
+        Near("and two models in one conversation are priced separately and summed",
+             both.Dollars, 46.8, 1e-9);
+        Check("a fully-priced conversation says so", both.Complete && both.UnpricedTokens == 0,
+              $"{both.UnpricedTokens} unpriced");
+
+        // A dated id resolves through its family, and through the *longest* matching prefix: `claude-opus-4`
+        // is a different generation at three times the rate, so a naive first-match would price 4.5 at it.
+        Near("a dated model id is priced through its family",
+             ListPrices.Of(new Dictionary<string, TokenBits>(StringComparer.Ordinal)
+             { ["claude-opus-4-5-20251101"] = new TokenBits(1_000_000, 0, 0, 0, 0, 0) }).Dollars,
+             5.0, 1e-9);
+
+        // The case that must not be silent.
+        ListPrices.Equivalent partial = ListPrices.Of(new Dictionary<string, TokenBits>(StringComparer.Ordinal)
+        {
+            ["claude-opus-5"] = new TokenBits(1_000_000, 0, 0, 0, 0, 0),
+            ["claude-not-a-model-yet"] = new TokenBits(9_000_000, 0, 0, 0, 0, 0),
+        });
+        Check("an unpriced model leaves the figure visibly partial rather than cheap",
+              !partial.Complete && partial.UnpricedTokens == 9_000_000 && Math.Abs(partial.Dollars - 5.0) < 1e-9,
+              $"complete={partial.Complete} unpriced={partial.UnpricedTokens} dollars={partial.Dollars}");
+        Check("and a conversation of only unknown models is priced at nothing, not at zero dollars",
+              ListPrices.Of(new Dictionary<string, TokenBits>(StringComparer.Ordinal)
+              { ["nope"] = new TokenBits(1_000_000, 0, 0, 0, 0, 0) }).PricedTokens == 0);
+
+        // A cache write with no TTL stated is priced at the DEARER rate (T330's `Unattributed`). Guessing
+        // five-minute here would price the component this machine writes almost all of at the cheap rate.
+        Near("a cache write with no TTL stated is priced at the one-hour rate",
+             ListPrices.Of(new Dictionary<string, TokenBits>(StringComparer.Ordinal)
+             { ["claude-opus-5"] = new TokenBits(0, 0, 1_000_000, 0, 0, 0) }).Dollars,
+             10.0, 1e-9);
     }
 
     /// <summary>

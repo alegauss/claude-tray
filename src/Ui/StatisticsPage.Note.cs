@@ -84,6 +84,13 @@ internal partial class StatisticsPage
         // separately: a rate built from local transcripts cannot see another machine or claude.ai, so an
         // empty strip is "no local turn landed", never proof that nothing is running.
         parts.Add(new NoteFragment("stats.methodNote.live"));
+
+        // The Sessions pane's money column is deliberately NOT a paragraph here (T346). Measured before
+        // deciding: this note's worst shape already stands at 1,302 of its 1,350-character budget in
+        // French, so the room left for a fifth surface is 48 characters — not a sentence. And the budget
+        // is not the only argument: this note is about every number in the window, while the list-price
+        // equivalent is about one column. It has its own ⓘ beside the list, which is where a reader
+        // looking at that column is already looking.
         return parts;
     }
 

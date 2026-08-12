@@ -81,7 +81,6 @@
 
 ## Block AK — Sessions — what one conversation cost, and what it did
 
-- 📋 **T346** (deps: —) **tokens rank sessions and money explains them, and a $2 conversation reads the same as a $40 one** — T330 read the split and nothing prices it, and SessionRow aggregates the models that answered — so per-model attribution is what a list price needs first. → §LXXIV
 - 📋 **T353** (deps: —) **one tab index is declared twice in one file, and the constant whose doc says it is named once is the second copy** — Both are 3 and both address PanesBody, so a pane inserted ahead of Sessions leaves one call site on the wrong tab and the other waiting on content that lands elsewhere. → §LXXX
 
 ## Block B — Packaging, self-update, CI

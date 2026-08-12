@@ -238,6 +238,13 @@ many turns and how many tokens. A fan-out is one row, not twelve — a workflow'
 the session that spawned them, which is where their cost actually belongs. Sort by clock or by tokens
 on the column header, and pick the range: the last 7 days by default, 30 days, or everything on disk.
 
+The last column reads **≈ $ at list prices** — what those tokens come to at Anthropic's published API
+rate card, per model, so a $2 conversation and a $40 one stop looking alike. Tokens rank the list;
+this explains it, because the same token count is a different amount of work on a dearer model. **It is
+not a bill.** A subscription exposes no dollar balance and the tray knows nothing about your plan,
+your seat or your invoice — it counts tokens and multiplies by a public rate card, and the ⓘ beside
+the range picker says so, along with the date those rates were read.
+
 Under each project sits **what the conversation is called** — the title Claude Code generated for it,
 or the prompt that opened it where there is no title. This is the one place in the app that shows
 anything derived from what was said, and it is here because a list of conversations you cannot name is

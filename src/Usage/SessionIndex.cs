@@ -40,13 +40,18 @@ internal readonly record struct TaskRow(string Kind, string Name, double First, 
 /// exactly the sessions on screen rather than across whatever the index happens to hold (T332). A
 /// session's own peak is not a reading — most conversations are shorter than the window — which is
 /// why this is the series and not a figure.</param>
+/// <param name="PerModel">The six token counts, per model that answered (T346). <paramref name="Bits"/>
+/// is the sum of these and stays the figure every token column reads; this is what
+/// <see cref="ListPrices"/> needs, because two models in one conversation have different rates and an
+/// aggregate cannot be priced. Empty for a row from a cache generation that predates the split.</param>
 internal readonly record struct SessionRow(
     string Session, string Project, string Name,
     double FirstUnix, double LastUnix, int Calls, TokenBits Bits, string[] Models, int Agents,
     string Prompt = "", string Title = "",
     IReadOnlyDictionary<string, int>? Efforts = null,
     IReadOnlyDictionary<long, long>? Minutes = null,
-    IReadOnlyList<TaskRow>? Tasks = null)
+    IReadOnlyList<TaskRow>? Tasks = null,
+    IReadOnlyDictionary<string, TokenBits>? PerModel = null)
 {
     /// <summary>Wall-clock seconds from the first answered turn to the last. Zero for a session with a
     /// single turn, which is a real answer and not a missing one.</summary>
@@ -123,9 +128,11 @@ internal static class SessionIndex
     /// 6 keeps the effort each call ran at (T331), which no earlier entry recorded at all, and 7 the
     /// per-minute token series the heaviest-window sweep runs over (T332); 8 the tasks a transcript
     /// was cut into, so a range-wide reading by kind of work costs no transcript reads (T333).
-    /// See <see cref="FileEntry.V"/>.
+    /// 9 splits the token counts by the model that answered (T346), and it is the same trap a third
+    /// time: the totals stay right, so an untouched row would have gone on pricing a two-model
+    /// conversation at whichever rate the reader picked. See <see cref="FileEntry.V"/>.
     /// </summary>
-    private const int Schema = 8;
+    private const int Schema = 9;
 
     private static readonly StringComparer PathComparer = StringComparer.OrdinalIgnoreCase;
 
@@ -258,6 +265,11 @@ internal static class SessionIndex
                 if (entry.Cwd.Length == 0 && cwd is { Length: > 0 }) entry.Cwd = cwd;
                 if (model is { Length: > 0 } && !models.Contains(model, StringComparer.Ordinal))
                     models.Add(model);
+                // Per model, because two models in one conversation have different rates and a total
+                // cannot be priced (T346). Keyed on the id the transcript stated; a call whose line
+                // named no model lands under the empty key rather than being dropped, so the split
+                // still sums to the aggregate above and the pricer reports it as unpriced.
+                Attribute(entry.PerModel, model ?? "", bits);
                 // Counted per call, not per session: the mix is the reading, and a session that ran
                 // ten of fifty calls at the dear level is not an instance of that level (T331).
                 if (effort is { Length: > 0 })
@@ -468,6 +480,21 @@ internal static class SessionIndex
         return close < 0 ? null : text[open..close];
     }
 
+    /// <summary>Add one call's tokens to a model's slot, creating it on first sight. The six-long layout
+    /// is written in exactly this one place and read in exactly one other (<see cref="Merge"/>), so the
+    /// order of the fields is not a convention two readers have to agree about (T346).</summary>
+    private static void Attribute(Dictionary<string, long[]> perModel, string model, TokenBits bits)
+    {
+        if (!perModel.TryGetValue(model, out long[]? slot))
+            perModel[model] = slot = new long[6];
+        slot[0] += bits.Input;
+        slot[1] += bits.Output;
+        slot[2] += bits.CacheCreate;
+        slot[3] += bits.CacheRead;
+        slot[4] += bits.CacheCreate1h;
+        slot[5] += bits.CacheCreate5m;
+    }
+
     /// <summary>One row's worth of whitespace: newlines and runs collapse to single spaces, because the
     /// destination is one line of a table and a pasted block would otherwise arrive as a hundred blank
     /// characters. Length-preserving in the sense that matters — this is what <see cref="PersonAsk.Chars"/>
@@ -513,6 +540,7 @@ internal static class SessionIndex
             double first = 0, last = 0;
             string cwd = "", prompt = "", title = "";
             var models = new List<string>();
+            var perModel = new Dictionary<string, long[]>(StringComparer.Ordinal);
             var efforts = new Dictionary<string, int>(StringComparer.Ordinal);
             var minutes = new Dictionary<long, long>();
             foreach (FileEntry e in group)
@@ -528,6 +556,14 @@ internal static class SessionIndex
                 if (title.Length == 0) title = e.Title;
                 foreach (string m in e.Models)
                     if (!models.Contains(m, StringComparer.Ordinal)) models.Add(m);
+                // A fan-out's agents answer on their own models, so the session's split is the sum of
+                // its files' splits — the same fold the aggregate above gets, one key deeper (T346).
+                foreach (KeyValuePair<string, long[]> kv in e.PerModel)
+                {
+                    if (!perModel.TryGetValue(kv.Key, out long[]? slot))
+                        perModel[kv.Key] = slot = new long[6];
+                    for (int i = 0; i < slot.Length && i < kv.Value.Length; i++) slot[i] += kv.Value[i];
+                }
                 EffortMix.Merge(efforts, e.Efforts);
                 foreach (KeyValuePair<string, long> kv in e.Minutes)
                     if (long.TryParse(kv.Key, System.Globalization.NumberStyles.Integer,
@@ -540,7 +576,11 @@ internal static class SessionIndex
                 any.Session, any.Project,
                 cwd.Length > 0 ? ProjectSlug.NameFor(any.Project, cwd) : ProjectSlug.Tail(any.Project),
                 first, last, calls, new TokenBits(input, output, create, cached, hour, five),
-                models.ToArray(), agents, prompt, title, efforts, minutes, JoinTasks(group)));
+                models.ToArray(), agents, prompt, title, efforts, minutes, JoinTasks(group),
+                perModel.ToDictionary(kv => kv.Key,
+                                      kv => new TokenBits(kv.Value[0], kv.Value[1], kv.Value[2],
+                                                          kv.Value[3], kv.Value[4], kv.Value[5]),
+                                      StringComparer.Ordinal)));
         }
 
         rows.Sort((a, b) => b.LastUnix.CompareTo(a.LastUnix));
@@ -640,6 +680,20 @@ internal static class SessionIndex
         /// <inheritdoc cref="C1h"/>
         public long C5m { get; set; }
         public string[] Models { get; set; } = Array.Empty<string>();
+        /// <summary>
+        /// The six token counts, per model that answered (T346): <c>[In, Out, Cc, Cr, C1h, C5m]</c>, the
+        /// same order and meaning as <see cref="TokenBits"/>'s own fields.
+        ///
+        /// <para>An array rather than a nested object because it is the flattest thing that round-trips
+        /// through <c>System.Text.Json</c> without a converter, and the aggregate above stays where it
+        /// is: these sum to it, and <c>--selftest</c> asserts that they do rather than trusting it.</para>
+        ///
+        /// <para><see cref="Models"/> is kept beside this and not derived from it. That list is what the
+        /// row <em>names</em> and it has been in the cache since the first generation; this is what the
+        /// row can be <em>priced</em> from. Deriving one from the other would tie a display string to an
+        /// arithmetic input, and the order of the names is the order they were first seen.</para>
+        /// </summary>
+        public Dictionary<string, long[]> PerModel { get; set; } = new(StringComparer.Ordinal);
         /// <summary>Calls at each effort level this file recorded — see <see cref="EffortMix"/> (T331).</summary>
         public Dictionary<string, int> Efforts { get; set; } = new(StringComparer.Ordinal);
         /// <summary>The tasks this transcript was cut into, own spend only — the fan-out is joined on

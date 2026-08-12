@@ -104,6 +104,7 @@
                         <ColumnDefinition Width="76" />
                         <ColumnDefinition Width="64" />
                         <ColumnDefinition Width="84" />
+                        <ColumnDefinition Width="124" />
                     </Grid.ColumnDefinitions>
                     <!-- Project over prompt, in that order and in that weight: which repo a prompt
                          was typed in is half of recognising it, so the identifier leads and the
@@ -155,6 +156,15 @@
                     <TextBlock Grid.Column="4" Text="{Binding Tokens}" FontSize="13" VerticalAlignment="Top"
                                HorizontalAlignment="Right"
                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <!-- The list-price equivalent, dimmer than the token count beside it (T346): tokens
+                         are what the app counted and this is arithmetic over them at a published rate,
+                         so it reads as the explanation and not as the measurement. Never the word
+                         "cost" — the column heading carries "at list prices" and the method note behind
+                         the footer's ⓘ carries the rest. Blank where nothing could be priced. -->
+                    <TextBlock Grid.Column="5" Text="{Binding Money}" FontSize="13" VerticalAlignment="Top"
+                               HorizontalAlignment="Stretch" TextAlignment="Right"
+                               TextTrimming="CharacterEllipsis" ToolTip="{Binding MoneyTip}"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                 </Grid>
             </Border>
             <ItemsControl ItemsSource="{Binding Detail}" Visibility="{Binding DetailVisibility}"
@@ -694,15 +704,50 @@
                                            TextWrapping="Wrap"
                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
-                            <!-- Bounded by default: the index covers every transcript on disk and the
-                                 list opens on the seven days the rest of the window reports on. -->
-                            <ComboBox x:Name="SessionsRange" Grid.Column="1" MinWidth="150"
-                                      SelectedIndex="0" VerticalAlignment="Center"
-                                      AutomationProperties.Name="{local:Loc stats.sessions.range}">
-                                <ComboBoxItem Content="{local:Loc stats.sessions.range7}" />
-                                <ComboBoxItem Content="{local:Loc stats.sessions.range30}" />
-                                <ComboBoxItem Content="{local:Loc stats.sessions.rangeAll}" />
-                            </ComboBox>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <!-- This pane's own ⓘ, not the footer's (T346). The footer note is about
+                                     every number in the window and stands at 1,302 of its 1,350-character
+                                     budget in French — 48 characters of room for a fifth surface. This one
+                                     is about one column, and it sits where a reader looking at that column
+                                     is already looking. Same Block M pattern, same InfoDot style, same
+                                     naming rule as T175: a Segoe MDL2 codepoint has no text to derive an
+                                     accessible name from, so the title string is both name and tooltip. -->
+                                <ToggleButton x:Name="SessionsMethodInfo" Margin="0,0,10,0"
+                                              Style="{StaticResource InfoDot}"
+                                              ToolTip="{local:Loc stats.sessions.methodTitle}"
+                                              AutomationProperties.Name="{local:Loc stats.sessions.methodTitle}"
+                                              Content="&#xE946;" />
+                                <Popup x:Name="SessionsMethodPopup"
+                                       IsOpen="{Binding IsChecked, ElementName=SessionsMethodInfo, Mode=TwoWay}"
+                                       PlacementTarget="{Binding ElementName=SessionsMethodInfo}" Placement="Bottom"
+                                       VerticalOffset="4" HorizontalOffset="-8"
+                                       StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                                    <Border MaxWidth="520" CornerRadius="8" Padding="16,14" Margin="8"
+                                            Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.35" Direction="270" />
+                                        </Border.Effect>
+                                        <StackPanel>
+                                            <TextBlock Text="{local:Loc stats.sessions.methodTitle}" FontWeight="SemiBold"
+                                                       FontSize="13"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                            <TextBlock x:Name="SessionsMethodBody" Margin="0,6,0,0" FontSize="12"
+                                                       TextWrapping="Wrap" LineHeight="18"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
+                                <!-- Bounded by default: the index covers every transcript on disk and the
+                                     list opens on the seven days the rest of the window reports on. -->
+                                <ComboBox x:Name="SessionsRange" MinWidth="150"
+                                          SelectedIndex="0" VerticalAlignment="Center"
+                                          AutomationProperties.Name="{local:Loc stats.sessions.range}">
+                                    <ComboBoxItem Content="{local:Loc stats.sessions.range7}" />
+                                    <ComboBoxItem Content="{local:Loc stats.sessions.range30}" />
+                                    <ComboBoxItem Content="{local:Loc stats.sessions.rangeAll}" />
+                                </ComboBox>
+                            </StackPanel>
                         </Grid>
 
                         <!-- The sixth column is the scrollbar's gutter, widened in code from
@@ -779,6 +824,7 @@
                                     <ColumnDefinition Width="76" />
                                     <ColumnDefinition Width="64" />
                                     <ColumnDefinition Width="84" />
+                                    <ColumnDefinition Width="124" />
                                     <ColumnDefinition x:Name="SessionsGutter" Width="0" />
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Text="{local:Loc stats.sessions.col.project}"
@@ -796,6 +842,19 @@
                                 <Button Grid.Column="4" x:Name="SortByTokens" Style="{StaticResource SortHeader}"
                                         Content="{local:Loc stats.sessions.col.tokens}"
                                         HorizontalContentAlignment="Right" />
+                                <!-- Not a sort header, deliberately: the ranking is the token column's
+                                     (T346), and a second ordering over a figure derived from it would
+                                     differ only where a conversation ran a dearer model — a distinction
+                                     the heading cannot make and the note has to. -->
+                                <!-- Stretch plus TextAlignment, not HorizontalAlignment="Right" — T338's
+                                     lesson one column over: a right-aligned TextBlock sizes to its
+                                     content, so the trimming never fires and the heading overflowed
+                                     leftward until it touched "Tokens". Stretch is what makes the column
+                                     width the constraint the ellipsis is measured against. -->
+                                <TextBlock Grid.Column="5" Text="{local:Loc stats.sessions.col.money}"
+                                           FontSize="12" HorizontalAlignment="Stretch" TextAlignment="Right"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                             </Grid>
                         </Border>
 
