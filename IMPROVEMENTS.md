@@ -125,8 +125,8 @@ No string anywhere in the app may suggest changing accounts because one hit its 
 two subscriptions, each with its own token, is reading what you own; nudging somebody to hop when a
 window maxes out is limit circumvention wearing a convenience costume, and it would contradict the
 README's own terms section. The constraint is violated by implication as readily as by wording —
-§XVI.4 refused a quota bar animating one account's remaining quota into another's, on the grounds
-that it says the forbidden sentence without a string.
+T174 refused a quota bar animating one account's remaining quota into another's, on the grounds that
+it says the forbidden sentence without a string.
 
 ### §I.8 No usage annotation on memory files
 
@@ -179,33 +179,33 @@ machine). None was reported by anybody, and none of them would be.
 ## §XVI — The tray reports the switch it performed, not the switch the machine got (Block AC)
 
 The report is a question, not a bug: *"mudei para o Pessoal, mas se eu digito `/usage`, aparece
-Trabalho"*, with the inference that `/usage` must be lying. It was not. The session was on the work account
-and the tray was showing the personal one: **both correct about different questions**, and nothing in the
-app connects them.
+Trabalho"*, with the inference that `/usage` must be lying. It was not. The session was on the work
+account and the tray was showing the personal one: **both correct about different questions**, and
+nothing in the app connects them.
 
-The first theory was wrong instructively. The suspicion was a race, the write being asynchronous since
-T149; measured (§XVI.3), it is not. The variable had never been written *at all* until the Windows-wide
-switch was ticked, three minutes after the editor that asked the question had started. **A spinner
-verifies the click; what needs verifying is the result.**
+The first theory was wrong instructively. The suspicion was a race, the write being asynchronous
+since T149; measured (T173), it is not. The variable had never been written *at all* until the
+Windows-wide switch was ticked, three minutes after the editor that asked the question had started.
+**A spinner verifies the click; what needs verifying is the result.**
 
 Three failure modes hide behind the one symptom, and separating them comes first:
 
 - **A — the write is never attempted.** `SyncEnvironmentProfile` is off (the default), so
   `SyncEnvironmentToPin` returns immediately. This is the one that happened. → §XVI.1
 - **B — the write is attempted and its outcome is never read.** `Adopt` returns *accepted*, by design.
-  → §XVI.3
+  → T173
 - **C — the write lands and the next process still misses it.** A child inherits its parent's environment
   block at creation; the editor's parent was an Explorer from six hours earlier, and Explorer's refresh on
-  `WM_SETTINGCHANGE` is a courtesy, not a guarantee. → §XVI.2
+  `WM_SETTINGCHANGE` is a courtesy, not a guarantee. → T172
 
-C bounds the block: **no registry check proves the next process will see the value.** Hence §XVI.2
+C bounds the block: **no registry check proves the next process will see the value.** Hence T172
 displays the effective value continuously rather than asserting it once at the pick.
 
 ## §XVIII — Extra usage is money, and the tray is asleep for it (Block AE)
 
-The report indicts the whole feature: *"apesar de estar em 100% de uso, ainda funcionava, porque estava
-com uso extra ativado — mas no Claude Tray isto não aparece evidente, nem no gráfico, nem no tray, em
-lugar nenhum"*. The user worked straight through a number the app called a ceiling.
+The report indicts the whole feature: *"apesar de estar em 100% de uso, ainda funcionava, porque
+estava com uso extra ativado — mas no Claude Tray isto não aparece evidente, nem no gráfico, nem no
+tray, em lugar nenhum"*. The user worked straight through a number the app called a ceiling.
 
 This is a block and not a missing feature because **none of the data is missing**:
 
@@ -217,13 +217,13 @@ This is a block and not a missing feature because **none of the data is missing*
 | `anthropic-ratelimit-unified-5h-status` | `UsageData.Status` | printed verbatim in the tooltip; read by nothing |
 
 Three of the four predate the Statistics window. The gap is not acquisition: **nothing downstream
-believes the account can be past 100% and still working** — §XVIII.1 has the measurement.
+believes the account can be past 100% and still working** — T179 has the measurement.
 
-Two constraints bind. The **privacy promise** is not in tension: rate-limit headers are quota metadata,
-§I.1 restricts *transcripts*, and this block adds no transcript reading and no endpoint. The
-**"profiles are contexts, not quota pools"** non-goal is in tension throughout — every task makes
-overage more visible, and the next sentence, *this account is out, the other has room*, is the one the
-roadmap forbids. §XVIII.6 binds hardest; §XVI.4 found the answer's shape: a receipt, not a reward.
+Two constraints bind. The **privacy promise** is not in tension: rate-limit headers are quota
+metadata, §I.1 restricts *transcripts*, and this block adds no transcript reading and no endpoint.
+The **"profiles are contexts, not quota pools"** non-goal is in tension throughout — every task
+makes overage more visible, and the next sentence, *this account is out, the other has room*, is the
+one the roadmap forbids. T184 binds hardest; T174 found the answer's shape: a receipt, not a reward.
 
 ## XX Verification — the checks that prove a change (Block AI)
 
@@ -483,7 +483,7 @@ one property `Allows` needed and could not find.
 Two constraints from §XVIII carry over. Rate-limit headers are quota metadata, so §I.1 is not in
 tension; the "profiles are contexts, not quota pools" non-goal is, because every task here makes
 overage more visible and *this account is out, the other has room* is the sentence the roadmap
-forbids — §I.7, and §XVI.4 has the shape of the answer: a receipt, not a reward.
+forbids — §I.7, and T174 has the shape of the answer: a receipt, not a reward.
 
 What binds the whole block: the amount is still unstated. The overage window has a utilization that
 read `0.0` throughout the spell and a reset on a calendar month; no header says what 100% of it
@@ -551,16 +551,16 @@ timestamp, so the turns after it are priceable with nothing new read.
 
 Three things had to hold. An **estimate**, carrying the visible "≈" every token count here does —
 §I.3. A **receipt**: what it cost, with no suggestion and nothing that reads as a reward for
-spending — §I.7 and §XVI.4. And a price table right about which models the overage even bills, since
+spending — §I.7 and T174. And a price table right about which models the overage even bills, since
 pricing turns the account was never billed for is worse than saying nothing. That was the gate, and
 the instruction was to measure the list first.
 
 **Measured 2026-08-04, and the third fails.** `.claude.json` caches
-`tengu_usage_overage_included_models` under `cachedGrowthBookFeatures`, reading `["Fable",
-"Fable 5"]`. Eight days of transcripts here are 34,595 Opus turns, 195 Sonnet and **zero Fable** — so
-under one reading of the flag ("these bill as overage") the estimate for a spell that demonstrably
-cost money is $0.00, and under the other ("these stay included") it is the whole $5,834 notional. One
-sample cannot tell them apart, which is the shape §XVIII.9 declines to map. Two smaller cracks in the
+`tengu_usage_overage_included_models` under `cachedGrowthBookFeatures`, reading `["Fable", "Fable
+5"]`. Eight days of transcripts here are 34,595 Opus turns, 195 Sonnet and **zero Fable** — so under
+one reading of the flag ("these bill as overage") the estimate for a spell that demonstrably cost
+money is $0.00, and under the other ("these stay included") it is the whole $5,834 notional. One
+sample cannot tell them apart, which is a shape one sample cannot map. Two smaller cracks in the
 same joint: the values are display names, not the model ids `Price` matches on; and a cached
 GrowthBook payload is remote experiment state, not a billing contract. §I.2 forbids the call that
 would settle it.
@@ -575,7 +575,7 @@ a name that had already moved twice. `anthropic-ratelimit-unified-5h-surpassed-t
 on every reading inside the quota, arrives as `0.9` on the reading whose `5h-status` first says
 `allowed_warning` at a utilization of 0.91, and reads `1.0` on the one that says `rejected` at 1.02.
 
-That is not the single-sample vocabulary §XVIII.9 declines to map. The name has taken two values in
+That is not the single-sample vocabulary §XXIII.4 declines to map. The name has taken two values in
 one log, each beside a status transition this app already reads, so what it announces is measured
 rather than inferred: the threshold the account crossed, named by the API, on the reading it was
 crossed on.
@@ -808,32 +808,6 @@ included in your plan* — distinguished by where it is drawn, so one entry that
 week left to the tooltip, is the whole change. It also has to survive the case that only one of the
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
-
-## LXXIX Ten citations the ledger's own edits left behind (T352)
-
-roadkeep grew a rule mid-session — a citation inside prose is a relation and it has to resolve — and
-it found ten here that are all older than it. `lint` was clean on the commit before and red on the
-same content after, so this is debt surfaced rather than debt created, and it is red in CI from that
-commit on.
-
-**Where they come from.** `ship` drops the section a task pointed at. Any *other* sentence that
-argued from that section keeps its `§` and now points at nothing, and nothing ever looked — six of
-the ten cite `§XVI.2`, `§XVI.3`, `§XVI.4`, `§XVIII.1`, `§XVIII.6` and `§XVIII.9`, designs that
-shipped and left.
-
-**Three shapes, and only reading tells them apart.** A pointer whose design merely moved, which gets
-repointed. An argument whose ground is gone, where the sentence has to be rewritten or dropped —
-that is the expensive kind and the reason this is not a `sed`. And `§S:VII` citing a bare `§S`,
-which reads like a malformed address rather than a lost section: worth taking first, because if the
-citation grammar admits it, the rule will keep finding it here and in every project that adopts it.
-
-**What not to do is the whole risk.** Repointing each one at its nearest surviving ancestor would
-clear the report in one pass and turn ten citations into ten sentences that cite something they were
-not making a claim about — a lie that lints clean, which is worse than the dangling pointer, because
-the dangling one is *visible*. `roadkeep origin <anchor>` answers which commit wrote a design and
-which took it, so each can be corrected from what it said rather than from where it sat.
-
-Ten `section amend` edits, each against the **citing** section.
 
 ## LXXX One tab index, declared twice (T353)
 
