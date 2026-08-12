@@ -89,6 +89,8 @@
 
 ## Block B — Packaging, self-update, CI
 
+- 📋 **T350** (deps: —) **nothing has shown the SDK pin reproduces a release, and the hash winget pins is of the installer, not the .exe** — T349 pinned on evidence that a different SDK moves the .exe 89 KB, not that the same one repeats - and Inno Setup, not dotnet, makes the file winget hashes. → §LXXVII
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

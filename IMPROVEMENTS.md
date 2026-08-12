@@ -913,3 +913,30 @@ account. This needs none.
 
 Being user-facing, it owes the gate: five language files, the README, the published page, and a
 screenshot in at least one non-English language.
+
+## LXXVII Whether the pin bought reproducibility, and of which artefact (T350)
+
+T349 pinned the SDK, which closes the cause §LXXVI measured — two patches of one source, 89 KB and
+two different SHA-256s apart. What it did not do is show that the pin is *sufficient*, and the
+evidence it shipped on cannot: that a **different** SDK changes the output is not evidence that the
+**same** one repeats.
+
+**Two artefacts, and the one winget pins is the second.** `dotnet publish` produces
+`ClaudeTray.exe`; `build\installer.iss` compresses that into `dist\ClaudeTray-Setup.exe`, and
+`update-winget.ps1` writes *that* file's SHA-256 into every manifest. So "a tag rebuilds to what
+shipped" has to hold twice, through two different compilers, and only the first has any evidence
+behind it at all. Inno Setup is the half nothing here has ever looked at.
+
+**The measurement is four numbers and there is no design to settle first.** Publish twice from one
+clean checkout on the pinned SDK and hash both; build the installer twice from one publish and hash
+both.
+
+What the numbers decide. *Same and same*: the pin delivered what it claimed, and the ledger says so
+with the hashes in it. *Same `.exe`, different installer*: the pin is real, but the manifest hash
+still cannot be reproduced from a tag — so the winget consequence §LXXVI named **survives** T349 and
+needs a fix of its own, at which point the question becomes which of Inno Setup's timestamps is
+doing it. *Different `.exe`*: the pin bought nothing and the cause is upstream of the SDK version,
+which is the answer worth having soonest.
+
+**Deliberately not a `--selftest` check.** Two Release publishes and two installer compiles is
+minutes, and the binary that would run the assertion is the artefact under test.
