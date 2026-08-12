@@ -13,7 +13,7 @@
 # Uso no CI:  powershell -File build\update-winget.ps1 -Version 1.3.14 -Sha <SHA256>
 #   -Version  sobrepoe a versao lida do csproj (default: <Version> do csproj)
 #   -Sha      sobrepoe o hash (default: SHA256 de dist\ClaudeTray-Setup.exe)
-#   -Date     sobrepoe a data    (default: hoje, yyyy-MM-dd)
+#   -Date     sobrepoe a data    (default: a data do commit, NAO a de hoje - ver T351)
 # =============================================================================
 param(
     [string]$Version,
@@ -44,13 +44,57 @@ if (-not $Sha) {
 }
 $sha = $Sha.ToUpperInvariant()
 
-# --- 3) Data: -Date, senao hoje ---------------------------------------------
-if (-not $Date) { $Date = (Get-Date).ToString('yyyy-MM-dd') }
+# --- 3) Data: -Date, senao a data do commit que esta sendo empacotado (T351) -
+# O relogio era a fonte, e por isso este era o unico campo do manifesto que uma re-emissao
+# da mesma tag NAO reproduzia: o .exe e o instalador saem byte a byte iguais (T350), e o
+# ReleaseDate saia com a data do dia em que o job rodou. A data do commit responde a mesma
+# pergunta e responde igual para sempre - `v1.6.2` da 2026-08-07, que e exatamente o que o
+# manifesto publicado ja carrega.
+#
+# A tag primeiro e o HEAD depois, porque as duas respondem em situacoes diferentes: rodando
+# localmente em main para regerar uma versao antiga, a tag e a unica que sabe a data certa;
+# cortando uma versao nova, a tag ainda nao existe e o HEAD e o commit do bump. No CI as duas
+# coincidem - build.yml roda sobre o proprio ref da tag.
+# Um rev que nao existe nao e erro aqui, e a proxima fonte da lista - mas dizer isso custa duas
+# protecoes, nao uma. No Windows PowerShell 5.1 o stderr de um .exe nativo vira um NativeCommandError
+# e, com o $ErrorActionPreference = 'Stop' la de cima, esse registro TERMINA o script: `2>$null` nao
+# evita isso. Entao a sondagem e `rev-parse -q`, que nao escreve nada quando falha, e mesmo assim o
+# bloco baixa o preference - senao "cortar a versao antes de criar a tag", que e o fluxo local
+# normal, derrubaria a geracao dos manifestos em vez de cair no HEAD.
+function Get-CommitDate([string]$rev) {
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $null = & git rev-parse -q --verify "$rev^{commit}" 2>$null
+        if ($LASTEXITCODE -ne 0) { return $null }
+        $out = & git log -1 --format=%cs $rev 2>$null
+        if ($LASTEXITCODE -eq 0 -and $out -match '^\d{4}-\d{2}-\d{2}$') { return $out }
+        return $null
+    }
+    catch { return $null }   # git ausente: nao ha data a extrair, e a lista continua
+    finally { $ErrorActionPreference = $prev }
+}
+
+$dateFrom = 'parametro -Date'
+if (-not $Date) {
+    $Date = Get-CommitDate "v$version"
+    $dateFrom = "commit da tag v$version"
+}
+if (-not $Date) {
+    $Date = Get-CommitDate 'HEAD'
+    $dateFrom = 'commit do HEAD'
+}
+# Sem git (um zip do codigo, por exemplo) nao ha data reproduzivel a extrair; o relogio volta a
+# ser a fonte, e a linha abaixo diz que foi ele.
+if (-not $Date) {
+    $Date = (Get-Date).ToString('yyyy-MM-dd')
+    $dateFrom = 'relogio - sem git, esta data nao se reproduz'
+}
 $date = $Date
 
 Write-Host "Versao : $version"
 Write-Host "SHA256 : $sha"
-Write-Host "Data   : $date"
+Write-Host "Data   : $date  ($dateFrom)"
 
 # --- 3) Reescreve os campos dinamicos nos manifestos -------------------------
 # Le/escreve sempre em UTF-8 (sem BOM): no Windows PowerShell 5.1, Get-Content/-Raw usa o
