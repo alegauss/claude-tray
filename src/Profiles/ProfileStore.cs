@@ -134,14 +134,32 @@ internal static class ProfileStore
     public static ProfileRef MonitoredRef => new(Monitored, MonitoredDir);
 
     /// <summary>
-    /// Adopt a profile as the monitored one, migrating the pre-profile flat files into it the first time.
-    /// Safe to call repeatedly.
+    /// Adopt a profile as the monitored one. Safe to call repeatedly.
     /// </summary>
-    public static void SetMonitored(ClaudeInfo profile)
+    /// <param name="mayMigrate">
+    /// Whether this caller is entitled to move the pre-profile flat files into the profile — <b>false by
+    /// default, which is the whole of T357</b>.
+    ///
+    /// <para><see cref="Observing"/> was supposed to cover this and could not: adopting the profile is
+    /// the first thing <c>Program.Main</c> does, above every flag it dispatches, and the gate is thrown
+    /// afterwards or not at all. So <c>--selftest</c>, <c>--capture-stats</c> and every other flag ran the
+    /// migration against the developer's real store while <c>Observing</c> was still false. Measured the
+    /// day T354 added a rename to it: a check run renamed the developer's own <c>reset-events.log</c>,
+    /// 1,793 bytes, and nothing had asked it to. The per-file moves had had the same reach since T125 and
+    /// nobody had watched one happen — <c>ObservingTray</c> cannot, because it fingerprints the tree after
+    /// the write has already landed.</para>
+    ///
+    /// <para>An argument rather than a second guess at what kind of process this is: at the point the
+    /// profile is adopted the dispatch has not happened, so "am I the tray" would have to be a list of
+    /// every flag or <c>args.Length > 0</c>, and the latter is wrong for a tray started with
+    /// <c>--lang</c>. The two callers that pass <c>true</c> are the tray's own startup and its profile
+    /// switch, and both are unambiguously the tray.</para>
+    /// </param>
+    public static void SetMonitored(ClaudeInfo profile, bool mayMigrate = false)
     {
         Monitored = KeyFor(profile);
         MonitoredDir = profile.ConfigDir;
-        Migrate(Monitored);
+        if (mayMigrate) Migrate(Monitored);
     }
 
     /// <summary>

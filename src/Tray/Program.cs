@@ -165,9 +165,13 @@ internal static class Program
 
         // Adopt the profile whose numbers this process reads and writes, before any store is touched —
         // every one of them is keyed by it now (T125). The default config dir is the profile a bare
-        // `claude` uses, which is the single series every installation has today; the first call also
-        // migrates the pre-profile flat files into it. Choosing another profile to monitor, and polling
-        // more than one, is T127.
+        // `claude` uses, which is the single series every installation has today. Choosing another
+        // profile to monitor, and polling more than one, is T127.
+        //
+        // It does NOT migrate, and that is deliberate (T357). This line runs above every flag this
+        // method dispatches, so a `--selftest` or a `--capture-stats` used to move files in the user's
+        // real store before `Observing` was thrown — the gate is downstream of the write it was meant to
+        // stop. The tray migrates from `RefreshWatched`, where the process is unambiguously the tray.
         ProfileStore.SetMonitored(ClaudeAccount.Read());
 
         // Defaults under docs\_preview\, which is git-ignored: `.` dumped a dozen PNGs into the working

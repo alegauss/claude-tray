@@ -320,6 +320,7 @@ internal static class SelfTestCli
         // stricter of the two — from here on this process writes nothing at all (T239).
         Section("observing tray — a check that adds nothing to the user's files (Block AI)");
         StoreRootSpelledOnce();
+        OnlyTheTrayMigrates();
         ObservingGateCallSites();
         ObservingTray();
 
@@ -5053,6 +5054,46 @@ internal static class SelfTestCli
                   + "call site that has gone, while whatever replaced it is read by nobody");
         }, "src");
     }
+
+    /// <summary>
+    /// Only the tray asks to migrate the store (T357).
+    ///
+    /// <para>Adopting the profile is the first thing <c>Program.Main</c> does, above every flag it
+    /// dispatches — so the migration ran against the user's real store while <c>ProfileStore.Observing</c>
+    /// was still false, and the gate T344 put on it never applied to a single dev flag. The write is now
+    /// asked for rather than assumed: <c>SetMonitored</c> migrates only when the caller says it may.</para>
+    ///
+    /// <para><b>Asserted on the source, because the runtime version cannot fail here.</b> On any machine
+    /// that has already migrated there is nothing left to move, so a counter would read zero whether the
+    /// argument were honoured or not — the check would pass for the wrong reason on every developer's
+    /// machine and CI alike. What is checkable is who asks: exactly one call site, and it is the tray's
+    /// own poll refresh, where the process is unambiguously the tray.</para>
+    /// </summary>
+    private static void OnlyTheTrayMigrates() =>
+        Repo("only the tray asks the store to migrate", root =>
+        {
+            var askers = new List<string>();
+            foreach (string path in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.cs",
+                                                             SearchOption.AllDirectories))
+            {
+                // A scanner that names the string it looks for reports itself — the same reason
+                // StoreRootSpelledOnce skips this file.
+                if (Path.GetFileName(path).Equals("SelfTestCli.cs", StringComparison.OrdinalIgnoreCase)) continue;
+                string[] lines = File.ReadAllLines(path);
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    string t = lines[i].TrimStart();
+                    if (t.StartsWith("//", StringComparison.Ordinal)) continue;
+                    if (t.Contains("mayMigrate: true", StringComparison.Ordinal))
+                        askers.Add($"{Path.GetFileName(path)}:{i + 1}");
+                }
+            }
+            Check("exactly one call site asks to migrate, and it is the tray's",
+                  askers.Count == 1 && askers[0].StartsWith("TrayContext.cs", StringComparison.Ordinal),
+                  $"{(askers.Count == 0 ? "(none)" : string.Join(", ", askers))} — the store is migrated "
+                  + "where the process is known to be the tray, and nowhere else. A flag that asks for it "
+                  + "moves the user's files before the observing gate exists to stop it (T357).");
+        }, "src");
 
     /// <summary>
     /// Where the store lives is one fact, spelled in one place (T354).

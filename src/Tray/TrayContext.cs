@@ -657,7 +657,10 @@ internal sealed class TrayContext : ApplicationContext
         // Monitored first: it drives the icon, so it is the one poll that must not wait on the others.
         _watched.Remove(monitored);
         _watched.Insert(0, monitored);
-        ProfileStore.SetMonitored(monitored);
+        // The tray, so it may migrate (T357). A dev flag adopting a profile gets the default and moves
+        // nothing — the gate could not cover this, because the profile is adopted before any flag is
+        // dispatched and `Observe()` is thrown after that or never.
+        ProfileStore.SetMonitored(monitored, mayMigrate: true);
         _api = new ApiClient(monitored.ConfigDir);
 
         // An open report's picker is this list, and it was filled once — when the window was built (T319).

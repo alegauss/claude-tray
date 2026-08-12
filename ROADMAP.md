@@ -77,10 +77,6 @@
 
 ## Block B — Packaging, self-update, CI
 
-## Block AI — Verification — the checks that prove a change
-
-- 📋 **T357** (deps: —) **the profile is adopted before any flag is dispatched, so the migration writes the store with the gate still off** — A --selftest run of the new binary renamed the developer's own reset-events.log, and ObservingTray cannot see it because the write lands before it takes its baseline. → §LXXXIV
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
