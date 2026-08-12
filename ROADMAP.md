@@ -24,59 +24,6 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block AG — The interaction check grew two cases, and nobody runs it
-
-> Block AD doubled what `Check-Interaction.ps1` asserts, and every item here came out of building or
-> running those cases rather than out of planning them: one is a latent id collision the new case only
-> avoids by the order it reads in, two are ways a check can quietly stop asserting, and two are the cost
-> of a loop that a person has to remember.
-> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XX.
->
-> Ordered by what can make a green run meaningless, then by what keeps the loop being run at all.
-
-## Block AE — Extra usage is money, and the tray is asleep for it
-
-> A field report against an account working past 100%: the overage reading is fetched, reaches one
-> conditional line of tooltip, and changes nothing else on screen.
-> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XVIII — the report, the four signals already parsed, and
-> the two constraints that bind every task here.
->
-> Ordered by what is losing data today, then by what every string here is waiting on, then by what a
-> user would actually see.
-
-## Block AB — What Block Z's own work left behind
-
-> Four things surfaced *while building* Block Z that are part of none of its tasks and were reported by
-> nobody: two the block itself grew, two about the checks meant to protect it.
-> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XV.
->
-> Ordered by what is wrong on screen today, then by what protects the rest.
-
-## Block AC — The tray reports the switch it performed, not the switch the machine got
-
-> A field report against shipped Block T: the tray and `/usage` named different profiles, and both were
-> right about different questions. Three distinct ways the choice fails to reach a new session, and the
-> tray distinguishes none of them.
-> Design: [IMPROVEMENTS.md](IMPROVEMENTS.md) §XVI — the measurement, and the A/B/C split the tasks follow.
->
-> Ordered by what is wrong for every user today, then by what makes the result checkable.
-
-## Block G — Localization
-
-## Block N — System information — your plan, your install, this machine
-
-## Block S — Settings round-trip
-
-## Block Q — Keyboard input in the windows
-
-## Block I — Context Load Inspector
-
-## Block J — Activity-aware pacing
-
-## Block F — Statistics window (pace report)
-
-## Block B — Packaging, self-update, CI
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
