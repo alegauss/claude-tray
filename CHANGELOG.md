@@ -18,7 +18,7 @@
 | Block | Theme |
 |---|---|
 | [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
-| [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI (active — see ROADMAP) |
+| [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
@@ -91,6 +91,7 @@
 - **T266** — The publish refuses when something is running from the folder it would overwrite, naming the pid and the path, instead of failing inside the SDK bundler with UnauthorizedAccessException and four frames of MSBuild - which is what the release path did for a state that is not a bug, since whoever installed by building runs the tray from exactly that folder. Matched on the path and not the process name, so a Debug tray does not block a Release publish. It never stops that process: the tray is the user own running app, and a build script that kills applications is worse than one that asks. Demonstrated on the real tray, both directions.
 - **T269** — A completed build now sweeps the temp projects the WPF SDK leaves behind, so the folder stops drifting into the state where the documented dotnet build refuses with MSB1011 - one had sat in this root for four hours, gitignored and therefore never mentioned. Age-guarded on purpose: parallel sessions share this tree, a temp project younger than ten minutes may belong to a build running now, and an unguarded delete would have made the missing-generated-file failures worse rather than better. What the sweep cannot do is recover from the state, because MSB1011 is raised before the project is loaded, so that one line went to AGENTS.md instead.
 - **T270** — The two build failures that are not your code are named where the command is, both measured: MSB1011 is a killed build leaving a temp project, and a missing generated file is the WPF markup pass racing the IDE design-time builds over one obj directory - three dotnet worker nodes and two IDE language servers were sharing it, which is what T258 and T269 had guessed was a parallel session. Both mitigations were tried and rejected by measurement: Directory.Build.rsp is not honoured by dotnet build and MSBUILDDISABLENODEREUSE leaves nodes alive, and node reuse buys no measurable time here anyway - 9s either way. So the deliverable is the sentence plus a non-goal, and never a retry loop.
+- **T341** — The four single-file properties are Release-only, so a no-op Debug build fell from 81-395s to 1.2s and bin\Debug from 155.6 MB to 1.9 MB, with the published .exe byte-identical either way.
 
 ## Block C — Settings window (WPF Fluent)
 

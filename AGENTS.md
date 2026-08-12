@@ -209,6 +209,7 @@ dotnet build -c Debug                 # fast compile check. Two failures here ar
                                       #   the markup pass racing the IDE's design-time builds over one
                                       #   obj\ (T270). Build again — but never in a retry loop, which
                                       #   cannot tell a race from a broken tree.
+                                      #   Debug is framework-dependent: needs WindowsDesktop.App 10.x (T341).
 dotnet run -c Release                 # build + run the tray app
 dotnet publish -c Release             # single self-contained .exe -> bin\Release\net10.0-windows\win-x64\publish\
 

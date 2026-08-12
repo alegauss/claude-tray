@@ -23,10 +23,38 @@
     <Version>1.6.2</Version>
     <!-- Keep ProductVersion exactly "x.y.z" (no +commit suffix) so the installer can reuse it. -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <!-- Single self-contained .exe when published (see README) -->
+    <!-- Unconditional, and deliberately so: the RID is part of the output path that every dev flag,
+         every script default and the dev-flags skill already spell out as
+         bin\<config>\net10.0-windows\win-x64\ClaudeTray.exe. Moving it under a condition would move
+         that folder in Debug and silently break all of them. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <!-- Single self-contained .exe when published (see README) — Release only, and that is the point (T341).
+       These four used to sit in the PropertyGroup above, so they applied to `dotnet build` too: a Debug
+       build laid the whole runtime down in bin\Debug\net10.0-windows\win-x64 — 252 files, 247 of them
+       DLLs, 155.6 MB — every single time. Measured on one machine, same source, nothing changed between
+       runs: a no-op `dotnet build -c Debug` took 81s and then 395s; conditioned, the same no-op takes
+       1.2s and a full build 16s. That is charged against the loop AGENTS.md documents — build, run a
+       flag, look at what came back — so it was being paid several times per task.
+
+       `Configuration`, not `_IsPublishing`. `_IsPublishing` would speed the Release build up too, but it
+       is an SDK-internal property: if it ever stops being set, publish quietly stops being self-contained
+       and only a release would find out. Conditioning on Configuration also leaves CI untouched —
+       .github\workflows\check.yml builds `-c Release` and then RUNS the plain build output as an .exe,
+       which only works because that output is still self-contained.
+
+       Verified, not assumed (STRATEGY.md §IV pins the version chain to this file, and publish output must
+       not change): a from-scratch `dotnet publish -c Release` before and after this change produced a
+       byte-identical ClaudeTray.exe — SHA-256 equal to the digit on both sides of the change. The Debug
+       .exe is now framework-dependent and needs Microsoft.WindowsDesktop.App 10.x present to start; the
+       selftest flag run from it passes 893 of 893.
+
+       An XML comment cannot contain two hyphens in a row, so no flag can be spelled here as it is typed:
+       this file refused to load with MSB4025 over exactly that. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
