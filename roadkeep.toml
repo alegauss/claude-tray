@@ -104,16 +104,29 @@ why = 200
 # flag catalogue moved to the `dev-flags` skill — reference material, consulted rather than read — and
 # the ceiling came down with it rather than the room being spent. 370/41000 until T219, which stated
 # the test the file is now kept by — a rule earns its bytes if getting it wrong produced a defect and
-# `--selftest` cannot assert it — and moved the per-file map to the `file-map` skill on it. The file is
-# at 311 lines / 23.7 KB, so the headroom is about ten lines again: room for a rule, not for a table.
+# `--selftest` cannot assert it — and moved the per-file map to the `file-map` skill on it.
 #
-# 24200 until T341, and that number is why this entry is worth reading twice: the file had grown to
-# 24199 of it — ONE byte free — so the next rule to earn its place could not be written at all, and the
-# budget had stopped measuring the file and started blocking it. Raised by hand, deliberately, to fit
-# T341's one line (that a Debug build is framework-dependent) and about one more. A raise is the
-# exception the ceiling exists to make expensive: the two before it came DOWN, each paid for by moving
-# reference material to a skill, and that remains the first thing to try.
-"AGENTS.md" = { lines = 312, bytes = 24400 }
+# Then it went the other way, twice, and the order is worth keeping because only the second raise was
+# the one asked for. 312/24200 held until T341, by which point the file measured 24199 of it — ONE byte
+# free, so the next rule to earn its place could not be written at all and the budget had stopped
+# measuring the file and started blocking it. T341 raised it to 24400 to fit one line, which is the
+# whole of what 24400 bought. T342 is the task that owned the number: T294's sixth interaction case had
+# gone 786 bytes and 5 lines over, and fitting it back took eleven edits, nine of them compressing
+# rules that task never touched. The decision recorded in IMPROVEMENTS is to keep the case list in the
+# every-turn file rather than move it to a third skill — a reader who must open one to learn that
+# `-Case Switch` exists will not run it — and to pay for that in ceiling instead. Hence 323/25500:
+# twelve lines and 1190 bytes of headroom, which is 99 bytes a line at the 100-column prose width this
+# repository wraps to, so neither of the two limits binds long before the other.
+#
+# One caveat on the unit, because it is not the commit that is measured: `lint` counts the bytes on
+# disk, and this tree's AGENTS.md is CRLF while git stores LF (`core.autocrlf = input`), so an LF
+# checkout of the same commit measures about 310 bytes less and is handed headroom nobody granted.
+# These numbers are calibrated against the CRLF working tree, which is what an editor here has.
+#
+# A raise stays the expensive exception. The two that came DOWN were each paid for by moving reference
+# material out, and that is still the first thing to try; what does not change is the test above, or
+# this number's habit of coming down when content genuinely leaves.
+"AGENTS.md" = { lines = 323, bytes = 25500 }
 
 [markers]
 open = ["📋", "💭", "⏳", "🛠"]

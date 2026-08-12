@@ -809,33 +809,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## LXX The case list has outgrown the every-turn file (T342)
-
-Adding T294's case to the interaction list put `AGENTS.md` **786 bytes and 5 lines** over its
-budget. Fitting it back took eleven edits, only two of them to the new bullet. The other nine
-compressed rules the task never touched: **Panes/Names**, **Profiles**, the **Menu** bullet's three
-refusals, the **Unchecked** rule, the exit-code sentence, the invocation comment. A `-UseRunning`
-refusal was dropped from the new bullet because the script enforces it at runtime — true, and
-decided by the byte count rather than the rule.
-
-The file then sat at **24199 of 24200 bytes**: one byte of headroom, so a seventh case could not be
-added at all.
-
-**The budget was working.** The ceiling is declared *"a ceiling to come down, not a target"*, and
-the grinding is the pressure it exists to apply. Twice before, the answer was to move content out —
-T191 to `dev-flags`, T219 to `file-map` — and both times the ceiling came down with it.
-
-**Decided otherwise, by the person who reads the file: raise the ceiling, and the case list stays.**
-The argument for moving is about *kind*: reference material in a file meant for rules. The argument
-against is about *use* — these six cases are how the checks get run, and a reader who must open a
-skill to learn `-Case Switch` exists will not run it. Two skills already hold what was moved; a
-third indirection buys tidiness and costs what the file is for.
-
-**So the number in `roadkeep.toml` moves**, with its reason recorded beside the two that lowered it,
-and the headroom is about a dozen lines again — enough for a rule, still not for a table. What does
-not change is the test the file is kept by, or its habit of coming down when content genuinely
-leaves.
-
 ## LXXI Two waits, one deadline, two answers (T343)
 
 `SaveAllTabs` holds two waits for two asynchronous panes, and they answer one deadline differently.
