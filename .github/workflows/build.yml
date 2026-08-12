@@ -22,10 +22,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # The SDK patch is named in `global.json` and nowhere else (T349), so this step installs the
+      # very version a local `dotnet publish` resolves to. It is the release path: two patches of one
+      # source produced .exes 89 KB apart, and `update-winget.ps1` pins the installer's SHA256 from
+      # whatever was built — so a floating SDK makes the published manifest stale against a rebuild.
       - name: Set up .NET 10
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       - name: Publish (self-contained, win-x64, single file)
         run: dotnet publish -c Release

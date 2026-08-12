@@ -42,10 +42,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
+      # `global-json-file`, not a `dotnet-version` literal (T349): the SDK patch is named in
+      # `global.json` and nowhere else, so a guard job and the release job cannot end up on different
+      # runtimes, and neither can drift from what a contributor builds.
       - name: Set up .NET 10
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       # `dotnet build`, not `dotnet publish`: the csproj is self-contained for win-x64 either way, so
       # the plain build output is a runnable .exe, and skipping the single-file bundling and its
@@ -116,7 +119,7 @@ jobs:
       - name: Set up .NET 10
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: global.json
 
       # `-warnaserror` for the reason given on the other job's Build step (T272), and on both because a
       # gate one job carries and the other does not is a gate that depends on which job ran first.

@@ -717,7 +717,8 @@ Governing terms: [Consumer Terms](https://www.anthropic.com/legal/consumer-terms
 ## Requirements
 
 - Windows 10/11
-- .NET 10 SDK (to build) — the self-contained `.exe` does not require .NET to be installed to run
+- .NET 10 SDK (to build) — the patch is pinned in [`global.json`](global.json), so a released `.exe`
+  can be rebuilt from its tag; the self-contained `.exe` needs no .NET installed to run
 - Claude Code installed and logged in (run `claude` at least once)
 
 ## Build and run

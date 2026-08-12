@@ -89,8 +89,6 @@
 
 ## Block B — Packaging, self-update, CI
 
-- 📋 **T349** (deps: —) **a published .exe cannot be rebuilt from its tag, because nothing pins the .NET SDK patch version** — Two SDK patches produced different .exes from one source: 75,792,286 bytes on 10.0.302 and 75,881,079 on 10.0.303, and CI floats 10.0.x in three workflows with no global.json. → §LXXVI
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

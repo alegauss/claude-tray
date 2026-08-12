@@ -913,30 +913,3 @@ account. This needs none.
 
 Being user-facing, it owes the gate: five language files, the README, the published page, and a
 screenshot in at least one non-English language.
-
-## LXXVI Which SDK built the thing that shipped (T349)
-
-Found while proving T341's change byte-neutral, and the proof is what turned it up. The published
-`.exe` was compared before and after the change, twice, and the second pair disagreed with the
-first: one source produced **75,792,286 bytes** under SDK **10.0.302** and **75,881,079** under
-**10.0.303**, SHA-256 `7B11F1…4871` against `A4B9C8…BFE3`. The SDK had upgraded itself mid-session —
-89 KB of difference from nothing anybody wrote.
-
-That much is expected of a self-contained single file: the bundled runtime is whatever the SDK
-ships. What is not expected is that nothing here names a version. There is no `global.json`, and all
-three workflows ask `actions/setup-dotnet` for `10.0.x`, which resolves to whatever the runner
-happens to have that week. So the artefact a tag produces is a function of the calendar rather than
-of the tag.
-
-Two concrete consequences, neither hypothetical. `build\winget\…installer.yaml` pins an
-`InstallerSha256`, written by `update-winget.ps1` from the installer that was actually built —
-rebuild a release from its tag and the published manifest is stale against the binary. And the
-comparison above had to be run a second time precisely because the first pair straddled the upgrade,
-so any future check of the form "did this change the output" inherits the same hole.
-
-**What is deliberately not decided here is where the pin goes.** A `global.json` with a
-`rollForward` bound governs every build including a contributor's, and refuses to build at all on a
-machine that lacks that band. Pinning only in the workflows leaves local builds free and still makes
-the released artefact reproducible, at the cost of the release differing from what a contributor can
-produce. Which is right depends on whether a contributor's SDK version is this project's business —
-a question about the project, not about the build.

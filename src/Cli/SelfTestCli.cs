@@ -195,6 +195,9 @@ internal static class SelfTestCli
         Section("warnings — the gate that keeps a build log worth reading (Block AI)");
         WarningGate();
 
+        Section("sdk — one pin, and every build resolves through it (Block B)");
+        SdkPin();
+
         Section("report — one label, one quantity (Block I)");
         ReportLabels();
 
@@ -4298,6 +4301,99 @@ internal static class SelfTestCli
         Check($"both CI builds carry -warnaserror ({builds.Length})", ungated.Length == 0,
               $"{string.Join(" | ", ungated)} — without it a real warning lands in a log nobody reads, " +
               "which is the state T272 was filed against");
+    }
+
+    /// <summary>
+    /// T349. The .NET SDK patch is named in <c>global.json</c> and nowhere else, so what a tag publishes is a
+    /// function of the tag rather than of the calendar.
+    ///
+    /// <para><b>What went wrong without it.</b> One source produced a 75,792,286-byte <c>.exe</c> under SDK
+    /// 10.0.302 and 75,881,079 under 10.0.303 — 89 KB from nothing anybody wrote, because a self-contained
+    /// single file bundles whatever runtime the SDK ships. Nothing named a version: there was no
+    /// <c>global.json</c>, and every <c>setup-dotnet</c> step asked for <c>10.0.x</c>, which resolves to
+    /// whatever the runner happened to have that week. <c>update-winget.ps1</c> pins an
+    /// <c>InstallerSha256</c> from the installer that was actually built, so a release rebuilt from its tag
+    /// leaves the published manifest stale against the binary.</para>
+    ///
+    /// <para><b>Why this is a check and not a paragraph.</b> The pin is one line of YAML per step, and the
+    /// way it comes undone is not an edit to those lines: it is a <em>fourth</em> step, added by somebody
+    /// wiring up a new job, carrying the <c>dotnet-version: '10.0.x'</c> that every example on the internet
+    /// carries. Nothing fails. The new job builds, the run is green, and the guarantee is gone for whichever
+    /// job that is. So the assertion is over every <c>setup-dotnet</c> step there is, and the count is
+    /// printed, because "all of them" is not a claim when the number could be zero.</para>
+    ///
+    /// <para><b><c>rollForward</c> is asserted present, not asserted equal.</b> Which policy is right is a
+    /// judgement about how much of a contributor's machine this project is entitled to govern, and it may
+    /// change; a <c>global.json</c> that states no policy at all is a different thing — the SDK's default is
+    /// <c>latestPatch</c>, which floats within the band and is the hole this task closed.</para>
+    /// </summary>
+    private static void SdkPin() =>
+        Repo("the SDK patch is pinned, and every build resolves through the pin", SdkPin,
+             "global.json", ".github/workflows/build.yml", ".github/workflows/check.yml");
+
+    private static void SdkPin(string root)
+    {
+        System.Text.Json.JsonElement sdk;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(root, "global.json")));
+            if (!doc.RootElement.TryGetProperty("sdk", out sdk))
+            {
+                Check("global.json names an sdk", false, "no `sdk` object — it pins nothing");
+                return;
+            }
+            sdk = sdk.Clone();
+        }
+        catch (System.Text.Json.JsonException e)
+        {
+            Check("global.json is readable JSON", false, e.Message);
+            return;
+        }
+
+        string version = sdk.TryGetProperty("version", out var v) ? v.GetString() ?? "" : "";
+        Check($"global.json pins an exact SDK patch ({(version.Length > 0 ? version : "none")})",
+              Regex.IsMatch(version, @"^\d+\.\d+\.\d+$"),
+              $"`{version}` is not a three-part version — a band is what T349 was filed against");
+        Check("and states a roll-forward policy rather than taking the default",
+              sdk.TryGetProperty("rollForward", out var rf) && (rf.GetString() ?? "").Length > 0,
+              "no `rollForward` — the SDK default is latestPatch, which floats inside the band the " +
+              "version just named");
+
+        // Every setup-dotnet step in every workflow, by the `uses:` line and the `with:` block under it.
+        var literal = new List<string>();
+        int steps = 0;
+        foreach (string file in Directory.GetFiles(Path.Combine(root, ".github", "workflows"), "*.yml"))
+        {
+            string[] lines = File.ReadAllLines(file);
+            for (int i = 0; i < lines.Length; i++)
+            {
+                if (!lines[i].Contains("uses: actions/setup-dotnet", StringComparison.Ordinal)) continue;
+                steps++;
+
+                // The rest of this step: the keys under it are indented at least as far as `uses:` itself,
+                // and the next step is the first line that dedents past it or opens a new `- ` item.
+                int indent = lines[i].Length - lines[i].TrimStart().Length;
+                bool pinned = false;
+                for (int j = i + 1; j < lines.Length; j++)
+                {
+                    string body = lines[j].TrimStart();
+                    if (body.Length == 0) continue;
+                    if (lines[j].Length - body.Length < indent || body.StartsWith("- ", StringComparison.Ordinal))
+                        break;
+                    if (body.StartsWith("global-json-file:", StringComparison.Ordinal)) pinned = true;
+                }
+                if (!pinned) literal.Add($"{Path.GetFileName(file)}:{i + 1}");
+            }
+        }
+
+        if (!Check("the workflows' setup-dotnet steps are readable", steps > 0,
+                   "found none — the check cannot pin what it cannot see"))
+            return;
+
+        Check($"every setup-dotnet step resolves through global.json ({steps})", literal.Count == 0,
+              $"{string.Join(", ", literal)} — a step naming its own version is a second source of truth " +
+              "for the runtime that ships, and the one that drifts is whichever job nobody watched");
     }
 
     /// <summary>
