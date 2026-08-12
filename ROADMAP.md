@@ -89,6 +89,10 @@
 
 - 📋 **T352** (deps: —) **ten citations in the design prose point at sections that were dropped when their tasks shipped, and lint now names each** — roadkeep's new ref.dangling rule surfaced them together, and each is a pointer to repoint or an argument that lost its ground - which only reading tells apart. → §LXXIX
 
+## Block AI — Verification — the checks that prove a change
+
+- 📋 **T355** (deps: —) **the trimming check only asks about horizontal StackPanels, and the same defect in a Grid column stayed green** — A right-aligned TextBlock sizes to its content in any container, so T346's column heading overflowed its cell with the check passing and only the capture showing it. → §LXXXII
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
