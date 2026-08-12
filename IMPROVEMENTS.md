@@ -913,3 +913,29 @@ account. This needs none.
 
 Being user-facing, it owes the gate: five language files, the README, the published page, and a
 screenshot in at least one non-English language.
+
+## LXXIX Ten citations the ledger's own edits left behind (T352)
+
+roadkeep grew a rule mid-session — a citation inside prose is a relation and it has to resolve — and
+it found ten here that are all older than it. `lint` was clean on the commit before and red on the
+same content after, so this is debt surfaced rather than debt created, and it is red in CI from that
+commit on.
+
+**Where they come from.** `ship` drops the section a task pointed at. Any *other* sentence that
+argued from that section keeps its `§` and now points at nothing, and nothing ever looked — six of
+the ten cite `§XVI.2`, `§XVI.3`, `§XVI.4`, `§XVIII.1`, `§XVIII.6` and `§XVIII.9`, designs that
+shipped and left.
+
+**Three shapes, and only reading tells them apart.** A pointer whose design merely moved, which gets
+repointed. An argument whose ground is gone, where the sentence has to be rewritten or dropped —
+that is the expensive kind and the reason this is not a `sed`. And `§S:VII` citing a bare `§S`,
+which reads like a malformed address rather than a lost section: worth taking first, because if the
+citation grammar admits it, the rule will keep finding it here and in every project that adopts it.
+
+**What not to do is the whole risk.** Repointing each one at its nearest surviving ancestor would
+clear the report in one pass and turn ten citations into ten sentences that cite something they were
+not making a claim about — a lie that lints clean, which is worse than the dangling pointer, because
+the dangling one is *visible*. `roadkeep origin <anchor>` answers which commit wrote a design and
+which took it, so each can be corrected from what it said rather than from where it sat.
+
+Ten `section amend` edits, each against the **citing** section.

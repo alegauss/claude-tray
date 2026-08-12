@@ -89,6 +89,10 @@
 
 ## Block B — Packaging, self-update, CI
 
+## Block AJ — Working here — the repo's own docs and flags
+
+- 📋 **T352** (deps: —) **ten citations in the design prose point at sections that were dropped when their tasks shipped, and lint now names each** — roadkeep's new ref.dangling rule surfaced them together, and each is a pointer to repoint or an argument that lost its ground - which only reading tells apart. → §LXXIX
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
