@@ -135,6 +135,6 @@ Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full 
 - **No figure in money for an overage spell** Settled by dropping T279: which models overage bills
   is a cached GrowthBook flag reading ["Fable", "Fable 5"], and 0 of 34,790 turns here were Fable —
   its two readings differ by the whole estimate.
-- **No second build target for the source-reading checks** T345 measured the loop the idea rests on:
-  19s to rebuild in Debug and 10s to run, not the four minutes Release costs - so a second .csproj
-  would be a second thing to keep alive for 28 seconds.
+- **No second build target for the source-reading checks** T345 re-measured the loop and it is the
+  machine, not the repo: 39s to 413s for one edit, and 409-742s on a v1.5.3 worktree with half the
+  code. A second .csproj cannot fix a stopwatch.

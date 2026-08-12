@@ -182,11 +182,13 @@ ClaudeTray.exe --selftest [--quick]      # exit 1 on failure — run it before c
 
 - It runs on **every push and PR** (`.github/workflows/check.yml`) and again against the packaged
   single-file `.exe` before an installer is built (`build.yml`). A red commit, not a blocked release.
-- **Build `-c Debug` to work on a check; `-c Release` only to ship.** Release is self-contained (T341),
-  so a no-op costs 4–5 min here and 12–17 under load. Debug: 43s cold, **19s after an edit**, suite in
-  ~10s. The repo-reading checks open their files at *run* time, so a change to a **document** needs no
-  rebuild at all — `--no-build` re-answers it. T345 measured this because T312's fixes were made against
-  a scratch script duplicating a rule this repo owns: the loop was already 29s and nobody had said so.
+- **Build `-c Debug` to work on a check; `-c Release` only to ship.** Debug lays down 5 files / 2 MB,
+  Release 252 / 156 MB — CI runs that output, so it stays self-contained (T341). **A no-op is 1–3s in
+  either.** A rebuild after touching one `.cs` is **not a stable quantity here**: 39s to 413s for the
+  identical edit inside one hour, and a v1.5.3 worktree with half the code took 409–742s — so it is the
+  machine, not the repo (Defender real-time on, power plan Balanced). Never quote a single figure for it.
+- **A change to a *document* needs no rebuild at all** — the repo-reading checks open their files at run
+  time, so `--no-build` re-answers them in ~8s. T354's red marker was found and fixed that way (T345).
 - Everything it **writes** is synthetic and removed: a temp transcript tree and a `selftest` profile
   dir. A real profile's stores are never read or written, and the repository files above are only read.
 - **A check is not finished until it has been seen to fail.** Break the property deliberately, watch the
