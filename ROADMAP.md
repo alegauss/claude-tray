@@ -24,6 +24,10 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
+## Block AI — Verification — the checks that prove a change
+
+- 📋 **T358** (deps: —) **the panes case names three tab headers by hand, and the window has had four since T328** — It reports all three tab headers read against a four-tab window, so the one pane a capture cannot verify has never been asked whether it is in the tree. → §LXXXV
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
