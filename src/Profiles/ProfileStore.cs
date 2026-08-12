@@ -37,8 +37,15 @@ internal static class ProfileStore
     /// exists to rule out — it polls, it draws, it just does not persist.</para>
     ///
     /// <para><b>A store that writes a file must consult this.</b> The gate is here rather than at the
-    /// tray's call sites because the call sites are a list with no owner, and the one it forgets is the
-    /// one that keeps writing. <c>--selftest</c> asserts each known write is a no-op while it is set.</para>
+    /// tray's call sites because the call sites were a list with no owner, and the one it forgot was the
+    /// one that kept writing. <c>--selftest</c> asserts each known write is a no-op while it is set.</para>
+    ///
+    /// <para><b>The list now has an owner (T344).</b> It forgot three — the reset log, this class's own
+    /// directory creation, and the migration that <em>moves</em> files — and a fourth fix would have left
+    /// the same hole open for the fifth. So <c>--selftest</c> reads the source, finds every call that
+    /// mutates a file or a directory, and fails one whose method neither consults this nor is named in the
+    /// exemption table beside the check. An exemption is then a decision somebody wrote down, which is the
+    /// thing a list with no owner never has.</para>
     /// </summary>
     internal static bool Observing { get; private set; }
 
@@ -89,12 +96,19 @@ internal static class ProfileStore
             : "dir-" + Digest(profile.ConfigDir.TrimEnd('\\', '/').ToLowerInvariant());
 
     /// <summary>The directory for a profile key, created on demand. Falls back to the flat data dir if
-    /// it cannot be created, so a denied ACL degrades to the old behaviour instead of losing readings.</summary>
+    /// it cannot be created, so a denied ACL degrades to the old behaviour instead of losing readings.
+    ///
+    /// <para>An observing process resolves the same path and creates nothing (T344). Creating a directory
+    /// is the smallest write there is and it was still a write: every read goes through here, so a check
+    /// run beside the user's tray left a new empty folder under their store root for any profile it
+    /// polled. Nothing downstream needs the directory to exist to <em>read</em> — a file that is not
+    /// there reads the same as one in a folder that is not there.</para></summary>
     public static string DirFor(string key)
     {
         try
         {
             string dir = Path.Combine(Root, Sanitize(key));
+            if (Observing) return dir;
             Directory.CreateDirectory(dir);
             return dir;
         }
@@ -141,9 +155,22 @@ internal static class ProfileStore
     ///
     /// <para>Best-effort per file: a locked or missing file is skipped, and an existing destination is
     /// never overwritten (that would mean the migration already ran).</para>
+    ///
+    /// <para><b>An observing process does not run it (T344), and this is the worst of the three holes that
+    /// reading found.</b> It is reached from <see cref="SetMonitored"/>, which every tray calls at startup,
+    /// and it <c>File.Move</c>s rather than appends — so on a machine where the migration had not yet
+    /// happened, a check run beside the user's tray moved their files. Not an append that could be trimmed
+    /// away afterwards: a rename of a store this process promised only to read.</para>
+    ///
+    /// <para>The cost is stated rather than hidden: skipping it leaves an observing tray reading the
+    /// profile directory while the flat files are still where they were, so on that one machine state it
+    /// renders an empty history. §XX calls a screen no user's tray would render the thing to rule out, and
+    /// this is one — but it lasts until the user's own tray migrates once, and the alternative is a
+    /// promise the process breaks on the files themselves.</para>
     /// </summary>
     private static void Migrate(string key)
     {
+        if (Observing) return;
         try
         {
             string dir = DirFor(key);

@@ -1437,6 +1437,10 @@ internal sealed class TrayContext : ApplicationContext
     // Best-effort append to %LocalAppData%\ClaudeTray\reset-events.log; never let it disrupt a poll.
     private static void LogResetEvent(string key, BurnTracker.ResetEvent ev, long now)
     {
+        // T344. Reached from NotifyReset on any poll where a window resets, so a check run beside the
+        // user's tray was appending a line to their reset log — a store this process promised only to
+        // read. Found by re-reading the list of writers, not by anything going wrong on screen.
+        if (ProfileStore.Observing) return;
         try
         {
             string dir = Path.Combine(

@@ -809,32 +809,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## LXXII The list with no owner, read again (T344)
-
-T305 closed one hole in the observing gate and was found by reading the list of writers rather than
-by a defect report. The same reading, run again immediately afterwards, finds two more.
-
-**`TrayContext.LogResetEvent`** appends to `%LocalAppData%\ClaudeTray\reset-events.log` and consults
-nothing. It is called from `NotifyReset`, which an observing tray reaches on any poll where a window
-resets — so a check run beside the user's tray writes a line into their reset log.
-
-**`ProfileStore.Migrate`** is worse in kind. It `File.Move`s each per-profile file out of the shared
-directory into the profile's own, and it is called from the path that resolves the monitored profile
-— which every tray runs at startup, observing or not. On a machine where the migration has not yet
-happened, an observing process **moves the user's files**. Not an append that can be trimmed away: a
-rename of a store the process promised only to read.
-
-**Neither is caught today**, and for the reason T305 already established: `ObservingTray` drives the
-writers somebody listed, and these are not on the list. `Migrate` in particular cannot be driven
-from that check at all without a fixture, because by the time the check runs the migration has run.
-
-**The fix is the gate in both, then an owner for the list.** `ProfileStore.Observing`'s doc comment
-says the call sites are *"a list with no owner, and the one it forgets is the one that keeps
-writing"* — and it has forgotten three. The durable form is the one T293 and T297 both use: read the
-source, enumerate every `File.WriteAll` / `AppendAll` / `Move` / `Delete` under the store-owning
-folders, and fail one whose method does not consult the gate. A fixture opts out by name, so an
-exemption is a decision somebody made rather than a call nobody looked at.
-
 ## LXXIII Seven checks that read files and wait for a linker (T345)
 
 Seven checks in `--selftest` answer questions about **text on disk** and nothing else. They open

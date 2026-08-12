@@ -311,6 +311,7 @@ internal static class SelfTestCli
         // After the sampling section and after everything else: Observe() is one-way too, and it is the
         // stricter of the two — from here on this process writes nothing at all (T239).
         Section("observing tray — a check that adds nothing to the user's files (Block AI)");
+        ObservingGateCallSites();
         ObservingTray();
 
         double ms = (DateTime.UtcNow.Ticks - started) / (double)TimeSpan.TicksPerMillisecond;
@@ -4910,6 +4911,141 @@ internal static class SelfTestCli
                   $"{string.Join(", ", orphaned)} — a blank line between a /// run and a declaration is a " +
                   "comment about code that has moved away from it");
         }, "src/Cli/SelfTestCli.cs");
+    }
+
+    /// <summary>
+    /// The owner the list of write call sites never had (T344).
+    ///
+    /// <para><see cref="ObservingTray"/> below drives the writers somebody listed, which is the stronger
+    /// assertion — it proves nothing landed, not that a gate is present — and it has the failure mode its
+    /// own doc names: a store it does not drive is a store it promises nothing about. Three had accumulated
+    /// behind it. <c>TrayContext.LogResetEvent</c> appended to the reset log on any poll where a window
+    /// reset; <c>ProfileStore.DirFor</c> created a directory under the store root on every read; and
+    /// <c>ProfileStore.Migrate</c>, reached from startup, <c>File.Move</c>d the user's files. None was
+    /// reachable from a check without a tray, and the fourth would have gone the same way.</para>
+    ///
+    /// <para>So this asks the source instead, the way T293 and T297 ask theirs. <b>Both halves of the scope
+    /// are derived, never listed.</b> A file is in it when it can address the store root at all — it names
+    /// <c>Settings.DataDir</c>, <c>SpecialFolder.LocalApplicationData</c>, or one of
+    /// <c>ProfileStore</c>'s path resolvers — because that is the only way to be a store, so a store added
+    /// in a folder nobody thought of is covered on the day it resolves its path. A call is in it when it
+    /// mutates a file or a directory. What remains is the exemption table, and it is the one thing here
+    /// that <em>is</em> a list: an entry names a method and says what makes it safe, so an exemption is a
+    /// decision somebody wrote down rather than a call nobody looked at.</para>
+    ///
+    /// <para>The table is asserted in both directions. An exemption matching nothing is as red as an
+    /// ungated write: a method that was renamed away takes its reason with it, and what is left is a line
+    /// excusing a call site that no longer exists while the one that replaced it goes unread.</para>
+    /// </summary>
+    private static void ObservingGateCallSites()
+    {
+        // File, method, and what makes the write safe. Each one was checked against its callers when it
+        // was written down; a caller added later that skips the gate is the case this cannot see, which is
+        // why the reasons name the caller rather than saying "private".
+        (string File, string Method, string Why)[] exempt =
+        {
+            ("HeaderProbe.cs", "Clear",
+             "a fixture rebuild, on AccountFixture's invented keys — it deletes the fixture's own store"),
+            ("UsageHistory.cs", "Clear",
+             "the same fixture rebuild, and the same invented keys"),
+            ("HeaderProbe.cs", "Trim",
+             "reached only from Record, which gates before it writes the line this then trims"),
+            ("UsageHistory.cs", "PruneIfStale",
+             "reached only from Append, which gates"),
+            ("ContextHistory.cs", "PruneIfStale",
+             "reached only from Record, which gates"),
+            ("HourlyUsage.cs", "WriteAll",
+             "the fold's writer: Fold gates before calling it, and --selftest's own fixture is the only " +
+             "other caller"),
+        };
+
+        Repo("every write into the store consults the observing gate, or is exempt by name", root =>
+        {
+            string[] mutators =
+            {
+                "File.WriteAll", "File.AppendAll", "File.Move(", "File.Delete(", "File.Copy(",
+                "File.Create(", "File.Replace(", "Directory.CreateDirectory(", "Directory.Move(",
+                "Directory.Delete(",
+            };
+            // What makes a file able to write into the user's store at all. Nothing else can be one.
+            string[] addressesStore =
+            {
+                "Settings.DataDir", "SpecialFolder.LocalApplicationData", "DirFor(", "PathFor(",
+            };
+
+            var ungated = new List<string>();
+            var used = new HashSet<string>(StringComparer.Ordinal);
+            foreach (string path in Directory.EnumerateFiles(Path.Combine(root, "src"), "*.cs",
+                                                             SearchOption.AllDirectories))
+            {
+                // The CLI is not a tray and never becomes one: --selftest, the previews and the captures
+                // are their own processes, and every file they write is one the command line asked for.
+                if (Path.GetFullPath(path).Contains(Path.Combine("src", "Cli") + Path.DirectorySeparatorChar,
+                                                    StringComparison.OrdinalIgnoreCase))
+                    continue;
+                string text = File.ReadAllText(path);
+                if (!addressesStore.Any(k => text.Contains(k, StringComparison.Ordinal))) continue;
+
+                string[] lines = text.Replace("\r\n", "\n").Split('\n');
+                string file = Path.GetFileName(path);
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    string t = lines[i].TrimStart();
+                    if (t.StartsWith("//", StringComparison.Ordinal)) continue;
+                    if (!mutators.Any(m => t.Contains(m, StringComparison.Ordinal))) continue;
+
+                    int decl = DeclaringMember(lines, i);
+                    // From the declaration down to the write: a gate below the write gates nothing.
+                    string body = decl < 0 ? "" : string.Join("\n", lines[decl..(i + 1)]);
+                    if (body.Contains("Observing", StringComparison.Ordinal)) continue;
+
+                    string method = decl < 0 ? "(no enclosing member)" : MemberName(lines[decl]);
+                    if (exempt.Any(e => e.File == file && e.Method == method)) { used.Add(file + ":" + method); continue; }
+                    ungated.Add($"{file}:{i + 1} in {method}");
+                }
+            }
+
+            Check("no write into the store skips the gate", ungated.Count == 0,
+                  $"{string.Join(", ", ungated)} — each mutates a file under %LocalAppData%\\ClaudeTray "
+                  + "without consulting ProfileStore.Observing, so a tray launched with --second-tray "
+                  + "writes it into the user's own store (T344). Gate it, or add it to the table beside "
+                  + "this check with the reason it is safe.");
+
+            string[] stale = exempt.Where(e => !used.Contains(e.File + ":" + e.Method))
+                                   .Select(e => e.File + ":" + e.Method).ToArray();
+            Check("and every exemption still names a write that exists", stale.Length == 0,
+                  $"{string.Join(", ", stale)} — an exemption matching nothing is a reason attached to a "
+                  + "call site that has gone, while whatever replaced it is read by nobody");
+        }, "src");
+    }
+
+    /// <summary>The line declaring the member a line sits inside, or -1. The same backwards read
+    /// <see cref="MonitoredHandover"/> uses: the nearest preceding line that opens a member — a modifier, a
+    /// parameter list, and no <c>;</c> ending it, which is what separates a declaration from a field whose
+    /// initialiser happens to call something.</summary>
+    private static int DeclaringMember(string[] lines, int at)
+    {
+        for (int i = at; i >= 0; i--)
+        {
+            string t = lines[i].TrimStart();
+            if (t.StartsWith("//", StringComparison.Ordinal)) continue;
+            if (!t.StartsWith("private ", StringComparison.Ordinal)
+                && !t.StartsWith("internal ", StringComparison.Ordinal)
+                && !t.StartsWith("public ", StringComparison.Ordinal)
+                && !t.StartsWith("protected ", StringComparison.Ordinal)
+                && !t.StartsWith("static ", StringComparison.Ordinal)) continue;
+            if (!t.Contains('(') || t.TrimEnd().EndsWith(";", StringComparison.Ordinal)) continue;
+            return i;
+        }
+        return -1;
+    }
+
+    /// <summary>The identifier a declaration line declares: the word before its parameter list.</summary>
+    private static string MemberName(string declaration)
+    {
+        string head = declaration[..declaration.IndexOf('(')];
+        int space = head.LastIndexOfAny(new[] { ' ', '\t', '>', '.' });
+        return space < 0 ? head.Trim() : head[(space + 1)..].Trim();
     }
 
     /// <summary>
