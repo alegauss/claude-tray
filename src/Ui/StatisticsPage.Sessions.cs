@@ -184,17 +184,26 @@ internal partial class StatisticsPage
     }
 
     /// <summary>
-    /// Block the capture path until the list is a list. The scan runs off the UI thread and lands
-    /// through <see cref="System.Windows.Threading.Dispatcher.BeginInvoke(Delegate)"/>, so a capture
-    /// taken the moment the tab is selected photographs "Reading your transcripts…" and reports a PNG
+    /// Block the capture path until the list is a list — true when the scan landed, false when the pane
+    /// is still showing "Reading your transcripts…" at the deadline. The scan runs off the UI thread and
+    /// lands through <see cref="System.Windows.Threading.Dispatcher.BeginInvoke(Delegate)"/>, so a
+    /// capture taken the moment the tab is selected photographs the placeholder and reports a PNG
     /// written — which is the defect T286 and T298 are open about, and there is no reason to add a
     /// third instance of it.
     ///
     /// <para>Pumped rather than waited on: a blocking wait on this thread would deadlock against the
     /// very callback it is waiting for. Bounded, because a capture that never returns is worse than one
-    /// that shows the honest in-progress state.</para>
+    /// that answers.</para>
+    ///
+    /// <para><b>One rule, shared with <see cref="StatisticsPage.WaitForReport"/> (T343).</b> Both waits
+    /// report what they found and neither decides: a deadline means the content did not arrive, and a
+    /// PNG of the placeholder is not a slower picture of the pane, it is none (§XX.6). This one used to
+    /// return void and proceed, so tab four was captured mid-scan and the run still printed
+    /// <c>wrote …-sessions.png</c> and exited 0. What differs between the two is the caller's reach, not
+    /// the meaning of the bound: the report is the whole page and nothing is written, the sessions list
+    /// is one pane of four and only that one is omitted.</para>
     /// </summary>
-    internal void WaitForSessions(int millis = 30_000)
+    internal bool WaitForSessions(int millis = 30_000)
     {
         DateTime deadline = DateTime.UtcNow.AddMilliseconds(millis);
         while (_sessions is null && DateTime.UtcNow < deadline)
@@ -205,6 +214,7 @@ internal partial class StatisticsPage
             System.Threading.Thread.Sleep(25);
         }
         UpdateLayout();
+        return _sessions is not null;
     }
 
     /// <summary>Open the newest conversation's call tree and wait for it, so a capture of this pane

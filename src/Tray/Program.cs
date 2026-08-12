@@ -631,7 +631,27 @@ internal static class Program
                     return;
                 }
                 if (choice.Refresh) statsPage.UpdateSnapshot(choice.Variant.Snapshot(now));
-                try { statsPage.SaveAllTabs(outBase); Console.WriteLine("wrote " + outBase + "-5h.png / -7d.png / -throughput.png / -sessions.png"); }
+                try
+                {
+                    // T343. The report's wait above refuses the whole run; this one cannot, because the
+                    // sessions scan spoils one PNG of four and the other three are pictures somebody
+                    // asked for. So the announcement is the files that exist — not a fixed list of four
+                    // — and a pane that missed its deadline is named rather than left as a gap the
+                    // reader has to notice. `refresh` is not exempt here as it is for the report: that
+                    // modifier asks for a mid-recompute pace page (T118), not an unfinished scan of the
+                    // transcripts.
+                    StatisticsPage.TabCapture shot = statsPage.SaveAllTabs(outBase);
+                    Console.WriteLine("wrote " + outBase + string.Join(" / ", shot.Written));
+                    if (shot.Skipped is { } missing)
+                    {
+                        Console.Error.WriteLine(
+                            "the transcript scan never finished, so " + outBase + missing + " was NOT " +
+                            "written: the pane is still showing its reading line, and a PNG of that is not " +
+                            "a slower picture of the sessions list, it is none (T343). The tabs named above " +
+                            "did render. Re-run to capture the last one.");
+                        Environment.ExitCode = 1;
+                    }
+                }
                 finally { previewApp.Shutdown(); }
             };
             settle.Start();

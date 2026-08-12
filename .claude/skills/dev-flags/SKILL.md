@@ -121,7 +121,14 @@ Preview popups are held open by `PageWindow` for every popup, not per call site.
                                       #   "Computing your consumption pace..." and announced four PNGs -
                                       #   twice in five runs. `refresh` is exempt, since capturing
                                       #   mid-recompute is exactly what that modifier is for (T118).
-                                      # all three tabs -> <outBase>-5h.png / -7d.png / -throughput.png.
+                                      # OMITS the Sessions PNG, names it on stderr and exits 1, when the
+                                      #   transcript scan has not landed either (T343). One pane of four,
+                                      #   so the three that rendered are still written - read the `wrote`
+                                      #   line, which lists what exists rather than a fixed four. NOT
+                                      #   exempt under `refresh`: that asks for a mid-recompute pace
+                                      #   page, not an unfinished scan.
+                                      # all four tabs -> <outBase>-5h.png / -7d.png / -throughput.png /
+                                      #   -sessions.png.
                                       #   profile=1,0 walks the picker one settle apart (the T164 round
                                       #   trip). Refuses a variant it cannot show rather than capturing
                                       #   the default one (T186).

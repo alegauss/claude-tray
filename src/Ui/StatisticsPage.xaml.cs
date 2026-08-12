@@ -273,26 +273,49 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         return Freeze(new SolidColorBrush(Color.FromRgb(0x20, 0x20, 0x20)));
     }
 
+    /// <summary>What <see cref="SaveAllTabs"/> actually left on disk (T343), as suffixes on the base path
+    /// it was given: the ones it wrote, and the one it omitted because that pane's content never arrived.
+    /// <c>Skipped</c> is null on a run where every pane was a pane — so a caller announcing four names when
+    /// it wrote three has to say so.</summary>
+    internal readonly record struct TabCapture(IReadOnlyList<string> Written, string? Skipped);
+
     /// <summary>Snapshot each tab in turn to <c>{basePath}-5h.png</c> / <c>-7d.png</c> /
     /// <c>-throughput.png</c> / <c>-sessions.png</c>. Selecting a tab realizes its chart (its
     /// <c>SizeChanged</c> draws it), so each one renders fully.</summary>
-    /// <remarks>The loop stops at the shorter of the two lengths, so a tab added without a suffix is
+    /// <remarks>
+    /// <para>The loop stops at the shorter of the two lengths, so a tab added without a suffix is
     /// silently not captured — which is how T328's pane would have been missed. Adding the suffix is
-    /// part of adding a pane.</remarks>
-    internal void SaveAllTabs(string basePath)
+    /// part of adding a pane.</para>
+    /// <para><b>A pane that misses its deadline is omitted, not photographed (T343).</b> Both waits here
+    /// answer the same question — did the content arrive — and neither writes the placeholder. The
+    /// report's caller refuses the whole run because the placeholder <em>is</em> the page; the sessions
+    /// scan spoils one PNG of four, and refusing all four would discard three real pictures and pay the
+    /// scan again. So the three that finished are written and the fourth is absent, which is only honest
+    /// if the caller names it: a missing file that nobody mentions reads as a run that never asked for
+    /// it.</para>
+    /// </remarks>
+    internal TabCapture SaveAllTabs(string basePath)
     {
         string[] suffixes = { "-5h.png", "-7d.png", "-throughput.png", "-sessions.png" };
+        var written = new List<string>();
+        string? skipped = null;
         for (int i = 0; i < PanesBody.Items.Count && i < suffixes.Length; i++)
         {
             PanesBody.SelectedIndex = i;
             // The one pane whose content arrives asynchronously. Photographing it before the scan
             // lands writes a PNG of the placeholder and calls it a capture (T286/T298's defect).
-            if (i == SessionsTab) { WaitForSessions(); OpenFirstSession(); }
+            if (i == SessionsTab)
+            {
+                if (!WaitForSessions()) { skipped = suffixes[i]; continue; }
+                OpenFirstSession();
+            }
             UpdateLayout();
             // Flush the render queue so the chart drawn on this tab's SizeChanged is present.
             Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
             SaveSnapshot(basePath + suffixes[i]);
+            written.Add(suffixes[i]);
         }
+        return new TabCapture(written, skipped);
     }
 
     // The footer's Close closes the shell, not the page: a destination has nothing to close.
@@ -307,10 +330,10 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     /// takes longer it photographed the heading, the subtitle and "Computing your consumption pace…" and
     /// printed <c>wrote …-5h.png</c> for all four. Measured while shipping T295: twice in five runs.</para>
     ///
-    /// <para>Unlike the sessions wait this one <b>answers</b> rather than proceeding, because the callers
-    /// differ in what a timeout means. There, an in-progress list is still a picture of the pane. Here the
-    /// placeholder is the whole page, and §XX.6's rule applies: a capture that lands on it is not slower
-    /// evidence, it is none — so the caller refuses and writes nothing.</para>
+    /// <para>Both waits <b>answer</b> and neither decides (T343): §XX.6's rule is that a capture landing on
+    /// a placeholder is not slower evidence, it is none. What the two callers differ in is reach, not in
+    /// what the bound means — here the placeholder is the whole page, so the run writes nothing; there it
+    /// is one pane of four, so <see cref="SaveAllTabs"/> writes the other three and names the omission.</para>
     /// </summary>
     internal bool WaitForReport(int millis = 30_000)
     {

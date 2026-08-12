@@ -809,33 +809,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## LXXI Two waits, one deadline, two answers (T343)
-
-`SaveAllTabs` holds two waits for two asynchronous panes, and they answer one deadline differently.
-
-`WaitForReport` (T298) returns a bool and the caller **refuses**: no file, a named reason, exit 1.
-`WaitForSessions` (T328) returns void and proceeds — so when the transcript scan outruns its 30
-seconds, `-sessions.png` is a picture of *"Reading your transcripts…"* and the run still prints
-`wrote …-sessions.png` and exits 0. The defect §XX.6 and §XX.30 are both about, live on tab four.
-
-**The reasoning that put it there was about hanging, not about proceeding.** T328's comment reads
-*"Bounded, because a capture that never returns is worse than one that shows the honest in-progress
-state"* — and the bound answers that. What to do *at* the bound is a separate question, which T298
-settled with an argument naming nothing specific to the report: a capture landing on the placeholder
-is not slower evidence, it is none, and the read-out says the same word either way.
-
-**What makes this harder than T298** is that the sessions placeholder spoils one PNG of four.
-Refusing the whole run discards three good captures and pays the scan again; writing four and
-failing leaves a file that is not evidence under a name saying it is.
-
-**Decided rather than copied: write the three, omit the fourth, name it, exit 1.** The panes that
-finished are real pictures somebody asked for; the one that did not is absent rather than
-misleading. The read-out must say *which* file was skipped and why, or an omission is just a missing
-file.
-
-**The two waits should then read as one rule.** They differ in what they hand back, not in what a
-deadline means — and siblings disagreeing about that is how the next pane gets a third copy of this.
-
 ## LXXII The list with no owner, read again (T344)
 
 T305 closed one hole in the observing gate and was found by reading the list of writers rather than
