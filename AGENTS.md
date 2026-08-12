@@ -128,10 +128,10 @@ what ran passed but something could not be evaluated, `1` a failure**; the summa
 
 ```
 powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 `
-  [-Case Keyboard|Menu|Profiles|Panes|Names|Switch] [-Lang pt-BR] [-UseRunning]  # no -Case runs all
+  [-Case Keyboard|Menu|Profiles|Panes|Sessions|Names|Switch] [-Lang pt-BR] [-UseRunning]  # none runs all
 ```
 
-All six are below; listing *three* is how two stayed script-only (T201). The header is the full text.
+All seven are below; listing *three* is how two stayed script-only (T201). The header is the full text.
 
 - **Keyboard** launches `--settings-tray` (the WinForms pump), clicks a sidebar item, types into a `TextBox`
   and reads it back through `ValuePattern`, Tabs out, drives a `Slider` with an arrow key. **`check.yml`
@@ -141,6 +141,10 @@ All six are below; listing *three* is how two stayed script-only (T201). The hea
   caption and live headline in the accessibility tree — the only check that would notice
   `PART_SelectedContentHost` going missing again (T176). Names asserts what controls *announce*, rows
   labelled by a neighbouring element included (T175).
+- **Sessions** (`--main`) drives the pane a capture cannot finish checking (T359): a row click has to
+  unfold its call tree *into the tree* (T329), and the ⓘ note behind the list-price figure lives in a
+  `Popup` — its own window, which `--capture-stats` cannot photograph at all. Waits for the scan; no
+  rows is **DEGRADED**, never a pass.
 - **Profiles** (`--main`) is the only thing that *drives* the page's picker: **0 → 1 → 0** through the real
   `ComboBox`, reading the report at each stop — the same profile reads the same coming back, the middle
   differs, the headline never "unavailable" at a settled stop (T165). Below two: **DEGRADED**, no skip.

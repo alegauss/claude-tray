@@ -148,7 +148,7 @@
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Menu -UseRunning
 #>
 param(
-    [ValidateSet('All', 'Keyboard', 'Panes', 'Profiles', 'Menu', 'Names', 'Switch')]
+    [ValidateSet('All', 'Keyboard', 'Panes', 'Sessions', 'Profiles', 'Menu', 'Names', 'Switch')]
     [string]$Case = 'All',
     [string]$Exe = "bin\Debug\net10.0-windows\win-x64\ClaudeTray.exe",
     [string]$Lang = "en",
@@ -1247,6 +1247,138 @@ function Invoke-PanesCase {
         }
         else {
             Report-NoReading $win $stop "the Statistics page"
+        }
+    }
+    finally { Release-Main }
+}
+
+# ---------------------------------------------------------------- sessions case
+
+<#
+  The Sessions pane, driven (T359).
+
+  T358 taught the panes case to ask whether every tab is in the tree, so this pane is known to be
+  *present*. Nothing touched it. Its whole reason to exist is what happens when you do, and all three of
+  those paths were verified by nobody:
+
+    a row click unfolds the call tree that produced the conversation (T329)
+    the token header re-sorts the list
+    the info dot opens the note explaining the list-price figure (T346)
+
+  The last one is the case for this file existing at all. A WPF `Popup` is its own top-level window, so
+  `--capture-stats` cannot photograph it - the flag catalogue says so in as many words - and no published
+  screenshot ever will. Whether that note is readable at all is a question only the accessibility tree
+  can answer.
+
+  The pane renders asynchronously: the list arrives from a transcript scan, and a case that reads before
+  it lands reads the placeholder. That is T343's trap for the capture path, inherited here - so this
+  waits for a row and says so when none arrives, rather than asserting against "Reading your
+  transcripts...".
+#>
+function Invoke-SessionsCase {
+    Head "Sessions - the pane a capture cannot finish checking"
+    try {
+        $win = Acquire-Main
+        if (-not $win) { Fail "the main window never appeared"; return }
+
+        $tab = ById $win 'SessionsPane' 8000
+        if (-not $tab) { Fail "the Sessions tab is not in the tree at all"; return }
+        # Selected, then CONFIRMED selected, then clicked if it did not take. WPF builds a tab's
+        # content on its first visit, so a Select() that silently does not land leaves `SessionList`
+        # never realised - and the case then blames a 40-second scan for a tab it never opened. Seen
+        # alternating pass/degrade while this case was being written, which is the shape that teaches a
+        # reader to re-run rather than to look.
+        $selected = $false
+        foreach ($attempt in 1..3) {
+            try { $tab.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select() } catch { }
+            Start-Sleep -Milliseconds 400
+            try {
+                $selected = $tab.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Current.IsSelected
+            } catch { $selected = $false }
+            if ($selected) { break }
+            try { ClickCentre $tab } catch { }
+            Start-Sleep -Milliseconds 400
+            try {
+                $selected = $tab.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Current.IsSelected
+            } catch { $selected = $false }
+            if ($selected) { break }
+        }
+        if (-not $selected) { Fail "the Sessions tab never became the selected one, so its pane was never built"; return }
+
+        # The scan, waited out rather than raced. A cold cache is seconds; the ceiling is generous
+        # because the alternative is a case that fails on a slow machine and passes on a fast one.
+        $list = ById $win 'SessionList' 40000
+        $rows = @()
+        if ($list) { $rows = @($list.FindAll('Children', $ANY)) }
+        if ($rows.Count -eq 0) {
+            Unchecked "everything this case drives (T359)" `
+                      "no conversation row arrived within 40s - this profile's transcripts are empty, or the scan is still running, and a pane with no rows has nothing to click"
+            return
+        }
+        Pass "the conversation list is in the tree ($($rows.Count) row(s))"
+
+        # What a screen reader gets from one row. Not a re-assertion of the numbers a capture already
+        # shows - the point is that they are *readable*, which a picture cannot tell you.
+        $first = $rows[0]
+        $cells = @(@($first.FindAll('Descendants', $ANY)) |
+                   ForEach-Object { [string]$_.Current.Name } | Where-Object { $_ })
+        if ($cells.Count -ge 4) {
+            Pass "a row reads as text, not as a picture ($($cells.Count) fields, e.g. '$($cells[1])')"
+        } else {
+            Fail "a conversation row exposes only $($cells.Count) readable field(s) - a screen reader gets almost nothing"
+        }
+
+        # T329: the row is a disclosure, and what it discloses has to arrive in the tree.
+        $before = $cells.Count
+        ClickCentre $first
+        # Polled, not slept. The tree is walked on the first expand, so how long it takes is a property
+        # of the conversation that happens to be newest - and a fixed wait is either too short on the
+        # day it matters or wasted on every other one.
+        $after = @(); $taskLines = @()
+        $w = [Diagnostics.Stopwatch]::StartNew()
+        while ($w.ElapsedMilliseconds -lt 15000) {
+            $after = @(@($first.FindAll('Descendants', $ANY)) |
+                       ForEach-Object { [string]$_.Current.Name } | Where-Object { $_ })
+            $taskLines = @($after | Where-Object { $_ -like '*TaskLine*' })
+            if ($taskLines.Count -gt 0) { break }
+            Start-Sleep -Milliseconds 250
+        }
+        if ($taskLines.Count -gt 0 -and $after.Count -gt $before) {
+            Pass "clicking a row unfolds its call tree into the tree ($before -> $($after.Count) fields, $($taskLines.Count) task line(s))"
+        } else {
+            Fail "clicking a row added no call tree - $before field(s) before, $($after.Count) after, $($taskLines.Count) task line(s) (T329)"
+        }
+
+        # T346's note, behind the one control in this window whose content a capture provably cannot
+        # reach. Asserted on the rate-card date it carries, because that is the sentence the figure
+        # depends on: a note that has lost it is a figure with no provenance.
+        $dot = ById $win 'SessionsMethodInfo' 8000
+        if (-not $dot) {
+            Fail "the Sessions method button is not in the tree (T346)"
+        } else {
+            ClickCentre $dot
+            $note = @()
+            $w = [Diagnostics.Stopwatch]::StartNew()
+            while ($w.ElapsedMilliseconds -lt 8000) {
+                $note = @(@($win.FindAll('Descendants', $ANY)) |
+                          ForEach-Object { [string]$_.Current.Name } |
+                          Where-Object { $_ -like '*list prices*' -and $_.Length -gt 80 })
+                if ($note.Count -gt 0) { break }
+                Start-Sleep -Milliseconds 200
+            }
+            if ($note.Count -gt 0) {
+                $dated = @($note | Where-Object { $_ -match '\d{4}-\d{2}-\d{2}' })
+                if ($dated.Count -gt 0) {
+                    Pass "the list-price note opens and reads, carrying the date the rates were read"
+                } else {
+                    Fail "the note opened but names no rate-card date - the figure it explains has no provenance (T346)"
+                }
+            } else {
+                Fail "the info dot opened no readable note - a popup a capture cannot see and a screen reader cannot either (T346)"
+            }
+            # Leave the window as it was found: the popup is a toggle and the next case shares this window.
+            ClickCentre $dot
+            Start-Sleep -Milliseconds 400
         }
     }
     finally { Release-Main }
@@ -2524,6 +2656,7 @@ try {
 
 if ($Case -in @('All', 'Keyboard')) { Invoke-KeyboardCase }
 if ($Case -in @('All', 'Panes'))    { Invoke-PanesCase }
+if ($Case -in @('All', 'Sessions')) { Invoke-SessionsCase }
 if ($Case -in @('All', 'Profiles')) { Invoke-ProfilesCase }
 if ($Case -in @('All', 'Names'))    { Invoke-NamesCase }
 

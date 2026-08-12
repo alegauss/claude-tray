@@ -808,29 +808,3 @@ included in your plan* — distinguished by where it is drawn, so one entry that
 week left to the tooltip, is the whole change. It also has to survive the case that only one of the
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
-
-## LXXXVI The pane nobody touches (T359)
-
-T358 made the panes case ask about every tab, so the Sessions pane is now known to be *present*.
-Nothing drives it. Its whole reason to exist is what happens when you touch it, and every one of
-those paths is verified by nobody.
-
-**Three surfaces, and one of them is unreachable any other way.** A row click unfolds the call tree
-that produced the conversation (T329). Two column headers re-sort the list. And the ⓘ beside the
-range picker opens the note explaining the list-price figure (T346) — a WPF `Popup`, which is **its
-own top-level window**, so `--capture-stats` cannot photograph it and no published screenshot ever
-will. The dev-flags catalogue says so in as many words: an off-screen capture cannot see a popup.
-
-**The pane is also the one that renders asynchronously.** The list arrives from a transcript scan,
-so a case that clicks before it lands drives a placeholder — the same trap T343 fixed for the
-capture path, which had to learn to wait rather than photograph *"Reading your transcripts…"*. Any
-case here inherits that: it waits for a row, or it asserts nothing.
-
-**No popup has been driven from this script before.** It asserts the footer ⓘ's accessible name and
-stops there. A `Popup` with `AllowsTransparency` is a real window under the process, reachable the
-way `Find-TrayMenu` reaches the tray's context menu — from the automation root, filtered by process
-— rather than by walking down from the main window, where it is not.
-
-**What it must not become is a screenshot in prose.** The value is the accessibility tree and the
-click paths, not re-asserting numbers the capture already shows. Read what a screen reader would
-get, and assert that touching the pane changes it.
