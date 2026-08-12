@@ -230,7 +230,7 @@ internal static class SelfTestCli
         Section("source — no file that git would call binary (Block AI)");
         SourceIsText();
 
-        Section("source — no text that survived a round trip through CP1252 (Block C)");
+        Section("source and lang — no text that survived a round trip through CP1252 (Block AI)");
         SourceIsNotDoubleEncoded();
 
         Section("console — the code page is set where the flags are dispatched (Block AI)");
@@ -4077,19 +4077,30 @@ internal static class SelfTestCli
     /// window can tell — which is how five visible literals and thirty-two comments survived since
     /// T310.</para>
     ///
-    /// <para><b>The predicate is a run, not a line.</b> Mojibake is a lead character mapping to a byte
-    /// in <c>C2..F4</c> followed by the right number of characters mapping into <c>80..BF</c>. Asking
-    /// the question of a whole line instead — does this line round-trip? — would miss any line that
-    /// also carries one correctly-encoded dash, because that dash maps to a byte no valid sequence can
-    /// start. Scanning runs makes each occurrence independent of its neighbours.</para>
+    /// <para><b>The predicate is a run, not a line.</b> Mojibake is a lead character mapping to one of
+    /// the four lead bytes below, followed by the right number of characters mapping into
+    /// <c>80..BF</c>. Asking the question of a whole line instead — does this line round-trip? — would
+    /// miss any line that also carries one correctly-encoded dash, because that dash maps to a byte no
+    /// valid sequence can start. Scanning runs makes each occurrence independent of its neighbours.</para>
     ///
-    /// <para><b>Only <c>src</c>, and deliberately.</b> The signature needs two adjacent characters that
-    /// happen to be a lead and a continuation; in the English prose and code under <c>src</c> that
-    /// cannot occur by accident, but <c>lang\*.json</c> is nothing but accented text and is where a
-    /// false positive would live. Those files are covered instead by every key resolving.</para>
+    /// <para><b>T363: four lead bytes, not all of <c>C2..F4</c>.</b> The wider range accepts
+    /// <c>0.31×–1.81×</c> — a multiplication sign is <c>D7</c> and an en dash is <c>96</c>, so the pair
+    /// decodes, to the Hebrew letter zayin. That is correct text this check would call damage, and it
+    /// stayed quiet only because the one line in this repository carrying it (<c>CHANGELOG.md:244</c>)
+    /// was out of scope. Narrowing costs no detection: replayed against both files as they stood at
+    /// <c>d83ddd3</c>, before T362's repair, the four leads still report all 37 damaged lines, and over
+    /// every text file in the tree they report nothing.</para>
+    ///
+    /// <para><b>The localization files are in scope, and T362's reasoning for leaving them out was
+    /// measured wrong.</b> It argued the false positive would live in <c>lang\*.json</c> because that is
+    /// where the accents are. Zero hits there, across 3333 non-ASCII lines; the one false positive was
+    /// in Markdown prose, which the exclusion never covered. Those five files are where a round trip
+    /// would corrupt every user-visible string in five languages at once, and the key check beside this
+    /// one reads whether a key <em>resolves</em>, never what its value spells.</para>
     /// </summary>
     private static void SourceIsNotDoubleEncoded() =>
-        Repo("no source file is UTF-8 that was read as CP1252", SourceIsNotDoubleEncoded, "src");
+        Repo("no source or lang file is UTF-8 that was read as CP1252", SourceIsNotDoubleEncoded,
+             "src", "lang");
 
     /// <summary>CP1252 for <c>0x80..0x9F</c>, the one range where it is not Latin-1 - written as
     /// escapes rather than as the characters themselves, for two reasons. Five of the thirty-two are
@@ -4111,12 +4122,21 @@ internal static class SelfTestCli
         return high < 0 ? -1 : 0x80 + high;
     }
 
+    /// <summary>The four UTF-8 lead bytes the characters this project writes actually use: <c>C2</c> for
+    /// <c>§</c> and <c>·</c>, <c>C3</c> for accented Latin, <c>E2</c> for punctuation, arrows, <c>⚠</c>
+    /// and <c>⭐</c>, and <c>F0</c> for emoji. Every other lead in <c>C2..F4</c> is a byte this repository
+    /// only ever produces by accident — and one of them, <c>D7</c>, is the multiplication sign, which
+    /// makes correct arithmetic prose look like damage (T363).</summary>
+    private static readonly int[] MojibakeLeads = { 0xC2, 0xC3, 0xE2, 0xF0 };
+
     /// <summary>The character this run spells when read back as UTF-8, or -1 if it spells none.</summary>
     private static int DoubleEncodedAt(string s, int at)
     {
         int lead = Cp1252Byte(s[at]);
-        int follow = lead >= 0xF0 ? 3 : lead >= 0xE0 ? 2 : lead >= 0xC2 ? 1 : -1;
-        if (follow < 0 || lead > 0xF4 || at + follow >= s.Length) return -1;
+        if (Array.IndexOf(MojibakeLeads, lead) < 0) return -1;
+
+        int follow = lead >= 0xF0 ? 3 : lead >= 0xE0 ? 2 : 1;
+        if (at + follow >= s.Length) return -1;
 
         int code = lead & (0x7F >> (follow + 1));
         for (int i = 1; i <= follow; i++)
@@ -4136,10 +4156,16 @@ internal static class SelfTestCli
         string[] sources = Directory.GetFiles(Path.Combine(root, "src"), "*.*", SearchOption.AllDirectories)
             .Where(f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ||
                         f.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))
+            .Concat(Directory.GetFiles(Path.Combine(root, "lang"), "*.json"))
             .OrderBy(f => f, StringComparer.Ordinal).ToArray();
 
-        if (!Check($"the sources are there to read ({sources.Length})", sources.Length > 0,
-                   "no source file found, so this would pass over nothing"))
+        // The lang files are the point of T363's widening, so "some files were read" is not enough:
+        // a scan that silently found none of them would pass while asserting nothing about them.
+        int langFiles = sources.Count(f => f.EndsWith(".json", StringComparison.OrdinalIgnoreCase));
+        if (!Check($"the sources are there to read ({sources.Length}, of which {langFiles} localization)",
+                   sources.Length > 0 && langFiles == L.Codes.Count,
+                   $"expected one .json per shipped language ({L.Codes.Count}), read {langFiles} — " +
+                   "this would pass over the files it was widened to cover"))
             return;
 
         var damaged = new List<string>();
@@ -4158,7 +4184,8 @@ internal static class SelfTestCli
             }
         }
 
-        Check($"no source file holds double-encoded text ({sources.Length} files)", damaged.Count == 0,
+        Check($"no source or lang file holds double-encoded text ({sources.Length} files)",
+              damaged.Count == 0,
               $"{string.Join("; ", damaged)} — this is UTF-8 an editor read as CP1252 and wrote back, " +
               "so it decodes cleanly and spells the wrong character; save the file as UTF-8");
     }
