@@ -89,6 +89,8 @@
 
 ## Block B — Packaging, self-update, CI
 
+- 📋 **T351** (deps: —) **the one field a rebuilt tag does not reproduce is ReleaseDate, which update-winget.ps1 stamps with today on every run** — T350 measured the .exe and the installer reproducing byte for byte, and this field is the remainder: re-cutting an old tag dates it today. → §LXXVIII
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

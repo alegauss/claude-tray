@@ -913,3 +913,27 @@ account. This needs none.
 
 Being user-facing, it owes the gate: five language files, the README, the published page, and a
 screenshot in at least one non-English language.
+
+## LXXVIII The one field a rebuild does not reproduce (T351)
+
+T350 closed the two halves that matter most: one source on the pinned SDK gives one `.exe`, and one
+`.exe` gives one installer, hashes and all. What it also made visible is the remainder.
+`update-winget.ps1` rewrites five dynamic fields into every manifest — `PackageVersion`, the two
+release URLs, `InstallerSha256` and `ReleaseDate` — and four of them are functions of the tag. The
+fifth is `(Get-Date)`.
+
+**What that costs.** `build.yml` calls the script on a tag push with `-Version` and nothing else, so
+the date is the day the *run* happened rather than a fact about the release. Re-cut `v1.6.2` today
+and the manifest that comes out is identical to the published one except that `ReleaseDate:
+2026-08-07` has become `2026-08-12` — one version claiming two release dates, out of a script whose
+whole job is to derive the manifest from the artefact. It is now the only field where "rebuild the
+tag" and "what shipped" disagree, which is the property T349 and T350 exist to hold.
+
+**The parameter is already there.** The script takes `-Date`, documented and never passed by CI, so
+this is what to pass and not new plumbing. Two honest sources: the GitHub Release's `publishedAt`
+for that tag (`gh release view --json publishedAt`), which is what a re-cut should reproduce; or the
+tag's commit date, which needs no API call and answers before a release exists — the case a local
+regeneration is in.
+
+**Deliberately not a `--selftest` claim.** The assertion would have to know what date a manifest
+ought to carry, which is a fact about GitHub rather than about this repository.
