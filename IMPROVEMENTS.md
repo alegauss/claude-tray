@@ -808,33 +808,3 @@ included in your plan* — distinguished by where it is drawn, so one entry that
 week left to the tooltip, is the whole change. It also has to survive the case that only one of the
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
-
-## LXXXVIII An assertion with a language in it (T361)
-
-T359's Sessions case finds the list-price note by looking for the substring `list prices` in the
-accessibility tree. That is English. The note is one of the five translated strings T346 shipped, so
-in the other four the case does not find it and reports the note as unreadable:
-
-```
-$ Check-Interaction.ps1 -Case Sessions -Lang pt-BR
-[FAIL] the info dot opened no readable note - a popup a capture cannot see and a screen
-       reader cannot either (T346)
-```
-
-**The failure is the harmless direction of a worse habit.** A red is loud. What the same mistake
-buys in the other direction is an assertion that quietly matches nothing and passes — §XX.2's
-defect, and the reason this file resolves every expected string through `Label` rather than typing
-it. `-Lang` exists precisely so a case can be run in the language a layout or a string is suspected
-in (T260); a case that only works in one language removes the flag's point.
-
-**It would not have surfaced on its own.** `check.yml` runs the interaction suite in English.
-Nothing runs it in another language on a schedule, so the case would have read as covered for as
-long as nobody happened to pass `-Lang`.
-
-**The string carries a placeholder, which is why it was skipped.** `stats.sessions.method`
-interpolates the date the rates were read, so it cannot be compared whole. The part before the
-placeholder is fixed in every language and is what identifies the note; the date is what the
-assertion is about, and it is already checked separately as a pattern rather than a value.
-
-**The general form is worth stating**: a literal in an assertion is a language, and this file has
-one place that turns a key into the text a window will actually show.

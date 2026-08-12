@@ -24,10 +24,6 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block AI — Verification — the checks that prove a change
-
-- 📋 **T361** (deps: —) **the Sessions case finds its note by an English substring, so it fails in the other four languages** — Run with -Lang pt-BR it reports the note unreadable, and CI runs English only, so a case that works in one language read as covered. → §LXXXVIII
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

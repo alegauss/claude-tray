@@ -1357,12 +1357,19 @@ function Invoke-SessionsCase {
             Fail "the Sessions method button is not in the tree (T346)"
         } else {
             ClickCentre $dot
+            # Through `Label`, not through a literal (T361). It matched the English words 'list prices',
+            # so the assertion found nothing in the other four languages and reported the note as
+            # unreadable - loud here, but the same mistake one step over is an assertion that matches
+            # nothing and passes. The string interpolates the date the rates were read, so what
+            # identifies it is the fixed part before the placeholder; the date itself is what the
+            # assertion is about and is checked as a pattern below.
+            $noteHead = ((Label 'stats.sessions.method') -split '\{0\}')[0].Trim()
             $note = @()
             $w = [Diagnostics.Stopwatch]::StartNew()
             while ($w.ElapsedMilliseconds -lt 8000) {
                 $note = @(@($win.FindAll('Descendants', $ANY)) |
                           ForEach-Object { [string]$_.Current.Name } |
-                          Where-Object { $_ -like '*list prices*' -and $_.Length -gt 80 })
+                          Where-Object { $_ -like "*$noteHead*" })
                 if ($note.Count -gt 0) { break }
                 Start-Sleep -Milliseconds 200
             }
