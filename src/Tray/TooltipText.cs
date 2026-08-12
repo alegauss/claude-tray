@@ -65,8 +65,27 @@ internal static class TooltipText
     /// — is given up to make room. Only against silence, and only for a worded rung: a measured percentage
     /// is not traded for a glyph.</para>
     /// </summary>
-    internal static string Compose(Input i)
+    internal static string Compose(Input i) => Compose(i, out _);
+
+    /// <summary>
+    /// The same composition, saying which optional sentences it had no room for (T340).
+    ///
+    /// <para><c>Fit</c> takes the first rung that fits and takes none if none does, and that silence has
+    /// cost the same thing three times in three languages: T222's paying state, T302's French billing
+    /// states, T288's blocked sentence in es and fr. Each was then locked shut by a test written for
+    /// that one state and that one key, so the check that would have caught the next one never existed
+    /// until the next one happened.</para>
+    ///
+    /// <para>Reporting it here rather than re-deriving it in a check is the point: a check that walked
+    /// the rungs itself would be the same "first that fits" rule written a second time, which is exactly
+    /// the shape T307 removed from this file. The composer knows what it dropped; it just never said.</para>
+    /// </summary>
+    /// <param name="dropped">The names of the optional sentences no rung of which fitted — empty when
+    /// everything the reading had to say was said.</param>
+    internal static string Compose(Input i, out IReadOnlyList<string> dropped)
     {
+        var shed = new List<string>();
+        dropped = shed;
         if (i.Data is not { } data) return L.T("tip.connecting");
         if (data.Error != null)
         {
@@ -123,9 +142,18 @@ internal static class TooltipText
         // ceiling nobody measured, and with the state no longer resolved from the metric that is the
         // branch an `extra` icon at 100% would now fall into.
         bool metricAtLimit = i.Metric != "extra" && pct >= QuotaStates.AtLimitThreshold;
-        // Each projection verdict has a full form and a compact fallback for when the tooltip is
-        // tight (see the budget below). null => no projection line at all.
-        (string full, string compact)? projection = i.State == QuotaState.Billing
+        // Each projection verdict is a list of rungs, weakest last: `Fit` takes the first that fits.
+        // null => no projection line at all.
+        //
+        // A third rung with no word in it, where the verdict has a number to carry (T340). Measured
+        // across the catalogue and the five languages: the projection sentence was dropped in seven of
+        // seventy combinations — three in fr, two in es, one each in pt-BR and pt-PT — and English never
+        // saw it, which is why three separate tests written for three separate states each missed it.
+        // The bare rung is a glyph and the figures, so it costs the same in every language and cannot
+        // be spent away by a future translation, which is exactly T302's argument for the spell line.
+        // The at-limit branch gets no such rung: "you are blocked" has no number in it, and a lone
+        // glyph would be a claim rather than a shorthand (T288).
+        string[]? projection = i.State == QuotaState.Billing
             // Past the included quota and paying. Said plainly rather than "projected", because a limit
             // already reached is not a forecast — and said as *this* kind of maxed, since "you have
             // stopped" and "you are paying to carry on" are opposite pieces of news and this line used to
@@ -141,8 +169,8 @@ internal static class TooltipText
                 // wrong percentage — so the scoped form is kept for the window that actually crossed and
                 // the news goes out unscoped for every other one (T274).
                 : metricAtLimit
-                    ? (L.T("tip.billingFull", scope), L.T("tip.billingCompact"))
-                    : (L.T("tip.billingCompact"), L.T("tip.billingCompact"))
+                    ? new[] { L.T("tip.billingFull", scope), L.T("tip.billingCompact") }
+                    : new[] { L.T("tip.billingCompact") }
             // The other half of the same split (T288). T274 rescoped the *state* to the account and fixed
             // the billing sentence above; this branch kept gating on the window the icon happens to show,
             // so an account rejected at 1.02 on the session, watched on a week at 0.47, drew the ordinary
@@ -164,16 +192,16 @@ internal static class TooltipText
             // the improvement, because what it replaces is the confident wrong answer.
             : i.State == QuotaState.Stopped || metricAtLimit
                 ? metricAtLimit
-                    ? (L.T("tip.atLimitFull", scope, limit), L.T("tip.atLimitCompact", limit))
-                    : (L.T("tip.atLimitUnscoped"), L.T("tip.atLimitUnscopedCompact"))
+                    ? new[] { L.T("tip.atLimitFull", scope, limit), L.T("tip.atLimitCompact", limit) }
+                    : new[] { L.T("tip.atLimitUnscoped"), L.T("tip.atLimitUnscopedCompact") }
             : i.Verdict switch
             {
                 Projection.Danger => hasEta
-                    ? (L.T("tip.dangerEtaFull", scope, hits, TrayContext.FmtDays(i.Eta)), L.T("tip.dangerEtaCompact", hits, TrayContext.FmtDays(i.Eta)))
-                    : (L.T("tip.dangerPaceFull", scope), L.T("tip.dangerPaceCompact")),
+                    ? new[] { L.T("tip.dangerEtaFull", scope, hits, TrayContext.FmtDays(i.Eta)), L.T("tip.dangerEtaCompact", hits, TrayContext.FmtDays(i.Eta)), L.T("tip.dangerEtaBare", hits, TrayContext.FmtDays(i.Eta)) }
+                    : new[] { L.T("tip.dangerPaceFull", scope), L.T("tip.dangerPaceCompact"), L.T("tip.dangerPaceBare") },
                 Projection.Ok => double.IsInfinity(i.Eta)
-                    ? (L.T("tip.okTrackFull", scope), L.T("tip.okTrackCompact"))
-                    : (L.T("tip.okEtaFull", scope, hits, TrayContext.FmtDays(i.Eta)), L.T("tip.okEtaCompact", hits, TrayContext.FmtDays(i.Eta))),
+                    ? new[] { L.T("tip.okTrackFull", scope), L.T("tip.okTrackCompact"), L.T("tip.okTrackBare") }
+                    : new[] { L.T("tip.okEtaFull", scope, hits, TrayContext.FmtDays(i.Eta)), L.T("tip.okEtaCompact", hits, TrayContext.FmtDays(i.Eta)), L.T("tip.okEtaBare", hits, TrayContext.FmtDays(i.Eta)) },
                 _ => null,
             };
 
@@ -215,11 +243,12 @@ internal static class TooltipText
         //
         // A count of rungs rather than a pair (T302): the projection has two and the spell has three, and
         // "the first of these that fits" is the whole rule either way.
-        void Fit(params string[] rungs)
+        void Fit(string what, params string[] rungs)
         {
             int room = Cap - Length(lines) - statusLine.Length;
             foreach (string rung in rungs)
                 if (rung.Length + 1 <= room) { lines.Add(rung); return; }
+            shed.Add(what);   // nothing fitted, which is the silence T340 is about
         }
 
         // The projection first, so the room below it is a fact rather than a forecast (T307). This used to sit
@@ -228,7 +257,7 @@ internal static class TooltipText
         // predicting. Both halves agreed only while the projection had exactly two rungs; T302 had just given
         // the other sentence a third, and a third here would have left the prediction confidently wrong with
         // nothing to notice, deciding whether a measured percentage was given up.
-        if (projection is { } p) Fit(p.full, p.compact);
+        if (projection is { } p) Fit("projection", p);
 
         // Whether any rung of the spell would survive — asked of what is actually on `lines`, with `freed`
         // standing for a reading not yet given up. Still a calculation rather than an attempt, because the
@@ -264,7 +293,7 @@ internal static class TooltipText
         // own: a duration under nothing that says money is being spent is a number about nothing, and the
         // sentence it modifies is the one that must survive if only one of them can. `Remove` above takes the
         // reading out from under a line already appended, and the list keeps its order either way.
-        if (spell is { } s) Fit(s.full, s.compact, s.bare);
+        if (spell is { } s) Fit("spell", s.full, s.compact, s.bare);
         lines.Add(statusLine);
         return string.Join("\n", lines);
     }

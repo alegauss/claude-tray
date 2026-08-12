@@ -63,7 +63,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T340** (deps: T288 ✅) **a state's sentence can be squeezed out of the tooltip in one language, and only a test written for that state notices** — T222, T302 and T288 each lost a sentence to the 127-char cap in a different language, and each was locked shut by a test written for that one key. → §LXVIII
 - 📋 **T343** (deps: T298 ✅) **the sessions pane is still captured mid-scan, because its wait proceeds at the deadline where the report's now refuses** — Two waits in one capture answer one deadline differently: the report refuses and writes nothing, the sessions scan proceeds and announces its placeholder. → §LXXI
 - 📋 **T344** (deps: T305 ✅) **two more stores write without consulting the observing gate: the reset log appends and the profile migration moves files** — The reading that found T305 finds two more, and one moves files rather than appending - so the list of call sites needs an owner, not a fourth fix. → §LXXII
 - 📋 **T345** (deps: T312 ✅) **the source-reading checks need a four-minute WPF build to answer questions about text on disk** — Seven checks open files under src and compare text, and all seven need the WPF binary built to answer - so fixing what one of them found was done against a scratch script instead. → §LXXIII

@@ -261,6 +261,9 @@ internal static class SelfTestCli
         Section("layout — trimming that can never fire (Block AI)");
         TrimmingInStacks();
 
+        Section("tooltip — every state's news, in every language (Block AI)");
+        TooltipNews();
+
         Section("anchoring — a transcript reached by a route nobody walked (Block AK)");
         Anchoring();
 
@@ -6955,6 +6958,55 @@ internal static class SelfTestCli
         Check("a command is labelled by its own name and a kind by the string table",
               WorkKinds.Label(loop) == "/loop" &&
               WorkKinds.Label(prompts) != "stats.kind.prompt", WorkKinds.Label(prompts));
+    }
+
+    /// <summary>
+    /// T340. Every state that has news says it, in every shipped language.
+    ///
+    /// <para>The tooltip has 127 characters and <c>Fit</c> takes the first rung that fits — or none,
+    /// silently. That silence cost the same thing three times, each time in a different language and on
+    /// a different sentence: T222's paying state in all five, T302's French billing states, T288's
+    /// blocked sentence in es and fr. And each was locked shut by a test written for <em>that</em>
+    /// state naming <em>that</em> key, so the check that would have caught the next one never existed
+    /// until the next one happened.</para>
+    ///
+    /// <para>This is the cross product instead: every variant the catalogue has, against every language
+    /// the app ships, asserting that the composition dropped nothing it had to say. Not a particular
+    /// string and not a length limit on translations — a translator who needs more words should get
+    /// them. The property is only that the news arrives, which is T222's own wording.</para>
+    ///
+    /// <para>It asks the composer rather than re-deriving the rule: walking the rungs here would be
+    /// "the first that fits" written a second time, three lines from the method it duplicates, which is
+    /// the exact shape T307 took out of that file.</para>
+    /// </summary>
+    private static void TooltipNews()
+    {
+        string[] codes = L.Codes.ToArray();
+        IReadOnlyList<TooltipCli.Variant> variants = TooltipCli.Catalogue;
+        const long Now = 1_800_000_000;
+
+        L.Lang saved = L.Current;
+        try
+        {
+            var lost = new List<string>();
+            int said = 0;
+            foreach (string code in codes)
+            {
+                L.Apply(code);
+                foreach (TooltipCli.Variant v in variants)
+                {
+                    TooltipText.Compose(v.Build(Now), out IReadOnlyList<string> dropped);
+                    said++;
+                    foreach (string what in dropped)
+                        lost.Add($"{code}/{v.Name}: {what}");
+                }
+            }
+            Check($"no state loses a sentence it had, in any language ({said} combinations)",
+                  lost.Count == 0,
+                  $"{string.Join(", ", lost)} — the reading had something to say about that state and " +
+                  "the cap took it, which is silent everywhere except here (T340)");
+        }
+        finally { L.Apply(L.Codes[(int)saved]); }
     }
 
     /// <summary>
