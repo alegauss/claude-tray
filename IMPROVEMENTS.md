@@ -867,3 +867,32 @@ process could have written can fail it. Or gate on the precondition per T161 —
 alive, so the comparison cannot attribute anything — and state the skip, which T218 makes red when
 unexpected. Or narrow the tree to what this run could touch, which is the weakest, because the hole
 it opens is the one T239 built this to close.
+
+## LXXXIV A gate thrown after the store has been written (T357)
+
+T239 made a check run promise to add nothing to the user's files, T305 and T344 closed the writers
+that were not consulting the gate, and T344 put one on `ProfileStore.Migrate` because it does not
+append — it `File.Move`s. The gate is correct. It is thrown too late to cover the one call that
+matters.
+
+**`Program.Main` adopts the profile before it dispatches a flag.** `SetMonitored` sits at line 171,
+above every `if (args[0] == …)`, and its own comment says so: *"the first call also migrates the
+pre-profile flat files into it."* `ProfileStore.Observe()` runs at `Program.cs:669`, and only behind
+`--second-tray`; `--selftest` throws it in its own last section. So for `--selftest`,
+`--capture-stats`, `--stats`, `--render` and every other flag, `Observing` is false while the
+migration runs.
+
+**Measured, and by accident.** Shipping T354 added a rename to that migration. A `--selftest` run of
+the new binary renamed the developer's own `reset-events.log` to `reset-events.pre-profiles.log` —
+1,793 bytes, mtime intact, flat name gone. Nothing asked it to; the file simply moved because a
+check was run. The per-file moves have had the same reach since T125 and nobody had watched one
+happen.
+
+**What makes it invisible is that `ObservingTray` cannot see it.** That check fingerprints the tree,
+*then* throws the switch — so a write that happened before it took its baseline is inside the
+baseline. The store is already migrated by the time anything looks.
+
+**Where the fix goes is the decision.** Throwing `Observe()` before the dispatch for every flag but
+the tray's own is the obvious move and inverts the default: a process is an observer unless it is
+the tray. The alternative gives `SetMonitored` an argument saying whether it may migrate, which
+keeps the default but asks every caller to be right about it — and that is what failed here.
