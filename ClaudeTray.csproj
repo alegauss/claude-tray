@@ -20,7 +20,7 @@
     <RootNamespace>ClaudeTray</RootNamespace>
     <!-- Single source of truth for the app version. installer.iss reads it from the built
          .exe — no need to edit it by hand. -->
-    <Version>1.7.0</Version>
+    <Version>1.7.1</Version>
     <!-- Keep ProductVersion exactly "x.y.z" (no +commit suffix) so the installer can reuse it. -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <!-- Unconditional, and deliberately so: the RID is part of the output path that every dev flag,
