@@ -5555,6 +5555,30 @@ internal static class SelfTestCli
                   undescribed.Length == 0,
                   $"{string.Join(", ", undescribed)} — listed in the usage block and described nowhere, so "
                   + "a reader learns the flag exists and not what it drives (T360).");
+
+            // T364: the same question of the script's own comment-based help, which is what `Get-Help`
+            // prints and the first thing a reader of the file meets. Checking only AGENTS.md let the
+            // header keep describing six cases after T359 added the seventh.
+            string help = script[..(script.IndexOf("#>", StringComparison.Ordinal) is var end && end > 0
+                                    ? end : script.Length)];
+            string[] inHelp = Regex.Matches(help, @"^\s*-Case ([A-Za-z]+)\s", RegexOptions.Multiline)
+                                   .Select(m => m.Groups[1].Value)
+                                   .Distinct(StringComparer.Ordinal)
+                                   .OrderBy(n => n, StringComparer.Ordinal).ToArray();
+            Check($"the script's own help gives every case a bullet ({declared.Length})",
+                  inHelp.SequenceEqual(declared, StringComparer.Ordinal),
+                  $"ValidateSet: {string.Join("|", declared)} — help: {string.Join("|", inHelp)}. The "
+                  + "header is what Get-Help prints, so a case missing from it is undiscoverable from "
+                  + "the file that implements it (T364).");
+
+            // And no spelled-out count beside the list, because that is the one claim editing the list
+            // does not update — it said "Three" while the ValidateSet held seven.
+            Match counted = Regex.Match(help, @"\b(One|Two|Three|Four|Five|Six|Seven|Eight|Nine)\s+cases\b",
+                                        RegexOptions.IgnoreCase);
+            Check("and does not spell out how many there are",
+                  !counted.Success,
+                  $"the help says \"{counted.Value}\" — a number in prose that nothing derives is wrong "
+                  + "one case later, which is how this defect arrived (T364).");
         }, "scripts/Check-Interaction.ps1", "AGENTS.md");
 
     /// <summary>

@@ -11,7 +11,8 @@
     (T135) while every screenshot ever taken of them looked perfect, because mouse input travels
     `WndProc` and keyboard input travels `ComponentDispatcher`. This script closes the checking gap.
 
-    Three cases, runnable separately:
+    The cases, runnable separately — one bullet each, and `--selftest` asserts this list against the
+    `ValidateSet` below, so no count is written here for a later case to make wrong (T364):
 
       -Case Keyboard   Launch `--settings-tray` (WinForms pump — the only preview that can see a
                        keyboard bug), navigate to a page, type into a TextBox and read the value back
@@ -22,6 +23,12 @@
                        (T176): behind `-Case Profiles`' two-profile skip this never ran on a
                        one-profile machine, and it is the only thing that would notice
                        `PART_SelectedContentHost` going missing again.
+      -Case Sessions   Launch `--main`, select the Sessions pane and drill into it: wait for the list
+                       to finish its scan, assert a row reads back, click one and assert the task
+                       lines it expands into, then open the pane's own method note and assert its
+                       text. The rows carry a money column (T346), and a figure nobody has driven is
+                       a figure that renders once and rots — this is the only case that opens the
+                       note, which is a separate top-level window a capture cannot see (T359).
       -Case Profiles   Launch `--main`, walk the Statistics page's profile picker 0 -> 1 -> 0 through
                        the real ComboBox and read the report back at each stop: the used %, the reset
                        caption and the live headline. Nothing else in this repo *drives* the picker —
