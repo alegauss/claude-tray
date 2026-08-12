@@ -16,8 +16,22 @@ namespace ClaudeTray;
 /// </summary>
 internal partial class StatisticsPage
 {
-    /// <summary>Index of the Sessions tab in <c>PanesBody</c>.</summary>
-    private const int SessionsTab = 3;
+    /// <summary>
+    /// Where the Sessions pane sits in <c>PanesBody</c>, asked of the <c>TabControl</c> rather than
+    /// spelled (T353).
+    ///
+    /// <para>It was a literal <c>3</c>, twice — <c>SessionsTab</c> here and <c>SessionsTabIndex</c> a
+    /// hundred lines down, the second of them documented as "named once rather than counted at each
+    /// call site". Neither was wrong, and that was the problem: both resolved to the same pane, so
+    /// nothing on screen and no check could tell the duplication from a single source of truth. The day
+    /// a pane was inserted above Sessions, the edit that fixed one call site would have left the other
+    /// selecting whatever now sat at 3.</para>
+    ///
+    /// <para>Derived, so there is nothing left to keep in step: the pane carries an <c>x:Name</c> and
+    /// the index is its position in the control that holds it. A pane added above it moves both call
+    /// sites at once, because there is only one answer and the XAML is where it lives.</para>
+    /// </summary>
+    private int SessionsTab => PanesBody.Items.IndexOf(SessionsPane);
 
     /// <summary>How the list is ordered. Clock is the default because recognising a conversation
     /// starts from when it ran; tokens is the other question a list of conversations is opened with.</summary>
@@ -147,12 +161,9 @@ internal partial class StatisticsPage
 
         // The pane the row lives in, before the row: selecting inside a tab nobody is looking at is a
         // jump the user never sees happen.
-        PanesBody.SelectedIndex = SessionsTabIndex;
+        PanesBody.SelectedIndex = SessionsTab;
         Dispatcher.BeginInvoke(() => OpenSession(running), System.Windows.Threading.DispatcherPriority.Background);
     }
-
-    /// <summary>Which tab the Sessions pane is, named once rather than counted at each call site.</summary>
-    private const int SessionsTabIndex = 3;
 
     /// <summary>Open one conversation's call tree and bring it into view — the shared half of a click on
     /// the row and a click on the live chart.</summary>

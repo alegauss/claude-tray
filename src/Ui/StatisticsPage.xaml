@@ -674,7 +674,12 @@
                      things (T328). Not a ScrollViewer around a StackPanel like its neighbours: the
                      header row has to stay put while the list under it scrolls, or the columns are
                      labelled only until you look for something. -->
-                <TabItem Header="{local:Loc stats.tab.sessions}">
+                <!-- Named so the code behind can ask the TabControl where this pane is rather than
+                     spelling its position (T353). Two constants used to say `3`, and the one whose doc
+                     read "named once rather than counted at each call site" was the second of them. A
+                     position is a fact about this file's tab order, so this file is where it is
+                     answered: insert a pane above and the index follows, with nothing to update. -->
+                <TabItem x:Name="SessionsPane" Header="{local:Loc stats.tab.sessions}">
                     <Grid Margin="4,18,14,10">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
