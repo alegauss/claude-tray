@@ -5372,7 +5372,61 @@ internal static class SelfTestCli
               shared.Length == 0 ? "" : $"{shared.Length} shared — {string.Join("; ", shared)}");
 
         InteractionIds(owners);
+        InteractionCasesDocumented();
     }
+
+    /// <summary>
+    /// Every case the interaction script declares is named in <c>AGENTS.md</c> (T360).
+    ///
+    /// <para>The rule is already in that document's own text — <em>"listing three is how two stayed
+    /// script-only (T201)"</em> — and two cases really did exist that nobody knew to run. Nothing checked
+    /// it, so the rule held exactly as long as each author happened to read it. T359 added a seventh case
+    /// and the whole suite stayed green with the document still saying six; it was documented because the
+    /// rule was followed, which is the guarantee T201 says is not one.</para>
+    ///
+    /// <para><b>Both directions, and the names only.</b> A case in the script and not the document is one
+    /// nobody runs — the original defect. A name in the document and not the script is a case somebody
+    /// deleted and a reader will go looking for. What is <em>not</em> asserted is how much prose each gets:
+    /// <c>Panes</c> and <c>Names</c> deliberately share a bullet, and AGENTS.md sits one line under its own
+    /// ceiling, so a check demanding a paragraph each would one day demand a line the budget refuses.</para>
+    /// </summary>
+    private static void InteractionCasesDocumented() =>
+        Repo("every interaction case the script declares is named in AGENTS.md", root =>
+        {
+            string script = File.ReadAllText(Path.Combine(root, "scripts/Check-Interaction.ps1"));
+            Match set = Regex.Match(script, @"\[ValidateSet\(([^)]*)\)\]");
+            string[] declared = Regex.Matches(set.Groups[1].Value, @"'([A-Za-z]+)'")
+                                     .Select(m => m.Groups[1].Value)
+                                     .Where(n => n != "All")
+                                     .OrderBy(n => n, StringComparer.Ordinal).ToArray();
+            if (declared.Length == 0) { Check("the script declares a case set at all", false, "no ValidateSet found"); return; }
+
+            // The section, not the file: `-Case` and these names appear nowhere else, but bounding it
+            // keeps the check about the passage a reader of that section is relying on.
+            string agents = File.ReadAllText(Path.Combine(root, "AGENTS.md"));
+            int from = agents.IndexOf("## Interaction verification", StringComparison.Ordinal);
+            int to = from < 0 ? -1 : agents.IndexOf("\n## ", from + 4, StringComparison.Ordinal);
+            string section = from < 0 ? "" : (to < 0 ? agents[from..] : agents[from..to]);
+            if (section.Length == 0) { Check("AGENTS.md still has an interaction section", false, "no '## Interaction verification' heading"); return; }
+
+            string[] inUsage = Regex.Match(section, @"\[-Case ([A-Za-z|]+)\]") is { Success: true } u
+                ? u.Groups[1].Value.Split('|').OrderBy(n => n, StringComparer.Ordinal).ToArray()
+                : Array.Empty<string>();
+            Check($"the usage line lists exactly the cases the script accepts ({declared.Length})",
+                  inUsage.SequenceEqual(declared, StringComparer.Ordinal),
+                  $"script: {string.Join("|", declared)} — AGENTS.md: {string.Join("|", inUsage)}. A case "
+                  + "missing here is a case nobody knows to run, which is the defect T201 named and left "
+                  + "to prose (T360).");
+
+            // Bold, because that is how the section introduces each one — and a name in a sentence about
+            // something else would otherwise count as documentation.
+            var bold = Regex.Matches(section, @"\*\*([A-Za-z]+)\*\*").Select(m => m.Groups[1].Value).ToHashSet(StringComparer.Ordinal);
+            string[] undescribed = declared.Where(n => !bold.Contains(n)).ToArray();
+            Check("and each of them is introduced in the prose below it",
+                  undescribed.Length == 0,
+                  $"{string.Join(", ", undescribed)} — listed in the usage block and described nowhere, so "
+                  + "a reader learns the flag exists and not what it drives (T360).");
+        }, "scripts/Check-Interaction.ps1", "AGENTS.md");
 
     /// <summary>
     /// Every id <c>Check-Interaction.ps1</c> looks a control up by, because that lookup is a <em>string</em>

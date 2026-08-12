@@ -24,10 +24,6 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block AI — Verification — the checks that prove a change
-
-- 📋 **T360** (deps: —) **AGENTS.md must name every interaction case and nothing checks that it does** — T359 added a seventh case and the whole suite stayed green with the document still saying six, which is the drift T201 named and left to prose. → §LXXXVII
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

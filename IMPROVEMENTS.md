@@ -808,29 +808,3 @@ included in your plan* — distinguished by where it is drawn, so one entry that
 week left to the tooltip, is the whole change. It also has to survive the case that only one of the
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
-
-## LXXXVII Seven cases, six named, nothing comparing them (T360)
-
-AGENTS.md carries the rule in its own text: *"All seven are below; listing three is how two stayed
-script-only (T201)."* Two cases once existed that nobody knew to run, because the document named
-three of five. Nothing checks it.
-
-**Demonstrated, not suspected.** T359 added a seventh case to the script's `-Case` set. Every check
-in the suite stayed green with the document still saying six and still listing six — `--selftest` at
-913 passed, the interaction suite itself passing, `lint` at its floor. The case was documented
-because the rule was read and followed, which is precisely the guarantee T201 says is not enough:
-the previous two were also going to be documented.
-
-**The two lists are a string apart.** `Check-Interaction.ps1` declares its cases in one
-`[ValidateSet(...)]` and dispatches them in one `if ($Case -in @('All', 'X'))` line each; AGENTS.md
-spells the same names twice, in the usage block and as one bullet per case. Four places, no relation
-between them, and the failure is silent in the direction that matters — a case nobody runs.
-
-**This repository already owns the shape of the answer.** `--selftest` reads the flag catalogue
-against the flags the sources accept, the file map against the files on disk, and the ledger's index
-against its own headings. This is the same claim in two places, and the same check: the set the
-script declares is the set the document names.
-
-**One honest complication.** AGENTS.md is at 322 of its 323 lines. A check that demands a bullet per
-case is a check that will one day demand a line the budget refuses — so what it asserts is that the
-names match, not how much prose each gets.
