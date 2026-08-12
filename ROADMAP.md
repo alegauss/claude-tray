@@ -24,6 +24,10 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
+## Block AI — Verification — the checks that prove a change
+
+- 📋 **T359** (deps: —) **nothing drives the Sessions pane, and its popup is a window no capture can photograph** — T358 proved the pane is in the tree; the row click that unfolds the call tree, the sort headers and the list-price note are verified by nobody. → §LXXXVI
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
