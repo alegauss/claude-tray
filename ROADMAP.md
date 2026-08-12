@@ -61,10 +61,6 @@
 >
 > Ordered by what is wrong for every user today, then by what makes the result checkable.
 
-## Block AI — Verification — the checks that prove a change
-
-- 📋 **T345** (deps: T312 ✅) **the source-reading checks need a four-minute WPF build to answer questions about text on disk** — Seven checks open files under src and compare text, and all seven need the WPF binary built to answer - so fixing what one of them found was done against a scratch script instead. → §LXXIII
-
 ## Block G — Localization
 
 ## Block N — System information — your plan, your install, this machine
@@ -139,3 +135,6 @@ Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full 
 - **No figure in money for an overage spell** Settled by dropping T279: which models overage bills
   is a cached GrowthBook flag reading ["Fable", "Fable 5"], and 0 of 34,790 turns here were Fable —
   its two readings differ by the whole estimate.
+- **No second build target for the source-reading checks** T345 measured the loop the idea rests on:
+  19s to rebuild in Debug and 10s to run, not the four minutes Release costs - so a second .csproj
+  would be a second thing to keep alive for 28 seconds.

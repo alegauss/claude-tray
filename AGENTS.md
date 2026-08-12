@@ -182,6 +182,11 @@ ClaudeTray.exe --selftest [--quick]      # exit 1 on failure — run it before c
 
 - It runs on **every push and PR** (`.github/workflows/check.yml`) and again against the packaged
   single-file `.exe` before an installer is built (`build.yml`). A red commit, not a blocked release.
+- **Build `-c Debug` to work on a check; `-c Release` only to ship.** Release is self-contained (T341),
+  so a no-op costs 4–5 min here and 12–17 under load. Debug: 43s cold, **19s after an edit**, suite in
+  ~10s. The repo-reading checks open their files at *run* time, so a change to a **document** needs no
+  rebuild at all — `--no-build` re-answers it. T345 measured this because T312's fixes were made against
+  a scratch script duplicating a rule this repo owns: the loop was already 29s and nobody had said so.
 - Everything it **writes** is synthetic and removed: a temp transcript tree and a `selftest` profile
   dir. A real profile's stores are never read or written, and the repository files above are only read.
 - **A check is not finished until it has been seen to fail.** Break the property deliberately, watch the
