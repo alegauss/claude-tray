@@ -808,31 +808,3 @@ included in your plan* — distinguished by where it is drawn, so one entry that
 week left to the tooltip, is the whole change. It also has to survive the case that only one of the
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
-
-## LXXXV Three tabs asked about, four on screen (T358)
-
-`-Case Panes` exists because T165 found a pane whose headers read perfectly while its entire body
-was absent from the accessibility tree — every number, legend and projection sentence invisible to a
-screen reader, and invisible to every screenshot ever taken of it, because a picture does not use
-that tree.
-
-**It asks about three tabs.** `Check-Interaction.ps1:1206` lists `stats.tab.session`,
-`stats.tab.week` and `stats.tab.throughput` by hand. `stats.tab.sessions` has been the fourth since
-T328 and is in none of them, so the newest pane has never been asked whether it is in the tree at
-all. The case reports *"all three tab headers read"* against a window with four, which is a sentence
-that sounds complete.
-
-**A hardcoded list, and the failure mode this repository already names.** The rule sits beside
-`--selftest`'s automation-id check, which derives the XAML types it scans rather than listing them:
-a hardcoded list silently stops checking the thing it was written for. This is that, observed — a
-tab was added and the cover did not follow.
-
-**The uncovered pane is the interactive one.** The other three are charts a capture can verify.
-Sessions is where a row click unfolds a call tree (T329), two headers re-sort the list, and an ⓘ
-opens a popup a capture cannot see at all (T346). T355 already recorded that the click path has no
-interaction case; this is the same hole from the other side.
-
-**Two sizes of answer, and they are not the same task.** Deriving the header list from the tab
-control closes the reported gap and stops the next pane going uncovered. Driving the pane — click a
-row, assert the tree arrives; open the ⓘ, assert the note reads — is the coverage the pane actually
-lacks, and it is the part a capture provably cannot do.

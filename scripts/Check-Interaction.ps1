@@ -1202,14 +1202,27 @@ function Invoke-PanesCase {
         $win = Acquire-Main
         if (-not $win) { Fail "the main window never appeared"; return }
 
-        # The headers first, and separately: T165's defect left all three of these perfectly readable
+        # The headers first, and separately: T165's defect left every one of these perfectly readable
         # and took the whole body with them, so "headers but no body" is the exact shape to name.
-        $tabs = @('stats.tab.session', 'stats.tab.week', 'stats.tab.throughput') | ForEach-Object { Label $_ }
+        #
+        # The set is DERIVED, not listed (T358). It used to name three keys by hand, and the window has
+        # carried four since T328 — so the case reported "all three tab headers read" against a four-tab
+        # window and the newest pane had never been asked whether it was in the tree at all. That is the
+        # failure mode the automation-id check already avoids by deriving its types: a hardcoded list
+        # silently stops covering the thing it was written for.
+        #
+        # From en.json rather than from the tree, and that is the point: the tree is what is being
+        # asserted, so an expected set read out of it could never notice a header that had gone missing.
+        # A tab added later ships a `stats.tab.*` string, and the cover follows it with no edit here.
+        $tabKeys = @([regex]::Matches((Lang-Table 'en'), '"(stats\.tab\.[a-z]+)"\s*:') |
+                     ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique)
+        if ($tabKeys.Count -lt 3) { Fail "only $($tabKeys.Count) stats.tab.* key(s) in en.json - the derivation is wrong, not the window"; return }
+        $tabs = @($tabKeys | ForEach-Object { Label $_ })
         $missing = @($tabs | Where-Object { -not (ByName $win $_ 8000) })
         if ($missing.Count -gt 0) {
             Fail "these tab headers are not in the tree: $($missing -join ', ')"
         } else {
-            Pass "all three tab headers read ($($tabs -join ' / '))"
+            Pass "all $($tabs.Count) tab headers read ($($tabs -join ' / '))"
         }
 
         $stop = Read-ProfileStop $win $computing
