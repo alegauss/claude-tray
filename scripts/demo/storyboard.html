@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Claude Code Tray — demo storyboard</title>
+<link rel="stylesheet" href="fonts.css">
+<style>
+  :root{
+    --clay:#D97757;
+    --clay-bright:#E89070;
+    --bg:#171008;
+    --bg-2:#1f160e;
+    --text:#f4ece4;
+    --muted:#b6a596;
+    --line:#3a2c20;
+    --blue:#4a90e2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:960px;height:540px;overflow:hidden;background:#000}
+  body{
+    font-family:Inter,system-ui,sans-serif;
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+  }
+  #stage{
+    position:relative;width:960px;height:540px;overflow:hidden;
+    background:
+      radial-gradient(760px 420px at 80% -12%, rgba(217,119,87,.22), transparent 62%),
+      radial-gradient(620px 520px at -8% 24%, rgba(217,119,87,.09), transparent 58%),
+      linear-gradient(180deg,var(--bg),var(--bg-2));
+  }
+  /* A faint desktop grid, so the stage reads as a surface rather than a slide —
+     and a tile of noise over it. The noise is not decoration: a GIF has 256
+     colours, and the dark clay gradient banded into visible blotches without
+     it. It is static, so it only costs bytes in the first frame. */
+  #grain{
+    position:absolute;inset:0;pointer-events:none;
+    background-image:url(noise.png),
+                     linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+    background-size:64px 64px, 48px 48px, 48px 48px;
+  }
+  /* left/top pinned to the origin: a layer without its own left/top is placed
+     purely by transform, and an "auto" offset would resolve to the static
+     position instead (the sibling stack), which silently shifts it */
+  .layer{position:absolute;left:0;top:0;will-change:transform,opacity}
+
+  /* ---------- the tray icon, drawn the way the app draws it ---------- */
+  .tile{
+    position:relative;overflow:hidden;
+    background:var(--clay);
+    border-radius:2px;
+    box-shadow:
+      inset 1.5px 1.5px 0 rgba(255,255,255,.42),
+      inset -1.5px -1.5px 0 rgba(0,0,0,.38);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .tile .fill{position:absolute;left:0;right:0;bottom:0;background:var(--blue)}
+  .tile .num{
+    position:relative;font-weight:800;letter-spacing:-.03em;color:#fff;line-height:1;
+    text-shadow:
+      -1px -1px 0 rgba(0,0,0,.85), 1px -1px 0 rgba(0,0,0,.85),
+      -1px  1px 0 rgba(0,0,0,.85), 1px  1px 0 rgba(0,0,0,.85);
+  }
+
+  /* ---------- taskbar ---------- */
+  #taskbar{
+    position:absolute;left:0;right:0;bottom:0;height:42px;
+    background:rgba(10,7,5,.9);
+    border-top:1px solid rgba(255,255,255,.07);
+    display:flex;align-items:center;justify-content:flex-end;gap:15px;
+    padding:0 16px;
+  }
+  #taskbar .glyph{color:#9c9089;opacity:.85;display:flex;align-items:center}
+  #trayWrap{position:relative;display:flex;align-items:center;justify-content:center}
+  #trayTile{width:22px;height:22px}
+  #trayTile .num{font-size:13px}
+  #trayHalo{
+    position:absolute;width:52px;height:52px;border-radius:50%;
+    background:radial-gradient(circle,rgba(217,119,87,.75),rgba(217,119,87,.16) 45%,transparent 70%);
+  }
+  #clock{font-size:11.5px;line-height:1.25;color:#c9bdb4;text-align:right;font-weight:500}
+  #clock span{display:block;font-size:10.5px;color:#9c9089}
+
+  /* ---------- intro ---------- */
+  #heroTile{left:214px;top:200px;width:132px;height:132px;border-radius:6px}
+  #heroTile .num{font-size:78px}
+  #heroText{left:386px;top:206px;width:520px}
+  #heroText h1{font-size:52px;font-weight:900;letter-spacing:-.035em;line-height:1.02}
+  #heroText p{font-size:19px;color:var(--muted);margin-top:12px;font-weight:400}
+  #heroText .chip{
+    display:inline-flex;align-items:center;gap:8px;margin-top:18px;
+    padding:6px 14px;border-radius:999px;
+    background:rgba(217,119,87,.13);border:1px solid rgba(217,119,87,.34);
+    color:var(--clay-bright);font-size:12.5px;font-weight:600;letter-spacing:.02em;
+  }
+  #heroText .chip b{color:var(--text);font-weight:600}
+
+  /* ---------- caption column ---------- */
+  #caption{left:54px;top:146px;width:266px}
+  #caption .kicker{
+    display:inline-block;padding:5px 11px;border-radius:999px;
+    background:rgba(217,119,87,.13);border:1px solid rgba(217,119,87,.34);
+    color:var(--clay-bright);font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  }
+  #caption h2{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1.15;margin-top:16px}
+  #caption p{font-size:14.5px;line-height:1.5;color:var(--muted);margin-top:12px}
+
+  /* ---------- shots ---------- */
+  .shot{background-repeat:no-repeat}
+  #statsWrap .shot,#ctxShot{
+    border-radius:10px;
+    box-shadow:0 26px 60px -18px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.07);
+  }
+  #tooltipShot{border-radius:8px;box-shadow:0 18px 40px -14px rgba(0,0,0,.8)}
+  #menuMain,#menuSub{box-shadow:0 20px 40px -14px rgba(0,0,0,.75)}
+  #toastShot{border-radius:14px;box-shadow:0 22px 50px -14px rgba(0,0,0,.7)}
+  #statsWrap .shot{position:absolute;left:0;top:0}
+
+  /* ---------- pointer ---------- */
+  #cursor{filter:drop-shadow(0 2px 3px rgba(0,0,0,.7))}
+  #ripple{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.9)}
+
+  /* ---------- end card ---------- */
+  #endcard{left:0;top:0;width:960px;height:540px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  #endcard img{width:76px;height:76px;border-radius:18px}
+  #endcard h1{font-size:44px;font-weight:900;letter-spacing:-.035em;margin-top:20px}
+  #endcard .tag{font-size:17px;color:var(--muted);margin-top:10px}
+  #endcard .cmd{
+    margin-top:26px;padding:12px 20px;border-radius:12px;
+    background:rgba(255,255,255,.05);border:1px solid var(--line);
+    font-family:"JetBrains Mono",Consolas,"DejaVu Sans Mono",monospace;
+    font-size:16px;color:var(--text);
+  }
+  #endcard .cmd b{color:var(--clay-bright);font-weight:400}
+  #endcard .links{margin-top:18px;font-size:14.5px;color:var(--muted)}
+  #endcard .links b{color:var(--text);font-weight:600}
+  #endcard .fine{margin-top:22px;font-size:11.5px;color:#8a7868}
+
+  #fade{position:absolute;inset:0;background:#000;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- grid + dither, first in the DOM so every shot paints over it (noise under
+       a moving window would cost the GIF a fortune in changed pixels) -->
+  <div id="grain"></div>
+
+  <!-- intro -->
+  <div class="layer tile" id="heroTile"><div class="fill"></div><span class="num">0</span></div>
+  <div class="layer" id="heroText">
+    <h1>Claude&nbsp;Code&nbsp;Tray</h1>
+    <p>Your Claude usage, always in the Windows&nbsp;tray.</p>
+    <div class="chip">Free &amp; open source · <b>Windows 10 / 11</b></div>
+  </div>
+
+  <!-- caption column -->
+  <div class="layer" id="caption">
+    <div class="kicker"></div>
+    <h2></h2>
+    <p></p>
+  </div>
+
+  <!-- shots -->
+  <div class="layer shot" id="tooltipShot"></div>
+  <div class="layer shot" id="menuMain"></div>
+  <div class="layer shot" id="menuSub"></div>
+  <div class="layer" id="statsWrap">
+    <div class="shot" id="stats5h"></div>
+    <div class="shot" id="stats7d"></div>
+  </div>
+  <div class="layer shot" id="ctxShot"></div>
+  <div class="layer shot" id="toastShot"></div>
+
+  <!-- desktop furniture -->
+  <div id="taskbar">
+    <div class="glyph"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></div>
+    <div class="glyph"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8.5a15 15 0 0 1 20 0"/><path d="M5.5 12a10 10 0 0 1 13 0"/><path d="M9 15.4a5 5 0 0 1 6 0"/><circle cx="12" cy="19" r="1.1" fill="currentColor"/></svg></div>
+    <div class="glyph"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9h3l5-4v14l-5-4H4z" fill="currentColor" stroke="none"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg></div>
+    <div id="trayWrap">
+      <div id="trayHalo"></div>
+      <div class="tile" id="trayTile"><div class="fill"></div><span class="num">72</span></div>
+    </div>
+    <div id="clock">14:32<span>03/08/2026</span></div>
+  </div>
+
+  <!-- pointer -->
+  <div class="layer" id="cursor">
+    <svg width="20" height="24" viewBox="0 0 20 24"><path d="M2 1.6 17.4 12.2l-6.6.5 3.5 7.4-2.9 1.4-3.5-7.4-4.4 4.6Z" fill="#fff" stroke="#161616" stroke-width="1.3" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="layer" id="ripple"></div>
+
+  <!-- end card -->
+  <div class="layer" id="endcard">
+    <img src="../../docs/logo.png" alt="">
+    <h1>Claude Code Tray</h1>
+    <div class="tag">Rate-limit %, pace projection and context load — in your tray.</div>
+    <div class="cmd">winget install <b>alegauss.ClaudeCodeTray</b></div>
+    <div class="links">github.com/<b>alegauss/claude-tray</b></div>
+    <div class="fine">Unofficial community project · not affiliated with Anthropic</div>
+  </div>
+
+  <div id="fade"></div>
+</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Deterministic storyboard: every visual property is a pure function of t (ms).
+// No CSS transitions/animations — capture.mjs steps t and screenshots, so the
+// same t always produces the same pixels, and a held frame is byte-identical
+// to the one before it (which is what keeps the GIF small).
+//
+// Every screenshot is a real one from docs\ — this composes them, it does not
+// redraw the app. Only the tray icon itself is re-drawn in CSS, because the
+// real one is 22px and the point of the intro is to show it big.
+// ---------------------------------------------------------------------------
+const $ = id => document.getElementById(id);
+
+// --- shots: the crop taken out of each PNG (in that PNG's own pixels) and the
+//     width it is drawn at on the 960x540 stage.
+const SHOTS = {
+  tooltipShot: { src:'../../docs/tooltip.png',       sw:480,  sh:196,  crop:[0,0,480,196],     w:334 },
+  menuMain:    { src:'../../docs/menu.png',          sw:610,  sh:336,  crop:[18,19,312,248],   w:244 },
+  menuSub:     { src:'../../docs/menu.png',          sw:610,  sh:336,  crop:[326,20,264,146],  w:207 },
+  stats5h:     { src:'../../docs/statistics-5h.png', sw:1300, sh:1368, crop:[18,248,1264,838], w:556 },
+  stats7d:     { src:'../../docs/statistics-7d.png', sw:1300, sh:1368, crop:[18,248,1264,838], w:556 },
+  ctxShot:     { src:'../../docs/context.png',       sw:1974, sh:1425, crop:[0,0,1974,1184],   w:552 },
+  toastShot:   { src:'../../docs/notify-weekly.png', sw:800,  sh:400,  crop:[0,0,800,400],     w:404 },
+};
+const size = {};
+for (const [id, s] of Object.entries(SHOTS)) {
+  const [cx, cy, cw, ch] = s.crop;
+  const k = s.w / cw;                       // source pixels -> stage pixels
+  const el = $(id);
+  el.style.width  = s.w + 'px';
+  el.style.height = Math.round(ch * k) + 'px';
+  el.style.backgroundImage = `url(${s.src})`;
+  el.style.backgroundSize = `${(s.sw * k).toFixed(2)}px ${(s.sh * k).toFixed(2)}px`;
+  el.style.backgroundPosition = `${(-cx * k).toFixed(2)}px ${(-cy * k).toFixed(2)}px`;
+  size[id] = { w: s.w, h: Math.round(ch * k), k };
+}
+// every bitmap the storyboard needs — capture.mjs waits on these before frame 0
+window.ASSETS = [...new Set(Object.values(SHOTS).map(s => s.src))].concat(['../../docs/logo.png', 'noise.png']);
+
+// --- easing / envelope helpers
+const clamp = (v, a = 0, b = 1) => v < a ? a : v > b ? b : v;
+const lerp  = (a, b, u) => a + (b - a) * u;
+const easeOut = u => 1 - Math.pow(1 - clamp(u), 3);
+const easeInOut = u => (u = clamp(u)) < .5 ? 4*u*u*u : 1 - Math.pow(-2*u + 2, 3) / 2;
+const env = (lt, dur, fi = 260, fo = 240) => clamp(Math.min(lt / fi, (dur - lt) / fo));
+
+function put(el, { o = 1, x = 0, y = 0, s = 1 } = {}) {
+  el.style.opacity = o.toFixed(3);
+  el.style.transform = `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) scale(${s.toFixed(4)})`;
+  el.style.visibility = o <= 0.002 ? 'hidden' : 'visible';
+}
+const hide = el => { el.style.opacity = '0'; el.style.visibility = 'hidden'; };
+
+function caption(kicker, title, body, o) {
+  const c = $('caption');
+  c.querySelector('.kicker').textContent = kicker;
+  c.querySelector('h2').textContent = title;
+  c.querySelector('p').textContent = body;
+  put(c, { o });
+}
+
+function setTile(el, pct) {
+  el.querySelector('.fill').style.height = pct.toFixed(1) + '%';
+  el.querySelector('.num').textContent = Math.round(pct);
+}
+
+// --- rest positions, measured before anything is transformed
+const centre = el => { const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; };
+const HERO = centre($('heroTile'));
+const TRAY = centre($('trayTile'));
+const TRAY_SCALE = 22 / 132;
+
+// --- menu placement: the two crops keep the offset they have in the screenshot
+const MENU = (() => {
+  const k = size.menuMain.k;
+  const dx = (SHOTS.menuSub.crop[0] - SHOTS.menuMain.crop[0]) * k;
+  const dy = (SHOTS.menuSub.crop[1] - SHOTS.menuMain.crop[1]) * k;
+  const right = 928, bottom = 490;
+  const x = right - (dx + size.menuSub.w);
+  return { x, y: bottom - size.menuMain.h, dx, dy };
+})();
+
+// --- the storyboard
+const SCENES = [
+  { id:'intro',   dur:2700 },
+  { id:'tooltip', dur:2200 },
+  { id:'menu',    dur:2400 },
+  { id:'stats',   dur:3200 },
+  { id:'context', dur:2200 },
+  { id:'toast',   dur:2200 },
+  { id:'end',     dur:2500 },
+];
+let at = 0;
+for (const s of SCENES) { s.t0 = at; at += s.dur; s.t1 = at; }
+const DURATION = at;
+window.DEMO_DURATION = DURATION;
+
+const FLY_T0 = 1950, FLY_MS = 620;          // when the icon leaves the hero for the tray
+const LANDED = FLY_T0 + FLY_MS;
+
+const el = {
+  heroTile: $('heroTile'), heroText: $('heroText'), trayTile: $('trayTile'), halo: $('trayHalo'),
+  tooltip: $('tooltipShot'), menuMain: $('menuMain'), menuSub: $('menuSub'),
+  stats: $('statsWrap'), s5h: $('stats5h'), s7d: $('stats7d'), ctx: $('ctxShot'), toast: $('toastShot'),
+  cursor: $('cursor'), ripple: $('ripple'), end: $('endcard'), fade: $('fade'),
+  taskbar: $('taskbar'), caption: $('caption'),
+};
+
+function render(t) {
+  t = clamp(t, 0, DURATION - 1);
+  const sc = SCENES.find(s => t < s.t1) || SCENES[SCENES.length - 1];
+  const lt = t - sc.t0;
+
+  // everything off by default; each scene turns on only what it needs
+  [el.heroTile, el.heroText, el.tooltip, el.menuMain, el.menuSub, el.stats, el.ctx, el.toast,
+   el.cursor, el.ripple, el.end, el.caption].forEach(hide);
+  el.halo.style.opacity = '0';
+
+  // ---- taskbar: slides up just before the icon lands, gone on the end card
+  const tbIn = clamp((t - 2100) / 320);
+  el.taskbar.style.opacity = (sc.id === 'end' ? 0 : tbIn).toFixed(3);
+  el.taskbar.style.transform = `translateY(${lerp(42, 0, easeOut(tbIn)).toFixed(2)}px)`;
+  setTile(el.trayTile, 72);
+  el.trayTile.style.opacity = (t >= LANDED && sc.id !== 'end') ? '1' : '0';
+
+  switch (sc.id) {
+    // -----------------------------------------------------------------------
+    case 'intro': {
+      // the icon fills to 72% while the wordmark settles, then flies to the tray
+      const grow = easeInOut(clamp((lt - 250) / 1250));
+      setTile(el.heroTile, grow * 72);
+
+      const fly = easeInOut(clamp((lt - FLY_T0) / FLY_MS));
+      put(el.heroTile, {
+        o: lt >= LANDED ? 0 : 1,
+        x: lerp(0, TRAY.x - HERO.x, fly),
+        y: lerp(0, TRAY.y - HERO.y, fly),
+        s: lerp(1, TRAY_SCALE, fly),
+      });
+      put(el.heroText, {
+        o: clamp(Math.min(easeOut(lt / 520), (FLY_T0 - lt) / 380)),
+        y: lerp(10, 0, easeOut(lt / 520)),
+      });
+      break;
+    }
+
+    // -----------------------------------------------------------------------
+    case 'tooltip': {
+      const e = env(lt, sc.dur);
+      caption('The tray icon', 'A number, not a guess',
+              'The percentage is drawn as a vector at the exact size the tray asks for — crisp at 100% or 200%.', e);
+
+      // the pointer walks over, the icon lights up, the tooltip rises
+      const mv = easeInOut(clamp(lt / 700));
+      put(el.cursor, { o: clamp(lt / 200), x: lerp(560, TRAY.x + 3, mv), y: lerp(300, TRAY.y - 3, mv) });
+      el.halo.style.opacity = clamp((lt - 560) / 260).toFixed(3);
+
+      const up = easeOut(clamp((lt - 620) / 420));
+      put(el.tooltip, {
+        o: Math.min(e, clamp((lt - 620) / 300)),
+        x: 960 - 26 - size.tooltipShot.w,
+        y: 540 - 52 - size.tooltipShot.h + lerp(16, 0, up),
+      });
+      break;
+    }
+
+    // -----------------------------------------------------------------------
+    case 'menu': {
+      const e = env(lt, sc.dur);
+      caption('Right-click', 'Everything one click away',
+              'Switch what the icon counts, open the 24h insights, jump into Claude Code, or open Settings.', e);
+
+      // right-click on the tray icon, then the pointer walks up to "Show on icon"
+      const rip = clamp(lt / 420);
+      if (lt < 460) put(el.ripple, { o: (1 - rip) * .9, x: TRAY.x - 8, y: TRAY.y - 8, s: lerp(.6, 2.6, easeOut(rip)) });
+      const toItem = easeInOut(clamp((lt - 560) / 460));
+      put(el.cursor, {
+        o: clamp(lt / 160) * clamp((sc.dur - lt) / 320),
+        x: lerp(TRAY.x + 3, MENU.x + 96, toItem),
+        y: lerp(TRAY.y - 3, MENU.y + 22, toItem),
+      });
+      el.halo.style.opacity = clamp((300 - lt) / 300).toFixed(3);
+
+      const up = easeOut(clamp((lt - 140) / 360));
+      put(el.menuMain, {
+        o: Math.min(e, clamp((lt - 140) / 220)),
+        x: MENU.x, y: MENU.y + lerp(12, 0, up),
+      });
+      put(el.menuSub, {
+        o: Math.min(e, clamp((lt - 900) / 200)),
+        x: MENU.x + MENU.dx, y: MENU.y + MENU.dy,
+      });
+      break;
+    }
+
+    // -----------------------------------------------------------------------
+    case 'stats': {
+      const e = env(lt, sc.dur);
+      const swap = clamp((lt - 1500) / 420);                 // 5-hour window -> 7-day week
+      caption('Statistics',
+              swap > .5 ? 'And the whole week too' : 'Burning it too fast?',
+              swap > .5 ? 'The 7-day projection steps around the hours you actually work — flat overnight, climbing when you do.'
+                        : 'A burn-up chart against the even-pace line, and a projection that says when you run out.', e);
+
+      const up = easeOut(clamp(lt / 460));
+      el.stats.style.width = size.stats5h.w + 'px';
+      el.stats.style.height = size.stats5h.h + 'px';
+      put(el.stats, { o: e, x: 372, y: 66 + lerp(18, 0, up), s: lerp(.985, 1, up) });
+      el.s5h.style.opacity = (1 - swap).toFixed(3);
+      el.s7d.style.opacity = swap.toFixed(3);
+      break;
+    }
+
+    // -----------------------------------------------------------------------
+    case 'context': {
+      const e = env(lt, sc.dur);
+      caption('Context load', 'What a session costs',
+              'Instruction files, the memory index and every skill description — measured per project, and never leaving the machine.', e);
+
+      const up = easeOut(clamp(lt / 460));
+      put(el.ctx, { o: e, x: 380, y: 84 + lerp(18, 0, up), s: lerp(.985, 1, up) });
+      break;
+    }
+
+    // -----------------------------------------------------------------------
+    case 'toast': {
+      const e = env(lt, sc.dur);
+      caption('Notifications', 'It tells you when it matters',
+              'A toast when a window resets, when extra usage starts paying, or when a project loads a heavy context.', e);
+
+      const slide = easeOut(clamp((lt - 160) / 520));
+      put(el.toast, {
+        o: Math.min(e, clamp((lt - 160) / 300)),
+        x: 960 - 26 - size.toastShot.w + lerp(40, 0, slide),
+        y: 540 - 56 - size.toastShot.h,
+      });
+      break;
+    }
+
+    // -----------------------------------------------------------------------
+    case 'end': {
+      put(el.end, { o: env(lt, sc.dur, 320, 1), y: lerp(8, 0, easeOut(lt / 520)) });
+      break;
+    }
+  }
+
+  // fade in at the very start and out at the very end, so the loop joins cleanly
+  el.fade.style.opacity = (1 - Math.min(clamp(t / 260), clamp((DURATION - t) / 300))).toFixed(3);
+}
+
+window.render = render;
+render(0);
+
+// A hand-driven preview when the page is opened in a browser. capture.mjs sets
+// __CAPTURE__ first, so it never runs there.
+if (!window.__CAPTURE__) {
+  let start = null;
+  const loop = ts => {
+    if (start === null) start = ts;
+    render((ts - start) % DURATION);
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "claude-tray-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Renders docs/demo.gif — the promo clip, composed from the screenshots in docs/",
+  "type": "module",
+  "scripts": {
+    "demo": "node capture.mjs",
+    "demo:small": "node capture.mjs --width 640 --fps 12 --out ../../docs/demo-small.gif"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "gifenc": "^1.0.3",
+    "playwright": "^1.62.1",
+    "pngjs": "^7.0.0"
+  }
+}

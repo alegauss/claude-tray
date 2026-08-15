@@ -6,3 +6,5 @@ _preview/
 # normally deleted afterward — ignored so a stray one is never tracked/committed).
 *_wpftmp.csproj
 .roadkeep/
+# the demo-clip tooling's dependencies (scripts\demo\README.md says how to install them)
+node_modules/
