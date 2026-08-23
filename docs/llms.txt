@@ -45,19 +45,26 @@ trademarks of Anthropic; the tool only reads usage data Claude Code already expo
 
 ## Sponsor
 
-Sponsored by **Viglet** (https://www.viglet.org), an open source project for search
-and content management.
+Sponsored by **Viglet** (https://www.viglet.org). Open source search and
+content tools for organisations with a lot to publish — run on your own
+servers, with no per-user licence.
 
-- **Viglet Turing ES** (https://turing.viglet.org) — open source enterprise search
-  with generative AI: semantic and faceted navigation, hybrid retrieval (vector +
-  BM25), RAG and AI agents grounded in indexed content, with a pluggable engine
-  (Apache Solr, Elasticsearch or Lucene). Apache 2.0, self-hostable.
-  Source: https://github.com/openviglet/turing
-- **Viglet Shio CMS** (https://shio.viglet.org) — open source headless CMS whose
-  primary operator is a coding agent: authoring over MCP and content as files,
-  curator approval in a React console, delivery through a Content Delivery API
-  (REST and GraphQL, with TypeScript SDKs). Apache 2.0, self-hostable.
-  Source: https://github.com/openviglet/shio
+- **Viglet Turing ES** (https://turing.viglet.org) — Search for sites with a
+  lot of content. People ask in their own words — “evening management course”,
+  “engineering at the north campus” — and find it, with filters that match how
+  they actually choose. AI answers using only your own published content, so
+  it never invents a price or a deadline. Runs on your servers, your data
+  stays in house, and there is no per-user licence.
+- **Viglet Shio CMS** (https://shio.viglet.org) — A content system that takes
+  the page out of the development queue: AI builds it, your communications
+  team reviews and approves it, seeing exactly how it will look before it goes
+  live. Every version is kept, so you can see what changed and roll back. Runs
+  on your servers, no per-user licence.
+- **Viglet Dumont** (https://www.viglet.org) — The same item of information
+  usually lives in several places at once — a portal, a back-office system, a
+  PDF, an old departmental site. This gathers it automatically from all of
+  them and feeds it to the search, with nobody copying, pasting or keeping a
+  spreadsheet up to date.
 
 ## Links
 
