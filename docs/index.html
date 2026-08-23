@@ -285,6 +285,37 @@
   .foot-links a:hover{color:var(--clay)}
   .disclaimer{color:var(--muted-2);font-size:.8rem;margin-top:22px;text-align:center;max-width:760px;margin-left:auto;margin-right:auto;line-height:1.6}
 
+  /* ---------- sponsor block (generated from alegauss.github.io/sponsor.json) ----------
+     Sits between the footer links and the disclaimer. Product tiles carry the real logos
+     on a white plate — the marks are reproduced as published, never recoloured to match
+     this palette. */
+  .sponsor{
+    margin-top:30px;padding-top:26px;border-top:1px solid var(--line);
+    display:flex;align-items:flex-start;gap:16px;
+  }
+  .sponsor-mark{width:42px;height:42px;border-radius:10px;background:#fff;padding:3px;flex:none}
+  .sponsor-body{min-width:0}
+  .sponsor-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted-2);display:block}
+  .sponsor-name{font-weight:800;font-size:1.02rem;letter-spacing:-.01em;display:block;margin-top:2px}
+  .sponsor-name:hover{color:var(--clay-bright)}
+  .sponsor-body p{color:var(--muted);font-size:.88rem;line-height:1.6;margin-top:6px;max-width:640px}
+  .sponsor-body p a{color:var(--clay-bright);text-decoration:underline;text-underline-offset:3px}
+  .sponsor-products{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+  .sponsor-product{
+    display:flex;align-items:center;gap:10px;
+    padding:9px 14px 9px 10px;border:1px solid var(--line);border-radius:12px;
+    background:var(--panel);transition:border-color .2s,transform .15s ease;
+  }
+  .sponsor-product:hover{border-color:var(--clay-bright);transform:translateY(-2px)}
+  .sponsor-product img{width:28px;height:28px;border-radius:7px;background:#fff;padding:2px;flex:none}
+  .sponsor-product b{display:block;font-size:.86rem;font-weight:700;letter-spacing:-.01em}
+  .sponsor-product small{display:block;color:var(--muted-2);font-size:.76rem;line-height:1.45;max-width:280px}
+  @media(max-width:620px){
+    .sponsor{flex-direction:column}
+    .sponsor-product{width:100%}
+  }
+
+
   /* reveal on scroll */
   .reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
   .reveal.in{opacity:1;transform:none}
@@ -844,6 +875,42 @@
         <a href="https://github.com/alegauss/claude-tray/blob/main/LICENSE">License</a>
       </div>
     </div>
+  <!-- sponsor:start — generated from alegauss.github.io/sponsor.json by
+       scripts/sync-sponsor.mjs. Edit the JSON, not this block. Kept as static markup
+       on purpose: a runtime fetch would keep the sponsor out of the HTML that crawlers
+       and LLMs actually read. -->
+  <div class="sponsor">
+    <img class="sponsor-mark" src="viglet/viglet-logo.png"
+         alt="Viglet logo" width="42" height="42" loading="lazy" decoding="async">
+    <div class="sponsor-body">
+      <span class="sponsor-label">Sponsored by</span>
+      <a class="sponsor-name" href="https://www.viglet.org" target="_blank" rel="noopener">Viglet</a>
+      <p>
+        Open source software for search and content. Both Apache 2.0 and self-hostable, on
+        <a href="https://github.com/openviglet" target="_blank" rel="noopener">github.com/openviglet</a>.
+      </p>
+      <div class="sponsor-products">
+        <a class="sponsor-product" href="https://turing.viglet.org" target="_blank" rel="noopener">
+          <img src="viglet/turing-logo.png" alt="Viglet Turing ES logo"
+               width="28" height="28" loading="lazy" decoding="async">
+          <span>
+            <b>Viglet Turing ES</b>
+            <small>enterprise search with semantic navigation, hybrid retrieval (vector + BM25) and generative AI (RAG)</small>
+          </span>
+        </a>
+        <a class="sponsor-product" href="https://shio.viglet.org" target="_blank" rel="noopener">
+          <img src="viglet/shio-logo.png" alt="Viglet Shio CMS logo"
+               width="28" height="28" loading="lazy" decoding="async">
+          <span>
+            <b>Viglet Shio CMS</b>
+            <small>the headless CMS built for coding agents</small>
+          </span>
+        </a>
+      </div>
+    </div>
+  </div>
+  <!-- sponsor:end -->
+
     <p class="disclaimer">
       Unofficial / community project — not affiliated with, endorsed by, or sponsored by Anthropic.
       “Claude” and “Claude Code” are trademarks of Anthropic; this tool merely reads the usage data

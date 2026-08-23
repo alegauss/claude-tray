@@ -43,6 +43,22 @@ trademarks of Anthropic; the tool only reads usage data Claude Code already expo
 - Rate-limit data: one minimal Anthropic API call (Haiku, 1 token) every 5 minutes reads the `anthropic-ratelimit-unified-*` response headers, using the OAuth token at `%USERPROFILE%\.claude\.credentials.json`.
 - Usage insights: read locally from Claude Code session transcripts at `~/.claude/projects/**/*.jsonl` — no API call.
 
+## Sponsor
+
+Sponsored by **Viglet** (https://www.viglet.org), an open source project for search
+and content management.
+
+- **Viglet Turing ES** (https://turing.viglet.org) — open source enterprise search
+  with generative AI: semantic and faceted navigation, hybrid retrieval (vector +
+  BM25), RAG and AI agents grounded in indexed content, with a pluggable engine
+  (Apache Solr, Elasticsearch or Lucene). Apache 2.0, self-hostable.
+  Source: https://github.com/openviglet/turing
+- **Viglet Shio CMS** (https://shio.viglet.org) — open source headless CMS whose
+  primary operator is a coding agent: authoring over MCP and content as files,
+  curator approval in a React console, delivery through a Content Delivery API
+  (REST and GraphQL, with TypeScript SDKs). Apache 2.0, self-hostable.
+  Source: https://github.com/openviglet/shio
+
 ## Links
 
 - [Website](https://alegauss.github.io/claude-tray/): project landing page
@@ -51,3 +67,4 @@ trademarks of Anthropic; the tool only reads usage data Claude Code already expo
 - [Latest release](https://github.com/alegauss/claude-tray/releases/latest): download the Windows installer (ClaudeTray-Setup.exe)
 - [winget package](https://winget.run/pkg/alegauss/ClaudeCodeTray): install via `winget install alegauss.ClaudeCodeTray`
 - [License](https://github.com/alegauss/claude-tray/blob/main/LICENSE): Apache License 2.0
+- [Sponsor](https://www.viglet.org): Viglet, open source search and content management
