@@ -6,3 +6,4 @@ _preview/
 # normally deleted afterward — ignored so a stray one is never tracked/committed).
 *_wpftmp.csproj
 .roadkeep/
+/scripts/demo

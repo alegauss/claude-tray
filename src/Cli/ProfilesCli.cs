@@ -141,13 +141,22 @@ internal static class ProfilesCli
             Console.WriteLine($"  {r.Profile.Label,-24} last turn {age,-16}"
                               + (!r.Followable
                                   ? "not followable (no subscription quota to read, or no credentials)"
-                                  : ProfileActivity.Live(r, nowUnix) ? "candidate"
-                                  : r.LastTurnUnix <= 0 ? "followable, but never used"
-                                  : "followable, but no turn inside the window"));
+                                  // T365: the reading is another profile's as much as this one's, so it
+                                  // is not evidence — and the shared directory is what a reader needs to
+                                  // see, since neither profile's own path says it is a link.
+                                  : r.SharesTree
+                                      ? $"shares its transcripts, so not evidence — {r.Tree}"
+                                      : ProfileActivity.Live(r, nowUnix) ? "candidate"
+                                      : r.LastTurnUnix <= 0 ? "followable, but never used"
+                                      : "followable, but no turn inside the window"));
         }
         ClaudeInfo? active = ProfileActivity.Pick(readings, nowUnix, 0);
         Console.WriteLine(active is null
-            ? "would follow: nobody — no recent turn in a followable profile, so the icon stays put."
+            ? "would follow: nobody — "
+              + (readings.Any(r => r.SharesTree)
+                  ? "the profiles sharing a directory above are not evidence about each other, so the "
+                    + "icon stays where it was put."
+                  : "no recent turn in a followable profile, so the icon stays put.")
             : $"would follow: {active.Label}  ({active.ConfigDir})"
               + (settings.FollowActiveProfile ? "" : "  — if auto-follow were on"));
     }

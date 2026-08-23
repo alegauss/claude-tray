@@ -12,6 +12,12 @@ namespace ClaudeTray;
 /// said. Measured on the development machine: ~600 transcripts in ~20ms per config dir, and it runs on
 /// the usage poll's cadence (60s by default) rather than continuously.
 ///
+/// <para><b>And only while the directories are separate.</b> A junction can put two profiles behind one
+/// <c>projects</c> tree, and then the newest write is the same fact twice — evidence about neither of
+/// them. <see cref="MarkShared"/> resolves the links and takes both out of the running, so the icon
+/// stays where the user put it instead of being pushed between them by the order they were walked in
+/// (T365).</para>
+///
 /// <para>That cadence is the point. Dropping T101 settled that the tray must not keep a
 /// <see cref="TranscriptTail"/> running for a whole session to power an ambient nicety — the tail is
 /// window-owned, so a closed Statistics window watches nothing. A per-poll mtime probe keeps that
@@ -55,8 +61,41 @@ internal static class ProfileActivity
     public static string ProjectsDir(string configDir) => Path.Combine(
         configDir.Length > 0 ? configDir : ContextScanner.DefaultClaudeRoot, "projects");
 
-    /// <summary>One profile's last turn, for both the pick and the <c>--profiles</c> readout.</summary>
-    public readonly record struct Reading(ClaudeInfo Profile, double LastTurnUnix, bool Followable);
+    /// <summary>
+    /// The same directory with its links followed, which is what says whether two profiles are reading
+    /// one tree (T365). Two shapes reach it: the junction on <c>projects</c> itself, and the one on the
+    /// config dir above it — both real, and neither visible in the path a profile carries.
+    ///
+    /// <para>Never empty and never null: a path that resolves to nothing is its own answer, so a
+    /// profile with no transcripts yet is compared as itself rather than joining every other profile
+    /// that has none. Unreadable is the same case — this decides who is <i>not</i> followed, so it
+    /// fails towards two profiles being two.</para>
+    /// </summary>
+    public static string ResolvedProjectsDir(string configDir)
+    {
+        string projects = ProjectsDir(configDir);
+        string? target = LinkTarget(projects);
+        // The config dir itself, when `projects` is an ordinary folder inside a linked one.
+        if (target is null && LinkTarget(configDir.Length > 0 ? configDir : ContextScanner.DefaultClaudeRoot)
+            is { } root) target = Path.Combine(root, "projects");
+
+        try { return Path.TrimEndingDirectorySeparator(Path.GetFullPath(target ?? projects)); }
+        catch { return target ?? projects; }
+    }
+
+    /// <summary>Where a directory link points, following it to the end; null when the path is not a
+    /// link, does not exist, or cannot be read.</summary>
+    private static string? LinkTarget(string dir)
+    {
+        try { return Directory.ResolveLinkTarget(dir, returnFinalTarget: true)?.FullName; }
+        catch { return null; }
+    }
+
+    /// <summary>One profile's last turn, for both the pick and the <c>--profiles</c> readout.
+    /// <paramref name="Tree"/> is the resolved directory the reading came from, and
+    /// <paramref name="SharesTree"/> that another profile in the same read came from it too.</summary>
+    public readonly record struct Reading(
+        ClaudeInfo Profile, double LastTurnUnix, bool Followable, string Tree = "", bool SharesTree = false);
 
     /// <summary>
     /// Read every profile's last turn, in the order given. A profile is <c>Followable</c> only when the
@@ -70,7 +109,30 @@ internal static class ProfileActivity
         var readings = new List<Reading>(profiles.Count);
         foreach (ClaudeInfo p in profiles)
             readings.Add(new Reading(p, LastTurnUnix(p.ConfigDir),
-                p.CountsAgainstSubscription && p.HasCredentialsFile));
+                p.CountsAgainstSubscription && p.HasCredentialsFile, ResolvedProjectsDir(p.ConfigDir)));
+        return MarkShared(readings);
+    }
+
+    /// <summary>
+    /// Mark every reading whose tree another reading also came from (T365). Two profiles behind one
+    /// directory report the same last turn to the second, so neither one is evidence of where the work
+    /// is — and worse than a tie: <see cref="Read"/> walks the profiles in order, so a turn landing
+    /// between two walks makes whichever was scanned second look newer, which is never the profile the
+    /// icon is already on.
+    ///
+    /// <para>Pure over the list, and separate from the walk that fills it, so the rule can be driven
+    /// without a config dir on disk.</para>
+    /// </summary>
+    public static List<Reading> MarkShared(List<Reading> readings)
+    {
+        for (int i = 0; i < readings.Count; i++)
+        {
+            bool shared = false;
+            for (int j = 0; j < readings.Count && !shared; j++)
+                shared = j != i
+                         && string.Equals(readings[i].Tree, readings[j].Tree, StringComparison.OrdinalIgnoreCase);
+            readings[i] = readings[i] with { SharesTree = shared };
+        }
         return readings;
     }
 
@@ -98,9 +160,12 @@ internal static class ProfileActivity
     }
 
     /// <summary>Whether this reading is evidence of somebody working in that profile now: a real
-    /// timestamp, inside the follow window, and not stamped in the future.</summary>
+    /// timestamp, inside the follow window, not stamped in the future, and taken from a directory no
+    /// other profile is reading (T365) — a shared tree carries no evidence about which of them it
+    /// belongs to, and no threshold on the comparison can supply what was never measured.</summary>
     public static bool Live(Reading r, double nowUnix) =>
         r.Followable
+        && !r.SharesTree
         && r.LastTurnUnix > 0
         && nowUnix - r.LastTurnUnix <= FollowWindowSeconds
         && r.LastTurnUnix - nowUnix <= MaxFutureSkewSeconds;

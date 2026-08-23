@@ -164,6 +164,9 @@ internal static class SelfTestCli
         Section("effective — which profile the environment selects (Block AC)");
         EffectiveProfile();
 
+        Section("follow — two profiles behind one transcript tree are not evidence (Block O)");
+        Temp(Follow);
+
         Section("probe — what the flag was asked to do, before it does any of it (Block AI)");
         ProbePlanning();
 
@@ -4933,6 +4936,130 @@ internal static class SelfTestCli
         // asking "did my choice reach the machine?" is never met with silence.
         Check("nothing to write is still an answer, and a landed one",
               new EnvironmentProfile.WriteOutcome(work, work, null, false) is { Wrote: false, Landed: true });
+    }
+
+    /// <summary>
+    /// Auto-follow's one refusal that is about the evidence rather than about the profile (T365): two
+    /// config dirs behind one <c>projects</c> tree report the same last turn, so neither reading says
+    /// which of them is being worked in.
+    ///
+    /// <para>Two halves, and they are separate on purpose. The rule is driven over synthetic readings,
+    /// where the collision can be posed exactly — including the shape that actually moved the icon, a
+    /// second reading of one directory taken a second later than the first. The resolver is driven over
+    /// a real junction under <paramref name="root"/>, because whether Windows follows a link is not
+    /// something a test can assert by restating it.</para>
+    /// </summary>
+    private static void Follow(string root)
+    {
+        const double Now = 1_800_000_000;
+        static ClaudeInfo P(string label) =>
+            new() { Label = label, Auth = AuthMethod.Subscription, HasCredentialsFile = true };
+
+        static List<ProfileActivity.Reading> Readings(params (string Label, double Turn, string Tree)[] rows)
+        {
+            var list = new List<ProfileActivity.Reading>();
+            foreach ((string label, double turn, string tree) in rows)
+                list.Add(new ProfileActivity.Reading(P(label), turn, Followable: true, tree));
+            return ProfileActivity.MarkShared(list);
+        }
+
+        // The ordinary machine: two profiles, two directories, and the newer turn takes the icon.
+        List<ProfileActivity.Reading> apart = Readings(
+            ("Personal", Now - 600, @"C:\Users\x\.claude\projects"),
+            ("Work", Now - 60, @"C:\Users\x\.claude-work\projects"));
+        Check("separate trees still follow the profile that just had a turn",
+              ProfileActivity.Pick(apart, Now, 0)?.Label == "Work",
+              ProfileActivity.Pick(apart, Now, 0)?.Label ?? "nobody");
+        Check("and neither of them is marked as sharing anything",
+              apart.All(r => !r.SharesTree));
+
+        // The junctioned machine. Equal readings first — what the probe returns when no write lands
+        // during it — and then the one that moved the icon: the same directory, walked twice, with a turn
+        // landing in between, so the profile scanned *second* looks a second newer than the profile the
+        // icon is already on. Under the old rule that was a follow, every time it happened.
+        const string shared = @"C:\Users\x\.claude\projects";
+        List<ProfileActivity.Reading> tied = Readings(("Personal", Now - 5, shared), ("Work", Now - 5, shared));
+        Check("one tree read twice marks both readings, not one of them",
+              tied.All(r => r.SharesTree));
+        Check("neither is evidence of anybody working",
+              tied.All(r => !ProfileActivity.Live(r, Now)));
+        Check("so the icon is left where the user put it",
+              ProfileActivity.Pick(tied, Now, 0) is null);
+
+        List<ProfileActivity.Reading> raced = Readings(("Personal", Now - 1, shared), ("Work", Now, shared));
+        Check("a turn landing between the two walks does not hand the icon to the second one",
+              ProfileActivity.Pick(raced, Now, 0) is null,
+              ProfileActivity.Pick(raced, Now, 0)?.Label ?? "nobody");
+
+        // A third profile with a tree of its own is unaffected: the refusal is about the pair, not about
+        // auto-follow. The sharing pair holds the newest turn here, so a rule that merely demoted them
+        // would still answer one of them.
+        List<ProfileActivity.Reading> mixed = Readings(
+            ("Personal", Now, shared), ("Work", Now, shared),
+            ("Client", Now - 120, @"C:\Users\x\.claude-client\projects"));
+        Check("a profile with its own tree is still followed while two others share one",
+              ProfileActivity.Pick(mixed, Now, 0)?.Label == "Client",
+              ProfileActivity.Pick(mixed, Now, 0)?.Label ?? "nobody");
+
+        // One path, two spellings: a config dir typed into the settings file is not the one the
+        // filesystem returns, and a comparison that split them would report two trees where there is one.
+        Check("the same directory in another case is the same directory",
+              Readings(("Personal", Now, shared), ("Work", Now, shared.ToUpperInvariant()))
+                  .All(r => r.SharesTree));
+
+        // And the resolver, against a junction Windows actually made. Skipped rather than failed where
+        // one cannot be created, since that is the environment refusing and not this rule breaking.
+        string real = Path.Combine(root, "real");
+        string link = Path.Combine(root, "linked");
+        Directory.CreateDirectory(Path.Combine(real, "projects"));
+        Directory.CreateDirectory(link);
+        if (!Junction(Path.Combine(link, "projects"), Path.Combine(real, "projects")))
+        {
+            Skip("a junction resolves to the tree it points at", "no junction could be created here");
+            return;
+        }
+
+        Check("a junction resolves to the tree it points at",
+              ClaudeAccount.SamePath(ProfileActivity.ResolvedProjectsDir(link),
+                                     ProfileActivity.ResolvedProjectsDir(real)),
+              $"{ProfileActivity.ResolvedProjectsDir(link)} vs {ProfileActivity.ResolvedProjectsDir(real)}");
+        Check("an ordinary directory resolves to itself",
+              ClaudeAccount.SamePath(ProfileActivity.ResolvedProjectsDir(real),
+                                     Path.Combine(real, "projects")));
+        Check("and a config dir with no projects folder at all is still its own answer",
+              !ClaudeAccount.SamePath(ProfileActivity.ResolvedProjectsDir(Path.Combine(root, "never-used")),
+                                      ProfileActivity.ResolvedProjectsDir(real)));
+
+        List<ProfileActivity.Reading> onDisk = ProfileActivity.MarkShared(new List<ProfileActivity.Reading>
+        {
+            new(P("Personal"), Now, true, ProfileActivity.ResolvedProjectsDir(link)),
+            new(P("Work"), Now, true, ProfileActivity.ResolvedProjectsDir(real)),
+        });
+        Check("so a junctioned profile pair follows nobody, read off a real filesystem",
+              onDisk.All(r => r.SharesTree) && ProfileActivity.Pick(onDisk, Now, 0) is null);
+
+        // The link goes before the tree it sits in does: a recursive delete over a reparse point is the
+        // one thing `Temp`'s cleanup cannot do, and a scratch directory left behind is a promise broken.
+        try { Directory.Delete(Path.Combine(link, "projects")); } catch { /* the report below says so */ }
+    }
+
+    /// <summary>Make a directory junction, or answer false where the environment will not have one.
+    /// <c>mklink /J</c> rather than <see cref="Directory.CreateSymbolicLink"/>, which needs Developer
+    /// Mode or an elevated process — a junction is the link the case being tested is actually made
+    /// of.</summary>
+    private static bool Junction(string link, string target)
+    {
+        try
+        {
+            var p = System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{target}\"")
+                {
+                    UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true,
+                });
+            p?.WaitForExit(10_000);
+            return p is { ExitCode: 0 } && Directory.Exists(link);
+        }
+        catch { return false; }
     }
 
     /// <summary>

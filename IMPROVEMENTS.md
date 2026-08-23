@@ -808,3 +808,28 @@ included in your plan* — distinguished by where it is drawn, so one entry that
 week left to the tooltip, is the whole change. It also has to survive the case that only one of the
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
+
+## XC The menu says why nothing is following (T366)
+
+Once auto-follow refuses to choose between profiles that share a transcript tree, the Profile
+submenu shows a toggle that is on, two entries both reading "active now", and an icon that never
+moves. That is indistinguishable from a broken feature, and the only place the reason exists is
+`--profiles`, a flag nobody running the tray is looking at.
+
+The submenu already answers a question of exactly this shape. When `CLAUDE_CONFIG_DIR` names a
+folder no registered profile covers, it carries a disabled line saying so, because the alternative
+is a list that silently answers the wrong question. A shared `projects` directory is the same kind
+of fact: the state is real, no entry in the list can hold the mark, and it changes what every entry
+above it means.
+
+So one disabled line, shown while a sharing group exists and auto-follow is on, naming the directory
+the profiles share. The wording says what is observable and stops there — the junction was made on
+purpose and the app has no write path into `~\.claude` (§I.4), so it reports and never offers to
+undo it.
+
+Two things to get right rather than assume. `ActiveSuffix` reads the same probe cache and would put
+"· active now" on both entries beside that note, which reads as a contradiction: the suffix belongs
+to evidence that a profile is being worked in, and a reading shared with another profile is not
+that. And the string is user-visible, so it exists in all five languages with the directory as a
+parameter rather than concatenated — a path in the middle of a sentence sits in a different place in
+each of them.
