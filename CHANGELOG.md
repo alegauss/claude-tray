@@ -31,7 +31,7 @@
 | [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app |
 | [M](#block-m--explain-on-demand) | Explain on demand — the method note behind an ⓘ |
 | [N](#block-n--system-information) | System information — your plan, your install, this machine |
-| [O](#block-o--profiles) | Profiles — several Claude Code logins on one machine |
+| [O](#block-o--profiles) | Profiles — several Claude Code logins on one machine (active — see ROADMAP) |
 | [P](#block-p--project-layout) | Project layout — where a file lives |
 | [Q](#block-q--keyboard-input-in-the-windows) | Keyboard input in the windows |
 | [R](#block-r--profiles-second-pass-what-a-real-second-login-exposed) | Profiles, second pass — what a real second login exposed |

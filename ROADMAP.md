@@ -24,6 +24,10 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
+## Block O — Profiles
+
+- 📋 **T367** (deps: —) **Sharing one profile with another is a dozen hand-typed link commands, and one wrong order loses a tree** — The app must never write into `~\.claude` (§I.4), so the deliverable is a script the user reads and runs - and the hard part is the merge each link needs first, not the link. → §XCI
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
