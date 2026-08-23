@@ -21,6 +21,8 @@
   "menu.profileEnvSelectsTip": "CLAUDE_CONFIG_DIR nombra este perfil, mientras el icono muestra otro. Una sesión iniciada desde una consola que ya recogió el cambio usa este; una sesión ya abierta conserva el que tenía al arrancar.",
   "menu.profileEnvOutside": "CLAUDE_CONFIG_DIR apunta fuera de estos perfiles — {0}",
   "menu.profileEnvOutsideTip": "Algo que no es la bandeja definió esta variable, y no nombra ningún perfil registrado aquí. Una sesión iniciada desde una consola que ya la recogió usa esa carpeta, no la que muestra el icono.",
+  "menu.profileSharedTree": "Estos perfiles comparten sus transcripciones — {0}",
+  "menu.profileSharedTreeTip": "Un enlace pone varios perfiles detrás de la misma carpeta projects, así que un turno en cualquiera de ellos se ve exactamente igual. Nada dice en qué perfil estás trabajando, y el icono se queda donde lo pusiste hasta que elijas otro.",
   "menu.profileEnvSync": "Usar el perfil elegido en todo Windows",
   "menu.profileEnvSyncTip": "Escribe CLAUDE_CONFIG_DIR en el entorno de tu usuario de Windows cuando eliges un perfil aquí, para que las terminales y editores que abres tú también lo usen. Desactivarlo deja la variable como estaba.",
   "menu.profileScopeTray": "Elegir aquí mueve solo la bandeja — las sesiones iniciadas de ahora en adelante conservan el perfil que ya usarían hoy.",

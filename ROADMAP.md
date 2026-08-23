@@ -24,10 +24,6 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block O — Profiles
-
-- 📋 **T366** (deps: T365 ✅) **Auto-follow is on, both profiles read as active, and nothing says why the icon never moves** — A toggle that is on and inert reads as broken, and the submenu already carries a disabled line for the environment disagreeing — a shared transcript tree is the same kind of fact. → §XC
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

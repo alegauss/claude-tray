@@ -530,7 +530,7 @@ internal sealed class TrayContext : ApplicationContext
         // the environment is reconciled from both: switching the toggle off restores the old value
         // here (T145).
         SyncEnvironmentToPin(DeliberateProfile());
-        if (!_settings.FollowActiveProfile) _lastTurn.Clear();
+        if (!_settings.FollowActiveProfile) { _lastTurn.Clear(); _sharedTree.Clear(); }
         // The profile list drives the "Open Claude Code" submenu, so it is rebuilt right here rather
         // than waiting for a restart.
         RefreshWatched();          // the list (and so the icon's profile) may have changed
@@ -701,6 +701,11 @@ internal sealed class TrayContext : ApplicationContext
     /// auto-follow is off: nothing is scanned then, so there is nothing to report.</summary>
     private readonly Dictionary<string, double> _lastTurn = new();
 
+    /// <summary>The directory each profile shares with another one, keyed the same way and filled by the
+    /// same probe (T366). Empty is the ordinary machine — one tree per profile — so the menu asks its
+    /// count rather than re-reading the filesystem when it opens.</summary>
+    private readonly Dictionary<string, string> _sharedTree = new();
+
     /// <summary>The moment the user last chose a profile by hand. Auto-follow only overrules a choice
     /// once a turn lands in another profile *after* it — see <see cref="ProfileActivity.Pick"/>.</summary>
     private double _followFloorUnix;
@@ -735,8 +740,12 @@ internal sealed class TrayContext : ApplicationContext
         if (!ReferenceEquals(probed, _watched)) return;
 
         _lastTurn.Clear();
+        _sharedTree.Clear();
         foreach (ProfileActivity.Reading r in readings)
+        {
             _lastTurn[ProfileStore.KeyFor(r.Profile)] = r.LastTurnUnix;
+            if (r.SharesTree) _sharedTree[ProfileStore.KeyFor(r.Profile)] = r.Tree;
+        }
 
         double now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         if (!_profilePinned
@@ -823,6 +832,19 @@ internal sealed class TrayContext : ApplicationContext
             _profileMenu.DropDownItems.Add(item);
         }
 
+        // Why the toggle below is on and nothing is moving (T366). A link can put two profiles behind one
+        // `projects` tree, and then every entry above reads "active now" while auto-follow refuses to
+        // choose between them (T365) — a state indistinguishable from a broken feature, and until now
+        // said only by `--profiles`. Below the list because it qualifies the whole of it, and disabled
+        // like the variable's own line: it reports, and the app has no write path into ~/.claude (§I.4).
+        if (_sharedTree.Count > 0)
+            _profileMenu.DropDownItems.Add(new ToolStripMenuItem(
+                L.T("menu.profileSharedTree", _sharedTree.Values.First()))
+            {
+                Enabled = false,
+                ToolTipText = L.T("menu.profileSharedTreeTip"),
+            });
+
         // The toggle lives where the switching does. Checked, the icon moves on its own to whichever
         // profile just had a turn (T126); unchecked, it stays wherever it was last put by hand.
         _profileMenu.DropDownItems.Add(new ToolStripSeparator());
@@ -860,6 +882,10 @@ internal sealed class TrayContext : ApplicationContext
     private string ActiveSuffix(ClaudeInfo p)
     {
         if (!_settings.FollowActiveProfile) return "";
+        // A reading taken from a directory another profile is also reading is not this profile being
+        // worked in (T366) — "active now" beside the note saying nobody can be told apart is a
+        // contradiction, and the suffix is the half that is not true.
+        if (_sharedTree.ContainsKey(ProfileStore.KeyFor(p))) return "";
         if (!_lastTurn.TryGetValue(ProfileStore.KeyFor(p), out double last) || last <= 0) return "";
         double age = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - last;
         return "  · " + (age < 60 ? L.T("menu.profileActiveNow") : L.T("menu.profileActive", FmtCountdown(age)));
@@ -917,7 +943,9 @@ internal sealed class TrayContext : ApplicationContext
     {
         _settings.FollowActiveProfile = on;
         SaveSettingsQuietly();
-        if (!on) _lastTurn.Clear();      // stale ages must not outlive the feature that fills them
+        // Stale ages must not outlive the feature that fills them, and neither must the note the same
+        // probe writes: with auto-follow off nothing is choosing, so there is nothing to explain.
+        if (!on) { _lastTurn.Clear(); _sharedTree.Clear(); }
         else _ = RefreshAsync(userAsked: true);   // which begins by asking where the last turn landed
     }
 

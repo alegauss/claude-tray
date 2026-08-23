@@ -25,6 +25,8 @@
   "menu.profileEnvSelectsTip": "CLAUDE_CONFIG_DIR names this profile, while the icon is showing another one. A session started from a shell that has picked the change up uses this one; a session already running keeps what it started with.",
   "menu.profileEnvOutside": "CLAUDE_CONFIG_DIR points outside these profiles — {0}",
   "menu.profileEnvOutsideTip": "Something other than the tray set this variable, and it names no profile registered here. A session started from a shell that has picked it up uses that folder, not the one the icon is showing.",
+  "menu.profileSharedTree": "These profiles share their transcripts — {0}",
+  "menu.profileSharedTreeTip": "A link puts more than one profile behind the same projects folder, so a turn in either of them looks exactly the same. Nothing says which profile you are working in, and the icon stays where you put it until you pick another.",
   "menu.profileEnvSync": "Use the chosen profile everywhere in Windows",
   "menu.profileEnvSyncTip": "Write CLAUDE_CONFIG_DIR into your Windows user environment when you pick a profile here, so terminals and editors you open yourself use it too. Turning it off puts the variable back the way it was.",
   "menu.profileScopeTray": "Picking this moves the tray only — sessions started from now on keep the profile they would use today.",

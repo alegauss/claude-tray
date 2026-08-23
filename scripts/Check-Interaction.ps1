@@ -1840,6 +1840,10 @@ function Expected-ProfileState {
         Env        = $env
         EnvAgrees  = [bool]($out -match '- agrees with the icon')
         EnvOutside = ($env -eq 'none of these')
+        # T365's refusal and the directory it names: two config dirs resolving to one `projects` tree.
+        # Matched on the path rather than on the dash before it, so the check does not depend on how a
+        # native process's non-ASCII output survives being read back.
+        SharedTree = $(if ($out -match '(?m)shares its transcripts[^\r\n]*?([A-Za-z]:\\[^\r\n]+?)\s*$') { $Matches[1] })
         SyncOn     = [bool]($out -match 'a pick reaches:.*\[x\]')
         FollowOn   = [bool]($out -match '(?m)^auto-follow:\s+on')
     }
@@ -2038,6 +2042,42 @@ function Assert-ProfileSubmenu($subs) {
             Pass "'$($want.Env)' carries '$envMark' - the environment's profile is not the icon's (T172)"
         } else {
             Fail "the environment selects '$($want.Env)' but its entry carries no '$envMark' mark (T172)"
+        }
+    }
+
+    # T366: why the toggle is on and the icon never moves. Rendered only where two config dirs resolve to
+    # one `projects` tree, which is a property of the machine and not of a fixture - so its absence is
+    # Unchecked, never a quiet pass. The tally is honest either way: a note drawn where --profiles reports
+    # nothing shared is a failure too, and that direction needs no junction to observe.
+    $sharedStem = ((Label 'menu.profileSharedTree') -split '\{0\}')[0].TrimEnd()
+    $sharedLine = @($subs | Where-Object { $_.Current.Name -like "$sharedStem*" })
+    if (-not $want.SharedTree) {
+        if ($sharedLine.Count -gt 0) {
+            Fail "the submenu says profiles share a directory, and --profiles reports none sharing one (T366)"
+        } else {
+            Unchecked "the shared-transcripts note (T366)" `
+                      ("no two profiles here resolve to one projects directory, so the note this asserts " +
+                       "is not rendered - it needs a junction between two config dirs")
+        }
+    } elseif ($sharedLine.Count -eq 0) {
+        Fail "--profiles says the profiles share '$($want.SharedTree)', but no submenu line reports it (T366)"
+    } elseif ($sharedLine[0].Current.Name -notlike "*$($want.SharedTree)*") {
+        Fail ("the note names '$($sharedLine[0].Current.Name)', not the directory --profiles reports " +
+              "('$($want.SharedTree)') (T366)")
+    } else {
+        Pass "the submenu names the directory the profiles share: $($want.SharedTree) (T366)"
+
+        # The other half, and the one a picture would never question: an entry cannot claim to be where
+        # the work is landing while the line under it says the readings cannot tell the profiles apart.
+        $now   = Label 'menu.profileActiveNow'
+        $ago   = [regex]::Escape((Label 'menu.profileActive')) -replace '\\\{0\}', '.+'
+        $claim = @($want.Labels | Where-Object {
+                       $byLabel.ContainsKey($_) -and
+                       ($byLabel[$_].Current.Name -like "*$now*" -or $byLabel[$_].Current.Name -match $ago) })
+        if ($claim.Count -gt 0) {
+            Fail "'$($claim[0])' still says it is the active profile, beside a note saying nobody can be (T366)"
+        } else {
+            Pass "and no entry says it is the active one, which no reading here can know (T366)"
         }
     }
 }
