@@ -1,5 +1,6 @@
 import { footer, sponsor } from "../lib/site-content";
 import { Ad } from "./ui/Ad";
+import { Burnup } from "./ui/Burnup";
 
 export function Footer() {
   return (
@@ -16,6 +17,7 @@ export function Footer() {
 function FooterChrome() {
   return (
     <footer>
+      <Burnup className="burn--footer" />
       <div className="wrap">
         <div className="foot-grid">
           <a className="foot-brand" href="/claude-tray/">

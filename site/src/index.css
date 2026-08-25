@@ -59,6 +59,15 @@
   --teal: #0c8599;
   --ochre: #b7791f;
 
+  /* the burn-up band, back layer to front: the tray's own fill-bar blue taken down
+     until it sits on the page without competing with the copy. A band is scenery,
+     and scenery that outshines the copy is a bug. The pace line is the muted text
+     colour rather than a colour of its own — it is a rule, not a series. */
+  --burn-1: #bcd8f4;
+  --burn-2: #93bde9;
+  --burn-3: #66a2dd;
+  --burn-pace: #9a8574;
+
   --radius: 18px;
   --maxw: 1120px;
 
@@ -96,6 +105,13 @@
     --teal: #22b8cf;
     --ochre: #d29a00;
 
+    /* the same band at night: the fill bar's blue taken down until it sits on
+       #171008 without glowing */
+    --burn-1: #1d3a54;
+    --burn-2: #244b6c;
+    --burn-3: #2d5f86;
+    --burn-pace: #6b5947;
+
     color-scheme: dark;
   }
 }
@@ -129,6 +145,13 @@
   --violet: #9775fa;
   --teal: #22b8cf;
   --ochre: #d29a00;
+
+  /* the same band at night: the fill bar's blue taken down until it sits on
+     #171008 without glowing */
+  --burn-1: #1d3a54;
+  --burn-2: #244b6c;
+  --burn-3: #2d5f86;
+  --burn-pace: #6b5947;
 
   color-scheme: dark;
 }
@@ -356,7 +379,9 @@ nav .wrap {
 
 /* ---------- hero ---------- */
 .hero {
-  padding: 84px 0 60px;
+  /* the bottom padding is the band's room: the bars close the hero, and the pills would
+     otherwise stand in them */
+  padding: 84px 0 150px;
   text-align: center;
   position: relative;
 }
@@ -476,6 +501,164 @@ nav .wrap {
   }
   50% {
     transform: translateY(-12px);
+  }
+}
+
+/* ============================================================================
+   The burn-up band — see the note in Burnup.tsx for the arithmetic.
+   ============================================================================ */
+
+.burn {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 156px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  /* The bars stand on the page rather than on a plate, so the band is faded out at the top
+     instead of being given an edge. A hard top edge would read as a chart nobody labelled. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 62%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 62%);
+}
+.burn::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--line);
+}
+/* The outer element fills from the floor, the inner one travels — see the note in Burnup.tsx
+   about two transforms on one element. transform-origin is the whole point of the fill: a
+   bar that scaled about its centre would grow downward through the floor as well as up. */
+.burn-fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%;
+  animation: burn-fill 9s ease-in-out infinite;
+  will-change: transform;
+}
+.burn-drift {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: block;
+  width: 200%;
+  height: 100%;
+  will-change: transform;
+}
+.burn-bar {
+  fill: currentColor;
+}
+/* The two the icon has words for. Drawn at the state's own colour but held well under it in
+   opacity: a page-wide row of red is a warning, and this is scenery. */
+.burn-bar--over {
+  fill: var(--red);
+  opacity: 0.32;
+}
+.burn-bar--pay {
+  fill: var(--clay);
+  opacity: 0.36;
+}
+.burn-pace {
+  stroke: var(--burn-pace);
+  /* The band is stretched to fit (preserveAspectRatio="none"), which would scale a stroke by
+     a different factor in each axis and leave a rule that is thick in one direction. */
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1.4;
+  stroke-dasharray: 7 6;
+  opacity: 0.5;
+}
+
+/* Back to front: shorter, paler, slower and moving the other way behind; taller, firmer and
+   quicker in front. The opposing directions are what stops three rows of bars reading as one,
+   and the different fill periods are what stops them cresting together. */
+.burn-far {
+  color: var(--burn-1);
+  opacity: 0.34;
+  animation-duration: 13s;
+}
+.burn-far .burn-drift {
+  animation: burn-drift-right 51s linear infinite;
+}
+.burn-mid {
+  color: var(--burn-2);
+  opacity: 0.46;
+  animation-duration: 10.5s;
+}
+.burn-mid .burn-drift {
+  animation: burn-drift-left 35s linear infinite;
+}
+.burn-near {
+  color: var(--burn-3);
+  opacity: 0.6;
+  animation-duration: 8s;
+}
+.burn-near .burn-drift {
+  animation: burn-drift-left 24s linear infinite;
+}
+
+/* 50% of a band drawn at 200% is exactly one repeat of the row, so the loop has no seam */
+@keyframes burn-drift-left {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+@keyframes burn-drift-right {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+/* A window filling and handing the quota back. Deliberately shallow: the bars are the
+   subject of the page below, and a band that visibly pumps would be competing with it. */
+@keyframes burn-fill {
+  0%,
+  100% {
+    transform: scale3d(1, 0.88, 1);
+  }
+  50% {
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+/* The footer stands on the same band, quieter: it closes the page, it does not open it. It
+   sits at the top of the footer rather than at the bottom, so its baseline is the seam
+   between the page and the chrome — the reader meets the faded bar tops, then the bars, then
+   the rule, then the footer.
+   Upright, and that is a correction rather than a default: hung from the ceiling — the band
+   flipped, which is what the water in the reference site does — a row of rectangles on a
+   line stops reading as a chart and starts reading as bunting at a village fair. Water can
+   be read from either side. Bars stand on something. */
+.burn--footer {
+  top: 0;
+  bottom: auto;
+  /* shorter than the footer's own top padding, so the baseline lands above the brand row
+     rather than through it: the band closes, the rule is the seam, the chrome starts under it */
+  height: 80px;
+  opacity: 0.62;
+}
+@media (max-width: 600px) {
+  .hero {
+    padding-bottom: 112px;
+  }
+  .burn {
+    height: 124px;
+  }
+  .burn--footer {
+    height: 62px;
+  }
+  /* the gap under the baseline scales with the band: 152px of it on a phone is a screenful
+     of nothing between the rule and the brand */
+  footer {
+    padding-top: 108px;
   }
 }
 
@@ -1020,10 +1203,17 @@ figcaption code {
 
 /* ---------- footer ---------- */
 footer {
-  border-top: 1px solid var(--line);
-  padding: 56px 0 38px;
+  /* no border-top: the band is the seam now, and a rule drawn a few pixels from it reads as
+     a divider somebody forgot to take out. The top padding is the band's room plus the gap
+     under its baseline — the brand row must not sit on the rule. */
+  padding: 152px 0 38px;
   margin-top: 30px;
   position: relative;
+  overflow: hidden;
+}
+footer .wrap {
+  position: relative;
+  z-index: 1;
 }
 .foot-grid {
   display: flex;
@@ -1214,7 +1404,9 @@ footer {
     transition: none;
   }
   .hero-icon,
-  .dot {
+  .dot,
+  .burn-fill,
+  .burn-drift {
     animation: none;
   }
   html {

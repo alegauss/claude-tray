@@ -1,5 +1,6 @@
 import { download, hero, repoUrl } from "../../lib/site-content";
 import { Rich } from "../ui/Rich";
+import { Burnup } from "../ui/Burnup";
 
 export function Hero() {
   return (
@@ -43,6 +44,7 @@ export function Hero() {
           ))}
         </div>
       </div>
+      <Burnup />
     </header>
   );
 }

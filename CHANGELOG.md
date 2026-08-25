@@ -719,3 +719,4 @@
 ## Block AL — The site is a workspace, not a page
 
 - **T368** — The site is a Vite + React workspace under site/, prerendered to six routes each with a Markdown twin, a manifest, a generated sitemap and a rasterised social card; the theme follows the OS and no font is fetched; docs/ is gone and Pages publishes from Actions.
+- **T369** — A three-layer burn-up band closes the hero and opens the footer: bars scaling from a floor while the row drifts, the even-pace line ruled inside the same svg so a crossing is true in every frame, and two bars in the icon's own red and clay. Upright in the footer, and standing on a baseline rule.

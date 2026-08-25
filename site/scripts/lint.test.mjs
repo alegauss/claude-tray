@@ -55,6 +55,33 @@ test("the ad slot declines the loader's recency memory", () => {
   );
 });
 
+// The band loops by translating one whole repeat of its bars, so a period that does not
+// divide that repeat puts a visible seam through it once per cycle — every few seconds,
+// forever. The arithmetic is the whole of the illusion, so it is asserted rather than trusted
+// to whoever next retunes the layers.
+test("every band period closes on the repeat the drift translates by", () => {
+  const src = readFileSync(join(siteDir, "src", "components", "ui", "Burnup.tsx"), "utf8");
+  const span = Number(/const SPAN = (\d+)/.exec(src)?.[1]);
+  assert.ok(span > 0, "Burnup.tsx no longer declares SPAN");
+  // the drift animation moves by 50% of a band drawn at 200% — one repeat is half the span
+  const repeat = span / 2;
+  const periods = [...src.matchAll(/period: (\d+)/g)].map((m) => Number(m[1]));
+  assert.ok(periods.length >= 3, "expected a period per layer");
+  assert.deepEqual(
+    periods.filter((p) => repeat % p !== 0),
+    [],
+    `every period must divide ${repeat}`,
+  );
+});
+
+test("the band is decorative, and says so both ways", () => {
+  // It carries no copy. Losing either attribute is silent: one leaks three rows of rectangles
+  // into a screen reader, the other leaks them into the Markdown twin an agent reads.
+  const src = readFileSync(join(siteDir, "src", "components", "ui", "Burnup.tsx"), "utf8");
+  assert.ok(src.includes('aria-hidden="true"'), "the band is no longer hidden from a11y");
+  assert.ok(src.includes('data-twin="omit"'), "the band is no longer dropped from the twin");
+});
+
 test("every copy string with an inline code run keeps it as data", () => {
   // The Rich run list is what lets a section render inline <code> without
   // dangerouslySetInnerHTML, and what gives the twin generator a structure to walk. A copy

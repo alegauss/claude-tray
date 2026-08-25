@@ -851,5 +851,9 @@ anywhere.
 
 None of those was a defect anybody reported. They are what a single file cannot hold, which is why
 the answer was a workspace rather than a rewrite of the file — and why the shape is
-[freewilly](https://github.com/alegauss/freewilly)'s, so both sites under `alegauss.github.io` are
+[freewilly](https://github.com/alegauss/freewilly)'s, so the sites under `alegauss.github.io` are
 maintained the same way instead of each carrying its own conventions.
+
+T369 finished the shape by drawing what the other three have and this one did not: a band closing
+the hero and opening the footer, whose motif is the product's own subject. Here that is the icon —
+bars rising from a floor, with the even-pace line ruled across them.
