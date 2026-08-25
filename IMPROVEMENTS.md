@@ -835,3 +835,21 @@ Two things it must not do. It must not run: writing the file and revealing it is
 and nothing here elevates. And it must refuse rather than half-apply — a directory junction needs no
 privilege, a file symlink needs Developer Mode, and a machine without it should be told before
 anything moves.
+
+## XCII The site is a workspace, not a page
+
+The page shipped as one `docs/index.html`, and for a year that was the right size. What it grew into
+was the argument for a workspace, and T368 built one.
+
+Nine hundred lines of hand-written markup carried the copy, the palette and the composition in one
+file, so a claim could not be reviewed apart from the markup displaying it. The committed
+`sitemap.xml` listed one URL — correct when the site was one scroll, still one entry after the page
+had seven sections nothing linked to. There was no dark counterpart because there was no light mode:
+the palette was written once, in hex, in a `<style>` block. And the head asked Google Fonts for two
+families on every load, on the page whose own privacy section claims the product sends nothing
+anywhere.
+
+None of those was a defect anybody reported. They are what a single file cannot hold, which is why
+the answer was a workspace rather than a rewrite of the file — and why the shape is
+[freewilly](https://github.com/alegauss/freewilly)'s, so both sites under `alegauss.github.io` are
+maintained the same way instead of each carrying its own conventions.

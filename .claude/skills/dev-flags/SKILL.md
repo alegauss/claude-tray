@@ -169,7 +169,7 @@ Preview popups are held open by `PageWindow` for every popup, not per call site.
                                       #   worth asking). Two files, not two rows of one: a single image
                                       #   asserting two claims cannot say which of them failed.
 --makeicon [ClaudeTray.ico]           # regenerate the multi-resolution app icon
---social [docs\social-preview.png]    # regenerate the social card
+--social [build\social-preview.png]   # the 1280x640 GitHub repository card
 ```
 
 Every one of these creates the directory it is given (T187), so a fresh output folder is fine.

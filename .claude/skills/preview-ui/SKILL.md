@@ -67,10 +67,10 @@ on top of the window for 4s (usually a dialog — dismiss it and re-run).
 
 `--settings System` renders **this machine's** login. Masking hides the holder's name and the local
 part of the address, but the organization and its mail domain *are* the reading — so any screenshot of
-that page destined for the README or `docs/` is taken over `AccountFixture` instead:
+that page destined for the README or the site is taken over `AccountFixture` instead:
 
 ```
-ClaudeTray.exe --capture-settings docs\system.png System --sample [--reveal] [profile=1] --lang en
+ClaudeTray.exe --capture-settings site\public\shots\system.png System --sample [--reveal] [profile=1] --lang en
 ```
 
 `--sample` swaps in two synthetic profiles (a personal Max 20x and a Team seat, `profile=1`), and

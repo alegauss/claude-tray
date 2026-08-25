@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/logo.png" alt="Claude Code Tray logo" width="120">
+<img src="site/public/logo.png" alt="Claude Code Tray logo" width="120">
 
 # Claude Code Tray
 
@@ -14,9 +14,12 @@ shows your **rate-limit usage percentage** as a crisp, DPI-aware icon.
 ![C#](https://img.shields.io/badge/C%23-WinForms%20%2B%20GDI%2B-239120?logo=csharp&logoColor=white)
 ![winget](https://img.shields.io/badge/winget-alegauss.ClaudeCodeTray-2496ED?logo=windows&logoColor=white)
 
-<img src="docs/tooltip.png" alt="The tray tooltip: session and week usage, the projection, and what the rate limit says" width="46%">
+**[alegauss.github.io/claude-tray](https://alegauss.github.io/claude-tray/)** — the site, with a page
+per pillar. Every page is served as `index.md` beside its `index.html`, so an agent can read it as text.
+
+<img src="site/public/shots/tooltip.png" alt="The tray tooltip: session and week usage, the projection, and what the rate limit says" width="46%">
 &nbsp;&nbsp;
-<img src="docs/menu.png" alt="Right-click menu" width="46%">
+<img src="site/public/shots/menu.png" alt="Right-click menu" width="46%">
 
 </div>
 
@@ -173,7 +176,7 @@ underneath them for scale. It lives there rather than under each chart because i
 this window that has *no* window scope: "now" is the same on the 5-hour and the weekly tab, so it used
 to be the same picture twice, at a third of the height.
 
-![Statistics — the Throughput tab](docs/statistics-throughput.png)
+![Statistics — the Throughput tab](site/public/shots/statistics-throughput.png)
 
 What the lines plot is the **rolling rate** — the same trailing-60-second number printed above them,
 sampled once a second. That matters for a reason worth stating: a turn's tokens are recorded in the
@@ -231,7 +234,7 @@ The other three tabs answer *how much is left* and *how fast is it going*. A fou
 projects strip names four repos and an "others" bucket, which is the right resolution for a chart and
 the wrong one for a search.
 
-![Statistics — the Sessions tab](docs/statistics-sessions.png)
+![Statistics — the Sessions tab](site/public/shots/statistics-sessions.png)
 
 One row per **conversation**, newest first: project, when its last turn landed, how long it ran, how
 many turns and how many tokens. A fan-out is one row, not twelve — a workflow's agents are folded into
@@ -332,7 +335,7 @@ allowance is, so there is no "left" figure to flip to. With the setting on you t
 falling as your quota runs out and the clay one climbing as the allowance goes — so both the axis and
 its legend entry say **spent**, and the two never claim to be measuring the same direction.
 
-![Statistics — the weekly chart past the included quota: the clay extra-usage line on its own right-hand scale](docs/statistics-overage.png)
+![Statistics — the weekly chart past the included quota: the clay extra-usage line on its own right-hand scale](site/public/shots/statistics-overage.png)
 
 **And when there is no figure, there is still a stretch.** Some accounts spend past the included
 quota with the allowance percentage reading **0%** the whole time — the API says *you are over*
@@ -363,13 +366,13 @@ appears — without reading a word:
 
 <div align="center">
 
-<img src="docs/notify-surprise.png" alt="Surprise! — weekly limit reset early (rose)" width="48%">
+<img src="site/public/shots/notify-surprise.png" alt="Surprise! — weekly limit reset early (rose)" width="48%">
 &nbsp;
-<img src="docs/notify-bonus.png" alt="Bonus! — weekly usage credited back (violet)" width="48%">
+<img src="site/public/shots/notify-bonus.png" alt="Bonus! — weekly usage credited back (violet)" width="48%">
 
-<img src="docs/notify-weekly.png" alt="New week! — routine weekly reset (teal)" width="48%">
+<img src="site/public/shots/notify-weekly.png" alt="New week! — routine weekly reset (teal)" width="48%">
 &nbsp;
-<img src="docs/notify-session.png" alt="Fresh session! — 5h session reset (blue)" width="48%">
+<img src="site/public/shots/notify-session.png" alt="Fresh session! — 5h session reset (blue)" width="48%">
 
 </div>
 
@@ -391,11 +394,11 @@ Not every thing worth knowing is good news. These use the same card without the 
 
 <div align="center">
 
-<img src="docs/notify-context.png" alt="Heavy startup context — a project loading a lot before the first prompt (ochre)" width="48%">
+<img src="site/public/shots/notify-context.png" alt="Heavy startup context — a project loading a lot before the first prompt (ochre)" width="48%">
 &nbsp;
-<img src="docs/notify-extra.png" alt="Extra usage has started — past the quota included in your plan (clay)" width="48%">
+<img src="site/public/shots/notify-extra.png" alt="Extra usage has started — past the quota included in your plan (clay)" width="48%">
 
-<img src="docs/notify-profile.png" alt="Profile set for Windows — the machine-wide profile switch landed (slate)" width="48%">
+<img src="site/public/shots/notify-profile.png" alt="Profile set for Windows — the machine-wide profile switch landed (slate)" width="48%">
 
 </div>
 
@@ -422,7 +425,7 @@ suggests nothing, and offers no button but *close*.
 ## Usage insights (last 24h)
 
 <div align="center">
-<img src="docs/usage.png" alt="Usage insights submenu" width="70%">
+<img src="site/public/shots/usage.png" alt="Usage insights submenu" width="70%">
 </div>
 
 The right-click menu has a **Usage insights (24h)** submenu computed locally from your
@@ -441,7 +444,7 @@ bounded to files touched in the last 24h and runs in the background (refreshed o
 ## Context load — what every session costs before you type
 
 <div align="center">
-<img src="docs/context.png" alt="The Context Load window: session-zero gauge, per-source breakdown and findings" width="88%">
+<img src="site/public/shots/context.png" alt="The Context Load window: session-zero gauge, per-source breakdown and findings" width="88%">
 </div>
 
 Claude Code loads your instruction files, your memory index and **every skill's description**
@@ -599,7 +602,7 @@ hand: which plan this login is on, who it belongs to, where Claude Code keeps it
 and what this machine is.
 
 <div align="center">
-<img src="docs/system.png" alt="Settings → System information: the profile picker, the plan, which credentials the profile uses, and a masked account holder" width="88%">
+<img src="site/public/shots/system.png" alt="Settings → System information: the profile picker, the plan, which credentials the profile uses, and a masked account holder" width="88%">
 </div>
 
 - **Profile** — Claude Code keeps one account per **configuration folder**, so several logins on one
@@ -634,7 +637,7 @@ and what this machine is.
   stays masked in the clipboard too.
 
 <div align="center">
-<img src="docs/system-account.png" alt="The Claude account card with the holder revealed: plan and seat, credentials in use, name and email, organization and role, extra usage" width="88%">
+<img src="site/public/shots/system-account.png" alt="The Claude account card with the holder revealed: plan and seat, credentials in use, name and email, organization and role, extra usage" width="88%">
 </div>
 
 > Both shots are of a **sample account** — a fictional Team seat the app builds on demand, which is how

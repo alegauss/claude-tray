@@ -1,6 +1,6 @@
 ---
 name: roadmap-docs
-description: Claude Code Tray's own shipping discipline — the one-task-one-commit rule, the user-facing-surface gate (README, docs/index.html, lang/*.json) a shipped feature must pass, and how a release is cut. The roadmap/changelog/rationale write path itself is NOT here: roadkeep owns it, and its own skill says which command to call. Use whenever a task is finished, before committing, or when a shipped feature might be user-visible.
+description: Claude Code Tray's own shipping discipline — the one-task-one-commit rule, the user-facing-surface gate (README, the site/ copy modules, lang/*.json) a shipped feature must pass, and how a release is cut. The roadmap/changelog/rationale write path itself is NOT here: roadkeep owns it, and its own skill says which command to call. Use whenever a task is finished, before committing, or when a shipped feature might be user-visible.
 ---
 
 # Shipping discipline
@@ -59,13 +59,16 @@ them easy to forget. **Every time a task ships, run this decision:**
      `pt-BR`, `pt-PT`, `fr` and `es`. `{local:Loc key}` in XAML, `L.T(...)` in code. An English
      string hardcoded in XAML is a bug, and so is a key present only in `en`.
    - **`README.md`** — the feature list and, if there is something to see, a screenshot (the
-     `preview-ui` skill produces it; screenshots live in `docs/`).
-   - **`docs/index.html`** — the marketing block, kept consistent with the README's wording.
+     `preview-ui` skill produces it; screenshots live in `site/public/shots/`).
+   - **the site** — a claim in `site/src/lib/site-content.ts`, and a section that renders it if it needs
+     one. The site is a workspace, not a file: `cd site && npm run build && npm test` is its gate, and a
+     new screenshot is picked up by the build rather than measured by hand. Keep the wording consistent
+     with the README's.
 3. **Write for the user, not the commit.** These surfaces explain what the feature does and how to
    use it. Never paste `IMPROVEMENTS.md` rationale verbatim.
-   *What `--selftest` holds up here (T250)*: every image either file points at exists, every screenshot
-   in `docs/` is shown by one of them, and the winget id is spelled one way across both and the
-   manifest. The **wording** is not checked and deliberately so — the site is marketing copy, the README
+   *What `--selftest` holds up here (T250)*: every image either surface points at exists, every
+   screenshot in `site/public/shots/` is shown by one of them, and the winget id is spelled one way
+   across both and the manifest. The **wording** is not checked and deliberately so — the site is marketing copy, the README
    is not, and a check demanding they match would fail on every rewrite.
 4. **Verify UI by looking.** A task that touches a window is not done without a screenshot — the
    `preview-ui` skill, per [AGENTS.md](../../../AGENTS.md). For a localized change, screenshot at

@@ -69,6 +69,20 @@ servers, with no per-user licence.
 ## Links
 
 - [Website](https://alegauss.github.io/claude-tray/): project landing page
+- [Site manifest](https://alegauss.github.io/claude-tray/manifest.json): every page of this
+  site with its URL, title and the plain-Markdown twin beside it. Each page is served twice —
+  `index.html` for a browser and `index.md` for a reader that does not want the markup — so
+  appending `index.md` to any URL below returns the same page as text.
+- [The projection](https://alegauss.github.io/claude-tray/features/projection/): the two
+  forecasting models, and the four states the icon can be in
+- [Statistics](https://alegauss.github.io/claude-tray/features/statistics/): the burn-up
+  charts, the live throughput strip, and the per-session cost at API list prices
+- [The notifications](https://alegauss.github.io/claude-tray/features/notifications/): the
+  four reset toasts and the three that state a fact instead of celebrating one
+- [The context audit](https://alegauss.github.io/claude-tray/features/context/): what every
+  session loads before the first prompt, and why it is measured and never edited
+- [Privacy](https://alegauss.github.io/claude-tray/features/privacy/): what is read, what is
+  not, and the one call that leaves the machine
 - [GitHub repository](https://github.com/alegauss/claude-tray): source code
 - [README / documentation](https://github.com/alegauss/claude-tray/blob/main/README.md): full setup, build, and troubleshooting guide
 - [Latest release](https://github.com/alegauss/claude-tray/releases/latest): download the Windows installer (ClaudeTray-Setup.exe)

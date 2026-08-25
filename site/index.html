@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/claude-tray/logo.png" />
+
+    <!--
+      The theme follows the OS, and a stored choice wins over it. This runs before first
+      paint: the tokens the body background reads are keyed off data-theme, so a class
+      applied after hydration is a visible flash of the wrong theme. Kept inline and
+      dependency-free for that reason. scripts/prerender.mjs patches the rest of this
+      <head> per route.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("ct-theme");
+          if (stored === "dark" || stored === "light") {
+            document.documentElement.setAttribute("data-theme", stored);
+          }
+        } catch (e) {
+          /* private mode, or no storage — fall through to the OS preference */
+        }
+      })();
+    </script>
+
+    <title>Claude Code Tray — Claude usage in your Windows tray</title>
+    <meta
+      name="description"
+      content="A native Windows tray monitor for your Claude Code usage. A crisp DPI-aware icon, burn-rate projection, per-session cost at API list prices and a context audit — computed on your own machine, with no API key to paste."
+    />
+
+    <!-- The one host this page reaches: the author's own ad network. The loader is fetched
+         by the slot component rather than from here, so nothing is requested until a slot
+         exists and the theme it should draw in is known. The hint is all this head needs. -->
+    <link rel="preconnect" href="https://ads.japode.com" />
+
+    <!--
+      scripts/prerender.mjs patches the title, description, canonical and og:url per route
+      by replace-or-throw, and inlines the rendered body into the root element. Note: no
+      closing head or script token may appear in a comment here, or the Vite asset
+      injection and the prerender both anchor to it instead of the real one.
+    -->
+
+    <!-- Reveal-on-scroll starts at opacity 0 and is lifted by the client observer. With no
+         JS the prerendered text is still in the DOM; this makes it visible too. -->
+    <noscript>
+      <style>
+        .reveal {
+          opacity: 1 !important;
+          transform: none !important;
+        }
+      </style>
+    </noscript>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -51,7 +51,7 @@ per-file detail is the **`file-map` skill**: reference material, consulted rathe
 stays here is placement, which no `ls` of the tree answers.
 
 **Where does a new file go?** In the folder of the subsystem it belongs to; **the repo root is for the
-project, not for code** (csproj, manifest, icon, `lang/`, `docs/`, the roadmap docs). Three things are
+project, not for code** (csproj, manifest, icon, `lang/`, `site/`, the roadmap docs). Three things are
 deliberate and must not be "fixed": the namespace stays **flat `ClaudeTray`** — folders are for the
 person running `ls`, not for the compiler, so no folder-derived namespaces and no new `using`s; **`lang/`
 never moves**, because the embedded resource name (`ClaudeTray.lang.en.json`) is derived from its path
@@ -269,7 +269,7 @@ the `→ §` pointer are derived on render, and an `Edit` is denied by a hook na
 | [`IMPROVEMENTS.md`](IMPROVEMENTS.md) | Design rationale for *unshipped* work, plus §I the binding house constraints. |
 | [`STRATEGY.md`](STRATEGY.md) | Positioning, licence, distribution, the trust promise. Never a task. |
 
-They live at the repo root on purpose: `docs/` is the published GitHub Pages site. This project's
+They live at the repo root, where a reader looks for them and nothing serves them. This project's
 numbers — prefix `T`, the limits, the markers, the ledger's two absences — are
 [`roadkeep.toml`](roadkeep.toml), the **only** roadkeep file this repository carries: the tool
 arrives as a Claude Code plugin, so there is no copy of it here and no path to a checkout. `/plugin
@@ -315,7 +315,7 @@ Query instead of reading: `pick` chooses the next task, `brief <id>` is what it 
   a transcript that already exists. T103 uses the watcher's own paths instead, with a periodic whole
   walk to reconcile.
 - **Single instance** is enforced by a named mutex; a second launch exits silently.
-- The marketing page is `docs/index.html` (GitHub Pages, served from `/docs`).
+- The marketing page is the [`site/`](site/README.md) workspace, prerendered; `docs/` no longer exists.
 - **New user-visible strings go into all five `lang/*.json`**, not just `en`. `--selftest` now fails on a
   key that reached one file, or a `{0}` that did not survive translation (T185), so what is left to you is
   the part it cannot hold: `--lang <code>` (process-only override, saved preference untouched) and a

@@ -192,7 +192,10 @@ internal static class Program
 
         if (args.Length >= 1 && args[0] == "--social")
         {
-            string path = args.Length >= 2 ? args[1] : "docs/social-preview.png";
+            // build\, not the site: this is the 1280x640 card GitHub shows for the repository, which is
+            // uploaded by hand in the repository settings. The site has its own og:image, rasterised from
+            // site\public\og.svg on every site build — two cards at two sizes for two places.
+            string path = args.Length >= 2 ? args[1] : "build/social-preview.png";
             using Bitmap bmp = IconRenderer.RenderSocial(1280, 640);
             using (FileStream fs = OutFile.Create(path)) bmp.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
             Console.WriteLine("wrote " + Path.GetFullPath(path));

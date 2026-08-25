@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://alegauss.github.io/claude-tray/sitemap.xml

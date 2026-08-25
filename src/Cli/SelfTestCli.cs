@@ -286,7 +286,7 @@ internal static class SelfTestCli
 
         Section("surfaces — what a stranger reads: the README and the page (Block AJ)");
         Repo("the README and the published page point at things that exist", UserSurfaces,
-             "README.md", "docs/index.html", "docs");
+             "README.md", "site/src/lib/site-content.ts", "site/public/shots");
 
         if (quick)
         {
@@ -5789,18 +5789,32 @@ internal static class SelfTestCli
     /// the window moves, so it rots into a picture of an app that no longer exists. And the winget id is a
     /// string a user types: spelled two ways it sends somebody to a package that is not there, and it is
     /// quoted in six places across the README, the site and the manifests.</para>
+    ///
+    /// <para><b>Where the page is.</b> It used to be one hand-written <c>docs\index.html</c>, and this check
+    /// read that file. The site is now a prerendered workspace under <c>site\</c>, so the page's asset
+    /// references live in its copy modules (<c>site\src\lib\site-content.ts</c> and <c>features.ts</c>) and
+    /// its screenshots in <c>site\public\shots</c>. Those are what is read here: the copy is the page's
+    /// source of truth, so a screenshot the copy no longer names is one no page shows. The built
+    /// <c>site\dist</c> is deliberately not read — it is gitignored, so on a clean clone this check would
+    /// have nothing to look at, and the site's own <c>npm test</c> already asserts the built output.</para>
     /// </summary>
     private static void UserSurfaces(string root)
     {
         string readme = Path.Combine(root, "README.md");
-        string site = Path.Combine(root, "docs/index.html");
-        string docs = Path.Combine(root, "docs");
+        string publicDir = Path.Combine(root, "site", "public");
+        string shotsDir = Path.Combine(publicDir, "shots");
         string readmeText = File.ReadAllText(readme);
-        string siteText = File.ReadAllText(site);
 
-        // `src`, `href` and `content` alike: the social preview is an og:image, which a check written for
-        // the first two would have declared unreferenced and been wrong about.
-        static string[] Assets(string text) =>
+        // Both copy modules, because the depth pages carry their own figures: reading only the landing
+        // copy would call five screenshots orphans that a page does show.
+        string siteText = string.Concat(
+            new[] { "site-content.ts", "features.ts" }
+                .Select(n => Path.Combine(root, "site", "src", "lib", n))
+                .Where(File.Exists)
+                .Select(File.ReadAllText));
+
+        // The README's are markdown and inline <img> with repo-relative paths.
+        static string[] ReadmeAssets(string text) =>
             Regex.Matches(text, $@"(?:src|href|content)=""([^"":]+\.(?:png|gif|jpg|svg))""")
                  .Select(m => m.Groups[1].Value)
                  .Concat(Regex.Matches(text, @"!\[[^\]]*\]\(([^)]+\.(?:png|gif|jpg|svg))\)")
@@ -5809,32 +5823,41 @@ internal static class SelfTestCli
                  .Distinct(StringComparer.OrdinalIgnoreCase)
                  .OrderBy(p => p, StringComparer.Ordinal).ToArray();
 
-        string[] fromReadme = Assets(readmeText);
-        string[] fromSite = Assets(siteText);
+        // The site's are string literals carrying the base prefix GitHub Pages derives from the repository
+        // name, stripped back to the path under site\public.
+        static string[] SiteAssets(string text) =>
+            Regex.Matches(text, @"""/claude-tray/(shots/[^""]+\.(?:png|gif|jpg|svg))""")
+                 .Select(m => m.Groups[1].Value)
+                 .Distinct(StringComparer.OrdinalIgnoreCase)
+                 .OrderBy(p => p, StringComparer.Ordinal).ToArray();
+
+        string[] fromReadme = ReadmeAssets(readmeText);
+        string[] fromSite = SiteAssets(siteText);
         if (!Check("both documents still reference their screenshots",
                    fromReadme.Length >= 8 && fromSite.Length >= 8,
                    $"{fromReadme.Length} in the README, {fromSite.Length} on the page — " +
                    "the check cannot read what it compares"))
             return;
 
-        // The README's paths are repo-relative, the page's are relative to itself.
         string[] brokenReadme = fromReadme.Where(p => !File.Exists(Path.Combine(root, p))).ToArray();
         Check($"every image the README points at exists ({fromReadme.Length})", brokenReadme.Length == 0,
               $"{string.Join(", ", brokenReadme)} — a broken image in the first thing anybody reads");
 
-        string[] brokenSite = fromSite.Where(p => !File.Exists(Path.Combine(docs, p))).ToArray();
+        string[] brokenSite = fromSite.Where(p => !File.Exists(Path.Combine(publicDir, p))).ToArray();
         Check($"every image the published page points at exists ({fromSite.Length})", brokenSite.Length == 0,
               $"{string.Join(", ", brokenSite)} — broken on a page nobody loads until a stranger does");
 
+        // Both lists reduced to a bare file name: the README writes site/public/shots/x.png and the copy
+        // writes /claude-tray/shots/x.png, and the question is only whether *something* still shows it.
         var shown = new HashSet<string>(
-            fromSite.Concat(fromReadme.Select(p => p.Replace("docs/", "", StringComparison.Ordinal))),
+            fromSite.Concat(fromReadme).Select(p => Path.GetFileName(p)),
             StringComparer.OrdinalIgnoreCase);
-        string[] orphans = Directory.Exists(docs)
-            ? Directory.GetFiles(docs, "*.png").Select(f => Path.GetFileName(f))
+        string[] orphans = Directory.Exists(shotsDir)
+            ? Directory.GetFiles(shotsDir, "*.png").Select(f => Path.GetFileName(f))
                        .Where(f => !shown.Contains(f))
                        .OrderBy(f => f, StringComparer.Ordinal).ToArray()
             : Array.Empty<string>();
-        Check("and every screenshot in docs is shown by one of them", orphans.Length == 0,
+        Check("and every screenshot in site\\public\\shots is shown by one of them", orphans.Length == 0,
               $"{string.Join(", ", orphans)} — shown nowhere, so nobody re-takes it when the window moves");
 
         // An identifier, not prose: a user types it, and two spellings send one of them nowhere.
