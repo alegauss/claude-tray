@@ -19,6 +19,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
+<!-- japode ad network. The loader's only request is one cached catalogue read; it sets
+     no cookie, sends no impression beacon, and the two slots below decline its recency
+     memory, so nothing is written to this origin either. Loaded async from the head so
+     the catalogue is on its way before the reader reaches the first slot. -->
+<link rel="preconnect" href="https://ads.japode.com">
+<script src="https://ads.japode.com/v1/ads.js" async></script>
+
 <style>
   :root{
     --clay:#D97757;
@@ -315,6 +322,19 @@
     .sponsor-product{width:100%}
   }
 
+  /* ---------- japode ad slots (ads.japode.com) ----------
+     The loader draws each unit into its own shadow root, so nothing here can reach the
+     banner. These rules decide only how much width it gets and how much air surrounds
+     it — the unit brings its own border, its own palette and its own "Ad" mark.
+
+     No frame, no heading and no reveal animation, on purpose. A wrapper with chrome
+     would leave a labelled empty box on the days the catalogue can't be read: the
+     loader collapses the slot itself, so the wrapper has to collapse with it. The
+     narrow column is what keeps the mid-page unit reading as an aside rather than as a
+     section of this site — full bleed at 1120px would announce itself. */
+  .ad-seam{padding:56px 0 8px}
+  .ad{max-width:620px;margin:0 auto}
+  .ad-foot{margin-top:26px}
 
   /* reveal on scroll */
   .reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
@@ -607,6 +627,28 @@
         <p>Writing the machine-wide profile is the least visible thing this app does — nothing on screen changes, and you cannot see the effect until you start another program. So it confirms itself: only when you switch by hand, once per switch, and only after the variable is read back to check the write took. <b>No quota bar</b> — a bar animating one account's remaining quota into another's would suggest switching accounts because one ran out, and this app does not say that.</p>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- SPONSORED — one unit from the japode ad network, in the seam between two sections.
+     Here rather than near the hero or beside Install: this is where a reader pauses
+     between topics, and nothing on this stretch of the page is competing for a click.
+     The loader reserves the unit's height before the catalogue answers, so the sections
+     below never move when it arrives.
+
+     theme="dark" because this site has no light mode — left on "auto" the loader would
+     ask the reader's OS and hand a light card to anyone whose system is light.
+     The Viglet campaigns are excluded because the footer already carries Viglet as this
+     site's sponsor, and claude-tray because this is claude-tray's own site. -->
+<section class="ad-seam">
+  <div class="wrap">
+    <div class="ad"
+         data-japode-ads
+         data-ad-slot="tray-mid"
+         data-ad-format="in-content"
+         data-ad-theme="dark"
+         data-ad-memory="off"
+         data-ad-exclude="claude-tray,viglet,shio,turing"></div>
   </div>
 </section>
 
@@ -910,6 +952,19 @@
     </div>
   </div>
   <!-- sponsor:end -->
+
+    <!-- The second japode slot: one compact line, after the paid sponsor and before the
+         disclaimer. "strip" is the least of the four formats — it drops the supporting
+         sentence and keeps the product, the headline and the link, which is all a
+         footer wants. Same exclusions as the mid-page slot, and the loader will not
+         repeat a campaign the other one already took. -->
+    <div class="ad-foot"
+         data-japode-ads
+         data-ad-slot="tray-footer"
+         data-ad-format="strip"
+         data-ad-theme="dark"
+         data-ad-memory="off"
+         data-ad-exclude="claude-tray,viglet,shio,turing"></div>
 
     <p class="disclaimer">
       Unofficial / community project — not affiliated with, endorsed by, or sponsored by Anthropic.
