@@ -602,18 +602,25 @@ internal static partial class SelfTestCli
         // And every file of this suite, which between them are the largest sources here and the ones
         // carrying raw strings: a scanner that desynchronised on those would silently skip everything
         // after them. The claim is that the scan reached the end — a file whose last code line is the
-        // class's closing brace is one nothing swallowed. Over all six rather than the one that used to
+        // class's closing brace is one nothing swallowed. Over all seven rather than the one that used to
         // be the biggest (T381), because which of them carries the raw strings is not a fact to pin.
-        string[] suite = (RepoFile(Path.Combine("src", "Cli", "SelfTestCli.cs")) is { } any
-                ? Directory.GetFiles(Path.GetDirectoryName(any)!, "SelfTestCli*.cs")
-                : Array.Empty<string>())
-            .OrderBy(f => f, StringComparer.Ordinal).ToArray();
-        string[] swallowed = suite.Where(f => LastCode(CodeOf(File.ReadAllText(f))) != "}")
-                                  .Select(Path.GetFileName).ToArray()!;
-        Check($"the scan reaches the end of every file of this suite ({suite.Length})",
-              suite.Length >= 2 && swallowed.Length == 0,
-              suite.Length < 2 ? $"only {suite.Length} file(s) found, so nothing was compared"
-                               : string.Join(", ", swallowed));
+        //
+        // Through `Repo`, like every other claim here that reads the repository (T383). Hand-rolled, its
+        // "fewer than two files" precondition was a correct guard inside a checkout and a RED SELF-CHECK
+        // on every installed copy, where there is no `src\` to find — the one claim of twenty-nine that
+        // failed where the rest print "no repository beside this build" and say so. `Repo`'s own `needs`
+        // keeps a half-missing checkout red, which is the distinction that made hand-rolling look fine.
+        Repo("the scan reaches the end of every file of this suite", root =>
+        {
+            string[] suite = Directory.GetFiles(Path.Combine(root, "src", "Cli"), "SelfTestCli*.cs")
+                                      .OrderBy(f => f, StringComparer.Ordinal).ToArray();
+            string[] swallowed = suite.Where(f => LastCode(CodeOf(File.ReadAllText(f))) != "}")
+                                      .Select(Path.GetFileName).ToArray()!;
+            Check($"the scan reaches the end of every file of this suite ({suite.Length})",
+                  suite.Length >= 2 && swallowed.Length == 0,
+                  suite.Length < 2 ? $"only {suite.Length} file(s) found, so nothing was compared"
+                                   : string.Join(", ", swallowed));
+        }, Path.Combine("src", "Cli", "SelfTestCli.cs"));
     }
 
     /// <summary>

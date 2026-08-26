@@ -199,3 +199,19 @@ A release is not a task. When the version is bumped, `<Version>` in `ClaudeTray.
 source of truth — the installer, winget manifests and the update check all derive from it (see
 [STRATEGY.md](../../../STRATEGY.md) §S:IV). Cutting a release is a `chore: release vX.Y.Z` commit of
 its own, never bundled with a task.
+
+**Before it, run the published `.exe` from outside the tree — once (T383).**
+
+```
+dotnet publish -c Release
+copy bin\Release\net10.0-windows\win-x64\publish\ClaudeTray.exe %TEMP%\away\
+cd %TEMP%\away && ClaudeTray.exe --selftest      # 0 failed, ~30 skipped, every skip a repo one
+```
+
+**This is the only path that exercises what an installed copy is.** `--selftest`'s second kind of claim
+reads repository files and stands down where there is none — and `build.yml` publishes *into* the
+checkout and runs the exe from there, so it finds `AGENTS.md` by walking up and the whole family runs.
+Every other loop is inside the tree too. T383 shipped a claim that guarded its own precondition instead
+of going through `Repo`: correct in a checkout, **one red assertion on every installed copy**, invisible
+to CI and to every developer command. Copying the single file somewhere else is the whole test, and it
+costs one publish a release already pays for.

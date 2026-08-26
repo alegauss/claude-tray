@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Edit(/.claude/skills/file-map/**)",
-      "Edit(/.claude/skills/dev-flags/**)"
+      "Edit(/.claude/skills/dev-flags/**)",
+      "Edit(/.claude/skills/roadmap-docs/**)"
     ]
   }
 }
