@@ -303,59 +303,6 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
         else Cancelled?.Invoke();
     }
 
-    /// <summary>
-    /// Render the window's content to a PNG at 1.5×, off-screen, without depending on it being visible
-    /// or foreground — the same deterministic path <c>StatisticsPage.SaveSnapshot</c> takes, and for
-    /// the same reason: the screen-copy capture script grabs whatever pixels are *on screen* in the
-    /// window's rectangle, so any app that steals focus or sits on top ends up in the file. Behind
-    /// <c>--capture-settings</c>.
-    /// </summary>
-    /// <param name="scrollBy">Device-independent pixels to scroll the visible page's ScrollViewer down
-    /// first, so a section below the fold can be captured without resizing the window.</param>
-    internal void SaveSnapshot(string path, double scrollBy = 0)
-    {
-        UpdateLayout();
-        if (scrollBy > 0 && VisiblePageScroller() is { } sv)
-        {
-            sv.ScrollToVerticalOffset(scrollBy);
-            UpdateLayout();
-        }
-        Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.Render);
-
-        var target = (FrameworkElement)Content;
-        // The window's Mica backdrop isn't part of the visual tree, so paint an opaque themed surface
-        // behind the content for the snapshot, then put it back.
-        System.Windows.Media.Brush? prev = (target as System.Windows.Controls.Panel)?.Background;
-        if (target is System.Windows.Controls.Panel panel)
-        {
-            panel.Background = TryFindResource("SolidBackgroundFillColorBaseBrush") as System.Windows.Media.Brush
-                               ?? new System.Windows.Media.SolidColorBrush(
-                                   System.Windows.Media.Color.FromRgb(0x20, 0x20, 0x20));
-            panel.UpdateLayout();
-        }
-
-        const double scale = 1.5;
-        var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(
-            (int)(target.ActualWidth * scale), (int)(target.ActualHeight * scale),
-            96 * scale, 96 * scale, System.Windows.Media.PixelFormats.Pbgra32);
-        rtb.Render(target);
-
-        if (target is System.Windows.Controls.Panel p2) p2.Background = prev;
-
-        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
-        encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
-        using FileStream fs = OutFile.Create(path);
-        encoder.Save(fs);
-    }
-
-    /// <summary>The ScrollViewer of whichever page is currently shown, so a capture can scroll it.</summary>
-    private System.Windows.Controls.ScrollViewer? VisiblePageScroller()
-    {
-        foreach (System.Windows.Controls.Grid pane in
-                 new[] { GeneralPane, DisplayPane, ClaudeCodePane, NotificationsPane, SystemPane, AboutPane })
-            if (pane.Visibility == Visibility.Visible)
-                return pane.Children.OfType<System.Windows.Controls.ScrollViewer>().FirstOrDefault();
-        return null;
-    }
-
+    // The off-screen capture and its framing live in SettingsPage.Capture.cs (T134's convention: a page
+    // with several independent surfaces is one class in several files).
 }

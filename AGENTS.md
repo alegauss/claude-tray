@@ -230,13 +230,12 @@ dotnet run -- --main [dest]           # the WHOLE window as the tray opens it (n
                                       #   tray uses. --settings / --stats / --context --window show one page
                                       #   without the shell; --settings-tray is the only preview that can
                                       #   see a keyboard bug — UI convention 7.
-dotnet run -- --capture-settings <out.png> [page] [scroll=<dip>]
-dotnet run -- --capture-stats [outBase] [variant] [--sample]
-                                      # rendered OFF-SCREEN to PNG. Prefer these over
-                                      #   scripts\Capture-Window.ps1, which copies pixels ON SCREEN inside
-                                      #   the window rect — anything stealing focus or sitting on top ends
-                                      #   up in the file. A popup is the exception: its own window, which
-                                      #   an off-screen capture cannot see.
+dotnet run -- --capture-settings <out.png> [page] [card=<x:Name>]   # card= frames that element and reports
+dotnet run -- --capture-stats [outBase] [variant] [--sample]        #   whether the viewport held it (T375)
+                                      # Both OFF-SCREEN to PNG. Prefer them over scripts\Capture-Window.ps1,
+                                      #   which copies pixels ON SCREEN in the window rect — anything stealing
+                                      #   focus or sitting on top lands in the file. A popup is the exception:
+                                      #   its own window, which an off-screen capture cannot see.
 dotnet run -- --lang fr --settings    # any command in another language. Published shots are English; use
                                       #   this to check a layout in the longest translation.
 ```

@@ -109,11 +109,24 @@ inside the copy, writing nothing if either fails. The surface for `--stats metho
 Preview popups are held open by `PageWindow` for every popup, not per call site.
 
 ```
---capture-settings <out.png> [page] [scroll=<dip>] [profile=<n>] [--sample] [--reveal]
+--capture-settings <out.png> [page] [card=<x:Name> | scroll=<dip>] [profile=<n>] [--sample] [--reveal]
                                       # page System REQUIRES --sample and is refused without it (T205):
                                       #   it renders this machine's real login, and a capture is a file
                                       #   that gets published. Interactive --settings System still shows
                                       #   the real account - only the path that writes a file is refused.
+                                      # card= is the FRAME, and the one to reach for (T375): it scrolls
+                                      #   that element's top into view and prints
+                                      #     capture-frame: <name> scroll=<n> element=<h>dip
+                                      #     viewport=<v>dip WHOLE | PARTIAL <pct> of it
+                                      #   so a card taller than the window says so on the FIRST capture
+                                      #   instead of the fourth. An unknown name writes no file and
+                                      #   exits 1, listing the page's own named frames (template parts
+                                      #   excluded by TemplatedParent, not by a list of ids). Any x:Name
+                                      #   on the page works; the list shows those over 32dip.
+                                      # scroll=<dip> is the old form and goes stale the moment the page
+                                      #   above the target gains a line. Passing BOTH is refused: two
+                                      #   answers about one frame, and picking either silently is how a
+                                      #   shot of the wrong region gets published.
 --capture-stats [outBase] [variant] [modifiers] [profile=<n>[,<n>]] [--sample]
                                       # REFUSES, writing no file and exiting 1, when the report has not
                                       #   finished (T298): the settle is a fixed 2.5s and the pace is

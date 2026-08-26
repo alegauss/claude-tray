@@ -530,11 +530,41 @@ internal static class Program
             win.Show();
             if (profile >= 0) settingsPage.SelectProfileForPreview(profile);
 
+            // `card=<x:Name>` instead of a dip, and the two are exclusive: a caller that passes both has
+            // said two different things about the same frame, and picking one silently is how a screenshot
+            // of the wrong region gets published (T375).
+            string? card = ArgValue(args, "card");
+            if (card is { Length: > 0 } && scroll > 0)
+            {
+                Console.WriteLine("scroll= and card= both name the frame; pass one. card= is the one that "
+                                  + "does not go stale when the page above it gains a line.");
+                Environment.ExitCode = 1;
+                return;
+            }
+
             var settle = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             settle.Tick += (_, _) =>
             {
                 settle.Stop();
-                try { settingsPage.SaveSnapshot(outPath, scroll); Console.WriteLine("wrote " + outPath); }
+                try
+                {
+                    if (card is { Length: > 0 })
+                    {
+                        // Resolved before anything is written: an unknown name must not produce a file at
+                        // all, or the caller reads `wrote` about a picture of the default scroll position.
+                        (double offset, SettingsPage.Framing frame, string? refusal) = settingsPage.FrameFor(card);
+                        if (refusal is not null)
+                        {
+                            Console.WriteLine(refusal);
+                            Environment.ExitCode = 1;
+                            return;
+                        }
+                        scroll = offset;
+                        Console.WriteLine(frame.Line);
+                    }
+                    settingsPage.SaveSnapshot(outPath, scroll);
+                    Console.WriteLine("wrote " + outPath);
+                }
                 finally { previewApp.Shutdown(); }
             };
             settle.Start();

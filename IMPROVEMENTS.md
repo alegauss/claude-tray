@@ -43,8 +43,6 @@
 
 ---
 
-## Block AI — Verification — the checks that prove a change
-
 ## Block G — Localization
 
 ## §I — House constraints
@@ -845,30 +843,6 @@ has never had.
 
 That is the shape to expect from a fixed catalogue and a growing page. The catalogue is a list of
 opinions, and the honest failure mode of a list of opinions is silence about everything not on it.
-
-### XCV.2 A capture that cannot say what it framed (T375)
-
-`--capture-settings <out> <page> scroll=<dip>` takes a number of device-independent pixels, and
-nothing knows what that number should be. Framing the linking card cost five captures at 1120, 1140,
-1152, 1290 and 1440, three of which were read and discarded — and 1152 is now a constant in this
-repository's history that means "the top of a card" only until the card above it gains a line.
-
-Two facts make this worse than fiddly. The Claude Code panel is the longest in the app and the card
-is last on it, so `scroll=` there is always near the clamp, where a too-large number silently lands
-at the bottom instead of failing. And the card no longer fits one viewport at all: every published
-shot of it chooses between the two side pickers and the Write button, and the choice was made by
-looking rather than by anything the flag could express.
-
-- **Scroll to a named element, not a number.** `card=<x:Name>` brings that element's top into view and
-  reports the dip it used, so the caller says what it wants photographed and the app answers where that
-  is. An unknown name is refused with the catalogue, on `StatsPreviews`' rule.
-- **And say when it did not fit.** `PreviewSurface` already tells `Capture-Window.ps1` what it drew as a
-  rectangle it asserts against (T217). The same channel can carry "the element you named is 640dip and
-  the viewport is 500, so this picture is part of it" — the honest version of a screenshot that ends
-  mid-row, and the thing that would have said so on the first capture instead of the fourth.
-
-Not in scope: making the card shorter, or the window taller. A surface outgrowing one screenshot is
-ordinary, and a capture flag that cannot say so is the defect.
 
 ### XCV.3 A plural rule the app has never had (T376)
 

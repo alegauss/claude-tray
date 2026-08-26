@@ -149,6 +149,9 @@ internal static class SelfTestCli
         Section("picker — the report follows the icon by key, not by position (Block F)");
         ProfilePicker();
 
+        Section("frame — what a capture says about what it framed (Block AI)");
+        Framing();
+
         Section("out — the directory a capture flag was given (Block AF)");
         Temp(OutputPaths);
 
@@ -5364,6 +5367,38 @@ internal static class SelfTestCli
         // The link before the tree it sits in, for `Temp`'s reason: a recursive delete over a reparse point
         // is the one thing its cleanup cannot do.
         try { Directory.Delete(linked); } catch { /* the report says so */ }
+    }
+
+    /// <summary>
+    /// The sentence <c>card=</c> prints about what it framed (T375). The resolution itself needs a laid-out
+    /// window and is exercised by running the flag; what a check can hold is the part that decides whether
+    /// a reader trusts the picture — <b>whole or partial</b>, and the boundary between them.
+    ///
+    /// <para>The boundary is where this would go wrong quietly. A card laid out to exactly the viewport
+    /// height comes back off the layout pass a hair over it, and a strict comparison would report every
+    /// full-height card as partial — a warning that fires always is one nobody reads, which is the same
+    /// defect as a skip that always fires (T161).</para>
+    /// </summary>
+    private static void Framing()
+    {
+        Check("a card shorter than the viewport is framed whole",
+              new SettingsPage.Framing("Card", 100, 280, 475) is { Fits: true });
+        Check("and one taller than it is not",
+              new SettingsPage.Framing("Card", 100, 607, 475) is { Fits: false });
+        // The measured pair from the surface this was built for: 607dip of card against a 475dip viewport.
+        Check("a partial frame says how much of the element is in the picture",
+              new SettingsPage.Framing("LinkCard", 1174, 607, 475).Line
+                  is "capture-frame: LinkCard scroll=1174 element=607dip viewport=475dip PARTIAL 78% of it",
+              new SettingsPage.Framing("LinkCard", 1174, 607, 475).Line);
+        Check("and a whole one says so instead of a percentage",
+              new SettingsPage.Framing("LinkHeader", 1149, 17, 475).Line.EndsWith("WHOLE", StringComparison.Ordinal));
+        // Exactly at the viewport, and a hair over it: the first must be whole or the warning fires on
+        // every full-height card, and the second must not be, or it never fires at all.
+        Check("a card exactly the viewport's height is whole, layout jitter included",
+              new SettingsPage.Framing("Card", 0, 475, 475) is { Fits: true }
+              && new SettingsPage.Framing("Card", 0, 475.4, 475) is { Fits: true });
+        Check("and a card a dip taller is not",
+              new SettingsPage.Framing("Card", 0, 476, 475) is { Fits: false });
     }
 
     /// <summary>
