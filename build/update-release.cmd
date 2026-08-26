@@ -84,5 +84,25 @@ echo.
 echo === Release v%~1 publicada com sucesso ===
 echo.
 
+REM --- 4) O que este caminho NAO fez (T385) -------------------------------
+REM Os manifestos winget acabaram de ser atualizados e commitados, o que se parece
+REM exatamente com "foram enviados". Nao foram: quem abre o PR para o
+REM microsoft/winget-pkgs e um passo do build.yml, que so roda por workflow_dispatch
+REM e portanto nao dispara com o push da tag. O winget e o canal 1 do STRATEGY, e um
+REM release que para aqui deixa todo mundo la na versao anterior.
+echo --- winget: NAO enviado ---
+echo Os manifestos em build\winget\ estao em v%~1 e commitados, mas nada os
+echo submeteu. Para enviar o PR ao microsoft/winget-pkgs, com o SHA256 que
+echo casa com o .exe que acabou de ser anexado:
+echo.
+echo     wingetcreate submit build\winget --token ^<WINGET_TOKEN^>
+echo.
+echo NAO rode o workflow "build" na tag v%~1 para isso: ele RECOMPILA o
+echo instalador (o Inno Setup grava um timestamp, logo outro binario) e faz
+echo gh release upload --clobber, trocando o anexo que ja esta publicado -- e
+echo o manifesto commitado passa a descrever um arquivo que nao e mais o do
+echo release. Um release tem um binario, e e este.
+echo.
+
 :fim
 endlocal

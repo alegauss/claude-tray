@@ -208,6 +208,14 @@ copy bin\Release\net10.0-windows\win-x64\publish\ClaudeTray.exe %TEMP%\away\
 cd %TEMP%\away && ClaudeTray.exe --selftest      # 0 failed, ~30 skipped, every skip a repo one
 ```
 
+**And `update-release … upload` does not touch winget (T385).** It bumps the manifests, commits them and
+publishes the GitHub release — which looks exactly like they were sent. They were not: the PR to
+`microsoft/winget-pkgs` comes from a step in `build.yml`, which is `workflow_dispatch` only and so does not
+fire on a tag push. The script now says so on the way out, with the `wingetcreate submit` command. **Do not
+run the `build` workflow on the tag to fix it** — it recompiles the installer (Inno Setup stamps a time, so
+a different binary) and `gh release upload --clobber`s the asset already published, after which the
+committed manifest describes a file the release no longer carries. A release has one binary.
+
 **This is the only path that exercises what an installed copy is.** `--selftest`'s second kind of claim
 reads repository files and stands down where there is none — and `build.yml` publishes *into* the
 checkout and runs the exe from there, so it finds `AGENTS.md` by walking up and the whole family runs.
