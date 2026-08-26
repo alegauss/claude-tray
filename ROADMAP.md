@@ -24,10 +24,6 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block P — Project layout
-
-- 📋 **T381** (deps: —) **The suite is 9,330 lines and 76 sections in one file, in a repo whose own rule says otherwise** — The families are already named by the section titles, Run stays whole as the table of contents, and the assertion count before and after is the test. → §XCVIII.1
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

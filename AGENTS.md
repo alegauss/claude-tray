@@ -170,7 +170,7 @@ All eight are below; listing *three* is how two stayed script-only (T201). The h
 
 ## Verification in code (`--selftest`)
 
-`src/Cli/SelfTestCli.cs` **is** this repo's test suite — there is no test project, because a
+`src/Cli/SelfTestCli*.cs` **is** this repo's test suite (seven partial files, T381) — there is no test project, because a
 third-party test framework would break the single-self-contained-`.exe` rule (§I.3). It holds **two
 kinds of claim**, and a new one of either goes there rather than into prose: an **invariant** over
 synthetic inputs (pacing, stores, grid, tail, live rate, slug, numbers, languages), and **one claim

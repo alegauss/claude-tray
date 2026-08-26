@@ -43,8 +43,6 @@
 
 ---
 
-## Block P — Project layout
-
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -832,37 +830,3 @@ maintained the same way instead of each carrying its own conventions.
 T369 finished the shape by drawing what the other three have and this one did not: a band closing
 the hero and opening the footer, whose motif is the product's own subject. Here that is the icon —
 bars rising from a floor, with the even-pace line ruled across them.
-
-## XCVIII The one file the partial-file rule was never applied to
-
-`SelfTestCli.cs` is **9,330 lines and 76 sections** — five times the next largest file in the
-repository, and the only one whose growth is by design, because every property this app claims lands
-in it. Nothing about that is wrong.
-
-What is wrong is that it is one file, in a repository that states the opposite rule for exactly this
-shape and applies it everywhere else.
-
-### XCVIII.1 Seventy-six surfaces, one code-behind (T381)
-
-AGENTS.md states the rule and states it as a defect somebody already shipped: *a page with several
-independent surfaces is one class in several files (T133–T134) — a new surface gets a new `partial`
-file, not another 300 lines in the code-behind.* `StatisticsPage` is six files. `SettingsPage` is
-seven. `SelfTestCli` is one, and it is 9,330 lines carrying 76 sections.
-
-The cost is not aesthetic and it is not the length. It is that the sections are unrelated — a pacing
-invariant, a ledger cross-check, a PowerShell run — and their helpers are interleaved with each
-other across nine thousand lines, so adding a section means scrolling past the whole suite to find
-whether the helper you want already exists. Written five times over the last five tasks, three of
-those ended in a helper being added a few hundred lines from one that nearly did the job.
-
-- **One file per family, not per section** — seventy-six would be worse. The families are already named
-  by the section titles: the pacing and store invariants, the repository-document checks, the language
-  sweep, the preview and capture surfaces, the linking script. Five or six `partial` files.
-- **`Run` stays whole**, with `Check`, `Skip`, `Temp`, `CodeOf`, `Repo` and the counters. That list of
-  `Section(...)` calls is the suite's table of contents and its order is load-bearing — the sampled
-  environment must go last.
-
-Safe by construction, and worth saying because it is what makes this a move rather than a change:
-the map check resolves a file by its stem, so `SelfTestCli.Link.cs` needs no new row; every
-source-reading scan globs `src/**/*.cs`; and the csproj globs too, so no project edit. The assertion
-count before and after is the test.
