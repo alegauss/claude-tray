@@ -5362,7 +5362,29 @@ internal static class SelfTestCli
               string.Join(" | ", hacked.Take(3)));
         Check("the run-time counts go through the script's own Count, which takes both words",
               script.Contains("function Count($n, $one, $many)", StringComparison.Ordinal)
-              && script.Contains("(Count $new.Count '", StringComparison.Ordinal));
+              && script.Contains("(Count $new.Count $one $many)", StringComparison.Ordinal));
+
+        // Written once, called per entry (T379). Composed per entry this ran to 485 lines for nine of
+        // them, with the same twenty-line block and its five-line explanation nine times over — in a file
+        // whose whole claim is that it is read before it is run.
+        foreach (string fn in new[] { "function MergeEntries(", "function MergeLines(", "function LinkEntry(" })
+            Check($"the script defines {fn[9..^1]} exactly once",
+                  Occurrences(script, fn) == 1, $"{Occurrences(script, fn)} definition(s)");
+        Check("and the plan calls them rather than repeating them",
+              Occurrences(script, "\nLinkEntry $link $tgt") + Occurrences(script, "\n  LinkEntry $link $tgt")
+                  >= plan.Acting.Count(),
+              $"{Occurrences(script, "LinkEntry $link $tgt")} call(s) for {plan.Acting.Count()} acting step(s)");
+        // The two sentences that cost a real run to learn survive, once each: which of them a reader skips
+        // is the whole reason nine copies was a defect rather than a size.
+        Check("the mklink reason and the attribute read are still in the file",
+              script.Contains("unprivileged-create flag", StringComparison.Ordinal)
+              && script.Contains("does not exist on .NET Framework", StringComparison.Ordinal));
+        // A function writing the bare name would count into a copy that dies with it, and the footer and
+        // the trap both report that number.
+        Check("and every function counts into the script's own total, not a local copy",
+              !script.Contains(" $Acted++", StringComparison.Ordinal)
+              && Occurrences(script, "$script:Acted++") >= 4,
+              $"{Occurrences(script, "$script:Acted++")} script-scoped increment(s)");
         // The singular, which is the case a reader meets most often because the interesting unions are
         // small — and the one `(s)` read worst on.
         Check("one of a thing reads as one of it",
@@ -5808,6 +5830,16 @@ internal static class SelfTestCli
         string[] lines = output.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToArray();
         string tail = lines.Length == 0 ? "(no output)" : string.Join(" | ", lines.TakeLast(3));
         return tail.Length > 300 ? tail[..300] + "…" : tail;
+    }
+
+    /// <summary>How many times one literal appears in a text. Counted rather than merely found, because
+    /// "written once" is the claim (T379) and <c>Contains</c> is as true of nine copies as of one.</summary>
+    private static int Occurrences(string text, string needle)
+    {
+        int n = 0;
+        for (int i = text.IndexOf(needle, StringComparison.Ordinal); i >= 0;
+             i = text.IndexOf(needle, i + needle.Length, StringComparison.Ordinal)) n++;
+        return n;
     }
 
     /// <summary>Make a directory junction, or answer false where the environment will not have one.

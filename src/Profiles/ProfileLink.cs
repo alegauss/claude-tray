@@ -366,6 +366,9 @@ internal static class ProfileLink
         var sb = new StringBuilder();
         sb.Append(Header(plan));
         sb.Append(Preflight(plan));
+        // After the preflight, so the first thing a reader meets is the refusal that can stop this, and
+        // before the plan, because PowerShell needs a function defined before it is called.
+        sb.Append(Helpers());
 
         foreach (Step s in plan.Steps)
         {
@@ -531,6 +534,89 @@ internal static class ProfileLink
         return sb.ToString();
     }
 
+    /// <summary>
+    /// The three shapes every entry's work is one of, emitted <b>once</b> with their explanations (T379).
+    ///
+    /// <para><b>Why once.</b> Composed per entry, a plan with nine of them ran to 485 lines, 311 of them
+    /// code, with this same block written out nine times — the five-line note about reading a reparse-point
+    /// attribute instead of <c>ResolveLinkTarget</c> included. Every one of those lines exists to be read,
+    /// which is the problem: a person handed nine copies of one paragraph stops reading, and what is
+    /// <em>not</em> repeated is exactly what matters — the per-entry verdict and the union's count.</para>
+    ///
+    /// <para><b>What stays inline.</b> The guard. <c>if (IsLink $link) { … } else { … }</c> per entry is two
+    /// lines and reads as the plan, and folding it in here would hide the most reassuring thing in the
+    /// script: that a second run does nothing.</para>
+    ///
+    /// <para><c>$script:Acted</c>, not <c>$Acted</c>: PowerShell reads an outer scope and writes a local
+    /// copy, so a function incrementing the bare name counts into a variable that dies with it — and the
+    /// count is what the footer and the trap both report.</para>
+    /// </summary>
+    private static string Helpers() => """
+
+        # ---- what each entry's work is one of, written once ------------------------------------------
+
+        # Union by top-level name, into the side that keeps its files. A name on both sides is left exactly
+        # as it is and reported: the primary is the side that survives, and silently overwriting one of its
+        # folders would be the data loss this whole script exists to avoid.
+        function MergeEntries($from, $into, $one, $many) {
+          $new = @(); $clash = @()
+          foreach ($item in Get-ChildItem -LiteralPath $from -Force) {
+            if (Test-Path -LiteralPath (Join-Path $into $item.Name)) { $clash += $item.Name }
+            else { $new += $item }
+          }
+          Note ("  " + (Count $new.Count $one $many) + " to copy over, " + $clash.Count + " already on the primary side")
+          if ($clash.Count -gt 0) { Note ("  kept as-is on the primary side: " + ($clash -join ', ')) }
+          foreach ($item in $new) {
+            if ($Apply) { Copy-Item -LiteralPath $item.FullName -Destination $into -Recurse -Force; $script:Acted++ }
+            else { Would ("copy " + $item.Name) }
+          }
+        }
+
+        # Union by line, ordered on each line's timestamp, duplicates dropped verbatim. Sorted rather than
+        # appended: the file is read newest-last, and two histories concatenated would interleave nothing
+        # and read as one profile's past followed by the other's. The original is copied aside first.
+        function MergeLines($from, $into, $one, $many) {
+          $lines = @()
+          foreach ($p in @($into, $from)) {
+            if (Test-Path -LiteralPath $p) { $lines += Get-Content -LiteralPath $p -Encoding utf8 }
+          }
+          $merged = $lines | Where-Object { $_.Trim().Length -gt 0 } | Select-Object -Unique | Sort-Object {
+            try { [int64]([regex]::Match($_, '"timestamp"\s*:\s*(\d+)').Groups[1].Value) } catch { 0 }
+          }
+          Note ("  " + (Count $lines.Count $one $many) + " read, " + $merged.Count + " after the union")
+          if ($Apply) {
+            Copy-Item -LiteralPath $into -Destination ($into + '.pre-merge-' + $Stamp) -Force
+            Set-Content -LiteralPath $into -Value $merged -Encoding utf8
+            $script:Acted++
+          } else { Would ("write " + (Count $merged.Count 'line' 'lines') + " to " + $into) }
+        }
+
+        # Move the original aside, then link. Two things worth knowing, and this is the only copy of them.
+        # mklink rather than New-Item: in Windows PowerShell 5.1 New-Item does not pass the
+        # unprivileged-create flag, so it fails with "requires administrator privilege" on a machine where
+        # Developer Mode is on and mklink succeeds. And the result is VERIFIED by the reparse-point
+        # attribute rather than by ResolveLinkTarget, which does not exist on .NET Framework and so not in
+        # the PowerShell a double-click gets - measured, by this script failing right there on its own
+        # first real run. The check happens while the original is still sitting beside it.
+        function LinkEntry($link, $tgt, $flag, $kind, $moveAside) {
+          if ($moveAside -and (Test-Path -LiteralPath $link)) {
+            $aside = $link + '.pre-link-' + $Stamp
+            if ($Apply) { Move-Item -LiteralPath $link -Destination $aside; $script:Acted++ }
+            else { Would ("move aside to " + (Split-Path $aside -Leaf)) }
+          }
+          if ($Apply) {
+            & cmd /c ('mklink ' + $flag + '"' + $link + '" "' + $tgt + '"') | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "mklink refused to link $link" }
+            if (-not (IsLink $link)) { throw "$link was created but is not a link" }
+            Did ("linked -> " + $tgt)
+            $script:Acted++
+          } else { Would ("link " + $link + " -> " + $tgt + " (" + $kind + ")") }
+        }
+
+        # ---- the plan, one entry at a time -----------------------------------------------------------
+
+        """;
+
     private static string MergeStep(Plan plan, Step s)
     {
         Entry e = s.Entry;
@@ -540,60 +626,25 @@ internal static class ProfileLink
             // Nothing to union, but the link is still the point: the secondary has to end up reading the
             // primary's tree even when it never had one of its own.
             sb.AppendLine($"#   the {plan.SecondaryLabel} profile has none, so there is nothing to merge - link only.");
-        return sb.Append(Guard(plan, e,
-            (s.OnSecondary ? e.Union == Union.Lines ? MergeLines(e) : MergeEntries(e) : "")
-            + Link(e, moveAside: s.OnSecondary))).ToString();
+        string merge = s.OnSecondary
+            ? $"{(e.Union == Union.Lines ? "MergeLines" : "MergeEntries")} $link $tgt "
+              + $"'{Quote(e.Unit.One)}' '{Quote(e.Unit.Many)}'\n"
+            : "";
+        return sb.Append(Guard(e, merge + LinkCall(e, moveAside: s.OnSecondary))).ToString();
     }
-
-    private static string MergeEntries(Entry e) => $$"""
-        $src = Join-Path $Secondary '{{e.Name}}'
-        $dst = Join-Path $Primary   '{{e.Name}}'
-        $new = @(); $clash = @()
-        foreach ($item in Get-ChildItem -LiteralPath $src -Force) {
-          if (Test-Path -LiteralPath (Join-Path $dst $item.Name)) { $clash += $item.Name }
-          else { $new += $item }
-        }
-        Note ("  " + (Count $new.Count '{{e.Unit.One}}' '{{e.Unit.Many}}') + " to copy over, " + $clash.Count + " already on the primary side")
-        if ($clash.Count -gt 0) {
-          # The primary is the side that survives, so a name on both sides is left exactly as it is and
-          # named here. Silently overwriting it would be the data loss this whole script exists to avoid.
-          Note ("  kept as-is on the primary side: " + ($clash -join ', '))
-        }
-        foreach ($item in $new) {
-          if ($Apply) { Copy-Item -LiteralPath $item.FullName -Destination $dst -Recurse -Force; $Acted++ }
-          else { Would ("copy " + $item.Name) }
-        }
-
-        """;
-
-    private static string MergeLines(Entry e) => $$"""
-        $src = Join-Path $Secondary '{{e.Name}}'
-        $dst = Join-Path $Primary   '{{e.Name}}'
-        # Unioned by line and ordered on each line's timestamp, duplicates dropped verbatim. Sorted rather
-        # than appended: this file is read newest-last, and two histories concatenated would interleave
-        # nothing and read as one profile's past followed by the other's.
-        $lines = @()
-        foreach ($p in @($dst, $src)) {
-          if (Test-Path -LiteralPath $p) { $lines += Get-Content -LiteralPath $p -Encoding utf8 }
-        }
-        $merged = $lines | Where-Object { $_.Trim().Length -gt 0 } | Select-Object -Unique | Sort-Object {
-          try { [int64]([regex]::Match($_, '"timestamp"\s*:\s*(\d+)').Groups[1].Value) } catch { 0 }
-        }
-        Note ("  " + (Count $lines.Count '{{e.Unit.One}}' '{{e.Unit.Many}}') + " read, " + $merged.Count + " after the union")
-        if ($Apply) {
-          Copy-Item -LiteralPath $dst -Destination ($dst + '.pre-merge-' + $Stamp) -Force
-          Set-Content -LiteralPath $dst -Value $merged -Encoding utf8
-          $Acted++
-        } else { Would ("write " + (Count $merged.Count 'line' 'lines') + " to " + $dst) }
-
-        """;
 
     private static string AdoptStep(Plan plan, Step s) =>
         $"# {s.Entry.Name} - adopted whole from the {plan.PrimaryLabel} profile, not merged. {Capital(s.Entry.Why)}.\n"
         + (s.OnSecondary
             ? $"#   the {plan.SecondaryLabel} profile's own copy is moved aside and kept, so nothing is lost.\n"
             : $"#   the {plan.SecondaryLabel} profile has none, so this only adds the link.\n")
-        + Guard(plan, s.Entry, Link(s.Entry, moveAside: s.OnSecondary));
+        + Guard(s.Entry, LinkCall(s.Entry, moveAside: s.OnSecondary));
+
+    /// <summary>One call to <c>LinkEntry</c>: the flag <c>mklink</c> takes, the word a dry run prints, and
+    /// whether there is an original to move out of the way.</summary>
+    private static string LinkCall(Entry e, bool moveAside) =>
+        $"LinkEntry $link $tgt '{(e.IsDirectory ? "/J " : "")}' "
+        + $"'{(e.IsDirectory ? "junction" : "symlink")}' ${(moveAside ? "true" : "false")}\n";
 
     /// <summary>
     /// One entry's work, behind the check that it is not already a link. The plan knows the answer too —
@@ -602,7 +653,7 @@ internal static class ProfileLink
     /// after a run that stopped half way. Asking again at the moment it matters is what makes re-running
     /// this safe, which is the only recovery a script that never deletes can offer.
     /// </summary>
-    private static string Guard(Plan plan, Entry e, string body) => $$"""
+    private static string Guard(Entry e, string body) => $$"""
         Note '{{e.Name}}'
         $link = Join-Path $Secondary '{{e.Name}}'
         $tgt  = Join-Path $Primary   '{{e.Name}}'
@@ -637,47 +688,6 @@ internal static class ProfileLink
 
         """;
 
-    /// <summary>
-    /// The move-aside and the link itself. <c>mklink</c> rather than
-    /// <c>New-Item -ItemType SymbolicLink</c>, and that is measured rather than stylistic: in Windows
-    /// PowerShell 5.1 — what a double-click gets — <c>New-Item</c> does not pass
-    /// <c>SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE</c>, so it fails with "requires administrator
-    /// privilege" on a machine where Developer Mode is on and <c>mklink</c> succeeds. The preflight would
-    /// then have promised something the very next line could not do.
-    /// </summary>
-    private static string Link(Entry e, bool moveAside)
-    {
-        // /J is the directory junction, which needs no privilege at all; a bare mklink is the file
-        // symlink, which is the only reason the preflight exists.
-        string kind = e.IsDirectory ? "/J " : "";
-        string name = e.IsDirectory ? "junction" : "symlink";
-        var sb = new StringBuilder();
-        if (moveAside)
-            sb.Append("""
-                $aside = $link + '.pre-link-' + $Stamp
-                if (Test-Path -LiteralPath $link) {
-                  if ($Apply) { Move-Item -LiteralPath $link -Destination $aside; $Acted++ }
-                  else { Would ("move aside to " + (Split-Path $aside -Leaf)) }
-                }
-
-                """);
-        sb.Append($$"""
-            if ($Apply) {
-              & cmd /c ('mklink {{kind}}"' + $link + '" "' + $tgt + '"') | Out-Null
-              if ($LASTEXITCODE -ne 0) { throw "mklink refused to link $link" }
-              # Verified rather than assumed, and this is the last moment the original is still sitting
-              # beside it under its .pre-link name. The reading is the ReparsePoint attribute rather
-              # than ResolveLinkTarget, which does not exist on .NET Framework and so not in the
-              # Windows PowerShell 5.1 a double-click gets - measured, by this script failing right
-              # here on its own first real run.
-              if (-not (IsLink $link)) { throw "$link was created but is not a link" }
-              Did ("linked -> " + $tgt)
-              $Acted++
-            } else { Would ("link " + $link + " -> " + $tgt + " ({{name}})") }
-
-            """);
-        return sb.ToString();
-    }
 
     /// <summary>
     /// What this script has no opinion about, after the rows it does (T374). Last rather than first: a

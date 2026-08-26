@@ -43,8 +43,6 @@
 
 ---
 
-## Block O — Profiles
-
 ## Block AI — Verification — the checks that prove a change
 
 ## §I — House constraints
@@ -844,32 +842,6 @@ Composed for a fresh pair with every entry acting, the file is **485 lines, 311 
 the same twenty-line merge-and-link block is emitted nine times with its five-line explanation each
 time. And the checks over it run against **one** plan, so any branch that plan does not produce is
 unasserted — which is not a worry, it is a thing that already happened and passed.
-
-### XCVII.1 A file written to be read, nine times over (T379)
-
-`Guard`, the merge and the link are composed per entry, so a plan with nine acting entries emits the
-same twenty lines nine times — the `Copy-Item` loop, the move-aside, the `mklink`, the verification,
-and the five-line comment explaining why the verification reads a reparse-point attribute instead of
-`ResolveLinkTarget`. Measured on a fresh pair with everything acting: **485 lines, 311 of them
-code.**
-
-Every one of those lines was written to be read. That is the problem: a person told to read a file
-before it moves their transcripts, handed nine copies of one paragraph, stops reading — and the
-parts that are *not* repeated are exactly the ones that matter, the per-entry verdict and the
-union's count.
-
-- **One function per shape, called per entry.** `Merge-Entries`, `Merge-Lines` and `Link-Entry` emitted
-  once with their explanations, then thirteen call lines carrying the name, the noun and the kind. The
-  plan stays legible as a plan, which is what it was in the read-out all along.
-- **The comments stay, once.** This is not a size exercise: the reason `mklink` and not `New-Item`, and
-  the reason for the attribute read, both cost a real run to learn and belong in the file that does it.
-  Nine copies is what makes them skippable.
-- **The idempotence guard is the one to keep inline.** `if (IsLink $link) { … } else { … }` per entry is
-  two lines and reads as the plan, and folding it into the function hides the single most reassuring
-  thing in the script — that a second run does nothing.
-
-What this must not change: the script stays flat PowerShell 5.1 with no dot-sourcing and no module,
-the originals still move aside, and `-Apply` is still the second half of the sentence.
 
 ### XCVII.2 A scan is worth what its fixture makes the code say (T380)
 
