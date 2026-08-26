@@ -43,8 +43,6 @@
 
 ---
 
-## Block AI — Verification — the checks that prove a change
-
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -832,38 +830,3 @@ maintained the same way instead of each carrying its own conventions.
 T369 finished the shape by drawing what the other three have and this one did not: a band closing
 the hero and opening the footer, whose motif is the product's own subject. Here that is the icon —
 bars rising from a floor, with the even-pace line ruled across them.
-
-## XCVII Reading a 485-line script, and checking one that varies
-
-The linking script's whole claim is **read it before you run it**. Two findings about that claim,
-one about the artifact and one about what holds it.
-
-Composed for a fresh pair with every entry acting, the file is **485 lines, 311 of them code**, and
-the same twenty-line merge-and-link block is emitted nine times with its five-line explanation each
-time. And the checks over it run against **one** plan, so any branch that plan does not produce is
-unasserted — which is not a worry, it is a thing that already happened and passed.
-
-### XCVII.2 A scan is worth what its fixture makes the code say (T380)
-
-Thirty-odd assertions read the emitted script, and every one of them runs against **one** plan,
-composed from **one** pair of throwaway config dirs. Whatever that plan does not produce is not
-checked, and the check reports green over the gap rather than skipping.
-
-This is not a worry. It happened: a guard added to refuse a parenthesised plural anywhere in the
-script was watched to fail, and it **passed** — the fixture's two `settings.json` files are
-identical, so the withheld entry took its already-the-same branch and the offending line was never
-emitted at all. The guard was correct, the defect was real, and the fixture stood between them.
-
-- **The branches, enumerated.** Four verdicts, three unions, and per entry: acting, already linked,
-  absent from the primary, absent from the secondary. Plus the plan-level ones — needs a symlink or not,
-  costs auto-follow or not, an edge with entries or without. A check that composes scripts until every
-  one of those has appeared in a scanned text is one that cannot be walked past.
-- **Assert the coverage, not just the content.** The gap is invisible because nothing counts what was
-  exercised. A section that ends by naming every branch it did *not* see turns a silent hole into a
-  legible one, on the same rule as `Unchecked` (T193): an assertion that could have run and did not is
-  not an absence of news.
-- **Cheap, because the plans are cheap.** `ProfileLink.For` over two directories is a handful of
-  syscalls, and `Script` is pure. Several plans in one section costs milliseconds; the run that executes
-  a script under PowerShell stays a single pair.
-
-Not in scope: running each of them. One end-to-end run is enough, and it already exists.

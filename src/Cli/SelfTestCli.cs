@@ -173,6 +173,9 @@ internal static class SelfTestCli
         Section("link — the script that makes two profiles one setup (Block O)");
         Temp(LinkScript);
 
+        Section("link — every branch of the script, in a script (Block AI)");
+        Temp(ScriptBranches);
+
         // After the text checks, because it is the same artifact and this is the expensive half: three
         // PowerShell launches, which `--quick` has no business paying for.
         if (!quick)
@@ -5353,7 +5356,7 @@ internal static class SelfTestCli
         // holds the window's strings; this holds the one English surface that has no lang file — and it
         // covers both halves, the text composed here and the counts PowerShell composes at run time,
         // because the second is the half a person actually sees.
-        string[] hacked = script.Split('\n')
+        string[] hacked = Ours(script)
             .Where(l => l.Contains("(s)", StringComparison.Ordinal)
                         || l.Contains("(es)", StringComparison.Ordinal)
                         || l.Contains("(ies)", StringComparison.Ordinal))
@@ -5831,6 +5834,228 @@ internal static class SelfTestCli
         string tail = lines.Length == 0 ? "(no output)" : string.Join(" | ", lines.TakeLast(3));
         return tail.Length > 300 ? tail[..300] + "…" : tail;
     }
+
+    /// <summary>
+    /// The invariants of the emitted script, over a script composed for <b>every branch</b> rather than for
+    /// one plan (T380).
+    ///
+    /// <para><b>Why this exists, and it is not a worry.</b> A guard written to refuse a parenthesised
+    /// plural anywhere in the script was watched to fail, and it <em>passed</em>: the plan it ran against
+    /// had two identical <c>settings.json</c> files, so the withheld entry took its already-the-same branch
+    /// and the offending line was never emitted at all. The guard was correct, the defect was real, and
+    /// the fixture stood between them. A scan is worth what its fixture makes the code say.</para>
+    ///
+    /// <para><b>The coverage is asserted, not hoped for.</b> Every verdict and every per-entry state is
+    /// enumerated from the enums themselves, so a fifth <see cref="ProfileLink.Verdict"/> demands a fixture
+    /// on the day it is added rather than passing silently under the four that exist. A branch no plan here
+    /// produced is <em>named</em> — the same rule as <c>Unchecked</c> (T193) one level up: a claim that
+    /// could have been made and was not is not an absence of news.</para>
+    ///
+    /// <para>Junctions only, no file symlink, so this runs where Developer Mode does not — the
+    /// already-linked branch is one code path whether the reparse point is on a directory or a file, and
+    /// <c>plugins</c> covers it without a privilege.</para>
+    /// </summary>
+    private static void ScriptBranches(string root)
+    {
+        List<(string Name, ProfileLink.Plan Plan)> plans = BranchPlans(root);
+        (string Name, string Text)[] scripts = plans
+            .Select(p => (p.Name, Text: ProfileLink.Script(p.Plan))).ToArray();
+
+        // The precondition. A fixture that failed to build composes a plan carrying an Error, and Script is
+        // never called on one — over which every invariant below holds vacuously.
+        string[] broken = plans.Where(p => p.Plan.Error is { Length: > 0 })
+                               .Select(p => $"{p.Name}: {p.Plan.Error}").ToArray();
+        if (!Check($"every branch fixture composes a plan ({plans.Count})", broken.Length == 0,
+                   string.Join(" | ", broken)))
+            return;
+
+        // One line per invariant naming the plans that broke it, rather than one line per plan per
+        // invariant: seven scripts times six claims is forty-two lines nobody reads.
+        // The script's own prose, not the user's rules quoted inside it: `Bash(ls)` and `Read(/src/**)` are
+        // exactly the refused shape and are not ours to rewrite, which is why they carry a marker (T380).
+        var plural = new Regex(@"\p{L}\(\p{Ll}{1,3}\)", RegexOptions.Compiled);
+        Every(scripts, "no parenthesised plural in the script's own prose",
+              t => Ours(t).Any(l => plural.IsMatch(l)));
+        Every(scripts, "no command names the credentials file", t => Acting(t)
+            .Any(l => l.Contains(".credentials.json", StringComparison.OrdinalIgnoreCase)));
+        Every(scripts, "nor the account file", t => Acting(t)
+            .Any(l => l.Contains(".claude.json", StringComparison.OrdinalIgnoreCase)));
+        Every(scripts, "no command deletes anything", t => Acting(t)
+            .Any(l => l.Contains("Remove-Item", StringComparison.Ordinal)));
+        Every(scripts, "every write stays behind -Apply",
+              t => !t.Contains("param([switch]$Apply)", StringComparison.Ordinal));
+        Every(scripts, "nothing elevates itself",
+              t => t.Contains("Start-Process", StringComparison.Ordinal));
+        Every(scripts, "the prose is ASCII apart from the two paths",
+              t => t.Split('\n').Any(l => l.TrimStart().StartsWith('#') && l.Any(c => c > '~')));
+        Every(scripts, "links are made with mklink, never New-Item",
+              t => t.Contains("New-Item -ItemType SymbolicLink", StringComparison.Ordinal));
+
+        // And the coverage itself.
+        var seen = new SortedSet<string>(StringComparer.Ordinal);
+        foreach ((string _, ProfileLink.Plan plan) in plans) seen.UnionWith(Branches(plan));
+        string[] required = Required().Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+        string[] missing = required.Where(b => !seen.Contains(b)).ToArray();
+        Check($"every branch of the script appears in one of them ({required.Length} branches, {plans.Count} plans)",
+              missing.Length == 0,
+              Named(missing, "produced by no fixture here, so nothing above was asserted about them"));
+
+        // The reparse points go before the tree they sit in does — `Temp`'s recursive delete cannot be
+        // trusted with one, and this section makes seven. Measured: without it the run ends on
+        // "(could not remove …)" and leaves the scratch directory behind.
+        foreach ((string _, ProfileLink.Plan plan) in plans) Unlink(plan.SecondaryDir);
+    }
+
+    /// <summary>One invariant over every script, failing once and naming the plans that broke it.</summary>
+    private static void Every((string Name, string Text)[] scripts, string claim, Func<string, bool> bad)
+    {
+        string[] broke = scripts.Where(s => bad(s.Text)).Select(s => s.Name).ToArray();
+        Check($"{claim} ({scripts.Length} scripts)", broke.Length == 0, string.Join(", ", broke));
+    }
+
+    /// <summary>A script's lines that are commands rather than comments.</summary>
+    private static IEnumerable<string> Acting(string script) =>
+        script.Split('\n').Where(l => !l.TrimStart().StartsWith("#", StringComparison.Ordinal));
+
+    /// <summary>
+    /// A script's lines that are <b>this app's own words</b> — everything except the ones quoting the
+    /// user's permission rules verbatim (T380).
+    ///
+    /// <para>The distinction is not fussiness. <c>Bash(ls)</c>, <c>Read(/src/**)</c> and
+    /// <c>WebFetch(domain:x)</c> are exactly the parenthesised shape T378 refuses, they are common, and they
+    /// are not ours to rewrite. The branch sweep found this the first time it ran — the check was right
+    /// about the shape and wrong about whose text it was reading, on a fixture whose rules happened to be
+    /// <c>Bash(a)</c> and <c>Bash(b)</c>.</para>
+    ///
+    /// <para>Keyed on <see cref="SettingsUnion.Quoted"/> rather than on an indent counted here, so the
+    /// marker the script prints and the exemption this takes cannot drift apart.</para>
+    /// </summary>
+    private static IEnumerable<string> Ours(string script) =>
+        script.Split('\n').Where(l => !l.StartsWith(SettingsUnion.Quoted, StringComparison.Ordinal));
+
+    /// <summary>
+    /// Six pairs of config dirs, each shaped for the branches the others cannot reach: everything acting,
+    /// everything already linked, nothing on the secondary, nothing on the primary, two settings files that
+    /// agree, and one that only one side has.
+    /// </summary>
+    private static List<(string, ProfileLink.Plan)> BranchPlans(string root)
+    {
+        string[] dirs = { "projects", "file-history", "skills", "agents", "commands", "output-styles", "plugins" };
+        string[] files = { "history.jsonl", "CLAUDE.md" };
+        var plans = new List<(string, ProfileLink.Plan)>();
+
+        // 1. Everything acting, settings that disagree, one unclaimed entry: the ordinary case and most of
+        //    the labels.
+        (string a, string b) = Pair(root, "acting");
+        foreach (string d in dirs) { Dir(a, d); Dir(b, d); }
+        foreach (string f in files) { File.WriteAllText(Path.Combine(a, f), "{}\n"); File.WriteAllText(Path.Combine(b, f), "{}\n"); }
+        Dir(b, "projects", "only-here");
+        Dir(b, "an-entry-nobody-has-an-opinion-about");
+        File.WriteAllText(Path.Combine(a, "settings.json"), """{ "permissions": { "allow": ["Bash(a)"] } }""");
+        File.WriteAllText(Path.Combine(b, "settings.json"), """{ "permissions": { "allow": ["Bash(b)"] } }""");
+        plans.Add(("acting", ProfileLink.For(a, b, "Keeps", "Links")));
+
+        // 2. Every directory already a junction into the primary. Also the plan with no edge and, because
+        //    `projects` is linked, the one that costs auto-follow nothing.
+        (a, b) = Pair(root, "linked");
+        foreach (string d in dirs) { Dir(a, d); }
+        int junctions = 0;
+        foreach (string d in dirs) if (Junction(Path.Combine(b, d), Path.Combine(a, d))) junctions++;
+        plans.Add(("already-linked", ProfileLink.For(a, b, "Keeps", "Links")));
+
+        // 3. Directories on the primary only: link with nothing to merge first, and no file anywhere, so
+        //    no symlink is needed at all.
+        (a, b) = Pair(root, "link-only");
+        foreach (string d in dirs) Dir(a, d);
+        plans.Add(("link-only", ProfileLink.For(a, b, "Keeps", "Links")));
+
+        // 4. The mirror: everything on the secondary, nothing on the primary to link into.
+        (a, b) = Pair(root, "absent-primary");
+        foreach (string d in dirs) Dir(b, d);
+        foreach (string f in files) File.WriteAllText(Path.Combine(b, f), "{}\n");
+        plans.Add(("absent-primary", ProfileLink.For(a, b, "Keeps", "Links")));
+
+        // 5. Two settings files that say the same thing — the branch the one-plan scan was blind on.
+        (a, b) = Pair(root, "settings-same");
+        Dir(a, "projects");
+        File.WriteAllText(Path.Combine(a, "settings.json"), "{}\n");
+        File.WriteAllText(Path.Combine(b, "settings.json"), "{}\n");
+        plans.Add(("settings-same", ProfileLink.For(a, b, "Keeps", "Links")));
+
+        // 6. A settings file only one side has, which is the widest form of that decision rather than the
+        //    emptiest — and the reading reports it as an error rather than a union.
+        (a, b) = Pair(root, "settings-one-sided");
+        Dir(a, "projects");
+        File.WriteAllText(Path.Combine(a, "settings.json"), "{}\n");
+        plans.Add(("settings-one-sided", ProfileLink.For(a, b, "Keeps", "Links")));
+
+        if (junctions < dirs.Length)
+            Skip("the already-linked branch over a real reparse point",
+                 $"only {junctions} of {dirs.Length} junctions could be created here");
+        return plans;
+    }
+
+    private static (string, string) Pair(string root, string name)
+    {
+        string a = Path.Combine(root, name, "keeps"), b = Path.Combine(root, name, "links");
+        Directory.CreateDirectory(a);
+        Directory.CreateDirectory(b);
+        return (a, b);
+    }
+
+    private static void Dir(string root, params string[] parts) =>
+        Directory.CreateDirectory(Path.Combine(new[] { root }.Concat(parts).ToArray()));
+
+    /// <summary>
+    /// Every branch the script has, enumerated from the enums rather than listed — so a fifth verdict
+    /// demands a fixture on the day it is added instead of passing under the four that exist.
+    /// </summary>
+    private static IEnumerable<string> Required()
+    {
+        foreach (ProfileLink.Verdict v in Enum.GetValues<ProfileLink.Verdict>())
+            foreach (string state in States(v)) yield return $"{v}/{state}";
+        foreach (ProfileLink.Union u in Enum.GetValues<ProfileLink.Union>()) yield return $"union/{u}";
+        foreach (string f in new[] { "symlink", "no-symlink", "auto-follow", "no-auto-follow", "edge", "no-edge" })
+            yield return $"plan/{f}";
+    }
+
+    /// <summary>The states an entry of one verdict can be found in. A verdict that links has four; the two
+    /// that refuse have only what their own reading can say.</summary>
+    private static string[] States(ProfileLink.Verdict v) => v switch
+    {
+        ProfileLink.Verdict.Merge or ProfileLink.Verdict.Adopt =>
+            new[] { "acting", "already-linked", "absent-primary", "link-only" },
+        ProfileLink.Verdict.Withheld => new[] { "same", "granting", "unreadable" },
+        _ => new[] { "explained" },
+    };
+
+    private static IEnumerable<string> Branches(ProfileLink.Plan plan)
+    {
+        foreach (ProfileLink.Step s in plan.Steps)
+        {
+            yield return Label(s);
+            // The union label only where the merge is actually emitted: an entry that is skipped carries a
+            // union nothing called.
+            if (s.Entry.Verdict == ProfileLink.Verdict.Merge && s.OnPrimary && s.OnSecondary && !s.AlreadyLinked)
+                yield return $"union/{s.Entry.Union}";
+            if (s.Entry.Union == ProfileLink.Union.None) yield return "union/None";
+        }
+        yield return plan.NeedsSymlink ? "plan/symlink" : "plan/no-symlink";
+        yield return plan.CostsAutoFollow ? "plan/auto-follow" : "plan/no-auto-follow";
+        yield return plan.Edge.Unclaimed.Length > 0 ? "plan/edge" : "plan/no-edge";
+    }
+
+    private static string Label(ProfileLink.Step s) => s.Entry.Verdict switch
+    {
+        ProfileLink.Verdict.Merge or ProfileLink.Verdict.Adopt => $"{s.Entry.Verdict}/"
+            + (s.AlreadyLinked ? "already-linked"
+               : !s.OnPrimary ? "absent-primary"
+               : !s.OnSecondary ? "link-only" : "acting"),
+        ProfileLink.Verdict.Withheld => "Withheld/"
+            + (s.Widening is null or { Error.Length: > 0 } ? "unreadable"
+               : s.Widening.Empty ? "same" : "granting"),
+        _ => "Never/explained",
+    };
 
     /// <summary>How many times one literal appears in a text. Counted rather than merely found, because
     /// "written once" is the claim (T379) and <c>Contains</c> is as true of nine copies as of one.</summary>

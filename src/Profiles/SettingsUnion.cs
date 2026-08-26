@@ -113,7 +113,6 @@ internal static class SettingsUnion
     /// </summary>
     private static Reading Absent(string name, string primaryDir, string secondaryDir, bool onPrimary)
     {
-        string missing = onPrimary ? primaryDir : secondaryDir;
         string other = onPrimary ? secondaryDir : primaryDir;
         bool otherHasIt = File.Exists(Path.Combine(other, name));
         return new Reading(name, Array.Empty<Widening>(), Array.Empty<HookGap>(),
@@ -204,6 +203,21 @@ internal static class SettingsUnion
     }
 
     /// <summary>
+    /// The prefix on a line that is <b>the user's own text, quoted</b> rather than this app's words: a
+    /// permission rule, verbatim.
+    ///
+    /// <para><b>Why it is marked.</b> Two readers need to tell them apart. A person deciding whether to
+    /// widen an allowlist wants to see which lines are their rules and which are the script explaining
+    /// itself. And <c>--selftest</c> refuses a parenthesised plural anywhere in the script's prose (T378's
+    /// rule, one surface over) — where <c>Bash(ls)</c> and <c>Read(/src/**)</c> are exactly that shape and
+    /// are not ours to rewrite. Found by the branch sweep, on a fixture whose rules were <c>Bash(a)</c> and
+    /// <c>Bash(b)</c>: the check was right about the shape and wrong about whose text it was.</para>
+    ///
+    /// <para>One constant, both readers, so the marker and the exemption cannot drift apart.</para>
+    /// </summary>
+    public const string Quoted = "#       > ";
+
+    /// <summary>
     /// The reading as the lines the emitted script carries, each already a PowerShell comment. English and
     /// unlocalized for <see cref="ProfileLink"/>'s reason, and capped per list because a real
     /// <c>allow</c> can hold three hundred rules — the count is the decision and the first few are what
@@ -231,7 +245,7 @@ internal static class SettingsUnion
             {
                 if (added.Length == 0) continue;
                 yield return $"#     {added.Length} {side}:";
-                foreach (string rule in added.Take(show)) yield return "#       " + rule;
+                foreach (string rule in added.Take(show)) yield return Quoted + rule;
                 if (added.Length > show) yield return $"#       ... and {added.Length - show} more";
             }
         }

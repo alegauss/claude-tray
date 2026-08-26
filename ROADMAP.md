@@ -24,10 +24,6 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block AI — Verification — the checks that prove a change
-
-- 📋 **T380** (deps: —) **Every assertion over the emitted script runs on one plan, so a guard passed on a defect it was written to catch** — Composing a script per branch is a handful of syscalls, and a section naming the branches it never saw turns a silent hole into a legible one. → §XCVII.2
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
