@@ -24,6 +24,10 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
+## Block AI — Verification — the checks that prove a change
+
+- 📋 **T386** (deps: —) **The script's refusal branch fires on no machine: the CI runner allows the symlink Developer Mode does** — A seam on the preflight's registry key lets a composed script refuse for real, and the promise is an untouched tree rather than an exit code. → §CIII.1
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

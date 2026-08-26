@@ -43,6 +43,8 @@
 
 ---
 
+## Block AI — Verification — the checks that prove a change
+
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -830,3 +832,38 @@ maintained the same way instead of each carrying its own conventions.
 T369 finished the shape by drawing what the other three have and this one did not: a band closing
 the hero and opening the footer, whose motif is the product's own subject. Here that is the icon —
 bars rising from a floor, with the even-pace line ruled across them.
+
+## CIII A refusal that no machine refuses
+
+The emitted linking script has one branch whose whole job is to refuse: a plan needing a file
+symlink on a machine with neither Developer Mode nor elevation must stop **before** anything moves.
+The check that runs the script asserts the pair — it links, or it refuses with the tree untouched —
+and takes whichever branch the machine offers.
+
+Both machines offer the same one. The developer machine has Developer Mode on; the CI runner turns
+out to allow it too. So the refusal is asserted by no run anywhere.
+
+### CIII.1 The branch two machines agree to skip (T386)
+
+The check was written believing the two machines differed — that the developer's Developer Mode
+covered the linking branch and a hosted runner, having none, covered the refusal. Read off the CI
+log, that is wrong: `where a file symlink is allowed, the file is linked and its original kept`
+**passes there**. The runner allows an unprivileged `mklink`. The refusal is the one branch of the
+script that has never fired in a run.
+
+It was seen once, by hand, by pointing the preflight's registry read at a key that cannot exist —
+and that edit was reverted, which is exactly the state this repository calls a comment rather than a
+check.
+
+- **Give the preflight's key a seam.** It is a constant in the emitted text; taking it from the `Plan`
+  with the real key as the default lets the check compose a script that cannot pass its own preflight, run
+  it, and assert both halves — the sentence naming Developer Mode, and a secondary side with nothing moved.
+  The same kind of seam `--sample-env` and `AccountFixture` already are.
+- **Assert the tree, not the exit code.** A run that relinked three entries and then threw also exits
+  non-zero. What the branch promises is that *nothing* moved, and only the filesystem can say so.
+- **Elevation stays unforced.** The condition's other half is `IsInRole(Administrator)`, and a check must
+  not elevate to explore it. A non-elevated run with an impossible key exercises the branch.
+
+The reusable half: this is T380's lesson one level down. There it was a scan worth only what its
+fixture made the code *say*; here it is a run worth only what the machine lets the code *do* — and
+two machines that agree are one machine.
