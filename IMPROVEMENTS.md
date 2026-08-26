@@ -45,8 +45,6 @@
 
 ## Block O — Profiles
 
-## Block AI — Verification — the checks that prove a change
-
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -871,42 +869,3 @@ side, and here they are.**
   change, and the verdict stays `Withheld`.
 - **`settings.local.json` is the same reading**, and the two are reported apart: one is shared and one
   is this machine's.
-
-## XCIV A program this program writes, and nothing that runs it
-
-`--selftest` holds two kinds of claim: an invariant over synthetic inputs, and a document against
-the thing it documents. T367 added a third thing to this repository that is neither — a **program
-this program writes**, whose failures are not in its text and are not in any file the checks can
-read.
-
-Both of its real defects were found the same way: by a person running it, on the shell a user
-actually has. That is not a loop that scales, and it is the loop every generated artifact from here
-will need.
-
-### XCIV.1 The check that has to run the script (T372)
-
-The 31 assertions T367 added all read the emitted text: which verdict each entry carries, that no
-command names the token, that the refusal sits above the first `Move-Item`. Every one of them passed
-on the version of the script that could not complete a single run.
-
-Two defects, and neither is visible in text. `(Get-Item …).ResolveLinkTarget($true)` compiles
-nowhere and parses cleanly — it is a method that does not exist on .NET Framework, so Windows
-PowerShell 5.1 threw `MethodNotFound` at the verification step of the first entry. And `New-Item
--ItemType SymbolicLink` does not pass `SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE`, so it fails
-with "requires administrator privilege" on a machine whose Developer Mode the preflight had just
-checked for and approved. `mklink` succeeds there; the two lines are seven lines apart and read as
-equivalent.
-
-The repo already parses every `.ps1` under `scripts\` with the PowerShell parser, and that check
-would have caught neither: both are runtime resolution, and the second is a privilege.
-
-What would catch them is running the thing, which is what a check has not been willing to do because
-the script's whole purpose is to move a config dir. The lever is that the script does not care whose
-directories it is given: `ProfileLink.For` takes two paths.
-
-- **A synthetic pair, and `-Apply` against it.** Two throwaway config dirs, the plan composed off them,
-  the emitted script run for real, then the tree asserted — six links, the originals beside them, the
-  union in the primary. `Temp` already builds and removes such a tree, and reparse points have to be
-  deleted before it, which its cleanup cannot do.
-- **The shell it has to be run in.** `powershell.exe`, not `pwsh`: 5.1 is where both defects live, and
-  a check that only proves 7.x would have gone green on both.

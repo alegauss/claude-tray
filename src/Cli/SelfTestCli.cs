@@ -170,6 +170,14 @@ internal static class SelfTestCli
         Section("link — the script that makes two profiles one setup (Block O)");
         Temp(LinkScript);
 
+        // After the text checks, because it is the same artifact and this is the expensive half: three
+        // PowerShell launches, which `--quick` has no business paying for.
+        if (!quick)
+        {
+            Section("link — the emitted script run under Windows PowerShell (Block AI)");
+            Temp(LinkRun);
+        }
+
         Section("probe — what the flag was asked to do, before it does any of it (Block AI)");
         ProbePlanning();
 
@@ -5296,6 +5304,215 @@ internal static class SelfTestCli
         // The link before the tree it sits in, for `Temp`'s reason: a recursive delete over a reparse point
         // is the one thing its cleanup cannot do.
         try { Directory.Delete(linked); } catch { /* the report says so */ }
+    }
+
+    /// <summary>
+    /// The linking script <b>run</b>, which is the one thing thirty-one assertions about its text could
+    /// not do (T372).
+    ///
+    /// <para><b>Why this exists.</b> Every check T367 shipped reads the emitted string, and every one of
+    /// them passed on a version that could not finish a single run: <c>ResolveLinkTarget</c> does not
+    /// exist on .NET Framework, so Windows PowerShell 5.1 threw <c>MethodNotFound</c> at the first entry's
+    /// verification, and <c>New-Item -ItemType SymbolicLink</c> fails with "requires administrator
+    /// privilege" on a machine whose Developer Mode the preflight has just approved. Neither is visible in
+    /// text, neither would be caught by parsing the file, and both were found by a person running it.</para>
+    ///
+    /// <para><b>Two halves, and the split is what makes it runnable anywhere.</b> The first pair of config
+    /// dirs holds <em>directories only</em>, so every link in the plan is a junction and the run needs no
+    /// privilege at all — that is the happy path, asserted end to end, on CI included. The second adds a
+    /// file, and then the machine decides: a run under Developer Mode links it, and a run without refuses
+    /// at the preflight. Both are correct, so the claim is the <em>pair</em> — it either works or it
+    /// refuses with nothing moved — which is exactly the property §XCI demanded and no text can hold.</para>
+    ///
+    /// <para><c>powershell.exe</c> and never <c>pwsh</c>: 5.1 is where both defects lived, and a check
+    /// proving only 7.x would have gone green on each of them.</para>
+    /// </summary>
+    private static void LinkRun(string root)
+    {
+        if (!Directory.Exists(@"C:\Windows\System32\WindowsPowerShell\v1.0"))
+        {
+            // The precondition, and only the precondition: this asserts what Windows PowerShell does with
+            // the script, so a machine without it can say nothing rather than a weaker thing.
+            Skip("the emitted script runs and links a directories-only plan",
+                 "Windows PowerShell 5.1 is not on this machine, and it is the shell the defects lived in");
+            return;
+        }
+
+        string primary = Path.Combine(root, "keeps"), secondary = Path.Combine(root, "links");
+        string[] dirs = { "projects", "file-history", "skills", "plugins" };
+        foreach (string d in dirs)
+        {
+            Directory.CreateDirectory(Path.Combine(primary, d));
+            Directory.CreateDirectory(Path.Combine(secondary, d));
+        }
+        Directory.CreateDirectory(Path.Combine(primary, "projects", "on-both"));
+        Directory.CreateDirectory(Path.Combine(secondary, "projects", "on-both"));
+        Directory.CreateDirectory(Path.Combine(secondary, "projects", "only-the-secondary-had-this"));
+
+        ProfileLink.Plan plan = ProfileLink.For(primary, secondary, "Keeps", "Links");
+        if (ReadOut.Failed(plan.Error)) return;
+        Check("a directories-only plan is every-link-a-junction, so it needs no privilege",
+              !plan.NeedsSymlink && plan.Acting.Count() == dirs.Length,
+              $"symlink={plan.NeedsSymlink}, acting={plan.Acting.Count()} of {dirs.Length}");
+
+        string ps1 = Path.Combine(root, "link-profiles.ps1");
+        File.WriteAllText(ps1, ProfileLink.Script(plan),
+            new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+
+        // The dry run, first and on its own: a bare run must exit 0 AND leave the tree alone. Asserting
+        // only the exit code would pass on a script that did all the work and reported success.
+        (int dry, string dryOut) = PowerShell(ps1, apply: false);
+        Check("a bare run of the emitted script exits 0", dry == 0, Trim(dryOut));
+        Check("and changes nothing at all", Directory.GetDirectories(secondary)
+            .All(d => !Path.GetFileName(d).Contains(".pre-link-", StringComparison.Ordinal))
+            && !IsLink(Path.Combine(secondary, "projects")));
+
+        (int code, string output) = PowerShell(ps1, apply: true);
+        Check("and -Apply exits 0", code == 0, Trim(output));
+
+        // Every claim §XCI made about the result, read off the filesystem rather than off the transcript.
+        string[] absent = dirs.Where(d => !IsLink(Path.Combine(secondary, d))).ToArray();
+        Check($"every entry of the plan is a link on the secondary side ({dirs.Length})",
+              absent.Length == 0, string.Join(", ", absent) + " — " + Trim(output));
+        Check("and each link resolves into the primary",
+              dirs.All(d => LinkTargets(Path.Combine(secondary, d), Path.Combine(primary, d))));
+        // Never deleted, only moved aside — the promise the whole design rests on.
+        string[] kept = Directory.GetDirectories(secondary)
+            .Select(Path.GetFileName).Where(n => n!.Contains(".pre-link-", StringComparison.Ordinal))
+            .ToArray()!;
+        Check($"and each original is still beside it under .pre-link- ({dirs.Length})",
+              kept.Length == dirs.Length, string.Join(", ", kept));
+        // The merge, which is the part a bare rmdir-plus-mklink would have lost.
+        Check("the union ran before the link: what only the secondary had is now on the primary",
+              Directory.Exists(Path.Combine(primary, "projects", "only-the-secondary-had-this")));
+        Check("and it is reachable through the link, which is what sharing one setup means",
+              Directory.Exists(Path.Combine(secondary, "projects", "only-the-secondary-had-this")));
+
+        // Idempotence against a tree its own first run made, not against one this check built.
+        (int again, string againOut) = PowerShell(ps1, apply: true);
+        Check("a second -Apply is a no-op rather than a relink of a link",
+              again == 0 && againOut.Contains("already a link", StringComparison.Ordinal), Trim(againOut));
+        Check("and it made no second set of .pre-link- copies",
+              Directory.GetDirectories(secondary).Count(
+                  d => Path.GetFileName(d).Contains(".pre-link-", StringComparison.Ordinal)) == dirs.Length);
+
+        Unlink(secondary);
+
+        // --- The second half: a plan carrying a file, where the machine decides which branch is right.
+        File.WriteAllText(Path.Combine(primary, "CLAUDE.md"), "# primary\n");
+        File.WriteAllText(Path.Combine(secondary, "CLAUDE.md"), "# secondary\n");
+        ProfileLink.Plan withFile = ProfileLink.For(primary, secondary, "Keeps", "Links");
+        Check("a plan carrying a file says it needs a symlink", withFile.NeedsSymlink);
+
+        string ps2 = Path.Combine(root, "with-file.ps1");
+        File.WriteAllText(ps2, ProfileLink.Script(withFile),
+            new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+        (int fileCode, string fileOut) = PowerShell(ps2, apply: true);
+
+        if (fileCode == 0)
+        {
+            Check("where a file symlink is allowed, the file is linked and its original kept",
+                  IsLink(Path.Combine(secondary, "CLAUDE.md"))
+                  && Directory.GetFiles(secondary, "CLAUDE.md.pre-link-*").Length == 1, Trim(fileOut));
+            Check("and reading it through the link gives the primary's copy",
+                  File.ReadAllText(Path.Combine(secondary, "CLAUDE.md")).Contains("# primary",
+                      StringComparison.Ordinal));
+        }
+        else
+        {
+            // The refusal, and the claim is that it is CLEAN: no privilege, so nothing moved. A refusal
+            // after three entries had been relinked would exit non-zero too, which is why this asserts the
+            // tree and not the code.
+            Check("where it is not, the preflight refuses before anything moves",
+                  fileOut.Contains("Developer Mode", StringComparison.Ordinal), Trim(fileOut));
+            Check("and the refusal left the secondary side exactly as it was",
+                  !IsLink(Path.Combine(secondary, "CLAUDE.md"))
+                  && Directory.GetFiles(secondary, "*.pre-link-*").Length == 0
+                  && Directory.GetDirectories(secondary).Length == dirs.Length,
+                  $"{Directory.GetDirectories(secondary).Length} dir(s), "
+                  + $"{Directory.GetFiles(secondary, "*.pre-link-*").Length} moved aside");
+        }
+
+        Unlink(secondary);
+    }
+
+    /// <summary>
+    /// Run one <c>.ps1</c> under <b>Windows PowerShell 5.1</b> and return its exit code with everything it
+    /// printed. The absolute path to <c>powershell.exe</c> rather than the name, because <c>pwsh</c> may be
+    /// first on <c>PATH</c> and 7.x is the edition where neither defect this check exists for reproduces.
+    /// </summary>
+    private static (int, string) PowerShell(string script, bool apply)
+    {
+        var psi = new System.Diagnostics.ProcessStartInfo(
+            @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe")
+        {
+            UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true,
+        };
+        foreach (string a in new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script })
+            psi.ArgumentList.Add(a);
+        if (apply) psi.ArgumentList.Add("-Apply");
+
+        try
+        {
+            using var p = System.Diagnostics.Process.Start(psi);
+            if (p is null) return (-1, "powershell.exe did not start");
+            string text = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd();
+            if (!p.WaitForExit(60_000)) { try { p.Kill(true); } catch { } return (-1, "timed out: " + text); }
+            return (p.ExitCode, text);
+        }
+        catch (Exception e) { return (-1, e.Message); }
+    }
+
+    /// <summary>Whether a path is a reparse point — the reading the emitted script itself uses, for the
+    /// same reason: it is the one both .NET editions have.</summary>
+    private static bool IsLink(string path)
+    {
+        try
+        {
+            return File.Exists(path) || Directory.Exists(path)
+                ? new FileInfo(path).Attributes.HasFlag(FileAttributes.ReparsePoint)
+                : false;
+        }
+        catch { return false; }
+    }
+
+    private static bool LinkTargets(string link, string target)
+    {
+        try
+        {
+            return Directory.ResolveLinkTarget(link, returnFinalTarget: true) is { } t
+                   && ClaudeAccount.SamePath(t.FullName, target);
+        }
+        catch { return false; }
+    }
+
+    /// <summary>
+    /// Remove every reparse point directly under <paramref name="dir"/>, before <see cref="Temp"/>'s
+    /// recursive delete reaches them. Not tidiness: a recursive delete over a junction is the one thing
+    /// that cleanup cannot be trusted with, and this check makes several of them inside a temp tree it
+    /// promises to remove.
+    /// </summary>
+    private static void Unlink(string dir)
+    {
+        foreach (string path in Directory.EnumerateFileSystemEntries(dir))
+        {
+            if (!IsLink(path)) continue;
+            try
+            {
+                if (Directory.Exists(path)) Directory.Delete(path);
+                else File.Delete(path);
+            }
+            catch { Console.WriteLine($"  (could not unlink {path})"); }
+        }
+    }
+
+    /// <summary>A process's output as one line of failure detail: the last thing it said, which for a
+    /// script that stopped is the sentence naming why.</summary>
+    private static string Trim(string output)
+    {
+        string[] lines = output.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToArray();
+        string tail = lines.Length == 0 ? "(no output)" : string.Join(" | ", lines.TakeLast(3));
+        return tail.Length > 300 ? tail[..300] + "…" : tail;
     }
 
     /// <summary>Make a directory junction, or answer false where the environment will not have one.

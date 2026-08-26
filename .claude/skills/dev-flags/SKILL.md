@@ -190,7 +190,9 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   the thing it documents — this catalogue included, so a flag
                                       #   added here and nowhere else goes red (T243). The second kind
                                       #   reads repository files, so an installed copy skips it by name.
-                                      #   --quick skips the tail sections, which wait on real sweeps.
+                                      #   --quick skips the tail sections, which wait on real sweeps, and
+                                      #   the linking-script run (T372), which is three powershell.exe
+                                      #   launches against a throwaway pair of config dirs.
 --profiles [dir …] [--check]          # every profile discovery finds, its auth, its config-dir action and
                                       #   its icon accent; extra dirs are treated as registered ones, and
                                       #   --check also asks `claude auth status --json` per profile. Also

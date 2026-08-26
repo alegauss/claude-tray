@@ -28,10 +28,6 @@
 
 - 📋 **T373** (deps: —) **The script asks the user to decide whether to widen a permission allowlist and names neither allowlist** — Both files are already opened by this app, and the reading that settles it is which rules the union would add and to which list. → §XCIII.3
 
-## Block AI — Verification — the checks that prove a change
-
-- 📋 **T372** (deps: —) **Every assertion about the linking script passed on a version that could not complete one run** — The script does not care whose directories it is given, so a synthetic pair and one -Apply under powershell.exe is the check nothing else can be. → §XCIV.1
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
