@@ -29,8 +29,11 @@ internal partial class SettingsPage
         RetryValue.Text = RetryText((int)Math.Round(RetrySlider.Value));
     }
 
-    private static string RetryText(int seconds) =>
-        seconds == 1 ? L.T("settings.sec.one") : L.T("settings.sec.many", seconds);
+    // Through L.N rather than a hand-rolled `== 1 ?` (T376). This call site and the one below were two of
+    // the three that had written the same conditional themselves — and this one passed the raw int, so its
+    // number went through the current culture instead of Nums (T216) on the one surface where a comma for
+    // a decimal point is the difference between 1.5 and 15.
+    private static string RetryText(int seconds) => L.N("settings.sec", seconds);
 
     private void UpdateIntervalLabel()
     {
@@ -41,9 +44,9 @@ internal partial class SettingsPage
         UpdateCostEstimate(m);
     }
 
-    // The number is invariant like every other one in the app (Nums, T216); only the unit is translated.
-    private static string IntervalText(double minutes) =>
-        minutes == 1.0 ? L.T("settings.min.one") : L.T("settings.min.many", Nums.Of(minutes));
+    // The number is invariant like every other one in the app (Nums, T216); only the unit is translated —
+    // and L.N is now the one place that holds both halves of that (T376).
+    private static string IntervalText(double minutes) => L.N("settings.min", minutes);
 
     // Show, live for the chosen cadence, how much the polling "heartbeat" consumes. It uses Claude
     // Code's subscription login, so there is no separate bill — it just draws a sliver of your usage;

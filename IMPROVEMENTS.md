@@ -43,8 +43,6 @@
 
 ---
 
-## Block G — Localization
-
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -832,37 +830,3 @@ maintained the same way instead of each carrying its own conventions.
 T369 finished the shape by drawing what the other three have and this one did not: a band closing
 the hero and opening the footer, whose motif is the product's own subject. Here that is the icon —
 bars rising from a floor, with the even-pace line ruled across them.
-
-## XCV What the linking surface does not say
-
-Four tasks shipped the linking script and the page that offers it, and running the whole thing on a
-real pair is what produced the three below. None of them is about the mechanism: the links work, the
-merges work, the refusals hold. They are about what the surface does not say — an entry the
-catalogue has no row for, a card that no longer fits in one screenshot, and a plural rule the app
-has never had.
-
-That is the shape to expect from a fixed catalogue and a growing page. The catalogue is a list of
-opinions, and the honest failure mode of a list of opinions is silence about everything not on it.
-
-### XCV.3 A plural rule the app has never had (T376)
-
-This app has never had a plural rule, and the workaround is `(s)`. `SourceRows` states the policy
-the other way round and states it well: a count belongs in a header rather than in a string that
-would need one. That worked while the counts were few and lived in headers.
-
-The linking card broke it. One surface now carries `folder(s) and file(s)`, `rule(s)`, `to copy
-over`, `command(s)`, `entry(ies)` and `session uuid(s)`, in five languages — and `(s)` is an English
-convention. Portuguese and Spanish read `regra(s)` as a typo, French `règle(s)` the same, and
-`entry(ies)` is not a form of any word in any of them. The single worst case is 1: **"1 rule(s)
-would grant something new"** is the sentence a person sees most often, because the interesting
-unions are small.
-
-- **Two forms per count, chosen by the number.** `L.T("…one", n)` and `L.T("…many", n)`, resolved by a
-  helper that takes the count and the key stem. Two forms cover all five languages this app ships;
-  Slavic three-form rules are a real thing and not a thing here, so the design stops at two rather than
-  importing a plural library the single-`.exe` rule forbids anyway (§I.3).
-- **Asserted, or it will not hold.** `--selftest` already fails a key present in one language and a
-  `{0}` lost in translation (T185). A stem with `…one` and no `…many` — or either without a `{0}` — is
-  the same class of hole and belongs in the same sweep.
-- **Not a rewrite of every string.** Only counts a user reads, which is a list this task can enumerate.
-  A dev read-out keeps `(s)`; its audience is whoever is editing this repository.

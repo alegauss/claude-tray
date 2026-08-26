@@ -24,10 +24,6 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block G — Localization
-
-- 📋 **T376** (deps: —) **One card shows six counts as rule(s) and entry(ies), an English convention four of the five languages lack** — Two forms per count cover every language this app ships, and the selftest sweep that already catches a lost {0} is where the pair is held. → §XCV.3
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

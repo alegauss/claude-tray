@@ -309,10 +309,10 @@ internal partial class SettingsPage
         // The edge, on the surface the decision is made on (T374): a list of opinions has to say what it
         // has no opinion about, or the reader is told nothing is missing.
         string[] unclaimed = _linkPlan.Edge.Unclaimed;
-        LinkPlanCaption.Text = L.T("settings.cc.linkPlanCount", Nums.Of(acting), _linkPlan.SecondaryLabel)
+        LinkPlanCaption.Text = L.N("settings.cc.linkPlanCount", acting, _linkPlan.SecondaryLabel)
                                + (_linkPlan.NeedsSymlink ? " " + L.T("settings.cc.linkNeedsDev") : "")
                                + (unclaimed.Length > 0
-                                   ? " " + L.T("settings.cc.linkEdge", Nums.Of(unclaimed.Length),
+                                   ? " " + L.N("settings.cc.linkEdge", unclaimed.Length,
                                        string.Join(", ", unclaimed.Take(4))
                                        + (unclaimed.Length > 4 ? " …" : ""))
                                    : "");

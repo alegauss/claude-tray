@@ -161,6 +161,34 @@ internal static class L
     /// <summary>A localized format string filled with <paramref name="args"/> (see <see cref="T(string)"/>).</summary>
     public static string T(string key, params object[] args) => string.Format(T(key), args);
 
+    /// <summary>The suffixes a counted string is written in: one for exactly one, one for everything
+    /// else. Public so <c>--selftest</c> sweeps for the pair rather than keeping its own copy (T376).</summary>
+    public static readonly string[] Plural = { ".one", ".many" };
+
+    /// <summary>
+    /// A localized string chosen by a count: <c><paramref name="stem"/>.one</c> when
+    /// <paramref name="count"/> is exactly 1, <c>.many</c> otherwise. The count is the first hole,
+    /// formatted through <see cref="Nums"/>, and any further <paramref name="args"/> follow it.
+    ///
+    /// <para><b>Why this exists (T376).</b> The workaround was <c>(s)</c>, and <c>(s)</c> is an English
+    /// convention: <c>regra(s)</c> reads as a typo in Portuguese and Spanish, <c>règle(s)</c> the same in
+    /// French, and <c>entry(ies)</c> is not a form of any word in any of them. The commonest case is the
+    /// worst one — <i>"1 rule(s) would grant something new"</i> — because the interesting counts are
+    /// small.</para>
+    ///
+    /// <para><b>Two forms, and deliberately not more.</b> All five shipped languages have exactly two;
+    /// Slavic three-form rules are real and are not a thing here, and a plural library is a NuGet package
+    /// the single-<c>.exe</c> rule forbids (§I.3). If a sixth language ever needs three, that is the day
+    /// to grow this — not before.</para>
+    ///
+    /// <para>Falls back the same way <see cref="T(string)"/> does, key by key, so a translation missing
+    /// one form of a pair reads in English rather than printing a key. <c>--selftest</c> is what stops that
+    /// from being how it ships.</para>
+    /// </summary>
+    public static string N(string stem, double count, params object[] args) =>
+        string.Format(T(stem + (Math.Abs(count - 1) < 0.0001 ? Plural[0] : Plural[1])),
+                      new object[] { Nums.Of(count) }.Concat(args).ToArray());
+
     // Parsed string tables, loaded from the embedded JSON on first use and cached for the process.
     private static readonly Dictionary<Lang, Dictionary<string, string>> _tables = new();
 

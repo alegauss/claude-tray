@@ -75,7 +75,7 @@ public sealed class LinkPlanRow
             {
                 null or { Error.Length: > 0 } => L.T("settings.cc.linkWithheldDetail"),
                 { Empty: true } => L.T("settings.cc.linkWithheldSame"),
-                { } w => L.T("settings.cc.linkWithheldGrants", Nums.Of(w.Granting)),
+                { } w => L.N("settings.cc.linkWithheldGrants", w.Granting),
             };
         if (s.AlreadyLinked) return L.T("settings.cc.linkAlready");
         if (!s.OnPrimary) return L.T("settings.cc.linkAbsent");

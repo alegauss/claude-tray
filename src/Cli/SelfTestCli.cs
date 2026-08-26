@@ -2154,6 +2154,50 @@ internal static class SelfTestCli
             Check($"{code} keeps every placeholder en has", slipped.Length == 0,
                   Named(slipped, "differing in their {0}-style holes, so a number is dropped or misplaced"));
         }
+
+        Plurals(en);
+    }
+
+    /// <summary>
+    /// The counted strings, held as pairs (T376). <c>L.N</c> asks for <c>&lt;stem&gt;.one</c> or
+    /// <c>&lt;stem&gt;.many</c> by the number, and a stem carrying only one of the two prints the missing
+    /// half in English on whichever count the translator did not think of — or the raw key, if English is
+    /// the file that is short.
+    ///
+    /// <para><b>The plural form has to take the count; the singular does not.</b> That asymmetry is not a
+    /// concession, it is the data: the three pairs that predate <c>L.N</c> write their singulars as
+    /// <c>"1 minute"</c> and <c>", 1 week away excluded"</c>, and they are right to — in the singular the
+    /// number is one, so spelling it is prose rather than a hole, and several languages drop it entirely.
+    /// A <c>.many</c> with no <c>{0}</c> is the real defect: it says "folders" and never how many.</para>
+    ///
+    /// <para>Swept over <c>en</c> alone, because the parity checks above already hold every other file to
+    /// it key for key: a stem complete here and half-translated there is <c>missing</c>, not this.</para>
+    /// </summary>
+    private static void Plurals(IReadOnlyDictionary<string, string> en)
+    {
+        string[] stems = en.Keys
+            .Where(k => L.Plural.Any(p => k.EndsWith(p, StringComparison.Ordinal)))
+            .Select(k => k[..k.LastIndexOf('.')])
+            .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
+
+        // The precondition: a rename that lost the suffix convention would leave every claim below holding
+        // over an empty set, which is the one way this check can go quiet.
+        if (!Check($"the counted strings are found by their suffixes ({stems.Length})", stems.Length > 0,
+                   $"no key ends in {string.Join(" or ", L.Plural)}, so nothing was compared"))
+            return;
+
+        string[] halved = stems.Where(s => !L.Plural.All(p => en.ContainsKey(s + p)))
+                               .Order(StringComparer.Ordinal).ToArray();
+        Check($"every counted string is written in both forms ({stems.Length})", halved.Length == 0,
+              Named(halved, $"carrying only one of {string.Join(" / ", L.Plural)}, so the other count "
+                            + "falls back or prints the key"));
+
+        string[] countless = stems.Select(s => s + L.Plural[1])
+                                  .Where(k => en.TryGetValue(k, out string? v)
+                                              && !v.Contains("{0}", StringComparison.Ordinal))
+                                  .Order(StringComparer.Ordinal).ToArray();
+        Check($"and every plural form takes the count ({stems.Length})", countless.Length == 0,
+              Named(countless, "having no {0}, so it says what was counted and never how many"));
     }
 
     // The keys of one table matching a predicate, ordered so the same gap reads the same way twice.
