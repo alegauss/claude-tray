@@ -24,6 +24,10 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
+## Block AI — Verification — the checks that prove a change
+
+- 📋 **T382** (deps: —) **Every case passes alone and -Case All fails five assertions: two of them leave the shared window moved** — Resetting it in Acquire-Main is one place rather than five, and the invariant five cases rest on is the shape this repo turns into an assertion. → §XCIX.1
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
