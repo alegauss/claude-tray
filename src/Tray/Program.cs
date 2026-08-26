@@ -365,6 +365,15 @@ internal static class Program
             return;
         }
 
+        // The script that makes two profiles one setup (T367). Composed and handed over, never run — the
+        // app has no write path into `~\.claude` (§I.4), and the merge each link needs first is the part
+        // a person has to read before it happens.
+        if (args.Length >= 1 && args[0] == "--link-profiles")
+        {
+            ProfilesCli.PrintLinkScript(args.Skip(1).ToArray());
+            return;
+        }
+
         // The tray tooltip's text for a synthetic reading (T214). The one published surface no capture
         // flag can photograph — it is drawn by the shell, not by this app — so this reads it out instead.
         if (args.Length >= 1 && args[0] == "--tooltip")

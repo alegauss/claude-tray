@@ -201,6 +201,17 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   claims to own the variable and what it restores to (T173) —
                                       #   that claim against a differing registry is a write that was
                                       #   accepted and never landed.
+--link-profiles <a> <b> [out=<path>]  # the script that makes two profiles ONE SETUP (T367). <a> keeps its
+                                      #   real files and receives every merge, <b> becomes links into it;
+                                      #   each side is an index into the --profiles list or a config dir
+                                      #   outright. Prints the per-entry plan — merged, adopted whole,
+                                      #   withheld, never — then the PowerShell itself; out= writes it to a
+                                      #   file instead. The app never runs it and has no write path into
+                                      #   ~\.claude (§I.4): the script prints its plan on a bare run and
+                                      #   needs -Apply to act, never elevates, never deletes, and refuses
+                                      #   before the first move when it needs a file symlink on a machine
+                                      #   with no Developer Mode. Exits 1 on a bad index or the same dir
+                                      #   twice.
 --probe [--live | --recorded] [--all] # the rate-limit headers VERBATIM: the recorded capture log first,
                                       #   then one live call — which is itself recorded (T212), against
                                       #   the monitored profile and filed under its key. --live skips

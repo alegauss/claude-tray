@@ -809,33 +809,6 @@ week left to the tooltip, is the whole change. It also has to survive the case t
 two is on the chart, which is most of them: a legend entry for a mark nobody drew is the same defect
 one step further on.
 
-## XCI A script the user runs, to make two profiles one setup (T367)
-
-Two profiles are two config dirs, and a user who wants to keep working through a change of
-subscription has to link them by hand. Done once on this machine it was six links, and only two of
-them were a link: `file-history` held 4.553 files on one side against 338 session directories on the
-other, `history.jsonl` held two disjoint prompt histories, and a bare `rmdir` plus `mklink` would
-have dropped whichever side went second.
-
-So the deliverable is a **script the user reads and runs**, never an action. The app has no write
-path into `~\.claude` (§I.4) and this is where that constraint pays: `ContextPrompt` already
-composes work for somebody else to carry out, and a linking script is the same shape — the app knows
-the profiles, the person owns the filesystem.
-
-The engineering is in what each item needs before a link is safe, which is not uniform:
-
-- **Mergeable.** `file-history` unions by session uuid; `history.jsonl` unions by timestamp. The
-  script merges, then links, then keeps the original — moved aside, never deleted.
-- **Not mergeable, and the reason differs.** `settings.json` can be unioned, but a union widens the
-  other account's permission allowlist, which is a decision and not a default. `plugins` records an
-  absolute `installPath` per entry, so a file-level merge leaves orphans: one side is adopted whole.
-- **Never offered.** `.claude.json` carries `oauthAccount` and `.credentials.json` is a token.
-
-Two things it must not do. It must not run: writing the file and revealing it is the whole action,
-and nothing here elevates. And it must refuse rather than half-apply — a directory junction needs no
-privilege, a file symlink needs Developer Mode, and a machine without it should be told before
-anything moves.
-
 ## XCII The site is a workspace, not a page
 
 The page shipped as one `docs/index.html`, and for a year that was the right size. What it grew into

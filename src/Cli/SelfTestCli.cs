@@ -167,6 +167,9 @@ internal static class SelfTestCli
         Section("follow — two profiles behind one transcript tree are not evidence (Block O)");
         Temp(Follow);
 
+        Section("link — the script that makes two profiles one setup (Block O)");
+        Temp(LinkScript);
+
         Section("probe — what the flag was asked to do, before it does any of it (Block AI)");
         ProbePlanning();
 
@@ -5041,6 +5044,176 @@ internal static class SelfTestCli
         // The link goes before the tree it sits in does: a recursive delete over a reparse point is the
         // one thing `Temp`'s cleanup cannot do, and a scratch directory left behind is a promise broken.
         try { Directory.Delete(Path.Combine(link, "projects")); } catch { /* the report below says so */ }
+    }
+
+    /// <summary>
+    /// The linking script, held against the two things it must never stop being (T367): a text that does
+    /// not act, and a text that refuses before it half-applies.
+    ///
+    /// <para>Everything here is asserted over the <em>emitted script</em> rather than over the plan that
+    /// produced it, because the script is the artifact — it leaves this app, gets read once and then runs
+    /// on somebody's real config dirs, and a correct plan rendered into a command that links
+    /// <c>.credentials.json</c> is exactly as bad as a wrong plan. The plan's own table is checked too,
+    /// but as the cheaper half.</para>
+    ///
+    /// <para>The pair is built on disk under <paramref name="root"/> rather than posed synthetically:
+    /// <see cref="ProfileLink.For"/> asks the filesystem what is on each side and whether a link is
+    /// already there, and a fixture that answered those questions itself would be asserting its own
+    /// arithmetic.</para>
+    /// </summary>
+    private static void LinkScript(string root)
+    {
+        // The two config dirs, deliberately lopsided: the secondary has entries the primary does not, the
+        // primary has entries the secondary does not, and one entry is missing from both. That is the
+        // machine §XCI was designed against, where the two sides were 4,553 files and 338 directories.
+        string primary = Path.Combine(root, "primary"), secondary = Path.Combine(root, "secondary");
+        foreach (string name in new[] { "projects", "file-history", "skills", "plugins" })
+        {
+            Directory.CreateDirectory(Path.Combine(primary, name));
+            Directory.CreateDirectory(Path.Combine(secondary, name));
+        }
+        Directory.CreateDirectory(Path.Combine(primary, "projects", "d--only-on-the-primary-side"));
+        Directory.CreateDirectory(Path.Combine(secondary, "projects", "d--only-on-the-secondary-side"));
+        Directory.CreateDirectory(Path.Combine(secondary, "projects", "d--on-both"));
+        Directory.CreateDirectory(Path.Combine(primary, "projects", "d--on-both"));
+        foreach (string dir in new[] { primary, secondary })
+            foreach (string file in new[] { "history.jsonl", "CLAUDE.md", "settings.json", ".claude.json", ".credentials.json" })
+                File.WriteAllText(Path.Combine(dir, file), "{}\n");
+
+        // The catalogue first: the four verdicts are not interchangeable, and the two that are refusals
+        // are the ones a later edit could quietly turn into links.
+        var byName = ProfileLink.Catalogue.ToDictionary(e => e.Name, StringComparer.Ordinal);
+        Check($"every catalogue entry is named once ({ProfileLink.Catalogue.Count})",
+              byName.Count == ProfileLink.Catalogue.Count);
+        Check("the token and the account file are never linked, whatever else is",
+              byName[".credentials.json"].Verdict == ProfileLink.Verdict.Never
+              && byName[".claude.json"].Verdict == ProfileLink.Verdict.Never);
+        Check("settings.json is withheld rather than merged — the union is a decision, not a default",
+              byName["settings.json"].Verdict == ProfileLink.Verdict.Withheld);
+        Check("plugins is adopted whole, because a per-entry merge leaves absolute installPaths behind",
+              byName["plugins"].Verdict == ProfileLink.Verdict.Adopt);
+        // A union kind is what tells the script which merge to emit, so a Merge entry without one renders a
+        // link with nothing in front of it — the bare rmdir-plus-mklink this task exists to replace.
+        Check("every merged entry names how it is unioned, and only merged entries do",
+              ProfileLink.Catalogue.All(e =>
+                  (e.Verdict == ProfileLink.Verdict.Merge) == (e.Union != ProfileLink.Union.None)));
+        // A merged entry's count is the only figure a reader can sanity-check before typing -Apply, so it
+        // has to be a count of something named: "338 session uuid(s)" and not "338 item(s)".
+        Check("and every merged entry says what it is counting, and only merged entries do",
+              ProfileLink.Catalogue.All(e =>
+                  (e.Verdict == ProfileLink.Verdict.Merge) == (e.Unit.Length > 0)));
+        Check("every entry explains itself — the script is read before it is run",
+              ProfileLink.Catalogue.All(e => e.Why.Length > 0));
+
+        ProfileLink.Plan plan = ProfileLink.For(primary, secondary, "Personal", "Work");
+        Check("a lopsided pair composes a plan", plan.Error is null, plan.Error ?? "");
+        Check("both sides' own paths reach the plan",
+              ClaudeAccount.SamePath(plan.PrimaryDir, primary) && ClaudeAccount.SamePath(plan.SecondaryDir, secondary));
+        Check("the six entries of a full setup are all acted on",
+              plan.Acting.Count() == 6, string.Join(", ", plan.Acting.Select(s => s.Entry.Name)));
+        // history.jsonl and CLAUDE.md are files, so this plan needs a symlink — which is the only reason
+        // the preflight has anything to refuse.
+        Check("a plan carrying a file link says so, since that is the only part needing a privilege",
+              plan.NeedsSymlink);
+
+        string script = ProfileLink.Script(plan);
+        Check("the script is composed from the plan alone, so the same pair renders the same text twice",
+              script == ProfileLink.Script(plan));
+
+        // The property everything else is in service of. Every line naming the token or the account file
+        // has to be a comment: the script is what runs, and §I.6 is not a thing to re-decide in a merge.
+        string[] lines = script.Split('\n').Select(l => l.TrimEnd('\r')).ToArray();
+        string[] acting = lines.Where(l => !l.TrimStart().StartsWith("#", StringComparison.Ordinal)).ToArray();
+        Check("no command in the script so much as names the credentials file",
+              !acting.Any(l => l.Contains(".credentials.json", StringComparison.OrdinalIgnoreCase)),
+              acting.FirstOrDefault(l => l.Contains(".credentials.json", StringComparison.OrdinalIgnoreCase)) ?? "");
+        Check("nor the account file that makes a profile a different profile",
+              !acting.Any(l => l.Contains(".claude.json", StringComparison.OrdinalIgnoreCase)),
+              acting.FirstOrDefault(l => l.Contains(".claude.json", StringComparison.OrdinalIgnoreCase)) ?? "");
+        Check("and the withheld settings file is offered as text, never as a command",
+              !acting.Any(l => l.Contains("settings.json", StringComparison.Ordinal))
+              && lines.Any(l => l.Contains("settings.json", StringComparison.Ordinal)));
+        // Named, not merely absent: an entry silently dropped from the script reads as an entry the app
+        // has no opinion about, and the next person links it by hand in the wrong order.
+        Check("every refusal is still explained in the text",
+              ProfileLink.Catalogue.Where(e => e.Verdict is ProfileLink.Verdict.Never or ProfileLink.Verdict.Withheld)
+                         .All(e => script.Contains(e.Name, StringComparison.Ordinal)));
+
+        // Refuse rather than half-apply. Position is the claim: the throw has to be upstream of the first
+        // thing that moves, or the machine without Developer Mode is told after three entries have been
+        // relinked and one has not.
+        int refusal = script.IndexOf("Developer Mode", StringComparison.Ordinal);
+        int firstMove = script.IndexOf("Move-Item", StringComparison.Ordinal);
+        Check("the symlink refusal is in the script at all", refusal > 0);
+        Check("and it comes before the first thing that moves a directory",
+              refusal > 0 && firstMove > refusal, $"refusal at {refusal}, first move at {firstMove}");
+        Check("nothing in the script elevates itself",
+              !script.Contains("Start-Process", StringComparison.Ordinal)
+              && !script.Contains("RunAs", StringComparison.OrdinalIgnoreCase));
+        // Not a deletion anywhere in the merge path. The undo comment removes the *link* it made, which is
+        // the one Remove-Item here, and it is a comment.
+        Check("no command deletes anything — every original is moved aside and kept",
+              !acting.Any(l => l.Contains("Remove-Item", StringComparison.Ordinal)
+                               || l.Contains("rmdir", StringComparison.OrdinalIgnoreCase)));
+        Check("and a bare run acts on nothing: every write is behind the -Apply switch",
+              script.Contains("param([switch]$Apply)", StringComparison.Ordinal));
+        // ASCII apart from the paths, which are the user's and cannot be normalised. Windows PowerShell
+        // 5.1 reads a BOM-less .ps1 as ANSI, so an em-dash in the prose came out as mojibake the first
+        // time this was run — harmless in a comment, and the same encoding applied to a `throw` message
+        // or a path would not have been. The file is written with a BOM; this keeps a copy-paste of the
+        // printed form safe as well, which no encoding choice here can.
+        char[] mangled = script.Where(c => c > '~' && !primary.Contains(c) && !secondary.Contains(c))
+                               .Distinct().ToArray();
+        Check("the script's own prose is ASCII, so no shell can mangle it",
+              mangled.Length == 0, new string(mangled));
+
+        // The link is made with mklink and not New-Item, and the reason is measured: in PowerShell 5.1
+        // New-Item does not pass the unprivileged-create flag, so it fails with "requires administrator
+        // privilege" on the very machine whose Developer Mode the preflight just checked for. Asserted
+        // because the two lines are far apart and a later tidy-up would read as equivalent.
+        Check("links are made with mklink, which honours the Developer Mode the preflight checked",
+              script.Contains("mklink", StringComparison.Ordinal)
+              && !script.Contains("New-Item -ItemType SymbolicLink", StringComparison.Ordinal));
+
+        // An entry the primary side does not have is skipped rather than linked to nothing. `todos` is not
+        // in the catalogue, so this poses it with the one entry neither side was given.
+        ProfileLink.Step md = plan.Steps.First(s => s.Entry.Name == "CLAUDE.md");
+        Check("an entry present on both sides is acted on", md is { OnPrimary: true, OnSecondary: true });
+        File.Delete(Path.Combine(primary, "CLAUDE.md"));
+        ProfileLink.Plan gap = ProfileLink.For(primary, secondary, "Personal", "Work");
+        Check("an entry the primary side does not have drops out of the plan's acting set",
+              gap.Acting.All(s => s.Entry.Name != "CLAUDE.md"));
+        Check("and the script says so rather than linking into nothing",
+              ProfileLink.Script(gap).Contains("nothing to link into", StringComparison.Ordinal));
+        File.WriteAllText(Path.Combine(primary, "CLAUDE.md"), "{}\n");
+
+        // The two refusals that are about the arguments, not the filesystem.
+        Check("the same directory on both sides is refused rather than linked to itself",
+              ProfileLink.For(primary, primary).Error is { Length: > 0 });
+        Check("a directory that is not there is refused",
+              ProfileLink.For(Path.Combine(root, "nope"), secondary).Error is { Length: > 0 });
+
+        // Idempotence, against a junction Windows actually made — the second run of a script whose first
+        // run worked. Skipped where a junction cannot be created, since that is the environment refusing.
+        string linked = Path.Combine(secondary, "file-history");
+        Directory.Delete(linked);
+        if (!Junction(linked, Path.Combine(primary, "file-history")))
+        {
+            Directory.CreateDirectory(linked);
+            Skip("a second run finds the link it made and does nothing", "no junction could be created here");
+            return;
+        }
+
+        ProfileLink.Plan again = ProfileLink.For(primary, secondary, "Personal", "Work");
+        ProfileLink.Step relink = again.Steps.First(s => s.Entry.Name == "file-history");
+        Check("a second run finds the link it made and does nothing", relink.AlreadyLinked);
+        Check("so the already-linked entry is out of the acting set",
+              again.Acting.All(s => s.Entry.Name != "file-history"));
+        Check("and the script says as much instead of relinking a link",
+              ProfileLink.Script(again).Contains("already a link into the Personal profile", StringComparison.Ordinal));
+        // The link before the tree it sits in, for `Temp`'s reason: a recursive delete over a reparse point
+        // is the one thing its cleanup cannot do.
+        try { Directory.Delete(linked); } catch { /* the report says so */ }
     }
 
     /// <summary>Make a directory junction, or answer false where the environment will not have one.

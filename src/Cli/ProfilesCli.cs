@@ -159,5 +159,93 @@ internal static class ProfilesCli
                   : "no recent turn in a followable profile, so the icon stays put.")
             : $"would follow: {active.Label}  ({active.ConfigDir})"
               + (settings.FollowActiveProfile ? "" : "  — if auto-follow were on"));
+        if (profiles.Count > 1)
+            Console.WriteLine("to share one setup between two of these: --link-profiles 0 1");
+    }
+
+    /// <summary>
+    /// <c>--link-profiles &lt;primary&gt; &lt;secondary&gt; [out=&lt;path&gt;]</c>: the script that makes
+    /// two profiles one setup (T367). Each side is an index into the <c>--profiles</c> list or a config-dir
+    /// path outright, so the pair can be named the way the read-out above prints them.
+    ///
+    /// <para>It prints the plan and the script, and writes the file only when asked. The app has no write
+    /// path into <c>~\.claude</c> and this is not one: what lands on disk is a <c>.ps1</c> in a directory
+    /// the caller named, and reading it before running it is the point (§XCI).</para>
+    /// </summary>
+    internal static void PrintLinkScript(string[] args)
+    {
+        string? outPath = args.FirstOrDefault(a => a.StartsWith("out=", StringComparison.OrdinalIgnoreCase))?[4..];
+        string[] sides = args.Where(a => !a.StartsWith("--") && !a.Contains('=')).ToArray();
+        if (sides.Length != 2)
+        {
+            ReadOut.Failed("--link-profiles takes two profiles: an index from --profiles, or a config dir. "
+                           + $"Got {sides.Length}.");
+            return;
+        }
+
+        List<ClaudeInfo> profiles = ClaudeAccount.Discover(Settings.Load().Profiles);
+        // An index resolves through the same discovery order --profiles prints, so "0 1" means what the
+        // read-out above just showed. Anything else is taken as a path, which is what a config dir that is
+        // not registered here has to be given as.
+        (string dir, string label)? Side(string arg) =>
+            int.TryParse(arg, out int i)
+                ? i >= 0 && i < profiles.Count ? (profiles[i].ConfigDir, profiles[i].Label) : null
+                : (arg, ClaudeAccount.SamePath(arg, profiles.FirstOrDefault()?.ConfigDir ?? "\0")
+                    ? profiles[0].Label
+                    : Path.GetFileName(Path.TrimEndingDirectorySeparator(arg)));
+
+        if (Side(sides[0]) is not { } a || Side(sides[1]) is not { } b)
+        {
+            ReadOut.Failed($"no such profile index — --profiles lists {profiles.Count}, so an index is 0..{profiles.Count - 1}.");
+            return;
+        }
+
+        ProfileLink.Plan plan = ProfileLink.For(a.dir, b.dir, a.label, b.label);
+        if (ReadOut.Failed(plan.Error)) return;
+
+        // The plan as a table first, because the script is long and the decision a reader makes is per
+        // entry: what is merged, what is adopted whole, what is deliberately withheld.
+        Console.WriteLine($"keeps its files   {plan.PrimaryLabel}  ({plan.PrimaryDir})");
+        Console.WriteLine($"becomes links     {plan.SecondaryLabel}  ({plan.SecondaryDir})");
+        Console.WriteLine();
+        foreach (ProfileLink.Step s in plan.Steps)
+        {
+            bool links = s.Entry.Verdict is ProfileLink.Verdict.Merge or ProfileLink.Verdict.Adopt;
+            // The link kind is blank for an entry that is never linked — printing "symlink" beside
+            // `.credentials.json` states the one thing this whole table exists to deny.
+            Console.WriteLine($"  {s.Entry.Name,-20} {s.Entry.Verdict,-8} "
+                              + $"{(!links ? "" : s.Entry.IsDirectory ? "junction" : "symlink"),-9}"
+                              + (!links ? s.Entry.Why
+                                  : s.AlreadyLinked ? "already linked"
+                                  : !s.OnPrimary ? "not on the primary side — skipped"
+                                  : s.Entry.Union == ProfileLink.Union.Lines ? "union by line"
+                                  : s.Entry.Union == ProfileLink.Union.Entries ? $"union by {s.Entry.Unit}"
+                                  : "adopted whole"));
+        }
+        Console.WriteLine();
+        Console.WriteLine($"{plan.Acting.Count()} entry(ies) would be linked"
+                          + (plan.NeedsSymlink
+                              ? "; one of them is a file, so the script refuses without Developer Mode"
+                              : "; every link is a junction, so no privilege is needed"));
+        Console.WriteLine();
+
+        string script = ProfileLink.Script(plan);
+        if (outPath is { Length: > 0 })
+        {
+            // UTF-8 *with* a BOM, which is not the usual preference here and is not stylistic: Windows
+            // PowerShell 5.1 reads a BOM-less .ps1 as ANSI, and the two config-dir paths are pasted into
+            // the script verbatim — a user folder with an accent in it would be mangled into a path that
+            // does not exist, by the one part of this file nothing can normalise. The prose is ASCII so a
+            // copy-paste of the printed form is safe too, which is what `--selftest` holds.
+            using (var fs = OutFile.Create(outPath))
+            using (var w = new StreamWriter(fs, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true)))
+                w.Write(script);
+            Console.WriteLine($"wrote {Path.GetFullPath(outPath)} — read it, then run it with -Apply.");
+        }
+        else
+        {
+            Console.WriteLine(script);
+            Console.WriteLine("# (pass out=<path.ps1> to write this instead of printing it)");
+        }
     }
 }
