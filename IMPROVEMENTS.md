@@ -846,33 +846,6 @@ That is the shape to expect from here. The link is a one-line command; the conse
 run it are spread across auto-follow, the settings page and the checks, and none of them were
 visible while the two directories were separate.
 
-### XCIII.2 The toggle a successful link turns into a no-op (T371)
-
-T365 took two profiles behind one `projects` tree out of auto-follow's running, and it is right to:
-the newest write under a shared tree is the same fact twice, and no threshold on the comparison can
-supply evidence that was never measured. T367 then shipped the thing that *creates* that shape on
-purpose, and `projects` is the first entry in its catalogue.
-
-So the app now hands the user a script whose first line disables a feature the settings page offers
-a toggle for, and says nothing about it. On the machine this was found on, three of the six entries
-were already linked by hand and `--profiles` had been reporting `shares its transcripts, so not
-evidence` for weeks — a read-out nobody opens, describing a toggle that looks on and does nothing.
-
-Three surfaces, and the order matters because the first is the only one that prevents the surprise
-rather than explaining it after.
-
-- **The script.** It knows `projects` is in its plan, so the header can say what the pair loses:
-  auto-follow, and only for these two. Cheapest, and it lands before the decision.
-- **The toggle.** `FollowActiveProfile` on a machine where every followable profile shares a tree is
-  a control with no effect. The description can say so from the reading `--profiles` already has —
-  and this is a description, not a disabled control, because a third profile arriving makes it work
-  again with nothing changed.
-- **The read-out's suggestion.** `--profiles` closes with `--link-profiles 0 1` whenever there is more
-  than one profile, including when that pair is already linked. It should not offer work that is done.
-
-The non-goal it does not touch: nothing here restores following for a shared tree. There is no
-evidence to follow, and inventing one is what T365 refused.
-
 ### XCIII.3 A withheld decision with nothing to decide it on (T373)
 
 `settings.json` is withheld for a good reason: unioning two of them widens the other account's

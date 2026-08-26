@@ -522,8 +522,14 @@
                                    Style="{StaticResource SectionHeader}" />
                         <Border x:Name="ProfilesGlobalCard" Style="{StaticResource GroupCard}" Margin="0,0,0,4">
                             <StackPanel>
-                                <!-- Auto-follow (T126). -->
-                                <local:SettingsRow Header="{local:Loc settings.cc.followActive}"
+                                <!-- Auto-follow (T126). Its description grows a sentence when every
+                                     followable profile shares a `projects` tree (T371): the switch is
+                                     then a control with no effect, and the thing that most often puts a
+                                     machine in that state is the linking script two cards below. A
+                                     description and NOT a disabled control, because a third profile
+                                     arriving makes it work again with nothing changed here. -->
+                                <local:SettingsRow x:Name="FollowActiveRow"
+                                                   Header="{local:Loc settings.cc.followActive}"
                                                    Description="{local:Loc settings.cc.followActiveDesc}">
                                     <ToggleButton x:Name="FollowActiveCheck" Style="{StaticResource ToggleSwitch}" />
                                 </local:SettingsRow>

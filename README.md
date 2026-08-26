@@ -551,6 +551,13 @@ used to expire the moment a turn landed anywhere else, which on a continuously-a
 seconds after the click; the click is the strongest signal the app gets, so undoing it now takes one too.
 Off by default.
 
+**And it says when it can't do anything.** Following needs each profile's project history to be its
+*own* — two profiles reading one folder report the same "last turn", which is the same fact twice and
+says nothing about where you are working. If every profile it could follow is in that state, the
+setting's own description says so, rather than leaving you with a switch that looks on and never moves
+the icon. Add a profile with its own history, or unlink that folder, and it starts working again with
+nothing to change here.
+
 Switching *which account a session uses* happens when Claude Code launches: the tray passes
 `CLAUDE_CONFIG_DIR` and gets out of the way. It never writes to a configuration folder and never moves credentials between them — Claude Code
 rewrites its own credentials file on every token refresh, so shuffling those files around is how you
@@ -624,6 +631,12 @@ takes a second run with `-Apply` to change anything, it never asks for administr
 deletes — every original is renamed beside its link so you can put it back. If the plan needs a file
 symlink and Windows has no Developer Mode, it says so before it moves anything rather than half-way
 through.
+
+**One consequence, stated before you decide.** Sharing `projects` is most of the point — and it also
+means the two profiles report the same "last turn", so **Follow the active profile** can no longer tell
+which of them you are in and stops moving the icon between the pair. The script's header says so, in
+those two profiles' names, before you run it; a third profile with its own history is unaffected, and
+unlinking that one folder gives the pair back.
 
 > Close every Claude Code session first. A running session keeps the folders it started with, so
 > relinking underneath one leaves you with half of each.

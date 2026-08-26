@@ -159,8 +159,33 @@ internal static class ProfilesCli
                   : "no recent turn in a followable profile, so the icon stays put.")
             : $"would follow: {active.Label}  ({active.ConfigDir})"
               + (settings.FollowActiveProfile ? "" : "  — if auto-follow were on"));
+        // The suggestion, and only where there is work to suggest (T371). It used to print
+        // `--link-profiles 0 1` for any two profiles, including the pair the readings above had just
+        // reported as sharing their transcripts — offering work that is done, on the read-out whose whole
+        // job is saying what the machine is actually in.
         if (profiles.Count > 1)
-            Console.WriteLine("to share one setup between two of these: --link-profiles 0 1");
+        {
+            (int a, int b) = FirstUnlinkedPair(readings);
+            Console.WriteLine(a >= 0
+                ? $"to share one setup between two of these: --link-profiles {a} {b}"
+                : "every pair here already shares its transcripts, so there is nothing to link");
+            if (!ProfileActivity.CanFollow(profiles))
+                Console.WriteLine("auto-follow can say nothing on this machine: every followable profile's "
+                                  + "transcripts are shared, so no reading is evidence about one of them");
+        }
+    }
+
+    /// <summary>
+    /// The first pair of profiles that is not already reading one <c>projects</c> tree, as indices into the
+    /// list printed above — or <c>(-1, -1)</c> when every pair is linked. In printed order, so the pair
+    /// suggested is the one a reader can point at.
+    /// </summary>
+    private static (int, int) FirstUnlinkedPair(List<ProfileActivity.Reading> readings)
+    {
+        for (int i = 0; i < readings.Count; i++)
+            for (int j = i + 1; j < readings.Count; j++)
+                if (!ClaudeAccount.SamePath(readings[i].Tree, readings[j].Tree)) return (i, j);
+        return (-1, -1);
     }
 
     /// <summary>

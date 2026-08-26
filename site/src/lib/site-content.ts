@@ -666,7 +666,9 @@ export const profiles = {
         { b: "pins" },
         " the icon there until you click ",
         { b: "Resume following" },
-        ". Off by default.",
+        ". Off by default — and it tells you when it ",
+        { b: "cannot" },
+        " do anything: two profiles reading one project history report the same last turn, which is the same fact twice, so the setting's own description says so instead of leaving you a switch that looks on and never moves the icon.",
       ] as Rich,
     },
     {
@@ -698,7 +700,9 @@ export const profiles = {
         { b: "PowerShell script" },
         " where you point it and opens the folder. Read it first. Even then a bare run only prints what it would do — it takes a second run with ",
         { code: "-Apply" },
-        " to change anything. It never asks for administrator rights, and it never deletes: every original is renamed beside its link, so you can put it back.",
+        " to change anything. It never asks for administrator rights, and it never deletes: every original is renamed beside its link, so you can put it back. Its header also names the one consequence — both profiles then report the same last turn, so ",
+        { b: "Follow the active profile" },
+        " stops moving the icon between that pair — before you run it rather than weeks after.",
       ] as Rich,
     },
     {

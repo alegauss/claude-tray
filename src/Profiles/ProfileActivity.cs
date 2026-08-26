@@ -137,6 +137,32 @@ internal static class ProfileActivity
     }
 
     /// <summary>
+    /// Whether auto-follow can say anything at all on this machine (T371): it needs at least one
+    /// followable profile whose <c>projects</c> tree no other profile is reading.
+    ///
+    /// <para><b>Why this is a question a surface asks.</b> T365's refusal is correct and silent, and T367
+    /// then shipped the thing that <em>creates</em> the shape it refuses — <c>projects</c> is the first
+    /// entry in the linking catalogue. So a successful link turns <see cref="Settings.FollowActiveProfile"/>
+    /// into a switch with no effect, and on the machine this was found on it had been that for weeks with
+    /// only <c>--profiles</c> saying so. The toggle's own description can answer it instead.</para>
+    ///
+    /// <para>It resolves the links and nothing else: no transcript directory is walked, because the
+    /// question is which trees are distinct and not when anything last happened. <see cref="Read"/> is the
+    /// one that costs a sweep, and a settings page must not pay for it to write one sentence.</para>
+    /// </summary>
+    public static bool CanFollow(IReadOnlyList<ClaudeInfo> profiles)
+    {
+        // Through MarkShared rather than a comparison of its own: two readers of "these two are one tree"
+        // is how a rule comes to hold on one surface and not the other, and the timestamps it does not
+        // need are exactly the part this skips.
+        var probes = new List<Reading>(profiles.Count);
+        foreach (ClaudeInfo p in profiles)
+            probes.Add(new Reading(p, 0, p.CountsAgainstSubscription && p.HasCredentialsFile,
+                ResolvedProjectsDir(p.ConfigDir)));
+        return MarkShared(probes).Any(r => r.Followable && !r.SharesTree);
+    }
+
+    /// <summary>
     /// The profile the icon should follow, or <c>null</c> to leave it where it is: the followable
     /// profile with the newest turn, provided that turn is inside <see cref="FollowWindowSeconds"/> and
     /// newer than <paramref name="floorUnix"/>.

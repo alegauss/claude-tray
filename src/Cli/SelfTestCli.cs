@@ -5041,6 +5041,29 @@ internal static class SelfTestCli
         Check("so a junctioned profile pair follows nobody, read off a real filesystem",
               onDisk.All(r => r.SharesTree) && ProfileActivity.Pick(onDisk, Now, 0) is null);
 
+        // What a surface has to be able to ask (T371): auto-follow's toggle is a control with no effect on
+        // a machine where every followable profile shares a tree, and the linking script is what most often
+        // puts a machine there. Driven over the same junction, because "the trees are distinct" is the one
+        // part of this that a test cannot assert by restating it.
+        static ClaudeInfo Dir(string dir, bool followable = true) => new()
+        {
+            ConfigDir = dir, Auth = followable ? AuthMethod.Subscription : AuthMethod.ApiKey,
+            HasCredentialsFile = followable,
+        };
+        Check("auto-follow can say something while two profiles have trees of their own",
+              ProfileActivity.CanFollow(new[] { Dir(real), Dir(Path.Combine(root, "never-used")) }));
+        Check("and nothing at all once both of them read one tree",
+              !ProfileActivity.CanFollow(new[] { Dir(real), Dir(link) }));
+        // The third profile is the reason this is a description and not a disabled control: it makes the
+        // setting work again with nothing changed, so the answer has to be recomputed rather than stored.
+        Check("a third profile with its own tree brings it back",
+              ProfileActivity.CanFollow(new[] { Dir(real), Dir(link), Dir(Path.Combine(root, "own")) }));
+        // Followable is part of the question, not a filter applied to the answer: a profile off the
+        // subscription has no quota window to read, so its private tree is not what makes this true.
+        Check("a profile the icon could never follow does not count as the one with its own tree",
+              !ProfileActivity.CanFollow(
+                  new[] { Dir(real), Dir(link), Dir(Path.Combine(root, "own"), followable: false) }));
+
         // The link goes before the tree it sits in does: a recursive delete over a reparse point is the
         // one thing `Temp`'s cleanup cannot do, and a scratch directory left behind is a promise broken.
         try { Directory.Delete(Path.Combine(link, "projects")); } catch { /* the report below says so */ }
@@ -5168,6 +5191,14 @@ internal static class SelfTestCli
               ProfileLink.Catalogue.Where(e => e.Verdict is ProfileLink.Verdict.Never or ProfileLink.Verdict.Withheld)
                          .All(e => script.Contains(e.Name, StringComparison.Ordinal)));
 
+        // What the link costs, said before the decision (T371). The plan touches `projects`, so the
+        // consequence belongs in this script: after it runs, the two profiles report one last-turn time
+        // and auto-follow stops moving the icon between them.
+        Check("a plan that links the transcripts says so costs auto-follow", plan.CostsAutoFollow);
+        Check("and the script names both profiles in that sentence, not just the fact",
+              script.Contains("Follow the active profile", StringComparison.Ordinal)
+              && script.Contains("between Personal and", StringComparison.Ordinal));
+
         // Refuse rather than half-apply. Position is the claim: the throw has to be upstream of the first
         // thing that moves, or the machine without Developer Mode is told after three entries have been
         // relinked and one has not.
@@ -5236,6 +5267,28 @@ internal static class SelfTestCli
         ProfileLink.Plan again = ProfileLink.For(primary, secondary, "Personal", "Work");
         ProfileLink.Step relink = again.Steps.First(s => s.Entry.Name == "file-history");
         Check("a second run finds the link it made and does nothing", relink.AlreadyLinked);
+        Check("and the consequence is still ahead of a reader while projects is unlinked",
+              again.CostsAutoFollow);
+
+        // The other half of T371's sentence, and the one that keeps it from appearing on every script
+        // forever: link `projects` too, and the plan no longer costs anything auto-follow had.
+        string tree = Path.Combine(secondary, "projects");
+        Directory.Delete(tree, recursive: true);
+        if (Junction(tree, Path.Combine(primary, "projects")))
+        {
+            ProfileLink.Plan shared = ProfileLink.For(primary, secondary, "Personal", "Work");
+            Check("once the transcripts are shared, the plan no longer costs auto-follow",
+                  !shared.CostsAutoFollow);
+            Check("and the sentence about it is gone from the script",
+                  !ProfileLink.Script(shared).Contains("Follow the active profile", StringComparison.Ordinal));
+            try { Directory.Delete(tree); } catch { /* the report says so */ }
+        }
+        else
+        {
+            Directory.CreateDirectory(tree);
+            Skip("once the transcripts are shared, the plan no longer costs auto-follow",
+                 "no junction could be created here");
+        }
         Check("so the already-linked entry is out of the acting set",
               again.Acting.All(s => s.Entry.Name != "file-history"));
         Check("and the script says as much instead of relinking a link",

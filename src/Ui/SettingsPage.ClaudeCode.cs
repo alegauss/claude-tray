@@ -85,6 +85,12 @@ internal partial class SettingsPage
         EnvSyncValue.Text = EnvironmentProfile.Current() is { Length: > 0 } v
             ? v
             : L.T("settings.cc.envSyncNone");
+        // Auto-follow's own description says when it cannot do anything (T371). Composed rather than
+        // switched between two strings, so the sentence that explains the setting is never replaced by the
+        // sentence about this machine — a reader needs both, and needs to see which is which.
+        FollowActiveRow.Description = L.T("settings.cc.followActiveDesc")
+            + (_ccProfiles.Count > 1 && !ProfileActivity.CanFollow(_ccProfiles)
+                ? " " + L.T("settings.cc.followActiveShared") : "");
 
         FillProfileFields();
         LoadLinkSides();

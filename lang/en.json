@@ -228,6 +228,7 @@
   "settings.cc.envSyncNone": "not set",
   "settings.cc.followActive": "Follow the active profile",
   "settings.cc.followActiveDesc": "The icon can only show one profile at a time. On, it shows the one Claude Code worked in most recently, so you never have to switch it yourself. Picking a profile by hand, in the tray's Profile menu, holds the icon there until you choose Resume following. Only file dates are read — no transcript is ever opened.",
+  "settings.cc.followActiveShared": "Right now it can do nothing: every profile it could follow reads the same project history as another one, so their last-turn times are the same fact twice and neither says where you are working. Unlink the projects folder, or add a profile with its own, and this starts working again on its own.",
   "settings.cc.profileNoLogin": "not signed in",
   "settings.cc.profileRegistered": "in your list",
   "settings.cc.profileDiscovered": "found automatically",

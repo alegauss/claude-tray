@@ -224,6 +224,7 @@
   "settings.cc.envSyncNone": "sin definir",
   "settings.cc.followActive": "Seguir el perfil activo",
   "settings.cc.followActiveDesc": "El icono solo muestra un perfil a la vez. Activado, muestra aquel en el que Claude Code trabajó más recientemente, sin que tengas que cambiarlo. Elegir un perfil a mano, en el menú Perfil de la bandeja, retiene el icono ahí hasta que elijas Reanudar el seguimiento. Solo se leen las fechas de los archivos — no se abre ninguna transcripción.",
+  "settings.cc.followActiveShared": "Ahora mismo no puede hacer nada: todos los perfiles que podría seguir leen el mismo historial de proyectos que otro, así que sus horas de último turno son el mismo hecho dos veces y ninguna dice dónde estás trabajando. Deshaz el acceso directo de la carpeta projects, o añade un perfil con la suya propia, y esto vuelve a funcionar solo.",
   "settings.cc.profileNoLogin": "sin sesión",
   "settings.cc.profileRegistered": "en tu lista",
   "settings.cc.profileDiscovered": "encontrado automáticamente",

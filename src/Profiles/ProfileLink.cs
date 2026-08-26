@@ -149,6 +149,18 @@ internal static class ProfileLink
         /// <summary>Whether any acting step needs a <em>file</em> symlink, which is the only part of this
         /// that needs a privilege — and so the only reason the preflight can refuse (T367).</summary>
         public bool NeedsSymlink => Acting.Any(s => !s.Entry.IsDirectory);
+
+        /// <summary>
+        /// Whether this plan puts the two profiles behind one <c>projects</c> tree, which costs them
+        /// auto-follow (T371). Answered from the plan rather than looked up afterwards: the script is the
+        /// only surface that can say it <em>before</em> the decision, and it is the one that knows.
+        ///
+        /// <para>Not a warning about the link — sharing the transcripts is most of the point of doing
+        /// this. It is a consequence, and the consequence is invisible: after a successful run the icon
+        /// simply stops moving between the two, and nothing in the app used to connect that to a script
+        /// somebody ran once.</para>
+        /// </summary>
+        public bool CostsAutoFollow => Acting.Any(s => s.Entry.Name == "projects");
     }
 
     /// <summary>
@@ -294,6 +306,7 @@ internal static class ProfileLink
         #
         # Close every Claude Code session first. A running session holds its config dir open and
         # keeps whatever it started with, so relinking underneath one is how you get half of each.
+        {{AutoFollowNote(plan)}}
 
         [CmdletBinding()]
         param([switch]$Apply)
@@ -336,6 +349,23 @@ internal static class ProfileLink
         Note ('Mode      : ' + $(if ($Apply) { 'APPLY' } else { 'dry run (pass -Apply to act)' }))
         Note ''
 
+        """;
+
+    /// <summary>
+    /// What linking <c>projects</c> costs, said before the decision rather than discovered after it
+    /// (T371). Empty when the plan does not touch that entry, because then it costs nothing.
+    ///
+    /// <para>Phrased as a consequence and not a warning: sharing the transcripts is most of the reason
+    /// somebody runs this. What it must not be is a surprise — an icon that quietly stops moving between
+    /// two profiles, weeks after a script, is a defect nobody can trace back.</para>
+    /// </summary>
+    private static string AutoFollowNote(Plan plan) => !plan.CostsAutoFollow ? "" : $"""
+        #
+        # One consequence, and it is not a warning: sharing `projects` means both profiles report the
+        # same "last turn", so Claude Code Tray can no longer tell which of the two you are working in.
+        # Its "Follow the active profile" setting stops moving the icon between {plan.PrimaryLabel} and
+        # {plan.SecondaryLabel} - the icon stays wherever you put it. A third profile with a tree of its
+        # own is unaffected, and unlinking `projects` gives the pair back.
         """;
 
     /// <summary>
