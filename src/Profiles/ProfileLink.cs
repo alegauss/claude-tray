@@ -84,10 +84,13 @@ internal static class ProfileLink
     /// handles it: the merges first, because they are the ones that can report a conflict and stop, then
     /// the adoptions, then the two that are only explained.
     ///
-    /// <para>Deliberately not "everything in the directory". <c>cache</c>, <c>shell-snapshots</c>,
-    /// <c>paste-cache</c>, <c>debug</c> and the rest are per-machine scratch that is rebuilt on demand:
-    /// linking them shares nothing a person would notice and adds failure modes to a script whose whole
-    /// value is being readable. An entry earns a row here by being part of the <em>setup</em>.</para>
+    /// <para>Deliberately not "everything in the directory": an entry earns a row here by being part of
+    /// the <em>setup</em>, and <see cref="Scratch"/> names the per-machine caches and snapshots that are
+    /// not. <b>Which is why <see cref="Edge"/> exists</b> (T374). This is a list of opinions, and the
+    /// honest failure mode of a list of opinions is silence about everything not on it: <c>agents</c> and
+    /// <c>commands</c> were missing from here for four tasks, and nothing said so, because neither folder
+    /// existed on the machine this was built against. A fixed catalogue must report its own edge — a row
+    /// can be added later, and being told nothing is missing cannot be undone.</para>
     /// </summary>
     public static IReadOnlyList<Entry> Catalogue { get; } = new[]
     {
@@ -101,6 +104,12 @@ internal static class ProfileLink
             "two disjoint prompt histories, so the union is by line ordered on its timestamp"),
         new Entry("skills", true, Verdict.Merge, Union.Entries, "skill",
             "skills you wrote; a folder named on both sides is a real conflict and is reported, not merged"),
+        new Entry("agents", true, Verdict.Merge, Union.Entries, "agent",
+            "subagents you wrote, one folder each - the same shape as skills"),
+        new Entry("commands", true, Verdict.Merge, Union.Entries, "command",
+            "slash commands you wrote, one file each"),
+        new Entry("output-styles", true, Verdict.Merge, Union.Entries, "output style",
+            "output styles you wrote, and the same shape again"),
         new Entry("plugins", true, Verdict.Adopt, Union.None, "",
             "each installed plugin records an absolute installPath, so a per-entry merge leaves entries "
             + "pointing into the other profile's tree"),
@@ -116,6 +125,40 @@ internal static class ProfileLink
         new Entry(".credentials.json", false, Verdict.Never, Union.None, "",
             "a token"),
     };
+
+    /// <summary>
+    /// Per-machine scratch: entries the catalogue deliberately has no row for, declared so the edge report
+    /// below can say how many it passed over instead of listing them (T374).
+    ///
+    /// <para>Each of these is either keyed by a process id or rebuilt on demand — <c>sessions</c> and
+    /// <c>ide</c> hold pid-named files, <c>session-env</c> a directory per session uuid, and the rest are
+    /// caches, snapshots and a debug log. Linking any of them shares nothing a person would notice and
+    /// hands the script failure modes for nothing.</para>
+    ///
+    /// <para><b>Deliberately short.</b> Anything not certainly scratch belongs in the edge report, where
+    /// it is named and the reader decides — that is the whole correction T374 makes, and a generous
+    /// scratch list would undo it by turning silence into a different silence.</para>
+    /// </summary>
+    public static IReadOnlySet<string> Scratch { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "cache", "paste-cache", "shell-snapshots", "debug", "downloads", "backups", "ide",
+        "session-env", "sessions", "statsig",
+    };
+
+    /// <summary>
+    /// What sits in the two config dirs that the catalogue says nothing about (T374).
+    ///
+    /// <para><b>Why a fixed catalogue must report its own edge.</b> The list is a list of opinions, and the
+    /// honest failure mode of a list of opinions is silence about everything not on it. <c>agents</c> and
+    /// <c>commands</c> were missing for four tasks and nothing said so, because neither existed on the
+    /// machine this was built against. This is what makes the next folder Claude Code invents visible on
+    /// the first run rather than on the day somebody notices it never came across.</para>
+    ///
+    /// <para>Not a verdict: an acknowledgement. <paramref name="Unclaimed"/> is named in full and
+    /// <paramref name="Ignored"/> is a count, which is the difference between "I have no opinion about
+    /// this" and "I decided this does not matter".</para>
+    /// </summary>
+    public readonly record struct Edge(string[] Unclaimed, int Ignored);
 
     /// <summary>
     /// One catalogue entry against the two directories on disk. <paramref name="AlreadyLinked"/> is the
@@ -144,7 +187,7 @@ internal static class ProfileLink
     /// </summary>
     public sealed record Plan(
         string PrimaryDir, string PrimaryLabel, string SecondaryDir, string SecondaryLabel,
-        IReadOnlyList<Step> Steps, string? Error = null)
+        IReadOnlyList<Step> Steps, string? Error = null, Edge Edge = default)
     {
         /// <summary>The steps that will actually touch the disk under <c>-Apply</c>.</summary>
         public IEnumerable<Step> Acting => Steps.Where(s =>
@@ -199,7 +242,38 @@ internal static class ProfileLink
                     e.Verdict == Verdict.Withheld ? SettingsUnion.For(primary, secondary, e.Name) : null));
             }
 
-        return new Plan(primary, primaryLabel, secondary, secondaryLabel, steps, error);
+        return new Plan(primary, primaryLabel, secondary, secondaryLabel, steps, error,
+            error is null ? EdgeOf(primary, secondary) : default);
+    }
+
+    /// <summary>
+    /// Everything at the top level of either config dir that <see cref="Catalogue"/> has no row for,
+    /// split into what is named and what is counted (T374). Directory entries only — names, never a file
+    /// opened.
+    /// </summary>
+    private static Edge EdgeOf(string primary, string secondary)
+    {
+        var claimed = new HashSet<string>(Catalogue.Select(e => e.Name), StringComparer.OrdinalIgnoreCase);
+        var unclaimed = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        int ignored = 0;
+        foreach (string dir in new[] { primary, secondary })
+        {
+            string[] names;
+            // An unreadable config dir reports no edge rather than an empty one: this is the surface whose
+            // whole job is saying what it does not know about.
+            try { names = Directory.EnumerateFileSystemEntries(dir).Select(Path.GetFileName).ToArray()!; }
+            catch { continue; }
+            foreach (string name in names)
+            {
+                if (claimed.Contains(name)) continue;
+                // A `.pre-link-<stamp>` copy is this script's own doing, so naming it back to the reader as
+                // something nobody has an opinion about would be a second run reporting the first one.
+                if (Scratch.Contains(name) || name.Contains(".pre-link-", StringComparison.OrdinalIgnoreCase)
+                    || name.Contains(".pre-merge-", StringComparison.OrdinalIgnoreCase)) { ignored++; continue; }
+                unclaimed.Add(name);
+            }
+        }
+        return new Edge(unclaimed.ToArray(), ignored);
     }
 
     private static string Resolve(string configDir) =>
@@ -568,7 +642,41 @@ internal static class ProfileLink
         return sb.ToString();
     }
 
-    private static string Footer(Plan plan) => $$"""
+    /// <summary>
+    /// What this script has no opinion about, after the rows it does (T374). Last rather than first: a
+    /// reader has to have seen the catalogue before "and these are not in it" means anything.
+    ///
+    /// <para>Named in full, and capped only because a config dir can hold a surprising number of state
+    /// files. The count of scratch entries is beside it so the two are not confused — one is an absence of
+    /// opinion, the other is an opinion.</para>
+    /// </summary>
+    private static string EdgeNote(Plan plan, int show = 8)
+    {
+        Edge edge = plan.Edge;
+        if (edge.Unclaimed.Length == 0)
+            return $"""
+
+                # Nothing else at the top level of either profile that this script has no opinion about
+                # ({edge.Ignored} per-machine cache/snapshot entry(ies) passed over).
+
+                """;
+        var sb = new StringBuilder();
+        sb.AppendLine($"""
+
+            # AND WHAT THIS SCRIPT SAYS NOTHING ABOUT. {edge.Unclaimed.Length} entry(ies) sit at the top level
+            # of one of these two profiles and appear in none of the rows above - not because they are safe
+            # to share, and not because they are not, but because nothing here has an opinion about them.
+            # They are named so that you can have one. {edge.Ignored} further per-machine cache and snapshot
+            # entry(ies) were passed over and are not listed.
+            #
+            """);
+        foreach (string name in edge.Unclaimed.Take(show)) sb.AppendLine($"#   {name}");
+        if (edge.Unclaimed.Length > show)
+            sb.AppendLine($"#   ... and {edge.Unclaimed.Length - show} more");
+        return sb.ToString();
+    }
+
+    private static string Footer(Plan plan) => EdgeNote(plan) + $$"""
 
         Note ''
         if ($Apply) {

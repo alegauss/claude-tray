@@ -238,6 +238,7 @@
   "settings.cc.linkPlan": "O que o script faria",
   "settings.cc.linkPlanCount": "{0} pasta(s) e arquivo(s) passariam a ser atalhos em {1}. Seu login e o arquivo da sua conta nunca são tocados.",
   "settings.cc.linkNeedsDev": "Um deles é um arquivo, o que exige o Modo de Desenvolvedor ligado no Windows - o script confere isso antes de mudar qualquer coisa.",
+  "settings.cc.linkEdge": "{0} outro(s) item(ns) ficam ao lado destes e esta lista não tem opinião sobre eles, então continuam separados: {1}",
   "settings.cc.linkSame": "Escolha dois perfis diferentes.",
   "settings.cc.linkMerged": "unido",
   "settings.cc.linkAdopted": "adotado",

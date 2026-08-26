@@ -691,7 +691,9 @@ export const profiles = {
         { code: "deny" },
         " counted apart, since those take capability away rather than granting it; and ",
         { b: "never" },
-        " for your sign-in and the file that makes it a separate account.",
+        " for your sign-in and the file that makes it a separate account. And it names everything else in the two folders that it has ",
+        { b: "no opinion about" },
+        " — because a list of opinions that says nothing about what is not on it reads as a complete one.",
       ] as Rich,
     },
     {

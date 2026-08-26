@@ -5135,6 +5135,18 @@ internal static class SelfTestCli
                   (e.Verdict == ProfileLink.Verdict.Merge) == (e.Unit.Length > 0)));
         Check("every entry explains itself — the script is read before it is run",
               ProfileLink.Catalogue.All(e => e.Why.Length > 0));
+        // The three rows T374 added, and the shape they share with `skills`: one folder each, so the union
+        // is by entry name. They were missing for four tasks because neither existed on the machine this
+        // was built against, which is the whole argument for the edge report below.
+        Check("what a user writes themselves is all merged the same way",
+              new[] { "skills", "agents", "commands", "output-styles" }.All(
+                  n => byName[n] is { Verdict: ProfileLink.Verdict.Merge, Union: ProfileLink.Union.Entries }));
+        // Catalogue and scratch must be disjoint, or an entry is both an opinion and passed over and the
+        // edge report becomes incoherent about which of the two it is.
+        Check("no entry is both catalogued and dismissed as scratch",
+              !ProfileLink.Catalogue.Any(e => ProfileLink.Scratch.Contains(e.Name)),
+              string.Join(", ", ProfileLink.Catalogue.Where(e => ProfileLink.Scratch.Contains(e.Name))
+                                                     .Select(e => e.Name)));
 
         ProfileLink.Plan plan = ProfileLink.For(primary, secondary, "Personal", "Work");
         Check("a lopsided pair composes a plan", plan.Error is null, plan.Error ?? "");
@@ -5266,6 +5278,42 @@ internal static class SelfTestCli
         Check("and the script says so rather than linking into nothing",
               ProfileLink.Script(gap).Contains("nothing to link into", StringComparison.Ordinal));
         File.WriteAllText(Path.Combine(primary, "CLAUDE.md"), "{}\n");
+
+        // The edge (T374): a fixed catalogue has to report what it has no row for, or a reader is told
+        // nothing is missing. Both sides contribute, and the two kinds of "not a row" stay apart —
+        // scratch is counted, everything else is named.
+        Directory.CreateDirectory(Path.Combine(primary, "something-new-claude-code-invented"));
+        Directory.CreateDirectory(Path.Combine(secondary, "only-over-here"));
+        Directory.CreateDirectory(Path.Combine(primary, "shell-snapshots"));
+        Directory.CreateDirectory(Path.Combine(secondary, "paste-cache"));
+        Directory.CreateDirectory(Path.Combine(secondary, "projects.pre-link-20260101-000000"));
+        ProfileLink.Plan edged = ProfileLink.For(primary, secondary, "Personal", "Work");
+        Check("an entry the catalogue has no row for is named, from either side",
+              edged.Edge.Unclaimed.Contains("something-new-claude-code-invented")
+              && edged.Edge.Unclaimed.Contains("only-over-here"),
+              string.Join(", ", edged.Edge.Unclaimed));
+        Check("scratch is counted rather than named, which is an opinion and not an absence of one",
+              edged.Edge.Ignored >= 2
+              && !edged.Edge.Unclaimed.Contains("shell-snapshots")
+              && !edged.Edge.Unclaimed.Contains("paste-cache"),
+              $"{edged.Edge.Ignored} ignored, unclaimed: {string.Join(", ", edged.Edge.Unclaimed)}");
+        // A second run must not report the first one's own leftovers as things nobody has an opinion about.
+        Check("and this script's own moved-aside copies are not reported back to the reader",
+              !edged.Edge.Unclaimed.Any(n => n.Contains(".pre-link-", StringComparison.Ordinal)),
+              string.Join(", ", edged.Edge.Unclaimed));
+        Check("nothing in the catalogue turns up as unclaimed",
+              !edged.Edge.Unclaimed.Any(n => ProfileLink.Catalogue.Any(
+                  e => string.Equals(e.Name, n, StringComparison.OrdinalIgnoreCase))));
+        string edgedScript = ProfileLink.Script(edged);
+        Check("the script names every unclaimed entry, since a count alone cannot be acted on",
+              edged.Edge.Unclaimed.All(n => edgedScript.Contains(n, StringComparison.Ordinal)));
+        Check("and says plainly that it has no opinion rather than that they are safe",
+              edgedScript.Contains("nothing here has an opinion about them", StringComparison.Ordinal));
+        Directory.Delete(Path.Combine(primary, "something-new-claude-code-invented"));
+        Directory.Delete(Path.Combine(secondary, "only-over-here"));
+        Directory.Delete(Path.Combine(primary, "shell-snapshots"));
+        Directory.Delete(Path.Combine(secondary, "paste-cache"));
+        Directory.Delete(Path.Combine(secondary, "projects.pre-link-20260101-000000"));
 
         // The two refusals that are about the arguments, not the filesystem.
         Check("the same directory on both sides is refused rather than linked to itself",

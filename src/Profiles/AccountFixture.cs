@@ -143,6 +143,11 @@ internal static class AccountFixture
                 Directory.CreateDirectory(Path.Combine(dir, "projects", $"D--work-sample-project-{i}"));
             for (int i = 1; i <= 3; i++)
                 Write(Path.Combine(dir, "skills", $"sample-skill-{i}", "SKILL.md"), "# sample\n");
+            // T374's two new rows, on both sides so they render as real merges rather than three
+            // "does not have it" rows in a row. `output-styles` is deliberately left out of both, so that
+            // branch keeps exactly one row — it is information, and three of it is a broken fixture.
+            Write(Path.Combine(dir, "agents", "sample-agent.md"), "# sample\n");
+            Write(Path.Combine(dir, "commands", "sample-command.md"), "# sample\n");
             Directory.CreateDirectory(Path.Combine(dir, "plugins"));
             Write(Path.Combine(dir, "history.jsonl"), "");
         }
@@ -166,6 +171,11 @@ internal static class AccountFixture
               }
             }
             """);
+        // One entry the catalogue has no row for, so the plan's edge sentence appears in a published shot
+        // (T374) — the third time this fixture has had to grow a case a real machine has and it did not.
+        // `todos` is a folder Claude Code really keeps and this script really has no opinion about, which is
+        // the whole point of that sentence: it is not a warning, it is an admission.
+        Directory.CreateDirectory(Path.Combine(work, "todos"));
         for (int i = 1; i <= 12; i++)
             Directory.CreateDirectory(Path.Combine(work, "file-history", $"session-{i:00}"));
         Write(Path.Combine(personal, "CLAUDE.md"), "# sample\n");

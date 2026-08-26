@@ -242,6 +242,7 @@
   "settings.cc.linkPlan": "What the script would do",
   "settings.cc.linkPlanCount": "{0} folder(s) and file(s) would become links in {1}. Your sign-in and your account file are never touched.",
   "settings.cc.linkNeedsDev": "One of them is a file, which needs Developer Mode turned on in Windows - the script checks that before it changes anything.",
+  "settings.cc.linkEdge": "{0} other item(s) sit beside these and this list has no opinion about them, so they stay separate: {1}",
   "settings.cc.linkSame": "Pick two different profiles.",
   "settings.cc.linkMerged": "merged",
   "settings.cc.linkAdopted": "adopted",

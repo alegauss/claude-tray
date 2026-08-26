@@ -238,6 +238,7 @@
   "settings.cc.linkPlan": "Ce que ferait le script",
   "settings.cc.linkPlanCount": "{0} dossier(s) et fichier(s) deviendraient des raccourcis dans {1}. Votre connexion et le fichier de votre compte ne sont jamais touchés.",
   "settings.cc.linkNeedsDev": "L'un d'eux est un fichier, ce qui exige le mode développeur activé dans Windows - le script le vérifie avant de rien changer.",
+  "settings.cc.linkEdge": "{0} autre(s) élément(s) se trouvent à côté de ceux-ci et cette liste n'a aucun avis à leur sujet : ils restent séparés : {1}",
   "settings.cc.linkSame": "Choisissez deux profils différents.",
   "settings.cc.linkMerged": "fusionné",
   "settings.cc.linkAdopted": "adopté",

@@ -255,6 +255,12 @@ internal static class ProfilesCli
                                   : "adopted whole"));
         }
         Console.WriteLine();
+        // The catalogue's own edge (T374), read out beside the plan because a list of opinions that does
+        // not say what it has no opinion about reads as a complete one.
+        Console.WriteLine(plan.Edge.Unclaimed.Length == 0
+            ? $"nothing else at the top level has no row here ({plan.Edge.Ignored} scratch entry(ies) passed over)"
+            : $"{plan.Edge.Unclaimed.Length} entry(ies) have no row here and no opinion either "
+              + $"({plan.Edge.Ignored} scratch passed over): {string.Join(", ", plan.Edge.Unclaimed)}");
         Console.WriteLine($"{plan.Acting.Count()} entry(ies) would be linked"
                           + (plan.NeedsSymlink
                               ? "; one of them is a file, so the script refuses without Developer Mode"

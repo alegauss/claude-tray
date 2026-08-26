@@ -238,6 +238,7 @@
   "settings.cc.linkPlan": "Lo que haría el script",
   "settings.cc.linkPlanCount": "{0} carpeta(s) y archivo(s) pasarían a ser accesos directos en {1}. Tu sesión y el archivo de tu cuenta nunca se tocan.",
   "settings.cc.linkNeedsDev": "Uno de ellos es un archivo, lo que exige el modo de desarrollador activado en Windows - el script lo comprueba antes de cambiar nada.",
+  "settings.cc.linkEdge": "{0} otro(s) elemento(s) están junto a estos y esta lista no opina sobre ellos, así que siguen separados: {1}",
   "settings.cc.linkSame": "Elige dos perfiles distintos.",
   "settings.cc.linkMerged": "unido",
   "settings.cc.linkAdopted": "adoptado",

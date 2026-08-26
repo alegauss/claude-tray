@@ -613,8 +613,9 @@ wrong one loses a folder.
 **Settings → Claude Code → One setup across profiles** picks which profile keeps its files and shows you,
 per folder and file, what sharing them would mean:
 
-- **merged** — `projects`, `file-history` and `skills` are unioned first, so neither side loses anything,
-  and the row says how many folders would be copied over. `history.jsonl` is merged line by line.
+- **merged** — `projects`, `file-history` and the things you wrote yourself (`skills`, `agents`,
+  `commands`, `output-styles`) are unioned first, so neither side loses anything, and the row says how
+  many folders would be copied over. `history.jsonl` is merged line by line.
 - **adopted** — `plugins` and your `CLAUDE.md` are taken whole from the profile that keeps its files.
   A plugin records where it was installed, so merging those entry by entry would leave half of them
   pointing at a folder that is no longer there.
@@ -627,6 +628,13 @@ per folder and file, what sharing them would mean:
   commented out, for you to uncomment on the evidence.
 - **never** — `.claude.json` and `.credentials.json`. Your sign-in and the file that makes this a
   separate account are not part of "one setup", and no button here will touch them.
+
+**And it says what it has no opinion about.** The list above is a list of opinions, so the plan closes by
+naming everything else sitting at the top level of either folder — not because those are safe to share and
+not because they are not, but because nothing here has a view. Per-machine caches and snapshots are
+counted rather than named. That line exists because `agents` and `commands` were missing from the list for
+four releases and nothing said so: a row can be added later, and being told nothing is missing cannot be
+undone.
 
 **The button writes a script; nothing else happens.** Claude Code Tray has no way to write into a
 configuration folder and isn't growing one — so **Write script…** saves a PowerShell file where you point

@@ -43,8 +43,6 @@
 
 ---
 
-## Block O — Profiles
-
 ## Block AI — Verification — the checks that prove a change
 
 ## Block G — Localization
@@ -847,31 +845,6 @@ has never had.
 
 That is the shape to expect from a fixed catalogue and a growing page. The catalogue is a list of
 opinions, and the honest failure mode of a list of opinions is silence about everything not on it.
-
-### XCV.1 A fixed catalogue that does not report its own edge (T374)
-
-`ProfileLink.Catalogue` is ten rows, and its own doc says so proudly: an entry earns a row by being
-part of the *setup*, and `cache`, `shell-snapshots` and the rest are scratch that linking would
-share nothing by. That reasoning is right and it has a hole in it. The list is a list of
-**opinions**, and the honest failure mode of a list of opinions is silence about everything not on
-it.
-
-Claude Code already keeps `agents\` and `commands\` in a config dir, and neither is named here.
-Neither exists on the machine this was found on, which is exactly why it went unnoticed: a user who
-has written a subagent or a slash command gets a script that shares their skills and their plugins,
-says nothing about the two folders beside them, and leaves those to be linked by hand — in the order
-that loses a tree, which is the thing this script exists to replace.
-
-- **The rows that are missing.** `agents` and `commands` are `Merge` by entry name, exactly like
-  `skills`: one folder each, a name on both sides is a real conflict, the union loses nothing. Worth a
-  decision too: `output-styles`, the same shape again.
-- **And a line for everything else.** After the ten rows, the script should say how many top-level entries
-  exist on either side that it has no opinion about, and name them. Not a verdict — an acknowledgement, so
-  the next folder Claude Code invents is visible on the first run rather than on the day somebody notices
-  their agents never came across. The page's plan gets the count too.
-
-The rule this settles: **a fixed catalogue must report its own edge.** A row can be added later;
-being told nothing is missing cannot be undone.
 
 ### XCV.2 A capture that cannot say what it framed (T375)
 
