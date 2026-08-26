@@ -632,9 +632,8 @@ per folder and file, what sharing them would mean:
 **And it says what it has no opinion about.** The list above is a list of opinions, so the plan closes by
 naming everything else sitting at the top level of either folder — not because those are safe to share and
 not because they are not, but because nothing here has a view. Per-machine caches and snapshots are
-counted rather than named. That line exists because `agents` and `commands` were missing from the list for
-four releases and nothing said so: a row can be added later, and being told nothing is missing cannot be
-undone.
+counted rather than named. If something you keep in one of those folders matters to you, that line is
+where you will see it.
 
 **The button writes a script; nothing else happens.** Claude Code Tray has no way to write into a
 configuration folder and isn't growing one — so **Write script…** saves a PowerShell file where you point
