@@ -43,6 +43,10 @@
 
 ---
 
+## Block O — Profiles
+
+## Block AI — Verification — the checks that prove a change
+
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -830,3 +834,129 @@ maintained the same way instead of each carrying its own conventions.
 T369 finished the shape by drawing what the other three have and this one did not: a band closing
 the hero and opening the footer, whose motif is the product's own subject. Here that is the icon —
 bars rising from a floor, with the even-pace line ruled across them.
+
+## XCIII What making two profiles one setup leaves behind
+
+The script that links two config dirs into one setup exists and works, and running it for the first
+time on a real pair is what produced everything below. Three of the four findings are not about the
+composer at all — they are about what a linked pair then *is*, to an app whose whole reading of
+"which profile is being worked in" is the newest write under a `projects` tree.
+
+That is the shape to expect from here. The link is a one-line command; the consequences of having
+run it are spread across auto-follow, the settings page and the checks, and none of them were
+visible while the two directories were separate.
+
+### XCIII.1 A button on the page where the two profiles are already registered (T370)
+
+The composer, its catalogue and the script it emits all landed under T367, and the only way to reach
+any of it is `--link-profiles`, a flag written down in a skill for whoever is editing this
+repository. The person who needs it has two profiles registered on the Claude Code settings page and
+wants to keep working through a change of subscription — and nothing on that page says the two can
+be made one setup at all.
+
+`ContextPrompt` is the precedent and the shape is proven there: a button that composes text and
+hands it over, the app writing nothing of its own. The differences are what this has to settle.
+
+- **It produces a file, so a clipboard copy is the wrong verb.** A cleanup prompt is pasted into a
+  conversation; a script is run. The button writes a `.ps1` and reveals it, and the confirmation says
+  where it went — a file the user cannot find is one they will compose again.
+- **The plan is the surface, not the script.** Ten rows, four verdicts and the counts a union would
+  copy: that is what belongs on the page. Which side keeps its files is a choice it has to offer and
+  cannot guess, and it is the choice that decides what a mistake costs.
+- **Localized, and the script is not.** Five `lang` files for the page's strings; the emitted text
+  stays English, for the reason its own type doc gives.
+- **It must not read as an action.** No progress bar, nothing that suggests the app did the linking.
+  The constraint is that it never writes into a config dir, and a button that looks like it did is
+  worse than no button.
+
+### XCIII.2 The toggle a successful link turns into a no-op (T371)
+
+T365 took two profiles behind one `projects` tree out of auto-follow's running, and it is right to:
+the newest write under a shared tree is the same fact twice, and no threshold on the comparison can
+supply evidence that was never measured. T367 then shipped the thing that *creates* that shape on
+purpose, and `projects` is the first entry in its catalogue.
+
+So the app now hands the user a script whose first line disables a feature the settings page offers
+a toggle for, and says nothing about it. On the machine this was found on, three of the six entries
+were already linked by hand and `--profiles` had been reporting `shares its transcripts, so not
+evidence` for weeks — a read-out nobody opens, describing a toggle that looks on and does nothing.
+
+Three surfaces, and the order matters because the first is the only one that prevents the surprise
+rather than explaining it after.
+
+- **The script.** It knows `projects` is in its plan, so the header can say what the pair loses:
+  auto-follow, and only for these two. Cheapest, and it lands before the decision.
+- **The toggle.** `FollowActiveProfile` on a machine where every followable profile shares a tree is
+  a control with no effect. The description can say so from the reading `--profiles` already has —
+  and this is a description, not a disabled control, because a third profile arriving makes it work
+  again with nothing changed.
+- **The read-out's suggestion.** `--profiles` closes with `--link-profiles 0 1` whenever there is more
+  than one profile, including when that pair is already linked. It should not offer work that is done.
+
+The non-goal it does not touch: nothing here restores following for a shared tree. There is no
+evidence to follow, and inventing one is what T365 refused.
+
+### XCIII.3 A withheld decision with nothing to decide it on (T373)
+
+`settings.json` is withheld for a good reason: unioning two of them widens the other account's
+permission allowlist, and that is the user's decision rather than a default. So the script emits the
+commands commented out, with the sentence explaining why, and stops.
+
+Which leaves the decision made blind. The person reading it is being asked whether to widen an
+allowlist, and the script names neither allowlist. Everything needed to answer is on disk in two
+files the app already opens, and the answer is short: **these N entries would be added to the other
+side, and here they are.**
+
+- **The added entries, not a diff.** `permissions.allow`, `deny` and `ask` are lists of rule strings; a
+  union adds to one side and to the other, and those two sets are the whole reading. Not "the files
+  differ", which is true of every pair and settles nothing.
+- **A `deny` widening is not the same event.** Adding to `deny` narrows what the other account can do,
+  which is safe in the direction that matters and worth saying separately — a script that reports "12
+  rules would be added" without splitting them has made the safe half look like the risky one.
+- **The hooks are the other half.** A hook is a command line that runs; adopting the other profile's
+  is a bigger decision than adopting a path rule, and it belongs in the same report rather than folded
+  into a count.
+- **Read, never merged.** This still emits no active command for `settings.json`. It reports what the
+  union would be so the commented-out command can be uncommented on evidence — that is the whole
+  change, and the verdict stays `Withheld`.
+- **`settings.local.json` is the same reading**, and the two are reported apart: one is shared and one
+  is this machine's.
+
+## XCIV A program this program writes, and nothing that runs it
+
+`--selftest` holds two kinds of claim: an invariant over synthetic inputs, and a document against
+the thing it documents. T367 added a third thing to this repository that is neither — a **program
+this program writes**, whose failures are not in its text and are not in any file the checks can
+read.
+
+Both of its real defects were found the same way: by a person running it, on the shell a user
+actually has. That is not a loop that scales, and it is the loop every generated artifact from here
+will need.
+
+### XCIV.1 The check that has to run the script (T372)
+
+The 31 assertions T367 added all read the emitted text: which verdict each entry carries, that no
+command names the token, that the refusal sits above the first `Move-Item`. Every one of them passed
+on the version of the script that could not complete a single run.
+
+Two defects, and neither is visible in text. `(Get-Item …).ResolveLinkTarget($true)` compiles
+nowhere and parses cleanly — it is a method that does not exist on .NET Framework, so Windows
+PowerShell 5.1 threw `MethodNotFound` at the verification step of the first entry. And `New-Item
+-ItemType SymbolicLink` does not pass `SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE`, so it fails
+with "requires administrator privilege" on a machine whose Developer Mode the preflight had just
+checked for and approved. `mklink` succeeds there; the two lines are seven lines apart and read as
+equivalent.
+
+The repo already parses every `.ps1` under `scripts\` with the PowerShell parser, and that check
+would have caught neither: both are runtime resolution, and the second is a privilege.
+
+What would catch them is running the thing, which is what a check has not been willing to do because
+the script's whole purpose is to move a config dir. The lever is that the script does not care whose
+directories it is given: `ProfileLink.For` takes two paths.
+
+- **A synthetic pair, and `-Apply` against it.** Two throwaway config dirs, the plan composed off them,
+  the emitted script run for real, then the tree asserted — six links, the originals beside them, the
+  union in the primary. `Temp` already builds and removes such a tree, and reparse points have to be
+  deleted before it, which its cleanup cannot do.
+- **The shell it has to be run in.** `powershell.exe`, not `pwsh`: 5.1 is where both defects live, and
+  a check that only proves 7.x would have gone green on both.
