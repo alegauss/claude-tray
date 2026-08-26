@@ -316,7 +316,7 @@ Query instead of reading: `pick` chooses the next task, `brief <id>` is what it 
   walk to reconcile.
 - **Single instance** is enforced by a named mutex; a second launch exits silently.
 - The marketing page is the [`site/`](site/README.md) workspace, prerendered; `docs/` no longer exists.
-- **New user-visible strings go into all five `lang/*.json`**, not just `en`. `--selftest` now fails on a
-  key that reached one file, or a `{0}` that did not survive translation (T185), so what is left to you is
-  the part it cannot hold: `--lang <code>` (process-only override, saved preference untouched) and a
-  screenshot in at least one non-English language before calling a UI change done.
+- **New user-visible strings go into all five `lang/*.json`**, not just `en`, and a **counted** one is a
+  `.one`/`.many` pair read by `L.N`. `--selftest` fails a key that reached one file, a `{0}` lost in
+  translation, half a pair, or a `word(s)` plural in any language (T185, T376, T378). What is left to you:
+  `--lang <code>` (process-only override) and a screenshot in a non-English language before calling it done.

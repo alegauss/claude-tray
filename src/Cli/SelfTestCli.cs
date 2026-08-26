@@ -2156,6 +2156,42 @@ internal static class SelfTestCli
         }
 
         Plurals(en);
+        NoParenthesisedPlural();
+    }
+
+    /// <summary>
+    /// The shape <c>L.N</c> replaced, refused everywhere rather than merely cleaned up once (T378).
+    ///
+    /// <para><b>Why this is a check and not a convention.</b> <c>(s)</c> was never a decision anybody
+    /// made — six strings drifted into it over four tasks while the <c>.one</c>/<c>.many</c> pairs for
+    /// doing it properly already existed three keys away. Nothing refused the next one, so the cleanup
+    /// was a cleanup: a thing that happens twice. Zero remain today, which is exactly when adopting the
+    /// rule costs nothing.</para>
+    ///
+    /// <para><b>The shape, not a list of three.</b> A parenthesised suffix of one to three letters glued
+    /// to a word — <c>regra(s)</c>, <c>item(ns)</c>, <c>entry(ies)</c>, <c>élément(s)</c> — because the
+    /// four this repository actually used are four of a family, and a check naming only them is one the
+    /// fifth walks past. A parenthetical with a space in front of it is prose and is left alone.</para>
+    ///
+    /// <para><b>Every language, not just <c>en</c>.</b> <c>regra(s)</c> reaching only the Portuguese file
+    /// is exactly as wrong and would otherwise be invisible: the key-set and placeholder comparisons above
+    /// both pass on it, since the shape is neither a missing key nor a missing hole.</para>
+    ///
+    /// <para>No allowlist. A string could in principle need a literal one — a file mask, a quoted
+    /// command — and none does; inventing the escape hatch for a case that has never occurred is how a
+    /// check becomes something people route around. Add one the day a string needs it, and let the red
+    /// build be that conversation.</para>
+    /// </summary>
+    private static void NoParenthesisedPlural()
+    {
+        var shape = new Regex(@"\p{L}\(\p{Ll}{1,3}\)", RegexOptions.Compiled);
+        string[] found = L.Codes
+            .SelectMany(code => L.Strings(code).Where(kv => shape.IsMatch(kv.Value))
+                                              .Select(kv => $"{code}:{kv.Key}"))
+            .Order(StringComparer.Ordinal).ToArray();
+        Check($"no string counts with a parenthesised plural ({L.Codes.Count} languages)",
+              found.Length == 0,
+              Named(found, "written as word(s) — the pair is `<stem>.one` / `<stem>.many` through L.N"));
     }
 
     /// <summary>

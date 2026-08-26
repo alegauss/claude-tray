@@ -43,8 +43,6 @@
 
 ---
 
-## Block G — Localization
-
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -832,38 +830,3 @@ maintained the same way instead of each carrying its own conventions.
 T369 finished the shape by drawing what the other three have and this one did not: a band closing
 the hero and opening the footer, whose motif is the product's own subject. Here that is the icon —
 bars rising from a floor, with the even-pace line ruled across them.
-
-## XCVI Where (s) survived the plural pairs
-
-Taking `(s)` out of the strings a window shows left it in two places that are not windows. One of
-them does not matter: a dev read-out's audience is whoever is editing this repository, and that was
-said out loud when the plural pairs landed.
-
-The other does. The linking script is **English prose a user reads before running it**, and it
-counts things in five places. And nothing anywhere refuses the next `(s)` written into a lang file,
-which is what separates a convention from a cleanup that happens twice.
-
-### XCVI.2 A cleanup that is not yet a rule (T378)
-
-T376's sweep holds the pairs that exist: a stem with `.one` and no `.many`, or a `.many` with no
-`{0}`, is a red build. What it does not do is stop a *new* string being written the old way. Nothing
-refuses `"{0} rule(s) would grant something new"` in `en.json` tomorrow, and the reason that matters
-is the history: `(s)` was not a decision anybody made, it was what six strings drifted into over
-four tasks while the convention for doing it properly already existed three pairs away.
-
-So T376 is currently a cleanup. One assertion turns it into a rule.
-
-- **Refuse `(s)`, `(es)` and `(ies)` in any lang file.** Zero remain today, so this costs nothing to
-  adopt and is a red build the moment somebody reaches for the old shape. Named per key, not counted:
-  the fix is to write the pair, and the message should say so rather than leaving the author to find
-  T376.
-- **The escape hatch, and whether it is needed.** A legitimate string could in principle carry a
-  literal `(s)` — a regex, a file mask, a quoted command. None does, and inventing an allowlist for a
-  case that has never occurred is the kind of generality that makes a check ignorable. Add one when a
-  string needs it, and let the red build be the conversation.
-- **Where it goes.** Beside the parity checks in the same sweep, over `en` and every translation:
-  `regra(s)` reaching only the Portuguese file is exactly as wrong and would otherwise be invisible,
-  since the key-set and placeholder comparisons both pass on it.
-
-The rule this settles: a convention worth cleaning up is worth a check, or it is a convention that
-gets cleaned up again.

@@ -24,10 +24,6 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block G — Localization
-
-- 📋 **T378** (deps: —) **Nothing refuses the next rule(s) written into a lang file, so T376 is a cleanup and not a rule** — Zero remain today, so one assertion over every language file costs nothing to adopt and is red the moment somebody reaches for the old shape. → §XCVI.2
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
