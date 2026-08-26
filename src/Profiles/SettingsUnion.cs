@@ -218,7 +218,10 @@ internal static class SettingsUnion
             yield break;
         }
 
-        yield return $"#   {reading.Granting} entry(ies) would GRANT something that is not granted today"
+        // Both words given, and the verb with them (T377): this text is read by a person deciding whether
+        // to widen a permission allowlist, and "1 entry(ies) would GRANT" is not the sentence to do it on.
+        yield return $"#   {ProfileLink.Counted(reading.Granting, "entry", "entries")} would GRANT something "
+                     + "that is not granted today"
                      + (reading.Narrowing > 0 ? $", and {reading.Narrowing} would take something away." : ".");
         foreach (Widening w in reading.Lists)
         {
@@ -233,7 +236,8 @@ internal static class SettingsUnion
             }
         }
         foreach (HookGap h in reading.Hooks)
-            yield return $"#   hooks.{h.Event}: {h.OnPrimary} command(s) on the side that keeps its files, "
-                         + $"{h.OnSecondary} on the other - a hook is a command line that runs";
+            yield return $"#   hooks.{h.Event}: {ProfileLink.Counted(h.OnPrimary, "command", "commands")} on "
+                         + $"the side that keeps its files, {h.OnSecondary} on the other - a hook is a "
+                         + "command line that runs";
     }
 }

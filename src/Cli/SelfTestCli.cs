@@ -5176,10 +5176,17 @@ internal static class SelfTestCli
               ProfileLink.Catalogue.All(e =>
                   (e.Verdict == ProfileLink.Verdict.Merge) == (e.Union != ProfileLink.Union.None)));
         // A merged entry's count is the only figure a reader can sanity-check before typing -Apply, so it
-        // has to be a count of something named: "338 session uuid(s)" and not "338 item(s)".
+        // has to be a count of something named: "338 session uuids" and not "338 items".
         Check("and every merged entry says what it is counting, and only merged entries do",
               ProfileLink.Catalogue.All(e =>
-                  (e.Verdict == ProfileLink.Verdict.Merge) == (e.Unit.Length > 0)));
+                  (e.Verdict == ProfileLink.Verdict.Merge) == e.Unit.Any));
+        // Both forms of it, since the script counts in English with no lang file to reach (T377). Distinct,
+        // because a pair that is the same word is a pair somebody wrote to satisfy the type.
+        Check("and names it in both its forms, which are two different words",
+              ProfileLink.Catalogue.Where(e => e.Unit.Any).All(
+                  e => e.Unit.Many.Length > 0 && e.Unit.Many != e.Unit.One),
+              string.Join(", ", ProfileLink.Catalogue.Where(e => e.Unit.Any)
+                  .Select(e => $"{e.Unit.One}/{e.Unit.Many}")));
         Check("every entry explains itself — the script is read before it is run",
               ProfileLink.Catalogue.All(e => e.Why.Length > 0));
         // The three rows T374 added, and the shape they share with `skills`: one folder each, so the union
@@ -5306,6 +5313,30 @@ internal static class SelfTestCli
         Check("the script's own prose is ASCII, so no shell can mangle it",
               mangled.Length == 0, new string(mangled));
 
+        // No `(s)` anywhere in a file a user reads before it moves their transcripts (T377). The lang sweep
+        // holds the window's strings; this holds the one English surface that has no lang file — and it
+        // covers both halves, the text composed here and the counts PowerShell composes at run time,
+        // because the second is the half a person actually sees.
+        string[] hacked = script.Split('\n')
+            .Where(l => l.Contains("(s)", StringComparison.Ordinal)
+                        || l.Contains("(es)", StringComparison.Ordinal)
+                        || l.Contains("(ies)", StringComparison.Ordinal))
+            .Select(l => l.Trim()).ToArray();
+        Check("and counts a thing by naming it, never with (s)", hacked.Length == 0,
+              string.Join(" | ", hacked.Take(3)));
+        Check("the run-time counts go through the script's own Count, which takes both words",
+              script.Contains("function Count($n, $one, $many)", StringComparison.Ordinal)
+              && script.Contains("(Count $new.Count '", StringComparison.Ordinal));
+        // The singular, which is the case a reader meets most often because the interesting unions are
+        // small — and the one `(s)` read worst on.
+        Check("one of a thing reads as one of it",
+              ProfileLink.Counted(1, ProfileLink.Noun.Of("skill")) == "1 skill"
+              && ProfileLink.Counted(2, ProfileLink.Noun.Of("skill")) == "2 skills"
+              && ProfileLink.Counted(0, ProfileLink.Noun.Of("skill")) == "0 skills");
+        Check("and an irregular noun is spelled, not derived",
+              ProfileLink.Counted(1, "entry", "entries") == "1 entry"
+              && ProfileLink.Counted(3, "entry", "entries") == "3 entries");
+
         // The link is made with mklink and not New-Item, and the reason is measured: in PowerShell 5.1
         // New-Item does not pass the unprivileged-create flag, so it fails with "requires administrator
         // privilege" on the very machine whose Developer Mode the preflight just checked for. Asserted
@@ -5355,7 +5386,7 @@ internal static class SelfTestCli
         Check("the script names every unclaimed entry, since a count alone cannot be acted on",
               edged.Edge.Unclaimed.All(n => edgedScript.Contains(n, StringComparison.Ordinal)));
         Check("and says plainly that it has no opinion rather than that they are safe",
-              edgedScript.Contains("nothing here has an opinion about them", StringComparison.Ordinal));
+              edgedScript.Contains("but because nothing here has an", StringComparison.Ordinal));
         Directory.Delete(Path.Combine(primary, "something-new-claude-code-invented"));
         Directory.Delete(Path.Combine(secondary, "only-over-here"));
         Directory.Delete(Path.Combine(primary, "shell-snapshots"));
@@ -5506,6 +5537,16 @@ internal static class SelfTestCli
               lines.Any(l => l.Contains("permissions.deny") && l.Contains("NARROWS", StringComparison.Ordinal)));
         Check("and say what a hook is, since that is the larger of the two decisions",
               lines.Any(l => l.Contains("a hook is a command line that runs", StringComparison.Ordinal)));
+        // The `(s)` guard belongs here as well as over the whole script (T377), and finding that out is the
+        // lesson: the script-wide scan runs over one plan, and that plan's two settings files are identical,
+        // so the granting line it would have caught was never emitted. A scan is worth what its fixture
+        // makes the code say — these lines are the only place this branch speaks.
+        Check("and count a thing by naming it, never with (s)",
+              !lines.Any(l => l.Contains("(s)", StringComparison.Ordinal)
+                              || l.Contains("(es)", StringComparison.Ordinal)
+                              || l.Contains("(ies)", StringComparison.Ordinal)),
+              lines.FirstOrDefault(l => l.Contains("(s)", StringComparison.Ordinal)
+                                        || l.Contains("(ies)", StringComparison.Ordinal)) ?? "");
 
         // Unreadable is its own answer. A file of nonsense must not read as two files that agree.
         File.WriteAllText(Path.Combine(b, "settings.json"), "not json at all {{{");

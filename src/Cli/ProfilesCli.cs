@@ -251,7 +251,7 @@ internal static class ProfilesCli
                                   : s.AlreadyLinked ? "already linked"
                                   : !s.OnPrimary ? "not on the primary side — skipped"
                                   : s.Entry.Union == ProfileLink.Union.Lines ? "union by line"
-                                  : s.Entry.Union == ProfileLink.Union.Entries ? $"union by {s.Entry.Unit}"
+                                  : s.Entry.Union == ProfileLink.Union.Entries ? $"union by {s.Entry.Unit.One}"
                                   : "adopted whole"));
         }
         Console.WriteLine();

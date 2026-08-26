@@ -24,10 +24,6 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block O — Profiles
-
-- 📋 **T377** (deps: —) **The script a user reads before it moves their transcripts says 5 entry(ies) and 12 session uuid(s)** — It is English prose with no lang file to reach, so the singular is a conditional at five call sites and a PowerShell one where the count is composed at run time. → §XCVI.1
-
 ## Block G — Localization
 
 - 📋 **T378** (deps: —) **Nothing refuses the next rule(s) written into a lang file, so T376 is a cleanup and not a rule** — Zero remain today, so one assertion over every language file costs nothing to adopt and is red the moment somebody reaches for the old shape. → §XCVI.2

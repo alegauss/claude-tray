@@ -43,8 +43,6 @@
 
 ---
 
-## Block O — Profiles
-
 ## Block G — Localization
 
 ## §I — House constraints
@@ -844,31 +842,6 @@ said out loud when the plural pairs landed.
 The other does. The linking script is **English prose a user reads before running it**, and it
 counts things in five places. And nothing anywhere refuses the next `(s)` written into a lang file,
 which is what separates a convention from a cleanup that happens twice.
-
-### XCVI.1 The one English surface that is not a read-out (T377)
-
-The emitted script is the one surface in this repository that is **English prose for a user** and
-not for a translator or a developer. Its own type doc says why: the audience is PowerShell and the
-person reading it before they run it, so it takes no lang file and never will.
-
-That exemption is about translation, and `(s)` is not a translation problem — it is an English one.
-The script currently says `5 entry(ies) would GRANT something that is not granted today`, `12
-session uuid(s) to copy over`, `2 command(s) on the side that keeps its files`. In a file somebody
-is being asked to read carefully before it moves their transcripts, a stray `(ies)` reads as
-unfinished.
-
-- **A conditional, not a lang key.** One English surface needs one helper: singular below two, plural
-  otherwise, at the five call sites that count. `L.N` is the wrong tool here for the same reason the
-  script is not localized — there is nothing to look up.
-- **The counts, not every noun.** `entry(ies)`, `session uuid(s)`, `skill(s)`, `command(s)`,
-  `folder(s)`, `line(s)` and `change(s)` are what a number precedes. The prose around them is already
-  written as prose.
-- **Including the ones PowerShell prints at run time.** `Note ("  " + $new.Count + " skill(s) to copy
-  over")` is composed in the script, not in C#, so the singular has to be a PowerShell expression there.
-  That is the half a check over the emitted text would miss, and it is the half a person actually sees.
-
-Not in scope: the dev read-outs. `--profiles` and `--link-profiles`' own table keep `(s)`, on the
-rule T376 stated — their reader is editing this repository and has better things to be annoyed by.
 
 ### XCVI.2 A cleanup that is not yet a rule (T378)
 

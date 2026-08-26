@@ -72,12 +72,43 @@ internal static class ProfileLink
     }
 
     /// <summary>
+    /// An English noun in both its forms, for the one surface here that is prose for a <em>user</em> and
+    /// has no lang file to reach: the emitted script (T377).
+    ///
+    /// <para><b>Both words, not a rule.</b> <c>entry</c> → <c>entries</c> is not <c>+s</c>, and a script
+    /// that guesses is a script that says <c>entrys</c> the first time somebody adds one.
+    /// <see cref="Of"/> is the regular case and is deliberately at the <em>declaration</em> site, where an
+    /// author looking at <c>Of("entry")</c> can see it is wrong and write the pair out.</para>
+    /// </summary>
+    public readonly record struct Noun(string One, string Many)
+    {
+        /// <summary>The regular case: one word plus <c>s</c>.</summary>
+        public static Noun Of(string one) => new(one, one + "s");
+
+        /// <summary>No noun — an entry nothing counts.</summary>
+        public static Noun None => new("", "");
+
+        public bool Any => One.Length > 0;
+    }
+
+    /// <summary>
+    /// A count and its noun, in English, for the script: <c>1 skill</c> or <c>12 skills</c> (T377). The
+    /// number goes through <see cref="Nums"/> like every other one in the app (T216) — the script is
+    /// English, not invariant-only, but a decimal comma in a file a user is about to run is still wrong.
+    /// </summary>
+    public static string Counted(double n, Noun noun) =>
+        $"{Nums.Of(n)} {(Math.Abs(n - 1) < 0.0001 ? noun.One : noun.Many)}";
+
+    /// <inheritdoc cref="Counted(double, Noun)"/>
+    public static string Counted(double n, string one, string many) => Counted(n, new Noun(one, many));
+
+    /// <summary>
     /// One entry of a config dir and what the script does with it. <paramref name="Unit"/> is what an
     /// <see cref="Union.Entries"/> union counts, named so the script can say "12 session uuids" instead of
     /// "12 items" — the count is the only thing a reader can sanity-check before typing <c>-Apply</c>.
     /// </summary>
     public readonly record struct Entry(
-        string Name, bool IsDirectory, Verdict Verdict, Union Union, string Unit, string Why);
+        string Name, bool IsDirectory, Verdict Verdict, Union Union, Noun Unit, string Why);
 
     /// <summary>
     /// Everything a config dir holds that this script has an opinion about, in the order the script
@@ -94,35 +125,35 @@ internal static class ProfileLink
     /// </summary>
     public static IReadOnlyList<Entry> Catalogue { get; } = new[]
     {
-        new Entry("projects", true, Verdict.Merge, Union.Entries, "project",
+        new Entry("projects", true, Verdict.Merge, Union.Entries, Noun.Of("project"),
             "the transcripts every reading in this app comes from; one folder per project, so a union by "
             + "folder name loses no session"),
-        new Entry("file-history", true, Verdict.Merge, Union.Entries, "session uuid",
+        new Entry("file-history", true, Verdict.Merge, Union.Entries, Noun.Of("session uuid"),
             "one folder per session; the two sides are not the same size and a bare rmdir would drop "
             + "whichever went second"),
-        new Entry("history.jsonl", false, Verdict.Merge, Union.Lines, "prompt",
+        new Entry("history.jsonl", false, Verdict.Merge, Union.Lines, Noun.Of("prompt"),
             "two disjoint prompt histories, so the union is by line ordered on its timestamp"),
-        new Entry("skills", true, Verdict.Merge, Union.Entries, "skill",
+        new Entry("skills", true, Verdict.Merge, Union.Entries, Noun.Of("skill"),
             "skills you wrote; a folder named on both sides is a real conflict and is reported, not merged"),
-        new Entry("agents", true, Verdict.Merge, Union.Entries, "agent",
+        new Entry("agents", true, Verdict.Merge, Union.Entries, Noun.Of("agent"),
             "subagents you wrote, one folder each - the same shape as skills"),
-        new Entry("commands", true, Verdict.Merge, Union.Entries, "command",
+        new Entry("commands", true, Verdict.Merge, Union.Entries, Noun.Of("command"),
             "slash commands you wrote, one file each"),
-        new Entry("output-styles", true, Verdict.Merge, Union.Entries, "output style",
+        new Entry("output-styles", true, Verdict.Merge, Union.Entries, Noun.Of("output style"),
             "output styles you wrote, and the same shape again"),
-        new Entry("plugins", true, Verdict.Adopt, Union.None, "",
+        new Entry("plugins", true, Verdict.Adopt, Union.None, Noun.None,
             "each installed plugin records an absolute installPath, so a per-entry merge leaves entries "
             + "pointing into the other profile's tree"),
-        new Entry("CLAUDE.md", false, Verdict.Adopt, Union.None, "",
+        new Entry("CLAUDE.md", false, Verdict.Adopt, Union.None, Noun.None,
             "prose: a union of two sets of instructions is not a set of instructions"),
-        new Entry("settings.json", false, Verdict.Withheld, Union.None, "",
+        new Entry("settings.json", false, Verdict.Withheld, Union.None, Noun.None,
             "it can be unioned, and that is the problem - the union widens the other account's permission "
             + "allowlist, which is your decision and not this script's default"),
-        new Entry("settings.local.json", false, Verdict.Withheld, Union.None, "",
+        new Entry("settings.local.json", false, Verdict.Withheld, Union.None, Noun.None,
             "the machine-local half of the same decision"),
-        new Entry(".claude.json", false, Verdict.Never, Union.None, "",
+        new Entry(".claude.json", false, Verdict.Never, Union.None, Noun.None,
             "it carries oauthAccount - the field that makes this a different profile at all"),
-        new Entry(".credentials.json", false, Verdict.Never, Union.None, "",
+        new Entry(".credentials.json", false, Verdict.Never, Union.None, Noun.None,
             "a token"),
     };
 
@@ -403,6 +434,12 @@ internal static class ProfileLink
         function Would($m) { Write-Host ('  would ' + $m) -ForegroundColor DarkGray }
         function Did($m)   { Write-Host ('  ' + $m) -ForegroundColor Green }
 
+        # A count and its noun, both words given (T377). Five of the numbers below are counted by
+        # PowerShell at run time rather than composed when this file was written, so the singular has to
+        # be decided here - and a parenthesised plural, in a file you are reading before it moves your
+        # transcripts, reads as unfinished.
+        function Count($n, $one, $many) { "$n " + $(if ($n -eq 1) { $one } else { $many }) }
+
         # Windows PowerShell 5.1 is what a double-click gets, and it runs on .NET Framework: there is no
         # ResolveLinkTarget on a DirectoryInfo there. The ReparsePoint attribute is the reading both
         # editions have, and .Target beside it is best-effort - 5.1 returns it for a junction, and a blank
@@ -417,7 +454,7 @@ internal static class ProfileLink
         # "part-way" is always at an entry boundary or inside one whose original is still beside it.
         trap {
           Write-Host ''
-          Write-Host ('STOPPED after ' + $Acted + ' change(s): ' + $_.Exception.Message) -ForegroundColor Red
+          Write-Host ('STOPPED after ' + (Count $Acted 'change' 'changes') + ': ' + $_.Exception.Message) -ForegroundColor Red
           Write-Host 'Nothing was deleted. Every original is beside its link as <name>.pre-link-<stamp>,'
           Write-Host 'and the undo at the bottom of this script puts it back. Re-running is safe: an entry'
           Write-Host 'that is already a link is skipped rather than relinked.'
@@ -516,7 +553,7 @@ internal static class ProfileLink
           if (Test-Path -LiteralPath (Join-Path $dst $item.Name)) { $clash += $item.Name }
           else { $new += $item }
         }
-        Note ("  " + $new.Count + " {{e.Unit}}(s) to copy over, " + $clash.Count + " already on the primary side")
+        Note ("  " + (Count $new.Count '{{e.Unit.One}}' '{{e.Unit.Many}}') + " to copy over, " + $clash.Count + " already on the primary side")
         if ($clash.Count -gt 0) {
           # The primary is the side that survives, so a name on both sides is left exactly as it is and
           # named here. Silently overwriting it would be the data loss this whole script exists to avoid.
@@ -542,12 +579,12 @@ internal static class ProfileLink
         $merged = $lines | Where-Object { $_.Trim().Length -gt 0 } | Select-Object -Unique | Sort-Object {
           try { [int64]([regex]::Match($_, '"timestamp"\s*:\s*(\d+)').Groups[1].Value) } catch { 0 }
         }
-        Note ("  " + $lines.Count + " {{e.Unit}}(s) read, " + $merged.Count + " after the union")
+        Note ("  " + (Count $lines.Count '{{e.Unit.One}}' '{{e.Unit.Many}}') + " read, " + $merged.Count + " after the union")
         if ($Apply) {
           Copy-Item -LiteralPath $dst -Destination ($dst + '.pre-merge-' + $Stamp) -Force
           Set-Content -LiteralPath $dst -Value $merged -Encoding utf8
           $Acted++
-        } else { Would ("write " + $merged.Count + " line(s) to " + $dst) }
+        } else { Would ("write " + (Count $merged.Count 'line' 'lines') + " to " + $dst) }
 
         """;
 
@@ -653,21 +690,31 @@ internal static class ProfileLink
     private static string EdgeNote(Plan plan, int show = 8)
     {
         Edge edge = plan.Edge;
+        // Every clause that has to agree with a number, decided here rather than papered over with `(s)`
+        // (T377): the noun, and — the part `(s)` could never reach — the verb and the pronoun with it.
+        string passed = Counted(edge.Ignored, "per-machine cache or snapshot entry",
+                                              "per-machine cache and snapshot entries");
         if (edge.Unclaimed.Length == 0)
             return $"""
 
                 # Nothing else at the top level of either profile that this script has no opinion about
-                # ({edge.Ignored} per-machine cache/snapshot entry(ies) passed over).
+                # ({passed} passed over).
 
                 """;
+
+        bool one = edge.Unclaimed.Length == 1;
+        string count = Counted(edge.Unclaimed.Length, "entry", "entries");
+        string sits = one ? "sits" : "sit";
+        string appear = one ? "appears" : "appear";
+        string it = one ? "it" : "them";
         var sb = new StringBuilder();
         sb.AppendLine($"""
 
-            # AND WHAT THIS SCRIPT SAYS NOTHING ABOUT. {edge.Unclaimed.Length} entry(ies) sit at the top level
-            # of one of these two profiles and appear in none of the rows above - not because they are safe
-            # to share, and not because they are not, but because nothing here has an opinion about them.
-            # They are named so that you can have one. {edge.Ignored} further per-machine cache and snapshot
-            # entry(ies) were passed over and are not listed.
+            # AND WHAT THIS SCRIPT SAYS NOTHING ABOUT. {count} {sits} at the top level of one of these two
+            # profiles and {appear} in none of the rows above - not because {it} {(one ? "is" : "are")} safe
+            # to share, and not because {it} {(one ? "is" : "are")} not, but because nothing here has an
+            # opinion about {it}. {(one ? "It is" : "They are")} named so that you can have one.
+            # {passed} {(edge.Ignored == 1 ? "was" : "were")} passed over and {(edge.Ignored == 1 ? "is" : "are")} not listed.
             #
             """);
         foreach (string name in edge.Unclaimed.Take(show)) sb.AppendLine($"#   {name}");
@@ -680,7 +727,7 @@ internal static class ProfileLink
 
         Note ''
         if ($Apply) {
-          Note ("done: " + $Acted + " change(s).")
+          Note ("done: " + (Count $Acted 'change' 'changes') + ".")
           Note 'The originals are beside their links as <name>.pre-link-<stamp>. Check a Claude Code'
           Note 'session in each profile before you delete any of them.'
         } else {
