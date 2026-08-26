@@ -43,6 +43,10 @@
 
 ---
 
+## Block O — Profiles
+
+## Block G — Localization
+
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -830,3 +834,63 @@ maintained the same way instead of each carrying its own conventions.
 T369 finished the shape by drawing what the other three have and this one did not: a band closing
 the hero and opening the footer, whose motif is the product's own subject. Here that is the icon —
 bars rising from a floor, with the even-pace line ruled across them.
+
+## XCVI Where (s) survived the plural pairs
+
+Taking `(s)` out of the strings a window shows left it in two places that are not windows. One of
+them does not matter: a dev read-out's audience is whoever is editing this repository, and that was
+said out loud when the plural pairs landed.
+
+The other does. The linking script is **English prose a user reads before running it**, and it
+counts things in five places. And nothing anywhere refuses the next `(s)` written into a lang file,
+which is what separates a convention from a cleanup that happens twice.
+
+### XCVI.1 The one English surface that is not a read-out (T377)
+
+The emitted script is the one surface in this repository that is **English prose for a user** and
+not for a translator or a developer. Its own type doc says why: the audience is PowerShell and the
+person reading it before they run it, so it takes no lang file and never will.
+
+That exemption is about translation, and `(s)` is not a translation problem — it is an English one.
+The script currently says `5 entry(ies) would GRANT something that is not granted today`, `12
+session uuid(s) to copy over`, `2 command(s) on the side that keeps its files`. In a file somebody
+is being asked to read carefully before it moves their transcripts, a stray `(ies)` reads as
+unfinished.
+
+- **A conditional, not a lang key.** One English surface needs one helper: singular below two, plural
+  otherwise, at the five call sites that count. `L.N` is the wrong tool here for the same reason the
+  script is not localized — there is nothing to look up.
+- **The counts, not every noun.** `entry(ies)`, `session uuid(s)`, `skill(s)`, `command(s)`,
+  `folder(s)`, `line(s)` and `change(s)` are what a number precedes. The prose around them is already
+  written as prose.
+- **Including the ones PowerShell prints at run time.** `Note ("  " + $new.Count + " skill(s) to copy
+  over")` is composed in the script, not in C#, so the singular has to be a PowerShell expression there.
+  That is the half a check over the emitted text would miss, and it is the half a person actually sees.
+
+Not in scope: the dev read-outs. `--profiles` and `--link-profiles`' own table keep `(s)`, on the
+rule T376 stated — their reader is editing this repository and has better things to be annoyed by.
+
+### XCVI.2 A cleanup that is not yet a rule (T378)
+
+T376's sweep holds the pairs that exist: a stem with `.one` and no `.many`, or a `.many` with no
+`{0}`, is a red build. What it does not do is stop a *new* string being written the old way. Nothing
+refuses `"{0} rule(s) would grant something new"` in `en.json` tomorrow, and the reason that matters
+is the history: `(s)` was not a decision anybody made, it was what six strings drifted into over
+four tasks while the convention for doing it properly already existed three pairs away.
+
+So T376 is currently a cleanup. One assertion turns it into a rule.
+
+- **Refuse `(s)`, `(es)` and `(ies)` in any lang file.** Zero remain today, so this costs nothing to
+  adopt and is a red build the moment somebody reaches for the old shape. Named per key, not counted:
+  the fix is to write the pair, and the message should say so rather than leaving the author to find
+  T376.
+- **The escape hatch, and whether it is needed.** A legitimate string could in principle carry a
+  literal `(s)` — a regex, a file mask, a quoted command. None does, and inventing an allowlist for a
+  case that has never occurred is the kind of generality that makes a check ignorable. Add one when a
+  string needs it, and let the red build be the conversation.
+- **Where it goes.** Beside the parity checks in the same sweep, over `en` and every translation:
+  `regra(s)` reaching only the Portuguese file is exactly as wrong and would otherwise be invisible,
+  since the key-set and placeholder comparisons both pass on it.
+
+The rule this settles: a convention worth cleaning up is worth a check, or it is a convention that
+gets cleaned up again.
