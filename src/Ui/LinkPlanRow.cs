@@ -67,7 +67,16 @@ public sealed class LinkPlanRow
     private static string DetailOf(ProfileLink.Step s)
     {
         if (s.Entry.Verdict == ProfileLink.Verdict.Never) return L.T("settings.cc.linkNeverDetail");
-        if (s.Entry.Verdict == ProfileLink.Verdict.Withheld) return L.T("settings.cc.linkWithheldDetail");
+        // The withheld row carries the figure the decision is about (T373): "your decision" on its own is
+        // what this task existed to fix, and the number is the shortest honest form of the answer. Not read
+        // and nothing-to-decide are separate answers from a measured zero, on the same rule as the counts.
+        if (s.Entry.Verdict == ProfileLink.Verdict.Withheld)
+            return s.Widening switch
+            {
+                null or { Error.Length: > 0 } => L.T("settings.cc.linkWithheldDetail"),
+                { Empty: true } => L.T("settings.cc.linkWithheldSame"),
+                { } w => L.T("settings.cc.linkWithheldGrants", Nums.Of(w.Granting)),
+            };
         if (s.AlreadyLinked) return L.T("settings.cc.linkAlready");
         if (!s.OnPrimary) return L.T("settings.cc.linkAbsent");
         if (s.Entry.Verdict == ProfileLink.Verdict.Adopt) return L.T("settings.cc.linkWhole");

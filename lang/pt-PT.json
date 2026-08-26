@@ -251,6 +251,8 @@
   "settings.cc.linkAlready": "já partilhado",
   "settings.cc.linkAbsent": "o perfil da esquerda não o tem",
   "settings.cc.linkWithheldDetail": "decisão sua - o script deixa-lhe o comando",
+  "settings.cc.linkWithheldSame": "decisão sua - ambos os lados já concordam",
+  "settings.cc.linkWithheldGrants": "decisão sua - {0} regra(s) concederiam algo novo",
   "settings.cc.linkNeverDetail": "sempre separado",
   "settings.cc.linkWrite": "Gravar o script",
   "settings.cc.linkWriteDesc": "O Claude Code Tray grava um script do PowerShell e mostra-lhe onde está. Nunca o executa. E o próprio script não muda nada até o correr uma segunda vez com -Apply, pelo que lê antes exatamente o que faria.",

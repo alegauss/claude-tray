@@ -254,6 +254,8 @@
   "settings.cc.linkAlready": "already shared",
   "settings.cc.linkAbsent": "the profile on the left does not have it",
   "settings.cc.linkWithheldDetail": "your decision - the script leaves you the command",
+  "settings.cc.linkWithheldSame": "your decision - both sides already agree",
+  "settings.cc.linkWithheldGrants": "your decision - {0} rule(s) would grant something new",
   "settings.cc.linkNeverDetail": "kept separate, always",
   "settings.cc.linkWrite": "Write the script",
   "settings.cc.linkWriteDesc": "Claude Code Tray writes a PowerShell script and shows you where it is. It never runs it. The script itself changes nothing either until you run it a second time with -Apply, so you can read exactly what it would do first.",

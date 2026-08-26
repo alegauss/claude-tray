@@ -238,9 +238,16 @@ internal static class ProfilesCli
             bool links = s.Entry.Verdict is ProfileLink.Verdict.Merge or ProfileLink.Verdict.Adopt;
             // The link kind is blank for an entry that is never linked — printing "symlink" beside
             // `.credentials.json` states the one thing this whole table exists to deny.
+            // A withheld row shows the reading rather than the reason (T373): the reason is the same
+            // sentence every time, and the figure is what a reader is deciding on.
             Console.WriteLine($"  {s.Entry.Name,-20} {s.Entry.Verdict,-8} "
                               + $"{(!links ? "" : s.Entry.IsDirectory ? "junction" : "symlink"),-9}"
-                              + (!links ? s.Entry.Why
+                              + (s.Widening is { } w
+                                  ? w.Error ?? (w.Empty
+                                      ? "both sides already say the same thing"
+                                      : $"{w.Granting} entry(ies) would grant, {w.Narrowing} would narrow"
+                                        + (w.Hooks.Count > 0 ? $", {w.Hooks.Count} hook event(s) differ" : ""))
+                                  : !links ? s.Entry.Why
                                   : s.AlreadyLinked ? "already linked"
                                   : !s.OnPrimary ? "not on the primary side — skipped"
                                   : s.Entry.Union == ProfileLink.Union.Lines ? "union by line"

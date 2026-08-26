@@ -130,8 +130,12 @@ internal static class ProfileLink
     /// reading <c>history.jsonl</c>, which is prompts — §I.1. A directory listing is names, which this app
     /// reads everywhere; the count stops exactly where the file would have to be opened.</para>
     /// </summary>
+    /// <param name="Widening">For a <see cref="Verdict.Withheld"/> entry, what unioning the two files
+    /// would actually add (T373) — the evidence the decision this script refuses to make needs. Null for
+    /// every other entry, because the question is only asked where the answer is the user's.</param>
     public readonly record struct Step(
-        Entry Entry, bool OnPrimary, bool OnSecondary, bool AlreadyLinked, int? ToCopy = null);
+        Entry Entry, bool OnPrimary, bool OnSecondary, bool AlreadyLinked, int? ToCopy = null,
+        SettingsUnion.Reading? Widening = null);
 
     /// <summary>
     /// What the script will do, resolved against two real config dirs. <paramref name="Error"/> is set
@@ -188,7 +192,11 @@ internal static class ProfileLink
                 string onSecondary = Path.Combine(secondary, e.Name);
                 bool linked = LinksInto(onSecondary, onPrimary, e.IsDirectory);
                 steps.Add(new Step(e, Exists(onPrimary, e.IsDirectory), Exists(onSecondary, e.IsDirectory),
-                    linked, linked ? null : ToCopyCount(e, onPrimary, onSecondary)));
+                    linked, linked ? null : ToCopyCount(e, onPrimary, onSecondary),
+                    // Read here rather than at each surface: the script and the settings page ask the same
+                    // question of the same two files, and two readers of one union is how they come to
+                    // disagree about a figure a person is about to act on.
+                    e.Verdict == Verdict.Withheld ? SettingsUnion.For(primary, secondary, e.Name) : null));
             }
 
         return new Plan(primary, primaryLabel, secondary, secondaryLabel, steps, error);
@@ -498,8 +506,17 @@ internal static class ProfileLink
     private static string Indent(string body) => string.Join("\n",
         body.TrimEnd().Split('\n').Select(l => l.Length == 0 ? l : "  " + l));
 
+    /// <summary>
+    /// The entry this script deliberately does not act on, and — since T373 — the reading that decision
+    /// needs. The commands stay commented out; what changed is that the sentence above them now names both
+    /// allowlists instead of asking about one it never showed.
+    /// </summary>
     private static string WithheldStep(Plan plan, Step s) => $"""
         # {s.Entry.Name} - NOT linked, on purpose: {s.Entry.Why}.
+        #
+        #   What the union would actually do:
+        {(s.Widening is { } w ? string.Join("\n", SettingsUnion.Lines(w)) : "#   not read.")}
+        #
         #   If you have read both files and want them shared anyway, this is the command - uncommented by
         #   you, which is the whole point of it being here as text:
         #

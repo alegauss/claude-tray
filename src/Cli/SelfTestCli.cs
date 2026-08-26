@@ -5190,6 +5190,18 @@ internal static class SelfTestCli
         Check("nor the account file that makes a profile a different profile",
               !acting.Any(l => l.Contains(".claude.json", StringComparison.OrdinalIgnoreCase)),
               acting.FirstOrDefault(l => l.Contains(".claude.json", StringComparison.OrdinalIgnoreCase)) ?? "");
+        // The reading the withheld decision needs (T373). The two files above are `{}` on both sides, so
+        // this is the "already the same" answer — the shape that must not read as a measurement of nothing.
+        ProfileLink.Step withheld = plan.Steps.First(s => s.Entry.Name == "settings.json");
+        Check("a withheld entry carries the union it is asking you to decide about",
+              withheld.Widening is not null);
+        Check("and two identical files say so rather than reporting zero of something",
+              withheld.Widening is { Error: null, Empty: true });
+        Check("nothing else on the plan is asked that question, because nothing else is the user's call",
+              plan.Steps.Where(s => s.Entry.Verdict != ProfileLink.Verdict.Withheld)
+                        .All(s => s.Widening is null));
+        SettingsWidening(root);
+
         Check("and the withheld settings file is offered as text, never as a command",
               !acting.Any(l => l.Contains("settings.json", StringComparison.Ordinal))
               && lines.Any(l => l.Contains("settings.json", StringComparison.Ordinal)));
@@ -5304,6 +5316,85 @@ internal static class SelfTestCli
         // The link before the tree it sits in, for `Temp`'s reason: a recursive delete over a reparse point
         // is the one thing its cleanup cannot do.
         try { Directory.Delete(linked); } catch { /* the report says so */ }
+    }
+
+    /// <summary>
+    /// What unioning two <c>settings.json</c> files would add, which is the whole of the decision T367
+    /// refused to make and T373 supplies the evidence for.
+    ///
+    /// <para>Three properties, and each of them is a way a report about risk stops describing risk. The
+    /// two <b>directions</b> are separate, because a union adds to each side and a reader is deciding
+    /// about both. <b>Narrowing is counted apart from granting</b>, or twelve rules arriving in
+    /// <c>deny</c> read as twelve new capabilities. And <b>unreadable is not zero</b>: a nought presented
+    /// as a measurement says "nothing would change" on the one surface whose job is saying what would.
+    /// </para>
+    /// </summary>
+    private static void SettingsWidening(string root)
+    {
+        string a = Path.Combine(root, "widen-a"), b = Path.Combine(root, "widen-b");
+        Directory.CreateDirectory(a);
+        Directory.CreateDirectory(b);
+        // `allow` overlaps by one and differs by one each way; `deny` differs one way only; `hooks` exists
+        // on one side. Every figure below is therefore a different number, so a reading that conflated two
+        // of them could not pass by coincidence.
+        File.WriteAllText(Path.Combine(a, "settings.json"), """
+            { "permissions": { "allow": ["Bash(git status)", "Read(/src/**)"],
+                               "deny": ["Read(/vault/**)"] },
+              "hooks": { "PreToolUse": [ { "matcher": "Bash",
+                         "hooks": [ { "type": "command", "command": "echo one" },
+                                    { "type": "command", "command": "echo two" } ] } ] } }
+            """);
+        File.WriteAllText(Path.Combine(b, "settings.json"), """
+            // a hand-edited settings file carries comments, and a parse refusing them would report
+            // "unreadable" for a file Claude Code is using happily
+            { "permissions": { "allow": ["Bash(git status)", "WebFetch(domain:example.com)"],
+                               "deny": ["Read(/vault/**)", "Read(/secrets/**)"] }, }
+            """);
+
+        SettingsUnion.Reading r = SettingsUnion.For(a, b, "settings.json");
+        Check("a hand-edited settings file with comments and a trailing comma still parses",
+              r.Error is null, r.Error ?? "");
+        SettingsUnion.Widening allow = r.Lists.First(w => w.List == "permissions.allow");
+        Check("the two directions of the union are reported apart, not as one difference",
+              allow.ToPrimary is ["WebFetch(domain:example.com)"] && allow.ToSecondary is ["Read(/src/**)"],
+              $"toPrimary=[{string.Join(",", allow.ToPrimary)}] toSecondary=[{string.Join(",", allow.ToSecondary)}]");
+        Check("and the entry both files already carry is in neither direction",
+              !allow.ToPrimary.Concat(allow.ToSecondary).Contains("Bash(git status)"));
+
+        SettingsUnion.Widening deny = r.Lists.First(w => w.List == "permissions.deny");
+        Check("deny is marked as the list where arriving takes capability away", deny.Narrows);
+        Check("so granting and narrowing are two figures and not one",
+              r.Granting == 2 && r.Narrowing == 1, $"granting={r.Granting}, narrowing={r.Narrowing}");
+
+        Check("a hook event only one side has is reported per event, with a count each side",
+              r.Hooks is [{ Event: "PreToolUse", OnPrimary: 2, OnSecondary: 0 }],
+              string.Join(", ", r.Hooks.Select(h => $"{h.Event} {h.OnPrimary}/{h.OnSecondary}")));
+        // The sentence a reader acts on, held against the numbers above: a hook is a command line, and the
+        // emitted comment has to say so rather than counting it beside a path rule.
+        string[] lines = SettingsUnion.Lines(r).ToArray();
+        Check("the emitted lines are all PowerShell comments",
+              lines.All(l => l.TrimStart().StartsWith('#')), lines.FirstOrDefault(
+                  l => !l.TrimStart().StartsWith('#')) ?? "");
+        Check("and they name the narrowing list as narrowing rather than counting it in",
+              lines.Any(l => l.Contains("permissions.deny") && l.Contains("NARROWS", StringComparison.Ordinal)));
+        Check("and say what a hook is, since that is the larger of the two decisions",
+              lines.Any(l => l.Contains("a hook is a command line that runs", StringComparison.Ordinal)));
+
+        // Unreadable is its own answer. A file of nonsense must not read as two files that agree.
+        File.WriteAllText(Path.Combine(b, "settings.json"), "not json at all {{{");
+        SettingsUnion.Reading broken = SettingsUnion.For(a, b, "settings.json");
+        Check("a file that will not parse is an absence, never a measured zero",
+              broken.Error is { Length: > 0 } && !broken.Empty, broken.Error ?? "reported as empty");
+        // A file on one side only is the widest form of this decision, not the emptiest.
+        File.Delete(Path.Combine(b, "settings.json"));
+        SettingsUnion.Reading oneSided = SettingsUnion.For(a, b, "settings.json");
+        Check("and a file only one profile has says the link would hand over its whole contents",
+              oneSided.Error is { Length: > 0 } && oneSided.Error.Contains("whole contents",
+                  StringComparison.Ordinal), oneSided.Error ?? "");
+        File.Delete(Path.Combine(a, "settings.json"));
+        Check("while neither side having one is nothing to decide",
+              SettingsUnion.For(a, b, "settings.json").Error is { Length: > 0 } none
+              && none.Contains("nothing to decide", StringComparison.Ordinal));
     }
 
     /// <summary>

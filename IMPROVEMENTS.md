@@ -43,8 +43,6 @@
 
 ---
 
-## Block O — Profiles
-
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -832,40 +830,3 @@ maintained the same way instead of each carrying its own conventions.
 T369 finished the shape by drawing what the other three have and this one did not: a band closing
 the hero and opening the footer, whose motif is the product's own subject. Here that is the icon —
 bars rising from a floor, with the even-pace line ruled across them.
-
-## XCIII What making two profiles one setup leaves behind
-
-The script that links two config dirs into one setup exists and works, and running it for the first
-time on a real pair is what produced everything below. Three of the four findings are not about the
-composer at all — they are about what a linked pair then *is*, to an app whose whole reading of
-"which profile is being worked in" is the newest write under a `projects` tree.
-
-That is the shape to expect from here. The link is a one-line command; the consequences of having
-run it are spread across auto-follow, the settings page and the checks, and none of them were
-visible while the two directories were separate.
-
-### XCIII.3 A withheld decision with nothing to decide it on (T373)
-
-`settings.json` is withheld for a good reason: unioning two of them widens the other account's
-permission allowlist, and that is the user's decision rather than a default. So the script emits the
-commands commented out, with the sentence explaining why, and stops.
-
-Which leaves the decision made blind. The person reading it is being asked whether to widen an
-allowlist, and the script names neither allowlist. Everything needed to answer is on disk in two
-files the app already opens, and the answer is short: **these N entries would be added to the other
-side, and here they are.**
-
-- **The added entries, not a diff.** `permissions.allow`, `deny` and `ask` are lists of rule strings; a
-  union adds to one side and to the other, and those two sets are the whole reading. Not "the files
-  differ", which is true of every pair and settles nothing.
-- **A `deny` widening is not the same event.** Adding to `deny` narrows what the other account can do,
-  which is safe in the direction that matters and worth saying separately — a script that reports "12
-  rules would be added" without splitting them has made the safe half look like the risky one.
-- **The hooks are the other half.** A hook is a command line that runs; adopting the other profile's
-  is a bigger decision than adopting a path rule, and it belongs in the same report rather than folded
-  into a count.
-- **Read, never merged.** This still emits no active command for `settings.json`. It reports what the
-  union would be so the commented-out command can be uncommented on evidence — that is the whole
-  change, and the verdict stays `Withheld`.
-- **`settings.local.json` is the same reading**, and the two are reported apart: one is shared and one
-  is this machine's.

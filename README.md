@@ -619,8 +619,12 @@ per folder and file, what sharing them would mean:
   A plugin records where it was installed, so merging those entry by entry would leave half of them
   pointing at a folder that is no longer there.
 - **not offered** — `settings.json` *could* be merged, and that is exactly why it isn't: the union would
-  widen the other account's permission allowlist, which is your call. The command is in the script,
-  commented out, with the reason next to it.
+  widen the other account's permission allowlist, which is your call. **So the script shows you what you
+  are deciding**: how many rules would arrive on each side, which lists they land in, and the first few
+  of each by name. Rules arriving in `deny` are counted apart — those take capability *away*, and folding
+  them in would make the safe half look like the risky one. Hooks are listed per event with a count each
+  side, because a hook is a command line that runs and no total answers that. Then the command, still
+  commented out, for you to uncomment on the evidence.
 - **never** — `.claude.json` and `.credentials.json`. Your sign-in and the file that makes this a
   separate account are not part of "one setup", and no button here will touch them.
 

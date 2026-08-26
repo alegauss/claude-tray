@@ -24,10 +24,6 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
-## Block O — Profiles
-
-- 📋 **T373** (deps: —) **The script asks the user to decide whether to widen a permission allowlist and names neither allowlist** — Both files are already opened by this app, and the reading that settles it is which rules the union would add and to which list. → §XCIII.3
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

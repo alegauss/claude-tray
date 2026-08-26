@@ -250,6 +250,8 @@
   "settings.cc.linkAlready": "déjà partagé",
   "settings.cc.linkAbsent": "le profil de gauche ne l'a pas",
   "settings.cc.linkWithheldDetail": "à vous de décider - le script vous laisse la commande",
+  "settings.cc.linkWithheldSame": "à vous de décider - les deux sont déjà d'accord",
+  "settings.cc.linkWithheldGrants": "à vous de décider - {0} règle(s) accorderaient du nouveau",
   "settings.cc.linkNeverDetail": "toujours séparé",
   "settings.cc.linkWrite": "Écrire le script",
   "settings.cc.linkWriteDesc": "Claude Code Tray écrit un script PowerShell et vous montre où il est. Il ne l'exécute jamais. Le script lui-même ne change rien non plus tant que vous ne le relancez pas avec -Apply : vous lisez donc d'abord exactement ce qu'il ferait.",

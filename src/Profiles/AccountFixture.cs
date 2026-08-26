@@ -145,8 +145,27 @@ internal static class AccountFixture
                 Write(Path.Combine(dir, "skills", $"sample-skill-{i}", "SKILL.md"), "# sample\n");
             Directory.CreateDirectory(Path.Combine(dir, "plugins"));
             Write(Path.Combine(dir, "history.jsonl"), "");
-            Write(Path.Combine(dir, "settings.json"), "{}\n");
         }
+        // Two settings files that genuinely disagree (T373), because the withheld row reports what the
+        // union would add and two copies of `{}` render "both sides already agree" — a true reading of a
+        // fixture, and the one branch of that row nobody needs a picture of. One rule is shared, two arrive
+        // on each side of `allow`, and one arrives in `deny`, so the published figure is 3 granting beside
+        // 1 narrowing: the split this row exists to show, in the smallest file that shows it.
+        Write(Path.Combine(personal, "settings.json"), """
+            {
+              "permissions": {
+                "allow": ["Bash(git status:*)", "Read(//src/**)", "Edit(//src/**)"]
+              }
+            }
+            """);
+        Write(Path.Combine(work, "settings.json"), """
+            {
+              "permissions": {
+                "allow": ["Bash(git status:*)", "WebFetch(domain:docs.example.com)"],
+                "deny": ["Read(//vault/**)"]
+              }
+            }
+            """);
         for (int i = 1; i <= 12; i++)
             Directory.CreateDirectory(Path.Combine(work, "file-history", $"session-{i:00}"));
         Write(Path.Combine(personal, "CLAUDE.md"), "# sample\n");
