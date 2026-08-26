@@ -24,6 +24,18 @@
 | ⏳ | Partial — direction is right, more work remains |
 | 🛠 | In progress |
 
+## Block O — Profiles
+
+- 📋 **T374** (deps: —) **The catalogue is ten rows and silent about everything else, so agents and commands are shared by nobody** — Two of them are Merge-by-name exactly like skills, and the line that names what is left over is what stops the next folder going missing. → §XCV.1
+
+## Block AI — Verification — the checks that prove a change
+
+- 📋 **T375** (deps: —) **Framing a card for a published shot is five captures of trial and error on a scroll= number nothing verifies** — The caller knows which element it wants photographed and the app knows where that is, so the flag should take the name and report the fit. → §XCV.2
+
+## Block G — Localization
+
+- 📋 **T376** (deps: —) **One card shows six counts as rule(s) and entry(ies), an English convention four of the five languages lack** — Two forms per count cover every language this app ships, and the selftest sweep that already catches a lost {0} is where the pair is held. → §XCV.3
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

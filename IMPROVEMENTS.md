@@ -43,6 +43,12 @@
 
 ---
 
+## Block O — Profiles
+
+## Block AI — Verification — the checks that prove a change
+
+## Block G — Localization
+
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -830,3 +836,86 @@ maintained the same way instead of each carrying its own conventions.
 T369 finished the shape by drawing what the other three have and this one did not: a band closing
 the hero and opening the footer, whose motif is the product's own subject. Here that is the icon —
 bars rising from a floor, with the even-pace line ruled across them.
+
+## XCV What the linking surface does not say
+
+Four tasks shipped the linking script and the page that offers it, and running the whole thing on a
+real pair is what produced the three below. None of them is about the mechanism: the links work, the
+merges work, the refusals hold. They are about what the surface does not say — an entry the
+catalogue has no row for, a card that no longer fits in one screenshot, and a plural rule the app
+has never had.
+
+That is the shape to expect from a fixed catalogue and a growing page. The catalogue is a list of
+opinions, and the honest failure mode of a list of opinions is silence about everything not on it.
+
+### XCV.1 A fixed catalogue that does not report its own edge (T374)
+
+`ProfileLink.Catalogue` is ten rows, and its own doc says so proudly: an entry earns a row by being
+part of the *setup*, and `cache`, `shell-snapshots` and the rest are scratch that linking would
+share nothing by. That reasoning is right and it has a hole in it. The list is a list of
+**opinions**, and the honest failure mode of a list of opinions is silence about everything not on
+it.
+
+Claude Code already keeps `agents\` and `commands\` in a config dir, and neither is named here.
+Neither exists on the machine this was found on, which is exactly why it went unnoticed: a user who
+has written a subagent or a slash command gets a script that shares their skills and their plugins,
+says nothing about the two folders beside them, and leaves those to be linked by hand — in the order
+that loses a tree, which is the thing this script exists to replace.
+
+- **The rows that are missing.** `agents` and `commands` are `Merge` by entry name, exactly like
+  `skills`: one folder each, a name on both sides is a real conflict, the union loses nothing. Worth a
+  decision too: `output-styles`, the same shape again.
+- **And a line for everything else.** After the ten rows, the script should say how many top-level entries
+  exist on either side that it has no opinion about, and name them. Not a verdict — an acknowledgement, so
+  the next folder Claude Code invents is visible on the first run rather than on the day somebody notices
+  their agents never came across. The page's plan gets the count too.
+
+The rule this settles: **a fixed catalogue must report its own edge.** A row can be added later;
+being told nothing is missing cannot be undone.
+
+### XCV.2 A capture that cannot say what it framed (T375)
+
+`--capture-settings <out> <page> scroll=<dip>` takes a number of device-independent pixels, and
+nothing knows what that number should be. Framing the linking card cost five captures at 1120, 1140,
+1152, 1290 and 1440, three of which were read and discarded — and 1152 is now a constant in this
+repository's history that means "the top of a card" only until the card above it gains a line.
+
+Two facts make this worse than fiddly. The Claude Code panel is the longest in the app and the card
+is last on it, so `scroll=` there is always near the clamp, where a too-large number silently lands
+at the bottom instead of failing. And the card no longer fits one viewport at all: every published
+shot of it chooses between the two side pickers and the Write button, and the choice was made by
+looking rather than by anything the flag could express.
+
+- **Scroll to a named element, not a number.** `card=<x:Name>` brings that element's top into view and
+  reports the dip it used, so the caller says what it wants photographed and the app answers where that
+  is. An unknown name is refused with the catalogue, on `StatsPreviews`' rule.
+- **And say when it did not fit.** `PreviewSurface` already tells `Capture-Window.ps1` what it drew as a
+  rectangle it asserts against (T217). The same channel can carry "the element you named is 640dip and
+  the viewport is 500, so this picture is part of it" — the honest version of a screenshot that ends
+  mid-row, and the thing that would have said so on the first capture instead of the fourth.
+
+Not in scope: making the card shorter, or the window taller. A surface outgrowing one screenshot is
+ordinary, and a capture flag that cannot say so is the defect.
+
+### XCV.3 A plural rule the app has never had (T376)
+
+This app has never had a plural rule, and the workaround is `(s)`. `SourceRows` states the policy
+the other way round and states it well: a count belongs in a header rather than in a string that
+would need one. That worked while the counts were few and lived in headers.
+
+The linking card broke it. One surface now carries `folder(s) and file(s)`, `rule(s)`, `to copy
+over`, `command(s)`, `entry(ies)` and `session uuid(s)`, in five languages — and `(s)` is an English
+convention. Portuguese and Spanish read `regra(s)` as a typo, French `règle(s)` the same, and
+`entry(ies)` is not a form of any word in any of them. The single worst case is 1: **"1 rule(s)
+would grant something new"** is the sentence a person sees most often, because the interesting
+unions are small.
+
+- **Two forms per count, chosen by the number.** `L.T("…one", n)` and `L.T("…many", n)`, resolved by a
+  helper that takes the count and the key stem. Two forms cover all five languages this app ships;
+  Slavic three-form rules are a real thing and not a thing here, so the design stops at two rather than
+  importing a plural library the single-`.exe` rule forbids anyway (§I.3).
+- **Asserted, or it will not hold.** `--selftest` already fails a key present in one language and a
+  `{0}` lost in translation (T185). A stem with `…one` and no `…many` — or either without a `{0}` — is
+  the same class of hole and belongs in the same sweep.
+- **Not a rewrite of every string.** Only counts a user reads, which is a list this task can enumerate.
+  A dev read-out keeps `(s)`; its audience is whoever is editing this repository.
