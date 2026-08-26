@@ -772,6 +772,100 @@ internal static partial class SelfTestCli
         }
 
         Unlink(secondary);
+        RefusesForReal(root);
+    }
+
+    /// <summary>
+    /// The refusal, run rather than reasoned about (T386).
+    ///
+    /// <para><b>Why it needed its own fixture.</b> The pair above asserts that a plan carrying a file
+    /// either links it or refuses with nothing moved, and takes whichever branch the machine offers. Both
+    /// machines offer the same one: the developer's has Developer Mode on, and — read off the CI log, not
+    /// assumed — a hosted runner allows an unprivileged <c>mklink</c> too. So the branch whose whole job is
+    /// to stop before anything moves fired in no run anywhere. It had been seen once by hand, by pointing
+    /// the preflight's registry read at a key that cannot exist, and that edit was reverted: which is what
+    /// this repository calls a comment rather than a check.</para>
+    ///
+    /// <para><b>A fresh pair, because the promise is a tree.</b> "Nothing moved" cannot be asserted over
+    /// directories an earlier half of this section already linked and unlinked — their
+    /// <c>.pre-link-</c> copies are still there. And it is the tree that has to be read, not the exit
+    /// code: a run that relinked three entries and then threw also exits non-zero.</para>
+    ///
+    /// <para>Skipped, not failed, when this process is elevated — the other half of the preflight's
+    /// condition is <c>IsInRole(Administrator)</c>, and a check must not elevate itself to explore a
+    /// branch.</para>
+    /// </summary>
+    private static void RefusesForReal(string root)
+    {
+        if (Elevated())
+        {
+            Skip("a plan needing a file symlink refuses, and moves nothing",
+                 "this process is elevated, so the preflight's other half is satisfied and the refusal "
+                 + "cannot be reached without dropping a privilege");
+            return;
+        }
+
+        string a = Path.Combine(root, "refuse", "keeps"), b = Path.Combine(root, "refuse", "links");
+        Directory.CreateDirectory(Path.Combine(a, "projects"));
+        Directory.CreateDirectory(Path.Combine(b, "projects"));
+        File.WriteAllText(Path.Combine(a, "CLAUDE.md"), "# primary\n");
+        File.WriteAllText(Path.Combine(b, "CLAUDE.md"), "# secondary\n");
+
+        ProfileLink.Plan real = ProfileLink.For(a, b, "Keeps", "Links");
+        if (ReadOut.Failed(real.Error)) return;
+        Check("the fixture plan needs a file symlink, so the preflight has something to refuse",
+              real.NeedsSymlink);
+
+        // The seam: a key that cannot exist, so `Get-ItemProperty` throws, `$devMode` stays 0, and the
+        // condition's other half is already false because this process is not elevated.
+        ProfileLink.Plan cannot = real with
+        {
+            DevModeRegistryKey = @"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\NoSuchKeyForT386",
+        };
+        Check("and the key it reads is the plan's, not a constant in the text",
+              ProfileLink.Script(cannot).Contains("NoSuchKeyForT386", StringComparison.Ordinal)
+              && ProfileLink.Script(real).Contains(ProfileLink.DevModeKey, StringComparison.Ordinal));
+
+        string ps1 = Path.Combine(root, "refuse", "refuses.ps1");
+        File.WriteAllText(ps1, ProfileLink.Script(cannot),
+            new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+        (int code, string output) = PowerShell(ps1, apply: true);
+
+        Check("a run that cannot see Developer Mode refuses", code != 0, Trim(output));
+        Check("and says which setting it needed",
+              output.Contains("Developer Mode", StringComparison.Ordinal), Trim(output));
+        // The promise, read off the disk. Every entry on the secondary side is exactly as it was: no link,
+        // no copy moved aside, and the file still its own.
+        string[] moved = Directory.GetFileSystemEntries(b)
+            .Select(Path.GetFileName)
+            .Where(n => n!.Contains(".pre-link-", StringComparison.Ordinal)).ToArray()!;
+        Check("and nothing on the other side moved", moved.Length == 0, string.Join(", ", moved));
+        Check("nor was anything linked",
+              !IsLink(Path.Combine(b, "projects")) && !IsLink(Path.Combine(b, "CLAUDE.md")));
+        Check("and its own file is still its own",
+              File.ReadAllText(Path.Combine(b, "CLAUDE.md")).Contains("# secondary", StringComparison.Ordinal));
+
+        // Unconditional, and that is the point: when these claims hold there is nothing to unlink, and the
+        // one run that leaves reparse points here is the one where the refusal did NOT happen — which
+        // `Temp`'s recursive delete cannot clean up. Measured, by breaking the seam: the suite left a
+        // scratch tree behind. "Everything it writes is synthetic and removed" must not depend on the
+        // checks passing.
+        Unlink(b);
+    }
+
+    /// <summary>Whether this process is running elevated. The preflight is satisfied either by Developer
+    /// Mode or by elevation, so an elevated run cannot reach the refusal at all.</summary>
+    private static bool Elevated()
+    {
+        try
+        {
+            return new System.Security.Principal.WindowsPrincipal(
+                    System.Security.Principal.WindowsIdentity.GetCurrent())
+                .IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        }
+        // Unknown is treated as elevated: this decides whether to skip, so it fails towards standing the
+        // claim down rather than towards a red build nobody can reproduce.
+        catch { return true; }
     }
 
     /// <summary>Whether a path is a reparse point — the reading the emitted script itself uses, for the

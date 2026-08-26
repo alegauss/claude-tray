@@ -212,13 +212,26 @@ internal static class ProfileLink
         SettingsUnion.Reading? Widening = null);
 
     /// <summary>
+    /// Where the emitted preflight looks to see whether Developer Mode is on. The real key, and the
+    /// default every plan carries.
+    /// </summary>
+    public const string DevModeKey = @"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock";
+
+    /// <summary>
     /// What the script will do, resolved against two real config dirs. <paramref name="Error"/> is set
     /// when there is nothing to compose — a directory that is not there, or the same directory twice —
     /// and then <see cref="Script"/> is never called.
     /// </summary>
+    /// <param name="DevModeRegistryKey">The key the emitted preflight reads (T386). A seam, not an
+    /// option: the branch that <em>refuses</em> a file symlink fires on no machine anybody runs this on —
+    /// the developer's has Developer Mode on and the CI runner allows an unprivileged <c>mklink</c> too —
+    /// so the only way to exercise a refusal is to compose a script that cannot pass its own preflight.
+    /// Pointing this at a key that does not exist does exactly that, and nothing else in the script
+    /// changes. The same kind of seam <c>--sample-env</c> and <see cref="AccountFixture"/> already are.</param>
     public sealed record Plan(
         string PrimaryDir, string PrimaryLabel, string SecondaryDir, string SecondaryLabel,
-        IReadOnlyList<Step> Steps, string? Error = null, Edge Edge = default)
+        IReadOnlyList<Step> Steps, string? Error = null, Edge Edge = default,
+        string DevModeRegistryKey = DevModeKey)
     {
         /// <summary>The steps that will actually touch the disk under <c>-Apply</c>.</summary>
         public IEnumerable<Step> Acting => Steps.Where(s =>
@@ -509,7 +522,8 @@ internal static class ProfileLink
             return sb.ToString();
         }
 
-        sb.Append("""
+        // $$ so the key interpolates while PowerShell's own braces stay literal.
+        sb.Append($$"""
 
             # This plan contains a FILE symlink, which unlike a directory junction needs either Developer
             # Mode or an elevated shell. Checked here, before anything moves: a machine without it must be
@@ -518,7 +532,7 @@ internal static class ProfileLink
             # New-Item does not, so without it Developer Mode would be a promise this script then broke.
             $devMode = 0
             try {
-              $devMode = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' `
+              $devMode = (Get-ItemProperty -Path '{{Quote(plan.DevModeRegistryKey)}}' `
                 -Name AllowDevelopmentWithoutDevLicense -ErrorAction Stop).AllowDevelopmentWithoutDevLicense
             } catch { $devMode = 0 }
             $elevated = ([Security.Principal.WindowsPrincipal] `
