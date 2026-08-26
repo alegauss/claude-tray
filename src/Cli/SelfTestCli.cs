@@ -75,6 +75,13 @@ internal static partial class SelfTestCli
          + "this run - the counted assertion beside it is the one that answers the promise (T356). "
          + "This skip is expected on a developer's machine and must NOT happen on CI, where no tray "
          + "is resident: if it fires there, something started one."),
+        // The mirror of the one above, and the reason these carry a sentence rather than a name (T387).
+        ("a plan needing a file symlink refuses, and moves nothing",
+         "elevation satisfies the emitted preflight on its own, so no registry key can make that branch "
+         + "fire and the refusal cannot be reached (T386). Expected on CI, whose Windows runner is an "
+         + "administrator, and must NOT happen on a developer's machine: there it means the suite was "
+         + "run from an elevated shell and the one assertion this project has that is WEAKER on CI went "
+         + "unchecked. Dropping a privilege mid-run to reach it is not something a check may do."),
         // The repository family is not here on purpose (T247): `Repo` carries its own allowance, so the
         // seven sentences that used to sit in this list are one, and the eighth check inherits it.
     };
