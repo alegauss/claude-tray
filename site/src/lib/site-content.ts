@@ -612,6 +612,13 @@ export const profiles = {
       caption:
         "— name, email, organization and role. A sample account: an organization and its mail domain cannot be masked, so the app builds a fictional one for a screenshot.",
     },
+    {
+      src: "/claude-tray/shots/link-profiles.png",
+      alt: "Settings, Claude Code: One setup across profiles — which profile keeps its files, and per folder whether it is merged, adopted, not offered or never linked",
+      captionLead: "One setup across profiles",
+      caption:
+        "— which side keeps its files, and what sharing each folder would mean. Two sample accounts again; the plan is read off whichever pair you pick.",
+    },
   ],
   cards: [
     {
@@ -660,6 +667,38 @@ export const profiles = {
         " the icon there until you click ",
         { b: "Resume following" },
         ". Off by default.",
+      ] as Rich,
+    },
+    {
+      icon: "🔗",
+      title: "Or make the two one setup",
+      body: [
+        "Two profiles start genuinely empty of each other — right when they are two jobs, in the way when they are one person changing subscription. Pick which profile ",
+        { b: "keeps its files" },
+        " and the page shows, folder by folder, what sharing them would mean: ",
+        { b: "merged" },
+        " for your projects, session history and skills, with the number that would be copied over; ",
+        { b: "adopted" },
+        " whole for plugins and your ",
+        { code: "CLAUDE.md" },
+        "; ",
+        { b: "not offered" },
+        " for ",
+        { code: "settings.json" },
+        ", because a union would widen the other account's permission allowlist and that is your call; and ",
+        { b: "never" },
+        " for your sign-in and the file that makes it a separate account.",
+      ] as Rich,
+    },
+    {
+      icon: "📜",
+      title: "It hands you a script, not a button",
+      body: [
+        "This app cannot write into a configuration folder and is not growing a way to, so it writes a ",
+        { b: "PowerShell script" },
+        " where you point it and opens the folder. Read it first. Even then a bare run only prints what it would do — it takes a second run with ",
+        { code: "-Apply" },
+        " to change anything. It never asks for administrator rights, and it never deletes: every original is renamed beside its link, so you can put it back.",
       ] as Rich,
     },
     {

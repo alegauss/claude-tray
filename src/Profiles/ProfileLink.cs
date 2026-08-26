@@ -122,9 +122,16 @@ internal static class ProfileLink
     /// idempotence the script needs: re-running it must be a no-op rather than a second relink of a link,
     /// and the only way to know is to ask whether the secondary's copy is already a reparse point
     /// resolving into the primary.
+    ///
+    /// <para><paramref name="ToCopy"/> is how many of the secondary's own entries the union would carry
+    /// over, and it is <c>null</c> where the question does not apply <em>or cannot be answered without
+    /// opening a file</em>. Those are two different reasons and the same answer on purpose: an adopted or
+    /// withheld entry copies nothing, and a <see cref="Union.Lines"/> entry could only be counted by
+    /// reading <c>history.jsonl</c>, which is prompts — §I.1. A directory listing is names, which this app
+    /// reads everywhere; the count stops exactly where the file would have to be opened.</para>
     /// </summary>
     public readonly record struct Step(
-        Entry Entry, bool OnPrimary, bool OnSecondary, bool AlreadyLinked);
+        Entry Entry, bool OnPrimary, bool OnSecondary, bool AlreadyLinked, int? ToCopy = null);
 
     /// <summary>
     /// What the script will do, resolved against two real config dirs. <paramref name="Error"/> is set
@@ -167,8 +174,9 @@ internal static class ProfileLink
             {
                 string onPrimary = Path.Combine(primary, e.Name);
                 string onSecondary = Path.Combine(secondary, e.Name);
+                bool linked = LinksInto(onSecondary, onPrimary, e.IsDirectory);
                 steps.Add(new Step(e, Exists(onPrimary, e.IsDirectory), Exists(onSecondary, e.IsDirectory),
-                    LinksInto(onSecondary, onPrimary, e.IsDirectory)));
+                    linked, linked ? null : ToCopyCount(e, onPrimary, onSecondary)));
             }
 
         return new Plan(primary, primaryLabel, secondary, secondaryLabel, steps, error);
@@ -179,6 +187,30 @@ internal static class ProfileLink
 
     private static bool Exists(string path, bool isDirectory) =>
         isDirectory ? Directory.Exists(path) : File.Exists(path);
+
+    /// <summary>
+    /// How many of the secondary's top-level entries the union would carry over — the one figure a reader
+    /// can check against their own memory of the two machines before agreeing to any of this. Top level
+    /// only, and names only: the same reading <see cref="ProfileActivity"/> already takes.
+    ///
+    /// <para>Null rather than zero wherever the question does not apply, so "nothing to copy" and "not
+    /// counted" stay distinguishable on a surface that has to render both.</para>
+    /// </summary>
+    private static int? ToCopyCount(Entry e, string onPrimary, string onSecondary)
+    {
+        if (e.Union != Union.Entries || !Directory.Exists(onSecondary)) return null;
+        try
+        {
+            int n = 0;
+            foreach (string entry in Directory.EnumerateFileSystemEntries(onSecondary))
+                if (!Directory.Exists(Path.Combine(onPrimary, Path.GetFileName(entry)))
+                    && !File.Exists(Path.Combine(onPrimary, Path.GetFileName(entry)))) n++;
+            return n;
+        }
+        // An unreadable directory answers "not counted" rather than "nothing to copy": the second would
+        // be a figure, and a figure nobody measured is worse on this surface than an absence.
+        catch { return null; }
+    }
 
     /// <summary>
     /// Whether <paramref name="path"/> is already a link resolving to <paramref name="target"/>. Reads the

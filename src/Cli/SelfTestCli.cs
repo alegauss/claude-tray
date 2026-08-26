@@ -5111,6 +5111,35 @@ internal static class SelfTestCli
               ClaudeAccount.SamePath(plan.PrimaryDir, primary) && ClaudeAccount.SamePath(plan.SecondaryDir, secondary));
         Check("the six entries of a full setup are all acted on",
               plan.Acting.Count() == 6, string.Join(", ", plan.Acting.Select(s => s.Entry.Name)));
+
+        // The count the page renders (T370). It is the figure a reader checks before typing -Apply, so it
+        // is asserted against a tree built to a known shape rather than left to "some number appeared".
+        ProfileLink.Step projects = plan.Steps.First(s => s.Entry.Name == "projects");
+        Check("the union's count is what the secondary side has and the primary does not",
+              projects.ToCopy == 1, $"{projects.ToCopy?.ToString() ?? "not counted"} of 1");
+        Check("and an entry identical on both sides counts nothing rather than reporting no count",
+              plan.Steps.First(s => s.Entry.Name == "skills").ToCopy == 0);
+        // Null and zero are different answers and the page renders them differently: history.jsonl is the
+        // one entry whose union could only be counted by opening a file full of prompts (§I.1).
+        Check("history.jsonl is not counted at all, because counting it would mean reading prompts",
+              plan.Steps.First(s => s.Entry.Name == "history.jsonl").ToCopy is null);
+        Check("nor is anything adopted, withheld or never linked",
+              plan.Steps.Where(s => s.Entry.Union != ProfileLink.Union.Entries).All(s => s.ToCopy is null));
+
+        // The page's own rows, over the same plan. Localized where the script is not, so this asserts the
+        // mapping rather than any wording: a verdict and a detail for every entry, and the detail
+        // distinguishing "nothing to copy" from "not counted" — which one shared string would not.
+        List<LinkPlanRow> rows = LinkPlanRow.From(plan);
+        Check($"the page renders one row per catalogue entry ({ProfileLink.Catalogue.Count})",
+              rows.Count == ProfileLink.Catalogue.Count);
+        Check("every row carries a name, a verdict and a detail",
+              rows.All(r => r.Name.Length > 0 && r.Verdict.Length > 0 && r.Detail.Length > 0));
+        Check("exactly the acting steps are the rows drawn undimmed",
+              rows.Count(r => r.Acts) == plan.Acting.Count());
+        Check("and the two the app will never link are never drawn as acting",
+              rows.Where(r => r.Name is ".claude.json" or ".credentials.json").All(r => !r.Acts));
+        Check("a counted union and an uncounted one do not read the same",
+              rows.First(r => r.Name == "skills").Detail != rows.First(r => r.Name == "history.jsonl").Detail);
         // history.jsonl and CLAUDE.md are files, so this plan needs a symlink — which is the only reason
         // the preflight has anything to refuse.
         Check("a plan carrying a file link says so, since that is the only part needing a privilege",

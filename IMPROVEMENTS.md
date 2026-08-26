@@ -846,29 +846,6 @@ That is the shape to expect from here. The link is a one-line command; the conse
 run it are spread across auto-follow, the settings page and the checks, and none of them were
 visible while the two directories were separate.
 
-### XCIII.1 A button on the page where the two profiles are already registered (T370)
-
-The composer, its catalogue and the script it emits all landed under T367, and the only way to reach
-any of it is `--link-profiles`, a flag written down in a skill for whoever is editing this
-repository. The person who needs it has two profiles registered on the Claude Code settings page and
-wants to keep working through a change of subscription — and nothing on that page says the two can
-be made one setup at all.
-
-`ContextPrompt` is the precedent and the shape is proven there: a button that composes text and
-hands it over, the app writing nothing of its own. The differences are what this has to settle.
-
-- **It produces a file, so a clipboard copy is the wrong verb.** A cleanup prompt is pasted into a
-  conversation; a script is run. The button writes a `.ps1` and reveals it, and the confirmation says
-  where it went — a file the user cannot find is one they will compose again.
-- **The plan is the surface, not the script.** Ten rows, four verdicts and the counts a union would
-  copy: that is what belongs on the page. Which side keeps its files is a choice it has to offer and
-  cannot guess, and it is the choice that decides what a mistake costs.
-- **Localized, and the script is not.** Five `lang` files for the page's strings; the emitted text
-  stays English, for the reason its own type doc gives.
-- **It must not read as an action.** No progress bar, nothing that suggests the app did the linking.
-  The constraint is that it never writes into a config dir, and a button that looks like it did is
-  worse than no button.
-
 ### XCIII.2 The toggle a successful link turns into a no-op (T371)
 
 T365 took two profiles behind one `projects` tree out of auto-follow's running, and it is right to:

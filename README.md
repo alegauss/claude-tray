@@ -592,8 +592,41 @@ Prefer to do it yourself? The **Terminal default** row still shows the exact
 `setx CLAUDE_CONFIG_DIR "<dir>"` command with a **Copy** button, and the tray only copies it. (Hidden
 for your default profile and for `~/.claude`, where that command would be the wrong thing to run.)
 
-> A fresh profile starts genuinely empty — no user `CLAUDE.md`, settings, skills, plugins or project
-> history. That isolation is the point, but it does mean the second profile won't inherit your setup.
+### One setup across profiles
+
+A fresh profile starts genuinely empty — no user `CLAUDE.md`, settings, skills, plugins or project
+history. That isolation is the point when the two accounts are two jobs. It is in the way when they are
+one person changing subscription, and the fix by hand is a dozen `mklink` commands in an order where the
+wrong one loses a folder.
+
+<p align="center">
+<img src="site/public/shots/link-profiles.png" alt="Settings → Claude Code → One setup across profiles: which profile keeps its files, and the plan — merged, adopted, not offered, never — for each folder and file" width="88%">
+</p>
+
+**Settings → Claude Code → One setup across profiles** picks which profile keeps its files and shows you,
+per folder and file, what sharing them would mean:
+
+- **merged** — `projects`, `file-history` and `skills` are unioned first, so neither side loses anything,
+  and the row says how many folders would be copied over. `history.jsonl` is merged line by line.
+- **adopted** — `plugins` and your `CLAUDE.md` are taken whole from the profile that keeps its files.
+  A plugin records where it was installed, so merging those entry by entry would leave half of them
+  pointing at a folder that is no longer there.
+- **not offered** — `settings.json` *could* be merged, and that is exactly why it isn't: the union would
+  widen the other account's permission allowlist, which is your call. The command is in the script,
+  commented out, with the reason next to it.
+- **never** — `.claude.json` and `.credentials.json`. Your sign-in and the file that makes this a
+  separate account are not part of "one setup", and no button here will touch them.
+
+**The button writes a script; nothing else happens.** Claude Code Tray has no way to write into a
+configuration folder and isn't growing one — so **Write script…** saves a PowerShell file where you point
+it and opens the folder. Read it, then run it. Even then a bare run only *prints* what it would do: it
+takes a second run with `-Apply` to change anything, it never asks for administrator rights, and it never
+deletes — every original is renamed beside its link so you can put it back. If the plan needs a file
+symlink and Windows has no Developer Mode, it says so before it moves anything rather than half-way
+through.
+
+> Close every Claude Code session first. A running session keeps the folders it started with, so
+> relinking underneath one leaves you with half of each.
 
 ## System information — your plan, your install, this machine
 

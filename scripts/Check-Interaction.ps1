@@ -35,6 +35,12 @@
                        every capture renders one profile, which is structurally incapable of seeing
                        T164's three defects (all need a second switch; two need it to go back). Also
                        T166's timing: on the way back, the status line must never be observed at all.
+      -Case Link       Launch `--main`, open the Claude Code panel and drive the linking card's two side
+                       pickers: swap which profile keeps its files and assert the plan CHANGED, then put
+                       one profile on both sides and assert the refusal appears where the plan was with
+                       the Write button disabled (T370). Both combos open seeded, so a page ignoring
+                       them entirely still photographs correctly — and what it composes is a script that
+                       moves somebody's transcripts. Needs 2+ profiles.
       -Case Menu       Launch the real tray, open the notification-area icon's menu, read its entries,
                        and expand "Open Claude Code" to read the per-profile entries (this is what
                        verified T137).
@@ -155,7 +161,7 @@
     powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Menu -UseRunning
 #>
 param(
-    [ValidateSet('All', 'Keyboard', 'Panes', 'Sessions', 'Profiles', 'Menu', 'Names', 'Switch')]
+    [ValidateSet('All', 'Keyboard', 'Panes', 'Sessions', 'Profiles', 'Link', 'Menu', 'Names', 'Switch')]
     [string]$Case = 'All',
     [string]$Exe = "bin\Debug\net10.0-windows\win-x64\ClaudeTray.exe",
     [string]$Lang = "en",
@@ -1179,6 +1185,139 @@ function Invoke-ProfilesCase {
                           "no stop showed the panes, so the headline was never on screen to read"
             } else {
                 Pass "the live headline is a reading, not 'unavailable', at all $seen pane stops"
+            }
+        }
+    }
+    finally { Release-Main }
+}
+
+# ---------------------------------------------------------------- link case
+
+<#
+  The linking plan on the Claude Code panel (T370), driven rather than photographed.
+
+  A capture proves the ten rows render. What it cannot prove is the only thing the two side pickers are
+  FOR: that the plan is recomputed from whichever pair is selected. Both combos start seeded, so a page
+  that ignored them entirely would produce a correct-looking screenshot and a plan that never moved -
+  which is the same shape as T164's report following the wrong profile, on a surface whose output is a
+  script that moves somebody's transcripts.
+
+  Two properties, and the second is the safety one. The plan MOVES when the sides are swapped: the
+  primary is the side that keeps its files, so swapping changes which entries are the absent ones and
+  what the union would copy. And picking one profile on both sides REFUSES - the caption says so and the
+  button goes disabled, because the alternative is a script that links a directory to itself.
+#>
+function Invoke-LinkCase {
+    Head "Link - the plan follows the two side pickers, and one profile twice is refused"
+
+    $count = Expected-ProfileCount
+    if ($count -lt 2) {
+        # Named, never silent (T161): the card is collapsed below two profiles, so there is nothing to
+        # drive - and this is the precondition, not a weaker form of the claim.
+        Unchecked "the linking plan following its side pickers (T370)" `
+                  "this needs 2+ Claude Code profiles; --profiles reports $count"
+        return
+    }
+
+    try {
+        $win = Acquire-Main
+        if (-not $win) { Fail "the main window never appeared"; return }
+
+        $navSettings = ById $win 'NavSettings'
+        if (-not $navSettings) { Fail "the nav strip has no Settings destination"; return }
+        try { $navSettings.GetCurrentPattern(
+                [System.Windows.Automation.SelectionItemPattern]::Pattern).Select() }
+        catch { ClickCentre $navSettings }
+        Start-Sleep -Milliseconds 1200
+
+        if (-not (Nav-Settings $win (Label 'settings.nav.claudeCode'))) {
+            Fail "the Claude Code panel could not be opened - the plan was never on screen"
+            return
+        }
+
+        $primary = ById $win 'LinkPrimaryCombo' 6000
+        $secondary = ByIdNow $win 'LinkSecondaryCombo'
+        $caption = ByIdNow $win 'LinkPlanCaption'
+        $button = ByIdNow $win 'LinkWriteButton'
+        if (-not ($primary -and $secondary -and $caption -and $button)) {
+            Fail ("the linking card is not in the tree on a $count-profile machine: " +
+                  "primary=$([bool]$primary) secondary=$([bool]$secondary) caption=$([bool]$caption) button=$([bool]$button)")
+            return
+        }
+        Pass "the linking card is on the Claude Code panel ($count profiles)"
+
+        # The rows themselves, read through the tree rather than counted off the catalogue: this asserts
+        # the list was populated, and it is also where the safety claim becomes readable to a screen
+        # reader instead of only to a person looking at grey text.
+        $rows = @()
+        $list = ByIdNow $win 'LinkPlanList'
+        if ($list) {
+            $textCond = New-Object System.Windows.Automation.PropertyCondition(
+                $AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::Text)
+            $rows = @($list.FindAll('Descendants', $textCond) | ForEach-Object { [string]$_.Current.Name })
+        }
+        if ($rows.Count -lt 6) {
+            Fail "the plan list carries $($rows.Count) text element(s) - the plan did not render, so nothing below is an observation"
+            return
+        }
+        Info "$($rows.Count) text element(s) in the plan list"
+
+        # Reading nothing is a FAIL, and this is the row whose absence would matter most.
+        if ($rows -contains '.credentials.json') {
+            Pass "the credentials file is named in the plan, so a reader can see it is listed and left alone"
+        } else {
+            Fail "the plan never names .credentials.json - the entry a reader most needs to find is not in the tree"
+        }
+
+        # Indices 0 and 1 outright rather than read back off the tree: the precondition above guarantees
+        # two profiles, `Combo-Select` realises the item containers itself, and asking UIA which index a
+        # closed ComboBox is on answers -1 as often as not — which reports a bug in this script.
+        $stops = @()
+        foreach ($pair in @(@(0, 1), @(1, 0))) {
+            Combo-Select $primary $pair[0] $win | Out-Null
+            Combo-Select $secondary $pair[1] $win | Out-Null
+            Start-Sleep -Milliseconds 400
+            $stops += [pscustomobject]@{
+                Keeps   = Combo-SelectedText $primary
+                Links   = Combo-SelectedText $secondary
+                Caption = [string]((ByIdNow $win 'LinkPlanCaption').Current.Name)
+                Enabled = (ByIdNow $win 'LinkWriteButton').Current.IsEnabled
+            }
+            Info "$($stops[-1].Keeps) keeps -> $($stops[-1].Links) links: $($stops[-1].Caption)"
+        }
+
+        # This check's own precondition, on the Profiles case's rule: if the pickers never moved, the
+        # comparison below is one arrangement against itself and passes for the wrong reason.
+        if ($stops[0].Keeps -eq $stops[1].Keeps) {
+            Fail "the pickers did not move: index 0 and index 1 both keep '$($stops[0].Keeps)'"
+            return
+        }
+        Pass "the pickers walked '$($stops[0].Keeps)' -> '$($stops[1].Keeps)' on the side that keeps its files"
+
+        if ($stops[1].Caption -eq $stops[0].Caption) {
+            Fail "swapping the two sides left the plan unchanged - the pickers are not what the plan is computed from"
+        } else {
+            Pass "the plan follows the pickers - swapping which side keeps its files changed the caption"
+        }
+
+        # --- One profile on both sides is refused. A button left enabled here composes a script that
+        # links a directory to itself, which is the one arrangement ProfileLink refuses outright.
+        if (-not $stops[1].Enabled) {
+            Unchecked "the same-profile refusal (T370)" `
+                      "the Write button was already disabled with a valid pair selected, so its going disabled proves nothing"
+        }
+        else {
+            Combo-Select $secondary 1 $win | Out-Null      # primary is on 1 after the loop above
+            Start-Sleep -Milliseconds 400
+            $same = [string]((ByIdNow $win 'LinkPlanCaption').Current.Name)
+            $stillOn = (ByIdNow $win 'LinkWriteButton').Current.IsEnabled
+            $expected = Label 'settings.cc.linkSame'
+            if ($same -eq $expected -and -not $stillOn) {
+                Pass "one profile on both sides is refused in place, and the Write button goes disabled"
+            } elseif ($same -ne $expected) {
+                Fail "one profile on both sides left the caption as '$same' - the refusal was not shown where the plan is"
+            } else {
+                Fail "one profile on both sides still offers the Write button - it would compose a script linking a directory to itself"
             }
         }
     }
@@ -2712,6 +2851,7 @@ if ($Case -in @('All', 'Keyboard')) { Invoke-KeyboardCase }
 if ($Case -in @('All', 'Panes'))    { Invoke-PanesCase }
 if ($Case -in @('All', 'Sessions')) { Invoke-SessionsCase }
 if ($Case -in @('All', 'Profiles')) { Invoke-ProfilesCase }
+if ($Case -in @('All', 'Link'))     { Invoke-LinkCase }
 if ($Case -in @('All', 'Names'))    { Invoke-NamesCase }
 
 # Before the menu case, always: that one refuses to run while any ClaudeTray is alive, and with the window

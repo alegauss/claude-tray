@@ -7,6 +7,7 @@
 export const SHOT_SIZES: Record<string, readonly [number, number]> = {
   "/claude-tray/shots/context-all.png": [1974, 1425],
   "/claude-tray/shots/context.png": [1974, 1425],
+  "/claude-tray/shots/link-profiles.png": [1300, 846],
   "/claude-tray/shots/menu.png": [610, 336],
   "/claude-tray/shots/notify-bonus.png": [800, 400],
   "/claude-tray/shots/notify-context.png": [800, 400],

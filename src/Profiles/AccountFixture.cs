@@ -108,10 +108,48 @@ internal static class AccountFixture
         WritePersonal(personal, nowUtc);
         WriteTeam(work, nowUtc);
 
+        WriteSetup(personal, work);
+
         var found = new List<ClaudeInfo> { ClaudeAccount.Read(personal), ClaudeAccount.Read(work) };
         found[0].IsDefault = true;
         WriteHistory(found[0], nowUtc, week);
         return found;
+    }
+
+    /// <summary>
+    /// The entries the linking plan is about (T370), so a published shot of the Claude Code page shows a
+    /// plan with something in it. Without them every merged row read "the profile that keeps its files
+    /// does not have it" and the count was zero — a correct plan over two directories holding nothing but
+    /// a config file, and a useless picture.
+    ///
+    /// <para>Shaped so that with the personal profile keeping its files — which is what the page seeds,
+    /// being the default — each branch of the plan gets a row, since a fixture producing one of six rows is
+    /// a fixture of one row. <c>projects</c> is on both sides with two folders the personal one lacks, so
+    /// the count is a real number; <c>skills</c> is identical on both, so it reads "nothing to copy over";
+    /// <c>history.jsonl</c> is the line union; <c>plugins</c> and <c>CLAUDE.md</c> are the two adopted
+    /// whole, the second present on the personal side only so it is a link with no merge in front of it;
+    /// <c>file-history</c> is on the work side alone, which is the row saying the profile keeping its files
+    /// does not have it; and <c>settings.json</c> is there to be visibly withheld.</para>
+    ///
+    /// <para>The one branch left unrendered is <b>already linked</b>, and deliberately: a reparse point
+    /// needs a privilege to create and a careful teardown to remove, for a row the plan answers from a
+    /// boolean. No token is written here either — <see cref="Credentials"/> owns that file.</para>
+    /// </summary>
+    private static void WriteSetup(string personal, string work)
+    {
+        foreach ((string dir, int projects) in new[] { (personal, 4), (work, 6) })
+        {
+            for (int i = 1; i <= projects; i++)
+                Directory.CreateDirectory(Path.Combine(dir, "projects", $"D--work-sample-project-{i}"));
+            for (int i = 1; i <= 3; i++)
+                Write(Path.Combine(dir, "skills", $"sample-skill-{i}", "SKILL.md"), "# sample\n");
+            Directory.CreateDirectory(Path.Combine(dir, "plugins"));
+            Write(Path.Combine(dir, "history.jsonl"), "");
+            Write(Path.Combine(dir, "settings.json"), "{}\n");
+        }
+        for (int i = 1; i <= 12; i++)
+            Directory.CreateDirectory(Path.Combine(work, "file-history", $"session-{i:00}"));
+        Write(Path.Combine(personal, "CLAUDE.md"), "# sample\n");
     }
 
     /// <summary>

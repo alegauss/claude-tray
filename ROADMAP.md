@@ -26,7 +26,6 @@
 
 ## Block O — Profiles
 
-- 📋 **T370** (deps: —) **The linking script is reachable only from a CLI flag written down in a skill for this repo's editors** — The composer and its catalogue already exist, so what is missing is the page that offers them and the choice of which side keeps its files. → §XCIII.1
 - 📋 **T371** (deps: —) **Linking two profiles is exactly the shape that takes both out of auto-follow, and nothing anywhere says so** — The script knows projects is in its plan and the toggle's own reading already answers it, so this is three sentences rather than a mechanism. → §XCIII.2
 - 📋 **T373** (deps: —) **The script asks the user to decide whether to widen a permission allowlist and names neither allowlist** — Both files are already opened by this app, and the reading that settles it is which rules the union would add and to which list. → §XCIII.3
 

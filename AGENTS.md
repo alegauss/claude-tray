@@ -128,19 +128,18 @@ what ran passed but something could not be evaluated, `1` a failure**; the summa
 
 ```
 powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 `
-  [-Case Keyboard|Menu|Profiles|Panes|Sessions|Names|Switch] [-Lang pt-BR] [-UseRunning]  # none runs all
+  [-Case Keyboard|Menu|Profiles|Link|Panes|Sessions|Names|Switch] [-Lang pt-BR] [-UseRunning]  # none runs all
 ```
 
-All seven are below; listing *three* is how two stayed script-only (T201). The header is the full text.
+All eight are below; listing *three* is how two stayed script-only (T201). The header is the full text.
 
 - **Keyboard** launches `--settings-tray` (the WinForms pump), clicks a sidebar item, types into a `TextBox`
   and reads it back through `ValuePattern`, Tabs out, drives a `Slider` with an arrow key. **`check.yml`
   runs it on every push** (T194): synthesised input reaches a hosted runner and it needs no credentials.
 - **Panes** and **Names** (`--main`) need no second profile, so with Keyboard they are what a one-profile
-  machine and CI run. Panes asserts the report can be *read* — tab headers, and the pane's used %, reset
-  caption and live headline in the accessibility tree — the only check that would notice
-  `PART_SelectedContentHost` going missing again (T176). Names asserts what controls *announce*, rows
-  labelled by a neighbouring element included (T175).
+  machine and CI run. Panes asserts the report can be *read* — tab headers, the pane's used %, reset caption
+  and live headline in the tree — the only check that would notice `PART_SelectedContentHost` going missing
+  again (T176); Names, what controls *announce*, rows labelled by a neighbouring element included (T175).
 - **Sessions** (`--main`) drives the pane a capture cannot finish checking (T359): a row click has to
   unfold its call tree *into the tree* (T329), and the ⓘ note behind the list-price figure lives in a
   `Popup` — its own window, which `--capture-stats` cannot photograph at all. Waits for the scan; no
@@ -154,6 +153,8 @@ All seven are below; listing *three* is how two stayed script-only (T201). The h
   that tray resolved, not a `-Lang` it never got; a resident binary that is not `-Exe` is DEGRADED (T220, T236).
 - **Switch** drives the submenu entry that moves the **icon**'s account — `AdoptMonitored`, not the
   page's picker above; **DEGRADED** below two (T294).
+- **Link** swaps the linking card's two side pickers: the plan must *move*, and one profile on both
+  sides is refused with the button disabled — a seeded pair photographs right either way (T370).
 - **An assertion that could have run and didn't is `Unchecked`, never an `Info` line.** T166's timing hung
   off `Combo-Select`'s UIA route alone, so the day `Select()` began throwing, the run would print a note and
   stay green (T193). Both halves are needed: a fallback reaching its target in **one selection change**

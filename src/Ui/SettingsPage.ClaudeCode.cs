@@ -87,6 +87,7 @@ internal partial class SettingsPage
             : L.T("settings.cc.envSyncNone");
 
         FillProfileFields();
+        LoadLinkSides();
     }
 
     private ClaudeInfo? SelectedProfile =>
@@ -230,6 +231,132 @@ internal partial class SettingsPage
         InvalidateProfiles();
         LoadProfiles();
         LoadSystemInfo();
+    }
+
+    // ================= One setup across profiles (T370) =================
+    // The surface for ProfileLink: two combos deciding which side keeps its files, the plan those two
+    // produce, and a button that writes the script somewhere the user named. Nothing here writes into a
+    // config dir, and nothing here runs the script — see the card's comment in the XAML.
+
+    /// <summary>Set while the two combos are being filled, so seeding them does not read back as the user
+    /// choosing sides and recompute the plan twice.</summary>
+    private bool _fillingLink;
+
+    /// <summary>
+    /// Fill both side pickers and hide the whole section below two profiles, on the same gate as the
+    /// all-profiles card: one profile has nothing to be linked to.
+    ///
+    /// <para>The seed is the default profile keeping its files, because that is the folder a bare
+    /// <c>claude</c> already uses and the one whose tree is most likely the fuller of the two — and it is
+    /// only a seed. The choice is the user's and the combos say so by both being editable.</para>
+    /// </summary>
+    private void LoadLinkSides()
+    {
+        LinkHeader.Visibility = LinkCard.Visibility = LinkNote.Visibility =
+            _ccProfiles.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        if (_ccProfiles.Count < 2) return;
+
+        _fillingLink = true;
+        try
+        {
+            foreach (System.Windows.Controls.ComboBox combo in new[] { LinkPrimaryCombo, LinkSecondaryCombo })
+            {
+                combo.Items.Clear();
+                foreach (ClaudeInfo p in _ccProfiles)
+                    combo.Items.Add(new System.Windows.Controls.ComboBoxItem { Content = p.Label });
+            }
+            int primary = Math.Max(0, _ccProfiles.FindIndex(p => p.IsDefault));
+            LinkPrimaryCombo.SelectedIndex = primary;
+            LinkSecondaryCombo.SelectedIndex = primary == 0 ? 1 : 0;
+        }
+        finally { _fillingLink = false; }
+        ShowLinkPlan();
+    }
+
+    private void LinkSide_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_fillingLink) return;
+        ShowLinkPlan();
+    }
+
+    /// <summary>The plan for whichever pair is selected, or the refusal in its place.</summary>
+    private ProfileLink.Plan? _linkPlan;
+
+    private void ShowLinkPlan()
+    {
+        LinkHint.Text = "";
+        ClaudeInfo? a = At(LinkPrimaryCombo), b = At(LinkSecondaryCombo);
+        _linkPlan = a is null || b is null ? null : ProfileLink.For(a.ConfigDir, b.ConfigDir, a.Label, b.Label);
+
+        // A refusal is shown where the plan would be, not in a dialog: picking one profile twice is the
+        // ordinary way to arrive here and is a sentence, not an error.
+        if (_linkPlan is null || _linkPlan.Error is { Length: > 0 })
+        {
+            LinkPlanList.ItemsSource = null;
+            LinkPlanCaption.Text = L.T("settings.cc.linkSame");
+            LinkWriteButton.IsEnabled = false;
+            return;
+        }
+
+        LinkPlanList.ItemsSource = LinkPlanRow.From(_linkPlan);
+        int acting = _linkPlan.Acting.Count();
+        LinkPlanCaption.Text = L.T("settings.cc.linkPlanCount", Nums.Of(acting), _linkPlan.SecondaryLabel)
+                               + (_linkPlan.NeedsSymlink ? " " + L.T("settings.cc.linkNeedsDev") : "");
+        LinkWriteButton.IsEnabled = acting > 0;
+    }
+
+    private ClaudeInfo? At(System.Windows.Controls.ComboBox combo) =>
+        combo.SelectedIndex >= 0 && combo.SelectedIndex < _ccProfiles.Count
+            ? _ccProfiles[combo.SelectedIndex]
+            : null;
+
+    /// <summary>
+    /// Write the script where the user points, and reveal it. A save dialog rather than a folder this app
+    /// chose: the whole promise is that it writes nothing anybody did not ask for, and a path the user
+    /// typed is the strongest form of that — it also means the confirmation has somewhere true to point,
+    /// since a file in <c>%LocalAppData%</c> is a file most people will not find and will compose again.
+    /// </summary>
+    private void LinkWrite_Click(object sender, RoutedEventArgs e)
+    {
+        if (_linkPlan is not { Error: null } plan) return;
+
+        using var dlg = new System.Windows.Forms.SaveFileDialog
+        {
+            Title = L.T("settings.cc.linkSaveTitle"),
+            Filter = L.T("settings.cc.linkSaveFilter") + " (*.ps1)|*.ps1",
+            FileName = "link-profiles.ps1",
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            OverwritePrompt = true,
+        };
+        if (dlg.ShowDialog() != System.Windows.Forms.DialogResult.OK) return;
+
+        try
+        {
+            // UTF-8 with a BOM, for ProfilesCli's reason: Windows PowerShell 5.1 reads a BOM-less .ps1 as
+            // ANSI, and the two config-dir paths are in this text verbatim.
+            System.IO.File.WriteAllText(dlg.FileName, ProfileLink.Script(plan),
+                new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+            LinkHint.Text = L.T("settings.cc.linkWrote");
+            Reveal(dlg.FileName);
+        }
+        catch (Exception ex)
+        {
+            // Said in place, where the button is, rather than thrown: the disk refusing a path is the
+            // user's to fix and is not a reason for the window to go away.
+            LinkHint.Text = ex.Message;
+        }
+    }
+
+    /// <summary>Open Explorer with the file selected. Best effort — a shell that will not start is not a
+    /// failed write, and the hint above already names the file.</summary>
+    private static void Reveal(string path)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe",
+                $"/select,\"{path}\"") { UseShellExecute = true });
+        }
+        catch { /* the confirmation names the path either way */ }
     }
 
     // The familiar Windows folder picker, shared by both directory fields on this page.

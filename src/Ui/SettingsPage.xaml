@@ -547,6 +547,117 @@
                                 </local:SettingsRow>
                             </StackPanel>
                         </Border>
+
+                        <!-- ===== One setup across profiles (T370) =====
+                             The composer landed with T367 behind a CLI flag; this is the surface for the
+                             person who has two profiles registered above and wants them to share one
+                             setup. Three rules the markup carries, each of them a way this could go
+                             wrong. Which side keeps its files is a CHOICE and never a guess: it decides
+                             what a mistake costs, so it is two combos and not one. The PLAN is what is
+                             shown, not the script — ten rows and four verdicts, with the refusals dimmed
+                             and still listed, because an entry missing from the list reads as an entry
+                             nobody had an opinion about. And nothing here reads as an ACTION: the button
+                             writes a file and says where, the app never touching a config dir (§I.4).
+                             Hidden below two profiles, on the same gate as the card above. -->
+                        <TextBlock x:Name="LinkHeader" Text="{local:Loc settings.cc.linkTitle}"
+                                   Style="{StaticResource SectionHeader}" />
+                        <Border x:Name="LinkCard" Style="{StaticResource GroupCard}" Margin="0,0,0,4">
+                            <StackPanel>
+                                <!-- Full width, not a SettingsRow: two profile-name combos and the phrase
+                                     between them take the whole trailing column, and a SettingsRow's
+                                     header is a single unwrapped line — in French it was clipped
+                                     mid-word. Both blocks in this card are therefore label-above-control,
+                                     which is also how they read as one surface rather than two. -->
+                                <StackPanel Margin="16,13">
+                                    <TextBlock Text="{local:Loc settings.cc.linkSides}"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <TextBlock Text="{local:Loc settings.cc.linkSidesDesc}"
+                                               Margin="0,3,0,0" FontSize="12" TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <!-- Named explicitly, because these two are no longer inside a
+                                         SettingsRow and so have no neighbouring label for the automation
+                                         tree to borrow (T175) — and one label could not serve both
+                                         anyway: which combo is which is the whole choice. -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                        <ComboBox x:Name="LinkPrimaryCombo" Width="184" Padding="10,5"
+                                                  AutomationProperties.Name="{local:Loc settings.cc.linkKeeps}"
+                                                  SelectionChanged="LinkSide_Changed" />
+                                        <TextBlock Text="{local:Loc settings.cc.linkArrow}"
+                                                   VerticalAlignment="Center" Margin="12,0" FontSize="12"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        <ComboBox x:Name="LinkSecondaryCombo" Width="184" Padding="10,5"
+                                                  AutomationProperties.Name="{local:Loc settings.cc.linkBecomes}"
+                                                  SelectionChanged="LinkSide_Changed" />
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <!-- Full width rather than a SettingsRow's trailing control: this is a
+                                     table, and right-aligning ten rows into 290dip is how it would stop
+                                     being readable. Margin matches the row padding above (16,13). -->
+                                <StackPanel Margin="16,13">
+                                    <TextBlock Text="{local:Loc settings.cc.linkPlan}"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                    <TextBlock x:Name="LinkPlanCaption" Margin="0,3,0,0" FontSize="12"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    <ItemsControl x:Name="LinkPlanList" Margin="0,10,0,0"
+                                                  AutomationProperties.Name="{local:Loc settings.cc.linkPlan}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,0,0,5">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="146" />
+                                                        <ColumnDefinition Width="104" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding Name}"
+                                                               FontFamily="Consolas" FontSize="12.5"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding Verdict}" FontSize="12"
+                                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                    <TextBlock Grid.Column="2" Text="{Binding Detail}" FontSize="12"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                                    <!-- The refusals stay legible and stop competing: dimmed
+                                                         as a whole row, so which four the script leaves
+                                                         alone is readable at a glance. -->
+                                                    <Grid.Style>
+                                                        <Style TargetType="Grid">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Acts}" Value="False">
+                                                                    <Setter Property="Opacity" Value="0.55" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Grid.Style>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="{local:Loc settings.cc.linkWrite}"
+                                                   Description="{local:Loc settings.cc.linkWriteDesc}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="LinkHint" VerticalAlignment="Center" MaxWidth="200"
+                                                   Margin="0,0,12,0" FontSize="11" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                        <Button x:Name="LinkWriteButton" MinWidth="112" Padding="14,5"
+                                                Content="{local:Loc settings.cc.linkWriteButton}"
+                                                Click="LinkWrite_Click" />
+                                    </StackPanel>
+                                </local:SettingsRow>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock x:Name="LinkNote" Margin="2,10,2,4" TextWrapping="Wrap" FontSize="12"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                   Text="{local:Loc settings.cc.linkNote}" />
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
