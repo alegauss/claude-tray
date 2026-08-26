@@ -449,6 +449,17 @@ function Acquire-Main {
         Info "reusing the --main window from an earlier case (no launch, no first-poll wait)"
         [Native]::Topmost([IntPtr]$script:MainWin.Current.NativeWindowHandle)
         try { $script:MainWin.SetFocus() } catch { Info "window SetFocus threw - $($_.Exception.Message)" }
+        # Handed back to the state `--main` opens in, before the next case reads it (T382). Here rather
+        # than in each borrowing case: five of them share this window and the sixth would forget.
+        Reset-Main $script:MainWin
+        # And judged, or the reset is a hope. A case reading the wrong page reports something far less
+        # legible than this line does - "read NOTHING in 25s" over a perfectly healthy window.
+        if (At-Home $script:MainWin) {
+            Pass "the shared window was handed back on the Statistics pane it opens on"
+        } else {
+            Fail ("the shared window could not be put back on the destination and pane it opens on, so " +
+                  "this case is about to read whatever the last one left (T382)")
+        }
         return $script:MainWin
     }
     $script:MainLaunches++
@@ -460,6 +471,87 @@ function Acquire-Main {
     try { $win.SetFocus() } catch { Info "window SetFocus threw - $($_.Exception.Message)" }
     $script:MainWin = $win
     return $win
+}
+
+<#
+  Put the shared window back where it was lent: the Statistics destination, on its first pane (T382).
+
+  T195 gave three cases one window and said why that was safe - "a window none of them leaves in a state
+  the next would reject": Panes and Names only read, and Profiles walks the picker 0 -> 1 -> 0 and hands
+  back the profile it was given. That invariant was true of those three and is enforced by nothing, so the
+  two cases that joined later broke it without a word. `Sessions` drills into a row and stays there;
+  `Link` navigates to Settings and then to the Claude Code panel and stops. `-Case All` then failed five
+  assertions - Profiles reading nothing in 25s, Names finding four controls "not in the tree" - while every
+  one of them passed when run alone, and CI runs only the three that never moved. The default nobody types
+  was the only path that showed it.
+
+  Resetting here rather than restoring per case is the whole fix: one place instead of five, and the sixth
+  case cannot forget. Both steps are best-effort with the established fallback - Select() through UIA, then
+  a click - and the result is ASSERTED by the caller, so a reset that silently stops working is red rather
+  than a run of cases quietly reading the wrong page.
+#>
+function Reset-Main($win) {
+    # The Settings page keeps its own sidebar panel, and that is a SECOND piece of state the shell's
+    # destination does not cover - `Link` leaves it on Claude Code, and `Names` reads "the panel the page
+    # opens on". Resetting only the destination fixed Profiles and left three of Names' assertions failing,
+    # which is what named this. Visited unconditionally: a collapsed page's children are not in the
+    # automation tree at all, so there is no way to ask whether it was ever built.
+    $settings = ByIdNow $win 'NavSettings'
+    if ($settings) {
+        try { $settings.GetCurrentPattern(
+                [System.Windows.Automation.SelectionItemPattern]::Pattern).Select() }
+        catch { ClickCentre $settings }
+        Start-Sleep -Milliseconds 600
+        Nav-Settings $win (Label 'settings.nav.general') | Out-Null
+    }
+
+    $nav = ByIdNow $win 'NavStatistics'
+    if ($nav) {
+        try { $nav.GetCurrentPattern(
+                [System.Windows.Automation.SelectionItemPattern]::Pattern).Select() }
+        catch { ClickCentre $nav }
+        Start-Sleep -Milliseconds 500
+    }
+    # And its first pane. A case that opened Sessions left that tab selected, and the next one reads the
+    # body of whichever tab is current - which is how "read NOTHING in 25s" happens over a healthy window.
+    $tabCond = New-Object System.Windows.Automation.PropertyCondition(
+        $AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::TabItem)
+    $tabs = @($win.FindAll('Descendants', $tabCond) |
+              Sort-Object { $_.Current.BoundingRectangle.X })
+    if ($tabs.Count -gt 0) {
+        try { $tabs[0].GetCurrentPattern(
+                [System.Windows.Automation.SelectionItemPattern]::Pattern).Select() }
+        catch { ClickCentre $tabs[0] }
+        Start-Sleep -Milliseconds 400
+    }
+}
+
+<#
+  Whether the shared window is on the destination and pane it opens in. The claim `Reset-Main` is judged
+  on, so the reset is a check rather than a hope.
+
+  What it deliberately does NOT cover: the Settings page's own sidebar panel. That page is collapsed while
+  Statistics is showing and a collapsed page's children are not in the automation tree, so there is nothing
+  to read - the reset visits it blind and this cannot confirm it. Said out loud rather than left as a gap
+  somebody rediscovers: what holds that half is `Names`' own three exact-label reads, which are the
+  assertions that failed when it was missing.
+#>
+function At-Home($win) {
+    $nav = ByIdNow $win 'NavStatistics'
+    if (-not $nav) { return $false }
+    try {
+        if (-not $nav.GetCurrentPattern(
+                [System.Windows.Automation.SelectionItemPattern]::Pattern).Current.IsSelected) { return $false }
+    } catch { return $false }
+    $tabCond = New-Object System.Windows.Automation.PropertyCondition(
+        $AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::TabItem)
+    $tabs = @($win.FindAll('Descendants', $tabCond) |
+              Sort-Object { $_.Current.BoundingRectangle.X })
+    if ($tabs.Count -eq 0) { return $true }   # the page has no panes yet; the destination is the claim
+    try {
+        return $tabs[0].GetCurrentPattern(
+            [System.Windows.Automation.SelectionItemPattern]::Pattern).Current.IsSelected
+    } catch { return $false }
 }
 
 <# End of one case. Keeps the window for the next one in a shared run; the runner closes it once. #>

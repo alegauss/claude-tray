@@ -43,8 +43,6 @@
 
 ---
 
-## Block AI — Verification — the checks that prove a change
-
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -832,36 +830,3 @@ maintained the same way instead of each carrying its own conventions.
 T369 finished the shape by drawing what the other three have and this one did not: a band closing
 the hero and opening the footer, whose motif is the product's own subject. Here that is the icon —
 bars rising from a floor, with the even-pace line ruled across them.
-
-## XCIX A shared window, and a contract nothing holds
-
-Every interaction case passes when it is run alone. `-Case All` — the documented default, *none runs
-all* — fails five assertions on a two-profile machine, and has for two tasks.
-
-Nothing was wrong with any case. What is wrong is the contract underneath them: five cases now share
-one window on the strength of a property that three of them once had, stated in a doc comment and
-enforced by nothing.
-
-### XCIX.1 A borrowed window nobody hands back (T382)
-
-T195 gave `Panes`, `Profiles` and `Names` one `--main` window instead of three launches, and said in
-its own comment why that was safe: *"a window none of them leaves in a state the next would reject.
-Panes and Names only read; Profiles drives the picker but walks it 0 -> 1 -> 0, so it hands back the
-profile it was given."* That is a real invariant and it was true of those three.
-
-Two cases have joined the shared window since and neither honours it. `Sessions` selects the
-Sessions pane and drills into a row. `Link` navigates to Settings, then to the Claude Code panel,
-and stops there. Both hand the next case a window it does not expect, and the next cases are
-`Profiles` — which then read nothing in 25 seconds — and `Names`, which reports four controls "not
-in the tree after navigating to Settings".
-
-It went unseen because every path anyone takes hides it. Each case alone owns its own process and
-passes. CI runs `Keyboard`, `Panes` and `Names`, never together with the two that moved. And `-Case
-All` is the default nobody types.
-
-- **Reset, rather than restore.** `Acquire-Main` returning the window to the state it opens in is one
-  place instead of five, and cannot be forgotten by the sixth case.
-- **The contract gets an assertion.** A comment five cases depend on is the shape this repository turns
-  into a check: on release, assert the window is where it was lent. A case that moved it names itself.
-- **The order is not the fix.** Running the readers first works today and breaks on the next case
-  added, which is how this happened.
