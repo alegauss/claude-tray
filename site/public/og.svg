@@ -32,7 +32,9 @@
   <text x="90" y="360" font-family="DejaVu Sans, sans-serif" font-size="66" font-weight="bold" fill="#f4ece4">Your Claude Code usage,</text>
   <text x="90" y="436" font-family="DejaVu Sans, sans-serif" font-size="66" font-weight="bold" fill="#E89070">always in the tray.</text>
 
-  <text x="92" y="502" font-family="DejaVu Sans, sans-serif" font-size="26" fill="#b6a596">Burn-rate projection · per-session cost at list prices · a context audit · nothing uploaded.</text>
+  <!-- measured at 978px against the 1020px between the gutters; the previous
+       line ran 125px past x=1110 and was clipped mid-word by the canvas edge -->
+  <text x="92" y="502" font-family="DejaVu Sans, sans-serif" font-size="26" fill="#b6a596">Burn-rate projection · per-session cost · a context audit · nothing uploaded.</text>
 
   <!-- status badge -->
   <rect x="90" y="540" width="440" height="46" rx="23" fill="#241a12" stroke="#3a2c20"/>
