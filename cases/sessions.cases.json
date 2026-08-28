@@ -1,0 +1,177 @@
+{
+  // WW80. The Sessions pane, migrated out of Invoke-SessionsCase in scripts/Check-Interaction.ps1.
+  //
+  // T346 is why this file matters more than the others. A WPF Popup is its own top-level window, so
+  // `--capture-stats` cannot photograph it — the flag catalogue says so in as many words — and no
+  // published screenshot ever will. Whether that note is readable at all is a question only the
+  // accessibility tree can answer, which is the argument for the whole interaction loop existing.
+  //
+  // And it answers: measured here, the popup resolves as a descendant of the MAIN window's root
+  // even though Windows gives it a top-level window of its own, and the note it carries is 713
+  // characters with the rate-card date in them. That is why every step below searches from the one
+  // root the case was launched against, and why none of them needs a second window to look in.
+  //
+  // One of the script's assertions is still NOT here, and is not dropped quietly: a count of
+  // readable fields on a row. It cannot be written in this format today and is filed as WW253 —
+  // a typed count is the stale literal a derived set exists to refuse, and `answers` on the row
+  // would pass on a row whose every field is unreadable, because the row announces its own class
+  // name. The other two are written below: a value matching a date rather than equalling a string,
+  // because WW250 added the field for it, and a subtree that grew after a click, because WW251 did.
+  "fixtures": [
+    {
+      "name": "the main window for the sessions pane",
+      "arguments": ["--main", "--lang", "en"],
+
+      // WW240. What the launch above produces, said so a derived set reads the strings this
+      // window is showing rather than the one file the project had to pretend was its only one.
+      "language": "en",
+
+      // Not shared. The script lent one window to Panes, Names and Profiles because all three only
+      // read; both cases here act — one opens a popup, the other unfolds a row — so a case after
+      // either would inherit a window somebody left open. Two launches and not the script's one:
+      // the two claims fail for different reasons, and a run that reports "the sessions case failed"
+      // over both of them is the flattening this format exists to undo.
+      "shareable": false
+    }
+  ],
+
+  "cases": [
+    {
+      "name": "the note behind the info dot is readable, which no capture can tell you",
+      "catches": "a popup whose content no screenshot can reach and no screen reader could either, so nothing but the accessibility tree could ever have said it was empty",
+      "filed": "WW80",
+      "tags": ["sessions"],
+      "fixture": "the main window for the sessions pane",
+
+      // The same precondition the panes case declares, measured by this repository's own runner: the
+      // pane is built from this machine's transcripts, and a machine with none has no conversation to
+      // price and therefore no note explaining the price.
+      "needs": ["a transcript to report on"],
+
+      "steps": [
+        {
+          // Through the pattern, which needs no foreground. The script wrote a three-attempt loop
+          // around Select-then-confirm because WPF builds a tab's content on its first visit and a
+          // Select that silently does not land leaves the pane never realised — it then blamed a
+          // forty-second scan for a tab it had never opened. The loop is the engine's, and the
+          // expectation is what makes the retry stop.
+          "locator": "TabItem#SessionsPane",
+          "act": "select",
+          "expect": "selected",
+          "reads": "selected",
+          "named": "the Sessions tab is the selected one, so its pane is built"
+        },
+        {
+          // The scan, waited out rather than raced. This resolving at all IS the claim: the list is
+          // rendered from a transcript scan, and a case that read before it landed would read the
+          // placeholder. The project declares the resolve budget, so no number is written here.
+          "locator": "Button#SessionsMethodInfo",
+          "act": "read",
+          "reads": "toggle",
+          "expect": "Off",
+          "named": "the info dot is in the tree and starts closed"
+        },
+        {
+          // The act the whole file exists for. A pointer rather than a pattern: it is a ToggleButton,
+          // so 'toggle' would go through the pattern and prove the popup opens for a caller that is
+          // not a person — which is the one thing a screenshot already tells you.
+          "locator": "Button#SessionsMethodInfo",
+          "act": "click",
+          "with": "PointerIsTheAct",
+          "named": "open the note behind the info dot"
+        },
+        {
+          // The claim the script actually made, and 'answers' would have been weaker than the truth.
+          // The note interpolates the date the rate card was read, so no case can name what it says —
+          // but the date being there is the point: a figure whose provenance has gone is the defect,
+          // and a note that lost it still answers.
+          //
+          // A date and not the English words. T361 is the warning: an earlier version matched 'list
+          // prices', found nothing in the other four languages, and reported a readable note as
+          // unreadable. A date has the same shape in all five. The words are in the element's name,
+          // which is what WW238 measured.
+          "locator": "Text#SessionsMethodBody",
+          "act": "read",
+          "reads": "name",
+          "matches": "\\d{4}-\\d{2}-\\d{2}",
+          "named": "the note reads back, carrying the date its figure came from"
+        },
+        {
+          // WW278. Put back by clicking somewhere else, which is how this note closes: the Popup is
+          // `StaysOpen="False"`, and the application says what that means in as many words — click
+          // anywhere and the note goes away.
+          //
+          // The script clicked the dot a second time and slept, and the sleep is why it never noticed.
+          // A `StaysOpen="False"` popup holds the mouse capture, so the click that dismisses it is
+          // then delivered to the ToggleButton underneath, which sets `IsChecked` back to true and
+          // reopens it. Measured three times on a real desk: the dot reads `On` for every poll of six
+          // seconds after its second click, and never anything else.
+          //
+          // The tab header rather than the pane: it is above the dot and the popup is placed below it,
+          // so this lands outside the popup wherever the note happens to be long.
+          "locator": "TabItem#SessionsPane",
+          "act": "click",
+          "with": "PointerIsTheAct",
+          "named": "click away from the note, which is how the application says it closes"
+        },
+        {
+          // And the window is as it was found, which is the one promise this project makes about every
+          // run. The expectation is what says the click landed; the script had a sleep and a hope.
+          "locator": "Button#SessionsMethodInfo",
+          "act": "read",
+          "reads": "toggle",
+          "expect": "Off",
+          "named": "the note is closed again, leaving the window as it was found"
+        }
+      ]
+    },
+
+    {
+      // T329. The other half of Invoke-SessionsCase, and the reason the rows carry a chevron: a row
+      // that opens into the call tree which produced it, and looks exactly like one that does not,
+      // is a feature only its author ever finds. What says the tree arrived is that there is more
+      // under the row than there was — never a number typed here, which is WW251's whole rule.
+      "name": "clicking a conversation row unfolds the call tree that produced it",
+      "catches": "a disclosure that draws a chevron and unfolds nothing into the accessibility tree, which the picture of an expanded row would not have told you either",
+      "filed": "WW80",
+      "tags": ["sessions"],
+      "fixture": "the main window for the sessions pane",
+
+      // The same precondition, and here it is the whole case: a machine with no transcripts has no
+      // conversation row, and there is nothing to click rather than something that failed to unfold.
+      "needs": ["a transcript to report on"],
+
+      "steps": [
+        {
+          // Repeated from the case above rather than shared, because a step is not a subroutine and
+          // this case runs alone as often as it runs beside that one. The retry and the expectation
+          // that stops it are the engine's, as they are there.
+          "locator": "TabItem#SessionsPane",
+          "act": "select",
+          "expect": "selected",
+          "reads": "selected",
+          "named": "the Sessions tab is the selected one, so its pane is built"
+        },
+        {
+          // The topmost row, by where it is drawn rather than by where the tree happens to hold it:
+          // the list is newest-first, so `order=top` is the row a reader would click and an index
+          // into tree order is a number nobody can check against the window.
+          //
+          // A pointer, and the reason is the same one the keyboard case gives for the sidebar: the
+          // row carries no Invoke and no Expand — measured, it offers nothing but SynchronizedInput —
+          // because what opens it is a mouse handler on the list. There is no pattern to ask.
+          //
+          // `discloses` and not a count: the script read the row's named descendants, asserted four
+          // or more, and would have gone on asserting four the day the row grew a column. The engine
+          // compares the subtree against what it read a moment earlier — measured here as 10 before
+          // and 18 after, in under 300ms, which is why no number belongs in this file.
+          "locator": "#SessionList > DataItem[order=top]",
+          "act": "click",
+          "with": "PointerIsTheAct",
+          "discloses": true,
+          "named": "the row discloses the call tree that was not in the tree before it was clicked"
+        }
+      ]
+    }
+  ]
+}

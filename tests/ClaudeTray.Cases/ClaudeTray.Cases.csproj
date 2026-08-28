@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- WW78. The runner for the cases in ..\..\cases, and deliberately almost nothing: the cases are
+       data files and this project is what hands them to the engine. It is here rather than at the
+       root because ClaudeTray.csproj's own target refuses a folder holding two project files, and
+       because the application under test must not reference the thing driving it.
+
+       One package reference and no path into the engine's source. That is the block's criterion, and
+       it is also what makes this project honest about the bootstrap below: the package it names is
+       real, and where it comes from is a nuget.config beside this file rather than a project
+       reference reaching across two repositories. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>ClaudeTray.Cases</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Winwright" Version="0.1.0-alpha.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+
+</Project>

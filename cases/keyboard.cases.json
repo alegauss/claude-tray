@@ -1,0 +1,78 @@
+{
+  // WW78. The first case migrated out of scripts/Check-Interaction.ps1, and the one whose absence
+  // let a window ship with no keyboard input at all. Every assertion here is about synthesised
+  // input: the pattern routes beside them — `set value`, `set range`, `invoke` — all passed on the
+  // day of the bug, which is why migrating this into them would have deleted the observable.
+  //
+  // Nothing here presses Save. The window's own handlers update labels and nothing else, so a run
+  // moves controls and writes no setting of yours; the day that stops being true, this file needs a
+  // store fingerprint rather than a comment.
+  "fixtures": [
+    {
+      // `--settings` would prove nothing: it runs a WPF pump, a different input environment from the
+      // WinForms one the tray actually hosts its windows under. That difference is the defect.
+      "name": "the settings window under the tray's own pump",
+      "arguments": ["--settings-tray", "--lang", "en"],
+
+      // WW240. What the launch above produces, said so a derived set reads the strings this
+      // window is showing rather than the one file the project had to pretend was its only one.
+      "language": "en"
+    }
+  ],
+
+  "cases": [
+    {
+      "name": "keyboard input reaches the settings window under the tray's pump",
+      "catches": "WPF windows hosted by the tray that accepted no keyboard input at all, from the day the first one shipped, while every screenshot of them looked perfect",
+      "filed": "WW78",
+      "tags": ["smoke", "keyboard"],
+      "fixture": "the settings window under the tray's own pump",
+
+      "steps": [
+        {
+          // The sidebar item is a Text: it resolves and offers no Invoke, so the pointer is the act
+          // rather than an escalation. Leftmost, because the page heading carries the same name.
+          //
+          // 'Claude Code' is the same string in all four languages this app ships, which is why the
+          // locator can name it. A label that differs by language needs the strings file instead.
+          "locator": "Text[name=\"Claude Code\"][order=left]",
+          "act": "click",
+          "with": "PointerIsTheAct",
+          "named": "navigate to the Claude Code page by clicking the sidebar"
+        },
+        {
+          // The assertion `set value` cannot make. This types with real keys and reads the value
+          // back through the pattern, so it fails exactly when the window is not receiving input.
+          "locator": "Edit#DirectoryBox",
+          "act": "type",
+          "with": "T142check",
+          "expect": "T142check",
+          "reads": "value",
+          "named": "typing reaches the WPF text box"
+        },
+        {
+          // The assertion that could not be written at all until a reading answered what holds the
+          // focus. Tab is sent at the window; the expectation is about this box.
+          "locator": "Edit#DirectoryBox",
+          "act": "press",
+          "with": "Tab",
+          "expect": "not focused",
+          "reads": "focused",
+          "named": "Tab moves the focus off the text box"
+        },
+        {
+          // The claim the script made, in the words it made it in: the value moved. This started as
+          // two steps — a `set range` to the floor, then an expectation of the one value that could
+          // follow — because a case could name a value and not a movement. WW229 gave it a name, and
+          // what went away with the workaround was a write through the pattern before the key press
+          // that was the point, and a hard-coded 10 that would go stale the day the ticks change.
+          "locator": "Slider#RetrySlider",
+          "act": "nudge",
+          "reads": "range",
+          "moves": true,
+          "named": "an arrow key drives the retry slider"
+        }
+      ]
+    }
+  ]
+}

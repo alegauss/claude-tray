@@ -1,0 +1,86 @@
+{
+  // What is true of this project rather than of any one case. Every relative path here resolves
+  // against this file's own directory, so a case carries no path and runs on any checkout.
+  //
+  // The Debug output and not the published one: `--settings-tray` is a dev flag, and the loop this
+  // is part of builds Debug. The RID is in the path because ClaudeTray.csproj sets RuntimeIdentifier
+  // unconditionally, and its own comment says every script and flag already spells this folder out.
+  "executable": "bin/Debug/net10.0-windows/win-x64/ClaudeTray.exe",
+
+  "sourceRoot": "src",
+
+  // WW79. What a case derives an expected set from. The panes case asserts every tab header is in
+  // the accessibility tree, and the set it compares against is read out of these rather than listed
+  // in the case: the tree is what is being asserted, so an expected set read out of the tree could
+  // never notice a header that had gone missing. A tab added later ships a `stats.tab.*` string and
+  // the cover follows it with no case edit — which is the defect the script it replaces measured, at
+  // T358, when a hardcoded list of three went on reporting "all three tab headers read" against a
+  // window that had carried four since T328.
+  // All five, which is what this application actually ships. It was one until WW240, because a
+  // derived set refused a project declaring several — picking one of them would expect a language
+  // nobody is looking at — so the file here had to name `lang/en.json` and pretend the other four
+  // were not there. It worked because every fixture launches with `--lang en`, which means the
+  // answer was already written down one line above and this was a guess that happened to agree.
+  //
+  // Now the fixture says which language its window is in and a set derives from the file for that
+  // language. So this line is what this project has, and the day a case runs in another language it
+  // is not what changes.
+  "languageFiles": [
+    "lang/en.json",
+    "lang/es.json",
+    "lang/fr.json",
+    "lang/pt-BR.json",
+    "lang/pt-PT.json"
+  ],
+
+  // WW291. The other well a derived set comes from: what this application says it has, rather than
+  // what its strings declare. Profiles are this machine's data — the number is whatever this machine
+  // has, and the names are accounts — so there is no strings key to derive from and the check script
+  // that this replaces typed the count out of a regex over the `--profiles` report instead.
+  //
+  // `--profile-names` and not `--profiles`: the second is a diagnostic report, a paragraph per profile
+  // and a dozen lines about polling, and a set derived from it would be thirty strings of prose. The
+  // first answers one label per line and nothing else, by the same discovery route, so the two cannot
+  // disagree about what this machine has.
+  "reportedSets": { "profiles": ["--profile-names"] },
+
+  // WW294. The single values beside that set — which profile the icon follows, and which one
+  // CLAUDE_CONFIG_DIR selects. Both are in the `--profiles` report as prose, and the check script this
+  // replaces pulled them out with regexes over it; a reworded line would have left the expectation
+  // silently reading nothing. These answer one line each, by the same calls the report makes.
+  //
+  // What they are for is the claim the submenu is actually about: the check mark is on exactly one
+  // entry, and that entry is the one the icon follows. A case selects it with
+  // `MenuItem[name="{report:iconFollows}"]` and reads the mark — neither half of which any case can
+  // type, because both are this machine's state.
+  "reportedValues": {
+    "iconFollows": ["--menu-state", "icon-follows"],
+    "envSelects": ["--menu-state", "env-selects"]
+  },
+
+  // Named because a run on a machine that is not in English would otherwise refuse: this project
+  // ships one language file here, and reading a label in a language nobody declared would be
+  // answering in English and calling it the application's word. `en` is what the app itself falls
+  // back to, and what every fixture here launches with.
+  //
+  // Measured rather than assumed: on a pt-BR desk the step threw with a refusal naming this exact
+  // key. WW242 is the other half of the same measurement — `lang/en.json` was invisible to the label
+  // reader until the engine learned to read a tag that is the whole file name.
+  "language": { "fallback": "en" },
+
+  // The string the Statistics page shows while it is still counting. Named as a key and never as
+  // text, because a phrase typed here is one a translation rewrites. It is what keeps a read of the
+  // report from taking "Computing your consumption pace…" for an answer — the script it replaces had
+  // its own polling loop for exactly this, and got it wrong once by treating the line as a result.
+  "loading": ["stats.computing"],
+
+  "timeouts": {
+    // Longer than a fixture's. This is a real application with a WPF first layout pass behind a
+    // WinForms pump, and the window it draws is a settings page with four panes in it.
+    "launch": 30000,
+    "resolve": 6000,
+    "act": 6000,
+    "poll": 25,
+    "stop": 5000
+  }
+}

@@ -1,0 +1,238 @@
+{
+  // WW84. What the controls announce to a screen reader, migrated out of Invoke-NamesCase in
+  // scripts/Check-Interaction.ps1.
+  //
+  // This is the one property in that whole file no screenshot and no other case can observe. The T165
+  // control-view dump found `StatsProfileCombo` and `MethodInfo` carrying empty names while every
+  // neighbouring button read fine, because a WPF control derives its name from its own content and
+  // both of these have none — one's label is a separate TextBlock, the other's content is a Segoe MDL2
+  // codepoint. Every picture of that window was perfect.
+  //
+  // Two halves, and the second is the one that was structurally impossible before the row grew an
+  // automation peer. A name-existence check proves a control says something; it cannot tell "announces
+  // a header" from "announces the WRONG header", and a rule pairing every control with its neighbour's
+  // header gives three controls in one row the same name — worse for a screen reader than one unnamed.
+  //
+  // What has not moved yet, said here rather than left to be noticed. The walk over all six panels
+  // needs a locator that can be built out of a string the project declares, because the sidebar items
+  // are bare Borders with no automation peer and the words are the only thing that addresses them.
+  // The flat sweep over every ComboBox, Slider, TextBox and switch needs a locator that can name
+  // several control types at once. And the sidebar's own completeness is not `covers` over `Text`:
+  // that claim is two-way — every declared string read AND nothing else matched — and the panel
+  // beside the sidebar is full of Texts. All three are filed.
+  "fixtures": [
+    {
+      // The Settings window standalone, which is what `--settings` is for. No nav strip to drive and
+      // no tray menu to open: the page argument picks the panel, so the case asserts names rather
+      // than spending four steps arriving somewhere.
+      //
+      // `--lang en` is not decoration. Every expectation below is a key rather than a string, and the
+      // window and the expectation have to resolve the same language or the comparison is between
+      // two of them.
+      "name": "the settings window on the panel it opens on",
+      "arguments": ["--settings", "--lang", "en"],
+      "language": "en",
+
+      // Every case here only reads, so one window serves all of them — T195's window lending, which
+      // the script did with an Acquire-Main / Release-Main pair.
+      "shareable": true
+    },
+    {
+      // The Claude Code panel, opened by the page argument rather than by clicking a sidebar item.
+      // The script clicked `Label 'settings.nav.claudeCode'`, and a locator cannot be built out of a
+      // declared string yet — so this is the same panel reached the one way that needs no string.
+      "name": "the settings window on the Claude Code panel",
+      "arguments": ["--settings", "ClaudeCode", "--lang", "en"],
+      "language": "en",
+      "shareable": true
+    },
+    {
+      // The walk drives the sidebar, so it owns its window and lends it to nobody: a case after it
+      // would inherit whichever panel the last member happened to leave showing.
+      "name": "the settings window the walk drives",
+      "arguments": ["--settings", "--lang", "en"],
+      "language": "en"
+    }
+  ],
+
+  "cases": [
+    {
+      "name": "every row on the panel the settings page opens on is named, and named for its own row",
+      "catches": "a contentless control announcing nothing at all, and the worse defect underneath it — a naming rule that hands every control in a row its neighbour's header, so three controls read as one",
+      "filed": "WW84",
+      "tags": ["smoke", "names"],
+      "fixture": "the settings window on the panel it opens on",
+      "onlyReads": true,
+
+      "steps": [
+        {
+          // T204's element. `SettingsRow` reaches UIA as a Group carrying its Header as the name, and
+          // only the showing panel's rows are in the control view — so this is the rows of whichever
+          // panel is up, with no panel named here.
+          //
+          // The rows themselves first: a row whose header never reached the peer cannot be paired
+          // against, and "the peer is gone" and "the rule is wrong" are different repairs.
+          "locator": "Group[class=SettingsRow]",
+          "act": "read",
+          "eachSpoken": true,
+          "named": "every settings row announces its header"
+        },
+        {
+          // The half a name-existence check is blind to by construction, and the reason the row needed
+          // a peer at all. The headers are derived from the rows the locator matched, so a row added
+          // to the panel joins the set with no edit here.
+          "locator": "Group[class=SettingsRow]",
+          "act": "read",
+          "ownHeader": true,
+          "named": "no control in a row announces another row's header"
+        },
+        {
+          // Three exact-label reads, one of each shape the rule has to handle: an ItemsControl, a
+          // contentless ToggleButton, and a Slider inside a StackPanel. These assert the name is the
+          // RIGHT string, which the sweep above cannot — it has no way to know which row a control
+          // belongs to.
+          //
+          // The key and not the string. A label typed here is the hardcoded set with one member: it
+          // goes stale the day somebody edits en.json and it is wrong in the other three languages
+          // this application ships from the moment it is written.
+          "locator": "ComboBox#LanguageCombo",
+          "act": "read",
+          "reads": "name",
+          "label": "settings.general.appLanguage",
+          "named": "the language picker announces its row's label"
+        },
+        {
+          // The switch, which reaches UIA as a Button carrying TogglePattern and has no content at
+          // all — so its name can only have come from the row.
+          "locator": "#StartupCheck",
+          "act": "read",
+          "reads": "name",
+          "label": "settings.general.startWithWindows",
+          "named": "the start-with-Windows switch announces its row's label"
+        },
+        {
+          // The slider, which is not the row's only child: the value caption sits beside it, so this
+          // is the shape where a rule reaching for "the child" reaches for the wrong one.
+          "locator": "Slider#IntervalSlider",
+          "act": "read",
+          "reads": "name",
+          "label": "settings.general.interval",
+          "named": "the refresh-interval slider announces its row's label"
+        }
+      ]
+    },
+
+    {
+      "name": "a field and the buttons beside it each keep their own name",
+      "catches": "a naming rule that gives every control in a row the header, so a field and the two buttons next to it announce one word between them",
+      "filed": "WW84",
+      "tags": ["names"],
+      "fixture": "the settings window on the Claude Code panel",
+      "onlyReads": true,
+
+      "steps": [
+        {
+          // The branch that must NOT fire, and the reason the rule tests the content rather than the
+          // type. A row holding a field with a labelled Button beside it gives the header to the
+          // field only; each Button keeps its own text.
+          //
+          // Four keys and four different strings, which is what makes this stronger than the script's
+          // count of distinct names: a header that leaked onto the buttons fails three of these by
+          // name rather than being caught as "one name three times".
+          "locator": "Edit#DirectoryBox",
+          "act": "read",
+          "reads": "name",
+          "label": "settings.cc.workDir",
+          "named": "the working-directory field takes its row's header"
+        },
+        {
+          "locator": "Button#BrowseButton",
+          "act": "read",
+          "reads": "name",
+          "label": "settings.cc.browse",
+          "named": "the Browse button beside it keeps its own text"
+        },
+        {
+          "locator": "Button#ProfileAddButton",
+          "act": "read",
+          "reads": "name",
+          "label": "settings.cc.profileAdd",
+          "named": "the profile row's Add button keeps its own text"
+        },
+        {
+          "locator": "Button#ProfileRemoveButton",
+          "act": "read",
+          "reads": "name",
+          "label": "settings.cc.profileRemove",
+          "named": "its Remove button keeps its own text"
+        },
+        {
+          // The same pairing, on the panel where the branch above lives. The rows here hold a field
+          // and two buttons rather than one control, which is where a rule handing out headers by
+          // position goes wrong first.
+          "locator": "Group[class=SettingsRow]",
+          "act": "read",
+          "ownHeader": true,
+          "named": "no control on the Claude Code panel announces another row's header"
+        }
+      ]
+    },
+
+    {
+      "name": "every settings panel the sidebar declares names the controls its rows are responsible for",
+      "catches": "a panel added later that no case visits, so a rule governing thirty-odd controls goes on being asserted against the three somebody knew about",
+      "filed": "WW84",
+      "tags": ["names"],
+      "fixture": "the settings window the walk drives",
+
+      // The set is derived from the strings the application ships and never listed. T196 is why: the
+      // rule governs thirty-odd controls across six panels and used to be asserted on three of them,
+      // all on the panel the page opens on. A seventh panel ships a `settings.nav.*` string and this
+      // follows it with no edit here.
+      "forEach": "settings.nav",
+
+      "steps": [
+        {
+          // The sidebar item, which is a bare Border with no automation peer — so the TextBlock inside
+          // is what reaches the tree and its words are the only thing that addresses one. Leftmost,
+          // because the page heading carries the same words.
+          //
+          // WW273 is what makes the words a key rather than a string: `{}` is the member, read out of
+          // the strings file in the language the fixture launched, so this walks the sidebar of a
+          // Portuguese window as readily as an English one.
+          "locator": "Text[name=\"{}\"][order=left]",
+          "act": "click",
+          "with": "PointerIsTheAct",
+          "named": "open the panel the sidebar names"
+        },
+        {
+          // Only the showing panel's rows are in the control view, so this is the rows of whichever
+          // panel the click above opened, with no panel named here.
+          "locator": "Group[class=SettingsRow]",
+          "act": "read",
+          "eachSpoken": true,
+          "named": "every settings row announces its header"
+        },
+        {
+          "locator": "Group[class=SettingsRow]",
+          "act": "read",
+          "ownHeader": true,
+          "named": "no control in a row announces another row's header"
+        },
+        {
+          // The controls the rule is responsible for and only those: a ComboBox, a Slider or a TextBox
+          // has no content a name can be derived from. Everything else on a panel is either a Button
+          // with its own text — Save, Browse…, Add… — or a framework template part, and both are
+          // excluded by what they are rather than by a list of ids.
+          //
+          // WW274 is what makes it one step. Written as one per type, most match nothing on any given
+          // panel and the run is a page of holes.
+          "locator": "Group[class=SettingsRow] > ComboBox|Slider|Edit",
+          "act": "read",
+          "eachSpoken": true,
+          "named": "every contentless control in a row announces a label"
+        }
+      ]
+    }
+  ]
+}

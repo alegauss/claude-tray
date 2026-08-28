@@ -28,6 +28,14 @@
          bin\<config>\net10.0-windows\win-x64\ClaudeTray.exe. Moving it under a condition would move
          that folder in Debug and silently break all of them. -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
+    <!-- This project's directory IS the repository root, so every default glob the SDK applies -
+         Compile, Page, Resource, EmbeddedResource - reaches everything under it. tests\ holds a
+         project of its own, and without this line its sources and its obj\ are compiled INTO the
+         application: the build failed with eight CS0579 "duplicate attribute" errors naming a
+         _wpftmp project, which is what that looks like rather than anything about tests.
+         DefaultItemExcludes and not a Compile Remove, because it is every glob and not only that one. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <!-- Single self-contained .exe when published (see README) — Release only, and that is the point (T341).

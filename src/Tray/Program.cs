@@ -365,6 +365,25 @@ internal static class Program
             return;
         }
 
+        // WW291. The same profiles as a set rather than as a report: one label per line and nothing
+        // else, for a harness that derives its expected set from what this application says it has.
+        // The report above is what a person reads; this is what a check compares against, and neither
+        // has to be bent into the other's shape.
+        if (args.Length >= 1 && args[0] == "--profile-names")
+        {
+            ProfilesCli.PrintProfileNames(args.Skip(1).ToArray());
+            return;
+        }
+
+        // WW294. One fact the Profile submenu renders, as a single line: the set flag above answers
+        // which profiles exist, and this answers which of them the icon follows or the environment
+        // selects. Both are in the `--profiles` report as prose; a check needs them as values.
+        if (args.Length >= 1 && args[0] == "--menu-state")
+        {
+            ProfilesCli.PrintMenuState(args.Skip(1).ToArray());
+            return;
+        }
+
         // The script that makes two profiles one setup (T367). Composed and handed over, never run — the
         // app has no write path into `~\.claude` (§I.4), and the merge each link needs first is the part
         // a person has to read before it happens.

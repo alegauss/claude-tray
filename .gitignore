@@ -7,3 +7,4 @@ _preview/
 *_wpftmp.csproj
 .roadkeep/
 /scripts/demo
+TestResults/

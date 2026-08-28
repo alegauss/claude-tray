@@ -1,0 +1,118 @@
+{
+  // WW79. The report being in the accessibility tree, migrated out of Invoke-PanesCase in
+  // scripts/Check-Interaction.ps1.
+  //
+  // T165 is why it exists: a defect left every tab header perfectly readable and took the whole pane
+  // body with them, so a check that read a header and stopped would have passed through it. "Headers
+  // but no body" is the exact shape, which is why the two claims are two cases here rather than one
+  // function with two passes in it.
+  //
+  // T176 is why it is not inside the profiles case, where it used to live. That case opens by counting
+  // profiles and skipping below two - right for a round trip, wrong for this - so behind the skip this
+  // never ran on a one-profile machine, which is most machines and every hosted runner.
+  "fixtures": [
+    {
+      // `--lang en` is not decoration: the tab headers are compared against the strings the project
+      // declares, and the project declares the English file. The window and the expectation resolve
+      // the same language or the comparison is between two of them.
+      "name": "the main window",
+      "arguments": ["--main", "--lang", "en"],
+
+      // WW240. What the launch above produces, said so a derived set reads the strings this
+      // window is showing rather than the one file the project had to pretend was its only one.
+      "language": "en",
+
+      // Both cases only read, so one window serves both. This is T195's window lending, which the
+      // script did with an Acquire-Main / Release-Main pair and a comment explaining that Panes and
+      // Names leave the window as they found it.
+      "shareable": true
+    }
+  ],
+
+  "cases": [
+    {
+      "name": "every tab of the report is in the accessibility tree",
+      "catches": "a defect that left every tab header readable and took the whole pane body with it, which a check reading one header would have passed straight through",
+      "filed": "WW79",
+      "tags": ["smoke", "panes"],
+      "fixture": "the main window",
+      "onlyReads": true,
+
+      "steps": [
+        {
+          // The set is DERIVED and never listed, which is T358's defect exactly. The script named
+          // three `stats.tab.*` keys by hand and the window had carried four since T328 - so it
+          // reported "all three tab headers read" against a four-tab window, and the newest pane had
+          // never been asked whether it was in the tree at all.
+          //
+          // From the strings and not from the tree: the tree is what is being asserted, so an expected
+          // set read out of it could never notice a header that had gone missing. A tab added later
+          // ships a `stats.tab.*` string and this follows it with no edit here.
+          "locator": "TabItem",
+          "act": "read",
+          "covers": "stats.tab",
+          "named": "every tab header the strings declare is in the tree"
+        }
+      ]
+    },
+
+    {
+      "name": "the selected pane's body is readable and not merely on screen",
+      "catches": "a report that rendered on screen while its numbers were absent from the accessibility tree, which no screenshot could have shown",
+      "filed": "WW79",
+      "tags": ["panes"],
+      "fixture": "the main window",
+      "onlyReads": true,
+
+      // The precondition, and it is the machine's rather than the application's. The pane is
+      // Collapsed until a report renders, and a report is rendered from this machine's transcripts -
+      // so on a machine with none there is no body to look for, and asserting one would be a red
+      // about an empty folder. Gated on the precondition rather than on a weaker form of the
+      // assertion, which is T161's rule.
+      //
+      // What measures it is CasesRun, in this repository, because it is a fact about this
+      // application's data and no engine could know it.
+      "needs": ["a transcript to report on"],
+
+      "steps": [
+        {
+          // Reading a number out of the selected TabItem *is* the assertion that its body is
+          // attached: `UsedS` is a TextBlock nested several levels inside the pane, and the pane is
+          // Collapsed - therefore absent from the tree - until a report renders.
+          //
+          // `S` and not the `S`-or-`W` the script looped over: it shared this reader with the
+          // profiles case, which drives the picker and can leave either pane selected. This case
+          // launches its own window, and the TabControl declares no SelectedIndex, so the first tab
+          // is the selected one and the first tab is the 5-hour session.
+          //
+          // The claim is that it says something rather than what it says. A percentage is this
+          // machine's consumption, so a case naming a value would be a case that only holds on the
+          // desk it was written on - and "Computing your consumption pace…" is not an answer either,
+          // which the project's `loading` declaration is what makes true.
+          "locator": "Text#UsedS",
+          "act": "read",
+          "reads": "name",
+          "answers": true,
+          "named": "the selected pane's used percentage is in the tree"
+        },
+        {
+          // Two labels, and both are only in the tree if the pane they live in is. Their words are in
+          // their names and in no pattern, which is what WW238 measured and is why `reads: name`
+          // exists at all - before it, neither of these claims could be written.
+          "locator": "Text#ResetS",
+          "act": "read",
+          "reads": "name",
+          "answers": true,
+          "named": "the reset caption reads"
+        },
+        {
+          "locator": "Text#LiveHeadS",
+          "act": "read",
+          "reads": "name",
+          "answers": true,
+          "named": "the live headline reads"
+        }
+      ]
+    }
+  ]
+}

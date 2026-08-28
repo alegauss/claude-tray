@@ -1,0 +1,141 @@
+{
+  // WW82. The tray icon's menu, migrated out of Invoke-MenuCase in scripts/Check-Interaction.ps1.
+  //
+  // Nothing else in any of these repositories opens a tray menu, and everything hard about it is
+  // Windows-specific: an icon with no clickable point, an overflow flyout that has to be opened
+  // before the icon is in the tree at all, a right-click this shell does not deliver, and a submenu
+  // that expands only by keyboard. The engine has done all four since block D and no data file could
+  // name any of it until WW258 and WW259.
+  //
+  // The founding defect is the first claim below. The script's own comment records it: a version of
+  // this check reported a pass having read ZERO menu entries — a green tick over an empty read, which
+  // is the one thing this whole repository exists to refuse.
+  //
+  // What is NOT here, and is not dropped quietly:
+  //
+  //   - `Assert-ProfileSubmenu`'s identity checks — which profile the icon follows, which the
+  //     environment selects, whether the two agree, and the two toggles' positions. Every field of
+  //     that is derived from the `--profiles` report by regex, and a report is not a set: WW291 gave
+  //     this application a read-out that answers one, and the *state* behind those marks still has
+  //     no derived form. It is the environment sweep's claim as much as this one's, so it belongs
+  //     with WW85 rather than here.
+  //   - the count floor of `profiles + 2` on the Profile submenu. A count passes when the right
+  //     number of wrong entries is present, which is the hardcoded list's failure on another axis;
+  //     `coversWithin` below asserts the profiles by name instead, which is what the count stood in
+  //     for.
+  "fixtures": [
+    {
+      // `--second-tray` tags this icon's tooltip with `[check]` so a run finds the tray it launched
+      // and never the resident one — pid cannot tell two ClaudeTray icons apart, because they belong
+      // to the shell's process rather than to this one.
+      "name": "a tray of this run's own",
+      "arguments": ["--second-tray", "--lang", "en"],
+
+      // It draws no window at all: a tray is a process that puts an icon in the notification area,
+      // and the window here is what a click on that icon is supposed to produce. WW257 — waiting for
+      // one would make the thing being asserted a reason not to run.
+      "resident": true,
+
+      "language": "en",
+
+      // Not shared. This case opens a menu and leaves the shell holding it until the step that reads
+      // it is done, so a case after it would inherit a desk with a menu standing on it.
+      "shareable": false
+    }
+  ],
+
+  "cases": [
+    {
+      "name": "the tray icon's menu opens and offers the way in",
+      "catches": "a menu that opens with nothing in it, which the check that read zero entries reported as a pass",
+      "filed": "WW82",
+      "tags": ["menu", "tray"],
+      "fixture": "a tray of this run's own",
+
+      "steps": [
+        {
+          // The subject is the icon rather than a locator: the notification area is in the shell's
+          // tree and not in this application's window, and an icon has no clickable point either —
+          // it is addressed by the name the shell gives it. WW258.
+          "tray": "[check]",
+          "act": "open tray menu",
+          "named": "the icon's menu opens to focus and the application key"
+        },
+        {
+          // The menu is a top-level Menu window of its own, which is why this resolves against the
+          // desktop rather than against a window this fixture launched — a resident launch has none.
+          //
+          // `answers` and not a typed name: what the script asserted here is that the read was not
+          // empty, and an entry's text is the next claim's business rather than this one's.
+          "locator": "Menu > MenuItem",
+          "act": "read",
+          "reads": "name",
+          "answers": true,
+          "named": "the menu that opened holds entries rather than reading as empty"
+        },
+        {
+          // T158. The window is opened from here as well as by a left-click on the icon, and the menu
+          // is the only route a keyboard user has — the context-menu key opens this list and nothing
+          // else — so this entry going missing strands them with no way in at all.
+          //
+          // The label is derived from this project's own strings and never typed: written here it
+          // would be wrong in the other four languages this application ships from the moment it was
+          // written.
+          "locator": "Menu > MenuItem",
+          "act": "read",
+          "reads": "name",
+          "label": "menu.open",
+          "named": "the entry that opens the window is on the menu"
+        }
+      ]
+    },
+
+    {
+      "name": "the profile submenu expands from the keyboard and lists this machine's profiles",
+      "catches": "a submenu that is empty when the menu opens, which exposes no ExpandCollapse, draws no arrow, and makes Right dismiss the whole menu",
+      "filed": "WW82",
+      "tags": ["menu", "tray"],
+      "fixture": "a tray of this run's own",
+
+      // The submenu is hidden below two profiles, so there is nothing to expand and nothing this
+      // case could be about. A precondition rather than a weaker claim: T161's rule, and the same one
+      // the profile picker's two-profile skip follows.
+      "needs": ["a second profile"],
+
+      "steps": [
+        {
+          "tray": "[check]",
+          "act": "open tray menu",
+          "named": "the icon's menu opens"
+        },
+        {
+          // T148, and the defect this case is named for. `expand` asks ExpandCollapsePattern and an
+          // empty WinForms submenu exposes none — so the pattern route cannot ask the question that
+          // was broken, and a case naming it would report a control rather than the gesture. A mouse
+          // hover always worked, which is exactly why this went unnoticed until something drove it
+          // from the keyboard. WW259.
+          "locator": "Menu > MenuItem",
+          "act": "open submenu",
+          "named": "the profile submenu opens to Right rather than dismissing the menu"
+        },
+        {
+          // WW292 and WW291 together, and this is the claim the script settled for a count instead of.
+          // The set is what this application says it has — `--profile-names`, one label per line —
+          // and the submenu decorates each entry: a profile renders as `Pessoal  active now`, or
+          // carries `pinned` or `sign-in needed`. So equality is false of every entry, and what is
+          // asserted is that each name the application reports appears inside one of them.
+          //
+          // Nothing here names a profile, and nothing can: they are this machine's accounts, so a
+          // case naming one passes here and fails everywhere else.
+          //
+          // No `reads`: a sweep already compares the names the locator matched, and naming a reading
+          // beside it would be a second claim about one element inside a claim about many.
+          "locator": "Menu > MenuItem",
+          "act": "read",
+          "coversWithin": "profiles",
+          "named": "every profile this machine has is on the submenu"
+        }
+      ]
+    }
+  ]
+}

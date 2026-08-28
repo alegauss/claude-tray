@@ -189,6 +189,80 @@ internal static class ProfilesCli
     }
 
     /// <summary>
+    /// <c>--profile-names</c>: the label of every profile, one per line, and nothing else.
+    ///
+    /// <para>WW291. <c>--profiles</c> above is a diagnostic report — a paragraph per profile, then a
+    /// dozen lines about following and polling — and the harness that replaces the check script needs a
+    /// <em>set</em>. Pointed at the report, it would take every non-empty line as a member and derive
+    /// thirty strings of prose. The script got the numbers it wanted out of that report with regexes
+    /// like <c>polled every interval:\s*\d+\s+of\s+(\d+)</c>, which is the hardcoded expectation with an
+    /// extra step: it goes stale the day a line is reworded, and says nothing when it does.</para>
+    ///
+    /// <para>So the read-out answers a set on its own flag and the report is left alone for the person
+    /// reading it. Same discovery route as the report, deliberately — the comment above says why a
+    /// read-out of the app's state has to reach it by the app's route, and two routes would agree only
+    /// until somebody renamed a profile.</para>
+    ///
+    /// <para>The label and not the config dir: it is what the menu renders, so a case comparing the
+    /// submenu against this is comparing what a person actually sees. Names carry no marking here —
+    /// the menu decorates its entries with <c>active now</c> and the like, and the harness matches
+    /// each declared name <em>inside</em> an entry rather than against the whole of it.</para>
+    /// </summary>
+    internal static void PrintProfileNames(string[] args)
+    {
+        string[] extra = args.Where(a => !a.StartsWith("--")).ToArray();
+
+        List<ClaudeProfile> registered = Settings.Load().Profiles
+            .Concat(extra.Select(d => new ClaudeProfile { ConfigDir = d })).ToList();
+
+        foreach (ClaudeInfo p in ClaudeAccount.Discover(registered))
+            Console.WriteLine(p.Label);
+    }
+
+    /// <summary>
+    /// <c>--menu-state &lt;what&gt;</c>: one fact the Profile submenu renders, as one line and nothing else.
+    ///
+    /// <para>WW294. <c>--profile-names</c> answers the labels as a set; these are the single values
+    /// beside them — which profile the icon follows, and which one the environment selects. The check
+    /// script pulls both out of the <c>--profiles</c> report with regexes over its prose, which is the
+    /// hardcoded expectation with an extra step: it goes stale the day a line is reworded and says
+    /// nothing when it does.</para>
+    ///
+    /// <para>Same calls the report itself makes, one line above where it prints them — not a second
+    /// computation. Two routes to one fact agree only until somebody changes one, and the whole reason
+    /// a check reads this rather than guessing is that it is the application's own answer.</para>
+    ///
+    /// <para>The label and never the directory, because the label is what the menu renders and what a
+    /// case compares an entry against. A profile the application cannot name reads as <c>-</c>, which
+    /// is a value a case can assert on rather than an empty line it cannot tell from a failure.</para>
+    /// </summary>
+    internal static void PrintMenuState(string[] args)
+    {
+        string what = args.FirstOrDefault(a => !a.StartsWith("--")) ?? "";
+
+        Settings settings = Settings.Load();
+        List<ClaudeInfo> profiles = ClaudeAccount.Discover(settings.Profiles);
+
+        switch (what)
+        {
+            case "icon-follows":
+                Console.WriteLine(ClaudeAccount.PickMonitored(profiles, settings.MonitoredConfigDir)?.Label ?? "-");
+                return;
+
+            case "env-selects":
+                Console.WriteLine(EnvironmentProfile.Selected(profiles)?.Label ?? "-");
+                return;
+
+            default:
+                // Named rather than answered with a blank: a read-out that printed nothing for a word
+                // it does not know would reach the harness as "the application reported nothing", and
+                // that is a refusal about the application rather than about the flag it was given.
+                ReadOut.Failed($"--menu-state takes one of: icon-follows, env-selects. Given: '{what}'.");
+                return;
+        }
+    }
+
+    /// <summary>
     /// <c>--link-profiles &lt;primary&gt; &lt;secondary&gt; [out=&lt;path&gt;]</c>: the script that makes
     /// two profiles one setup (T367). Each side is an index into the <c>--profiles</c> list or a config-dir
     /// path outright, so the pair can be named the way the read-out above prints them.

@@ -1,0 +1,133 @@
+{
+  // WW81. The profile picker, migrated out of Invoke-ProfilesCase in scripts/Check-Interaction.ps1.
+  //
+  // T164 is why it exists. Every capture renders one profile, which is structurally incapable of
+  // seeing a defect that needs a second switch — and two of the three it found need the switch to
+  // come *back*. So this is the only thing in this repository that drives the picker at all, and the
+  // only case whose claims are about a window changing rather than about a window as it stands.
+  //
+  // Nothing below names a profile. The picker holds whatever accounts this desk happens to have, so
+  // a case naming one passes here and fails everywhere else — which is why the walk is `pick at`, by
+  // position, and every claim is about a reading moving or coming back rather than about its value.
+  //
+  // Three of the script's assertions are NOT here and are not dropped quietly:
+  //
+  //   - that the report *followed* the picker (its used % differing from the previous stop's) needs
+  //     the inverse of `sameAs` — a reading unlike an earlier step's — and is WW268;
+  //   - the reset caption surviving the round trip needs a minute of tolerance, because the caption
+  //     counts down in real time and a run that straddles a minute boundary must not be a red build;
+  //     `sameAs` is exact, and that is WW269;
+  //   - the live headline never reading the app's own "unavailable" label needs a claim that a
+  //     reading is *not* one declared string, which is WW270.
+  //
+  // What is here is what WW81 was filed for: the round trip, and the timing observation.
+  "fixtures": [
+    {
+      // `--main` rather than the tray: the same shell the tray opens, under the same WinForms pump,
+      // over the real discovered profiles — which is the window the defect was found in.
+      "name": "the main window for the profile picker",
+      "arguments": ["--main", "--lang", "en"],
+
+      // WW240. What the launch above produces, said so a derived set reads the strings this
+      // window is showing rather than the one file the project had to pretend was its only one.
+      "language": "en",
+
+      // Not shared. This case walks the picker and leaves the window on whichever profile it came
+      // back to, so a case after it would inherit a page somebody else had switched.
+      "shareable": false
+    }
+  ],
+
+  "cases": [
+    {
+      "name": "the picker walks off a profile and back, and the report comes back with it",
+      "catches": "a switch that repaints the panes with the profile being left behind, which every reading taken on its own looks perfectly healthy for",
+      "filed": "WW81",
+      "tags": ["profiles"],
+      "fixture": "the main window for the profile picker",
+
+      // Two preconditions and both are about this machine rather than about the application. The
+      // round trip does not exist on a one-profile machine — the card is Collapsed and there is no
+      // picker in the tree — and the panes are Collapsed until a report renders. Gated on the
+      // preconditions rather than on a weaker form of the claims, which is T161's rule.
+      "needs": ["a second profile", "a transcript to report on"],
+
+      "steps": [
+        {
+          // The stop the window opened on, read before anything is touched. `picked` and not `value`:
+          // measured on this picker, it is a ComboBox carrying Selection, ExpandCollapse and
+          // ItemContainer and no ValuePattern at all — so `value` answers nothing and `name` answers
+          // the picker's own label, which is the word "Profile" on every machine and every profile.
+          //
+          // `answers` and never a value: what it holds is this desk's own accounts.
+          "locator": "ComboBox#StatsProfileCombo",
+          "act": "read",
+          "reads": "picked",
+          "answers": true,
+          "named": "the first stop"
+        },
+        {
+          // The same for the number the round trip is about, taken at the first stop. A percentage is
+          // this machine's consumption, so the claim is that it says something and never what.
+          "locator": "Text#UsedS",
+          "act": "read",
+          "reads": "name",
+          "answers": true,
+          "named": "the used percentage at the first stop"
+        },
+        {
+          // The switch. Position 1 and not a name, and the count the walk reports is what keeps the
+          // observation two steps below meaningful: a claim about one switch is void when the walk
+          // made several, because each intermediate stop is a switch of its own.
+          //
+          // `moves` is the claim the script made as `$stops[1].Label -ne $stops[0].Label`, and it is
+          // this case's own precondition as much as an assertion — if the picker never moved, every
+          // comparison after it is a profile against itself and they all pass.
+          "locator": "ComboBox#StatsProfileCombo",
+          "act": "pick at",
+          "with": "1",
+          "reads": "picked",
+          "moves": true,
+          "named": "the picker moves off the profile it opened on"
+        },
+        {
+          // Back again, and this is the whole round trip. The claim is that the picker reads what the
+          // first stop read — a value nothing in this file names, and could not.
+          "locator": "ComboBox#StatsProfileCombo",
+          "act": "pick at",
+          "with": "0",
+          "reads": "picked",
+          "sameAs": "the first stop",
+          "named": "the picker comes back to where it started"
+        },
+        {
+          // T166, and the reason this case is worth its launch. Coming back to a profile seen seconds
+          // ago must put its report back from the per-profile cache rather than rebuild it — and what
+          // says so is that the "no readings yet" line is never shown on the way.
+          //
+          // A read taken after the wait cannot see it: the line is gone by then, which is what passing
+          // looks like and also what a switch that flashed one looks like. Measured when the cache was
+          // written: the line at 162ms and the panes back after 961ms without it; the line never shown
+          // and the panes at 12ms with it.
+          //
+          // Deliberately not written as "the panes returned within N ms". A deadline is the one
+          // assertion in this file that would go red on a slow machine for a correct reason.
+          "locator": "Text#UsedS",
+          "act": "read",
+          "never": "stats.live.off",
+          "named": "coming back never showed the not-yet line"
+        },
+        {
+          // T164's own claim: the same profile reads the same number. This is the defect the field
+          // report was about — the panes repainted with the account being left behind, so coming back
+          // showed somebody else's figures while every reading, taken alone, looked healthy.
+          "locator": "Text#UsedS",
+          "act": "read",
+          "reads": "name",
+          "sameAs": "the used percentage at the first stop",
+          "named": "the used percentage survives the round trip"
+        }
+      ]
+    }
+  ]
+}
