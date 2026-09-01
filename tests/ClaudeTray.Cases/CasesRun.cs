@@ -77,8 +77,12 @@ public sealed class CasesRun
         var project = ProjectDeclaration.Find(Repository());
         var declared = ScenarioFile.Across(ScenarioFile.LoadAll(Path.Combine(Repository(), "cases")));
 
+        // WW315. Before the register and before anything is measured, because both read it: the
+        // launches inherit the variable it sets, and the preconditions below are about what it wrote.
+        using var bench = Bench.Under(Repository());
+
         using var register = ProcessRegister.For(project);
-        var verdict = Suite.Launch(declared, Selection.All, register, project, measured: Measured());
+        var verdict = Suite.Launch(declared, Selection.All, register, project, measured: Measured(bench));
 
         // The whole reading, not just the outcome: a filtered run qualifies its pass before it states
         // it, and what the run did not do is part of what it concluded.
@@ -146,10 +150,15 @@ public sealed class CasesRun
     /// and nothing measures is refused at load rather than run as a green, so adding a
     /// <c>needs</c> to a case means adding its measurement here.
     /// </summary>
-    private static PreconditionSet Measured()
+    /// <param name="bench">
+    /// WW315. What this run fabricated. The paths are read off it rather than off the home
+    /// directory, which is the whole of what changed here: transcripts are per config dir (T125),
+    /// so a run that pointed the application at a bench and then asked the home directory whether
+    /// there was anything to report would be measuring a machine nobody is testing.
+    /// </param>
+    private static PreconditionSet Measured(Bench bench)
     {
-        var projects = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "projects");
+        var projects = bench.Projects;
 
         // Any one transcript is enough: the report renders from whatever it finds, and a machine with
         // one session renders a report with small numbers in it rather than no report.
@@ -157,6 +166,18 @@ public sealed class CasesRun
             && Directory.EnumerateFiles(projects, "*.jsonl", SearchOption.AllDirectories).Any();
 
         var (profiles, because) = Profiles();
+
+        // WW315. Said out loud where it is not zero, which on the guest it is. The bench adds two
+        // and cannot take anything away — discovery's home sweep reads the process token — so a run
+        // on a developer's desk is reading their accounts as well as the fabricated pair, and that
+        // is worth one line rather than a silence. A count and never the labels.
+        if (bench.Beside(profiles) is var others and > 0)
+        {
+            Console.WriteLine(
+                $"this machine has {others} profile(s) of its own beside the bench's {bench.Fabricated}. "
+                + "The cases derive every expectation, so they hold either way — but a profile switch "
+                + "here is one assertion away from a real setting.");
+        }
 
         return PreconditionSet.Of(
             transcripts

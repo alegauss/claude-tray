@@ -8,3 +8,7 @@ _preview/
 .roadkeep/
 /scripts/demo
 TestResults/
+
+# WW315. The two profiles and the transcript a run fabricates for itself. Built where the cases
+# run and deleted after them, so it never travels to a guest and never outlives the run that made it.
+/bench/
