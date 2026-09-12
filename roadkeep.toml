@@ -136,3 +136,8 @@ undesigned = ["💭"]
 shipped = "✅"
 # The ledger's other door: a line that left without shipping — T85 and T101 both did.
 retired = "🗑"
+
+[project]
+name = "Claude Code Tray"
+description = "A Windows tray app that shows what Claude Code is doing, without a window."
+icon = "🔔"
