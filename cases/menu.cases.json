@@ -114,7 +114,12 @@
           // was broken, and a case naming it would report a control rather than the gesture. A mouse
           // hover always worked, which is exactly why this went unnoticed until something drove it
           // from the keyboard. WW259.
-          "locator": "Menu > MenuItem",
+          //
+          // WW83 named the entry. This said `Menu > MenuItem`, which is every entry the menu holds:
+          // the Profile submenu is the fourth of them, and a menu opens highlighting the first — so
+          // what the step meant and what a window-scoped Right would have expanded were not the same
+          // entry. The label is derived and never typed, like every other one in this file.
+          "locator": "Menu > MenuItem[name=\"{menu.profiles}\"]",
           "act": "open submenu",
           "named": "the profile submenu opens to Right rather than dismissing the menu"
         },

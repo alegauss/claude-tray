@@ -20,7 +20,15 @@ namespace ClaudeTray.Cases;
 /// linting afterwards: a case that will not load is a case nobody should discover on the machine that
 /// was going to run it.
 /// </para>
+/// <para>
+/// WW83. It joins the collection that fabricates the machine, which reads as a contradiction and is
+/// not one: what needs no desk is not the same as what needs no machine. Two cases here ask this
+/// application what profiles it has and what the icon is following, and on a desk with no Claude
+/// Code accounts the honest answer is nothing — which the engine refuses as a vacuous expected set,
+/// correctly, in a sentence about this project's arrangement rather than about either case.
+/// </para>
 /// </summary>
+[Collection(TheMachine.Name)]
 public sealed class CasesLoad
 {
     [Fact]
@@ -75,7 +83,7 @@ public sealed class CasesLoad
         // Nothing here names a profile: which one the icon follows is whatever this desk is doing.
         var project = ProjectDeclaration.Find(Repository());
 
-        foreach (var name in new[] { "iconFollows", "envSelects" })
+        foreach (var name in new[] { "iconFollows", "envSelects", "otherProfile" })
         {
             Assert.True(project.ReportedValues.ContainsKey(name), $"{project.Path} declares no '{name}'");
 
@@ -91,6 +99,53 @@ public sealed class CasesLoad
         var all = DerivedSet.Reported("the profiles", project, "profiles").Expected;
 
         Assert.True(follows == "-" || all.Contains(follows), $"the icon follows '{follows}', of {string.Join(", ", all)}");
+
+        // WW83. The one a switch can move to, and the whole of what makes it usable: it has to be a
+        // profile this machine has and it has to be a different one. A read-out answering the profile
+        // the icon is already on would make the case that picks it pass by nothing happening — the
+        // check mark would be where it was, on the entry it was on, and every claim would hold.
+        var other = DerivedSet.ReportedValue("the profile the icon does not follow", project, "otherProfile");
+
+        Assert.True(other == "-" || all.Contains(other), $"the other profile is '{other}', of {string.Join(", ", all)}");
+        Assert.True(
+            other == "-" || other != follows,
+            $"'otherProfile' answered '{other}', which is the one the icon follows");
+
+        // And `-` exactly where there is nothing to switch to. Said as an equivalence rather than
+        // two skips, because "one profile" and "the read-out could not answer" are different facts
+        // and this is the one place they can be told apart.
+        Assert.Equal(all.Count < 2, other == "-");
+    }
+
+    [Fact]
+    public void The_switch_case_asserts_what_the_harness_asserted_about_a_pick()
+    {
+        // WW83, read off the loaded case rather than off the file. The claim is the pair: the mark
+        // arrives on the entry that was picked AND leaves the one it came from. Either half alone is
+        // satisfied by a menu showing two profiles checked at once, which says the icon follows both.
+        var loaded = ScenarioFile.Across(ScenarioFile.LoadAll(Path.Combine(Repository(), "cases")));
+        var switching = Assert.Single(
+            loaded,
+            one => one.Name == "picking a profile moves the check mark to it and to no other");
+
+        Assert.Equal(["a second profile"], switching.Needs);
+
+        // Both ends of the switch are what the application reports and neither is typed: the labels
+        // are this desk's accounts, so a case naming one passes here and fails everywhere else.
+        Assert.All(
+            switching.Steps.Where(one => one.Locator?.Steps[^1].NameStarts is not null),
+            one => Assert.Contains("{report:", one.Locator!.Text, StringComparison.Ordinal));
+
+        // Two before the pick and two after it, which is what makes the pair a pair.
+        Assert.Equal(2, switching.Steps.Count(one => one.BeginsWithLabel == "menu.itemChecked"));
+        Assert.Equal(2, switching.Steps.Count(one => one.NotLabel == "menu.itemChecked"));
+
+        // And the mark is read where T234 put it. `toggle` is the near miss and answers nothing here:
+        // the custom accessible object that carries the entry's sentence at all costs the pattern the
+        // framework supplies while an entry is checked.
+        Assert.All(
+            switching.Steps.Where(one => one.BeginsWithLabel is not null || one.NotLabel is not null),
+            one => Assert.Equal("description", one.Reads.Name));
     }
 
     [Fact]
@@ -215,7 +270,15 @@ public sealed class CasesLoad
         // lose: the picker holds whatever accounts a desk happens to have, so every claim is about a
         // reading moving or coming back and not one of them is about a value.
         var loaded = ScenarioFile.Across(ScenarioFile.LoadAll(Path.Combine(Repository(), "cases")));
-        var profiles = Assert.Single(loaded, one => one.Tags.Contains("profiles"));
+
+        // Named and not tagged, which WW83 forced and should have been so from the start: the tag
+        // says what a case is about, and being about profiles is a thing more than one case is
+        // allowed to be. This one is the round trip WW81 filed, and the switch case is tagged
+        // `profiles` just as correctly — so a selector that took the only case with the tag was
+        // reading "the profiles case" as a fact about the repository rather than about this test.
+        var profiles = Assert.Single(
+            loaded,
+            one => one.Name == "the picker walks off a profile and back, and the report comes back with it");
 
         Assert.True(profiles.Justified, "a case that says nothing about why it exists says nothing about deleting it");
         Assert.Equal(["a second profile", "a transcript to report on"], profiles.Needs);
@@ -305,14 +368,10 @@ public sealed class CasesLoad
             row.Steps.Select(one => one.Label).OfType<string>());
     }
 
-    /// <summary>This repository's root, found by walking up to the file the project declares itself in.</summary>
-    private static string Repository()
-    {
-        var walking = new DirectoryInfo(AppContext.BaseDirectory);
-        while (walking is not null && !File.Exists(Path.Combine(walking.FullName, ProjectDeclaration.FileName)))
-            walking = walking.Parent;
-
-        Assert.NotNull(walking);
-        return walking.FullName;
-    }
+    /// <summary>
+    /// This repository's root. WW83 moved the walk to <see cref="Checkout" />, where the other class
+    /// reads it from too — the copy here and the copy there had no way to disagree and no reason to
+    /// be two.
+    /// </summary>
+    private static string Repository() => Checkout.Root();
 }

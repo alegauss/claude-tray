@@ -228,6 +228,10 @@ internal static class ProfilesCli
     /// hardcoded expectation with an extra step: it goes stale the day a line is reworded and says
     /// nothing when it does.</para>
     ///
+    /// <para>WW83 added the third, which is the one a switch needs: not the profile the icon is on,
+    /// but one it is not. A case cannot compute that — the labels are this machine's accounts — and
+    /// the harness that used to compute it did so by regex over the same prose.</para>
+    ///
     /// <para>Same calls the report itself makes, one line above where it prints them — not a second
     /// computation. Two routes to one fact agree only until somebody changes one, and the whole reason
     /// a check reads this rather than guessing is that it is the application's own answer.</para>
@@ -253,11 +257,28 @@ internal static class ProfilesCli
                 Console.WriteLine(EnvironmentProfile.Selected(profiles)?.Label ?? "-");
                 return;
 
+            // WW83. The one a switch can move TO, which is the value the check script computed for
+            // itself: the first discovered profile whose label is not the one the icon follows. It
+            // is here rather than in the harness because it is the same discovery, the same order and
+            // the same picker as the line above it — a second implementation would agree with this
+            // one until somebody registered a profile, and then a case would drive the entry the
+            // icon is already on and pass by never moving.
+            //
+            // A single profile is not a failure here and not a blank either: there is nothing to
+            // switch to, and `-` is the value a case can be refused on rather than an empty line it
+            // cannot tell from a read-out that broke.
+            case "other-profile":
+                ClaudeInfo? followed = ClaudeAccount.PickMonitored(profiles, settings.MonitoredConfigDir);
+                Console.WriteLine(
+                    profiles.FirstOrDefault(p => p.Label != followed?.Label)?.Label ?? "-");
+                return;
+
             default:
                 // Named rather than answered with a blank: a read-out that printed nothing for a word
                 // it does not know would reach the harness as "the application reported nothing", and
                 // that is a refusal about the application rather than about the flag it was given.
-                ReadOut.Failed($"--menu-state takes one of: icon-follows, env-selects. Given: '{what}'.");
+                ReadOut.Failed(
+                    $"--menu-state takes one of: icon-follows, env-selects, other-profile. Given: '{what}'.");
                 return;
         }
     }

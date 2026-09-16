@@ -1,0 +1,148 @@
+{
+  // WW83. The profile switch, migrated out of Invoke-SwitchCase in scripts/Check-Interaction.ps1.
+  //
+  // This is the one action in this application that changes what a DIFFERENT process will do. The
+  // profile picker on the Statistics page — cases/profiles.cases.json — chooses whose numbers the
+  // page draws and nothing else. This entry runs `AdoptMonitored`: it moves `MonitoredConfigDir`,
+  // re-keys the stores, drops the outgoing account's state and takes the incoming account's token.
+  // T292 was a defect on that path, found by reading it rather than by running it.
+  //
+  // Two claims and they are opposite halves of one promise:
+  //
+  //   - the check mark MOVES, and moves to the entry that was picked. That is the pick landing.
+  //   - the settings file does NOT move. `--second-tray` is an observing process and T239 promises
+  //     it writes nothing, so the strongest place that promise can be asserted is over the one path
+  //     that writes the field. The second half is not in this file and cannot be: it is the store
+  //     comparison the run brackets every case with, declared as `fingerprintStore` in winwright.json
+  //     and read either side of the suite by tests/ClaudeTray.Cases/CasesRun.cs.
+  //
+  // What the harness refused and this file does not have to: `-UseRunning`. A pick driven through
+  // the resident tray would repoint the icon this machine's own user follows, for real. Every fixture
+  // here launches its own `--second-tray`, so there is no flag to refuse.
+  //
+  // Nothing below names a profile, and nothing can: they are this desk's accounts. Both ends of the
+  // switch are `{report:...}` — what the application says the icon follows, and what it says the
+  // icon does not follow — so the case reads on any machine with two profiles and on no machine
+  // names one.
+  "fixtures": [
+    {
+      // `--second-tray` tags this icon's tooltip with `[check]`, which is how a run finds the tray
+      // it launched and never the resident one: pid cannot tell two ClaudeTray icons apart, because
+      // both belong to the shell's process rather than to this one.
+      "name": "a tray of this run's own, for the switch",
+      "arguments": ["--second-tray", "--lang", "en"],
+
+      // It draws no window: a tray is a process that puts an icon in the notification area. WW257.
+      "resident": true,
+
+      "language": "en",
+
+      // Not shared, and here that is stronger than elsewhere. This case leaves the tray following a
+      // different profile than it started on, so a case after it would read a tray somebody switched.
+      "shareable": false
+    }
+  ],
+
+  "cases": [
+    {
+      "name": "picking a profile moves the check mark to it and to no other",
+      "catches": "an AdoptMonitored that repaints the menu without moving the icon's profile, which every reading taken before the pick looks perfectly healthy for",
+      "filed": "WW83",
+      "tags": ["menu", "tray", "profiles"],
+      "fixture": "a tray of this run's own, for the switch",
+
+      // A machine with one profile has nothing to switch to, so there is no case here. A precondition
+      // and never a weaker claim, which is T161's rule and the one the picker's own skip follows.
+      "needs": ["a second profile"],
+
+      "steps": [
+        {
+          "tray": "[check]",
+          "act": "open tray menu",
+          "named": "the icon's menu opens to focus and the application key"
+        },
+        {
+          // T148. `expand` asks ExpandCollapsePattern and an empty WinForms submenu exposes none, so
+          // the pattern route cannot ask the question that was broken. Right is how a keyboard user
+          // opens it, and WW259 is the verb.
+          "locator": "Menu > MenuItem[name=\"{menu.profiles}\"]",
+          "act": "open submenu",
+          "named": "the profile submenu opens before the switch"
+        },
+        {
+          // The before-state, read off the MENU rather than off the read-out: this tray is the one
+          // being driven, and a second process's answer is a claim about a third state.
+          //
+          // `nameStarts` and not `name`: an entry reads `Pessoal — used 41%  · active now`, so the
+          // label is the front of it and the rest is this machine's consumption. WW83.
+          //
+          // `description` and not `toggle`: T234 gave these entries a custom accessible object,
+          // because a ToolStripItem's tooltip reaches no accessibility property at all and everything
+          // the submenu says about what a pick REACHES lives there. That object costs the toggle the
+          // framework supplies while an entry is checked, so the mark is announced as a word in
+          // front of the sentence instead — which is also the only form a screen reader ever got it in.
+          "locator": "Menu > MenuItem[nameStarts=\"{report:iconFollows}\"]",
+          "act": "read",
+          "reads": "description",
+          "beginsWithLabel": "menu.itemChecked",
+          "named": "before the switch the mark is on the profile the icon follows"
+        },
+        {
+          // And on no other. The same claim turned around, over the entry this case is about to pick:
+          // reading zero marks and reading two are both what a Checked that stopped being set looks
+          // like, and only the pair says which.
+          "locator": "Menu > MenuItem[nameStarts=\"{report:otherProfile}\"]",
+          "act": "read",
+          "reads": "description",
+          "notLabel": "menu.itemChecked",
+          "named": "before the switch the other profile carries no mark"
+        },
+        {
+          // The switch itself. A submenu entry is reached from the keyboard and activated there —
+          // the shell delivers no synthesised right-click to this menu, and a mouse hover always
+          // worked, which is exactly why T148 went unnoticed until something drove it by key.
+          //
+          // No claim of its own: it is a navigation, and the two steps below are the check for it.
+          // The menu closes on activation, so what follows has to open it again.
+          "locator": "Menu > MenuItem[nameStarts=\"{report:otherProfile}\"]",
+          "act": "invoke",
+          "named": "the profile the icon does not follow is picked"
+        },
+        {
+          "tray": "[check]",
+          "act": "open tray menu",
+          "named": "the menu reopens to read the switch back"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profiles}\"]",
+          "act": "open submenu",
+          "named": "the profile submenu opens after the switch"
+        },
+        {
+          // T294's claim, and the defect it was filed against: AdoptMonitored repainting the menu
+          // without moving the icon's profile. The mark is on the entry that was picked.
+          "locator": "Menu > MenuItem[nameStarts=\"{report:otherProfile}\"]",
+          "act": "read",
+          "reads": "description",
+          "beginsWithLabel": "menu.itemChecked",
+          "named": "after the switch the mark is on the profile that was picked"
+        },
+        {
+          // And off the one it came from. Without this the case holds where the mark was added and
+          // never removed — two profiles checked at once, which is a menu that says the icon is
+          // following both.
+          //
+          // `{report:iconFollows}` still names the profile it came from, and that is the point rather
+          // than a subtlety: the read-out reads the settings file, an observing tray does not write
+          // it, so the value is the same before and after. A run where this step resolved nothing
+          // would be a run where the file moved.
+          "locator": "Menu > MenuItem[nameStarts=\"{report:iconFollows}\"]",
+          "act": "read",
+          "reads": "description",
+          "notLabel": "menu.itemChecked",
+          "named": "after the switch the profile it came from carries no mark"
+        }
+      ]
+    }
+  ]
+}

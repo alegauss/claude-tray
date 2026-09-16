@@ -1,3 +1,4 @@
+using Winwright.Asserting;
 using Winwright.Processes;
 using Winwright.Projects;
 using Winwright.Scenarios;
@@ -24,8 +25,16 @@ namespace ClaudeTray.Cases;
 /// per case would relaunch the application per case and throw away the window lending the fixtures
 /// declare.
 /// </para>
+/// <para>
+/// WW83. The machine it runs against is fabricated by the collection rather than by this case, so
+/// the class that derives an expected set from the same application asks it about the same machine.
+/// The bench was built here, which left those cases asking a real desk about accounts it does not
+/// have — see <see cref="TheMachine" />.
+/// </para>
 /// </summary>
-public sealed class CasesRun
+/// <param name="machine">The fabricated machine, built before any case in the collection ran.</param>
+[Collection(TheMachine.Name)]
+public sealed class CasesRun(TheMachine machine)
 {
     /// <summary>
     /// WW79. The one precondition no engine could measure, because it is about this application's
@@ -79,10 +88,32 @@ public sealed class CasesRun
 
         // WW315. Before the register and before anything is measured, because both read it: the
         // launches inherit the variable it sets, and the preconditions below are about what it wrote.
-        using var bench = Bench.Under(Repository());
+        //
+        // WW83. Built by the collection rather than here. It was a `using` in this member, and the
+        // two cases in `CasesLoad` that ask this application what profiles it has ran outside it —
+        // so on the guest, which has no Claude Code accounts, they asked a real desk and were told
+        // the truth. Nothing about the bench changed; what changed is who owns its lifetime.
+        var bench = machine.Bench;
 
         using var register = ProcessRegister.For(project);
-        var verdict = Suite.Launch(declared, Selection.All, register, project, measured: Measured(bench));
+
+        // WW83. The suite inside the store comparison, which is where `Assert-StoreUntouched` was in
+        // the harness this replaces — and it is here rather than around one case because T239's
+        // promise is about every tray this run launches, not about the one that switches a profile.
+        //
+        // The switch is what makes it worth the reading. `--second-tray` is an observing process and
+        // promises it persists nothing; the profile entry runs `AdoptMonitored`, which moves
+        // `MonitoredConfigDir`, re-keys the stores and takes the incoming account's token. So the one
+        // path in this application that writes that field now runs inside the assertion that nothing
+        // was written, which is the strongest place that promise has ever been made.
+        //
+        // Around and not Insist: a machine that moved is reported with the files named, beside a suite
+        // verdict that has its own things to say. Insist throws, and a throw here would replace
+        // whatever the run had concluded with one sentence about tidiness.
+        SuiteVerdict verdict = null!;
+        var store = Untouched.Around(
+            [project.FingerprintStore],
+            () => verdict = Suite.Launch(declared, Selection.All, register, project, measured: Measured(bench)));
 
         // The whole reading, not just the outcome: a filtered run qualifies its pass before it states
         // it, and what the run did not do is part of what it concluded.
@@ -99,6 +130,47 @@ public sealed class CasesRun
         // And nothing was left on the desk. This is the finding the old harness produced by having
         // its own finally block in every case function.
         Assert.Empty(register.StopAll());
+
+        // WW83, and last because it is a claim about the run rather than about the application. Three
+        // outcomes and not two, which is this whole framework's founding rule applied to itself: a
+        // machine that moved while a resident tray was alive is a reading nobody could take, and
+        // reporting it as either verdict would be a lie in one direction or the other.
+        if (!store.Untouched && Somebody() is { } resident)
+        {
+            // Printed and not asserted, because xUnit shows an assertion's message only where it
+            // fails — a pass that says out loud it checked nothing has to say it somewhere a reader
+            // of a green run sees.
+            Console.WriteLine(
+                $"{store.Sentence()} A ClaudeTray is resident (pid {resident.Id}) and polls on its own "
+                + "cadence, so this cannot be pinned on the run. Re-run with no other tray alive to "
+                + "get an answer.");
+        }
+        else
+        {
+            Assert.True(store.Untouched, store.Sentence());
+        }
+    }
+
+    /// <summary>
+    /// A resident tray, where one is alive, and null where none is.
+    /// <para>
+    /// WW83. The reading above is asymmetric and that is what makes it worth taking on a developer's
+    /// desk — which is every developer's, and the reason gating it on "no other tray alive" would
+    /// have made it an assertion that never runs. Nothing moved means this run wrote nothing, whoever
+    /// else is running: a write by a tray this run launched would be in the comparison no matter what
+    /// the resident one is doing. Something moved is a failure only when there is nobody else it
+    /// could have been.
+    /// </para>
+    /// <para>
+    /// By name and not by the register, because the register knows what this run started and the
+    /// question is about what it did not. The tray this application ships is one process name.
+    /// </para>
+    /// </summary>
+    private static System.Diagnostics.Process? Somebody()
+    {
+        var ours = System.Diagnostics.Process.GetCurrentProcess().Id;
+        return System.Diagnostics.Process.GetProcessesByName("ClaudeTray")
+            .FirstOrDefault(one => one.Id != ours);
     }
 
     /// <summary>
@@ -246,14 +318,10 @@ public sealed class CasesRun
     private static string Trimmed(string said) =>
         said.Split('\n', StringSplitOptions.RemoveEmptyEntries) is [var first, ..] ? first.Trim() : "nothing at all";
 
-    /// <summary>This repository's root, found by walking up to the file the project declares itself in.</summary>
-    private static string Repository()
-    {
-        var walking = new DirectoryInfo(AppContext.BaseDirectory);
-        while (walking is not null && !File.Exists(Path.Combine(walking.FullName, ProjectDeclaration.FileName)))
-            walking = walking.Parent;
-
-        Assert.NotNull(walking);
-        return walking.FullName;
-    }
+    /// <summary>
+    /// This repository's root. WW83 moved the walk to <see cref="Checkout" />, where the other class
+    /// reads it from too — the copy here and the copy there had no way to disagree and no reason to
+    /// be two.
+    /// </summary>
+    private static string Repository() => Checkout.Root();
 }

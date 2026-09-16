@@ -53,10 +53,26 @@
   // entry, and that entry is the one the icon follows. A case selects it with
   // `MenuItem[name="{report:iconFollows}"]` and reads the mark — neither half of which any case can
   // type, because both are this machine's state.
+  //
+  // WW83 added the third. A switch has to pick a profile the icon is NOT on, and which one that is
+  // is not derivable from the set above: `profiles` answers the labels and nothing says which of them
+  // is the odd one out. A case picking by position instead would sometimes pick the entry the icon is
+  // already on, and then every claim after it holds by nothing having happened.
   "reportedValues": {
     "iconFollows": ["--menu-state", "icon-follows"],
-    "envSelects": ["--menu-state", "env-selects"]
+    "envSelects": ["--menu-state", "env-selects"],
+    "otherProfile": ["--menu-state", "other-profile"]
   },
+
+  // WW83. What a run must leave exactly as it found it, and the reason the switch case is worth
+  // running at all: `--second-tray` is an observing process and T239's promise is that it writes
+  // nothing, so a pick driven through one must move the check mark in the menu and NOT the file.
+  //
+  // A directory and not a list of files, which is T241's lesson held onto: five gates went in for the
+  // writers somebody had listed, the section went green, and a real run still changed
+  // `context-cache.json` because nobody had thought to drive the context scan. One question about a
+  // region cannot be short of a member.
+  "fingerprintStore": "%LOCALAPPDATA%/ClaudeTray",
 
   // Named because a run on a machine that is not in English would otherwise refuse: this project
   // ships one language file here, and reading a label in a language nobody declared would be
