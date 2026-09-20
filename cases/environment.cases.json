@@ -42,6 +42,24 @@
       // Not shared. The sampled environment is this launch's, so a case after it would read a menu
       // answering off a variable it never asked for.
       "shareable": false
+    },
+    {
+      // The second mode, and a launch of its own for the reason the first one is: the mode is a
+      // launch argument, so two modes cannot be two steps of one case.
+      "name": "a tray of this run's own, where the variable names no profile at all",
+      "arguments": ["--second-tray", "--observing", "--lang", "en"],
+
+      // T231's other mode: the variable names a folder no registered profile covers, which is the
+      // state T172's LINE exists for — a line of its own rather than a mark on an entry, because
+      // there is no entry below to hang a mark on.
+      "environment": "outside",
+      "flag": "--sample-env",
+
+      // No `needs`. Unlike `other`, this mode invents nothing and asks the machine for nothing: it
+      // samples a synthetic root, so every desk can reach it.
+      "resident": true,
+      "language": "en",
+      "shareable": false
     }
   ],
 
@@ -96,18 +114,51 @@
           "named": "the entry the variable selects carries the environment mark"
         }
       ]
-    }
+    },
+    {
+      // The other mode, and the line that took two engine tasks to become writable. It is
+      // `menu.profileEnvOutside` — `CLAUDE_CONFIG_DIR points outside these profiles — {0}` — and the
+      // folder at the end of it belongs to this desk, so the only fixed thing about the line is its
+      // front. WW475 let a claim read that front; WW477 let a LOCATOR ask for it, which is what
+      // addressing the line at all needed. Before alpha.15 this case could not be written.
+      "name": "the submenu reports a variable that points at a folder no profile covers",
+      "catches": "a line that stops being drawn when CLAUDE_CONFIG_DIR leaves every registered profile, which is the one profile state a developer's machine is never in",
+      "filed": "WW85",
+      "tags": ["menu", "tray", "profiles", "environment"],
+      "fixture": "a tray of this run's own, where the variable names no profile at all",
 
-    // The `outside` mode is not here, and it is not an oversight. Its line is
-    // `menu.profileEnvOutside` — `CLAUDE_CONFIG_DIR points outside these profiles — {0}` — and the
-    // half that blocks it has moved. The CLAIM is writable since winwright 0.1.0-alpha.14: WW475
-    // lets a `beginsWithLabel` read the fixed part a trailing placeholder leaves.
-    //
-    // What refuses now is addressing the line at all. `nameStarts="{menu.profileEnvOutside}"` puts
-    // the key in a LOCATOR, and a locator's substitution asks for the whole label — which is the
-    // equality refusal, correctly, since a locator that looked for the literal `{0}` would match
-    // nothing. `nameStarts` is a begins-with like the claim beside it and wants the same fixed part,
-    // and WW475 did not reach it. Filed rather than worked around: naming the fixed text here would
-    // be the hardcoded string this whole shape exists to refuse.
+      "steps": [
+        {
+          "tray": "[check]",
+          "act": "open tray menu",
+          "named": "the icon's menu opens"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profiles}\"]",
+          "act": "open submenu",
+          "named": "the profile submenu opens to Right"
+        },
+        {
+          // The locator is the existence half, and it is the whole of what the script asserted: it
+          // split the label on `{0}`, trimmed, and looked for a submenu line starting with what was
+          // left. `nameStarts="{menu.profileEnvOutside}"` is that, written once and derived.
+          //
+          // The claim is deliberately NOT `beginsWithLabel` of the same key. That would be the step
+          // passing on its own selection — true the moment the locator matched, and the unearned
+          // green this whole repository's cases exist to refuse. So it reads something the locator
+          // did not choose.
+          //
+          // `enabled`, because the line is `Enabled = false` in the tray and the comment beside it
+          // says why: it reports, and nothing here is clickable. A submenu line that became
+          // clickable would offer a profile that does not exist. The expected word is the engine's
+          // own vocabulary and not this application's, so nothing localized is typed here.
+          "locator": "Menu > MenuItem[nameStarts=\"{menu.profileEnvOutside}\"]",
+          "act": "read",
+          "reads": "enabled",
+          "expect": "not enabled",
+          "named": "the line is there and reports rather than offers"
+        }
+      ]
+    }
   ]
 }
