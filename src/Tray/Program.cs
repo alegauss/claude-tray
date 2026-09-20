@@ -171,11 +171,28 @@ internal static class Program
         // the same way `--lang` is, and applied here: before anything below reads the variable, and
         // before any window is built. A bad mode refuses with the catalogue rather than falling through
         // to the real environment, which would render the ordinary state under a flag asking for another.
+        // WW85. `--sample-env=<mode>` beside `--sample-env <mode>`, because a winwright fixture
+        // declaring an `environment` reaches the application through the joined spelling and only
+        // that one: `FixtureDeclaration.Launching()` appends `{flag}={environment}`, and the same
+        // argument now goes on the read-outs the case compares against (WW473). Parsed here and not
+        // in two places, so both spellings end in the same `Apply` and a bad mode is refused with
+        // the catalogue whichever way it was written.
         int envAt = Array.IndexOf(args, "--sample-env");
-        if (envAt >= 0)
+        int joinedAt = Array.FindIndex(args, one => one.StartsWith("--sample-env=", StringComparison.Ordinal));
+        if (envAt >= 0 || joinedAt >= 0)
         {
-            string? mode = envAt + 1 < args.Length ? args[envAt + 1] : null;
-            args = args.Take(envAt).Concat(args.Skip(envAt + (mode is null ? 1 : 2))).ToArray();
+            string? mode;
+            if (joinedAt >= 0 && (envAt < 0 || joinedAt < envAt))
+            {
+                mode = args[joinedAt]["--sample-env=".Length..];
+                args = args.Take(joinedAt).Concat(args.Skip(joinedAt + 1)).ToArray();
+            }
+            else
+            {
+                mode = envAt + 1 < args.Length ? args[envAt + 1] : null;
+                args = args.Take(envAt).Concat(args.Skip(envAt + (mode is null ? 1 : 2))).ToArray();
+            }
+
             if (EnvironmentFixture.Apply(mode) is { } refusal)
             {
                 Console.Error.WriteLine(refusal);

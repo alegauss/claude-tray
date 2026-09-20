@@ -1,0 +1,109 @@
+{
+  // WW85. The environment sweep, migrated out of Invoke-EnvFixtureSweep in
+  // scripts/Check-Interaction.ps1.
+  //
+  // T172 draws a mark on the Profile submenu when CLAUDE_CONFIG_DIR selects a profile the icon is
+  // not showing. That state does not exist on a developer's machine — the variable and the icon
+  // agree there, always — so the assertion was `Unchecked` on every run for as long as it existed,
+  // which is a check nobody has ever read. T231 built `--sample-env` so the state could be produced
+  // on demand, and T238 swept it.
+  //
+  // A fixture per mode, which is why this case is worth its launches: the mode is a launch argument,
+  // so it cannot be a step, and each one is a different screen rather than a different reading of
+  // one. It is also the case that proves a fixture reaches every launch a case makes rather than
+  // only the first — the read-outs below are launches of their own, and WW473 is what puts them on
+  // the same environment as the window.
+  //
+  // `environment` and `flag` rather than the flag written into `arguments`, which is WW60's rule and
+  // the whole reason this works: ONE declaration decides both what the application is launched with
+  // and what the expectations are read from, so the two cannot be given different modes. Writing
+  // `--sample-env` by hand beside the field is two places deciding one thing, and the engine refuses
+  // it.
+  //
+  // Nothing below names a profile and nothing can: they are this desk's accounts.
+  "fixtures": [
+    {
+      // `--second-tray` for the reason the switch case gives: a tray of this run's own, tagged so a
+      // run finds the icon it launched and never the resident one. It also makes this process
+      // observing, which is what keeps the store bracket around the suite honest.
+      "name": "a tray of this run's own, where the variable names another profile",
+      "arguments": ["--second-tray", "--observing", "--lang", "en"],
+
+      // T231's mode: the variable names a REGISTERED profile that is not the icon's, which is the
+      // state T172's mark exists for.
+      "environment": "other",
+      "flag": "--sample-env",
+
+      // It draws no window: a tray is a process that puts an icon in the notification area. WW257.
+      "resident": true,
+
+      "language": "en",
+
+      // Not shared. The sampled environment is this launch's, so a case after it would read a menu
+      // answering off a variable it never asked for.
+      "shareable": false
+    }
+  ],
+
+  "cases": [
+    {
+      "name": "the submenu marks the profile the environment selects and the icon is not showing",
+      "catches": "a mark that stops being drawn when CLAUDE_CONFIG_DIR names another profile, which no developer's machine is ever in the state to notice",
+      "filed": "WW85",
+      "tags": ["menu", "tray", "profiles", "environment"],
+      "fixture": "a tray of this run's own, where the variable names another profile",
+
+      // `other` names a REGISTERED profile that is not the icon's, so a machine with one profile has
+      // no second name for the variable to take — and EnvironmentFixture refuses the mode rather
+      // than inventing one, which would put the menu in a state it cannot reach. A precondition and
+      // never a weaker claim, which is T161's rule.
+      "needs": ["a second profile"],
+
+      "steps": [
+        {
+          "tray": "[check]",
+          "act": "open tray menu",
+          "named": "the icon's menu opens"
+        },
+        {
+          // The entry by its derived label, for the reason the menu case gives: the submenu is the
+          // fourth entry and a menu opens highlighting the first, so a window-scoped Right expands
+          // whichever one that happens to be.
+          "locator": "Menu > MenuItem[name=\"{menu.profiles}\"]",
+          "act": "open submenu",
+          "named": "the profile submenu opens to Right"
+        },
+        {
+          // The claim the three fields were added for, and all three are in it.
+          //
+          // `nameStarts` because the entry reads `Pessoal — used 41%  · active now  set in Windows`:
+          // a label, a reading, a suffix that comes and goes, and the mark. Equality addresses that
+          // on no machine.
+          //
+          // `{report:envSelects}` because the profile is this desk's account. The application is
+          // asked which one the variable selects, by the same call its own report makes — and since
+          // WW473 that read-out is asked on the same sampled environment the window was drawn on,
+          // which is the whole reason this case can be written at all.
+          //
+          // `endsWithLabel` and not `label`, because the mark is a word at the END of free text that
+          // may hold the word again — and not `beginsWithLabel`, because what comes first is the
+          // profile's own name. A claim about the front of the sentence would be a claim about the
+          // account.
+          "locator": "Menu > MenuItem[nameStarts=\"{report:envSelects}\"]",
+          "act": "read",
+          "reads": "name",
+          "endsWithLabel": "menu.profileEnvSelects",
+          "named": "the entry the variable selects carries the environment mark"
+        }
+      ]
+    }
+
+    // The `outside` mode is not here, and it is not an oversight. Its line is
+    // `menu.profileEnvOutside` — `CLAUDE_CONFIG_DIR points outside these profiles — {0}` — and the
+    // engine refuses a label carrying a placeholder before the run starts, for a reason that is
+    // right about `label` and too wide for this: an exact read of a filled-in tree can never match
+    // a format string, but the front of one is exactly what `beginsWithLabel` is for. Filed against
+    // the engine rather than worked around here, because a case naming the fixed part as text would
+    // be the hardcoded string this whole shape exists to refuse.
+  ]
+}
