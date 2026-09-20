@@ -42,7 +42,22 @@
   // and a dozen lines about polling, and a set derived from it would be thirty strings of prose. The
   // first answers one label per line and nothing else, by the same discovery route, so the two cannot
   // disagree about what this machine has.
-  "reportedSets": { "profiles": ["--profile-names"] },
+  //
+  // WW468. They could still disagree about what to call it, and did. A profile with no organisation
+  // is labelled `L.T("settings.sys.profilePersonal")` — one key, five files — so the read-out printed
+  // `Pessoal` on a pt-BR guest while the submenu it was compared against had been launched with
+  // `--lang en` and drew `Personal`. The sweep reported a profile missing from the menu it was on.
+  //
+  // `{language}` and never `en`: this file says how the application is asked and the run says which
+  // language, so the read-out answers in whatever the fixture launched the window in. Writing `en`
+  // here would hold exactly as long as every fixture below launches in English, which is the guess
+  // WW240 already made one well over.
+  // WW83. `--observing` on every read-out for the reason it is on every fixture: a process this run
+  // launched is a check driving the build, and T239's promise that such a process keeps no books is
+  // what the store bracket below measures. A read-out left without it writes its caches and the
+  // bracket reports the run as having changed the machine — correctly, about a launch this file
+  // asked for.
+  "reportedSets": { "profiles": ["--profile-names", "--observing", "--lang", "{language}"] },
 
   // WW294. The single values beside that set — which profile the icon follows, and which one
   // CLAUDE_CONFIG_DIR selects. Both are in the `--profiles` report as prose, and the check script this
@@ -58,10 +73,14 @@
   // is not derivable from the set above: `profiles` answers the labels and nothing says which of them
   // is the odd one out. A case picking by position instead would sometimes pick the entry the icon is
   // already on, and then every claim after it holds by nothing having happened.
+  // WW468 reaches all three, and more sharply than it reaches the set: each answers a profile label,
+  // and a locator built out of one selects an entry by name. A value read in the machine's language
+  // and a menu drawn in the fixture's do not merely disagree — they address nothing, and the step
+  // reports a control that is on the screen as one that is not there.
   "reportedValues": {
-    "iconFollows": ["--menu-state", "icon-follows"],
-    "envSelects": ["--menu-state", "env-selects"],
-    "otherProfile": ["--menu-state", "other-profile"]
+    "iconFollows": ["--menu-state", "icon-follows", "--observing", "--lang", "{language}"],
+    "envSelects": ["--menu-state", "env-selects", "--observing", "--lang", "{language}"],
+    "otherProfile": ["--menu-state", "other-profile", "--observing", "--lang", "{language}"]
   },
 
   // WW83. What a run must leave exactly as it found it, and the reason the switch case is worth

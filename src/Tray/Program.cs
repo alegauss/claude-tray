@@ -116,6 +116,27 @@ internal static class Program
     {
         Utf8Console();
 
+        // WW83. A process a check launched is a check driving the build, which is exactly what
+        // `--second-tray` says about a tray standing beside the resident one — and T239's rule is
+        // about that, not about which window mode the check happened to ask for. Until this, only
+        // the tray half said it, so a fixture launched with `--main` or a read-out asked for
+        // `--profile-names` kept books like an ordinary run.
+        //
+        // Measured on the first guest run the store bracket could ever take, once the engine
+        // carrying it was published: twelve green cases came back under `the run changed the machine
+        // of whoever ran it: session-index.json was rewritten`. The write is the application
+        // behaving correctly — a run that is not observing keeps its cache — and the bracket is
+        // right too. What was missing is the sentence that tells the app which it is.
+        //
+        // Taken out of the arguments before anything else parses them, the way `--lang` is and for
+        // the same reason: every read-out below dispatches on `args[0]`, and a flag left in the
+        // array is a project name to somebody.
+        if (args.Contains("--observing"))
+        {
+            args = args.Where(one => one != "--observing").ToArray();
+            ProfileStore.Observe();
+        }
+
         // `--lang <code>` anywhere in the arguments overrides the display language for this process
         // only, leaving the saved preference alone. It exists for the i18n screenshot loop: verifying
         // that a window still fits in Spanish should not mean editing the user's settings and

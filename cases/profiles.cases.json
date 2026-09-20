@@ -26,7 +26,7 @@
       // `--main` rather than the tray: the same shell the tray opens, under the same WinForms pump,
       // over the real discovered profiles — which is the window the defect was found in.
       "name": "the main window for the profile picker",
-      "arguments": ["--main", "--lang", "en"],
+      "arguments": ["--main", "--observing", "--lang", "en"],
 
       // WW240. What the launch above produces, said so a derived set reads the strings this
       // window is showing rather than the one file the project had to pretend was its only one.

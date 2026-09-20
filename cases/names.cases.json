@@ -30,7 +30,7 @@
       // window and the expectation have to resolve the same language or the comparison is between
       // two of them.
       "name": "the settings window on the panel it opens on",
-      "arguments": ["--settings", "--lang", "en"],
+      "arguments": ["--settings", "--observing", "--lang", "en"],
       "language": "en",
 
       // Every case here only reads, so one window serves all of them — T195's window lending, which
@@ -42,7 +42,7 @@
       // The script clicked `Label 'settings.nav.claudeCode'`, and a locator cannot be built out of a
       // declared string yet — so this is the same panel reached the one way that needs no string.
       "name": "the settings window on the Claude Code panel",
-      "arguments": ["--settings", "ClaudeCode", "--lang", "en"],
+      "arguments": ["--settings", "ClaudeCode", "--observing", "--lang", "en"],
       "language": "en",
       "shareable": true
     },
@@ -50,7 +50,7 @@
       // The walk drives the sidebar, so it owns its window and lends it to nobody: a case after it
       // would inherit whichever panel the last member happened to leave showing.
       "name": "the settings window the walk drives",
-      "arguments": ["--settings", "--lang", "en"],
+      "arguments": ["--settings", "--observing", "--lang", "en"],
       "language": "en"
     }
   ],

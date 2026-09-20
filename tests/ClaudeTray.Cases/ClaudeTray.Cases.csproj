@@ -17,10 +17,20 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
+    <!-- WW85. A restore that cannot find the version named below does not fail: it resolves a
+         different one and carries on with a warning. Measured while wiring the local feed - asking
+         for 0.1.0-alpha.10 outside its reach came back with 0.1.0 and NU1603, and a build that is
+         green against an engine nobody asked for is the exact shape of unearned green this whole
+         repository's cases exist to refuse.
+
+         So the warning is an error here. It costs nothing when the version resolves, and the run
+         that would otherwise pass while driving the wrong engine stops at restore instead. -->
+    <WarningsAsErrors>$(WarningsAsErrors);NU1603</WarningsAsErrors>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Winwright" Version="0.1.0-alpha.6" />
+    <PackageReference Include="Winwright" Version="0.1.0-alpha.12" />
   </ItemGroup>
 
   <ItemGroup>

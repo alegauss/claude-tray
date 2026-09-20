@@ -67,7 +67,14 @@
           //
           // `answers` and not a typed name: what the script asserted here is that the read was not
           // empty, and an entry's text is the next claim's business rather than this one's.
-          "locator": "Menu > MenuItem",
+          //
+          // Ordered, because this menu holds seven entries and the engine refuses to guess between
+          // them. It said so with all seven named and measured once winwright 0.1.0-alpha.10 stopped
+          // the runner shutting the overflow flyout out from under the menu — before that the step
+          // read nothing at all, and three runs went on asking why. A locator matching seven is a
+          // step that would one day act on the wrong one, so the refusal is right and this is the
+          // spelling that says which.
+          "locator": "Menu > MenuItem[order=top]",
           "act": "read",
           "reads": "name",
           "answers": true,
@@ -81,11 +88,18 @@
           // The label is derived from this project's own strings and never typed: written here it
           // would be wrong in the other four languages this application ships from the moment it was
           // written.
-          "locator": "Menu > MenuItem",
+          //
+          // Ordered for the reason the step above is, and the claim is a shade stronger than its
+          // name: the entry that opens the window is the FIRST one, not merely somewhere on the
+          // menu. That is what this application ships and what a keyboard user meets — the menu
+          // opens highlighting it — and it is checkable, where "somewhere among seven" is a claim
+          // no single read can make. Selecting it by name instead would fix the reading before the
+          // act and the engine refuses that outright.
+          "locator": "Menu > MenuItem[order=top]",
           "act": "read",
           "reads": "name",
           "label": "menu.open",
-          "named": "the entry that opens the window is on the menu"
+          "named": "the entry that opens the window is the first on the menu"
         }
       ]
     },

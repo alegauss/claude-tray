@@ -12,7 +12,7 @@
       // `--settings` would prove nothing: it runs a WPF pump, a different input environment from the
       // WinForms one the tray actually hosts its windows under. That difference is the defect.
       "name": "the settings window under the tray's own pump",
-      "arguments": ["--settings-tray", "--lang", "en"],
+      "arguments": ["--settings-tray", "--observing", "--lang", "en"],
 
       // WW240. What the launch above produces, said so a derived set reads the strings this
       // window is showing rather than the one file the project had to pretend was its only one.

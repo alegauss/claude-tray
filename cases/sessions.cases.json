@@ -20,7 +20,7 @@
   "fixtures": [
     {
       "name": "the main window for the sessions pane",
-      "arguments": ["--main", "--lang", "en"],
+      "arguments": ["--main", "--observing", "--lang", "en"],
 
       // WW240. What the launch above produces, said so a derived set reads the strings this
       // window is showing rather than the one file the project had to pretend was its only one.

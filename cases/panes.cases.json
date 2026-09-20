@@ -16,7 +16,7 @@
       // declares, and the project declares the English file. The window and the expectation resolve
       // the same language or the comparison is between two of them.
       "name": "the main window",
-      "arguments": ["--main", "--lang", "en"],
+      "arguments": ["--main", "--observing", "--lang", "en"],
 
       // WW240. What the launch above produces, said so a derived set reads the strings this
       // window is showing rather than the one file the project had to pretend was its only one.
