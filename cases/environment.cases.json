@@ -60,6 +60,26 @@
       "resident": true,
       "language": "en",
       "shareable": false
+    },
+    {
+      // WW478. The third mode, and the one that draws nothing. `agrees` pins the variable to
+      // whatever profile the icon is already following, so the two cannot disagree — on any desk,
+      // because the mode is defined relative to the icon rather than to a path.
+      //
+      // `unset` is the fourth and is deliberately absent. It samples no variable at all, so the
+      // application resolves `~/.claude`, and whether THAT is a registered profile is a property of
+      // the desk: the guest has none and the submenu draws the outside line, a developer's machine
+      // has one and it draws a mark or nothing. One file, three renderings — the machine-dependence
+      // every other case here is written to avoid.
+      "name": "a tray of this run's own, where the variable names the profile the icon follows",
+      "arguments": ["--second-tray", "--observing", "--lang", "en"],
+
+      "environment": "agrees",
+      "flag": "--sample-env",
+
+      "resident": true,
+      "language": "en",
+      "shareable": false
     }
   ],
 
@@ -157,6 +177,55 @@
           "reads": "enabled",
           "expect": "not enabled",
           "named": "the line is there and reports rather than offers"
+        }
+      ]
+    },
+    {
+      // WW478. The negative control the two above need. Every claim in this file so far is that the
+      // submenu says something when the environment and the icon disagree, and nothing said it
+      // stays quiet when they agree — so a line drawn unconditionally would pass both of them. It
+      // is also the failure with the worse shape: a false alarm about a profile state sends
+      // somebody looking for a misconfiguration that is not there.
+      //
+      // The script never swept this mode. `Invoke-EnvFixtureSweep` walks `other` and `outside`, and
+      // judged the agreeing state on the developer's own environment, where it could only ever be
+      // Info or Unchecked. So this is coverage neither half ever had rather than a migration debt.
+      "name": "the submenu says nothing about the environment when it selects the profile the icon follows",
+      "catches": "the outside line drawn unconditionally, which every claim that the line appears would pass",
+      "filed": "WW478",
+      "tags": ["menu", "tray", "profiles", "environment"],
+      "fixture": "a tray of this run's own, where the variable names the profile the icon follows",
+
+      "steps": [
+        {
+          "tray": "[check]",
+          "act": "open tray menu",
+          "named": "the icon's menu opens"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profiles}\"]",
+          "act": "open submenu",
+          "named": "the profile submenu opens to Right"
+        },
+        {
+          // The silence, and the other direction of the claim the `outside` case makes: the same
+          // line, addressed the same way, asserted not to be drawn. Together the two make the
+          // line's condition falsifiable both ways, which one of them alone cannot.
+          //
+          // `absent` and not `never`. `never` says a string is not showing anywhere in the window
+          // at any moment while the step waits, and for a tray case the window is the desktop — so
+          // it would walk every window on the desk, report the walk truncated, and answer Unchecked
+          // about an absence rather than asserting one. `absent` asks about this locator, and is
+          // refused where the region the last step is looked for under is not there either, so it
+          // cannot pass on a submenu that failed to draw.
+          //
+          // The MARK's absence is not here, and it is not an oversight: the mark is a word at the
+          // end of free text, no locator addresses a suffix, and there is no negation of
+          // `endsWithLabel`. Filed rather than approximated.
+          "locator": "Menu > MenuItem[nameStarts=\"{menu.profileEnvOutside}\"]",
+          "act": "read",
+          "absent": true,
+          "named": "no line reports a variable pointing outside the profiles"
         }
       ]
     }
