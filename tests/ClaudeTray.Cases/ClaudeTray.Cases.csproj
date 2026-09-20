@@ -30,7 +30,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Winwright" Version="0.1.0-alpha.13" />
+    <PackageReference Include="Winwright" Version="0.1.0-alpha.14" />
   </ItemGroup>
 
   <ItemGroup>

@@ -100,10 +100,14 @@
 
     // The `outside` mode is not here, and it is not an oversight. Its line is
     // `menu.profileEnvOutside` — `CLAUDE_CONFIG_DIR points outside these profiles — {0}` — and the
-    // engine refuses a label carrying a placeholder before the run starts, for a reason that is
-    // right about `label` and too wide for this: an exact read of a filled-in tree can never match
-    // a format string, but the front of one is exactly what `beginsWithLabel` is for. Filed against
-    // the engine rather than worked around here, because a case naming the fixed part as text would
+    // half that blocks it has moved. The CLAIM is writable since winwright 0.1.0-alpha.14: WW475
+    // lets a `beginsWithLabel` read the fixed part a trailing placeholder leaves.
+    //
+    // What refuses now is addressing the line at all. `nameStarts="{menu.profileEnvOutside}"` puts
+    // the key in a LOCATOR, and a locator's substitution asks for the whole label — which is the
+    // equality refusal, correctly, since a locator that looked for the literal `{0}` would match
+    // nothing. `nameStarts` is a begins-with like the claim beside it and wants the same fixed part,
+    // and WW475 did not reach it. Filed rather than worked around: naming the fixed text here would
     // be the hardcoded string this whole shape exists to refuse.
   ]
 }
