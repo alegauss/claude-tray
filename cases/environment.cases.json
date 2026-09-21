@@ -183,15 +183,15 @@
     {
       // WW478. The negative control the two above need. Every claim in this file so far is that the
       // submenu says something when the environment and the icon disagree, and nothing said it
-      // stays quiet when they agree — so a line drawn unconditionally would pass both of them. It
-      // is also the failure with the worse shape: a false alarm about a profile state sends
-      // somebody looking for a misconfiguration that is not there.
+      // stays quiet when they agree — so a mark or a line drawn unconditionally would pass both of
+      // them. It is also the failure with the worse shape: a false alarm about a profile state
+      // sends somebody looking for a misconfiguration that is not there.
       //
       // The script never swept this mode. `Invoke-EnvFixtureSweep` walks `other` and `outside`, and
       // judged the agreeing state on the developer's own environment, where it could only ever be
       // Info or Unchecked. So this is coverage neither half ever had rather than a migration debt.
       "name": "the submenu says nothing about the environment when it selects the profile the icon follows",
-      "catches": "the outside line drawn unconditionally, which every claim that the line appears would pass",
+      "catches": "an environment mark or line drawn unconditionally, which every claim that one appears would pass",
       "filed": "WW478",
       "tags": ["menu", "tray", "profiles", "environment"],
       "fixture": "a tray of this run's own, where the variable names the profile the icon follows",
@@ -219,13 +219,31 @@
           // refused where the region the last step is looked for under is not there either, so it
           // cannot pass on a submenu that failed to draw.
           //
-          // The MARK's absence is not here, and it is not an oversight: the mark is a word at the
-          // end of free text, no locator addresses a suffix, and there is no negation of
-          // `endsWithLabel`. Filed rather than approximated.
           "locator": "Menu > MenuItem[nameStarts=\"{menu.profileEnvOutside}\"]",
           "act": "read",
           "absent": true,
           "named": "no line reports a variable pointing outside the profiles"
+        },
+        {
+          // The other half of the silence, and the one this case was filed for. The mark is a word
+          // at the END of free text — `bench-one — 12%  · set in Windows` — so it could be claimed
+          // present and never claimed absent: a mark drawn unconditionally passed every claim in
+          // this file. `notEndsWithLabel` is WW479, and winwright 0.1.0-alpha.16 is what carries it.
+          //
+          // A suffix and never a containment, for the reason `endsWithLabel` is one: what stands
+          // before the mark is an account label and a figure this run cannot predict, and a claim
+          // written as "the name does not hold these words" would call an entry unmarked because of
+          // what it happens to be called.
+          //
+          // The entry is the icon's own, addressed by what the application reports rather than by a
+          // name — this desk's account, which no case may type. In this mode the variable selects
+          // that same profile, which is the whole definition of the mode: if the mark were drawn
+          // here it would be drawn on this entry.
+          "locator": "Menu > MenuItem[nameStarts=\"{report:iconFollows}\"]",
+          "act": "read",
+          "reads": "name",
+          "notEndsWithLabel": "menu.profileEnvSelects",
+          "named": "the entry the icon follows carries no environment mark"
         }
       ]
     }
