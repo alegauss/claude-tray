@@ -5,7 +5,7 @@
     tray menu's entries as they are when the menu actually opens.
 
 .DESCRIPTION
-    Every other verification loop in this repo is a *picture* (`Capture-Window.ps1`, `--capture-settings`,
+    Every other verification loop in this repo is a *picture* (`preview.cmd`, `--capture-settings`,
     `--capture-stats`, the `preview-ui` skill). Pictures prove layout. They cannot prove a key press
     arrives: the WPF windows accepted no keyboard input at all from the day the first one shipped
     (T135) while every screenshot ever taken of them looked perfect, because mouse input travels
@@ -282,8 +282,8 @@ function Head($msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
   So it is asked as a PRECONDITION and answered as `Unchecked`, not as a `Fail`. That is this script's
   own vocabulary for "should have been checked, wasn't" (T193), and it is deliberately not a retry: a
   case that passes on the second attempt cannot tell a busy desktop from a broken build, which is the
-  reading this whole file exists to refuse. The intruder is named the way `Capture-Window.ps1` names the
-  window it copied (T199), because "something else had focus" is not actionable and a title and a pid are.
+  reading this whole file exists to refuse. The intruder is named the way a capture case names the
+  window it drew, because "something else had focus" is not actionable and a title and a pid are.
 
   A hosted runner has no competing foreground, so on CI this either changes nothing or reports a
   condition that was being suffered silently. Which of the two is a reading nobody has taken.

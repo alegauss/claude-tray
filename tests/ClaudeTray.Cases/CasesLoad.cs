@@ -400,6 +400,39 @@ public sealed class CasesLoad
     }
 
     [Fact]
+    public void The_preview_cases_write_pictures_and_each_carries_the_tag_the_loop_asks_for()
+    {
+        // WW480. The preview loop is cases now, and a person looking at a window asks for one of them
+        // by tag: `preview.cmd panels`. So each has a tag of its own beside `preview`, and a picture's
+        // name is written here rather than a path — where the pictures go is the project's business.
+        var loaded = ScenarioFile.Across(ScenarioFile.LoadAll(Path.Combine(Repository(), "cases")));
+        var previews = loaded.Where(one => one.Tags.Contains("preview")).ToList();
+
+        Assert.Equal(4, previews.Count);
+        Assert.All(previews, one => Assert.True(one.Justified, "a case that says nothing about why it exists says nothing about deleting it"));
+
+        Assert.Equal(
+            ["context", "note", "panels", "shell"],
+            previews.SelectMany(one => one.Tags).Where(one => one != "preview").Order(StringComparer.Ordinal));
+
+        // Every one of them draws something, and no two pictures in a case share a name — they land
+        // in one folder, so a repeated name is a file that overwrites the picture before it.
+        foreach (var one in previews)
+        {
+            var drawn = one.Steps.Where(step => step.Verb.Name == "capture").Select(step => step.Argument).ToList();
+
+            Assert.NotEmpty(drawn);
+            Assert.Equal(drawn.Count, drawn.Distinct(StringComparer.Ordinal).Count());
+            Assert.All(drawn, name => Assert.DoesNotContain('\\', name!));
+        }
+
+        // The popup is the one picture no copy of a screen could take, and the only step that names a
+        // surface inside the window.
+        var note = Assert.Single(previews, one => one.Tags.Contains("note"));
+        Assert.Equal("MethodPopup", Assert.Single(note.Steps).Popup);
+    }
+
+    [Fact]
     public void The_switch_cases_put_each_position_in_the_fixture_and_read_none_off_the_machine()
     {
         // WW86. The script read the two switches' positions off `--profiles`, so it checked whatever

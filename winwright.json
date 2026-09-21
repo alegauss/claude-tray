@@ -9,6 +9,12 @@
 
   "sourceRoot": "src",
 
+  // WW480. Where a `capture` step's picture goes, so no case carries a path. The same git-ignored
+  // folder the preview flags default to, because it is the folder a person already looks in — and
+  // the run sets WINWRIGHT_RENDERS to it when it launches this application, which is the whole of
+  // what arms the in-app half. A capture's folder under it is the case's own name.
+  "captures": "docs/_preview",
+
   // WW79. What a case derives an expected set from. The panes case asserts every tab header is in
   // the accessibility tree, and the set it compares against is read out of these rather than listed
   // in the case: the tree is what is being asserted, so an expected set read out of the tree could

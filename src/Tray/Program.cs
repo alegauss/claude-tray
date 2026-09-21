@@ -111,10 +111,29 @@ internal static class Program
         try { Console.OutputEncoding = System.Text.Encoding.UTF8; } catch { /* no console, or redirected */ }
     }
 
+    /// <summary>
+    /// What this process answers renders with, held for its whole life (WW480).
+    /// <para>
+    /// Disposing it is how an application stops answering, so a field and not a local: the answer is
+    /// meant to stand as long as there are windows to be asked about.
+    /// </para>
+    /// </summary>
+    private static Winwright.InApp.RendersAnswered? _renders;
+
     [STAThread]
     private static void Main(string[] args)
     {
         Utf8Console();
+
+        // WW480. The one line the in-app half needs, and it is armed by the environment rather than
+        // by this call: with no WINWRIGHT_RENDERS naming a directory, it hooks the windows and
+        // answers nothing, which is what makes it safe to ship. `Everywhere` rather than one window,
+        // because every surface this application previews is a different window and the one nobody
+        // remembers to hook is the one somebody wanted a picture of.
+        //
+        // Before anything is dispatched, so a window shown by any flag below is covered — including
+        // the ones this process has not shown yet.
+        _renders = Winwright.InApp.Renders.Everywhere();
 
         // WW83. A process a check launched is a check driving the build, which is exactly what
         // `--second-tray` says about a tray standing beside the resident one — and T239's rule is

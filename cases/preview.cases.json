@@ -1,0 +1,234 @@
+{
+  // WW480. The preview loop, which used to be scripts\Capture-Window.ps1 and 451 lines of it.
+  //
+  // What that script did was copy the pixels on screen inside a window's rectangle, and almost all of
+  // it was the guards that copy needs: whose window this is, whether a second instance is showing one,
+  // whether anything is standing over the rectangle, whether the page is still saying it is computing.
+  // Every one of those is a reading this engine takes, and the capture receipt refuses without them.
+  //
+  // The route here is a render and not a copy. claude-tray carries `Winwright.InApp` since WW480, so a
+  // case asks the application to draw its own visual tree — there is no screen in it to get wrong, no
+  // foreground to lose, and no other window that can be in the picture. The popup below is the case
+  // that could not be written any other way: an open popup is its own layered window whose soft edge
+  // is whatever it stands in front of, and a closed one has no window at all, while to this
+  // application it is an element in a tree it owns either way.
+  //
+  // These are cases and not a command, so they run in the suite like everything else: a preview loop
+  // nothing runs is a loop that has rotted by the time somebody needs it. The person looking at a
+  // window runs one of them by name with `preview.cmd` and reads the PNG under docs\_preview.
+  //
+  // One launch draws several surfaces on purpose. A case per picture is a launch per picture, and the
+  // whole reason to look is that looking should be cheap.
+  "fixtures": [
+    {
+      // The shell the tray opens, under the WinForms pump the tray uses — which is the host UI
+      // convention 7 is about. `--observing` because a run writes nothing to this machine's files.
+      "name": "the shell",
+      "arguments": ["--main", "--observing", "--lang", "en"],
+      "language": "en",
+      "shareable": false
+    },
+    {
+      // The Settings window standalone, opened on the panel it opens on. The walk below reaches the
+      // other five by their own sidebar items.
+      "name": "the settings window",
+      "arguments": ["--settings", "--observing", "--lang", "en"],
+      "language": "en",
+      "shareable": false
+    },
+    {
+      // The Context Load page over the bundled fixture, which is what a published shot of it uses:
+      // this machine's own projects are somebody's directory names.
+      "name": "the context window",
+      "arguments": ["--context", "--window", "--sample", "--observing", "--lang", "en"],
+      "language": "en",
+      "shareable": false
+    }
+  ],
+
+  "cases": [
+    {
+      "name": "the shell, on each of its three destinations",
+      "catches": "a layout nobody looked at, and a nav destination that draws nothing while the strip still offers it",
+      "filed": "WW480",
+
+      // Two tags, and the second is how the loop asks for this one: `preview.cmd shell`. A word that
+      // names no tag is refused with the list of the ones there are, which is what makes a typo cost
+      // a corrected word rather than a run of no cases reading as a pass.
+      "tags": ["preview", "shell"],
+      "fixture": "the shell",
+
+      // The Statistics page is Collapsed until a report renders, and the report renders from this
+      // machine's transcripts. A machine with none photographs a status line, which is a picture of
+      // the wrong thing rather than of the page this case is named for.
+      "needs": ["a transcript to report on"],
+
+      "steps": [
+        {
+          // The window opens on Statistics, so the first picture needs no act. The capture's argument
+          // is what to CALL the picture and never where to put it: the project says where, and the
+          // case's own name is the folder.
+          "locator": "#NavStatistics",
+          "act": "capture",
+          "with": "statistics",
+          "named": "the report as the tray opens it"
+        },
+        {
+          "locator": "#NavContext",
+          "act": "select",
+          "expect": "selected",
+          "reads": "selected",
+          "named": "the nav strip moves to the Context Load page"
+        },
+        {
+          "locator": "#NavContext",
+          "act": "capture",
+          "with": "context",
+          "named": "the context page as the shell hosts it"
+        },
+        {
+          "locator": "#NavSettings",
+          "act": "select",
+          "expect": "selected",
+          "reads": "selected",
+          "named": "the nav strip moves to Settings"
+        },
+        {
+          "locator": "#NavSettings",
+          "act": "capture",
+          "with": "settings",
+          "named": "the settings page as the shell hosts it"
+        }
+      ]
+    },
+
+    {
+      "name": "every settings panel the sidebar declares",
+      "catches": "a panel whose layout nobody looked at, which is every panel but the one the page opens on",
+      "filed": "WW480",
+      "tags": ["preview", "panels"],
+      "fixture": "the settings window",
+
+      "steps": [
+        {
+          "locator": "Text[name=\"{settings.nav.general}\"][order=left]",
+          "act": "click",
+          "with": "PointerIsTheAct",
+          "named": "open the General panel"
+        },
+        {
+          "locator": "Text[name=\"{settings.nav.general}\"][order=left]",
+          "act": "capture",
+          "with": "general",
+          "named": "the General panel"
+        },
+        {
+          "locator": "Text[name=\"{settings.nav.display}\"][order=left]",
+          "act": "click",
+          "with": "PointerIsTheAct",
+          "named": "open the Display panel"
+        },
+        {
+          "locator": "Text[name=\"{settings.nav.display}\"][order=left]",
+          "act": "capture",
+          "with": "display",
+          "named": "the Display panel"
+        },
+        {
+          "locator": "Text[name=\"{settings.nav.claudeCode}\"][order=left]",
+          "act": "click",
+          "with": "PointerIsTheAct",
+          "named": "open the Claude Code panel"
+        },
+        {
+          "locator": "Text[name=\"{settings.nav.claudeCode}\"][order=left]",
+          "act": "capture",
+          "with": "claude-code",
+          "named": "the Claude Code panel"
+        },
+        {
+          "locator": "Text[name=\"{settings.nav.notifications}\"][order=left]",
+          "act": "click",
+          "with": "PointerIsTheAct",
+          "named": "open the Notifications panel"
+        },
+        {
+          "locator": "Text[name=\"{settings.nav.notifications}\"][order=left]",
+          "act": "capture",
+          "with": "notifications",
+          "named": "the Notifications panel"
+        },
+        {
+          // System information draws this machine's own login, which is why a published shot of it
+          // uses the account fixture. A preview is read and not published, and the picture lands in a
+          // git-ignored folder — the rule about publishing is in the dev-flags catalogue, where the
+          // flag that writes a tracked file is.
+          "locator": "Text[name=\"{settings.nav.system}\"][order=left]",
+          "act": "click",
+          "with": "PointerIsTheAct",
+          "named": "open the System information panel"
+        },
+        {
+          "locator": "Text[name=\"{settings.nav.system}\"][order=left]",
+          "act": "capture",
+          "with": "system",
+          "named": "the System information panel"
+        },
+        {
+          "locator": "Text[name=\"{settings.nav.about}\"][order=left]",
+          "act": "click",
+          "with": "PointerIsTheAct",
+          "named": "open the About panel"
+        },
+        {
+          "locator": "Text[name=\"{settings.nav.about}\"][order=left]",
+          "act": "capture",
+          "with": "about",
+          "named": "the About panel"
+        }
+      ]
+    },
+
+    {
+      "name": "the context load page over its own fixture",
+      "catches": "a page whose layout nobody looked at, on the one window this application draws from a bundled fixture",
+      "filed": "WW480",
+      "tags": ["preview", "context"],
+      "fixture": "the context window",
+
+      "steps": [
+        {
+          // A control on the page rather than the window itself: a capture photographs the window its
+          // locator resolves inside, and a case resolves against that window's own root — so a locator
+          // naming the window would be looking for it among its own descendants.
+          "locator": "#ProjectList",
+          "act": "capture",
+          "with": "context-window",
+          "named": "the context load page"
+        }
+      ]
+    },
+
+    {
+      "name": "the method note behind the info dot",
+      "catches": "a popup nobody can photograph: a copy of the screen carries its soft edge, and a closed one has no window at all",
+      "filed": "WW480",
+      "tags": ["preview", "note"],
+      "fixture": "the shell",
+      "needs": ["a transcript to report on"],
+
+      "steps": [
+        {
+          // `popup` names the surface inside the window whose tree the picture is of, by the name the
+          // XAML gives it. Whether it is open does not come into it: the tree is there either way,
+          // which is what makes this the one picture no copy of the screen could take.
+          "locator": "#NavStatistics",
+          "act": "capture",
+          "with": "method-note",
+          "popup": "MethodPopup",
+          "named": "the note that explains every number in the window"
+        }
+      ]
+    }
+  ]
+}

@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 
 // Both UI stacks are referenced (AGENTS.md), so these bare names are ambiguous with their WinForms and
-// System.Drawing twins. This file is about WPF layout, like PreviewSurface next door.
+// System.Drawing twins. This file is about WPF layout.
 using Point = System.Windows.Point;
 using Brush = System.Windows.Media.Brush;
 using Panel = System.Windows.Controls.Panel;
@@ -37,8 +37,8 @@ internal partial class SettingsPage
         /// off the layout pass as 712.0000001 often enough to matter.</summary>
         public bool Fits => Height <= Viewport + 0.5;
 
-        /// <summary>The line a caller reads. Dull and machine-first, on
-        /// <see cref="PreviewSurface"/>'s rule: the app states what it did, the script or the person
+        /// <summary>The line a caller reads. Dull and machine-first, on the rule the deleted
+        /// <c>PreviewSurface</c> stated (WW480): the app says what it did, and the person or the case
         /// decides what to do about it.</summary>
         public string Line =>
             $"capture-frame: {Card} scroll={Offset:0} element={Height:0}dip viewport={Viewport:0}dip "
@@ -104,7 +104,7 @@ internal partial class SettingsPage
     /// <c>PART_ScrollContentPresenter</c>, <c>ContentBorder</c>, <c>Desc</c> and <c>LayoutGrid</c> —
     /// framework template parts, named by a <c>ControlTemplate</c> and not by anything in this
     /// repository, four of them repeated. <c>TemplatedParent</c> is what separates them, which is the
-    /// same rule <see cref="PreviewSurface"/>'s neighbour states for the row sweep: exclude them by
+    /// same rule the row sweep states: exclude them by
     /// <em>what they are</em> rather than by a list of ids that the next control's template defeats.</para>
     /// </summary>
     private static List<FrameworkElement> FrameTargets(ScrollViewer sv, double floor)

@@ -38,6 +38,24 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);tests\**</DefaultItemExcludes>
   </PropertyGroup>
 
+  <!-- WW480, and the one exception to "no bundled third-party dependencies" in STRATEGY.md, decided
+       rather than drifted into. It is the in-app half of the harness this repository's cases already
+       run: one line in Main answers a render a case asks for, over the message loop the application
+       already has. No thread, no watched directory, and nothing at all unless the process was
+       started with WINWRIGHT_RENDERS naming a directory it may write into — so a shipped release
+       carries the code and does nothing with it.
+
+       What it buys is the preview loop. `scripts\Capture-Window.ps1` copied pixels off the screen,
+       which is why it needed 451 lines of guards about which window it had copied; a render draws
+       this application's own visual tree, and there is no screen in it to get wrong. It also
+       replaces `PreviewSurface`, whose two halves were holding popups open and telling the script
+       what had been drawn.
+
+       It is compiled in like any other assembly, so the single self-contained .exe is unaffected. -->
+  <ItemGroup>
+    <PackageReference Include="Winwright.InApp" Version="0.1.0-alpha.16" />
+  </ItemGroup>
+
   <!-- Single self-contained .exe when published (see README) — Release only, and that is the point (T341).
        These four used to sit in the PropertyGroup above, so they applied to `dotnet build` too: a Debug
        build laid the whole runtime down in bin\Debug\net10.0-windows\win-x64 — 252 files, 247 of them

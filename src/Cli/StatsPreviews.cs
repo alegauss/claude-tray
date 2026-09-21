@@ -196,8 +196,8 @@ internal static class StatsPreviews
         {
             Console.WriteLine($"--capture-stats cannot show '{v.Name}': the method note is its own " +
                               "top-level window and this capture is a RenderTargetBitmap over the page's " +
-                              $"content, so the PNG would not contain it. Use --stats {v.Name} with " +
-                              @"scripts\Capture-Window.ps1.");
+                              $"content, so the PNG would not contain it. The preview case for the note " +
+                              "draws the popup's own tree instead (WW480): preview.cmd method-note.");
             return null;
         }
 

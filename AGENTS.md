@@ -114,10 +114,12 @@ and adding one would tie a window to its folder.
 
 ## Visual verification workflow (the predictability loop)
 
-Use the **`preview-ui`** skill, which carries the commands: `dotnet build -c Debug`, then
-`scripts\Capture-Window.ps1` (→ git-ignored `docs\_preview\settings.png`), then **Read that PNG and judge
-it**. The script is per-monitor-DPI-aware (required at 150–200%) and, being a screen copy, it **names whose
-window it copied and writes nothing when that window is not ours** (T199).
+Use the **`preview-ui`** skill, which carries the commands: `preview.cmd [shell|panels|context|note]`,
+then **Read the PNG under git-ignored `docs\_preview\` and judge it**. It is a case (WW480), so the
+window is **drawn by the application itself** rather than copied off the screen: nothing that steals the
+foreground or sits on top can be in the file, and a picture the engine cannot vouch for is refused
+instead of written. That is also what lets the method note be photographed at all — a popup is its own
+layered window, and only the application has its tree.
 
 ## Interaction verification (the loop a capture cannot close)
 
@@ -232,10 +234,10 @@ dotnet run -- --main [dest]           # the WHOLE window as the tray opens it (n
                                       #   see a keyboard bug — UI convention 7.
 dotnet run -- --capture-settings <out.png> [page] [card=<x:Name>]   # card= frames that element and reports
 dotnet run -- --capture-stats [outBase] [variant] [--sample]        #   whether the viewport held it (T375)
-                                      # Both OFF-SCREEN to PNG. Prefer them over scripts\Capture-Window.ps1,
-                                      #   which copies pixels ON SCREEN in the window rect — anything stealing
-                                      #   focus or sitting on top lands in the file. A popup is the exception:
-                                      #   its own window, which an off-screen capture cannot see.
+                                      # Both OFF-SCREEN to PNG, and both write a file somebody publishes.
+                                      #   To LOOK at a window, `preview.cmd` draws it as a case does (WW480),
+                                      #   including the method note's popup, which a RenderTargetBitmap over
+                                      #   the page's content cannot see.
 dotnet run -- --lang fr --settings    # any command in another language. Published shots are English; use
                                       #   this to check a layout in the longest translation.
 ```

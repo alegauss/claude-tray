@@ -113,7 +113,7 @@ public sealed class CasesRun(TheMachine machine)
         SuiteVerdict verdict = null!;
         var store = Untouched.Around(
             [project.FingerprintStore],
-            () => verdict = Suite.Launch(declared, Selection.All, register, project, measured: Measured(bench)));
+            () => verdict = Suite.Launch(declared, Asked(), register, project, measured: Measured(bench)));
 
         // The whole reading, not just the outcome: a filtered run qualifies its pass before it states
         // it, and what the run did not do is part of what it concluded.
@@ -149,6 +149,35 @@ public sealed class CasesRun(TheMachine machine)
         {
             Assert.True(store.Untouched, store.Sentence());
         }
+    }
+
+    /// <summary>
+    /// WW480. Which cases this run was asked for: everything, or the one thing an environment
+    /// variable named.
+    /// <para>
+    /// The engine's own criterion is that a single case runs alone in seconds, and until now nothing
+    /// here could ask for one: a person who had changed a window and wanted to look at it paid for
+    /// every case in the repository. <c>preview.cmd</c> is what sets this, and the variable is read
+    /// here rather than passed as an argument because xUnit hands a test none.
+    /// </para>
+    /// <para>
+    /// A word is a tag and <c>case:</c> spells a name, which is the way round the loop wants: the tags
+    /// are short and a case's name is a sentence. Either that selects nothing is refused by the engine,
+    /// naming what there is — a misspelling that quietly selected no case would be a run with no
+    /// failure and no hole in it, which reads as a pass about nothing.
+    /// </para>
+    /// </summary>
+    private static Selection Asked()
+    {
+        var asked = Environment.GetEnvironmentVariable("CLAUDETRAY_CASES")?.Trim();
+        if (string.IsNullOrEmpty(asked))
+            return Selection.All;
+
+        Console.WriteLine($"this run was asked for '{asked}' rather than for every case.");
+
+        return asked.StartsWith("case:", StringComparison.OrdinalIgnoreCase)
+            ? Selection.Case(asked["case:".Length..].Trim())
+            : Selection.Tag(asked);
     }
 
     /// <summary>

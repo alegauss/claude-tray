@@ -579,16 +579,12 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
             {
                 // Holding it open is `PageWindow`'s job now, for every popup rather than this one (T217).
+                //
+                // WW480 took the other half away. The window used to print where the note had landed, so
+                // a script copying pixels could assert the note was inside them — three captures came back
+                // correct, green and empty before it did. A case asks this application to draw the popup's
+                // own tree instead, by the name in the XAML, so there is no rectangle to agree about.
                 MethodInfo.IsChecked = true;
-
-                // ...and once it is open and measured, say where it landed, so the capture script can
-                // assert the note is inside the pixels it copies instead of reporting a correct copy of a
-                // window with no note in it (T217). Render priority: the popup places itself on open.
-                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Render, () =>
-                {
-                    if (MethodPopup.Child is FrameworkElement note)
-                        PreviewSurface.Report("method-note", note);
-                });
             });
 
         // The idle bands are the *chart's* legend rather than the note's, but they turn on the same

@@ -69,5 +69,12 @@ es) is part of the same reach decision, not a nice-to-have.
   Claude Code's configuration (see [ROADMAP.md](ROADMAP.md) → Non-goals).
 - **No cross-platform port.** The premise is a *native Windows tray* icon drawn with GDI+ at the
   real tray size; a Mac/Linux port would be a different product, not a build target.
-- **No bundled third-party dependencies.** The single-exe install story is a distribution decision
-  as much as an engineering one.
+- **No bundled third-party dependencies, with one named exception.** The single-exe install story
+  is a distribution decision as much as an engineering one, and the exception does not touch it:
+  `Winwright.InApp` is compiled in like any other assembly. It is the in-app half of the harness this
+  repository's own cases already run, taken on 2026-09-21 (WW480) so that a case can ask this
+  application to draw its own window — which is what replaced a 451-line screen-copy script, and the
+  only way the method note's popup can be photographed at all. It is one line in `Main`, it answers
+  nothing unless the process was started with `WINWRIGHT_RENDERS` naming a directory it may write
+  into, so a shipped release carries the code and does nothing with it. A second dependency is a
+  second decision, and this rule is what it has to be argued past.

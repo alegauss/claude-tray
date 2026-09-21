@@ -97,16 +97,17 @@ Three different hosts, and the difference matters — see UI convention 7 in AGE
 
 ## The captures (off-screen, deterministic)
 
-Prefer these over `scripts\Capture-Window.ps1`: that one copies the pixels **on screen** inside the
-window's rectangle, so any app that steals focus or sits on top lands in the file. The exception is a
-popup — its own top-level window, which `RenderTargetBitmap` over a page's content cannot see.
+These write the files this project **publishes** — the README's and the site's shots, the icon sheets,
+the tooltip card. To **look** at a window while working on it, use `preview.cmd` instead (WW480): it
+draws the window as a case does, into git-ignored `docs\_preview\`, and refuses a picture it cannot
+vouch for rather than writing one.
 
-**Capturing a popup: pass `-Expect <surface>`** (T217). A popup is its own top-level window, so copying
-the right window proves nothing about the popup being in it — three captures of the method note came
-back green, named the right window, and showed no note. The preview prints a `preview-surface:` line
-saying what it drew and where; `-Expect` makes the script demand that line and prove the rectangle is
-inside the copy, writing nothing if either fails. The surface for `--stats method` is `method-note`.
-Preview popups are held open by `PageWindow` for every popup, not per call site.
+**A popup is the one surface neither of these reaches.** It is its own top-level window, so a
+`RenderTargetBitmap` over a page's content cannot see it — three captures of the method note came back
+green, named the right window and showed no note (T217) — and a copy of the screen carries the soft
+edge of whatever it stands in front of. `preview.cmd note` asks the application for the popup's own
+tree, by the name the XAML gives it, which is a picture only the application can take. Preview popups
+are held open by `PageWindow` for every popup, not per call site.
 
 ```
 --capture-settings <out.png> [page] [card=<x:Name> | scroll=<dip>] [profile=<n>] [--sample] [--reveal]

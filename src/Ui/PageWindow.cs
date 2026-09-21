@@ -41,6 +41,14 @@ internal sealed class PageWindow : Window
         // the preview flags share, and a rule kept at one page's call site is a rule the next popup
         // preview gets to rediscover — which is how three captures of the method note came back correct,
         // green, and empty. Re-run on Loaded too: a page builds its popups as it is laid out.
-        Loaded += (_, _) => PreviewSurface.HoldPopupsOpen(this);
+        //
+        // WW480: the walk is the harness's rather than this repository's now. It is the same logical-tree
+        // walk for the same reason — a closed popup's child is in no visual tree, and closed is the state
+        // one has to be reached in — and the held answer is kept so the popups stay open for the window's
+        // life rather than until a garbage collection.
+        Loaded += (_, _) => _popups ??= Winwright.InApp.Popups.Hold(this);
     }
+
+    /// <summary>What is holding this window's popups open, for as long as the window is up (WW480).</summary>
+    private Winwright.InApp.PopupsHeld? _popups;
 }

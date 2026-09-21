@@ -25,7 +25,7 @@
 
     It does NOT offer to stop the process, deliberately. The tray is the user's own running
     application; a build script that kills applications is worse than one that asks. Same shape as
-    the refusals elsewhere here - Capture-Window names the window it copied (T199), --capture-settings
+    the refusals elsewhere here - a capture case names the window it drew (WW480), --capture-settings
     names the page it will not write (T205) - a refusal is only actionable if it says what is in the way.
 
 .PARAMETER PublishDir

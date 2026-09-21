@@ -17,51 +17,47 @@ window and capturing a PNG you can read back.
 
 ## How it works
 
-The app exposes a deterministic preview entry point so the window can be shown **without** clicking
-through the tray menu:
+The pictures are **cases** (`cases\preview.cases.json`), run by the harness this repository's other
+cases use. What draws them is the application itself: it carries `Winwright.InApp` (WW480), so a case
+asks it to render its own visual tree. There is no screen in that, which is what the 451-line screen-copy
+script it replaced spent most of its lines guarding against — whose window this is, what is standing over
+it, whether a second instance is showing one. Those are readings the engine takes, and a picture it
+cannot vouch for is refused rather than written.
+
+One command, and the argument picks a surface:
 
 ```
-ClaudeTray.exe --main [dest]   # the whole window as the tray opens it (nav strip + destination:
-                               # Statistics | Context | Settings) — use this for the shell itself
-ClaudeTray.exe --settings      # just the Settings page, without the shell's nav strip
+preview.cmd            every preview case
+preview.cmd shell      the shell on each of its three destinations (statistics, context, settings)
+preview.cmd panels     every settings panel the sidebar declares (general … about)
+preview.cmd context    the context load page over its own fixture
+preview.cmd note       the method note, whose popup no copy of a screen can photograph
 ```
 
-`scripts\Capture-Window.ps1` launches that, waits for the first paint, makes itself
-per-monitor-DPI-aware (critical on 150–200% displays or the capture is offset/scaled), copies the
-window's rectangle to a PNG, and kills the process.
-
-It is a **screen copy**, so it verifies what it captured before writing anything (T199) — it had
-returned another instance's window and reported success. The success line names the window title and
-pid: **read it**, and if it names a window you did not ask for, the PNG is not evidence. A failure
-means nothing was written, so fix the cause rather than re-reading a stale PNG. Two failures to expect:
-another ClaudeTray **window** is open (close it, or pass `-IgnoreOtherInstances`), or something stayed
-on top of the window for 4s (usually a dialog — dismiss it and re-run).
+A word that names no tag is refused with the list there is, so a typo costs a corrected word rather
+than a run of no cases that reads as a pass.
 
 ## Steps
 
-1. **Build** (Debug is fine and fast):
+1. **Draw it** (builds Debug first):
 
    ```
-   dotnet build -c Debug
+   preview.cmd panels
    ```
 
-2. **Capture** (default output is `docs\_preview\settings.png`, which is git-ignored):
+2. **Look** at the PNGs with the Read tool. They land under git-ignored `docs\_preview\<case name>\`,
+   one per surface — `general.png`, `display.png`, `claude-code.png` and so on — and the command prints
+   the folder. Judge the layout: alignment, spacing, overlap, theme (light/dark follows the Windows
+   setting), accent colour (follows the Windows accent), and that every control rendered.
 
-   ```
-   powershell -ExecutionPolicy Bypass -File scripts\Capture-Window.ps1
-   ```
+3. **Iterate**: edit the XAML, re-run, re-read — until it is right. Only then report done.
 
-   To preview a different window/args or output path:
+**A red is not a picture.** The case fails rather than writing something misleading: a page still saying
+it is computing, a window the application would not draw, a tree that laid out to nothing. Read the
+failure and fix the cause instead of re-reading a stale PNG.
 
-   ```
-   powershell -ExecutionPolicy Bypass -File scripts\Capture-Window.ps1 -AppArgs "--settings" -Out "docs\_preview\foo.png"
-   ```
-
-3. **Look** at the PNG with the Read tool (`docs\_preview\settings.png`) and judge the layout:
-   alignment, spacing, overlap, theme (light/dark follows the Windows setting), accent color
-   (follows the Windows accent), and that every control rendered.
-
-4. **Iterate**: edit the XAML, rebuild, recapture, re-read — until it's right. Only then report done.
+To see a window by hand rather than in a file, the preview flags are still there — `dotnet run --
+--main`, `--settings`, `--settings-tray ClaudeCode` — and the `dev-flags` skill is their catalogue.
 
 ## A published shot of System information must use the fixture
 
@@ -105,8 +101,9 @@ dotnet run -- --settings-tray ClaudeCode     # the window hosted the way the tra
 
 ## Notes
 
-- The screenshot copies from the screen, so keep the window unobscured during capture; the script
-  brings it to the foreground, but a modal/topmost overlay could still cover it.
+- The picture is a **render** and not a copy of the screen (WW480), so nothing has to be kept
+  unobscured and the window need not hold the foreground. What is in the file is what this
+  application drew.
 - To preview light vs dark, toggle the Windows app theme; `ThemeMode="System"` makes the window
   follow it. There is no in-app theme switch.
 - The tray icon itself is GDI+, not WPF — preview those with `dotnet run -- --render <dir>` instead
