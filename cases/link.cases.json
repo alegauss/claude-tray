@@ -1,0 +1,166 @@
+{
+  // WW86. Invoke-LinkCase, migrated out of scripts/Check-Interaction.ps1 — the one case function in
+  // that file that had no case at all.
+  //
+  // T370 puts two profiles behind one `projects` tree by writing a link script. A capture proves the
+  // plan's rows render; what it cannot prove is the only thing the two side pickers are FOR, which is
+  // that the plan is recomputed from whichever pair is selected. Both combos start seeded, so a page
+  // that ignored them entirely would produce a correct-looking screenshot and a plan that never
+  // moved — the same shape as T164's report following the wrong profile, on a surface whose output is
+  // a script that moves somebody's transcripts.
+  //
+  // Two properties, and the second is the safety one. The plan MOVES when the sides are swapped: the
+  // primary is the side that keeps its files, so swapping changes which entries are the absent ones.
+  // And one profile on BOTH sides is refused — the caption says so and the button goes disabled,
+  // because the alternative is a script that links a directory to itself.
+  //
+  // Nothing here presses Write. The button is read and never invoked: this case is about what the
+  // page computes, and the one act it offers writes a script against somebody's real transcripts.
+  "fixtures": [
+    {
+      // Opened on the panel rather than navigated to it, the way the names case opens its own: the
+      // sidebar click is a step that can fail for reasons this case is not about, and the
+      // application takes the destination as a launch argument.
+      //
+      // `--settings` and not `--settings-tray`. The keyboard case needs the tray's WinForms pump
+      // because its whole subject is synthesised input; every act here goes through a pattern, and
+      // what this case is about is what the page COMPUTES.
+      "name": "the settings window for the linking plan",
+      "arguments": ["--settings", "ClaudeCode", "--observing", "--lang", "en"],
+      "language": "en",
+
+      // Not shared, on the profiles case's rule: this one moves both pickers and leaves them on the
+      // refusal, so a case lent this window afterwards would read a page this one put somewhere.
+      "shareable": false
+    }
+  ],
+
+  "cases": [
+    {
+      "name": "the linking plan is computed from the two side pickers, and one profile twice is refused",
+      "catches": "a page that seeds both pickers and ignores them, so the plan never moves while every screenshot of it looks correct — on the surface whose output is a script that moves transcripts",
+      "filed": "WW86",
+      "tags": ["settings", "profiles", "link"],
+      "fixture": "the settings window for the linking plan",
+
+      // The card is Collapsed below two profiles, so on a one-profile machine there is nothing to
+      // drive. A precondition and never a weaker claim, which is T161's rule and what the script
+      // already did with its own `Unchecked`.
+      "needs": ["a second profile"],
+
+      "steps": [
+        {
+          // The card is on the panel. Read through the caption rather than by counting four controls
+          // into the tree: a caption that says something is the card having computed a plan, and the
+          // three steps below address the other controls by id anyway.
+          //
+          // `answers` and never a value — what it says names this desk's accounts.
+          "locator": "Text#LinkPlanCaption",
+          "act": "read",
+          "reads": "name",
+          "answers": true,
+          "named": "the plan caption before the swap"
+        },
+        {
+          // The rows rendered, and each one announces something. This is where the safety claim
+          // becomes readable to a screen reader rather than only to somebody looking at grey text —
+          // a plan that draws its entries as blanks passes a picture and fails here.
+          "locator": "#LinkPlanList > Text",
+          "act": "read",
+          "eachSpoken": true,
+          "named": "every row in the plan announces a name"
+        },
+        {
+          // The entry a reader most needs to find: the credentials file is listed and left alone.
+          // Named as text because it IS a filename — the same bytes in every language this app
+          // ships, which is the one kind of string a locator may carry. The script compared against
+          // the same literal.
+          //
+          // The claim reads what the locator did not choose, so the step is not passing on its own
+          // selection.
+          "locator": "#LinkPlanList > Text[name=\".credentials.json\"]",
+          "act": "read",
+          "reads": "enabled",
+          "expect": "enabled",
+          "named": "the credentials file is named in the plan"
+        },
+        {
+          "locator": "ComboBox#LinkPrimaryCombo",
+          "act": "read",
+          "reads": "picked",
+          "answers": true,
+          "named": "the side that keeps its files, before the swap"
+        },
+        {
+          // Taken while the pair is valid and the plan has entries, because it is the precondition
+          // for the last step: a button that was ALREADY disabled would make its going disabled
+          // prove nothing, which is the hole the script guarded with an `Unchecked`.
+          "locator": "Button#LinkWriteButton",
+          "act": "read",
+          "reads": "enabled",
+          "expect": "enabled",
+          "named": "the Write button is offered while the pair is valid"
+        },
+        {
+          // Index 1 outright rather than a label: which profiles these are is this desk's business.
+          // `unlike` is what says the picker actually moved — if it had not, the caption comparison
+          // below would be one arrangement against itself and would pass for the wrong reason.
+          "locator": "ComboBox#LinkPrimaryCombo",
+          "act": "pick at",
+          "with": "1",
+          "reads": "picked",
+          "unlike": "the side that keeps its files, before the swap",
+          "named": "the side that keeps its files moves to the other profile"
+        },
+        {
+          "locator": "ComboBox#LinkSecondaryCombo",
+          "act": "pick at",
+          "with": "0",
+          "reads": "picked",
+          "answers": true,
+          "named": "the side that gives up its files takes the first profile"
+        },
+        {
+          // The claim the two pickers exist for. Swapping which side keeps its files changes which
+          // entries are the absent ones, so the caption is a different sentence — and a page that
+          // ignored the pickers would read back the one it opened with.
+          "locator": "Text#LinkPlanCaption",
+          "act": "read",
+          "reads": "name",
+          "unlike": "the plan caption before the swap",
+          "named": "the plan follows the pickers"
+        },
+        {
+          // Both sides on one profile. `sameAs` the reading the primary answered after it moved,
+          // which is how this says "the same profile" without naming one.
+          "locator": "ComboBox#LinkSecondaryCombo",
+          "act": "pick at",
+          "with": "1",
+          "reads": "picked",
+          "sameAs": "the side that keeps its files moves to the other profile",
+          "named": "both sides come to rest on one profile"
+        },
+        {
+          // The refusal is shown where the plan is, rather than in a dialog or nowhere. A declared
+          // string and never the words: `settings.cc.linkSame` reads differently in each of the
+          // four languages this app ships.
+          "locator": "Text#LinkPlanCaption",
+          "act": "read",
+          "reads": "name",
+          "label": "settings.cc.linkSame",
+          "named": "the plan says why it will not link a profile to itself"
+        },
+        {
+          // And the button goes with it. A Write left enabled here composes a script that links a
+          // directory to itself, which is the one arrangement ProfileLink refuses outright — so this
+          // is the assertion the whole case exists for.
+          "locator": "Button#LinkWriteButton",
+          "act": "read",
+          "reads": "enabled",
+          "expect": "not enabled",
+          "named": "the Write button is withdrawn"
+        }
+      ]
+    }
+  ]
+}
