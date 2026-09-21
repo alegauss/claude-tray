@@ -216,6 +216,16 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   claims to own the variable and what it restores to (T173) —
                                       #   that claim against a differing registry is a write that was
                                       #   accepted and never landed.
+--profile-names                       # the label of every profile discovery finds, ONE PER LINE and nothing
+                                      #   else (WW291). The set a case derives the Profile submenu's
+                                      #   entries from: --profiles is a report for a person, and a set
+                                      #   read out of its prose goes stale the day a line is reworded.
+--menu-state <what>                   # one fact the Profile submenu renders, as one line (WW294):
+                                      #   icon-follows | the profile the icon follows
+                                      #   env-selects  | the profile CLAUDE_CONFIG_DIR selects
+                                      #   other-profile| the first profile the icon does NOT follow (WW83)
+                                      #   A label and never a directory, `-` where there is none, and an
+                                      #   unknown word exits 1 naming the three.
 --link-profiles <a> <b> [out=<path>]  # the script that makes two profiles ONE SETUP (T367). <a> keeps its
                                       #   real files and receives every merge, <b> becomes links into it;
                                       #   each side is an index into the --profiles list or a config dir
@@ -316,6 +326,11 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   render numbers no user's tray renders. `--selftest` asserts the
                                       #   whole of %LocalAppData%\ClaudeTray is unchanged after driving
                                       #   every writer — a new store must consult `ProfileStore.Observing`.
+--observing                           # the same promise without the second tray (WW83): WRITE NOTHING,
+                                      #   whatever else the arguments ask for. For a check that opens
+                                      #   `--main`, `--settings` or a read-out, which would otherwise keep
+                                      #   books like an ordinary run: its first guest run came back with
+                                      #   session-index.json rewritten. Stripped before anything parses.
 ```
 
 ## Three flags that go with anything
