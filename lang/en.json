@@ -441,6 +441,8 @@
   "stats.effort.xhigh": "extra-high effort",
   "stats.effort.max": "max effort",
   "stats.sessions.tip": "Session {0}\nModels: {1}\nAgent transcripts: {2}",
+  "stats.sessions.rowShut": "collapsed",
+  "stats.sessions.rowOpen": "expanded",
   "stats.session.hint": "Short window — resets a few times a day",
   "stats.week.hint": "Long window — the limit that defines your week",
   "stats.stat.used": "of quota used",

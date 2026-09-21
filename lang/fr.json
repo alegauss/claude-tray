@@ -437,6 +437,8 @@
   "stats.effort.xhigh": "effort très élevé",
   "stats.effort.max": "effort maximal",
   "stats.sessions.tip": "Session {0}\nModèles : {1}\nTranscriptions d'agents : {2}",
+  "stats.sessions.rowShut": "réduit",
+  "stats.sessions.rowOpen": "développé",
   "stats.session.hint": "Fenêtre courte — se réinitialise plusieurs fois par jour",
   "stats.week.hint": "Fenêtre longue — la limite qui définit votre semaine",
   "stats.stat.used": "du quota utilisé",

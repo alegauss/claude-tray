@@ -437,6 +437,8 @@
   "stats.effort.xhigh": "esforço muito alto",
   "stats.effort.max": "esforço máximo",
   "stats.sessions.tip": "Sessão {0}\nModelos: {1}\nTranscrições de agentes: {2}",
+  "stats.sessions.rowShut": "recolhido",
+  "stats.sessions.rowOpen": "expandido",
   "stats.session.hint": "Janela curta — reseta algumas vezes ao dia",
   "stats.week.hint": "Janela longa — o limite que define sua semana",
   "stats.stat.used": "da cota usada",

@@ -124,8 +124,10 @@
                         </Grid.ColumnDefinitions>
                         <!-- The disclosure glyph is the affordance: a row that opens into a call
                              tree and looks exactly like one that does not is a feature only its
-                             author finds (T329). -->
+                             author finds (T329). Named for the state it draws (WW482): its text is a
+                             codepoint, and a screen reader cannot read that. -->
                         <TextBlock Grid.Column="0" Text="{Binding Chevron}" FontFamily="Segoe MDL2 Assets"
+                                   AutomationProperties.Name="{Binding ChevronSaid}"
                                    FontSize="9" Margin="0,4,8,0" VerticalAlignment="Top"
                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                         <StackPanel Grid.Column="1">

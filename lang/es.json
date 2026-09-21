@@ -437,6 +437,8 @@
   "stats.effort.xhigh": "esfuerzo muy alto",
   "stats.effort.max": "esfuerzo máximo",
   "stats.sessions.tip": "Sesión {0}\nModelos: {1}\nTranscripciones de agentes: {2}",
+  "stats.sessions.rowShut": "contraído",
+  "stats.sessions.rowOpen": "expandido",
   "stats.session.hint": "Ventana corta — se reinicia varias veces al día",
   "stats.week.hint": "Ventana larga — el límite que define tu semana",
   "stats.stat.used": "de la cuota usada",

@@ -183,7 +183,14 @@ public sealed class SessionListRow : INotifyPropertyChanged
     public bool Open
     {
         get => _open;
-        internal set { _open = value; Raise(nameof(Open)); Raise(nameof(DetailVisibility)); Raise(nameof(Chevron)); }
+        internal set
+        {
+            _open = value;
+            Raise(nameof(Open));
+            Raise(nameof(DetailVisibility));
+            Raise(nameof(Chevron));
+            Raise(nameof(ChevronSaid));
+        }
     }
 
     public Visibility DetailVisibility => _open && _detail is { Count: > 0 } ? Visibility.Visible : Visibility.Collapsed;
@@ -192,6 +199,12 @@ public sealed class SessionListRow : INotifyPropertyChanged
     /// "there is more under this", up means "it is showing" — the first capture
     /// had them the other way round, which reads as an instruction to do what has already been done.</summary>
     public string Chevron => _open ? "" : "";
+
+    /// <summary>What the chevron says to a screen reader: the state it draws, as a word (WW482). Its
+    /// text is a Segoe MDL2 codepoint, so without a name of its own the automation tree announced the
+    /// codepoint, which is T175's worst case one pane over. The glyph is the only thing on the row that
+    /// says whether the call tree is showing, so it is named rather than taken out of the tree.</summary>
+    public string ChevronSaid => L.T(_open ? "stats.sessions.rowOpen" : "stats.sessions.rowShut");
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
