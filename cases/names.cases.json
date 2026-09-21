@@ -13,13 +13,10 @@
   // a header" from "announces the WRONG header", and a rule pairing every control with its neighbour's
   // header gives three controls in one row the same name — worse for a screen reader than one unnamed.
   //
-  // What has not moved yet, said here rather than left to be noticed. The walk over all six panels
-  // needs a locator that can be built out of a string the project declares, because the sidebar items
-  // are bare Borders with no automation peer and the words are the only thing that addresses them.
-  // The flat sweep over every ComboBox, Slider, TextBox and switch needs a locator that can name
-  // several control types at once. And the sidebar's own completeness is not `covers` over `Text`:
-  // that claim is two-way — every declared string read AND nothing else matched — and the panel
-  // beside the sidebar is full of Texts. All three are filed.
+  // WW86. The two controls that dump found are claimed by name at last, on the Statistics page they
+  // live on. The script read both before it read a single settings row, and until now this file held
+  // every row and neither of them: the property the whole file is about, missing on the two controls
+  // where it was first found missing.
   "fixtures": [
     {
       // The Settings window standalone, which is what `--settings` is for. No nav strip to drive and
@@ -52,6 +49,14 @@
       "name": "the settings window the walk drives",
       "arguments": ["--settings", "--observing", "--lang", "en"],
       "language": "en"
+    },
+    {
+      // WW86. The shell on the Statistics page, which is where it opens. The two cases on it only
+      // read, so they share one window, which is how the script shared one between them too.
+      "name": "the main window on the Statistics page",
+      "arguments": ["--main", "--observing", "--lang", "en"],
+      "language": "en",
+      "shareable": true
     }
   ],
 
@@ -231,6 +236,62 @@
           "act": "read",
           "eachSpoken": true,
           "named": "every contentless control in a row announces a label"
+        }
+      ]
+    },
+
+    {
+      // WW86. The first control the T165 dump found unnamed. Its label is the TextBlock beside it, and
+      // a WPF control derives its name from its own content, so without `LabeledBy` the picker that
+      // decides what the whole report is about announced itself as "combo box" and nothing else.
+      "name": "the Statistics profile picker announces the label beside it",
+      "catches": "a picker whose label is a separate TextBlock the tree cannot associate on its own, so the control that decides what the report is about announces only that it is a combo box",
+      "filed": "WW86",
+      "tags": ["names"],
+      "fixture": "the main window on the Statistics page",
+      "onlyReads": true,
+
+      // The card is Collapsed below two profiles, so on most machines there is no picker to name. The
+      // script said which of the two reasons it was reporting (T161). Here the precondition says it,
+      // so an absent picker is reported as the machine rather than as a missing name.
+      "needs": ["a second profile"],
+
+      "steps": [
+        {
+          // The key and not the string, as for every row above: the label is read out of the language
+          // the fixture launched in.
+          "locator": "ComboBox#StatsProfileCombo",
+          "act": "read",
+          "reads": "name",
+          "label": "stats.profile",
+          "named": "the profile picker announces its label"
+        }
+      ]
+    },
+
+    {
+      // WW86. The second one. Its content is a Segoe MDL2 codepoint, so there is no text to derive a
+      // name from, and the button that explains every number in the window announced itself as
+      // "button". That was T175's worst case: a glyph satisfies "non-empty" and is not a name.
+      "name": "the method-note button announces what it opens",
+      "catches": "a glyph-only button whose name is its own codepoint or nothing, so the note that explains every number in the window is behind a control a screen reader calls \"button\"",
+      "filed": "WW86",
+      "tags": ["names"],
+      "fixture": "the main window on the Statistics page",
+      "onlyReads": true,
+
+      // It stays Collapsed until a report renders, and a report is rendered from this machine's
+      // transcripts. The script waited 25 seconds and then reported it unchecked; the project's
+      // resolve budget does the waiting here.
+      "needs": ["a transcript to report on"],
+
+      "steps": [
+        {
+          "locator": "Button#MethodInfo",
+          "act": "read",
+          "reads": "name",
+          "label": "stats.methodTitle",
+          "named": "the method-note button announces the note's title"
         }
       ]
     }

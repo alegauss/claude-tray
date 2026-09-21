@@ -11,12 +11,12 @@
   // characters with the rate-card date in them. That is why every step below searches from the one
   // root the case was launched against, and why none of them needs a second window to look in.
   //
-  // One of the script's assertions is still NOT here, and is not dropped quietly: a count of
-  // readable fields on a row. It cannot be written in this format today and is filed as WW253 —
-  // a typed count is the stale literal a derived set exists to refuse, and `answers` on the row
-  // would pass on a row whose every field is unreadable, because the row announces its own class
-  // name. The other two are written below: a value matching a date rather than equalling a string,
-  // because WW250 added the field for it, and a subtree that grew after a click, because WW251 did.
+  // All three of the script's claims are written below: a value matching a date rather than equalling
+  // a string, because WW250 added the field for it; a subtree that grew after a click, because WW251
+  // did; and, since WW86, a row that reads as text, because WW253 did. That last one was a count of
+  // readable fields in the script, and a typed count is the stale literal a derived set exists to
+  // refuse. `answers` on the row would not do either: the row announces its own class name, so it
+  // would pass on a row whose every field was unreadable.
   "fixtures": [
     {
       "name": "the main window for the sessions pane",
@@ -151,6 +151,16 @@
           "expect": "selected",
           "reads": "selected",
           "named": "the Sessions tab is the selected one, so its pane is built"
+        },
+        {
+          // WW86. What a screen reader gets from one row, read before the click so it is about the
+          // row a person sees and not about the call tree under it. Not the numbers again, which a
+          // capture already shows. The point is that they are READABLE: something under the row
+          // announces a name, and nothing announces a glyph, an unfilled template or an id.
+          "locator": "#SessionList > DataItem[order=top]",
+          "act": "read",
+          "spoken": true,
+          "named": "the topmost row reads as text rather than as a picture"
         },
         {
           // The topmost row, by where it is drawn rather than by where the tree happens to hold it:

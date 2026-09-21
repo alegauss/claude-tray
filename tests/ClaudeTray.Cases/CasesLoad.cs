@@ -261,6 +261,14 @@ public sealed class CasesLoad
         Assert.False(unfolds.Answers);
         Assert.Null(unfolds.Covers);
         Assert.Null(unfolds.Matches);
+
+        // WW86. The script's third claim about the row, which it made as a count: four or more named
+        // fields. `spoken` makes it with no number, and it comes BEFORE the click, so it is about the
+        // row a person sees and not about the tree under it. A `read`, because it claims about what is
+        // there and moves nothing.
+        var readable = Assert.Single(row.Steps, one => one.Spoken);
+        Assert.Equal("read", readable.Verb.Name);
+        Assert.True(row.Steps.ToList().IndexOf(readable) < row.Steps.ToList().IndexOf(unfolds));
     }
 
     [Fact]
@@ -303,9 +311,22 @@ public sealed class CasesLoad
 
         // WW256, and it is the claim WW81 was filed for beside the round trip: the line is never
         // shown while the report comes back, which no read taken afterwards could tell you.
+        //
+        // WW86. The status line's key. It named `stats.live.off`, the live strip's sentence, which
+        // nothing puts up during a switch, and this test asserted the slip back.
         var watching = Assert.Single(profiles.Steps, one => one.Never is not null);
-        Assert.Equal("stats.live.off", watching.Never);
+        Assert.Equal("stats.computing", watching.Never);
         Assert.Equal("read", watching.Verb.Name);
+
+        // WW86. The three claims that waited on WW268-WW270, each in the shape it landed in. The
+        // report following the picker is the first profile's pane going away, because on the bench
+        // the second profile has no stored reading and shows a status line instead.
+        var follows = Assert.Single(profiles.Steps, one => one.Absent);
+        Assert.Equal("Text#UsedS", follows.Locator?.Text);
+        var caption = Assert.Single(profiles.Steps, one => one.SameCountdownAs is not null);
+        Assert.Equal("the reset caption at the first stop", caption.SameCountdownAs);
+        var headline = Assert.Single(profiles.Steps, one => one.NotLabel is not null);
+        Assert.Equal("stats.live.off", headline.NotLabel);
     }
 
     [Fact]
@@ -317,17 +338,27 @@ public sealed class CasesLoad
         var loaded = ScenarioFile.Across(ScenarioFile.LoadAll(Path.Combine(Repository(), "cases")));
         var names = loaded.Where(one => one.Tags.Contains("names")).ToList();
 
-        Assert.Equal(3, names.Count);
+        Assert.Equal(5, names.Count);
         Assert.All(names, one => Assert.True(one.Justified, "a case that says nothing about why it exists says nothing about deleting it"));
-        Assert.All(names, one => Assert.Empty(one.Needs));
 
-        // The two that only read share their windows — T195's lending, which the script did with an
+        // WW86. The settings cases need nothing, and the two on the Statistics page each need the one
+        // thing that takes their control out of the tree: the picker's card is Collapsed below two
+        // profiles, and the method-note button until a report renders.
+        var settings = names.Where(one => one.Fixture.Arguments.Contains("--settings")).ToList();
+        Assert.Equal(3, settings.Count);
+        Assert.All(settings, one => Assert.Empty(one.Needs));
+        var statistics = names.Where(one => one.Fixture.Arguments.Contains("--main")).ToList();
+        Assert.Equal(
+            ["a second profile", "a transcript to report on"],
+            statistics.SelectMany(one => one.Needs).Order(StringComparer.Ordinal));
+
+        // The ones that only read share their windows — T195's lending, which the script did with an
         // Acquire-Main / Release-Main pair around the whole of Invoke-NamesCase. The walk drives the
         // sidebar, so it owns its window and lends it to nobody: a case after it would inherit
         // whichever panel the last member happened to leave showing.
         var reading = names.Where(one => one.OnlyReads).ToList();
 
-        Assert.Equal(2, reading.Count);
+        Assert.Equal(4, reading.Count);
         Assert.All(reading, one => Assert.True(one.Fixture.Shareable));
 
         // T196, and the property the script had and no listed set can: the panels come from the
@@ -351,7 +382,7 @@ public sealed class CasesLoad
         // Not one typed label in either of them. WW261 is what makes that possible: before it, a case
         // expecting a label had to write the words, which is the hardcoded set one control down.
         var reads = names.SelectMany(one => one.Steps).Where(one => one.Label is not null).ToList();
-        Assert.Equal(7, reads.Count);
+        Assert.Equal(9, reads.Count);
         Assert.All(reads, one => Assert.Null(one.Expected));
         Assert.All(reads, one => Assert.Equal("name", one.Reads.Name));
 

@@ -10,17 +10,17 @@
   // a case naming one passes here and fails everywhere else — which is why the walk is `pick at`, by
   // position, and every claim is about a reading moving or coming back rather than about its value.
   //
-  // Three of the script's assertions are NOT here and are not dropped quietly:
+  // WW86. Three of the script's assertions waited here for three engine fields, named in this
+  // comment as WW268, WW269 and WW270. All three shipped, and all three claims are steps below now.
   //
-  //   - that the report *followed* the picker (its used % differing from the previous stop's) needs
-  //     the inverse of `sameAs` — a reading unlike an earlier step's — and is WW268;
-  //   - the reset caption surviving the round trip needs a minute of tolerance, because the caption
-  //     counts down in real time and a run that straddles a minute boundary must not be a red build;
-  //     `sameAs` is exact, and that is WW269;
-  //   - the live headline never reading the app's own "unavailable" label needs a claim that a
-  //     reading is *not* one declared string, which is WW270.
-  //
-  // What is here is what WW81 was filed for: the round trip, and the timing observation.
+  // Only two of them took the field they waited for. The script judged "the report followed the
+  // picker" on a disjunction — the kind of screen, or the percentage, or the reset minute — and a
+  // case has no disjunctive claim, so which one is honest depends on the machine. On the bench
+  // it is the first. A profile the tray is not polling is drawn from its own stored readings, the
+  // second fabricated profile has none, and `--observing` writes none, so the second stop is a
+  // status line and never panes. Following the picker there means the first profile's pane goes
+  // away. It is claimed as that, with `absent` and not `unlike`: an `unlike` would compare against
+  // a percentage that is not on screen at the stop it is about.
   "fixtures": [
     {
       // `--main` rather than the tray: the same shell the tray opens, under the same WinForms pump,
@@ -76,6 +76,15 @@
           "named": "the used percentage at the first stop"
         },
         {
+          // The other half of what the round trip is about. The caption counts down in real time, so
+          // it is read here to be compared against later rather than to be held to a value.
+          "locator": "Text#ResetS",
+          "act": "read",
+          "reads": "name",
+          "answers": true,
+          "named": "the reset caption at the first stop"
+        },
+        {
           // The switch. Position 1 and not a name, and the count the walk reports is what keeps the
           // observation two steps below meaningful: a claim about one switch is void when the walk
           // made several, because each intermediate stop is a switch of its own.
@@ -89,6 +98,23 @@
           "reads": "picked",
           "moves": true,
           "named": "the picker moves off the profile it opened on"
+        },
+        {
+          // WW86. The claim the picker exists for, and the one the script made on a disjunction it
+          // could afford and a case cannot: two accounts CAN read the same percentage, so the script
+          // asked whether the KIND of screen, the percentage or the reset minute had moved.
+          //
+          // On the bench it is the kind of screen. The second profile has no stored reading, so the
+          // page says so on its status line and collapses the panes. A switch that left the first
+          // profile's report up under the second one's name is T164's defect, and this is what
+          // catches it here: the first stop's percentage is still in the tree.
+          //
+          // `absent` waits the other way round, until nothing matches, so a pane on its way out is
+          // waited for and one that stays fails naming what it found.
+          "locator": "Text#UsedS",
+          "act": "read",
+          "absent": true,
+          "named": "the report follows the picker"
         },
         {
           // Back again, and this is the whole round trip. The claim is that the picker reads what the
@@ -112,9 +138,13 @@
           //
           // Deliberately not written as "the panes returned within N ms". A deadline is the one
           // assertion in this file that would go red on a slow machine for a correct reason.
+          //
+          // WW86. The key is the status line's. It named `stats.live.off`, the live strip's
+          // "unavailable" sentence, which nothing puts up during a switch back, so this held however
+          // the switch went. A rebuilt report puts `stats.computing` up while it rebuilds.
           "locator": "Text#UsedS",
           "act": "read",
-          "never": "stats.live.off",
+          "never": "stats.computing",
           "named": "coming back never showed the not-yet line"
         },
         {
@@ -126,6 +156,37 @@
           "reads": "name",
           "sameAs": "the used percentage at the first stop",
           "named": "the used percentage survives the round trip"
+        },
+        {
+          // WW86. The same claim on the caption, and `sameCountdownAs` rather than `sameAs` because
+          // this one counts down while the case runs: the numbers must match except the last, which
+          // may have ticked by one. Exact equality here would be a red build for a run that happened
+          // to straddle a minute boundary, and an hour of drift is another profile's window — which
+          // is the defect. The script carried that minute of tolerance by hand.
+          //
+          // The field does not span a unit rolling over: `2h 00m` read later as `1h 59m` fails. That
+          // is why `--main` no longer puts its synthetic reset exactly two hours out. It did, so the
+          // caption opened on `2h 00m` and the first minute to tick failed this step. It took the
+          // first guest run to show that.
+          "locator": "Text#ResetS",
+          "act": "read",
+          "reads": "name",
+          "sameCountdownAs": "the reset caption at the first stop",
+          "named": "the reset caption survives the round trip"
+        },
+        {
+          // WW86. The defect a percentage cannot see. The live tail is disposed on the way out of a
+          // profile and restarted for the incoming config dir, so a headline still reading the
+          // application's own "unavailable" label once a stop has settled means the switch left the
+          // strip watching nothing — while every number on the page is present and correct.
+          //
+          // `notLabel` and not a value: the claim is that the reading is not one declared string,
+          // derived from the language this window is in rather than typed here.
+          "locator": "Text#LiveHeadS",
+          "act": "read",
+          "reads": "name",
+          "notLabel": "stats.live.off",
+          "named": "the live headline is a reading and not the unavailable label"
         }
       ]
     }

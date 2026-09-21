@@ -487,10 +487,16 @@ internal static class Program
             _ = new System.Windows.Application { ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown };
             WpfInputBridge.Install();
             long mainNow = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            // The same synthetic reading `--stats` uses, so the report has both verdicts on screen
+            // The synthetic reading `--stats` uses, so the report has both verdicts on screen
             // without depending on this machine's quota at the moment of the screenshot.
+            //
+            // One difference, WW86: the session resets 1h 43m out and not 2h. A reset on the hour
+            // opens the caption at `2h 00m`, so the first minute to tick rolls the hour. The profiles
+            // case compares that caption across a round trip, and it tolerates the last number
+            // ticking and never a unit rolling over. The verdict is unchanged: 72% spent is still ahead
+            // of the 66% of the window that has gone.
             var mainSample = new PaceSnapshot(
-                Util5h: 0.72, Reset5h: mainNow + 2 * 3600,
+                Util5h: 0.72, Reset5h: mainNow + 2 * 3600 - 17 * 60,
                 Util7d: 0.38, Reset7d: mainNow + 3 * 86400);
             Settings mainSettings = Settings.Load();
             var shell = new MainWindow(mainSample, mainSettings.ShowRemaining, null,
