@@ -1,0 +1,96 @@
+{
+  // WW86. The one gesture most users make, migrated out of scripts/Check-Interaction.ps1's T158.
+  //
+  // It was the last claim in that script with no case, and the reason was the engine: a tray step
+  // could read an icon or open its menu and could not click one. `click tray icon` (WW483) is a
+  // pointer at the icon's own centre, since a taskbar button refuses a clickable point and the
+  // rectangle is the only address it has. A click that would land anywhere but on the icon is a
+  // hole naming the desk rather than a failure about this application.
+  //
+  // winwright 0.1.0-alpha.18 and not .17, because of where Windows keeps this icon. A new icon is
+  // hidden in the overflow unless somebody promotes it, and at the centre of a hidden one the tree
+  // names the flyout's pane and goes no deeper. alpha.17 read that pane as something over the icon
+  // and made this case a hole on a desk with nothing on it; WW486 reads it as what holds the icon.
+  //
+  // What the script could do here and a case cannot: it scoped the window it read to the pid it had
+  // launched. A resident fixture's locators resolve against the desktop, because a tray draws no
+  // window of its own and there is nothing else to resolve inside. So the reading before the click
+  // is what stands in for that scoping — the window is not up, then it is — and a second tray
+  // standing with its window open is a desk this case reds on, which is the same trade every
+  // desktop-scoped case in this repository already makes.
+  "fixtures": [
+    {
+      // The same launch the menu cases use, under a name of its own: a fixture name belongs to one
+      // file, and two files declaring it would be a case naming two launches. `--second-tray` tags
+      // this icon's tooltip with `[check]` so the click finds the tray this run started and never a
+      // resident one — both icons belong to the shell's process, so a pid cannot tell them apart.
+      "name": "a tray of this run's own, with nothing showing",
+      "arguments": ["--second-tray", "--lang", "en"],
+
+      // It draws no window at all, and here that is the claim rather than a detail: the window this
+      // case reads can only have come from the click.
+      "resident": true,
+
+      "language": "en",
+
+      // Not shared. This case leaves a window standing that the launch never drew, so a case after
+      // it would inherit a desk this one opened.
+      "shareable": false
+    }
+  ],
+
+  "cases": [
+    {
+      "name": "a left click on the icon opens the window it is the way into",
+      "catches": "an icon that draws and answers nothing, which is the gesture nothing else in this repository drives",
+      "filed": "WW86",
+      "tags": ["icon", "tray"],
+      "fixture": "a tray of this run's own, with nothing showing",
+
+      "steps": [
+        {
+          // Before the click, and it is what makes everything below mean something: a window
+          // already up would answer every claim that one opened. `absent` polls until nothing
+          // matches, so a window on its way out is waited for rather than caught mid-close.
+          "locator": "#NavStatistics",
+          "act": "read",
+          "absent": true,
+          "named": "no window of this tray's is up before anything is clicked"
+        },
+        {
+          // The subject is the icon rather than a locator: the notification area is the shell's
+          // tree, not this application's, and the icon is addressed by the name the shell gives it.
+          "tray": "[check]",
+          "act": "click tray icon",
+          "named": "the icon takes a left click at its own centre"
+        },
+        {
+          // The nav strip is the window's identity, and that is T233's lesson rather than taste: a
+          // title-only check passes for a window with the right caption and nothing in it. Three
+          // destinations, each by the id its own author gave it and each claimed against the key
+          // that declares its string — never the words, which read differently in the four
+          // languages this application ships.
+          "locator": "RadioButton#NavStatistics",
+          "act": "read",
+          "reads": "name",
+          "label": "main.nav.statistics",
+          "named": "the click opened the window, and the first destination is on it"
+        },
+        {
+          "locator": "RadioButton#NavContext",
+          "act": "read",
+          "reads": "name",
+          "label": "main.nav.context",
+          "named": "the second destination is on it"
+        },
+        {
+          "locator": "RadioButton#NavSettings",
+          "act": "read",
+          "reads": "name",
+          "label": "main.nav.settings",
+          "named": "the third destination is on it"
+        }
+      ]
+    }
+  ]
+}

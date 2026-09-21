@@ -84,9 +84,9 @@ internal static class Program
     /// </summary>
     internal static bool SecondTray { get; private set; }
 
-    /// <summary>What a second tray's tooltip starts with, so `Check-Interaction.ps1` can find that icon
-    /// and not the resident one. One constant rather than a string spelled out in two repositories'
-    /// worth of places — the script matches it as a regex.</summary>
+    /// <summary>What a second tray's tooltip starts with, so a tray case can find that icon and not the
+    /// resident one. One constant rather than a string spelled out in two repositories' worth of places
+    /// — a case names it as the icon's subject, matched unanchored.</summary>
     internal const string SecondTrayTag = "[check]";
 
     /// <summary>

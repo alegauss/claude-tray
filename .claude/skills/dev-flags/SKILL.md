@@ -319,8 +319,8 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   ClaudeTray icons apart, so the tooltip has to. Match it
                                       #   UNANCHORED — the shell's accessible name is the registration
                                       #   name followed by the live tooltip, so the tag is mid-string.
-                                      #   `Check-Interaction.ps1 -Case Menu` uses this on its own when it
-                                      #   finds a tray already running.
+                                      #   The tray cases in `cases\` launch with it, so the icon a case
+                                      #   drives is this run's and never a resident one.
                                       #   It POLLS AND DRAWS but WRITES NOTHING (T239): no store append,
                                       #   no cache, no settings save, and CLAUDE_CONFIG_DIR is sampled so
                                       #   the reconcile lands on a copy. Reads are untouched, or it would
@@ -363,11 +363,10 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   unknown one prints the catalogue and exits 1. Sampling is one-way
                                       #   for the process — that is what makes "writes nothing" true — and
                                       #   `--profiles` says out loud that it is answering off a fixture.
-                                      #   `Check-Interaction.ps1 -Case Menu` SWEEPS `other` and `outside`
-                                      #   on its own, one tray each, so T172's mark and line are asserted
-                                      #   with no flag typed (T238) — a fixture nothing routine reaches is
-                                      #   coverage nobody has. `-SampleEnv <mode>` pins the run to one
-                                      #   instead; both it and the sweep are refused with -UseRunning.
+                                      #   `cases\environment.cases.json` drives `other` and `outside`, one
+                                      #   fixture each, so T172's mark and line are asserted by the run
+                                      #   rather than by somebody remembering the flag (T238, WW85) — a
+                                      #   fixture nothing routine reaches is coverage nobody has.
 --sample-switches <mode>              # answer as if the Profile submenu's two switches were in this
                                       #   position, and WRITE NOTHING (WW86):
                                       #   none   | both off, the defaults: a pick moves the tray only

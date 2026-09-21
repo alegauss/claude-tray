@@ -745,10 +745,11 @@ internal static partial class SelfTestCli
     /// step is one word, it makes no test fail, and the run stays green while the protection is gone. So
     /// the flag is asserted where the assertions are.</para>
     ///
-    /// <para><b>Both steps, not one.</b> <c>check.yml</c> builds twice — once for the self-check job and
-    /// once for the interaction job — and a gate carried by one of them only holds when that job is the one
-    /// that ran. The check counts the build steps it found and prints the count, because "all of them
-    /// carry it" is not an assertion when the number could be zero.</para>
+    /// <para><b>Every step, not one.</b> <c>check.yml</c> builds once per job, and a gate carried by one of
+    /// them only holds when that job is the one that ran. The check counts the build steps it found and
+    /// prints the count, because "all of them carry it" is not an assertion when the number could be
+    /// zero — and the count is a floor since WW86, when the interaction job took a second build for the
+    /// binary the cases launch.</para>
     /// </summary>
     private static void WarningGate() =>
         Repo("every build CI runs fails on a warning", WarningGate, ".github/workflows/check.yml");
@@ -762,10 +763,13 @@ internal static partial class SelfTestCli
             .ToArray();
 
         // The count is the precondition, not a nicety: a workflow this check cannot find the builds in
-        // would pass an "all of them" test with nothing in hand.
-        if (!Check("the workflow's builds are readable", builds.Length == 2,
-                   $"found {builds.Length} `dotnet build` step(s), expected 2 — the check cannot gate what " +
-                   "it cannot see"))
+        // would pass an "all of them" test with nothing in hand. A floor and not an equality, which is
+        // WW86's correction: there is one build per job and the number went to three the day the
+        // interaction job began building what the cases launch, so an exact count was a list to keep
+        // rather than a reading — and the claim below is about every build found, however many there are.
+        if (!Check("the workflow's builds are readable", builds.Length >= 2,
+                   $"found {builds.Length} `dotnet build` step(s), expected one per job at least — the " +
+                   "check cannot gate what it cannot see"))
             return;
 
         string[] ungated = builds.Where(l => !l.Contains("-warnaserror", StringComparison.Ordinal)).ToArray();
@@ -1445,7 +1449,7 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
-    /// Every case the interaction script declares is named in <c>AGENTS.md</c> (T360).
+    /// Every case file in <c>cases\</c> is named in <c>AGENTS.md</c> (T360, WW86).
     ///
     /// <para>The rule is already in that document's own text — <em>"listing three is how two stayed
     /// script-only (T201)"</em> — and two cases really did exist that nobody knew to run. Nothing checked
@@ -1453,136 +1457,124 @@ internal static partial class SelfTestCli
     /// and the whole suite stayed green with the document still saying six; it was documented because the
     /// rule was followed, which is the guarantee T201 says is not one.</para>
     ///
-    /// <para><b>Both directions, and the names only.</b> A case in the script and not the document is one
-    /// nobody runs — the original defect. A name in the document and not the script is a case somebody
-    /// deleted and a reader will go looking for. What is <em>not</em> asserted is how much prose each gets:
-    /// <c>Panes</c> and <c>Names</c> deliberately share a bullet, and AGENTS.md sits one line under its own
-    /// ceiling, so a check demanding a paragraph each would one day demand a line the budget refuses.</para>
+    /// <para><b>WW86 moved what it reads and not what it asks.</b> The set used to be the
+    /// <c>ValidateSet</c> of a PowerShell harness; it is the files in <c>cases\</c> now, and the question
+    /// is the same one — a file nobody documented is a file nobody knows to run. The two halves that were
+    /// about the script's own comment-based help went with the script, except the last: a count spelled
+    /// out in prose is the one claim editing a list never updates, and it said "Three" while the set held
+    /// seven.</para>
+    ///
+    /// <para><b>Both directions, and the names only.</b> A file in <c>cases\</c> and not in the document is
+    /// the original defect. A name in the document and no such file is a migration a reader will go
+    /// looking for. What is <em>not</em> asserted is how much prose each gets: <c>panes</c> and
+    /// <c>names</c> deliberately share a bullet, and AGENTS.md sits one line under its own ceiling, so a
+    /// check demanding a paragraph each would one day demand a line the budget refuses.</para>
     /// </summary>
-    private static void InteractionCasesDocumented() =>
-        Repo("every interaction case the script declares is named in AGENTS.md", root =>
+    private static void CaseFilesDocumented() =>
+        Repo("every case file in cases\\ is named in AGENTS.md", root =>
         {
-            string script = File.ReadAllText(Path.Combine(root, "scripts/Check-Interaction.ps1"));
-            Match set = Regex.Match(script, @"\[ValidateSet\(([^)]*)\)\]");
-            string[] declared = Regex.Matches(set.Groups[1].Value, @"'([A-Za-z]+)'")
-                                     .Select(m => m.Groups[1].Value)
-                                     .Where(n => n != "All")
-                                     .OrderBy(n => n, StringComparer.Ordinal).ToArray();
-            if (declared.Length == 0) { Check("the script declares a case set at all", false, "no ValidateSet found"); return; }
+            string[] declared = Directory.GetFiles(Path.Combine(root, "cases"), "*.cases.json")
+                                         .Select(Path.GetFileNameWithoutExtension)
+                                         .Select(n => n!.Replace(".cases", "", StringComparison.Ordinal))
+                                         .OrderBy(n => n, StringComparer.Ordinal).ToArray();
+            if (declared.Length == 0) { Check("cases\\ holds case files at all", false, "no *.cases.json found"); return; }
 
-            // The section, not the file: `-Case` and these names appear nowhere else, but bounding it
-            // keeps the check about the passage a reader of that section is relying on.
+            // The section, not the file: bounding it keeps the check about the passage a reader of that
+            // section is relying on.
             string agents = File.ReadAllText(Path.Combine(root, "AGENTS.md"));
             int from = agents.IndexOf("## Interaction verification", StringComparison.Ordinal);
             int to = from < 0 ? -1 : agents.IndexOf("\n## ", from + 4, StringComparison.Ordinal);
             string section = from < 0 ? "" : (to < 0 ? agents[from..] : agents[from..to]);
             if (section.Length == 0) { Check("AGENTS.md still has an interaction section", false, "no '## Interaction verification' heading"); return; }
 
-            string[] inUsage = Regex.Match(section, @"\[-Case ([A-Za-z|]+)\]") is { Success: true } u
-                ? u.Groups[1].Value.Split('|').OrderBy(n => n, StringComparer.Ordinal).ToArray()
-                : Array.Empty<string>();
-            Check($"the usage line lists exactly the cases the script accepts ({declared.Length})",
-                  inUsage.SequenceEqual(declared, StringComparer.Ordinal),
-                  $"script: {string.Join("|", declared)} — AGENTS.md: {string.Join("|", inUsage)}. A case "
-                  + "missing here is a case nobody knows to run, which is the defect T201 named and left "
-                  + "to prose (T360).");
-
             // Bold, because that is how the section introduces each one — and a name in a sentence about
             // something else would otherwise count as documentation.
-            var bold = Regex.Matches(section, @"\*\*([A-Za-z]+)\*\*").Select(m => m.Groups[1].Value).ToHashSet(StringComparer.Ordinal);
+            var bold = Regex.Matches(section, @"\*\*`?([a-z][a-z-]*)`?\*\*")
+                            .Select(m => m.Groups[1].Value).ToHashSet(StringComparer.Ordinal);
+
             string[] undescribed = declared.Where(n => !bold.Contains(n)).ToArray();
-            Check("and each of them is introduced in the prose below it",
+            Check($"and each of the {declared.Length} is introduced in the prose below it",
                   undescribed.Length == 0,
-                  $"{string.Join(", ", undescribed)} — listed in the usage block and described nowhere, so "
-                  + "a reader learns the flag exists and not what it drives (T360).");
+                  $"{string.Join(", ", undescribed)} — a file in cases\\ that the section describes "
+                  + "nowhere, so a reader learns what the suite runs from the folder listing and not "
+                  + "from the document (T360, WW86).");
 
-            // T364: the same question of the script's own comment-based help, which is what `Get-Help`
-            // prints and the first thing a reader of the file meets. Checking only AGENTS.md let the
-            // header keep describing six cases after T359 added the seventh.
-            string help = script[..(script.IndexOf("#>", StringComparison.Ordinal) is var end && end > 0
-                                    ? end : script.Length)];
-            string[] inHelp = Regex.Matches(help, @"^\s*-Case ([A-Za-z]+)\s", RegexOptions.Multiline)
-                                   .Select(m => m.Groups[1].Value)
-                                   .Distinct(StringComparer.Ordinal)
-                                   .OrderBy(n => n, StringComparer.Ordinal).ToArray();
-            Check($"the script's own help gives every case a bullet ({declared.Length})",
-                  inHelp.SequenceEqual(declared, StringComparer.Ordinal),
-                  $"ValidateSet: {string.Join("|", declared)} — help: {string.Join("|", inHelp)}. The "
-                  + "header is what Get-Help prints, so a case missing from it is undiscoverable from "
-                  + "the file that implements it (T364).");
+            // The other direction, and it is not symmetry for its own sake: a name kept after its file
+            // went is a reader sent looking for a migration that never happened.
+            string[] gone = bold.Where(n => !declared.Contains(n, StringComparer.Ordinal))
+                                .OrderBy(n => n, StringComparer.Ordinal).ToArray();
+            Check("and names no case file that is not there",
+                  gone.Length == 0,
+                  $"{string.Join(", ", gone)} — described in the section with no cases\\ file behind it.");
 
-            // And no spelled-out count beside the list, because that is the one claim editing the list
-            // does not update — it said "Three" while the ValidateSet held seven.
-            Match counted = Regex.Match(help, @"\b(One|Two|Three|Four|Five|Six|Seven|Eight|Nine)\s+cases\b",
+            // No spelled-out count beside the list, because that is the one claim editing the list does
+            // not update — it said "Three" while the set held seven (T364).
+            Match counted = Regex.Match(section, @"\b(One|Two|Three|Four|Five|Six|Seven|Eight|Nine)\s+cases\b",
                                         RegexOptions.IgnoreCase);
             Check("and does not spell out how many there are",
                   !counted.Success,
-                  $"the help says \"{counted.Value}\" — a number in prose that nothing derives is wrong "
-                  + "one case later, which is how this defect arrived (T364).");
-        }, "scripts/Check-Interaction.ps1", "AGENTS.md");
+                  $"the section says \"{counted.Value}\" — a number in prose that nothing derives is "
+                  + "wrong one case later, which is how this defect arrived (T364).");
+        }, "cases", "AGENTS.md");
 
     /// <summary>
-    /// Every id <c>Check-Interaction.ps1</c> looks a control up by, because that lookup is a <em>string</em>
-    /// and no compiler checks it. Renaming <c>StatusText</c> while doing T192 broke the one behind T166's
-    /// "the status line must never be observed at all" — and a lookup that finds nothing makes that
-    /// assertion pass by seeing nothing, which is §XX.2's defect exactly.
+    /// Every id a case addresses a control by, because a locator is a <em>string</em> and no compiler
+    /// checks it. Renaming <c>StatusText</c> while doing T192 broke the one behind T166's "the status line
+    /// must never be observed at all" — and a lookup that finds nothing makes that assertion pass by
+    /// seeing nothing, which is §XX.2's defect exactly.
     ///
-    /// <para><b>Derived from the script, not remembered (T203).</b> T192 wrote the fifteen ids out by hand,
-    /// and a hand list is right on the day it is read off and decays silently after: by the time this was
-    /// written it had already missed three (<c>BrowseButton</c>, <c>ProfileAddButton</c>,
-    /// <c>ProfileRemoveButton</c>, all added with T196's row trio), and a list that is short looks exactly
-    /// like a list that is complete. The uniqueness half above has never had that problem because it
-    /// reflects over every <c>IComponentConnector</c>; this is the same move against a text file.</para>
+    /// <para><b>Derived and not remembered (T203).</b> T192 wrote the fifteen ids out by hand, and a hand
+    /// list is right on the day it is read off and decays silently after: by the time that was written it
+    /// had already missed three (<c>BrowseButton</c>, <c>ProfileAddButton</c>, <c>ProfileRemoveButton</c>,
+    /// all added with T196's row trio), and a list that is short looks exactly like a list that is
+    /// complete. The uniqueness half above has never had that problem because it reflects over every
+    /// <c>IComponentConnector</c>; this is the same move against the files in <c>cases\</c>.</para>
     ///
-    /// <para><b>Three shapes carry a literal id</b>, not one — deriving only from <c>ById</c> would have
-    /// reproduced the very gap this fixes, since the three missing ones arrive as table rows:
-    /// <c>ById</c>/<c>ByIdNow</c>/<c>Assert-Name</c> called with a quoted id, and <c>Id = '…'</c> in a
-    /// hashtable the case then walks. A lookup whose id is a <em>variable</em> is invisible to any regex,
-    /// so the ids built at runtime (<c>"Used$sfx"</c> and its two siblings) stay explicit — and the check
-    /// says which kind it is asserting, because the two have different failure modes.</para>
+    /// <para><b>WW86 made it one shape instead of three.</b> The harness this replaces spelled a lookup
+    /// three ways — <c>ById</c>, <c>ByIdNow</c>, <c>Assert-Name</c> with a quoted id, and <c>Id = '…'</c>
+    /// in a hashtable a case walked — and built six more at runtime from a pane suffix, which no regex
+    /// could see and this file therefore carried by hand. A case writes one thing: a locator, with the id
+    /// in it. So the derivation is a single pattern over a single field, and nothing here is a list that
+    /// can go stale.</para>
     /// </summary>
-    private static void InteractionIds(Dictionary<string, List<string>> owners) =>
-        Repo("every id the interaction check drives still exists", root => InteractionIds(root, owners),
-             "scripts/Check-Interaction.ps1");
+    private static void CaseIds(Dictionary<string, List<string>> owners) =>
+        Repo("every id the cases drive still exists", root => CaseIds(root, owners), "cases");
 
-    private static void InteractionIds(string root, Dictionary<string, List<string>> owners)
+    private static void CaseIds(string root, Dictionary<string, List<string>> owners)
     {
-        string script = Path.Combine(root, "scripts/Check-Interaction.ps1");
-        string text = File.ReadAllText(script);
+        string[] files = Directory.GetFiles(Path.Combine(root, "cases"), "*.cases.json");
+        string text = string.Join("\n", files.Select(File.ReadAllText));
+
+        // Out of the locators and not out of the whole file: a case's prose names ids too — it is where
+        // the reason for addressing one is written — and a comment naming a control that has gone is a
+        // note about history rather than a lookup that will find nothing.
         string[] derived = System.Text.RegularExpressions.Regex
-            .Matches(text, @"(?:ById|ByIdNow|Assert-Name)\s+\$\w+\s+'([A-Za-z]\w*)'|Id\s*=\s*'([A-Za-z]\w*)'")
-            .Select(m => m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value)
+            .Matches(text, @"""locator""\s*:\s*""([^""]*)""")
+            .SelectMany(m => System.Text.RegularExpressions.Regex
+                .Matches(m.Groups[1].Value, @"#([A-Za-z]\w*)")
+                .Select(id => id.Groups[1].Value))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(s => s, StringComparer.Ordinal)
             .ToArray();
 
         // The guard on the precondition, not on a weaker form of the claim: a pattern that stopped matching
         // yields an empty set, and "none of zero ids is gone" is a green tick over nothing.
-        if (!Check("the interaction script's id lookups are found by pattern", derived.Length >= 12,
-                   $"matched {derived.Length} in {Path.GetFileName(script)} — the lookup syntax changed " +
-                   "and this check is now asserting almost nothing"))
+        if (!Check("the cases' id locators are found by pattern", derived.Length >= 12,
+                   $"matched {derived.Length} across {files.Length} file(s) in cases\\ — the locator " +
+                   "grammar changed and this check is now asserting almost nothing"))
             return;
 
         string[] gone = derived.Where(id => !owners.ContainsKey(id)).ToArray();
-        Check($"every id the interaction check drives still exists ({derived.Length}, derived)",
+        Check($"every id the cases drive still exists ({derived.Length}, derived)",
               gone.Length == 0,
               gone.Length == 0 ? "" : $"{gone.Length} gone — {string.Join(", ", gone)}: renamed without " +
-                                      "updating scripts\\Check-Interaction.ps1, whose lookups are strings");
+                                      "updating cases\\, whose locators are strings no compiler reads");
 
-        // The other kind: assembled per pane suffix, so no literal exists to match. Both halves are
-        // asserted — that the control is still named that, and that the script still builds it that way,
-        // since a rename of the *pattern* would leave this list pointing at ids nobody looks up any more.
-        string[] composed = { "UsedS", "UsedW", "ResetS", "ResetW", "LiveHeadS", "LiveHeadW" };
-        string[] lostControl = composed.Where(id => !owners.ContainsKey(id)).ToArray();
-        Check($"every id it builds per pane still exists ({composed.Length}, explicit)",
-              lostControl.Length == 0,
-              lostControl.Length == 0 ? "" : $"{lostControl.Length} gone — {string.Join(", ", lostControl)}");
-
-        string[] lostPattern = new[] { "Used", "Reset", "LiveHead" }
-            .Where(p => !text.Contains($"\"{p}$sfx\"", StringComparison.Ordinal)).ToArray();
-        Check("and the script still assembles them from $sfx", lostPattern.Length == 0,
-              lostPattern.Length == 0 ? "" : $"{string.Join(", ", lostPattern)} no longer built that way — " +
-                                             "the explicit list above is stale and asserts nothing");
+        // What WW86 took away with the script, and it is worth saying rather than leaving as an absence:
+        // the harness assembled six of these per pane — `"Used$sfx"` and its siblings — so no literal
+        // existed to match and this file carried the list by hand, plus a second check that the pattern
+        // was still the pattern. A case names the id it addresses, so both are gone and neither can be
+        // the stale list the explicit one was.
     }
 
     /// <summary>

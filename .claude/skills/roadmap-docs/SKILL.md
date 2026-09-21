@@ -108,7 +108,7 @@ next*.
 | Repo layout — where a file lives | **P** | the `src\` folders, `build\`, `scripts\` |
 | Input, focus, and being readable | **Q** | `WpfInputBridge`, keyboard, UI Automation names |
 | The window shell and its navigation | **Y** | `MainWindow`, page hosting, `PageWindow` |
-| Verification — the checks that prove a change | **AI** | `--selftest`, `Check-Interaction.ps1`, previews, captures, fixtures |
+| Verification — the checks that prove a change | **AI** | `--selftest`, the cases in `cases\`, previews, captures, fixtures |
 | Working here — the repo's own docs and flags | **AJ** | `AGENTS.md`, the skills, `dev-flags`, `file-map`, the budgets |
 
 Verification and the repo's own docs are this project's two most active themes and had no row of their

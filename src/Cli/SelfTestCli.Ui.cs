@@ -736,7 +736,7 @@ internal static partial class SelfTestCli
 
     /// <summary>
     /// An <c>x:Name</c> is a control's identity to everything outside the compiler — UI Automation, a
-    /// screen reader, <c>Check-Interaction.ps1</c> — and WPF scopes it per XAML file, so two pages could
+    /// screen reader, a case's locator — and WPF scopes it per XAML file, so two pages could
     /// each call a control <c>ProfileCombo</c> and the C# in both would still compile. An id lookup then
     /// has two candidates and <c>FindFirst</c> returns whichever the tree reaches first, which depends on
     /// which destinations have been built: a page is built on its first visit and then kept collapsed, so
@@ -789,8 +789,8 @@ internal static partial class SelfTestCli
               shared.Length == 0,
               shared.Length == 0 ? "" : $"{shared.Length} shared — {string.Join("; ", shared)}");
 
-        InteractionIds(owners);
-        InteractionCasesDocumented();
+        CaseIds(owners);
+        CaseFilesDocumented();
     }
 
     /// <summary>

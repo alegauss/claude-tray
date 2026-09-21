@@ -86,13 +86,17 @@ jobs:
   # one shipped (T135) while every screenshot ever taken of them looked perfect. Until now it ran only when
   # somebody chose to run it.
   #
-  # Why only `-Case Keyboard`. `Panes`, `Profiles` and `Names` need a rendered report, which needs
-  # credentials and a machine's own transcripts; `Menu` needs the notification area, and `Switch` needs
-  # that AND a second profile to switch to, so on a runner it could only ever report DEGRADED. `Keyboard`
-  # needs
-  # none of it — it launches `--settings-tray` against an unconfigured install, clicks a sidebar item,
-  # types into a TextBox, Tabs, and drives a Slider with an arrow key. Adding a case here means first
-  # answering what it needs that a runner does not have.
+  # Why only the `keyboard` tag. The report cases need credentials and a machine's own transcripts; the
+  # tray ones need the notification area, and the switching ones need that AND a second profile to switch
+  # to, so on a runner each could only report a hole. `keyboard` needs none of it — it launches
+  # `--settings-tray` against an unconfigured install, clicks a sidebar item, types into a TextBox, Tabs,
+  # and drives a Slider with an arrow key. Adding a tag here means first answering what it needs that a
+  # runner does not have: `smoke` is the wider one, and nothing has measured it on this runner yet.
+  #
+  # WW86 changed what runs it and not what it proves. It was `Check-Interaction.ps1 -Case Keyboard`, a
+  # harness of 3,004 lines in which every case decided for itself how long to wait, how many attempts an
+  # act gets and what a missing read-back does to the exit code. The cases are data now and winwright owns
+  # all of it, including the third verdict this step used to spell as exit 2.
   #
   # A separate job, not a step on `selftest`: this one depends on the runner having a desktop that
   # synthesised input reaches, so a red here means something different from a red there, and the job
@@ -126,18 +130,21 @@ jobs:
       - name: Build
         run: dotnet build -c Release --nologo -warnaserror
 
-      # Exit 2 is DEGRADED (T193): everything that ran passed, but an assertion could not be evaluated.
-      # Treated as a failure here on purpose — the whole point of running this in CI is that nobody is
-      # watching, so "proved less than it looks like" must not be a green tick.
-      - name: Interaction check (Keyboard)
+      # Debug as well, and it is the cases' own doing: `winwright.json` names the Debug output as the
+      # binary a case launches, because a case carries no path and the loop a person runs builds Debug.
+      # The Release build above is what the toast step drives, and the two are different artifacts worth
+      # building twice rather than one path written into a data file.
+      - name: Build what the cases launch
+        run: dotnet build -c Debug --nologo -warnaserror
+
+      # A hole is everything that ran passing while something could not be evaluated. The runner reports
+      # it as a failure on purpose — the whole point of running this in CI is that nobody is watching, so
+      # "proved less than it looks like" must not be a green tick.
+      - name: Interaction cases (keyboard)
         shell: pwsh
-        run: |
-          $exe = 'bin\Release\net10.0-windows\win-x64\ClaudeTray.exe'
-          & powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 `
-              -Case Keyboard -Exe $exe
-          $code = $LASTEXITCODE
-          if ($code -eq 2) { throw "interaction check DEGRADED (exit 2) - an assertion did not run" }
-          if ($code -ne 0) { throw "interaction check failed (exit $code)" }
+        env:
+          CLAUDETRAY_CASES: keyboard
+        run: dotnet test tests\ClaudeTray.Cases --configuration Debug --nologo
 
       # Every toast card, in every language, asked whether it fits its own frame (T257) and whether it
       # drew a quota meter exactly where its row's reading carries a quantity (T291). On this job rather

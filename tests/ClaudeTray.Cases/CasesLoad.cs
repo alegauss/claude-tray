@@ -473,6 +473,36 @@ public sealed class CasesLoad
             one => Assert.Equal("enabled", one.Expected));
     }
 
+    [Fact]
+    public void The_icon_case_asserts_the_left_click_claim_the_script_made()
+    {
+        // WW86, and the last of the harness's claims to become one. T158 clicked the icon and then
+        // read the nav strip's three destinations off the window that opened, because a window with
+        // the right caption and nothing in it passes a title-only check.
+        var loaded = ScenarioFile.Across(ScenarioFile.LoadAll(Path.Combine(Repository(), "cases")));
+        var icon = Assert.Single(
+            loaded,
+            one => one.Name == "a left click on the icon opens the window it is the way into");
+
+        Assert.True(icon.Justified, "a case that says nothing about why it exists says nothing about deleting it");
+
+        // The gesture, on the icon this run put in the tray and never a resident one.
+        var click = Assert.Single(icon.Steps, one => one.ClicksTheTrayIcon);
+        Assert.Equal("[check]", click.Tray);
+
+        // Before it, the absence — which is what makes the three readings after it mean the click
+        // opened something. The script scoped that to the pid it had launched; a resident fixture's
+        // locators resolve against the desktop, so this is what stands in for the scoping.
+        Assert.True(icon.Steps[0].Absent, "the case reads the window's absence before clicking anything");
+        Assert.Single(icon.Steps.TakeWhile(one => !one.ClicksTheTrayIcon));
+
+        // And the identity, by key rather than by words: the three destinations read differently in
+        // each of the languages this application ships.
+        Assert.Equal(
+            ["main.nav.statistics", "main.nav.context", "main.nav.settings"],
+            icon.Steps.Select(one => one.Label).OfType<string>());
+    }
+
     /// <summary>
     /// This repository's root. WW83 moved the walk to <see cref="Checkout" />, where the other class
     /// reads it from too — the copy here and the copy there had no way to disagree and no reason to

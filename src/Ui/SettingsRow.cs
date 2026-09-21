@@ -100,8 +100,8 @@ internal sealed class SettingsRow : ContentControl
     /// and the control carrying that relation, the page is a flat run of labelled controls where the
     /// visual design is label↔control pairs — and a check sweeping the panel can only assert that a
     /// control announces <em>something</em>, so a rule handing every control the <b>wrong</b> header
-    /// would pass. The group is what makes the pairing readable, to a person and to
-    /// <c>Check-Interaction.ps1</c> alike.</para>
+    /// would pass. The group is what makes the pairing readable, to a person and to the case that
+    /// claims it alike.</para>
     ///
     /// <para>A headerless row stays out of the control view rather than adding an unnamed group to
     /// announce: its children reparent to the nearest control-view ancestor, so nothing is lost. So

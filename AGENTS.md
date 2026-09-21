@@ -100,7 +100,7 @@ and adding one would tie a window to its folder.
    without a screenshot.
 6. **An `x:Name` is unique across the app, not per XAML file.** WPF scopes names per file, so two pages
    could each name a control `ProfileCombo` and both compile — but the name is the control's identity to
-   everything outside the compiler (UI Automation, screen readers, `Check-Interaction.ps1`), and an id
+   everything outside the compiler (UI Automation, screen readers, a case's locator), and an id
    lookup returns whichever the tree reaches first, which depends on the pages a run happened to build:
    a check can drive the other control and go on passing (T192). Name it for its page
    (`StatsProfileCombo` / `CcProfileCombo`); `--selftest` asserts it, so a collision is a red build.
@@ -109,8 +109,8 @@ and adding one would tie a window to its folder.
    environments — that difference is how "no keyboard input in any window" (T135) survived every
    preview, capture and screenshot this repo has ever taken. Anything that involves typing, Tab, Esc or
    a shortcut must be verified under **`--settings-tray`**, which hosts the window the way the tray
-   does — and the way to do that is **`scripts\Check-Interaction.ps1`**, not a scratch script. See the
-   interaction loop below.
+   does — and the way to do that is **a case in `cases\`**, not a scratch script. See the interaction
+   loop below.
 
 ## Visual verification workflow (the predictability loop)
 
@@ -123,47 +123,40 @@ layered window, and only the application has its tree.
 
 ## Interaction verification (the loop a capture cannot close)
 
-A picture proves layout. It cannot prove a key press arrives (convention 7, T135).
-`scripts\Check-Interaction.ps1` drives the real UI through UIA and asserts a pass/fail.
-**Three exit codes (T193): `0` all ran and passed, `2` DEGRADED —
-what ran passed but something could not be evaluated, `1` a failure**; the summary names what did not.
+A picture proves layout. It cannot prove a key press arrives (convention 7, T135). The files in
+`cases\` drive the real UI through winwright, which owns every wait, retry and read-back and answers
+**three verdicts: passed, failed, and a hole — a check that could not run, named with the precondition
+that was absent**. A hole is never a pass, and every case file is named below (T201, WW86).
 
 ```
-powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 `
-  [-Case Keyboard|Menu|Profiles|Link|Panes|Sessions|Names|Switch] [-Lang pt-BR] [-UseRunning]  # none runs all
+dotnet test tests\ClaudeTray.Cases                              # all of them
+set CLAUDETRAY_CASES=menu && dotnet test tests\ClaudeTray.Cases # one tag, or case:<name>
+preview.cmd shell                                               # one case, and the pictures it takes
 ```
 
-All eight are below; listing *three* is how two stayed script-only (T201). The header is the full text.
-
-- **Keyboard** launches `--settings-tray` (the WinForms pump), clicks a sidebar item, types into a `TextBox`
-  and reads it back through `ValuePattern`, Tabs out, drives a `Slider` with an arrow key. **`check.yml`
-  runs it on every push** (T194): synthesised input reaches a hosted runner and it needs no credentials.
-- **Panes** and **Names** (`--main`) need no second profile, so with Keyboard they are what a one-profile
-  machine and CI run. Panes asserts the report can be *read* — tab headers, the pane's used %, reset caption
-  and live headline in the tree — the only check that would notice `PART_SelectedContentHost` going missing
-  again (T176); Names, what controls *announce*, rows labelled by a neighbouring element included (T175).
-- **Sessions** (`--main`) drives the pane a capture cannot finish checking (T359): a row click has to
+- **keyboard** launches `--settings-tray` (the WinForms pump), clicks a sidebar item, types into a
+  `TextBox` and reads it back through `ValuePattern`, Tabs out, drives a `Slider` with an arrow key.
+  **`check.yml` runs it on every push** (T194): synthesised input reaches a hosted runner unattended.
+- **panes** and **names** (`--main`) need no second profile, so with keyboard they are what a one-profile
+  machine and CI run. panes asserts the report can be *read* — tab headers, the pane's used %, reset
+  caption and live headline in the tree, the only check that would notice `PART_SelectedContentHost`
+  going missing again (T176); names, what controls *announce*, rows labelled by a neighbour included.
+- **sessions** (`--main`) drives the pane a capture cannot finish checking (T359): a row click has to
   unfold its call tree *into the tree* (T329), and the ⓘ note behind the list-price figure lives in a
-  `Popup` — its own window, which `--capture-stats` cannot photograph at all. Waits for the scan; no
-  rows is **DEGRADED**, never a pass.
-- **Profiles** (`--main`) is the only thing that *drives* the page's picker: **0 → 1 → 0** through the real
-  `ComboBox`, reading the report at each stop — the same profile reads the same coming back, the middle
-  differs, the headline never "unavailable" at a settled stop (T165). Below two: **DEGRADED**, no skip.
-- **Menu** launches the tray, opens the notification icon's menu, reads its entries, then expands *Open
-  Claude Code* for the per-profile ones. One rule, three refusals — **the check must look at what you
-  named**: a resident tray means `-Exe --second-tray` beside it (T237); `-UseRunning` matches the language
-  that tray resolved, not a `-Lang` it never got; a resident binary that is not `-Exe` is DEGRADED (T220, T236).
-- **Switch** drives the submenu entry that moves the **icon**'s account — `AdoptMonitored`, not the
-  page's picker above; **DEGRADED** below two (T294).
-- **Link** swaps the linking card's two side pickers: the plan must *move*, and one profile on both
-  sides is refused with the button disabled — a seeded pair photographs right either way (T370).
-- **An assertion that could have run and didn't is `Unchecked`, never an `Info` line.** T166's timing hung
-  off `Combo-Select`'s UIA route alone, so the day `Select()` began throwing, the run would print a note and
-  stay green (T193). Both halves are needed: a fallback reaching its target in **one selection change**
-  (`Home`/`End` anchor), so the observation holds either route, and `Unchecked` counting what did not run.
-  An absent *precondition* — what can never run here — stays `Info`.
-- **Reading nothing is a FAIL, never a pass.** The script's header lists the UIA traps behind it — read
-  it before writing a check by hand.
+  `Popup` — its own window, which no copy of the screen can photograph.
+- **profiles** drives the page's picker **0 → 1 → 0** through the real `ComboBox`, reading the report at
+  each stop (T165); **link** swaps the linking card's two side pickers, where the plan must *move* and
+  one profile on both sides is refused with the button disabled (T370).
+- **menu** opens the notification icon's menu and reads its entries; **icon** left-clicks the icon and
+  reads the window that opens, which is the gesture most users make and nothing else here drives;
+  **switch** drives the submenu entry that moves the icon's account (`AdoptMonitored`, T294);
+  **switches** puts those entries in either position, on a fixture that says which; **environment**
+  drives the states this machine is never in.
+- **preview** is the capture set: the `--sample-*` flags, `preview.cmd`, and pictures under
+  `docs\_preview` that the application renders of its own tree rather than off the screen.
+- **A case says what it needs, and an absence is a hole.** A transcript to report on, a second profile,
+  the notification area: the run names what was missing and reports neither a pass nor a failure. A
+  fixture that draws no window is `resident`, and its locators resolve against the desktop.
 - **A custom `TabControl` template must name its content host `PART_SelectedContentHost`.** WPF finds
   the selected tab's content by that exact name, and the `TabItem` peer asks for it to attach the pane's
   children — so an unnamed `ContentPresenter` leaves the **whole body** of every tab out of the UI

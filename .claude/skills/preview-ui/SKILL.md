@@ -80,20 +80,21 @@ window. Those are different *input* environments, and the difference is not acad
 every screenshot looked perfect, because mouse input is `WndProc`-driven and works either way.
 
 So this loop proves *layout*, never *input*. For anything that involves typing, Tab or a shortcut, run
-the interaction harness — it hosts the window under `--settings-tray` (the tray's own pump) and drives
-it with UI Automation, so the result is a pass/fail rather than an impression:
+the cases — they host the window under `--settings-tray` (the tray's own pump) and drive it through
+winwright, so the result is a verdict rather than an impression:
 
 ```
 dotnet build -c Debug
-powershell -ExecutionPolicy Bypass -File scripts\Check-Interaction.ps1 -Case Keyboard
+set CLAUDETRAY_CASES=keyboard && dotnet test tests\ClaudeTray.Cases
 ```
 
-It navigates by clicking the sidebar, types into a `TextBox` and reads the value back through
-`ValuePattern`, Tabs out of it, and drives a `Slider` with an arrow key. `-Case Menu` does the same
-for the tray menu's entries. Add new checks **to that script**, not to a scratch one — its header
-documents the UIA traps (no clickable point on the tray icon, collapsed WPF panes missing from the
-tree, the menu not always opening) that otherwise get rediscovered every time. To see the window by
-hand instead:
+That one navigates by clicking the sidebar, types into a `TextBox` and reads the value back through
+`ValuePattern`, Tabs out of it, and drives a `Slider` with an arrow key; `menu` and `icon` do the same
+for the tray's entries and for the click that opens the window. Add a new check **to a case file in
+`cases\`**, not to a scratch script — the engine owns every wait, retry and read-back, and the UIA
+traps behind them (no clickable point on the tray icon, collapsed WPF panes missing from the tree, a
+menu that does not always open) are its business rather than something to rediscover. To see the
+window by hand instead:
 
 ```
 dotnet run -- --settings-tray ClaudeCode     # the window hosted the way the tray hosts it
