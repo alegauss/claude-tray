@@ -1,0 +1,316 @@
+{
+  // WW86. The Profile submenu's two switches, and the three things they decide, migrated out of
+  // Assert-ProfileSubmenu and Invoke-MenuCase in scripts/Check-Interaction.ps1.
+  //
+  // Auto-follow (T126) and the machine-wide switch (T171) decide each switch's own position, the
+  // sentence on a profile entry saying how far a pick reaches, whether Open Claude Code is a submenu
+  // or a command (T146), and whether a hand pick pins the icon (T139). The script read the position
+  // off `--profiles` and checked whatever this machine was in, so it only ever saw one side of each
+  // switch, and which side depended on the desk. The guest holds the defaults, so the other side had
+  // never been driven.
+  //
+  // Here the fixture says the position, through `--sample-switches`, which lays it over the settings
+  // this machine has and makes the process an observer so nothing is saved. Each position is
+  // claimed where it is put, and none is read off the machine.
+  //
+  // What is not here, and why. T366's note naming the directory two profiles share needs two config
+  // dirs behind one `projects` tree. The bench is one machine that every case in this repository runs
+  // against, and a junction on it would change what the linking, sessions and profile cases are about,
+  // so that half is dropped. The half that needs no junction is claimed below: on the one fixture where
+  // the note could be drawn, it is not, because nothing on the bench shares a tree. The tooltip naming a
+  // switched-to profile is accounted for in switch.cases.json.
+  "fixtures": [
+    {
+      // `--second-tray` and `--observing` for the reason every tray fixture in this repository has
+      // them: the icon's tooltip is tagged `[check]`, and nothing this process does is written down.
+      "name": "a tray of this run's own, with both switches off",
+      "arguments": ["--second-tray", "--observing", "--lang", "en"],
+
+      // The position, as an environment the engine carries onto the launch and onto every read-out
+      // this case compares against, so the window and the application's answers are about one
+      // machine.
+      "environment": "none",
+      "flag": "--sample-switches",
+
+      "resident": true,
+      "language": "en",
+
+      // Not shared: every case here opens a menu and leaves the shell holding it until it is read.
+      "shareable": false
+    },
+    {
+      "name": "a tray of this run's own, with the machine-wide switch on",
+      "arguments": ["--second-tray", "--observing", "--lang", "en"],
+      "environment": "sync",
+      "flag": "--sample-switches",
+      "resident": true,
+      "language": "en",
+      "shareable": false
+    },
+    {
+      "name": "a tray of this run's own, with auto-follow on",
+      "arguments": ["--second-tray", "--observing", "--lang", "en"],
+      "environment": "follow",
+      "flag": "--sample-switches",
+      "resident": true,
+      "language": "en",
+      "shareable": false
+    }
+  ],
+
+  "cases": [
+    {
+      "name": "with both switches off, each says so and a pick says it moves the tray only",
+      "catches": "a switch announcing the position it is not in, or a scope sentence that promises Windows when only the tray moves, which a person reads at the point of deciding",
+      "filed": "WW86",
+      "tags": ["menu", "tray", "profiles", "switches"],
+      "fixture": "a tray of this run's own, with both switches off",
+
+      // The submenu is hidden below two profiles, so there is nothing to open.
+      "needs": ["a second profile"],
+
+      "steps": [
+        {
+          "tray": "[check]",
+          "act": "open tray menu",
+          "named": "the icon's menu opens"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profiles}\"]",
+          "act": "open submenu",
+          "named": "the profile submenu opens to Right"
+        },
+        {
+          // T234. A switch announces its position as a word in front of its description, because a
+          // WinForms menu entry exposes a toggle only while it is checked, so "off" and "not a switch"
+          // were the same silence. The word is derived, never typed.
+          "locator": "Menu > MenuItem[name=\"{menu.profileFollow}\"]",
+          "act": "read",
+          "reads": "description",
+          "beginsWithLabel": "menu.switchOff",
+          "named": "auto-follow says it is off"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profileEnvSync}\"]",
+          "act": "read",
+          "reads": "description",
+          "beginsWithLabel": "menu.switchOff",
+          "named": "the machine-wide switch says it is off"
+        },
+        {
+          // T171 and T234. How far a pick reaches is said on the entry a person is about to pick,
+          // at the end of its description, and here that is the tray alone. The icon's own entry,
+          // addressed by what the application reports and not by a name.
+          "locator": "Menu > MenuItem[nameStarts=\"{report:iconFollows}\"]",
+          "act": "read",
+          "reads": "description",
+          "endsWithLabel": "menu.profileScopeTray",
+          "named": "a pick says it moves the tray only"
+        }
+      ]
+    },
+
+    {
+      "name": "with the machine-wide switch off, Open Claude Code lists this machine's profiles",
+      "catches": "a launch submenu that stops being built, so a person with several profiles can start Claude Code only in whichever one the tray inherited",
+      "filed": "WW86",
+      "tags": ["menu", "tray", "profiles", "switches"],
+      "fixture": "a tray of this run's own, with both switches off",
+      "needs": ["a second profile"],
+
+      "steps": [
+        {
+          "tray": "[check]",
+          "act": "open tray menu",
+          "named": "the icon's menu opens"
+        },
+        {
+          // T123. Addressed as the entry that carries a submenu, so a command wearing the same words
+          // is not what this opens.
+          "locator": "Menu > MenuItem[name=\"{menu.openClaude}\"][pattern=ExpandCollapse]",
+          "act": "open submenu",
+          "named": "Open Claude Code opens to Right"
+        },
+        {
+          // Each profile the application reports is inside an entry, which may carry the sign-in
+          // marking beside it. The set is this machine's and never typed.
+          "locator": "Menu > MenuItem",
+          "act": "read",
+          "coversWithin": "profiles",
+          "named": "every profile this machine has can be launched from it"
+        }
+      ]
+    },
+
+    {
+      "name": "with the machine-wide switch on, it says so, a pick says it reaches Windows, and Open Claude Code is one command",
+      "catches": "a pick promising the tray only while it rewrites the variable every new session reads, or a launch submenu offering profiles the environment has already decided between",
+      "filed": "WW86",
+      "tags": ["menu", "tray", "profiles", "switches"],
+      "fixture": "a tray of this run's own, with the machine-wide switch on",
+      "needs": ["a second profile"],
+
+      "steps": [
+        {
+          "tray": "[check]",
+          "act": "open tray menu",
+          "named": "the icon's menu opens"
+        },
+        {
+          // T146. The command is there, and it is one: the environment carries the profile, so a
+          // submenu of profiles would be a choice the switch already made. Two steps because each
+          // alone passes on the wrong menu. The first on a menu with no such entry would fail, and
+          // the second on it would pass by finding nothing.
+          //
+          // `enabled` rather than a name: the locator addressed the front of the name, and the
+          // command may carry the sign-in marking after it.
+          "locator": "Menu > MenuItem[nameStarts=\"{menu.openClaude}\"]",
+          "act": "read",
+          "reads": "enabled",
+          "expect": "enabled",
+          "named": "Open Claude Code is on the menu"
+        },
+        {
+          "locator": "Menu > MenuItem[nameStarts=\"{menu.openClaude}\"][pattern=ExpandCollapse]",
+          "act": "read",
+          "absent": true,
+          "named": "and it opens no submenu"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profiles}\"]",
+          "act": "open submenu",
+          "named": "the profile submenu opens to Right"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profileEnvSync}\"]",
+          "act": "read",
+          "reads": "description",
+          "beginsWithLabel": "menu.switchOn",
+          "named": "the machine-wide switch says it is on"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profileFollow}\"]",
+          "act": "read",
+          "reads": "description",
+          "beginsWithLabel": "menu.switchOff",
+          "named": "auto-follow still says it is off"
+        },
+        {
+          "locator": "Menu > MenuItem[nameStarts=\"{report:iconFollows}\"]",
+          "act": "read",
+          "reads": "description",
+          "endsWithLabel": "menu.profileScopeWindows",
+          "named": "a pick says it reaches Windows too"
+        }
+      ]
+    },
+
+    {
+      "name": "with auto-follow on, a pick by hand pins the icon and Resume following undoes it",
+      "catches": "a pin nobody can see or undo, so the icon stops following the work and the menu offers no reason and no way back",
+      "filed": "WW86",
+      "tags": ["menu", "tray", "profiles", "switches"],
+      "fixture": "a tray of this run's own, with auto-follow on",
+      "needs": ["a second profile"],
+
+      "steps": [
+        {
+          "tray": "[check]",
+          "act": "open tray menu",
+          "named": "the icon's menu opens"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profiles}\"]",
+          "act": "open submenu",
+          "named": "the profile submenu opens to Right"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profileFollow}\"]",
+          "act": "read",
+          "reads": "description",
+          "beginsWithLabel": "menu.switchOn",
+          "named": "auto-follow says it is on"
+        },
+        {
+          // T139. Nothing is pinned yet, so there is nothing to resume. This is the half the script
+          // turned into a failure only when the two disagreed. Here it is a claim before the pick,
+          // so the offer after it cannot have been there all along.
+          "locator": "Menu > MenuItem[name=\"{menu.profileUnpin}\"]",
+          "act": "read",
+          "absent": true,
+          "named": "nothing offers to resume following before a pick"
+        },
+        {
+          // T366. The note saying profiles share their transcripts is worked out only while auto-follow
+          // is on, so this is the one fixture where a note drawn in error could show. Nothing on the
+          // bench shares a tree, so there is no note. The script made this half a failure too: a note
+          // drawn where nothing is shared needs no junction to observe.
+          "locator": "Menu > MenuItem[nameStarts=\"{menu.profileSharedTree}\"]",
+          "act": "read",
+          "absent": true,
+          "named": "no note says the profiles share their transcripts, because none do"
+        },
+        {
+          // The pick, by hand, of the profile the icon does not follow. Named by what the application
+          // reports, as the switch case does. It is an observing tray, so this moves nothing on disk.
+          "locator": "Menu > MenuItem[nameStarts=\"{report:otherProfile}\"]",
+          "act": "invoke",
+          "named": "the profile the icon does not follow is picked by hand"
+        },
+        {
+          "tray": "[check]",
+          "act": "open tray menu",
+          "named": "the menu reopens to read the pin"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profiles}\"]",
+          "act": "open submenu",
+          "named": "the profile submenu opens after the pick"
+        },
+        {
+          "locator": "Menu > MenuItem[nameStarts=\"{report:otherProfile}\"]",
+          "act": "read",
+          "reads": "name",
+          "endsWithLabel": "menu.profilePinned",
+          "named": "the picked profile says it is pinned"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profileUnpin}\"]",
+          "act": "read",
+          "reads": "enabled",
+          "expect": "enabled",
+          "named": "and the submenu offers the way back"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profileUnpin}\"]",
+          "act": "invoke",
+          "named": "resume following"
+        },
+        {
+          "tray": "[check]",
+          "act": "open tray menu",
+          "named": "the menu reopens to read the undo"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profiles}\"]",
+          "act": "open submenu",
+          "named": "the profile submenu opens after resuming"
+        },
+        {
+          "locator": "Menu > MenuItem[name=\"{menu.profileUnpin}\"]",
+          "act": "read",
+          "absent": true,
+          "named": "there is nothing left to resume"
+        },
+        {
+          // Whichever profile the icon went back to, the pin is gone from the one that had it.
+          "locator": "Menu > MenuItem[nameStarts=\"{report:otherProfile}\"]",
+          "act": "read",
+          "reads": "name",
+          "notEndsWithLabel": "menu.profilePinned",
+          "named": "and the profile that was pinned no longer says so"
+        }
+      ]
+    }
+  ]
+}

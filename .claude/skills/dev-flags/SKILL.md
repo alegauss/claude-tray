@@ -333,7 +333,7 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   session-index.json rewritten. Stripped before anything parses.
 ```
 
-## Three flags that go with anything
+## Flags that go with anything
 
 ```
 --lang <code>                         # render this run in en | pt-BR | pt-PT | fr | es | auto, whatever
@@ -367,6 +367,18 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   with no flag typed (T238) — a fixture nothing routine reaches is
                                       #   coverage nobody has. `-SampleEnv <mode>` pins the run to one
                                       #   instead; both it and the sweep are refused with -UseRunning.
+--sample-switches <mode>              # answer as if the Profile submenu's two switches were in this
+                                      #   position, and WRITE NOTHING (WW86):
+                                      #   none   | both off, the defaults: a pick moves the tray only
+                                      #   follow | auto-follow on, so a pick by hand pins the icon (T139)
+                                      #   sync   | the machine-wide switch on: a pick reaches Windows (T171)
+                                      #            and Open Claude Code is a command, not a submenu (T146)
+                                      #   both   | both on
+                                      #   Laid over whatever Settings.Load read, for every caller, and it
+                                      #   makes the process an observer: a sampled setting that could be
+                                      #   saved would be written into somebody's settings.json. Also
+                                      #   spelled --sample-switches=<mode>, which is how a case fixture's
+                                      #   `environment` reaches the window and its read-outs alike.
 ```
 
 ## Adding a flag

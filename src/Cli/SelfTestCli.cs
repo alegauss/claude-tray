@@ -359,6 +359,11 @@ internal static partial class SelfTestCli
             Temp(Tasks);
         }
 
+        // WW86. Above the two one-way sections below because it samples nothing: a refused mode is
+        // asserted to leave the process as it was, and the positions are laid over a Settings of their own.
+        Section("sampled switches — the Profile submenu's two switches in either position (Block AI)");
+        SampledSwitches();
+
         // Last, and nothing may be added after it: sampling the environment is one-way for the process
         // (T231), so every section that reads the machine's real CLAUDE_CONFIG_DIR has to be above.
         Section("sampled environment — the states this machine is never in (Block AI)");

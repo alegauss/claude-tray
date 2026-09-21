@@ -399,6 +399,47 @@ public sealed class CasesLoad
             row.Steps.Select(one => one.Label).OfType<string>());
     }
 
+    [Fact]
+    public void The_switch_cases_put_each_position_in_the_fixture_and_read_none_off_the_machine()
+    {
+        // WW86. The script read the two switches' positions off `--profiles`, so it checked whatever
+        // this machine was in, and on the guest that was always both off. Here the fixture says the
+        // position, and every claim about a switch is the position its own fixture put it in.
+        var loaded = ScenarioFile.Across(ScenarioFile.LoadAll(Path.Combine(Repository(), "cases")));
+        var switches = loaded.Where(one => one.Tags.Contains("switches")).ToList();
+
+        Assert.Equal(4, switches.Count);
+        Assert.All(switches, one => Assert.True(one.Justified, "a case that says nothing about why it exists says nothing about deleting it"));
+        Assert.All(switches, one => Assert.Equal(["a second profile"], one.Needs));
+        Assert.All(switches, one => Assert.Equal("--sample-switches", one.Fixture.Flag));
+        Assert.All(switches, one => Assert.True(one.Fixture.Resident));
+        Assert.All(switches, one => Assert.False(one.Fixture.Shareable));
+
+        // Three positions driven, and the fourth, both on, is nothing any claim here needs.
+        Assert.Equal(
+            ["follow", "none", "sync"],
+            switches.Select(one => one.Fixture.Environment).Distinct().Order(StringComparer.Ordinal));
+
+        // Each switch's word matches what its fixture put it in, so a case cannot claim a position its
+        // fixture did not sample.
+        foreach (var one in switches)
+        {
+            foreach (var step in one.Steps.Where(step => step.BeginsWithLabel is not null))
+            {
+                var follows = step.Locator!.Text.Contains("{menu.profileFollow}", StringComparison.Ordinal);
+                var on = follows
+                    ? one.Fixture.Environment is "follow" or "both"
+                    : one.Fixture.Environment is "sync" or "both";
+                Assert.Equal(on ? "menu.switchOn" : "menu.switchOff", step.BeginsWithLabel);
+            }
+        }
+
+        // Nothing typed but the one reading that has two words: a value here would be this desk's.
+        Assert.All(
+            switches.SelectMany(one => one.Steps).Where(one => one.Expected is not null),
+            one => Assert.Equal("enabled", one.Expected));
+    }
+
     /// <summary>
     /// This repository's root. WW83 moved the walk to <see cref="Checkout" />, where the other class
     /// reads it from too — the copy here and the copy there had no way to disagree and no reason to

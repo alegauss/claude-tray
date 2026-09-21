@@ -201,6 +201,36 @@ internal static class Program
             }
         }
 
+        // WW86. `--sample-switches <mode>` puts the Profile submenu's two switches in a position this
+        // machine is not in, and makes the process an observer so the position is never saved. After the
+        // environment and not before it: observing samples the variable's real value, and sampling it
+        // first would be answering the question `--sample-env` is about to ask. Both spellings, for the
+        // reason the environment's has both: a winwright fixture declaring an `environment` reaches the
+        // application through `{flag}={environment}`, on the window and on every read-out alike.
+        int switchesAt = Array.IndexOf(args, "--sample-switches");
+        int switchesJoinedAt = Array.FindIndex(args, one => one.StartsWith("--sample-switches=", StringComparison.Ordinal));
+        if (switchesAt >= 0 || switchesJoinedAt >= 0)
+        {
+            string? mode;
+            if (switchesJoinedAt >= 0 && (switchesAt < 0 || switchesJoinedAt < switchesAt))
+            {
+                mode = args[switchesJoinedAt]["--sample-switches=".Length..];
+                args = args.Take(switchesJoinedAt).Concat(args.Skip(switchesJoinedAt + 1)).ToArray();
+            }
+            else
+            {
+                mode = switchesAt + 1 < args.Length ? args[switchesAt + 1] : null;
+                args = args.Take(switchesAt).Concat(args.Skip(switchesAt + (mode is null ? 1 : 2))).ToArray();
+            }
+
+            if (SwitchFixture.Apply(mode) is { } refusal)
+            {
+                Console.Error.WriteLine(refusal);
+                Environment.Exit(1);
+                return;
+            }
+        }
+
         // Adopt the profile whose numbers this process reads and writes, before any store is touched —
         // every one of them is keyed by it now (T125). The default config dir is the profile a bare
         // `claude` uses, which is the single series every installation has today. Choosing another

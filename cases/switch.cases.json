@@ -24,6 +24,14 @@
   // switch are `{report:...}` — what the application says the icon follows, and what it says the
   // icon does not follow — so the case reads on any machine with two profiles and on no machine
   // names one.
+  //
+  // WW86. One claim of the script's is not here, and it is dropped rather than waiting. After the
+  // switch the script read the icon's tooltip for the picked profile's name. That line is drawn only
+  // once the incoming account has a live reading, and only a signed-in account has one: the bench's
+  // profiles have no credentials, and the script itself reported the claim not checked on every run
+  // the guest ever gave it. Making it a need would put a precondition no reference machine can meet
+  // on this file, and the run would then be degraded on every desk that is not signed in. What says
+  // the switch landed is the mark moving, above.
   "fixtures": [
     {
       // `--second-tray` tags this icon's tooltip with `[check]`, which is how a run finds the tray

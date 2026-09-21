@@ -1014,6 +1014,38 @@ internal static partial class SelfTestCli
     };
 
     /// <summary>
+    /// The sampled switches (WW86): each mode puts both switches where its name says, and a mode that
+    /// does not exist samples nothing.
+    ///
+    /// <para>Nothing here applies a mode to this process. Applying one makes it an observer, which is
+    /// one-way and belongs to the last section of this check, so the positions are asserted on a
+    /// <see cref="Settings"/> of their own.</para>
+    /// </summary>
+    private static void SampledSwitches()
+    {
+        string? refusal = SwitchFixture.Apply("no-such-mode");
+        Check("an unknown --sample-switches mode is refused, not silently ignored", refusal is { Length: > 0 });
+        Check("and the refusal names every mode there is",
+              refusal is { } r && SwitchFixture.Modes.All(m => r.Contains(m.Name, StringComparison.Ordinal)));
+        Check("a refused mode samples nothing and observes nothing",
+              SwitchFixture.Sampled is null && !ProfileStore.Observing);
+
+        // Laid over the OPPOSITE of each position, so a Put that set one switch and forgot the other
+        // reads as wrong rather than as a default that happened to agree.
+        foreach (SwitchFixture.Mode mode in SwitchFixture.Modes)
+        {
+            Settings put = mode.Put(new Settings { FollowActiveProfile = !mode.Follow, SyncEnvironmentProfile = !mode.Sync });
+            Check($"'{mode.Name}' puts auto-follow {(mode.Follow ? "on" : "off")} and the machine-wide switch {(mode.Sync ? "on" : "off")}",
+                  put.FollowActiveProfile == mode.Follow && put.SyncEnvironmentProfile == mode.Sync);
+        }
+
+        // Two names for two positions each, all four of them: a catalogue missing one is a position no
+        // case can put the menu in.
+        Check("the four modes are the four positions",
+              SwitchFixture.Modes.Select(m => (m.Follow, m.Sync)).Distinct().Count() == 4);
+    }
+
+    /// <summary>
     /// The sampled environment (T231), and the one promise it has to keep: a process answering off a
     /// fixture writes nothing to the machine.
     ///

@@ -214,6 +214,8 @@ internal sealed class Settings
 
     private static string FilePath => Path.Combine(DataDir, "settings.json");
 
+    /// <remarks>Both paths go through <see cref="SwitchFixture.Over"/> (WW86), so a process started with
+    /// <c>--sample-switches</c> reads the sampled position whichever caller asks.</remarks>
     public static Settings Load()
     {
         try
@@ -222,11 +224,11 @@ internal sealed class Settings
                 JsonSerializer.Deserialize<Settings>(File.ReadAllText(FilePath)) is { } s)
             {
                 s.Clamp();
-                return s;
+                return SwitchFixture.Over(s);
             }
         }
         catch { /* corrupt or unreadable — fall back to defaults */ }
-        return new Settings();
+        return SwitchFixture.Over(new Settings());
     }
 
     /// <summary>

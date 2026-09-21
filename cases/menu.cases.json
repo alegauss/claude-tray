@@ -13,12 +13,11 @@
   //
   // What is NOT here, and is not dropped quietly:
   //
-  //   - `Assert-ProfileSubmenu`'s identity checks — which profile the icon follows, which the
-  //     environment selects, whether the two agree, and the two toggles' positions. Every field of
-  //     that is derived from the `--profiles` report by regex, and a report is not a set: WW291 gave
-  //     this application a read-out that answers one, and the *state* behind those marks still has
-  //     no derived form. It is the environment sweep's claim as much as this one's, so it belongs
-  //     with WW85 rather than here.
+  //   - `Assert-ProfileSubmenu`'s identity checks. Which profile the icon follows and where the mark
+  //     is went to switch.cases.json (WW83), and which one the environment selects to
+  //     environment.cases.json (WW85, WW478). The two switches, the scope sentence, the pin and Open
+  //     Claude Code's two shapes are in switches.cases.json (WW86), on a fixture that says the
+  //     switches' position rather than reading whatever this machine is in.
   //   - the count floor of `profiles + 2` on the Profile submenu. A count passes when the right
   //     number of wrong entries is present, which is the hardcoded list's failure on another axis;
   //     `coversWithin` below asserts the profiles by name instead, which is what the count stood in
