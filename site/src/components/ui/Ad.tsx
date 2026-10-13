@@ -33,6 +33,9 @@ export function Ad({ format = "in-content", slot }: { format?: AdFormat; slot: s
           // at the GitHub repository rather than at this domain, so the loader's host check
           // never recognises the page it is standing on.
           data-ad-exclude="claude-tray"
+          // Whoever reads this page uses Claude Code, so the slot draws only the other tools
+          // for it (roadkeep, commitclerk, winwright) and not the catalogue's search or CMS.
+          data-ad-tags="claude-code"
         />
       </div>
     </div>
