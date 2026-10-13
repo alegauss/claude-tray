@@ -926,6 +926,22 @@ the folders are for reading, not for the compiler.
 - **Only one icon even if launched twice** → by design: a named mutex enforces a single
   instance, so re-running the `.exe` while it's already in the tray just exits silently.
 
+## More tools by alegauss
+
+For Claude Code:
+
+- **[roadkeep](https://alegauss.github.io/roadkeep/)**: keeps ROADMAP, CHANGELOG and IMPROVEMENTS to one format, as a CLI and a Claude Code plugin.
+- **[commitclerk](https://alegauss.github.io/commitclerk/)**: Conventional Commits messages from your staged diff, in a single-file Python CLI.
+- **[polyweave](https://alegauss.github.io/polyweave/)**: a Claude Code plugin that makes a game's 3D assets, sounds and names by declaring what each has to satisfy.
+
+For Windows developers:
+
+- **[winwright](https://alegauss.github.io/winwright/)**: drives a Windows desktop app from a test and reports what was actually observed.
+- **[FreeWilly](https://alegauss.github.io/freewilly/)**: Docker on Windows without Docker Desktop, with no admin prompt and no telemetry.
+- **[Quickshell](https://alegauss.github.io/quickshell/)**: an SSH client for Windows with sessions, keys, SFTP and tunnels, and without the rest of the suite.
+
+All of them: [alegauss.github.io](https://alegauss.github.io/)
+
 ## License
 
 [Apache License 2.0](LICENSE) © 2026 Alexandre Oliveira. Unofficial, community-built — not
