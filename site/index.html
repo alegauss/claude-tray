@@ -3,6 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6HG45Q9BHP"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-6HG45Q9BHP');
+    </script>
     <link rel="icon" type="image/png" href="/claude-tray/logo.png" />
 
     <!--
@@ -31,7 +40,8 @@
       content="A native Windows tray monitor for your Claude Code usage. A crisp DPI-aware icon, burn-rate projection, per-session cost at API list prices and a context audit — computed on your own machine, with no API key to paste."
     />
 
-    <!-- The one host this page reaches: the author's own ad network. The loader is fetched
+    <!-- Besides Google Analytics (the tag at the top of this head), the one host this page
+         reaches: the author's own ad network. The loader is fetched
          by the slot component rather than from here, so nothing is requested until a slot
          exists and the theme it should draw in is known. The hint is all this head needs. -->
     <link rel="preconnect" href="https://ads.japode.com" />
