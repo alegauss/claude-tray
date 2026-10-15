@@ -830,3 +830,30 @@ maintained the same way instead of each carrying its own conventions.
 T369 finished the shape by drawing what the other three have and this one did not: a band closing
 the hero and opening the footer, whose motif is the product's own subject. Here that is the icon —
 bars rising from a floor, with the even-pace line ruled across them.
+
+## CIV CIV Danger is said, not only coloured (Block AM) (T388)
+
+When the projection says a window will run out before it resets, the only signal is the fill bar
+turning red. That works only if you are looking at the tray. `Settings.FlashWarnThreshold` flashes
+the icon at 90%, off by default, which is a level and not a verdict. The reset toasts (Block E) only
+ever bring good news.
+
+The competitors on winget close this gap. A reading of 28 Claude quota monitors there on 2026-10-15
+found that nine send a notification near the limit. OpenTokenUsage sends one "when you're on pace to
+run out before a reset", and jens-duttke's monitor alerts only "when usage outpaces elapsed time".
+This tray is the one that sees danger coming and keeps quiet about it. The comparison is at
+visibility `drafts/VS30-concorrentes.md`.
+
+The design: one toast on the transition into danger, per window and per reset cycle, with the same
+card as the reset toasts and no confetti. It says when the window would run out at the current pace
+and when it resets. It fires again only after the verdict has left danger and come back, so a
+reading that flickers does not nag. There is one Settings toggle, on by default, beside the reset
+ones.
+
+The trigger is the wall-clock verdict that already colours the icon (pace line for the week, burn
+rate for 5h and extra). It is not the activity-shaped projection. The non-goal "No activity-aware
+tray notification" (T87) stays untouched: the shape changes what the chart says, and this toast
+interrupts only on what the icon already shows.
+
+Done when a preview (`--toast danger`) renders it, the interaction check covers the once-per-cycle
+rule, and all five `lang/*.json` carry the strings.
