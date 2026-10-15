@@ -11,7 +11,7 @@ PackageUrl: https://alegauss.github.io/claude-tray/
 License: Apache-2.0
 LicenseUrl: https://github.com/alegauss/claude-tray/blob/main/LICENSE
 Copyright: Copyright (c) 2026 Alexandre Oliveira
-ShortDescription: Monitor não oficial de uso do Claude Code na bandeja do Windows — um ícone nítido e com reconhecimento de DPI mostra seu % de uso, projeta quando vai esgotar, fica vermelho antes do limite e comemora os resets de cota com toasts temáticos.
+ShortDescription: Monitor não oficial dos limites do Claude Code na bandeja do Windows — o ícone mostra seu uso de 5h ou da semana e fica vermelho antes de a cota acabar, e a previsão semanal segue as horas em que você de fato trabalha.
 Description: >-
   O Claude Code Tray é um monitor não oficial, feito pela comunidade, do seu uso de cota do
   Claude Code, que fica na bandeja do sistema do Windows. Ele desenha um ícone vetorial nítido
@@ -19,7 +19,10 @@ Description: >-
   no estilo do Gerenciador de Tarefas, e projeta quando você vai atingir 100% — uma linha de
   ritmo proporcional para a janela semanal e uma regressão por taxa de consumo para as janelas de
   sessão de 5h e extra — deixando a barra vermelha quando você está no ritmo de esgotar antes da
-  janela ser renovada. Troque qual janela o ícone acompanha (sessão 5h, semana 7d ou extra) pelo
+  janela ser renovada. A janela de Estatísticas vai além na semana: aprende quando você costuma
+  trabalhar (dia da semana e hora, pelas suas transcrições locais) e distribui a cota restante por
+  esse desenho, então o horário em que ela acaba cai numa tarde de trabalho, e não às 4 da manhã.
+  Troque qual janela o ícone acompanha (sessão 5h, semana 7d ou extra) pelo
   menu do botão direito. Quando uma janela devolve sua cota, um toast colorido e exclusivo desliza
   na tela para avisar: Surpresa! (reset semanal antecipado), Bônus! (crédito no meio da janela),
   Nova semana! e Sessão renovada! — cada um pode ser ativado ou desativado nas Configurações. O
@@ -33,8 +36,10 @@ Tags:
   - bandeja-do-sistema
   - claude
   - claude-code
+  - cota
   - dotnet
   - ferramentas-de-desenvolvimento
+  - limite-de-uso
   - monitor-de-uso
   - windows
 ReleaseNotesUrl: https://github.com/alegauss/claude-tray/releases/tag/v1.7.2
