@@ -76,14 +76,14 @@ export const sponsor = {
     "Open source search and content tools for organisations with a lot to publish. Run on your own servers, with no per-user licence.",
   products: [
     {
-      name: "Viglet Turing ES",
+      name: "Viglet Turing",
       url: "https://turing.viglet.org",
       logo: "/claude-tray/viglet/turing-logo.png",
       inline:
         "so visitors find what they came for, with AI answers drawn only from your own content",
     },
     {
-      name: "Viglet Shio CMS",
+      name: "Viglet Shio",
       url: "https://shio.viglet.org",
       logo: "/claude-tray/viglet/shio-logo.png",
       inline:
