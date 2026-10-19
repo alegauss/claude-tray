@@ -28,6 +28,10 @@
 
 - 📋 **T388** (deps: —) **the tray sees a window running out before its reset and only turns the bar red, which nobody sees unless looking** — Nine of the 28 Claude quota monitors on winget send a notification near the limit, and this one keeps quiet. → §CIV
 
+## Block AN — The site on the shared design system
+
+- 📋 **T389** (deps: viglet-design-system: VDS213–VDS215, alegauss.github.io: AG1) **the site keeps its own copy of the template that eight product sites share** — Flagship and most measured, so it pilots the move onto the design system. → §CV
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

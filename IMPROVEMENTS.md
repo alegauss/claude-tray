@@ -857,3 +857,29 @@ interrupts only on what the icon already shows.
 
 Done when a preview (`--toast danger`) renders it, the interaction check covers the once-per-cycle
 rule, and all five `lang/*.json` carry the strings.
+
+## CV The site on the shared design system (pilot) (T389)
+
+`site/src` carries `Nav`, `Hero`, `Footer`, `Feature`, `FeatureIndex`, `CopyButton`, `ThemeToggle`,
+`Rich`, `Ad` and `entry-server.tsx`, plus `scripts/prerender.mjs` and `scripts/og-image.mjs`. Seven
+other alegauss product sites carry the same files under the same names, drifting apart. `index.css`
+declares its own `--clay*`, `--bg*` and `--panel*` tokens for both colour modes.
+
+`@viglet/viglet-design-system` is taking that template once: a warm tone (VDS213), a `./site` layer
+of the shared components (VDS214) and the prerender and OG helpers in `./vite` (VDS215). This site
+moves first because it is the flagship until December 2026 and the one visibility measures most
+closely, so a regression shows up here before it reaches the others. Each following site's task
+depends on this one.
+
+The move, in order:
+
+- `data-tone="warm"` with the clay accent, so the page keeps its look in both modes.
+- The shared components come from `./site`; anything specific to this product stays in
+  `site/src`.
+- The build calls the `./vite` helpers instead of the two local scripts.
+- Google Analytics loads only after consent, the same flow as the hub (AG1).
+
+Done when `site/src` has none of the files `./site` provides, the prerendered HTML of every route
+holds the same text as before, light and dark screenshots of each route are compared before and
+after with the differences listed in the commit, and the site appears in the design system's
+`consumers.json`.
