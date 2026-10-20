@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.locale.1.6.0.schema.json
 PackageIdentifier: alegauss.ClaudeCodeTray
-PackageVersion: 1.7.2
+PackageVersion: 1.8.0
 PackageLocale: pt-BR
 Publisher: Alexandre Oliveira
 PublisherUrl: https://github.com/alegauss
@@ -42,6 +42,6 @@ Tags:
   - limite-de-uso
   - monitor-de-uso
   - windows
-ReleaseNotesUrl: https://github.com/alegauss/claude-tray/releases/tag/v1.7.2
+ReleaseNotesUrl: https://github.com/alegauss/claude-tray/releases/tag/v1.8.0
 ManifestType: locale
 ManifestVersion: 1.6.0
