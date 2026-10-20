@@ -17,11 +17,11 @@ export type Rich = Run[];
 export const meta = {
   title: "Claude Code Tray — Claude usage in your Windows tray",
   description:
-    "A native Windows tray monitor for your Claude Code usage. A crisp DPI-aware icon, burn-rate projection, per-session cost at API list prices and a context audit — computed on your own machine, with no API key to paste.",
+    "A native Windows tray monitor for your Claude Code usage. A crisp DPI-aware icon, burn-rate projection with a warning before a limit runs out, per-session cost at API list prices and a context audit — computed on your own machine, with no API key to paste.",
   og: {
     title: "Claude Code Tray",
     description:
-      "Rate-limit %, burn-rate projection, per-session cost at list prices and a context audit — always in your Windows tray. Nothing leaves your machine.",
+      "Rate-limit %, burn-rate projection with a warning before a limit runs out, per-session cost at list prices and a context audit — always in your Windows tray. Nothing leaves your machine.",
   },
 } as const;
 
@@ -99,7 +99,7 @@ export const hero = {
   titleLead: "Your Claude Code usage,",
   titleAccent: "always in the tray.",
   sub: [
-    "A native Windows tray monitor that draws your rate-limit usage as a crisp, DPI-aware icon — with burn-rate projection, per-session cost at API list prices and a context audit. Zero config: it reuses the login ",
+    "A native Windows tray monitor that draws your rate-limit usage as a crisp, DPI-aware icon — with burn-rate projection that warns you before a limit runs out, per-session cost at API list prices and a context audit. Zero config: it reuses the login ",
     { code: "claude" },
     " already stored.",
   ] as Rich,
@@ -154,7 +154,9 @@ export const why = {
       body: [
         "Projects when you would hit 100% — warning you ",
         { b: "before" },
-        " the window resets, not after. A proportional pace line for the 7-day week, burn-rate regression for the 5h session.",
+        " the window resets, not after — the icon turns red, and a ",
+        { b: "toast says so once" },
+        " in case you weren't looking. A proportional pace line for the 7-day week, burn-rate regression for the 5h session.",
       ] as Rich,
     },
     {
@@ -253,7 +255,9 @@ export const projection = {
         { b: "before" },
         " the reset. The fill bar turns ",
         { b: "vivid red" },
-        " so you can ease off in time.",
+        " so you can ease off in time — and since a colour only works if you look, a ",
+        { b: "red toast" },
+        " says it once per window per reset: when you would run out, and when the window resets.",
       ] as Rich,
     },
     {

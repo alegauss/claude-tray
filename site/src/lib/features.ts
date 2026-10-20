@@ -203,12 +203,12 @@ export const features: FeatureRecord[] = [
   },
   {
     slug: "notifications",
-    title: "Notifications: seven toasts, and only four of them celebrate",
+    title: "Notifications: eight toasts, and only four of them celebrate",
     description:
-      "Four reset toasts with their own colour and headline so you can read them without reading a word, and three that state a fact instead of celebrating one — a heavy startup context, extra usage starting, and a machine-wide profile switch confirming itself.",
+      "Four reset toasts with their own colour and headline so you can read them without reading a word, and four that state a fact instead of celebrating one — a heavy startup context, extra usage starting, a limit you are on pace to hit before it resets, and a machine-wide profile switch confirming itself.",
     ogTitle: "Claude Code Tray: the notifications",
     ogDescription:
-      "Four resets with a colour each, and three that deliberately have no confetti.",
+      "Four resets with a colour each, and four that deliberately have no confetti — including a warning before a limit runs out.",
     eyebrow: "Reset alerts",
     heading: "The notifications",
     anchor: "notifications",
@@ -219,7 +219,7 @@ export const features: FeatureRecord[] = [
         "Each kind has its own colour and headline, so what happened is legible before the words are.",
     },
     lead: [
-      "An interruption has to earn itself. Four of these are worth being interrupted for because quota came back and you would otherwise find out by trying; three are worth it because something changed that you cannot see from the screen you are on.",
+      "An interruption has to earn itself. Four of these are worth being interrupted for because quota came back and you would otherwise find out by trying; four are worth it because something changed that you cannot see from the screen you are on — or is about to.",
     ],
     sections: [
       {
@@ -246,7 +246,7 @@ export const features: FeatureRecord[] = [
         ],
       },
       {
-        heading: "The three without confetti",
+        heading: "The four without confetti",
         list: [
           [
             { b: "Heavy startup context" },
@@ -259,6 +259,14 @@ export const features: FeatureRecord[] = [
             " — it exists because the four above do. The app interrupted you to say quota came back and said nothing when you started paying. Fires ",
             { b: "once" },
             " when a check first finds you past your included quota; not on a timer, not again while the same spell lasts. A receipt, not a prompt: it names no account and suggests nothing.",
+          ],
+          [
+            { b: "On pace to run out" },
+            " — the red icon, said in words for when you are not looking at the tray. When the pace you are on would use up the 5-hour or weekly limit ",
+            { b: "before it resets" },
+            ", it says when it would run out and when the reset comes. ",
+            { b: "Once per window per reset" },
+            ", and not in a window's first tenth, where a few minutes of work is no pace at all. On by default, and it suggests nothing beyond the two times.",
           ],
           [
             { b: "Profile set for Windows" },

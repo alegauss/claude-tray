@@ -94,7 +94,8 @@ Beyond the current percentage, the app projects when usage would reach 100% and 
 - **on track** — usage stays under 100% until the window resets → the fill bar stays its
   normal blue (no extra signal)
 - **danger** — usage hits 100% *before* the reset (you'll run out early) → the fill bar turns
-  **vivid red**
+  **vivid red**, and a red **On pace to run out** toast says so once per window per reset, with
+  when you'd run out and when it resets (see [the notifications](#four-that-arent-celebrations))
 
 At 100% there is a third thing the tile can mean, and it gets its own color:
 
