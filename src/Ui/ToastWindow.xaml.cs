@@ -24,7 +24,7 @@ namespace ClaudeTray;
 internal partial class ToastWindow : Window
 {
     /// <summary>Color theme per notification type, so each is identifiable at a glance.</summary>
-    internal enum ToastTheme { Surprise, Bonus, Weekly, Session, Context, ExtraUsage, Profile }
+    internal enum ToastTheme { Surprise, Bonus, Weekly, Session, Context, ExtraUsage, Profile, Pace }
 
     /// <summary>
     /// The card's text stack, and the one every card's <b>glyph</b> is drawn in — separately, because they
@@ -156,6 +156,9 @@ internal partial class ToastWindow : Window
         // this card confirms an action the user just took, and every other colour here is a claim about
         // news that arrived on its own. Distinct from Session's blue, which is about a quota window.
         ToastTheme.Profile => ("#93A7BE", "#63799A", "#3A4A66"),
+        // Red: the colour the icon's bar already wears for this verdict (T388), so the card and the icon
+        // say the same thing. Darker than the bar's alarm red, which white text would not read on.
+        ToastTheme.Pace => ("#E8726A", "#C8402F", "#8E2318"),
         _ => throw new ArgumentOutOfRangeException(nameof(theme), theme, "no card colour for this toast"),
     };
 
@@ -183,8 +186,10 @@ internal partial class ToastWindow : Window
         // Every toast so far has been good news (quota back). The context nudge is the first that
         // isn't, so it gets the same card and animation without the celebration — and the extra-usage
         // one is a receipt, which is the least celebratory thing this app has to say. A profile switch
-        // is a confirmation of something the user just did, which is nobody's idea of a party.
-        if (_theme is not (ToastTheme.Context or ToastTheme.ExtraUsage or ToastTheme.Profile)) LaunchConfetti();
+        // is a confirmation of something the user just did, which is nobody's idea of a party. And a window
+        // on pace to run out (T388) is the one piece of bad news here that arrives before it happens.
+        if (_theme is not (ToastTheme.Context or ToastTheme.ExtraUsage or ToastTheme.Profile or ToastTheme.Pace))
+            LaunchConfetti();
 
         // Auto-dismiss after a comfortable read; the user can also close or act before then.
         var life = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };

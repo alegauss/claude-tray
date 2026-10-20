@@ -92,6 +92,7 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
         NotifyWeeklyCheck.IsChecked = _settings.NotifyOnScheduledReset;
         NotifySessionCheck.IsChecked = _settings.NotifyOnSessionReset;
         NotifyExtraCheck.IsChecked = _settings.NotifyOnExtraUsage;
+        NotifyPaceCheck.IsChecked = _settings.NotifyOnPaceDanger;
         NotifyContextCheck.IsChecked = _settings.NotifyOnContextGrowth;
 
         WeeklyMinSlider.Minimum = Settings.MinResetNotifyPercent;
@@ -241,6 +242,7 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
         _settings.NotifyOnScheduledReset = NotifyWeeklyCheck.IsChecked == true;
         _settings.NotifyOnSessionReset = NotifySessionCheck.IsChecked == true;
         _settings.NotifyOnExtraUsage = NotifyExtraCheck.IsChecked == true;
+        _settings.NotifyOnPaceDanger = NotifyPaceCheck.IsChecked == true;
         _settings.NotifyOnContextGrowth = NotifyContextCheck.IsChecked == true;
         _settings.ContextNudgeTokens = (int)Math.Round(ContextThresholdSlider.Value);
         _settings.ScheduledResetMinPercent = (int)Math.Round(WeeklyMinSlider.Value);

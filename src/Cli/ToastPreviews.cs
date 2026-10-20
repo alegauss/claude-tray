@@ -106,7 +106,22 @@ internal static class ToastPreviews
             // this is the same claim asked of the card that gets drawn, so a null coalesced away at a call
             // site or a restored theme default brings the full-allowance bar back with something watching.
             Bar: false),
+
+        new("danger", "a window on pace to run out before it resets (T388): the weekly limit 61% used two " +
+                      "days in, so the red icon said in words, once per cycle, with no confetti",
+            now => Pace("7d", 0.61, now + 5 * 86400, now)),
+
+        new("danger-session", "the same card for the 5-hour session, 70% used an hour and a half in",
+            now => Pace("5h", 0.70, now + (long)(3.5 * 3600), now)),
     };
+
+    /// <summary>The pace card, from the same <see cref="TrayContext.PaceToastContent"/> the notifier uses.</summary>
+    private static ToastWindow Pace(string key, double util, long reset, long now)
+    {
+        var (emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme) =
+            TrayContext.PaceToastContent(key, util, reset, now);
+        return new ToastWindow(emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme);
+    }
 
     /// <summary>The extra-usage card, built from a reading the way the tray builds it — the same wording,
     /// the same clay, and the bar (or none) that <see cref="TrayContext.ExtraUsageBar"/> derives.</summary>

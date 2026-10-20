@@ -739,6 +739,14 @@
                                                    Description="{local:Loc settings.notif.extraDesc}">
                                     <ToggleButton x:Name="NotifyExtraCheck" Style="{StaticResource ToggleSwitch}" />
                                 </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <!-- The red icon, said once per window and reset cycle (T388). -->
+                                <local:SettingsRow Header="{local:Loc settings.notif.pace}"
+                                                   Description="{local:Loc settings.notif.paceDesc}">
+                                    <ToggleButton x:Name="NotifyPaceCheck" Style="{StaticResource ToggleSwitch}" />
+                                </local:SettingsRow>
                             </StackPanel>
                         </Border>
 

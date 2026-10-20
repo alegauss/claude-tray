@@ -2177,6 +2177,65 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T388. The pace alarm as a sequence — a seed, a crossing, a latch per reset cycle — driven with no tray,
+    /// the way <see cref="ExtraAlarm"/> drives its sibling. The verdict under it is
+    /// <see cref="BurnTracker.PaceLine"/>, which is also what colours the icon, so the first two checks hold
+    /// the two to one answer rather than trusting that they were written alike.
+    /// </summary>
+    private static void PaceAlarmCycle()
+    {
+        const double day = 86400, week = 7 * day;
+        double now = Now;
+        double reset = now + 4 * day;   // three days into the week: the pace line stands at 3/7 ≈ 43%
+
+        var tracker = new BurnTracker();
+        tracker.Record("7d", 0.60, reset, now);
+        Check("a reading above the pace line is red on the icon",
+              tracker.Project("7d", 0.60, reset, now, BurnTracker.WindowSeconds("7d")).verdict == Projection.Danger);
+        Check("and the alarm calls it danger too — one verdict, not two",
+              PaceAlarm.InDanger("7d", 0.60, reset, now) && !PaceAlarm.InDanger("7d", 0.30, reset, now));
+
+        var alarm = new PaceAlarm(null);
+        Check("below the pace line nothing is announced", !alarm.Note("7d", 0.30, reset, now));
+        Check("the crossing is announced", alarm.Note("7d", 0.60, reset, now + 60));
+        Check("once: the next red reading of the same cycle is quiet", !alarm.Note("7d", 0.62, reset, now + 120));
+        Check("and so is a flicker out of danger and back, in the same cycle",
+              !alarm.Note("7d", 0.30, reset, now + 180) && !alarm.Note("7d", 0.65, reset, now + 240));
+        Check("a reset header that drifts by seconds is still the same cycle",
+              !alarm.Note("7d", 0.66, reset + 7, now + 300));
+        Check("the other window has a latch of its own",
+              alarm.Note("5h", 0.90, now + 2 * 3600, now));
+
+        double next = reset + week;
+        Check("the next cycle is announced again",
+              alarm.Note("7d", 0.80, next, reset + 3 * day));
+
+        // The two readings the icon paints red and the alarm keeps quiet about.
+        var early = new PaceAlarm(null);
+        Check("the first tenth of a window is not announced — its pace is an average over minutes",
+              !early.Note("5h", 0.03, now + 5 * 3600 - 180, now));
+        var spent = new PaceAlarm(null);
+        Check("a window already at its limit is not 'on pace to run out' — it ran out",
+              !spent.Note("7d", 1.0, reset, now));
+        Check("and that latches the cycle, so it is not announced on the way down from a credit either",
+              !spent.Note("7d", 0.70, reset, now + 60));
+
+        // The seed: a tray restarted mid-cycle has already said so.
+        var seeded = new PaceAlarm(new UsageSample(now - 300, 0.1, 0, 0.58, reset));
+        Check("a tray started in the middle of a red cycle announces nothing",
+              !seeded.Note("7d", 0.60, reset, now));
+        Check("but announces the next one", seeded.Note("7d", 0.80, next, reset + 3 * day));
+        var calm = new PaceAlarm(new UsageSample(now - 300, 0.1, 0, 0.30, reset));
+        Check("a seed below the pace line arms the alarm for this cycle", calm.Note("7d", 0.60, reset, now));
+
+        Check("the card says when it would run out by the same arithmetic",
+              TrayContext.PaceToastContent("7d", 0.60, reset, (long)now).subtitle
+                  .Contains(TrayContext.FmtDays(BurnTracker.PaceLine(0.60, reset, now, week).exhaustSeconds)));
+        Check("both danger previews are in the catalogue",
+              new[] { "danger", "danger-session" }.All(n => ToastPreviews.Catalogue.Any(v => v.Name == n)));
+    }
+
+    /// <summary>
     /// T277. The one value the complement cannot take. The card's bar renders quota <em>still available</em>,
     /// so it is drawn from <c>1 − figure</c> — and the spell of 2026-08-04 reported the figure as <c>0.0</c>
     /// on every reading, which draws it <b>full</b>: a complete allowance behind a sentence saying the quota

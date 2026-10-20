@@ -822,6 +822,7 @@ internal static partial class SelfTestCli
                 .Select(kind => TrayContext.ResetToastContent(
                     k, new BurnTracker.ResetEvent(kind, 0.8, 0.0, (long)Now, (long)Now + 3600), (long)Now).emoji))
             .Concat(new[] { "📇", "🧾", "💻", "🚫" })   // the four cards that name theirs at the call site
+            .Append(TrayContext.PaceToastContent("7d", 0.6, Now + 86400, (long)Now).emoji)
             .Distinct(StringComparer.Ordinal)
             .ToArray();
 

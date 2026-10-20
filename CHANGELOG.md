@@ -55,7 +55,7 @@
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 | [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did |
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
-| [AM](#block-am--danger-is-said-not-only-coloured) | Danger is said, not only coloured (active — see ROADMAP) |
+| [AM](#block-am--danger-is-said-not-only-coloured) | Danger is said, not only coloured |
 | [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system (active — see ROADMAP) |
 
 ## Block A — Foundation (tray, icon, API, projection)
@@ -744,6 +744,8 @@
 - **T369** — A three-layer burn-up band closes the hero and opens the footer: bars scaling from a floor while the row drifts, the even-pace line ruled inside the same svg so a crossing is true in every frame, and two bars in the icon's own red and clay. Upright in the footer, and standing on a baseline rule.
 
 ## Block AM — Danger is said, not only coloured
+
+- **T388** — A window on pace to run out before its reset now says so: one red toast per window per reset cycle, on the same pace-line verdict that colours the icon (`BurnTracker.PaceLine`, now shared by both), saying when it would run out and when it resets, with a Settings toggle on by default and the strings in all five languages. `PaceAlarm` latches on the cycle's reset time, seeds from the last reading before launch so a restart mid-cycle stays quiet, and stays silent through a window's first tenth and for one already at its limit. The sequence needs no tray, so `--selftest` drives the once-per-cycle rule end to end rather than a UI case, and `--capture-toast danger` / `danger-session` render the card (design §CIV recorded in `src/Usage/PaceAlarm.cs`).
 
 ## Block AN — The site on the shared design system
 

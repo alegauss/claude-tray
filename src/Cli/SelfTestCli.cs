@@ -224,6 +224,9 @@ internal static partial class SelfTestCli
         Section("the extra-usage alarm — a seed, a rise, and one announcement per spell (Block E)");
         ExtraAlarm();
 
+        Section("the pace alarm — the icon's red, said once per window and reset cycle (Block AM)");
+        PaceAlarmCycle();
+
         Section("projects — a count of directories, not of keys (Block N)");
         ProjectCount();
 

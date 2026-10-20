@@ -1043,6 +1043,9 @@ figcaption code {
 .notify.slate {
   --tone: var(--slate);
 }
+.notify.red {
+  --tone: var(--red);
+}
 
 /* ---------- banner (privacy) ---------- */
 .banner {

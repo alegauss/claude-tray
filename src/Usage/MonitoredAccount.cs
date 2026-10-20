@@ -96,6 +96,9 @@ internal sealed class MonitoredAccount
     /// <summary>The "you have started paying" transition for this account, seeded from its own history.</summary>
     public ExtraUsageAlarm ExtraAlarm { get; }
 
+    /// <summary>The "on pace to run out" transition per window (T388), seeded from the same reading.</summary>
+    public PaceAlarm PaceAlarm { get; }
+
     /// <param name="profileKey">The account this state belongs to — <see cref="ProfileStore.Monitored"/> at
     /// the moment of the switch, which is why the caller builds this <em>after</em> re-keying the stores and
     /// before the next poll.</param>
@@ -107,5 +110,6 @@ internal sealed class MonitoredAccount
         UsageSample? before = null;
         try { before = UsageHistory.Latest(profileKey); } catch { /* no seed is a valid seed */ }
         ExtraAlarm = new ExtraUsageAlarm(profileKey, before);
+        PaceAlarm = new PaceAlarm(before);
     }
 }

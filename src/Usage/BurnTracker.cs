@@ -162,19 +162,7 @@ internal sealed class BurnTracker
         // util reached in `elapsed` → 100% reached in elapsed × 100/util, so the time left to
         // hit 100% is elapsed × (1 − util) / util.
         if (windowSeconds > 0 && reset > 0)
-        {
-            double untilReset = reset - now;
-            double elapsed = Math.Max(0.0, windowSeconds - untilReset);
-            double expected = Math.Clamp(elapsed / windowSeconds, 0.0, 1.0);
-            verdict = util > expected ? Projection.Danger : Projection.Ok;
-
-            if (util >= 1.0)
-                exhaust = 0;
-            else if (util > 0)
-                exhaust = elapsed * (1.0 - util) / util;
-            else
-                exhaust = double.PositiveInfinity;
-        }
+            (verdict, exhaust) = PaceLine(util, reset, now, windowSeconds);
 
         // A window at (or rounding to) 100% is already exhausted — there is nothing left to project,
         // so the verdict is always Danger (red). Without this, usage pinned flat at 100% has a ~0
@@ -183,5 +171,33 @@ internal sealed class BurnTracker
             return (Projection.Danger, 0, burnPerHour);
 
         return (verdict, exhaust, burnPerHour);
+    }
+
+    /// <summary>The length of a bounded window in seconds, or 0 for one with no fixed length ("extra"),
+    /// which is what tells <see cref="Project"/> to keep the regression verdict.</summary>
+    internal static double WindowSeconds(string key) => key switch
+    {
+        "5h" => 5.0 * 3600,
+        "7d" => 7.0 * 24 * 3600,
+        _ => 0,
+    };
+
+    /// <summary>
+    /// The pace-line verdict and ETA as arithmetic over one reading — static so the icon's colour and
+    /// <see cref="PaceAlarm"/>'s toast (T388) are one decision rather than two that can drift. No history
+    /// is involved, which is also what lets the alarm judge a reading from before the process started.
+    /// </summary>
+    internal static (Projection verdict, double exhaustSeconds) PaceLine(
+        double util, double reset, double now, double windowSeconds)
+    {
+        double untilReset = reset - now;
+        double elapsed = Math.Max(0.0, windowSeconds - untilReset);
+        double expected = Math.Clamp(elapsed / windowSeconds, 0.0, 1.0);
+        Projection verdict = util > expected ? Projection.Danger : Projection.Ok;
+
+        double exhaust = util >= 1.0 ? 0
+                       : util > 0 ? elapsed * (1.0 - util) / util
+                       : double.PositiveInfinity;
+        return (verdict, exhaust);
     }
 }

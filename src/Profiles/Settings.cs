@@ -103,6 +103,13 @@ internal sealed class Settings
     /// </summary>
     public bool NotifyOnExtraUsage { get; set; } = true;
 
+    /// <summary>
+    /// Say so, once per window and reset cycle, when the pace that turns the icon red would use the 5-hour
+    /// or weekly limit up before it resets (T388). Default <b>on</b>, for the reason the extra-usage one is:
+    /// the resets announce good news, and keeping quiet about the bad half is the asymmetry this closes.
+    /// </summary>
+    public bool NotifyOnPaceDanger { get; set; } = true;
+
     /// <summary>Eager-token threshold for that nudge. The measured spread across real projects is
     /// ≈4k–22k (IMPROVEMENTS §III), so the default sits above the middle of it.</summary>
     public int ContextNudgeTokens { get; set; } = DefaultContextNudgeTokens;

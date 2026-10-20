@@ -1217,6 +1217,13 @@ internal sealed class TrayContext : ApplicationContext
                 };
                 if (wanted) NotifyReset(key, reset, now);
             }
+
+            // After the resets, so a reading that both resets a window and starts its next cycle already
+            // red is told in that order. Offered on every poll and the setting consulted after (T388).
+            foreach (string key in PaceAlarm.Windows)
+                if (_monitored.PaceAlarm.Note(key, fresh.Metric(key), fresh.ResetOf(key), now)
+                    && _settings.NotifyOnPaceDanger)
+                    NotifyPace(key, fresh.Metric(key), fresh.ResetOf(key), now);
         }
         _flashOn = false;
         Render();
@@ -1416,6 +1423,42 @@ internal sealed class TrayContext : ApplicationContext
         }
     }
 
+    // A window is on pace to run out before it resets (T388): the red icon, said once per cycle.
+    private void NotifyPace(string key, double util, double reset, long now)
+    {
+        var (emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme) =
+            PaceToastContent(key, util, reset, now);
+        try
+        {
+            EnsureWpfApp();
+            new ToastWindow(emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme).Show();
+        }
+        catch
+        {
+            _tray.BalloonTipTitle = $"{emoji} {title}";
+            _tray.BalloonTipText = $"{subtitle} — {caption}";
+            _tray.BalloonTipIcon = ToolTipIcon.Warning;
+            _tray.ShowBalloonTip(10_000);
+        }
+    }
+
+    /// <summary>The pace card's strings, shared by the notifier and the <c>danger</c> previews so the wording
+    /// cannot drift (the reason <see cref="ResetToastContent"/> is shared). When it would run out comes from
+    /// <see cref="BurnTracker.PaceLine"/>, the arithmetic that decided to send it. No action and no other
+    /// account: the card states the fact and the reset, and stops — §I.7 holds for bad news too.</summary>
+    internal static (string emoji, string title, string subtitle, double fromUsage, double toUsage,
+        string caption, string quotaLabel, ToastWindow.ToastTheme theme)
+        PaceToastContent(string key, double util, double reset, long now)
+    {
+        bool weekly = key == "7d";
+        double eta = BurnTracker.PaceLine(util, reset, now, BurnTracker.WindowSeconds(key)).exhaustSeconds;
+        return ("📈", L.T("toast.pace.title"),
+            L.T("toast.pace.subtitle", L.T(weekly ? "toast.limitNoun.weekly" : "toast.limitNoun.session"),
+                FmtDays(eta)),
+            util, util, L.T("toast.pace.caption", FmtDays(reset - now)),
+            L.T(weekly ? "toast.quotaLeft.weekly" : "toast.quotaLeft.session"), ToastWindow.ToastTheme.Pace);
+    }
+
     // The toast's display strings per window + kind, shared by the live notifier and the
     // --simulate-reset dev preview so the wording can never drift. All are framed as good news (quota
     // back); the early reset gets the loud "Surprise!", the routine one a calm "New week!"/"Fresh
@@ -1518,14 +1561,8 @@ internal sealed class TrayContext : ApplicationContext
         // Statistics chart's projection (average pace since the window started) so the tray and the
         // chart never disagree. "extra" is uncapped overage with no fixed window, so it keeps the
         // regression-based verdict (windowSeconds = 0).
-        double window = metric switch
-        {
-            "5h" => 5.0 * 3600,
-            "7d" => 7.0 * 24 * 3600,
-            _ => 0,
-        };
         var (verdict, eta, _) = _monitored.Burn.Project(metric, d.Metric(metric), d.ResetOf(metric),
-                                                       now, window);
+                                                       now, BurnTracker.WindowSeconds(metric));
         return (verdict, eta);
     }
 

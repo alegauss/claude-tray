@@ -473,10 +473,10 @@ export const notifications = {
       body: "The 5-hour session window rolled over — fresh for the next five hours.",
     },
   ],
-  plainEyebrow: "And three that aren't celebrations",
+  plainEyebrow: "And four that aren't celebrations",
   plainHeading: "The same card, without the confetti",
   plainIntro: [
-    "Not everything worth knowing is good news. These three use the same toast and say so plainly — one about what every session costs you before you type, one about the moment your quota stops being included, and one confirming a change you cannot otherwise see.",
+    "Not everything worth knowing is good news. These four use the same toast and say so plainly — one about what every session costs you before you type, one about the moment your quota stops being included, one about a limit you are on pace to hit before it resets, and one confirming a change you cannot otherwise see.",
   ] as Rich,
   plain: [
     {
@@ -494,6 +494,14 @@ export const notifications = {
       tagLead: "Extra usage ",
       tagBold: "has started",
       body: "It exists because the four above do: the app interrupted you to say quota came back and said nothing when you started paying. Fires once when a check first finds you past your included quota — not on a timer, not again while the same spell lasts. A receipt, not a prompt.",
+    },
+    {
+      tone: "red" as const,
+      src: "/claude-tray/shots/notify-pace.png",
+      alt: "On pace to run out — the weekly limit would be used up before it resets",
+      tagLead: "On pace ",
+      tagBold: "to run out",
+      body: "The red icon, said in words for when you aren't looking at the tray. When the pace you're on would use up the 5-hour or weekly limit before it resets, it tells you when, and when the reset comes. Once per window per reset, and not in a window's first tenth, where a few minutes of work is no pace at all.",
     },
     {
       tone: "slate" as const,
