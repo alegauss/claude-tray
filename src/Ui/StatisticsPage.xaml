@@ -1,4 +1,4 @@
-﻿<!-- One of the three destinations of MainWindow, not a window of its own: the shell owns the title
+<!-- One of the three destinations of MainWindow, not a window of its own: the shell owns the title
      bar, the size and the theme, and this is only what sits under its nav strip. -->
 <UserControl x:Class="ClaudeTray.StatisticsPage"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -202,6 +202,14 @@
             </Style.Triggers>
         </Style>
 
+        <!-- A pane's plate, at least as tall as the ScrollViewer's viewport, so a `*` row inside it gets
+             the height the text leaves rather than nothing (a ScrollViewer measures its content with
+             infinite height, which is why the charts used to be fixed). Taller content still scrolls. -->
+        <Style x:Key="FillViewport" TargetType="Border">
+            <Setter Property="MinHeight"
+                    Value="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" />
+        </Style>
+
         <!-- Colored verdict pill; background + text are set in code from the pace verdict. -->
         <Style x:Key="VerdictChip" TargetType="Border">
             <Setter Property="CornerRadius" Value="12" />
@@ -360,7 +368,21 @@
                          sentence in a wordier language (or a short screen) used to be clipped outright
                          with no way to read it. Auto keeps the scrollbar invisible in the normal case. -->
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="4,20,14,4">
+                    <!-- Responsive chart: the plate is at least as tall as the viewport, and the chart's
+                         `*` row takes whatever the text around it leaves — within 120..360, below which
+                         the pane scrolls as it always did. The padding is inside the Border so the
+                         MinHeight it is given counts it, or the pane would scroll by its margin. -->
+                    <Border Style="{StaticResource FillViewport}" Padding="4,20,14,4">
+                    <Grid>
+                        <!-- The chart's row, its 20 of top margin included: 140 still reads as a chart
+                             in a 600-tall window, and past 380 a burn-up gains height, not information;
+                             what the cap leaves goes below the text, not between chart and legend. -->
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" MinHeight="140" MaxHeight="380" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -395,8 +417,12 @@
                             </StackPanel>
                         </Grid>
 
-                        <Canvas x:Name="ChartS" Height="188" Margin="0,20,0,0"
-                                ClipToBounds="True" SizeChanged="Chart_SizeChanged" />
+                    </StackPanel>
+
+                        <Canvas x:Name="ChartS" Grid.Row="1"
+                                Margin="0,20,0,0" ClipToBounds="True" SizeChanged="Chart_SizeChanged" />
+
+                    <StackPanel Grid.Row="2">
 
                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                             <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
@@ -454,13 +480,26 @@
                         <TextBlock x:Name="ProjectionS" Margin="0,16,0,0" TextWrapping="Wrap" LineHeight="20"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
+                    </Grid>
+                    </Border>
                     </ScrollViewer>
                 </TabItem>
 
                 <!-- ============ WEEK (7d) ============ -->
                 <TabItem Header="{local:Loc stats.tab.week}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel Margin="4,20,14,4">
+                    <!-- Same responsive plate as the 5h twin. -->
+                    <Border Style="{StaticResource FillViewport}" Padding="4,20,14,4">
+                    <Grid>
+                        <!-- The chart's row, its 20 of top margin included: 140 still reads as a chart
+                             in a 600-tall window, and past 380 a burn-up gains height, not information;
+                             what the cap leaves goes below the text, not between chart and legend. -->
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" MinHeight="140" MaxHeight="380" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -495,8 +534,12 @@
                             </StackPanel>
                         </Grid>
 
-                        <Canvas x:Name="ChartW" Height="188" Margin="0,20,0,0"
-                                ClipToBounds="True" SizeChanged="Chart_SizeChanged" />
+                    </StackPanel>
+
+                        <Canvas x:Name="ChartW" Grid.Row="1"
+                                Margin="0,20,0,0" ClipToBounds="True" SizeChanged="Chart_SizeChanged" />
+
+                    <StackPanel Grid.Row="2">
 
                         <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                             <Ellipse Width="10" Height="10" VerticalAlignment="Center" Fill="{DynamicResource AccentFillColorDefaultBrush}" />
@@ -567,6 +610,8 @@
                         <TextBlock x:Name="ProjectionW" Margin="0,16,0,0" TextWrapping="Wrap" LineHeight="20"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
+                    </Grid>
+                    </Border>
                     </ScrollViewer>
                 </TabItem>
 
@@ -580,7 +625,18 @@
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <!-- Bottom margin, not padding-by-accident: the pane clips, and a line cut in half
                          at the viewport edge reads as a bug even when the content does scroll. -->
-                    <StackPanel Margin="4,18,14,16">
+                    <!-- Responsive, like the two pace tabs, with both charts sharing the slack in the
+                         proportion they were drawn at (178:118 ≈ 3:2). -->
+                    <Border Style="{StaticResource FillViewport}" Padding="4,18,14,16">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="3*" MinHeight="126" MaxHeight="326" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="2*" MinHeight="86" MaxHeight="226" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0">
                         <TextBlock Text="{local:Loc stats.throughput.hint}" FontSize="13" TextWrapping="Wrap"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
 
@@ -597,11 +653,13 @@
                         <!-- A spike here has a name, and this is the direction of that join with data behind it: the
                              strip is five minutes and the list is seven days, so a task cannot light this
                              chart, but this chart can name the running task (T337). -->
-                        <Border x:Name="ChartProjects" Cursor="Hand"
+                    </StackPanel>
+                        <Border x:Name="ChartProjects" Grid.Row="1" Cursor="Hand"
                                 MouseLeftButtonUp="LiveChart_Clicked"
                                 ToolTip="{local:Loc stats.live.clickTip}"
-                                Height="178" Margin="0,6,0,0" CornerRadius="6" ClipToBounds="True"
+                                Margin="0,6,0,0" CornerRadius="6" ClipToBounds="True"
                                 Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                    <StackPanel Grid.Row="2">
                         <!-- The time axis, stated rather than implied: oldest second at the left, the
                              one still filling at the right. -->
                         <Grid Margin="0,4,0,0">
@@ -623,8 +681,11 @@
                         <TextBlock Text="{local:Loc stats.throughput.byType}" Margin="0,16,0,0"
                                    FontSize="12" FontWeight="SemiBold"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                        <Border x:Name="ChartTypes" Height="118" Margin="0,6,0,0" CornerRadius="6" ClipToBounds="True"
+                    </StackPanel>
+                        <Border x:Name="ChartTypes" Grid.Row="3"
+                                Margin="0,6,0,0" CornerRadius="6" ClipToBounds="True"
                                 Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                    <StackPanel Grid.Row="4">
                         <Grid Margin="0,4,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -667,6 +728,8 @@
                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
                     </StackPanel>
+                    </Grid>
+                    </Border>
                     </ScrollViewer>
                 </TabItem>
 
