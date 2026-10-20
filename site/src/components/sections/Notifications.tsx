@@ -1,5 +1,5 @@
 import { notifications } from "../../lib/site-content";
-import { Rich } from "../ui/Rich";
+import { SiteRich as Rich, SiteSectionHead } from "@viglet/viglet-design-system/site";
 import { shotSize } from "../../lib/shots";
 
 // Two groups on purpose: the four that celebrate and the three that state a fact. They use
@@ -44,25 +44,21 @@ function ToastImage({ src, alt }: { src: string; alt: string }) {
 export function Notifications() {
   return (
     <section id="notifications">
-      <div className="wrap">
-        <div className="sec-head reveal">
-          <div className="eyebrow">{notifications.eyebrow}</div>
-          <h2>{notifications.heading}</h2>
-          <p>
+      <div className="vg-site-wrap">
+        <div className="reveal">
+          <SiteSectionHead eyebrow={notifications.eyebrow} title={notifications.heading}>
             <Rich runs={notifications.intro} />
-          </p>
+          </SiteSectionHead>
         </div>
         <Toasts items={notifications.resets} />
         <p className="sec-note">
           <Rich runs={notifications.note} />
         </p>
 
-        <div className="sec-head reveal" style={{ marginTop: "64px" }}>
-          <div className="eyebrow">{notifications.plainEyebrow}</div>
-          <h2>{notifications.plainHeading}</h2>
-          <p>
+        <div className="reveal" style={{ marginTop: "64px" }}>
+          <SiteSectionHead eyebrow={notifications.plainEyebrow} title={notifications.plainHeading}>
             <Rich runs={notifications.plainIntro} />
-          </p>
+          </SiteSectionHead>
         </div>
         <Toasts items={notifications.plain} />
       </div>

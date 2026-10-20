@@ -20,7 +20,7 @@ export function Ad({ format = "in-content", slot }: { format?: AdFormat; slot: s
     // evaluate this tool is not the reader an ad is for, and someone else's product is forty
     // words it would pay for on every page.
     <div className="ad-band" data-twin="omit">
-      <div className="wrap">
+      <div className="vg-site-wrap">
         <div
           className="ad"
           data-japode-ads=""

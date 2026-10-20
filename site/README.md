@@ -10,12 +10,20 @@ listed one URL because it was written when the site was one URL. The structure h
 same one [freewilly](https://github.com/alegauss/freewilly) uses, so the two sites under
 `alegauss.github.io` are now maintained the same way.
 
+The chrome is not this site's own. The nav, hero, section heads, buttons, copy button, feature
+index, sponsor block, footer and theme toggle come from `@viglet/viglet-design-system/site`,
+along with the clay colours (`data-tone="warm"` on `<html>`, the `--vg-*` tokens). The prerender
+and the social card come from its `/vite` helpers. That is the template the alegauss product
+sites share, and this site was the first to move onto it (T389). What stays here is what only
+this product has: the copy, the sections, the burn-up band and the tray's own state colours.
+The package is pinned to an exact version, so taking a newer one is a deliberate change.
+
 ## Commands
 
 ```
 npm install        # once
 npm run dev        # dev server at /claude-tray/
-npm run build      # generate → tsc → client → og image → SSR → prerender
+npm run build      # generate → tsc → client → SSR → og image + prerender
 npm test           # the site's own claims, against what the build produced
 npm run typecheck  # tsc -b, no emit
 npm run preview    # serve the built dist/
@@ -41,7 +49,9 @@ once in [src/routes.tsx](src/routes.tsx).
 | `src/lib/site-content.ts` | **All landing copy** — sections only render it, so a claim is one array element a reviewer can check against the product |
 | `src/lib/features.ts` | The five depth pages, one record each: route, `<head>` and page are read off the same record |
 | `src/lib/shots.ts` + `scripts/shots.mjs` | Every screenshot's intrinsic size, **read off the files** — what reserves each box and what stops a small screenshot being upscaled |
-| `src/lib/theme.ts` + `index.html` pre-paint script + `src/index.css` tokens | **The theme follows the OS**, a stored choice overrides it, applied before first paint |
+| `src/components/Chrome.tsx` | The nav and footer every route shares, composed from the design system's site layer |
+| `vite.config.ts` pre-paint script + `THEME_KEY` | **The theme follows the OS**, a stored choice overrides it, applied before first paint; the script is the design system's, inlined at build |
+| `src/components/Consent.tsx` | The analytics consent banner, and the only place Google Analytics is loaded from |
 | `src/routes.tsx` | The route table and its metadata, asserted against each other at import time |
 | `src/components/sections/` | One component per landing section; the composition (order, JSX) lives here |
 | `src/pages/Landing.tsx` | The landing page — the section order is the argument |
@@ -49,12 +59,15 @@ once in [src/routes.tsx](src/routes.tsx).
 
 ## Deliberate non-goals here
 
-No third-party fonts fetched at page load — Inter and JetBrains Mono are named with system
-fallbacks rather than pulled from a CDN. No analytics, no cookie banner. The product's claim
-is that it sends nothing anywhere; a site that opened three connections on load would be
-undercutting it on the page that makes the claim. The one host this page reaches is
-`ads.japode.com`, for the single house-ad slot above the footer, and the slot declines the
-loader's recency memory so nothing is written to this origin either.
+No third-party fonts fetched at page load. Inter and JetBrains Mono are named with system
+fallbacks rather than pulled from a CDN, and the design system's own font files are not
+imported either. The product's claim is that it sends nothing anywhere, and a site that
+opened connections on load would be undercutting it on the page that makes the claim. So
+Google Analytics loads **only after the visitor allows it**, from the same consent banner and
+the same stored choice as the hub at `alegauss.github.io` (one origin, so one answer covers
+both). The footer's "Analytics settings" asks again. The one host this page reaches unasked
+is `ads.japode.com`, for the single house-ad slot above the footer, and the slot declines the
+loader's recency memory, so it writes nothing to this origin.
 
-Both of those are asserted in [`scripts/lint.test.mjs`](scripts/lint.test.mjs) rather than
-left as intentions.
+All three are asserted in [`scripts/lint.test.mjs`](scripts/lint.test.mjs) rather than left as
+intentions.

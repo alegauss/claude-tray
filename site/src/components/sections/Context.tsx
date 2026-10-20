@@ -1,17 +1,15 @@
 import { context } from "../../lib/site-content";
-import { Rich } from "../ui/Rich";
+import { SiteRich as Rich, SiteSectionHead } from "@viglet/viglet-design-system/site";
 import { Shot } from "../ui/Shot";
 
 export function Context() {
   return (
     <section id="context">
-      <div className="wrap">
-        <div className="sec-head reveal">
-          <div className="eyebrow">{context.eyebrow}</div>
-          <h2>{context.heading}</h2>
-          <p>
+      <div className="vg-site-wrap">
+        <div className="reveal">
+          <SiteSectionHead eyebrow={context.eyebrow} title={context.heading}>
             <Rich runs={context.intro} />
-          </p>
+          </SiteSectionHead>
         </div>
         <Shot className="reveal" src={context.shot.src} alt={context.shot.alt} />
         <div className="split rev reveal" style={{ marginTop: "28px" }}>

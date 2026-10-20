@@ -56,7 +56,7 @@
 | [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did |
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
 | [AM](#block-am--danger-is-said-not-only-coloured) | Danger is said, not only coloured |
-| [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system (active — see ROADMAP) |
+| [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system |
 
 ## Block A — Foundation (tray, icon, API, projection)
 
@@ -749,3 +749,4 @@
 
 ## Block AN — The site on the shared design system
 
+- **T389** — The site renders its nav, hero, section heads, buttons, copy button, feature index, sponsor block, footer and theme toggle from the design system's ./site on the warm tone, builds through prerenderSite and renderOgCard, and loads Google Analytics only after consent, sharing the hub's stored choice; every route's text, twin, sitemap and robots match the old build, and the consumers.json entry is VDS220's to land (design §CV recorded in `site/README.md`).

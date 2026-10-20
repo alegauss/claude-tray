@@ -1,16 +1,14 @@
 import { why } from "../../lib/site-content";
-import { Rich } from "../ui/Rich";
+import { SiteRich as Rich, SiteSectionHead } from "@viglet/viglet-design-system/site";
 
 export function Why() {
   return (
     <section id="features">
-      <div className="wrap">
-        <div className="sec-head reveal">
-          <div className="eyebrow">{why.eyebrow}</div>
-          <h2>{why.heading}</h2>
-          <p>
+      <div className="vg-site-wrap">
+        <div className="reveal">
+          <SiteSectionHead eyebrow={why.eyebrow} title={why.heading}>
             <Rich runs={why.intro} />
-          </p>
+          </SiteSectionHead>
         </div>
         <div className="grid">
           {why.cards.map((card) => (

@@ -1,17 +1,15 @@
 import { profiles } from "../../lib/site-content";
-import { Rich } from "../ui/Rich";
+import { SiteRich as Rich, SiteSectionHead } from "@viglet/viglet-design-system/site";
 import { Shot } from "../ui/Shot";
 
 export function Profiles() {
   return (
     <section id="profiles">
-      <div className="wrap">
-        <div className="sec-head reveal">
-          <div className="eyebrow">{profiles.eyebrow}</div>
-          <h2>{profiles.heading}</h2>
-          <p>
+      <div className="vg-site-wrap">
+        <div className="reveal">
+          <SiteSectionHead eyebrow={profiles.eyebrow} title={profiles.heading}>
             <Rich runs={profiles.intro} />
-          </p>
+          </SiteSectionHead>
         </div>
         <div className="shot-grid reveal" style={{ marginBottom: "28px" }}>
           {profiles.shots.map((shot) => (

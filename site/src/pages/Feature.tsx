@@ -1,6 +1,5 @@
-import { Nav } from "../components/Nav";
-import { Footer } from "../components/Footer";
-import { Rich } from "../components/ui/Rich";
+import { SiteRich as Rich } from "@viglet/viglet-design-system/site";
+import { Nav, Footer } from "../components/Chrome";
 import { Shot } from "../components/ui/Shot";
 import { features, type FeatureRecord } from "../lib/features";
 
@@ -12,12 +11,12 @@ export function FeaturePage({ record }: { record: FeatureRecord }) {
   return (
     <>
       <Nav />
-      <header className="hero page-hero" id="top">
-        <div className="wrap">
+      <header className="page-hero" id="top">
+        <div className="vg-site-wrap">
           <a className="feature-back" href={`/claude-tray/#${record.anchor}`}>
             ← Back to the overview
           </a>
-          <div className="eyebrow">{record.eyebrow}</div>
+          <div className="vg-site-eyebrow">{record.eyebrow}</div>
           <h1>{record.heading}</h1>
           <p className="sub">
             <Rich runs={record.lead} />
@@ -26,7 +25,7 @@ export function FeaturePage({ record }: { record: FeatureRecord }) {
       </header>
 
       <section>
-        <div className="wrap">
+        <div className="vg-site-wrap">
           {record.shot && (
             <Shot
               className="reveal"

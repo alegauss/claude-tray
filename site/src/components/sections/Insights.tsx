@@ -1,15 +1,15 @@
 import { insights } from "../../lib/site-content";
-import { Rich } from "../ui/Rich";
+import { SiteRich as Rich } from "@viglet/viglet-design-system/site";
 import { Shot } from "../ui/Shot";
 
 export function Insights() {
   return (
     <section id="insights">
-      <div className="wrap">
+      <div className="vg-site-wrap">
         <div className="split rev reveal">
           <Shot src={insights.shot.src} alt={insights.shot.alt} />
           <div className="split-txt">
-            <div className="eyebrow">{insights.eyebrow}</div>
+            <div className="vg-site-eyebrow">{insights.eyebrow}</div>
             <h2>{insights.heading}</h2>
             <p>
               <Rich runs={insights.intro} />

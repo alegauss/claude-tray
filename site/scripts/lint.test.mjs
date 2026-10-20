@@ -43,6 +43,19 @@ test("no source fetches a third-party font at page load", () => {
   assert.deepEqual(offenders.map((f) => f.replace(siteDir + "/", "")), []);
 });
 
+test("analytics loads only from the consent banner", () => {
+  // The banner's promise is that nothing reaches Google before a choice. A tag pasted back
+  // into the head would load on every page and the banner would go on asking regardless, so
+  // the template is held to carrying none and the consent component to being the only loader.
+  const html = readFileSync(join(siteDir, "index.html"), "utf8");
+  assert.ok(!html.includes("googletagmanager.com"), "index.html loads analytics before consent");
+  const loaders = sourceFiles.filter((f) => readFileSync(f, "utf8").includes("googletagmanager.com"));
+  assert.deepEqual(
+    loaders.map((f) => f.slice(siteDir.length + 1).replaceAll("\\", "/")),
+    ["src/components/Consent.tsx"],
+  );
+});
+
 test("the ad slot declines the loader's recency memory", () => {
   // The privacy section claims nothing is written to this origin. The loader only honours
   // that when the slot says so, and the attribute is one word away from being dropped in an

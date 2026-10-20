@@ -1,38 +1,16 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-tone="warm">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-6HG45Q9BHP"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-6HG45Q9BHP');
-    </script>
     <link rel="icon" type="image/png" href="/claude-tray/logo.png" />
 
     <!--
-      The theme follows the OS, and a stored choice wins over it. This runs before first
-      paint: the tokens the body background reads are keyed off data-theme, so a class
-      applied after hydration is a visible flash of the wrong theme. Kept inline and
-      dependency-free for that reason. scripts/prerender.mjs patches the rest of this
-      <head> per route.
+      The theme follows the OS, and a stored choice wins over it. The design system's
+      pre-paint script replaces the anchor below, inlined by vite.config.ts: the tokens are
+      keyed off data-theme alone, so it states the OS preference too, before first paint.
     -->
-    <script>
-      (function () {
-        try {
-          var stored = localStorage.getItem("ct-theme");
-          if (stored === "dark" || stored === "light") {
-            document.documentElement.setAttribute("data-theme", stored);
-          }
-        } catch (e) {
-          /* private mode, or no storage — fall through to the OS preference */
-        }
-      })();
-    </script>
+    <!--theme-script-->
 
     <title>Claude Code Tray — Claude usage in your Windows tray</title>
     <meta
@@ -40,8 +18,9 @@
       content="A native Windows tray monitor for your Claude Code usage. A crisp DPI-aware icon, burn-rate projection, per-session cost at API list prices and a context audit — computed on your own machine, with no API key to paste."
     />
 
-    <!-- Besides Google Analytics (the tag at the top of this head), the one host this page
-         reaches: the author's own ad network. The loader is fetched
+    <!-- Google Analytics is not in this head: it loads only after the visitor allows it, from
+         the banner in components/Consent.tsx. The one host the page reaches unasked is the
+         author's own ad network. The loader is fetched
          by the slot component rather than from here, so nothing is requested until a slot
          exists and the theme it should draw in is known. The hint is all this head needs. -->
     <link rel="preconnect" href="https://ads.japode.com" />
@@ -64,7 +43,7 @@
       </style>
     </noscript>
   </head>
-  <body>
+  <body class="vg-site">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

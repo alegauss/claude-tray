@@ -1,6 +1,10 @@
 import { download, install, releasesUrl, wingetCommand } from "../../lib/site-content";
-import { CopyButton } from "../ui/CopyButton";
-import { Rich } from "../ui/Rich";
+import {
+  SiteButton,
+  SiteCopyButton,
+  SiteRich as Rich,
+  SiteSectionHead,
+} from "@viglet/viglet-design-system/site";
 
 // The section the page ends in: the reader who accepted the argument can have the thing. The
 // buttons carry data-twin="omit" for the reason the hero's do — a call to action converts a
@@ -10,13 +14,11 @@ import { Rich } from "../ui/Rich";
 export function Install() {
   return (
     <section id="install">
-      <div className="wrap">
-        <div className="sec-head reveal">
-          <div className="eyebrow">{install.eyebrow}</div>
-          <h2>{install.heading}</h2>
-          <p>
+      <div className="vg-site-wrap">
+        <div className="reveal">
+          <SiteSectionHead eyebrow={install.eyebrow} title={install.heading}>
             <Rich runs={install.intro} />
-          </p>
+          </SiteSectionHead>
         </div>
         <div className="steps reveal">
           {install.steps.map((step, i) => (
@@ -38,22 +40,25 @@ export function Install() {
             <code>
               winget install <span className="g">alegauss.ClaudeCodeTray</span>
             </code>
-            <CopyButton text={wingetCommand} label="Copy the install command" />
+            <SiteCopyButton
+              text={wingetCommand}
+              label="Copy the install command"
+              copyLabel="Copy"
+              copiedLabel="Copied!"
+            />
           </div>
           <p className="install-note">
             <Rich runs={install.wingetNote} />
           </p>
         </div>
 
-        <div className="hero-cta" data-twin="omit" style={{ marginTop: "24px" }}>
-          <a className="btn btn-primary" href={releasesUrl}>
-            {install.cta}
-          </a>
-          <a className="btn btn-ghost" href={releasesUrl}>
+        <div className="vg-site-hero-actions" data-twin="omit" style={{ marginTop: "24px" }}>
+          <SiteButton href={releasesUrl}>{install.cta}</SiteButton>
+          <SiteButton variant="ghost" href={releasesUrl}>
             {download.secondary}
-          </a>
+          </SiteButton>
         </div>
-        <div className="hero-meta">
+        <div className="vg-site-hero-meta">
           {download.facts.map((fact) => (
             <span key={fact}>{fact}</span>
           ))}

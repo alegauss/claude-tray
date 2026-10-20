@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
-import { hydrateRoot } from "react-dom/client";
+import { createRoot, hydrateRoot } from "react-dom/client";
 import { App } from "./App";
+import { ConsentBanner } from "./components/Consent";
 import { toAppPath } from "./routes";
 import "./index.css";
 
@@ -19,3 +20,8 @@ hydrateRoot(
     <App path={path} />
   </StrictMode>,
 );
+
+// The consent banner is not in the prerendered page at all, so it mounts rather than hydrates.
+const consent = document.createElement("div");
+document.body.appendChild(consent);
+createRoot(consent).render(<ConsentBanner />);

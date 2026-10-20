@@ -1,17 +1,15 @@
 import { statistics } from "../../lib/site-content";
-import { Rich } from "../ui/Rich";
+import { SiteRich as Rich, SiteSectionHead } from "@viglet/viglet-design-system/site";
 import { Shot } from "../ui/Shot";
 
 export function Statistics() {
   return (
     <section id="statistics">
-      <div className="wrap">
-        <div className="sec-head reveal">
-          <div className="eyebrow">{statistics.eyebrow}</div>
-          <h2>{statistics.heading}</h2>
-          <p>
+      <div className="vg-site-wrap">
+        <div className="reveal">
+          <SiteSectionHead eyebrow={statistics.eyebrow} title={statistics.heading}>
             <Rich runs={statistics.intro} />
-          </p>
+          </SiteSectionHead>
         </div>
         <div className="shot-grid reveal">
           {statistics.shots.map((shot) => (

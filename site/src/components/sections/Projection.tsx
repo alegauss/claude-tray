@@ -1,5 +1,5 @@
 import { projection } from "../../lib/site-content";
-import { Rich } from "../ui/Rich";
+import { SiteRich as Rich, SiteSectionHead } from "@viglet/viglet-design-system/site";
 
 // The four states are one card each, and the card's colour is the state's colour — the same
 // mapping the tray's own fill bar uses, so the page teaches the icon rather than describing
@@ -7,13 +7,11 @@ import { Rich } from "../ui/Rich";
 export function Projection() {
   return (
     <section id="projection">
-      <div className="wrap">
-        <div className="sec-head reveal">
-          <div className="eyebrow">{projection.eyebrow}</div>
-          <h2>{projection.heading}</h2>
-          <p>
+      <div className="vg-site-wrap">
+        <div className="reveal">
+          <SiteSectionHead eyebrow={projection.eyebrow} title={projection.heading}>
             <Rich runs={projection.intro} />
-          </p>
+          </SiteSectionHead>
         </div>
         <div className="proj reveal">
           {projection.states.map((state) => (
