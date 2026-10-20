@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+// System.Drawing (WinForms) is in the global usings, so disambiguate the WPF type.
+using Point = System.Windows.Point;
 
 namespace ClaudeTray;
 
@@ -68,6 +70,47 @@ internal partial class MainWindow : Window
         Statistics = new StatisticsPage(snapshot, showRemaining, error);
         DestinationHost.Children.Add(Statistics);
         NavStatistics.IsChecked = true;   // the default destination, now that there is one to show
+
+        Loaded += (_, _) => FitToScreen();
+    }
+
+    /// <summary>
+    /// Shrink the window onto the screen it opened on, and centre it there again. The designed 960 is
+    /// taller than the work area of a 720p or 768-line screen, and of a 1080 one at 125% scaling or more,
+    /// where WPF simply opened it past the taskbar with its footer off the bottom. The XAML minimum is 600
+    /// so 720p (≈672 of work area) fits without this having to lower it; every page scrolls inside.
+    ///
+    /// <para>On <c>Loaded</c> rather than in the constructor: only by then has the window been placed on a
+    /// monitor, so the work area and the DPI it is converted with are that monitor's, not the primary's
+    /// (which is all <see cref="SystemParameters.WorkArea"/> knows about).</para>
+    /// </summary>
+    private void FitToScreen()
+    {
+        if (PresentationSource.FromVisual(this)?.CompositionTarget is not { } target) return;
+        IntPtr hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+        System.Drawing.Rectangle px = System.Windows.Forms.Screen.FromHandle(hwnd).WorkingArea;
+        Rect area = new(target.TransformFromDevice.Transform(new Point(px.Left, px.Top)),
+                        target.TransformFromDevice.Transform(new Point(px.Right, px.Bottom)));
+
+        Rect fitted = Fit(area, Width, Height, MinWidth, MinHeight);
+        if (fitted.Width >= Width && fitted.Height >= Height && area.Contains(new Rect(Left, Top, Width, Height)))
+            return;   // it already fits where it stands: leave it alone
+
+        MinWidth = Math.Min(MinWidth, fitted.Width);
+        MinHeight = Math.Min(MinHeight, fitted.Height);
+        Width = fitted.Width;
+        Height = fitted.Height;
+        Left = fitted.Left;
+        Top = fitted.Top;
+    }
+
+    /// <summary>The window's size clamped to a work area — minimums included, since a minimum taller than
+    /// the screen is the same overflow — and centred in it. Static so <c>--selftest</c> can ask it.</summary>
+    internal static Rect Fit(Rect area, double width, double height, double minWidth, double minHeight)
+    {
+        double w = Math.Min(Math.Max(width, Math.Min(minWidth, area.Width)), area.Width);
+        double h = Math.Min(Math.Max(height, Math.Min(minHeight, area.Height)), area.Height);
+        return new Rect(area.Left + (area.Width - w) / 2, area.Top + (area.Height - h) / 2, w, h);
     }
 
     /// <summary>Show a destination, building it if this is its first visit. Ticking the nav strip is what

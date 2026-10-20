@@ -215,6 +215,9 @@ internal static partial class SelfTestCli
         Section("probe — which arriving headers this app actually reads (Block AI)");
         Readership();
 
+        Section("fit — the window opens inside the screen it is on, however small (Block Y)");
+        WindowFit();
+
         Section("glyphs — every card's emoji is in the font the card names (Block E)");
         ToastGlyphs();
 

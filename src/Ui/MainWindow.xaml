@@ -10,7 +10,7 @@
         x:ClassModifier="internal"
         Title="{local:Loc dialog.appName}"
         Width="1000" Height="960"
-        MinWidth="900" MinHeight="700"
+        MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         ThemeMode="System"
         FontFamily="Segoe UI Variable Text, Segoe UI">

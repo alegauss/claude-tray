@@ -794,6 +794,38 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// The main window's size against a work area smaller than it was designed for: 960 tall with a 700
+    /// minimum opened past the taskbar on a 768-line screen, and on a 1080 one at 125% scaling. Asked of
+    /// the arithmetic, since no machine here can be given a smaller screen on demand.
+    /// </summary>
+    private static void WindowFit()
+    {
+        var big = new System.Windows.Rect(0, 0, 1920, 1032);
+        Check("on a screen it fits, the designed size is kept",
+              MainWindow.Fit(big, 1000, 960, 900, 700) is { Width: 1000, Height: 960 });
+
+        var laptop = new System.Windows.Rect(0, 0, 1366, 728);          // 1366x768, taskbar 40
+        System.Windows.Rect r = MainWindow.Fit(laptop, 1000, 960, 900, 700);
+        Check("on a 768-line screen it is no taller than the work area", r.Height <= 728 && r.Top >= 0,
+              $"{r.Height} tall at {r.Top}");
+
+        var scaled = new System.Windows.Rect(0, 0, 1536, 824);          // 1920x1080 at 125%, taskbar 40
+        r = MainWindow.Fit(scaled, 1000, 960, 900, 700);
+        Check("on 1080 at 125% it fits too, and is centred", r.Height <= 824 && r.Top == 0 && r.Left == 268,
+              $"{r}");
+
+        var hd = new System.Windows.Rect(0, 0, 1280, 672);              // 1280x720, taskbar 48
+        r = MainWindow.Fit(hd, 1000, 960, 900, 700);
+        Check("on 720p it fits below its own 700 minimum, at full width", r.Height == 672 && r.Width == 1000 && r.Top == 0,
+              $"{r}");
+
+        var tiny = new System.Windows.Rect(100, 50, 800, 600);          // smaller than the minimums
+        r = MainWindow.Fit(tiny, 1000, 960, 900, 700);
+        Check("a minimum larger than the screen gives way to it",
+              r.Width == 800 && r.Height == 600 && r.Left == 100 && r.Top == 50, $"{r}");
+    }
+
+    /// <summary>
     /// T227. Every toast draws its emoji as a flat black outline, and the task was to fix that with a font
     /// on the one <c>TextBlock</c> that carries them. <b>Measured, that fix does not exist.</b> Rendering the
     /// six glyphs the cards use under WPF's own text stack and under GDI+, in <c>Segoe UI Emoji</c> itself,
