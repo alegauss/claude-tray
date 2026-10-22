@@ -39,6 +39,7 @@ public sealed class CasesLoad
     /// written on, which ships, and <c>en-US</c> on a hosted runner, which does not — so the application
     /// refused <c>--lang en-US</c> with exit 1 and both checks below were red on every push. <c>en</c>
     /// is what every fixture launches with, so the read-outs answer in the language the cases read.
+    /// WW569 asks the engine to default to the declaration's language instead, and this goes then.
     /// </summary>
     private static readonly CultureInfo Speaking = CultureInfo.GetCultureInfo("en");
 
