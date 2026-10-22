@@ -1,3 +1,5 @@
+using System.Globalization;
+
 using Winwright.Asserting;
 using Winwright.Projects;
 using Winwright.Scenarios;
@@ -31,6 +33,15 @@ namespace ClaudeTray.Cases;
 [Collection(TheMachine.Name)]
 public sealed class CasesLoad
 {
+    /// <summary>
+    /// The language a read-out is asked in, named rather than left to the engine. Without it the
+    /// engine fills <c>{language}</c> from this machine's culture: <c>pt-BR</c> on the desk these were
+    /// written on, which ships, and <c>en-US</c> on a hosted runner, which does not — so the application
+    /// refused <c>--lang en-US</c> with exit 1 and both checks below were red on every push. <c>en</c>
+    /// is what every fixture launches with, so the read-outs answer in the language the cases read.
+    /// </summary>
+    private static readonly CultureInfo Speaking = CultureInfo.GetCultureInfo("en");
+
     [Fact]
     public void Every_case_file_in_this_repository_loads()
     {
@@ -63,7 +74,7 @@ public sealed class CasesLoad
             project.ReportedSets.ContainsKey("profiles"),
             $"{project.Path} declares no reportedSet called 'profiles'");
 
-        var set = DerivedSet.Reported("the profiles this machine has", project, "profiles");
+        var set = DerivedSet.Reported("the profiles this machine has", project, "profiles", speaking: Speaking);
 
         // Not a count typed here either: what is claimed is that the application named at least one
         // and that every value it named is a label rather than a blank or a line of the report.
@@ -87,7 +98,7 @@ public sealed class CasesLoad
         {
             Assert.True(project.ReportedValues.ContainsKey(name), $"{project.Path} declares no '{name}'");
 
-            var value = DerivedSet.ReportedValue($"the profile {name}", project, name);
+            var value = DerivedSet.ReportedValue($"the profile {name}", project, name, speaking: Speaking);
 
             Assert.False(string.IsNullOrWhiteSpace(value), $"'{name}' answered nothing");
         }
@@ -95,8 +106,8 @@ public sealed class CasesLoad
         // And the icon follows one of the profiles the application says it has, or the two read-outs
         // disagree about one application and neither is evidence about the menu. `-` is the answer
         // where nothing is being followed, which is a state rather than a failure to read.
-        var follows = DerivedSet.ReportedValue("the profile the icon follows", project, "iconFollows");
-        var all = DerivedSet.Reported("the profiles", project, "profiles").Expected;
+        var follows = DerivedSet.ReportedValue("the profile the icon follows", project, "iconFollows", speaking: Speaking);
+        var all = DerivedSet.Reported("the profiles", project, "profiles", speaking: Speaking).Expected;
 
         Assert.True(follows == "-" || all.Contains(follows), $"the icon follows '{follows}', of {string.Join(", ", all)}");
 
@@ -104,7 +115,7 @@ public sealed class CasesLoad
         // profile this machine has and it has to be a different one. A read-out answering the profile
         // the icon is already on would make the case that picks it pass by nothing happening — the
         // check mark would be where it was, on the entry it was on, and every claim would hold.
-        var other = DerivedSet.ReportedValue("the profile the icon does not follow", project, "otherProfile");
+        var other = DerivedSet.ReportedValue("the profile the icon does not follow", project, "otherProfile", speaking: Speaking);
 
         Assert.True(other == "-" || all.Contains(other), $"the other profile is '{other}', of {string.Join(", ", all)}");
         Assert.True(
