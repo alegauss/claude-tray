@@ -17,6 +17,10 @@ shows your **rate-limit usage percentage** as a crisp, DPI-aware icon.
 **[alegauss.github.io/claude-tray](https://alegauss.github.io/claude-tray/)** — the site, with a page
 per pillar. Every page is served as `index.md` beside its `index.html`, so an agent can read it as text.
 
+<img src="site/public/shots/demo.gif" alt="The tray icon filling up as a session is used, turning red when the projection says the limit arrives before the reset, and the On pace to run out toast" width="640">
+
+*The icon fills as you use your quota and turns red **before** you hit the limit, with a toast that says when you'd run out, while there's still time to slow down.*
+
 <img src="site/public/shots/tooltip.png" alt="The tray tooltip: session and week usage, the projection, and what the rate limit says" width="46%">
 &nbsp;&nbsp;
 <img src="site/public/shots/menu.png" alt="Right-click menu" width="46%">
