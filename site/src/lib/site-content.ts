@@ -110,7 +110,7 @@ export const hero = {
   titleLead: "Your Claude Code usage,",
   titleAccent: "always in the tray.",
   sub: [
-    "A native Windows tray monitor that draws your rate-limit usage as a crisp, DPI-aware icon — with burn-rate projection that warns you before a limit runs out, per-session cost at API list prices and a context audit. Zero config: it reuses the login ",
+    "Shows how much of your Claude Code limit you've used, right in the Windows tray, turns red when your current pace would run out before the reset, and forecasts the week along the hours you actually work. Zero config: it reuses the login ",
     { code: "claude" },
     " already stored.",
   ] as Rich,
@@ -156,7 +156,7 @@ export const why = {
       icon: "📊",
       title: "Task-Manager-style fill",
       body: [
-        "A vertical bar rises from the bottom in proportion to your usage, with a 3D bevel for relief. Blue while you are on track, red when you are not.",
+        "A vertical bar rises from the bottom in proportion to your usage, with a 3D bevel for relief. Green while you are on track, red when you are not.",
       ] as Rich,
     },
     {
@@ -253,9 +253,9 @@ export const projection = {
       key: "ok" as const,
       label: "On track",
       body: [
-        "At your current pace, usage stays under 100% until the window resets. The fill bar stays its normal ",
-        { b: "blue" },
-        " — nothing to do.",
+        "At your current pace, usage stays under 100% until the window resets. The fill bar is ",
+        { b: "green" },
+        " — nothing to do. Before there are enough readings to tell, it is blue.",
       ] as Rich,
     },
     {

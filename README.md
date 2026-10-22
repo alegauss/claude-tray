@@ -4,39 +4,42 @@
 
 # Claude Code Tray
 
-**A native Windows tray monitor for your Claude Code usage — at a glance, always on.**
+**Your Claude Code limit in the Windows tray: red before you run out, and a weekly forecast paced to the hours you actually work.**
 
-A WinForms (`NotifyIcon` + GDI+) rewrite that lives **only in the Windows tray** and
-shows your **rate-limit usage percentage** as a crisp, DPI-aware icon.
+<img src="site/public/shots/demo.gif" alt="The tray icon filling up as a session is used, turning red when the projection says the limit arrives before the reset, and the On pace to run out toast" width="640">
+
+```
+winget install alegauss.ClaudeCodeTray
+```
+
+or download [`ClaudeTray-Setup.exe`](https://github.com/alegauss/claude-tray/releases/latest) · no API key, no setup, no admin
 
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows&logoColor=white)
-![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
-![C#](https://img.shields.io/badge/C%23-WinForms%20%2B%20GDI%2B-239120?logo=csharp&logoColor=white)
 ![winget](https://img.shields.io/badge/winget-alegauss.ClaudeCodeTray-2496ED?logo=windows&logoColor=white)
 
 **[alegauss.github.io/claude-tray](https://alegauss.github.io/claude-tray/)** — the site, with a page
 per pillar. Every page is served as `index.md` beside its `index.html`, so an agent can read it as text.
 
-<img src="site/public/shots/demo.gif" alt="The tray icon filling up as a session is used, turning red when the projection says the limit arrives before the reset, and the On pace to run out toast" width="640">
-
-*The icon fills as you use your quota and turns red **before** you hit the limit, with a toast that says when you'd run out, while there's still time to slow down.*
-
-<img src="site/public/shots/tooltip.png" alt="The tray tooltip: session and week usage, the projection, and what the rate limit says" width="46%">
-&nbsp;&nbsp;
-<img src="site/public/shots/menu.png" alt="Right-click menu" width="46%">
-
 </div>
+
+- **The icon is the number.** It shows how much of your 5-hour session (or your week) you have
+  used, drawn sharp at any display scale.
+- **Red means slow down.** At your current pace, will you run out before the window resets? If
+  so, the icon turns red and a toast tells you when you'd run out, while there is still time to
+  change course.
+- **A forecast that knows your week.** A straight line can say your weekly quota runs out at
+  4 a.m. on a Friday. The Statistics window learns when you usually work and names the afternoon
+  it will actually happen.
+- **Hover for the rest.** Time to reset, projected time to 100%, and a toast when your quota
+  comes back.
+
+It reuses the login Claude Code already has on your machine, so there is nothing to configure.
 
 ---
 
 > **Unofficial / community project.** Not affiliated with, endorsed by, or sponsored by
 > Anthropic. "Claude" and "Claude Code" are trademarks of Anthropic; this tool merely reads
 > the usage data Claude Code already exposes on your own machine.
-
-Why .NET instead of Python: the number is drawn as a **vector** (`GraphicsPath`,
-with an outline), **at the actual size** the tray requests (`SM_CXSMICON`) and with
-**DPI awareness** (`PerMonitorV2`). No downscaling a 64px bitmap — the number stays
-crisp, especially on 125–200% displays (20–32px icons).
 
 ## Install
 
@@ -55,7 +58,8 @@ To build from source instead, see [Build and run](#build-and-run).
 
 - Background: Claude clay/coral `#D97757`
 - **Vertical fill bar** (Task Manager style) rises from the bottom up, proportional to usage
-  (50% = bottom half; 100% = whole tile). **Blue** normally; turns **vivid red** when the
+  (50% = bottom half; 100% = whole tile). **Blue** until there are enough readings to project,
+  **green** while on track, and **vivid red** when the
   projection says usage will hit 100% **before** the window resets (see below). Prefer to see
   quota *left* instead? **Settings → Display → Show remaining instead of used** inverts it — the
   icon starts full at 100% and drains to 0%, and the tooltip reads "… left" (color and alerts
@@ -90,13 +94,21 @@ money being spent. That is the only thing that can displace a reading, it happen
 usage is paying, and it never happens to buy the bare arrow: a percentage is given up for words or
 not at all.
 
+<div align="center">
+
+<img src="site/public/shots/tooltip.png" alt="The tray tooltip: session and week usage, the projection, and what the rate limit says" width="46%">
+&nbsp;&nbsp;
+<img src="site/public/shots/menu.png" alt="Right-click menu" width="46%">
+
+</div>
+
 ## Projection (observability)
 
 Beyond the current percentage, the app projects when usage would reach 100% and warns you
 *before* the window resets. Two verdicts drive the fill-bar color:
 
-- **on track** — usage stays under 100% until the window resets → the fill bar stays its
-  normal blue (no extra signal)
+- **on track** — usage stays under 100% until the window resets → the fill bar is green (no
+  extra signal); before there are enough readings to tell, it is blue
 - **danger** — usage hits 100% *before* the reset (you'll run out early) → the fill bar turns
   **vivid red**, and a red **On pace to run out** toast says so once per window per reset, with
   when you'd run out and when it resets (see [the notifications](#four-that-arent-celebrations))
@@ -796,7 +808,15 @@ Governing terms: [Consumer Terms](https://www.anthropic.com/legal/consumer-terms
   can be rebuilt from its tag; the self-contained `.exe` needs no .NET installed to run
 - Claude Code installed and logged in (run `claude` at least once)
 
+![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-WinForms%20%2B%20GDI%2B-239120?logo=csharp&logoColor=white)
+
 ## Build and run
+
+Why .NET instead of Python: the number is drawn as a **vector** (`GraphicsPath`,
+with an outline), **at the actual size** the tray requests (`SM_CXSMICON`) and with
+**DPI awareness** (`PerMonitorV2`). No downscaling a 64px bitmap — the number stays
+crisp, especially on 125–200% displays (20–32px icons).
 
 ```
 dotnet run -c Release            # build and run

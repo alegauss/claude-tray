@@ -85,7 +85,7 @@ export const features: FeatureRecord[] = [
         list: [
           [
             { b: "On track" },
-            " — at your current pace, usage stays under 100% until the window resets. The fill bar stays blue.",
+            " — at your current pace, usage stays under 100% until the window resets. The fill bar is green.",
           ],
           [
             { b: "Danger" },

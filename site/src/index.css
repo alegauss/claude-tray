@@ -10,15 +10,16 @@
 /* ============================================================================
    The product's own colours. Everything else on this page reads a --vg-* token.
 
-   The four state colours are the tray's, not the page's: blue is on track, red is stopped,
-   clay is paying, slate is idle. They are named here rather than typed into the projection
+   The state colours are the tray's, not the page's: green is on track, blue is not yet
+   projected, red is stopped, clay is paying, slate is idle. They are named here rather than typed into the projection
    section, because the section that explains the icon must not be able to disagree with it.
    The design system's pre-paint script always sets data-theme, so the dark values key on that
    attribute alone, as the preset's do.
    ============================================================================ */
 
 :root {
-  /* the tray's four states, as *text* on this surface */
+  /* the tray's states, as *text* on this surface */
+  --green: #2b8a3e;
   --blue: #2166b8;
   --red: #c9353a;
   --slate: #64707a;
@@ -44,6 +45,7 @@
 }
 
 :root[data-theme="dark"] {
+  --green: #40c057;
   --blue: #4a90e2;
   --red: #e5484d;
   --slate: #8b949e;
@@ -561,13 +563,13 @@ figcaption code {
   color: var(--vg-foreground);
 }
 .state.ok {
-  border-left-color: var(--blue);
+  border-left-color: var(--green);
 }
 .state.ok .swatch {
-  background: var(--blue);
+  background: var(--green);
 }
 .state.ok .tag {
-  color: var(--blue);
+  color: var(--green);
 }
 .state.bad {
   border-left-color: var(--red);
