@@ -95,6 +95,18 @@ internal static class ProbeCli
         // reading joins, which was already not guaranteed while the call went to the process's default dir.
         ClaudeInfo target = ClaudeAccount.PickMonitored(discovered, settings.MonitoredConfigDir)
                             ?? ClaudeAccount.Read();
+        // `profile=<n>` (T394): the live call against the n-th profile `--profiles` lists, rather than the
+        // one the icon follows — the only way to take a reading from a profile without repointing the icon,
+        // which is what checking a newly found one (a WSL login) needs.
+        if (args.FirstOrDefault(a => a.StartsWith("profile=", StringComparison.OrdinalIgnoreCase)) is { } pick)
+        {
+            if (!int.TryParse(pick["profile=".Length..], out int index) || index < 0 || index >= discovered.Count)
+            {
+                Console.WriteLine($"{pick}: there are {discovered.Count} profiles, numbered from 0 as --profiles lists them.");
+                return 1;
+            }
+            target = discovered[index];
+        }
         string targetKey = ProfileStore.KeyFor(target);
 
         if (!liveOnly)

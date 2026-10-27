@@ -50,6 +50,15 @@ internal static class WslProfiles
 
     public static bool IsWsl(string configDir) => TryParse(configDir, out _, out _);
 
+    /// <summary>A Linux path, as Windows reaches it inside the same distro as <paramref name="within"/> —
+    /// which is what a project path recorded by Claude Code run in WSL needs before Windows can open it. Any
+    /// other path, or a <paramref name="within"/> outside WSL, comes back unchanged.</summary>
+    public static string ToWindows(string within, string path)
+    {
+        if (!path.StartsWith('/') || !TryParse(within, out string distro, out _)) return path;
+        return Share + distro + path.Replace('/', '\\');
+    }
+
     /// <summary>The Linux user whose home a config dir sits in, or null for one outside <c>/home</c> —
     /// <c>/root</c> is root's, and <c>wsl.exe</c> without <c>-u</c> is the distro's default user.</summary>
     public static string? UserOf(string linuxPath)
@@ -126,12 +135,15 @@ internal static class WslProfiles
     /// The command <paramref name="launch"/> is the one a Windows profile runs (<c>claude</c>, or the login
     /// form), unchanged.
     /// </summary>
+    /// <remarks>Through <c>bash -lc</c>, because the native installer puts <c>claude</c> in
+    /// <c>~/.local/bin</c>, which only a login shell adds to <c>PATH</c>: measured on a real distro,
+    /// <c>wsl.exe -- claude</c> answers <c>command not found</c> and <c>bash -lc claude</c> starts it.</remarks>
     internal static string LaunchArguments(string configDir, string launch)
     {
         if (!TryParse(configDir, out string distro, out string linuxPath)) return launch;
         string? user = UserOf(linuxPath);
         string home = user is null ? "" : user == "root" ? "/root" : "/home/" + user;
-        string env = linuxPath == home + "/.claude" ? "" : $"env CLAUDE_CONFIG_DIR=\"{linuxPath}\" ";
-        return $"wsl.exe -d {distro}" + (user is null ? "" : $" -u {user}") + $" --cd ~ -- {env}{launch}";
+        string env = linuxPath == home + "/.claude" ? "" : $"CLAUDE_CONFIG_DIR='{linuxPath}' ";
+        return $"wsl.exe -d {distro}" + (user is null ? "" : $" -u {user}") + $" --cd ~ -- bash -lc \"{env}{launch}\"";
     }
 }

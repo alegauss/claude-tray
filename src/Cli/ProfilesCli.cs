@@ -60,7 +60,9 @@ internal static class ProfilesCli
             // What the launch does to the config dir — the three cases, because "nothing" and "remove
             // the inherited one" look identical from the outside and mean opposite things (T144).
             Console.WriteLine("             "
-                              + ClaudeAccount.ActionFor(p.ConfigDir) switch
+                              + (p.IsWsl ? WslProfiles.LaunchArguments(p.ConfigDir, TrayContext.LaunchCommandFor(p))
+                                           + "   (inside the distro, no Windows CLAUDE_CONFIG_DIR)" : null)
+                              ?? ClaudeAccount.ActionFor(p.ConfigDir) switch
                               {
                                   ClaudeAccount.ConfigDirAction.Set => $"CLAUDE_CONFIG_DIR={p.ConfigDir}",
                                   ClaudeAccount.ConfigDirAction.Unset =>

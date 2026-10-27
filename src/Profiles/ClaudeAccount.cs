@@ -176,6 +176,14 @@ internal static class ClaudeAccount
     {
         yield return Path.Combine(configDir, ".claude.json");
         if (SamePath(configDir, HomeConfigDir)) yield return Path.Combine(Home, ".claude.json");
+        // The same layout inside WSL (T394): a Linux user's `~/.claude` keeps its account in `~/.claude.json`
+        // in that user's home, which is that dir's parent. Only for the dir named `.claude` directly under a
+        // home, for the reason above — any other dir reading it would take on that user's identity.
+        else if (WslProfiles.TryParse(configDir, out _, out string linux)
+                 && WslProfiles.UserOf(linux) is { } user
+                 && linux == (user == "root" ? "/root" : "/home/" + user) + "/.claude"
+                 && Path.GetDirectoryName(configDir.TrimEnd('\\', '/')) is { } home)
+            yield return Path.Combine(home, ".claude.json");
     }
 
     /// <summary>
@@ -409,13 +417,18 @@ internal static class ClaudeAccount
                 // Through cmd.exe so PATHEXT and the installer's shim resolve `claude` the same way a
                 // terminal would, whatever the install method.
                 FileName = "cmd.exe",
-                Arguments = "/c claude auth status --json",
+                // Inside WSL (T394) the `claude` that answers is the distro's, asked through wsl.exe —
+                // the Windows one with a \\wsl.localhost CLAUDE_CONFIG_DIR would be a different install
+                // reading another platform's files.
+                Arguments = "/c " + (WslProfiles.IsWsl(configDir)
+                    ? WslProfiles.LaunchArguments(configDir, "claude auth status --json")
+                    : "claude auth status --json"),
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
-            ApplyConfigDir(psi, configDir);
+            if (!WslProfiles.IsWsl(configDir)) ApplyConfigDir(psi, configDir);
 
             using System.Diagnostics.Process? proc = System.Diagnostics.Process.Start(psi);
             if (proc is null) return (AuthMethod.None, null, "could not start claude");

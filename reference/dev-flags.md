@@ -257,7 +257,12 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   call. Prints nothing, writes nothing, exits 0 on a payload with
                                       #   no rate_limits. Try it: '{"rate_limits":{...}}' | ClaudeTray.exe
                                       #   --statusline.
---probe [--live | --recorded] [--all] # the rate-limit headers VERBATIM: the recorded capture log first,
+--probe [--live | --recorded] [--all] [profile=<n>]
+                                      # profile=<n> (T394) takes the live reading from the n-th profile
+                                      #   --profiles lists (from 0) instead of the one the icon follows;
+                                      #   out of range exits 1. How a new profile (a WSL login) is checked
+                                      #   without repointing the icon.
+                                      # the rate-limit headers VERBATIM: the recorded capture log first,
                                       #   then one live call — which is itself recorded (T212), against
                                       #   the monitored profile and filed under its key. --live skips
                                       #   *reading* the log, not writing to it; --recorded is its

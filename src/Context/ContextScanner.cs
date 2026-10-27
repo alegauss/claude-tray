@@ -417,8 +417,11 @@ internal static class ContextScanner
         // only guess (both `claude\tray` and `claude-tray` encode identically, and if both exist the
         // probe returns whichever it reaches first). It also answers for a directory that is gone.
         string? cwd = CwdFromTranscripts(pp.Transcripts);
-        if (cwd is { Length: > 0 } && ProjectSlug.RootFor(pp.Slug, cwd) is { Length: > 0 } root)
+        if (cwd is { Length: > 0 } && ProjectSlug.RootFor(pp.Slug, cwd) is { Length: > 0 } linuxOrWindows)
         {
+            // A Linux root, from Claude Code run inside WSL (T394), is opened through the same distro's share
+            // as the config dir being scanned — as a Windows path it is a folder that does not exist.
+            string root = WslProfiles.ToWindows(opt.ClaudeRoot, linuxOrWindows);
             pp.Path = root;
             pp.FromTranscript = true;
             pp.State = Directory.Exists(root) ? PathState.Resolved : PathState.Missing;

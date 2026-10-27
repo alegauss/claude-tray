@@ -42,8 +42,6 @@
 
 ## Block O — Profiles
 
-- ⏳ **T394** (deps: —) (requires: wsl-claude) **Claude Code run inside WSL is invisible to the tray** — No signed-in WSL profile has been polled yet, so its quota reading, sessions and context scan over the share are unverified. → §CVI.5
-
 ## Block AK — Sessions — what one conversation cost, and what it did
 
 ## Block AI — Verification — the checks that prove a change

@@ -76,10 +76,14 @@ internal static partial class SelfTestCli
               WslProfiles.ParseList("U\0b\0u\0n\0t\0u\0\r\0\n\0* Debian\r\n\r\n").SequenceEqual(new[] { "Ubuntu", "Debian" }));
         Check("launching runs claude in the distro, as the home's user, in its home",
               WslProfiles.LaunchArguments(@"\\wsl.localhost\Ubuntu\home\ubuntu\.claude", "claude")
-                  == "wsl.exe -d Ubuntu -u ubuntu --cd ~ -- claude");
+                  == "wsl.exe -d Ubuntu -u ubuntu --cd ~ -- bash -lc \"claude\"");
         Check("and a config dir that is not ~/.claude is selected inside Linux, never in Windows",
               WslProfiles.LaunchArguments(@"\\wsl.localhost\Ubuntu\home\ubuntu\.claude-work", "claude")
-                  == "wsl.exe -d Ubuntu -u ubuntu --cd ~ -- env CLAUDE_CONFIG_DIR=\"/home/ubuntu/.claude-work\" claude");
+                  == "wsl.exe -d Ubuntu -u ubuntu --cd ~ -- bash -lc \"CLAUDE_CONFIG_DIR='/home/ubuntu/.claude-work' claude\"");
+        Check("a Linux project path is opened through the share of the distro it was recorded in",
+              WslProfiles.ToWindows(@"\\wsl.localhost\Ubuntu\home\ubuntu\.claude", "/home/ubuntu/proj")
+                  == @"\\wsl.localhost\Ubuntu\home\ubuntu\proj"
+              && WslProfiles.ToWindows(@"C:\Users\x\.claude", "/home/ubuntu/proj") == "/home/ubuntu/proj");
         Check("a Linux cwd resolves to its project with no drive letter added",
               ProjectSlug.RootFor("-home-ubuntu-proj", "/home/ubuntu/proj/src/deep") == "/home/ubuntu/proj"
               && ProjectSlug.NameFor("-home-ubuntu-proj", "/home/ubuntu/proj/src") == "ubuntu/proj");

@@ -541,6 +541,12 @@ a submenu — one entry per profile:
   its entry runs `claude auth login` (with your address prefilled if the folder already knows it).
 - **Name** — free text, only for the menu. Left empty it uses the organization, else the folder name.
 - **Working directory** — per profile, so one click can't open your work account inside a personal repo.
+
+**Claude Code inside WSL** is found too. A login in a running distro shows up as its own profile, for
+example *Personal (WSL Ubuntu)*: its quota, its sessions and its context load are read through the
+distro's `\\wsl.localhost` share. Opening Claude Code for it runs `claude` inside the distro. The tray
+reads only distros that are already running, because opening a stopped one's share would boot it.
+It never writes a WSL folder into the Windows `CLAUDE_CONFIG_DIR`.
 - **Remove** — from the tray's list only. **The folder, its login, its transcripts and its memory are
   never touched**, and if it's still discoverable it comes back as a found profile.
 

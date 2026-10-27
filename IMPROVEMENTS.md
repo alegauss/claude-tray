@@ -847,25 +847,6 @@ positioning question for STRATEGY.md, not a task; hook-driven "Claude is waiting
 because a hook is a write to Claude Code's settings (§I.4) and its payload carries message text
 (§I.1); and macOS, Linux or mobile builds.
 
-### CVI.5 Claude Code inside WSL (T394)
-
-A good share of Claude Code use on Windows runs inside WSL, where the configuration folder is
-`~/.claude` in the Linux home, reachable from Windows as
-`\\wsl.localhost\<distro>\home\<user>\.claude`. Discovery finds the default folder, one named by a
-settings file and `~/.claude-*`, all on the Windows side, so for a WSL user the tray shows nothing
-at all. Claude Code Usage Monitor discovers WSL data paths for this reason.
-
-The shape: a WSL folder is a found profile like any other — the same picker, the same stores, polled
-with its own credentials, read through the UNC path. Discovery must not start a distro: touching the
-share of a stopped one boots it, which is not something a tray app gets to do on a timer, so only a
-running distro is read. Verify that claim before relying on it.
-
-What carries over: credentials are read, never moved or written (§I.6); Open Claude Code for such a
-profile launches `claude` through `wsl.exe` in that distro, not natively; and the cwd a transcript
-records is a Linux path, so `ProjectSlug` walking it up must not assume a drive letter.
-
-Measure: a sweep over the 9P share is far slower than over NTFS, and the transcript scans run on it.
-
 ### CVI.9 How much the status line actually saves (T398)
 
 T390 lets a tray tick take Claude Code's status-line reading instead of calling the API, under four
