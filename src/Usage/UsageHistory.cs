@@ -22,7 +22,7 @@ namespace ClaudeTray;
 /// not carry the header, which is what every reading inside the quota looks like.</para></summary>
 internal readonly record struct UsageSample(
     double T, double Util5h, double Reset5h, double Util7d, double Reset7d,
-    double? Extra = null, double ResetExtra = 0, bool? InUse = null);
+    double? Extra = null, double ResetExtra = 0, bool? InUse = null, bool? FromStatusLine = null);
 
 /// <summary>
 /// A tiny append-only log of the live rate-limit readings, written once per successful poll to
@@ -67,8 +67,13 @@ internal static class UsageHistory
     /// <param name="extraInUse">Whether the API said the account was past its included quota at this
     /// reading. Null omits it, on the same rule: absent is not false, and it is what a response inside
     /// the quota looks like (T275).</param>
+    /// <param name="fromStatusLine">Where the reading came from (T398): the status-line payload (true) or an
+    /// API response (false), written as <c>"s":1</c> / <c>"s":0</c>. Null writes nothing, which is what every
+    /// line before this field looks like. Explicit because nothing else on a line tells the two apart: an
+    /// account the API sends no overage header has no <c>ux</c>/<c>ix</c> on either kind.</param>
     public static void Append(string profileKey, long nowUnix, double util5h, double reset5h, double util7d, double reset7d,
-                              double? extraUtil = null, double extraReset = 0, bool? extraInUse = null)
+                              double? extraUtil = null, double extraReset = 0, bool? extraInUse = null,
+                              bool? fromStatusLine = null)
     {
         // T239: an observing tray reads this store and adds nothing to it.
         if (ProfileStore.Observing) return;
@@ -85,6 +90,8 @@ internal static class UsageHistory
             // other: `ux:0` on every reading past the threshold, and the header saying so beside it.
             if (extraInUse is { } inUse)
                 line = $"{line[..^1]},\"ix\":{(inUse ? 1 : 0)}}}";
+            if (fromStatusLine is { } sl)
+                line = $"{line[..^1]},\"s\":{(sl ? 1 : 0)}}}";
             StoreFile.AppendAllText(path, line + Environment.NewLine);
             PruneIfStale(profileKey, path, nowUnix);
         }
@@ -186,7 +193,8 @@ internal static class UsageHistory
                 // NumOrNull, not Num: every line written before T179 lacks "ux", and reading those back
                 // as 0 would invent a measurement nobody took. "ix" follows the same rule (T275) — and it
                 // is stored as 0/1 rather than as a JSON boolean so one number reader covers the file.
-                NumOrNull(root, "ux"), Num(root, "rx"), NumOrNull(root, "ix") is { } b ? b != 0 : null);
+                NumOrNull(root, "ux"), Num(root, "rx"), NumOrNull(root, "ix") is { } b ? b != 0 : null,
+                NumOrNull(root, "s") is { } src ? src != 0 : null);
             return s.T > 0;
         }
         catch { return false; }

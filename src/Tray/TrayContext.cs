@@ -1068,13 +1068,15 @@ internal sealed class TrayContext : ApplicationContext
     {
         // A status-line reading measured the four window numbers and carries the rest (T390): the overage
         // columns are written absent rather than as a measurement nobody took, and it has no headers.
+        // Each line says which of the two it was (T398), the only way to measure afterwards how many polls
+        // the status line saved and whether its numbers agreed with the API's.
         if (d.FromStatusLine)
         {
-            UsageHistory.Append(profileKey, now, d.Session5h, d.Reset5h, d.Week7d, d.Reset7d);
+            UsageHistory.Append(profileKey, now, d.Session5h, d.Reset5h, d.Week7d, d.Reset7d, fromStatusLine: true);
             return;
         }
         UsageHistory.Append(profileKey, now, d.Session5h, d.Reset5h, d.Week7d, d.Reset7d,
-                            d.ExtraUtil, d.ResetExtra, d.ExtraInUse);
+                            d.ExtraUtil, d.ResetExtra, d.ExtraInUse, fromStatusLine: false);
         // Keep the headers themselves whenever their shape moves (T181). The reading that says what the
         // overage percentage denominates can only be taken while an account is in overage, which is a moment
         // nobody can schedule — so it is recorded rather than waited for.

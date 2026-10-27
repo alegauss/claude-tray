@@ -791,6 +791,17 @@ internal static partial class SelfTestCli
         Check("a reading written before the field existed reads back as neither", read[0].InUse == null);
         Check("an absent header writes no field at all", !first.Contains("\"ix\""), first);
 
+        // T398. Each reading's source, kept so the status line's saving can be measured afterwards — the only
+        // thing that tells the two apart on an account the API sends no overage header.
+        long t2 = t1 + 120;
+        UsageHistory.Append(ProfileKey, t2, 0.31, Now + 3600, 0.48, Now + 86400, fromStatusLine: false);
+        UsageHistory.Append(ProfileKey, t2 + 60, 0.32, Now + 3600, 0.48, Now + 86400, fromStatusLine: true);
+        List<UsageSample> sourced = UsageHistory.Load(ProfileKey, t2);
+        Check("a reading says whether it came from the API or from the status line",
+              sourced.Count == 2 && sourced[0].FromStatusLine == false && sourced[1].FromStatusLine == true,
+              string.Join(", ", sourced.Select(s => s.FromStatusLine?.ToString() ?? "null")));
+        Check("and a line written before the field existed says neither", read[0].FromStatusLine == null);
+
         // The stretch the chart shades, from the readings themselves. A poll every five minutes is one
         // spell; the app being closed between two of them is two.
         const double week = 7 * 86400;

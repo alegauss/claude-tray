@@ -863,6 +863,6 @@ quota, both statuses `allowed`, both windows under 0.9. Two numbers were assumed
 
 How to measure, with no new mechanism: paste the Settings row's entry into one profile, work a day,
 then compare `statusline\<dir-key>.json`'s rewrite times against the poll cadence, and pair the
-substitute lines in `usage-history.jsonl` (no `ux`/`ix`) with the API lines around them. A gap of
+status-line lines in `usage-history.jsonl` (`s:1`) with the API lines (`s:0`) around them. A gap of
 more than a point in either window, or a share of covered ticks under a third, is the finding.
 Either one changes `ApiAtLeastEverySeconds` or the 0.9 floor, not the design.
