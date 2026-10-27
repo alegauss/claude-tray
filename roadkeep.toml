@@ -133,7 +133,9 @@ why = 200
 # instead of offering it to every session. `wsl-claude` is a WSL distro, running, with Claude Code signed
 # in inside it (T394): the developer's machine has two distros and neither has one, and the only way to
 # test the stopped one is to boot it, which is the very side effect that task must prove it avoids.
-declared = ["wsl-claude"]
+# `statusline-day` is a build with T390 installed, its status-line entry pasted into a profile, and a
+# working day of readings behind it (T398): a measurement of a habit, which no session can produce.
+declared = ["wsl-claude", "statusline-day"]
 
 [markers]
 open = ["📋", "💭", "⏳", "🛠"]

@@ -32,7 +32,7 @@
 
 ## Block D — Auth & API resilience
 
-- 📋 **T398** (deps: —) **Nobody knows how many polls the status-line feed actually saves, or whether its numbers match the API** — T390 skips the API call on a fresh status-line reading, but how often one is fresh, and whether its percentages agree with the headers, were assumed and never read. → §CVI.9
+- 📋 **T398** (deps: —) (requires: statusline-day) **Nobody knows how many polls the status-line feed actually saves, or whether its numbers match the API** — T390 skips the API call on a fresh status-line reading, but how often one is fresh, and whether it agrees with the headers, was assumed and never read. → §CVI.9
 
 ## Block E — Reset notifications & toasts
 
