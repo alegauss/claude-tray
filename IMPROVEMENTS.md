@@ -830,3 +830,160 @@ maintained the same way instead of each carrying its own conventions.
 T369 finished the shape by drawing what the other three have and this one did not: a band closing
 the hero and opening the footer, whose motif is the product's own subject. Here that is the icon —
 bars rising from a floor, with the even-pace line ruled across them.
+
+## CVI What the alternatives do that this app does not
+
+In October 2026 the app was read against the two tools listed beside it — Claude Code Usage Monitor
+and ccusage, both terminal programs — and against CodexBar, the menu-bar app that leads the category
+on macOS. The subsections are the gaps that survived the non-goals. Each is filed under the block
+that owns the capability, not under this comparison, because parity is not the bar: a gap is here
+only because somebody using this app would act differently with it.
+
+Left out on purpose, so they are not filed again: polling Anthropic's status page for incidents (a
+network call §I.2 does not allow); other agents and providers — Codex, Gemini, Cursor — which is a
+positioning question for STRATEGY.md, not a task; hook-driven "Claude is waiting" notifications,
+because a hook is a write to Claude Code's settings (§I.4) and its payload carries message text
+(§I.1); and macOS, Linux or mobile builds.
+
+### CVI.1 A reading the status line already carries (T390)
+
+Claude Code hands its status-line command a JSON payload on stdin, and for Pro and Max that payload
+carries `rate_limits.five_hour` and `rate_limits.seven_day`, each with `used_percentage` and
+`resets_at`. Those are the two numbers this app spends a Haiku call on every poll — the automated
+call the README's terms section calls a gray area. Claude Code Usage Monitor already reads them this
+way.
+
+The shape: `ClaudeTray.exe --statusline` reads the payload, writes the reading into the store of the
+profile whose `CLAUDE_CONFIG_DIR` the process inherited, prints one compact line for the status bar
+and exits fast, since it runs on every status refresh. The tray treats a status-line reading younger
+than its interval as a poll and skips the API call.
+
+The poll stays as the fallback, because the payload cannot replace it: it has no extra-usage figure
+and no per-window status, appears only after a session's first response, and drops a window once it
+resets — so an idle machine still needs the API. The tray never writes `settings.json` (§I.4):
+Settings shows the line to paste, with a Copy button, the way the `setx` row does.
+
+Measure before building: how often the status line actually runs, and whether its percentages match
+the headers' on the same minute.
+
+### CVI.2 A read-out a script can parse (T391)
+
+The read-outs this app has — `--tooltip`, `--sessions`, `--insights` — print text written for a
+person. ccusage answers every report with `--json`, and Claude Code Usage Monitor adds `--once` with
+exit codes (0 fine, 10 near the limit, 11 at it, 20 nothing to judge), so a git hook, a CI step or a
+status bar can branch on the quota without parsing prose.
+
+The shape: `--json` on the read-outs that already exist rather than new ones, starting with the
+current reading — both windows with their resets, each window's verdict and projected time to 100%,
+extra usage, and the reading's age — and `--sessions`. An exit code on the reading alone, taken from
+the same verdict the icon uses, so a script and the icon cannot disagree.
+
+Two rules carry over. The JSON holds nothing a screen would not, and less than the Sessions list:
+the conversation title is that list's exception (§I.1) and stays there, so a session row in JSON has
+no title. And a stale reading is reported as stale, with its age, never as current.
+
+Field names become a contract the moment they ship, so the first release carries a `schema` number.
+
+### CVI.3 Totals by day, week and month (T392)
+
+ccusage's default report is one row per day — tokens split into input, output, cache write and cache
+read, the models used, and cost at list prices — with weekly and monthly views of the same table.
+Claude Code Usage Monitor prints the same daily and monthly tables. Here the Sessions tab answers
+per conversation and the 24h submenu answers for one day, and nothing answers "was this week heavier
+than the last four", which is a question about calendar totals.
+
+The shape: a period choice over the data the session index already holds — one row per day, week or
+month, with the columns the session list has, including `≈ $ at list prices` and its caveat that it
+is not a bill. A turn counts on the day its own timestamp falls, in local time, not on the day its
+conversation started, so a conversation that runs past midnight is split — the thing a session row
+cannot show. The same table from the command line, as `--sessions --by day|week|month`.
+
+A deleted transcript cannot be counted, so until history outlives Claude Code's cleanup the longest
+period is the last month, and the table says where its data starts rather than drawing quiet weeks.
+
+### CVI.4 History that outlives the transcripts (T393)
+
+Claude Code deletes transcripts older than `cleanupPeriodDays`, 30 by default. The session index's
+cache is rewritten from the files a sweep found, so a deleted transcript takes its row with it, and
+"everything on disk" in the range picker quietly means the last month. Claude Code Usage Monitor
+keeps a local warehouse for exactly this, with a year's retention.
+
+The shape: keep a row whose file has gone instead of dropping it, marked as coming from a transcript
+that no longer exists, so a drill-down says the call tree is gone rather than failing. The row holds
+only what the list already shows — counts, models, effort, cost and the 200-character title — so
+keeping it reads nothing new and §I.1 holds. The call tree is not kept: it is read on demand from
+the file, and copying it would be a second store of the conversation's shape.
+
+Retention needs a bound and a way out: a year by default, and a Settings line that says how many
+kept rows there are and clears them. The tray never touches `cleanupPeriodDays` (§I.4).
+
+Measure first: the cache's size per thousand rows, so the bound is set in bytes rather than by
+habit.
+
+### CVI.5 Claude Code inside WSL (T394)
+
+A good share of Claude Code use on Windows runs inside WSL, where the configuration folder is
+`~/.claude` in the Linux home, reachable from Windows as
+`\\wsl.localhost\<distro>\home\<user>\.claude`. Discovery finds the default folder, one named by a
+settings file and `~/.claude-*`, all on the Windows side, so for a WSL user the tray shows nothing
+at all. Claude Code Usage Monitor discovers WSL data paths for this reason.
+
+The shape: a WSL folder is a found profile like any other — the same picker, the same stores, polled
+with its own credentials, read through the UNC path. Discovery must not start a distro: touching the
+share of a stopped one boots it, which is not something a tray app gets to do on a timer, so only a
+running distro is read. Verify that claim before relying on it.
+
+What carries over: credentials are read, never moved or written (§I.6); Open Claude Code for such a
+profile launches `claude` through `wsl.exe` in that distro, not natively; and the cwd a transcript
+records is a Linux path, so `ProjectSlug` walking it up must not assume a drive letter.
+
+Measure: a sweep over the 9P share is far slower than over NTFS, and the transcript scans run on it.
+
+### CVI.6 A warning at a level you choose (T395)
+
+The pace toast answers "will I run out before the reset", and the flash answers "I am almost out".
+Neither answers "tell me when I reach half the week", which is how somebody rationing a weekly quota
+actually works, and which cli-usage-bar and CodexBar both offer as configurable thresholds.
+
+The shape: per window, a short list of levels under Settings → Notifications, empty by default so
+nothing new interrupts anyone who did not ask. A level fires once per window per reset, on the
+reading that crosses it, on the same card as the other toasts that are not celebrations, with a bar.
+With Show remaining instead of used on, the level is read as quota left, so the setting and the icon
+count the same way.
+
+What carries over: a credit that drops usage below a level does not re-arm it inside the same
+window; no wording may suggest switching profiles because one is filling up (§I.7); and every string
+reaches all five languages.
+
+### CVI.7 Both windows on one tile (T396)
+
+Show on icon picks one of session, week or extra, and the tooltip carries the rest. CodexBar's
+stacked layout draws two bars in one menu-bar item, so both windows are visible without a hover.
+
+This is an idea, not a design, because the tile is already full: the fill bar, the digits, the
+profile band, the verdict colour and the flash share 16 pixels at 100% scale. The candidate is two
+half-width bars — session left, week right — with the digits still belonging to the window the user
+picked. What has to be measured before building it: whether a half-width bar still reads at 16 and
+20 pixels with the profile band on, and whether two verdict colours side by side still say which
+window is the red one. If either fails at 100% scale, it becomes an option for larger scales or it
+does not ship.
+
+What must not change: the digits mean one window and say which by their colour, and every colour
+keeps the meaning the README gives it.
+
+### CVI.8 A poll paced by activity (T397)
+
+Every poll is one automated call against the subscription — the gray area the README describes. With
+the machine idle for hours the reading cannot change except by a reset, which the tray already
+predicts from `resets_at`. CodexBar's adaptive mode slows its refresh when no agent is running.
+
+The shape: stretch the interval once the newest transcript is older than an idle span, return to the
+user's interval on the first poll that sees new activity, and always poll just after a predicted
+reset, so the reset toasts keep their timing. The signal is the last-turn timestamp that Follow the
+active profile already reads on each refresh — a stat, with no file opened.
+
+What bounds it: T101's non-goal forbids a transcript tail running all session. This needs none, but
+then the return to the normal rate lands on the next scheduled poll, not the second a turn starts.
+Work on another machine or on claude.ai leaves no transcript here, so the stretched interval must
+stay short enough that the weekly reading is never badly stale. Settings must say when the interval
+is stretched, and by how much.

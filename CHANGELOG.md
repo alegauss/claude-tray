@@ -17,21 +17,21 @@
 
 | Block | Theme |
 |---|---|
-| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
+| [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection (active — see ROADMAP) |
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
-| [D](#block-d--auth--api-resilience) | Auth & API resilience |
-| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
-| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
+| [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
+| [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts (active — see ROADMAP) |
+| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) (active — see ROADMAP) |
 | [G](#block-g--localization) | Localization |
-| [H](#block-h--tray-display-options) | Tray display options |
+| [H](#block-h--tray-display-options) | Tray display options (active — see ROADMAP) |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
 | [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
 | [K](#block-k--live-throughput) | Live throughput |
 | [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app |
 | [M](#block-m--explain-on-demand) | Explain on demand — the method note behind an ⓘ |
 | [N](#block-n--system-information) | System information — your plan, your install, this machine |
-| [O](#block-o--profiles) | Profiles — several Claude Code logins on one machine |
+| [O](#block-o--profiles) | Profiles — several Claude Code logins on one machine (active — see ROADMAP) |
 | [P](#block-p--project-layout) | Project layout — where a file lives |
 | [Q](#block-q--keyboard-input-in-the-windows) | Keyboard input in the windows |
 | [R](#block-r--profiles-second-pass-what-a-real-second-login-exposed) | Profiles, second pass — what a real second login exposed |
@@ -53,7 +53,7 @@
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
 | [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
-| [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did |
+| [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did (active — see ROADMAP) |
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
 | [AM](#block-am--danger-is-said-not-only-coloured) | Danger is said, not only coloured |
 | [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system |

@@ -28,6 +28,35 @@
 
 ## Block AN — The site on the shared design system
 
+## Block A — Foundation (tray, icon, API, projection)
+
+- 💭 **T397** (deps: —) **The tray polls at the same rate after hours with no Claude Code use** — A fixed interval spends an automated call every few minutes overnight, and the last-turn stamps Follow already reads could stretch it with no tail. → §CVI.8
+
+## Block D — Auth & API resilience
+
+- 📋 **T390** (deps: —) **The tray spends an API call on a reading Claude Code already hands its status line** — The status-line payload carries both windows' percentages and resets, so a status-line command could feed the store and stretch the automated poll the README calls a gray area. → §CVI.1
+
+## Block E — Reset notifications & toasts
+
+- 📋 **T395** (deps: —) **No warning at a usage level the user picks** — The only level-based signal is the flash near the limit, so somebody rationing the week has no way to be told at half of it, which cli-usage-bar and CodexBar offer. → §CVI.6
+
+## Block F — Statistics window (pace report)
+
+- 📋 **T391** (deps: —) **A script cannot ask the tray where the quota stands** — Every read-out prints prose for a person, so a hook, a CI step or a status bar has nothing to parse and no exit code meaning near the limit, which ccusage and Usage Monitor both give. → §CVI.2
+
+## Block H — Tray display options
+
+- 💭 **T396** (deps: —) **The icon shows one window at a time** — Watching the week hides the session and the reverse, while CodexBar stacks both; whether two bars still read at 16 px has to be measured first. → §CVI.7
+
+## Block O — Profiles
+
+- 📋 **T394** (deps: —) **Claude Code run inside WSL is invisible to the tray** — Discovery looks only at Windows folders, so a login and transcripts under a WSL home give no reading, no sessions and no context scan. → §CVI.5
+
+## Block AK — Sessions — what one conversation cost, and what it did
+
+- 📋 **T392** (deps: —) **No answer to what a day, a week or a month cost** — The Sessions tab ranks conversations, so a calendar total, the first report ccusage and Usage Monitor print, has to be summed from rows by hand. → §CVI.3
+- 📋 **T393** (deps: —) **Conversations older than Claude Code's transcript cleanup vanish from the Sessions list** — The index cache keeps only files still on disk, so after the 30-day cleanup everything on disk quietly means the last month. → §CVI.4
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
