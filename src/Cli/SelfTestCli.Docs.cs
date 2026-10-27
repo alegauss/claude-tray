@@ -35,8 +35,12 @@ internal static partial class SelfTestCli
              root => SkillCatalogue(root, toasts, tips), DevFlags);
     }
 
-    /// <summary>The catalogue two checks read, spelled once.</summary>
-    private const string DevFlags = ".claude/skills/dev-flags/SKILL.md";
+    /// <summary>The catalogue two checks read, spelled once. Outside <c>.claude/</c>, where an edit asks
+    /// for approval every time; the <c>dev-flags</c> skill only points here.</summary>
+    private const string DevFlags = "reference/dev-flags.md";
+
+    /// <summary>The per-file map, on the same terms as <see cref="DevFlags"/>.</summary>
+    private const string FileMapDoc = "reference/file-map.md";
 
     private static void SkillCatalogue(string root, IReadOnlyList<ToastPreviews.Variant> toasts,
                                        IReadOnlyList<TooltipCli.Variant> tips)
@@ -254,11 +258,11 @@ internal static partial class SelfTestCli
     /// </summary>
     private static void FileMap() =>
         Repo("the file map names every source file, and only files that exist", FileMap,
-             ".claude/skills/file-map/SKILL.md", "AGENTS.md", "src");
+             FileMapDoc, "AGENTS.md", "src");
 
     private static void FileMap(string root)
     {
-        string skill = Path.Combine(root, ".claude/skills/file-map/SKILL.md");
+        string skill = Path.Combine(root, FileMapDoc);
         string agents = Path.Combine(root, "AGENTS.md");
         string src = Path.Combine(root, "src");
         string[] files = Directory.Exists(src)
