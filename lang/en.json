@@ -167,6 +167,8 @@
   "settings.general.refresh": "Refresh",
   "settings.general.interval": "Interval",
   "settings.general.intervalDesc": "How often the tray checks your Claude usage.",
+  "settings.general.slowIdle": "Check less often while idle",
+  "settings.general.slowIdleDesc": "After 30 minutes with no Claude Code activity on this machine, check every 30 minutes instead, and still right after a reset. The first check that sees new work goes back to the interval above.",
   "settings.general.startup": "Startup",
   "settings.general.startWithWindows": "Start with Windows",
   "settings.general.startWithWindowsDesc": "Launch Claude Code Tray automatically when you sign in.",

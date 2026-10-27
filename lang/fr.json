@@ -163,6 +163,8 @@
   "settings.general.refresh": "Actualisation",
   "settings.general.interval": "Intervalle",
   "settings.general.intervalDesc": "Fréquence à laquelle la zone de notification vérifie votre consommation Claude.",
+  "settings.general.slowIdle": "Vérifier moins souvent au repos",
+  "settings.general.slowIdleDesc": "Après 30 minutes sans activité de Claude Code sur cette machine, vérifie toutes les 30 minutes, et toujours juste après une réinitialisation. La première vérification qui voit du nouveau travail revient à l'intervalle ci-dessus.",
   "settings.general.startup": "Démarrage",
   "settings.general.startWithWindows": "Démarrer avec Windows",
   "settings.general.startWithWindowsDesc": "Lancer Claude Code Tray automatiquement à votre connexion.",

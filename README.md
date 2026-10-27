@@ -829,7 +829,9 @@ What this means for this tool:
   — every poll is one automated API call, and the tray never has two polls of one account in flight
   at once, so the interval you set is a ceiling rather than an average. Pasting the **status line**
   entry (see [Data source](#data-source)) cuts further: a poll that finds a fresh status-line reading
-  makes no call at all.
+  makes no call at all. And after 30 minutes with no Claude Code activity on the machine, the tray
+  checks only every 30 minutes, and right after a reset, until it sees new work (Settings → General →
+  **Check less often while idle**, on by default).
 
 Governing terms: [Consumer Terms](https://www.anthropic.com/legal/consumer-terms) (Free/Pro/Max),
 [Commercial Terms](https://www.anthropic.com/legal/commercial-terms) (Team/Enterprise/API),

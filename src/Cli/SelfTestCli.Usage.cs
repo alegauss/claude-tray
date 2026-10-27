@@ -2283,6 +2283,30 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T397. The idle stretch as arithmetic: the user's interval while working or when nothing is known, the
+    /// half-hour after half an hour of quiet, never shorter than the user's, and a reset inside it polled
+    /// just after it lands.
+    /// </summary>
+    private static void IdlePoll()
+    {
+        double now = Now;
+        int idle = TrayContext.IdleIntervalSeconds;
+        Check("working: the user's own interval",
+              TrayContext.IdlePollSeconds(300, now - 60, now, now + 86400) == 300);
+        Check("nothing known about the last turn: the user's own interval, not a guess",
+              TrayContext.IdlePollSeconds(300, 0, now, now + 86400) == 300);
+        Check("half an hour of quiet: the stretched interval",
+              TrayContext.IdlePollSeconds(300, now - TrayContext.IdleAfterSeconds, now, now + 86400) == idle);
+        Check("never shorter than an interval the user already set longer",
+              TrayContext.IdlePollSeconds(3600, now - 7200, now, now + 86400) == 3600);
+        int toReset = TrayContext.IdlePollSeconds(300, now - 7200, now, now + 600);
+        Check("a reset inside the stretch is polled just after it lands, so its toast keeps its timing",
+              toReset > 600 && toReset < 700, $"{toReset}s");
+        Check("but not sooner than the user's own interval",
+              TrayContext.IdlePollSeconds(300, now - 7200, now, now + 10) == 300);
+    }
+
+    /// <summary>
     /// T396. The split tile asked of its pixels: each window keeps its own side whichever the digits name,
     /// each half carries its own verdict colour, and the setting off draws the one bar it always drew.
     /// </summary>

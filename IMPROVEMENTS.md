@@ -866,23 +866,6 @@ records is a Linux path, so `ProjectSlug` walking it up must not assume a drive 
 
 Measure: a sweep over the 9P share is far slower than over NTFS, and the transcript scans run on it.
 
-### CVI.8 A poll paced by activity (T397)
-
-Every poll is one automated call against the subscription — the gray area the README describes. With
-the machine idle for hours the reading cannot change except by a reset, which the tray already
-predicts from `resets_at`. CodexBar's adaptive mode slows its refresh when no agent is running.
-
-The shape: stretch the interval once the newest transcript is older than an idle span, return to the
-user's interval on the first poll that sees new activity, and always poll just after a predicted
-reset, so the reset toasts keep their timing. The signal is the last-turn timestamp that Follow the
-active profile already reads on each refresh — a stat, with no file opened.
-
-What bounds it: T101's non-goal forbids a transcript tail running all session. This needs none, but
-then the return to the normal rate lands on the next scheduled poll, not the second a turn starts.
-Work on another machine or on claude.ai leaves no transcript here, so the stretched interval must
-stay short enough that the weekly reading is never badly stale. Settings must say when the interval
-is stretched, and by how much.
-
 ### CVI.9 How much the status line actually saves (T398)
 
 T390 lets a tray tick take Claude Code's status-line reading instead of calling the API, under four

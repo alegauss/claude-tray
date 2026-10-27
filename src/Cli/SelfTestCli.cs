@@ -230,6 +230,9 @@ internal static partial class SelfTestCli
         Section("the pace alarm — the icon's red, said once per window and reset cycle (Block AM)");
         PaceAlarmCycle();
 
+        Section("idle — the poll that waits while nobody is working (Block A)");
+        IdlePoll();
+
         Section("split — both windows on one tile, each on its own side (Block H)");
         SplitTile();
 

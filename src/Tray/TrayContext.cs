@@ -1258,6 +1258,10 @@ internal sealed class TrayContext : ApplicationContext
         // cadence as the icon, rather than staying frozen until the user clicks Refresh.
         _window?.Statistics.UpdateSnapshot(CurrentSnapshot(), CurrentError());
         RecomputeInsights();
+        // When this account last worked (T397): a stat of its transcript folders and no file opened, the
+        // probe Follow the active profile already makes — what decides whether the next poll can wait.
+        string turnsDir = api.ConfigDir;
+        account.LastTurnUnix = await Task.Run(() => ProfileActivity.LastTurnUnix(turnsDir));
         AdjustForAuthState();
 
         // The other profiles last, and awaited rather than fired and forgotten: they must never delay
@@ -1314,7 +1318,38 @@ internal sealed class TrayContext : ApplicationContext
             return (int)Math.Min(Math.Max(waitMs, floorMs), int.MaxValue);
         }
 
-        return _settings.RefreshSeconds * 1000;
+        if (!_settings.SlowWhenIdle) return _settings.RefreshSeconds * 1000;
+        double nextReset = _monitored.Data is { Error: null } d
+            ? new[] { d.Reset5h, d.Reset7d }.Where(r => r > now).DefaultIfEmpty(0).Min()
+            : 0;
+        return IdlePollSeconds(_settings.RefreshSeconds, _monitored.LastTurnUnix, now, nextReset) * 1000;
+    }
+
+    /// <summary>Idle this long and the poll may stretch (T397).</summary>
+    internal const int IdleAfterSeconds = 30 * 60;
+
+    /// <summary>The stretched interval: long enough that a night costs two calls an hour rather than twelve,
+    /// short enough that work on another machine or on claude.ai — which leaves no transcript here — never
+    /// shows a weekly reading more than half an hour old.</summary>
+    internal const int IdleIntervalSeconds = 30 * 60;
+
+    /// <summary>
+    /// The poll interval once nobody has been working (T397), as arithmetic so <c>--selftest</c> can drive it.
+    ///
+    /// <para>The user's own interval while the newest transcript is younger than
+    /// <see cref="IdleAfterSeconds"/>, or when that is not known. Past it, <see cref="IdleIntervalSeconds"/>
+    /// — never shorter than the user's — except that a reset falling sooner is polled just after it lands,
+    /// so the reset toasts keep their timing. Coming back is the first poll that sees a newer transcript;
+    /// with no tail running (T101's non-goal) that is the next scheduled poll, not the second a turn
+    /// starts.</para>
+    /// </summary>
+    internal static int IdlePollSeconds(int refreshSeconds, double lastTurnUnix, double now, double nextResetUnix)
+    {
+        if (lastTurnUnix <= 0 || now - lastTurnUnix < IdleAfterSeconds) return refreshSeconds;
+        int stretched = Math.Max(refreshSeconds, IdleIntervalSeconds);
+        if (nextResetUnix > now && nextResetUnix - now + LimitResetBufferSeconds < stretched)
+            return Math.Max(refreshSeconds, (int)(nextResetUnix - now) + LimitResetBufferSeconds);
+        return stretched;
     }
 
     // The next reset boundary to wake for while a window is maxed out: the soonest future reset among

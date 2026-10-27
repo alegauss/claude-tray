@@ -30,8 +30,6 @@
 
 ## Block A — Foundation (tray, icon, API, projection)
 
-- 💭 **T397** (deps: —) **The tray polls at the same rate after hours with no Claude Code use** — A fixed interval spends an automated call every few minutes overnight, and the last-turn stamps Follow already reads could stretch it with no tail. → §CVI.8
-
 ## Block D — Auth & API resilience
 
 - 📋 **T398** (deps: —) **Nobody knows how many polls the status-line feed actually saves, or whether its numbers match the API** — T390 skips the API call on a fresh status-line reading, but how often one is fresh, and whether its percentages agree with the headers, were assumed and never read. → §CVI.9

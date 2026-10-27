@@ -302,6 +302,13 @@
                                 </StackPanel>
                             </local:SettingsRow>
                         </Border>
+                        <!-- T397: the idle stretch, said in this card's terms: when, and to what. -->
+                        <Border Style="{StaticResource GroupCard}" Margin="0,8,0,0">
+                            <local:SettingsRow Header="{local:Loc settings.general.slowIdle}"
+                                               Description="{local:Loc settings.general.slowIdleDesc}">
+                                <ToggleButton x:Name="SlowWhenIdleCheck" Style="{StaticResource ToggleSwitch}" />
+                            </local:SettingsRow>
+                        </Border>
 
                         <!-- Each refresh is a 1-token Haiku call (the "heartbeat"). This caption recalculates
                              the consumption live as the slider moves, so the cost of the chosen cadence is explicit. -->

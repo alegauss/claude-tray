@@ -58,6 +58,14 @@ internal sealed class Settings
     public bool ShowBothWindows { get; set; } = false;
 
     /// <summary>
+    /// Poll every half hour, rather than at <see cref="RefreshSeconds"/>, once this profile's transcripts
+    /// have been quiet for half an hour (T397) — each poll is an automated call, and overnight none of them
+    /// can read anything new but a reset, which is polled just after it lands anyway. On by default; the
+    /// first poll that sees a new turn returns to the normal interval.
+    /// </summary>
+    public bool SlowWhenIdle { get; set; } = true;
+
+    /// <summary>
     /// Blink the tray icon (background flashes every 500 ms) once usage crosses the near-limit
     /// warning threshold — the one the API names on the response where it is crossed, or
     /// <see cref="FlashWarnThreshold"/> on the readings it names none. Off by default: the constant

@@ -163,6 +163,8 @@
   "settings.general.refresh": "Atualização",
   "settings.general.interval": "Intervalo",
   "settings.general.intervalDesc": "Com que frequência a bandeja verifica seu uso do Claude.",
+  "settings.general.slowIdle": "Verificar menos quando ocioso",
+  "settings.general.slowIdleDesc": "Depois de 30 minutos sem atividade do Claude Code nesta máquina, verifica a cada 30 minutos, e sempre logo após um reset. A primeira verificação que vê trabalho novo volta ao intervalo acima.",
   "settings.general.startup": "Inicialização",
   "settings.general.startWithWindows": "Iniciar com o Windows",
   "settings.general.startWithWindowsDesc": "Iniciar o Claude Code Tray automaticamente quando você fizer login.",

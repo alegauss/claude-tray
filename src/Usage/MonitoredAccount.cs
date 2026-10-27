@@ -95,6 +95,10 @@ internal sealed class MonitoredAccount
     public UsageData? LastApi;
     public long LastApiUnix;
 
+    /// <summary>When this account's newest transcript was last written, or 0 when unknown — what the idle
+    /// stretch of the poll reads (T397). The outgoing account's quiet night is not the incoming one's.</summary>
+    public double LastTurnUnix;
+
     /// <summary>This account's utilization history, and the projection over it. A fresh one rather than a
     /// cleared one, so there is no <c>Clear()</c> for a switch to forget to call.</summary>
     public BurnTracker Burn { get; } = new();
