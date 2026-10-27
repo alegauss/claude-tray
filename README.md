@@ -760,7 +760,10 @@ windows' percentages and reset times. Settings → Claude Code → **Status line
 5h and 7d usage, and while you work the tray takes that reading instead of making its own call.
 It still calls the API at least once an hour, at 90% of a window or past it, and while you are
 spending past the quota, because the status line carries no overage figure. The entry replaces any
-status line you already have. The tray never edits `settings.json` itself.
+status line you already have. The tray never edits `settings.json` itself. This only helps when you
+run `claude` in a terminal: the VS Code extension never runs a status line, so there the tray polls
+as it always did. Measured: with the entry in place and the extension in use, the command ran zero
+times while the tray made its sixteen calls.
 
 **For scripts.** `ClaudeTray.exe --usage --json` prints the newest reading the tray has stored:
 both windows with their resets, whether each is ahead of pace, when it would reach 100%, and how old

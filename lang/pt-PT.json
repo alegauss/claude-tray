@@ -205,7 +205,7 @@
   "settings.cc.retry": "Repetir enquanto sem sessão",
   "settings.cc.retryDesc": "Com que frequência reverificar a sua utilização após terminar sessão, até autenticar novamente.",
   "settings.cc.statusLine": "Linha de estado",
-  "settings.cc.statusLineDesc": "Com esta linha de estado no settings.json de um perfil, o tray lê a sua utilização a partir dela enquanto trabalha, em vez de fazer o seu próprio pedido.",
+  "settings.cc.statusLineDesc": "Com esta linha de estado no settings.json de um perfil, o tray lê a sua utilização a partir dela enquanto trabalha, em vez de fazer o seu próprio pedido. Só o Claude Code no terminal executa a linha de estado; a extensão do VS Code não.",
   "settings.cc.statusLineOn": "✓ Configurada em {0}.",
   "settings.cc.statusLineMissing": "Não configurada em {0}: cole a entrada abaixo no settings.json.",
   "settings.cc.statusLineOther": "{0} usa outra linha de estado, que colar esta substituiria.",
