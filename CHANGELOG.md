@@ -746,6 +746,7 @@
 - **T392** — The Sessions tab groups by day, week or month, and --sessions --by prints the same totals: sessions, turns, tokens and the list-price equivalent, each turn on the local day it landed (design §CVI.3 recorded in `src/Usage/PeriodTotals.cs`).
 - **T393** — A conversation whose transcript Claude Code deleted keeps its row for a year, marked as deleted, and Settings counts the kept rows with a button that forgets them (design §CVI.4 recorded in `src/Usage/SessionIndex.cs`).
 - **T399** — Opus 5.5, Sonnet 5.5 and Haiku 5.5 have rows of their own, so Opus 5.5 is no longer priced through the Opus 5 prefix and Haiku 5.5 calls are no longer left out of the figure.
+- **T401** — Every row now carries the cache-read multiple the card gives it, Fable 5.1 and Mythos 5.1 have rows of their own, and Sonnet 5 is at the $2/$10 that became standard (design §CVI.12 recorded in `src/Usage/ListPrices.cs`).
 
 ## Block AL — The site is a workspace, not a page
 

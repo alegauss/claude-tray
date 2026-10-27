@@ -21,10 +21,9 @@ internal static class ListPrices
 {
     /// <summary>When these rates were read from Anthropic's published pricing. Shown to the reader
     /// rather than kept in a comment: it is the difference between a figure and a fossil.
-    /// <para>2026-10-06 is the model table the 5.5 rows came from (T399), against which the 5 and 4.x input
-    /// and output rates still agree — Sonnet 5 aside, which that table lists at $2/$10 and this one keeps at
-    /// $3/$15 (T401).</para></summary>
-    public static readonly DateOnly Read = new(2026, 10, 6);
+    /// <para>Read from platform.claude.com/docs/en/about-claude/pricing on 2026-10-27 (T401): every row's
+    /// input, output and cache-read rate, and the two cache-write multipliers.</para></summary>
+    public static readonly DateOnly Read = new(2026, 10, 27);
 
     /// <summary>
     /// Base dollars per million tokens, by model id prefix — longest match wins, so a dated id
@@ -33,48 +32,50 @@ internal static class ListPrices
     /// <para>Ordered longest-first at lookup rather than here, so adding a row never has to be a
     /// decision about where it goes.</para>
     ///
-    /// <para><b>One rate is deliberately the standard one.</b> Claude Sonnet 5 carries an introductory
-    /// $2/$10 through 2026-08-31; this table holds its standard $3/$15, so a Sonnet 5 conversation
-    /// inside that window reads high rather than reading low. An equivalent that errs upward is a
-    /// figure a reader can discount; one that errs downward is a figure that flatters.</para>
+    /// <para><b>The cache-read multiplier is per row (T401).</b> The published card prices a read at 0.1×
+    /// input except on the newest models: 0.05× on Opus 5.5 and Sonnet 5.5, 0.025× on Fable 5.1 and Mythos
+    /// 5.1. On this machine nearly every turn is Opus 5.5 and cache reads are the largest component, so a
+    /// flat 0.1× put most of every figure at twice the card.</para>
     /// </summary>
-    private static readonly (string Prefix, double In, double Out)[] Rates =
+    private static readonly (string Prefix, double In, double Out, double Read)[] Rates =
     {
-        ("claude-fable-5",   10.00, 50.00),
-        ("claude-mythos-5",  10.00, 50.00),
-        // T399. The 5.5 generation has rows of its own because its ids share a prefix with 5's: without
-        // them `claude-opus-5-5` resolved through `claude-opus-5` at $5/$25, a quarter high on the model
-        // nearly every turn here runs on, and `claude-haiku-5-5` resolved through nothing at all.
-        ("claude-opus-5-5",   4.00, 20.00),
-        ("claude-sonnet-5-5", 2.00, 10.00),
-        // Up to 100K tokens of prompt; past that Anthropic lists $0.50/$2.50, which a per-model table
-        // cannot tell apart — so a long-context Haiku call reads low here (T401).
-        ("claude-haiku-5-5",  0.10,  0.50),
-        ("claude-opus-5",     5.00, 25.00),
-        ("claude-opus-4-8",   5.00, 25.00),
-        ("claude-opus-4-7",   5.00, 25.00),
-        ("claude-opus-4-6",   5.00, 25.00),
-        ("claude-opus-4-5",   5.00, 25.00),
-        ("claude-opus-4-1",  15.00, 75.00),
-        ("claude-opus-4",    15.00, 75.00),
-        ("claude-sonnet-5",   3.00, 15.00),
-        ("claude-sonnet-4-6", 3.00, 15.00),
-        ("claude-sonnet-4-5", 3.00, 15.00),
-        ("claude-sonnet-4",   3.00, 15.00),
-        ("claude-haiku-4-5",  1.00,  5.00),
-        ("claude-3-5-haiku",  0.80,  4.00),
-        ("claude-3-haiku",    0.25,  1.25),
+        // The 5.1 and 5.5 ids share a prefix with the generation before, so each has a row of its own or it
+        // resolves through its predecessor's rate (T399, T401).
+        ("claude-fable-5-1",  10.00, 50.00, 0.025),
+        ("claude-mythos-5-1", 10.00, 50.00, 0.025),
+        ("claude-fable-5",    10.00, 50.00, 0.1),
+        ("claude-mythos-5",   10.00, 50.00, 0.1),
+        ("claude-opus-5-5",    4.00, 20.00, 0.05),
+        ("claude-sonnet-5-5",  2.00, 10.00, 0.05),
+        // Up to 100K tokens of prompt; past that the card lists $0.50/$2.50, which a per-model table cannot
+        // tell apart — so a long-context Haiku call reads low here (T402).
+        ("claude-haiku-5-5",   0.10,  0.50, 0.1),
+        ("claude-opus-5",      5.00, 25.00, 0.1),
+        ("claude-opus-4-8",    5.00, 25.00, 0.1),
+        ("claude-opus-4-7",    5.00, 25.00, 0.1),
+        ("claude-opus-4-6",    5.00, 25.00, 0.1),
+        ("claude-opus-4-5",    5.00, 25.00, 0.1),
+        ("claude-opus-4-1",   15.00, 75.00, 0.1),
+        ("claude-opus-4",     15.00, 75.00, 0.1),
+        // Introductory at launch, and the standard price since: the move to $3/$15 announced for
+        // 2026-09-01 did not happen.
+        ("claude-sonnet-5",    2.00, 10.00, 0.1),
+        ("claude-sonnet-4-6",  3.00, 15.00, 0.1),
+        ("claude-sonnet-4-5",  3.00, 15.00, 0.1),
+        ("claude-sonnet-4",    3.00, 15.00, 0.1),
+        ("claude-haiku-4-5",   1.00,  5.00, 0.1),
+        ("claude-3-5-haiku",   0.80,  4.00, 0.1),
+        ("claude-3-haiku",     0.25,  1.25, 0.1),
     };
 
     /// <summary>
-    /// The cache multipliers, against a model's own <b>base input</b> rate — the reason this is per
-    /// model rather than a flat table of four numbers.
+    /// The cache-write multipliers, against a model's own <b>base input</b> rate.
     ///
-    /// <para>A read is 0.1×, a five-minute write 1.25×, a one-hour write 2×. The pair of write rates is
-    /// why T330's TTL split had to land first: a reader that folds both into one rate is out by 60% on
-    /// whichever it guessed wrong, and the transcripts state which it was.</para>
+    /// <para>A five-minute write is 1.25×, a one-hour write 2× — on every model, the 5.5 generation included.
+    /// The pair is why T330's TTL split had to land first: a reader that folds both into one rate is out by
+    /// 60% on whichever it guessed wrong, and the transcripts state which it was. Reads are per row, in
+    /// <see cref="Rates"/>.</para>
     /// </summary>
-    private const double CacheReadMultiplier = 0.1;
     private const double CacheWrite5mMultiplier = 1.25;
     private const double CacheWrite1hMultiplier = 2.0;
 
@@ -111,11 +112,11 @@ internal static class ListPrices
         {
             TokenBits b = kv.Value;
             long all = b.Input + b.Output + b.CacheCreate + b.CacheRead;
-            if (RateFor(kv.Key) is not var (inRate, outRate)) { unpriced += all; continue; }
+            if (RateFor(kv.Key) is not var (inRate, outRate, readMultiplier)) { unpriced += all; continue; }
 
             dollars += Million(b.Input) * inRate
                      + Million(b.Output) * outRate
-                     + Million(b.CacheRead) * inRate * CacheReadMultiplier
+                     + Million(b.CacheRead) * inRate * readMultiplier
                      + Million(b.CacheCreate5m) * inRate * CacheWrite5mMultiplier
                      + Million(b.CacheCreate1h + b.CacheCreateUnattributed) * inRate * CacheWrite1hMultiplier;
             priced += all;
@@ -129,14 +130,14 @@ internal static class ListPrices
 
     // Longest prefix wins, so `claude-opus-4-5-20251101` resolves through `claude-opus-4-5` and not
     // through `claude-opus-4`, which is a different generation at three times the rate.
-    private static (double In, double Out)? RateFor(string model)
+    private static (double In, double Out, double Read)? RateFor(string model)
     {
-        (double, double)? best = null;
+        (double, double, double)? best = null;
         int bestLen = -1;
-        foreach ((string prefix, double i, double o) in Rates)
+        foreach ((string prefix, double i, double o, double r) in Rates)
             if (prefix.Length > bestLen && model.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
             {
-                best = (i, o);
+                best = (i, o, r);
                 bestLen = prefix.Length;
             }
         return best;

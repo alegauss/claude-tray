@@ -973,6 +973,19 @@ internal static partial class SelfTestCli
              24.0, 1e-9);
         Check("and Haiku 5.5, which no row priced, now has one",
               ListPrices.Knows("claude-haiku-5-5") && ListPrices.Knows("claude-sonnet-5-5"));
+
+        // T401. A cache read is the card's own multiple of input on each row: a million read tokens are
+        // $0.20 on Opus 5.5 (0.05x), $0.25 on Fable 5.1 (0.025x) and $1 on Fable 5 (0.1x) — the last pair
+        // sharing a prefix, so 5.1 resolving through 5 would read four times the card.
+        static double Read(string model) => ListPrices.Of(new Dictionary<string, TokenBits>(StringComparer.Ordinal)
+            { [model] = new TokenBits(0, 0, 0, 1_000_000, 0, 0) }).Dollars;
+        Near("a cache read on Opus 5.5 is a twentieth of its input rate", Read("claude-opus-5-5"), 0.20, 1e-9);
+        Near("on Fable 5.1 a fortieth, not Fable 5's tenth", Read("claude-fable-5-1"), 0.25, 1e-9);
+        Near("and Fable 5 keeps the standard tenth", Read("claude-fable-5"), 1.00, 1e-9);
+        Near("Sonnet 5 is at the $2/$10 that became its standard price",
+             ListPrices.Of(new Dictionary<string, TokenBits>(StringComparer.Ordinal)
+             { ["claude-sonnet-5-20260301"] = new TokenBits(1_000_000, 1_000_000, 0, 0, 0, 0) }).Dollars,
+             12.0, 1e-9);
     }
 
     /// <summary>

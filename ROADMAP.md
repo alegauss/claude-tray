@@ -46,7 +46,7 @@
 
 ## Block AK — Sessions — what one conversation cost, and what it did
 
-- 📋 **T401** (deps: —) **Cache reads on the 5.5 models are priced at a ratio their rate card does not use** — Every cache read is priced at a tenth of input, but Opus 5.5 lists a twentieth, so the dominant component of a figure here reads about twice the card. → §CVI.12
+- 📋 **T402** (deps: —) **A Haiku 5.5 call on a prompt over 100K tokens is priced at a fifth of its rate** — The card prices Haiku 5.5 five times higher above 100K prompt tokens, and a per-model table can hold only the cheaper row. → §CVI.13
 
 ## Block AI — Verification — the checks that prove a change
 
