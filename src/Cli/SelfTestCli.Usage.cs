@@ -2496,7 +2496,8 @@ internal static partial class SelfTestCli
               StatusLineFeed.Parse("{\"model\":{}}", now) is null && StatusLineFeed.Parse("not json", now) is null);
 
         var api = new UsageData { Status = "allowed", Status7d = "allowed", HasExtra = true, Extra = 0,
-                                  StatusExtra = "allowed", Session5h = 0.1, Week7d = 0.3 };
+                                  StatusExtra = "allowed", Session5h = 0.1, Week7d = 0.3,
+                                  Reset5h = now + 3600, Reset7d = now + 86400 };
         var feed = new StatusLineFeed.Reading(now - 10, 0.2, now + 3600, 0.4, now + 86400);
         UsageData? sub = StatusLineFeed.Substitute(feed, api, now - 120, now, 300);
         Check("a fresh reading inside the quota stands in for the call",
@@ -2513,9 +2514,17 @@ internal static partial class SelfTestCli
         var spending = new UsageData { Status = "allowed", Status7d = "allowed", ExtraInUse = true };
         Check("an account spending past its quota is always asked — the payload has no overage",
               StatusLineFeed.Substitute(feed, spending, now - 120, now, 300) is null);
-        var warned = new UsageData { Status = "allowed_warning", Status7d = "allowed" };
-        Check("a status only the API sends is not carried past a warning",
-              StatusLineFeed.Substitute(feed, warned, now - 120, now, 300) is null);
+        // T405. The week's warning arrives at 75%, and refusing it saved nothing for an account close to its
+        // limit — measured at 78% of the week, every tick still calling the API.
+        var warned = new UsageData { Status = "allowed", Status7d = "allowed_warning",
+                                     Reset5h = now + 3600, Reset7d = now + 86400 };
+        Check("a warning is carried within the same cycle, so an account past 75% of its week is still spared",
+              StatusLineFeed.Substitute(feed, warned, now - 120, now, 300) is { FromStatusLine: true, Status7d: "allowed_warning" });
+        Check("but not into another cycle: a window that reset since has statuses nobody has read",
+              StatusLineFeed.Substitute(feed with { Reset7d = now + 7 * 86400 }, warned, now - 120, now, 300) is null);
+        var rejected = new UsageData { Status = "rejected", Status7d = "allowed", Reset5h = now + 3600, Reset7d = now + 86400 };
+        Check("and a refusal is never carried — that is the API's to say again",
+              StatusLineFeed.Substitute(feed, rejected, now - 120, now, 300) is null);
         Check("a window at the API's warning threshold is fetched, not substituted",
               StatusLineFeed.Substitute(feed with { Util7d = StatusLineFeed.NearLimit }, api, now - 120, now, 300) is null);
         Check("a reset already past is last cycle's number",

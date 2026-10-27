@@ -137,6 +137,7 @@
 - **T390** — ClaudeTray.exe --statusline files the payload's two windows per config dir, a tray tick takes a fresh one instead of the API call while inside the quota and under 90%, and Settings > Claude Code shows the entry to paste (design §CVI.1 recorded in `src/Usage/StatusLineFeed.cs`).
 - **T398 (each reading records its source)** — Every line usage-history.jsonl writes now says whether the reading came from the API or the status line, which is what the day of readings will be measured from.
 - **T404** — The Settings row reads each profile settings.json and says where the status line is already set up, hiding the paste once every profile has it.
+- **T405** — A status-line reading now stands in for a poll at allowed_warning too, while its resets name the same cycles as the last API reading, so an account past 75% of its week is spared.
 
 ## Block E — Reset notifications & toasts
 

@@ -40,6 +40,13 @@ internal static class StatusLineFeed
     /// carried "not spending" is allowed to stand unasked.</summary>
     public const double ApiAtLeastEverySeconds = 3600;
 
+    /// <summary>How far two reset stamps may drift and still name one cycle — a reset header moves by
+    /// seconds between responses, and two different cycles are hours apart.</summary>
+    public const double SameCycleSeconds = 300;
+
+    /// <summary>The statuses a substitute may carry from the last API reading (T405).</summary>
+    private static bool Carriable(string status) => status is "allowed" or "allowed_warning";
+
     /// <summary>The feed file for one config dir — the same digest a profile without an account is keyed
     /// by, so the two cannot disagree about which directory is which.</summary>
     public static string PathFor(string configDir) =>
@@ -125,10 +132,18 @@ internal static class StatusLineFeed
         if (now - r.T < 0 || now - r.T >= maxAgeSeconds) return null;
         if (now - lastApiUnix >= ApiAtLeastEverySeconds) return null;
         if (QuotaStates.Spending(api.ExtraUtil, api.ExtraInUse)) return null;
-        if (api.Status != "allowed" || api.Status7d != "allowed") return null;
+        // `allowed_warning` is carried too (T405): the API sends it from 75% of the week, and refusing it
+        // meant the status line saved nothing for exactly the accounts close to their limit — measured on
+        // 2026-10-27, a fresh reading at 78% of the week and every tick still calling the API. It stays true
+        // while the window is the same cycle, which the reset check below holds; `rejected` never is.
+        if (!Carriable(api.Status) || !Carriable(api.Status7d)) return null;
         if (r.Util5h >= NearLimit || r.Util7d >= NearLimit) return null;
         // A reset already in the past is a window Claude Code would have dropped; its number is last cycle's.
         if (r.Reset5h <= now || r.Reset7d <= now) return null;
+        // And the same cycles as the API reading the statuses are carried from — a window that reset since
+        // has statuses nobody has read yet.
+        if (Math.Abs(r.Reset5h - api.Reset5h) > SameCycleSeconds || Math.Abs(r.Reset7d - api.Reset7d) > SameCycleSeconds)
+            return null;
 
         return new UsageData
         {
