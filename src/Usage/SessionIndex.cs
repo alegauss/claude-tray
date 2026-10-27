@@ -51,12 +51,17 @@ internal readonly record struct SessionRow(
     IReadOnlyDictionary<string, int>? Efforts = null,
     IReadOnlyDictionary<long, long>? Minutes = null,
     IReadOnlyList<TaskRow>? Tasks = null,
-    IReadOnlyDictionary<string, TokenBits>? PerModel = null)
+    IReadOnlyDictionary<string, TokenBits>? PerModel = null,
+    IReadOnlyList<QuarterSpend>? Quarters = null)
 {
     /// <summary>Wall-clock seconds from the first answered turn to the last. Zero for a session with a
     /// single turn, which is a real answer and not a missing one.</summary>
     public double Seconds => Math.Max(0, LastUnix - FirstUnix);
 }
+
+/// <summary>One quarter hour of one session's work by one model (T392): <paramref name="Quarter"/> is
+/// unix seconds over <see cref="SessionIndex.Quarter"/>, so its start is <c>Quarter * 900</c>.</summary>
+internal readonly record struct QuarterSpend(long Quarter, string Model, TokenBits Bits, int Calls);
 
 /// <summary>
 /// One line a person actually wrote, told apart from the many <c>user</c> lines that are the harness
@@ -131,8 +136,10 @@ internal static class SessionIndex
     /// 9 splits the token counts by the model that answered (T346), and it is the same trap a third
     /// time: the totals stay right, so an untouched row would have gone on pricing a two-model
     /// conversation at whichever rate the reader picked. See <see cref="FileEntry.V"/>.
+    /// 10 keeps the same split per quarter hour (T392), so a calendar total counts each turn on the
+    /// local day it landed rather than on the day its conversation started.
     /// </summary>
-    private const int Schema = 9;
+    private const int Schema = 10;
 
     private static readonly StringComparer PathComparer = StringComparer.OrdinalIgnoreCase;
 
@@ -270,6 +277,10 @@ internal static class SessionIndex
                 // named no model lands under the empty key rather than being dropped, so the split
                 // still sums to the aggregate above and the pricer reports it as unpriced.
                 Attribute(entry.PerModel, model ?? "", bits);
+                // The same split, per quarter hour of UTC (T392). A quarter rather than an hour because
+                // every UTC offset in use is a multiple of fifteen minutes, so whichever zone the reader
+                // folds in, no bucket straddles a local midnight.
+                Attribute(entry.Quarters, QuarterKey((long)(t / Quarter), model ?? ""), bits, call: true);
                 // Counted per call, not per session: the mix is the reading, and a session that ran
                 // ten of fifty calls at the dear level is not an instance of that level (T331).
                 if (effort is { Length: > 0 })
@@ -482,18 +493,29 @@ internal static class SessionIndex
 
     /// <summary>Add one call's tokens to a model's slot, creating it on first sight. The six-long layout
     /// is written in exactly this one place and read in exactly one other (<see cref="Merge"/>), so the
-    /// order of the fields is not a convention two readers have to agree about (T346).</summary>
-    private static void Attribute(Dictionary<string, long[]> perModel, string model, TokenBits bits)
+    /// order of the fields is not a convention two readers have to agree about (T346). With
+    /// <paramref name="call"/> the slot is seven long and the seventh counts calls, which a quarter-hour
+    /// slot needs and a per-model total does not (T392).</summary>
+    private static void Attribute(Dictionary<string, long[]> perModel, string model, TokenBits bits,
+                                  bool call = false)
     {
         if (!perModel.TryGetValue(model, out long[]? slot))
-            perModel[model] = slot = new long[6];
+            perModel[model] = slot = new long[call ? 7 : 6];
         slot[0] += bits.Input;
         slot[1] += bits.Output;
         slot[2] += bits.CacheCreate;
         slot[3] += bits.CacheRead;
         slot[4] += bits.CacheCreate1h;
         slot[5] += bits.CacheCreate5m;
+        if (call) slot[6]++;
     }
+
+    /// <summary>Seconds in the bucket a calendar total is folded from (T392).</summary>
+    internal const double Quarter = 900;
+
+    // "<quarter>|<model>": a JSON object key is text, and the model id never holds a '|'.
+    private static string QuarterKey(long quarter, string model) =>
+        quarter.ToString(System.Globalization.CultureInfo.InvariantCulture) + "|" + model;
 
     /// <summary>One row's worth of whitespace: newlines and runs collapse to single spaces, because the
     /// destination is one line of a table and a pasted block would otherwise arrive as a hundred blank
@@ -543,8 +565,15 @@ internal static class SessionIndex
             var perModel = new Dictionary<string, long[]>(StringComparer.Ordinal);
             var efforts = new Dictionary<string, int>(StringComparer.Ordinal);
             var minutes = new Dictionary<long, long>();
+            var quarters = new Dictionary<string, long[]>(StringComparer.Ordinal);
             foreach (FileEntry e in group)
             {
+                // The fan-out's quarters fold in the same way its per-model totals do (T392).
+                foreach (KeyValuePair<string, long[]> kv in e.Quarters)
+                {
+                    if (!quarters.TryGetValue(kv.Key, out long[]? q)) quarters[kv.Key] = q = new long[7];
+                    for (int i = 0; i < q.Length && i < kv.Value.Length; i++) q[i] += kv.Value[i];
+                }
                 calls += e.Calls;
                 input += e.In; output += e.Out; create += e.Cc; cached += e.Cr;
                 hour += e.C1h; five += e.C5m;
@@ -580,11 +609,30 @@ internal static class SessionIndex
                 perModel.ToDictionary(kv => kv.Key,
                                       kv => new TokenBits(kv.Value[0], kv.Value[1], kv.Value[2],
                                                           kv.Value[3], kv.Value[4], kv.Value[5]),
-                                      StringComparer.Ordinal)));
+                                      StringComparer.Ordinal),
+                Quarters(quarters)));
         }
 
         rows.Sort((a, b) => b.LastUnix.CompareTo(a.LastUnix));
         return rows;
+    }
+
+    // The stored "<quarter>|<model>" slots back into values; a key that does not parse is dropped
+    // rather than guessed at.
+    private static List<QuarterSpend> Quarters(Dictionary<string, long[]> slots)
+    {
+        var list = new List<QuarterSpend>(slots.Count);
+        foreach (KeyValuePair<string, long[]> kv in slots)
+        {
+            int bar = kv.Key.IndexOf('|');
+            if (bar <= 0 || !long.TryParse(kv.Key.AsSpan(0, bar), System.Globalization.NumberStyles.Integer,
+                                           System.Globalization.CultureInfo.InvariantCulture, out long q))
+                continue;
+            long[] v = kv.Value;
+            list.Add(new QuarterSpend(q, kv.Key[(bar + 1)..],
+                                      new TokenBits(v[0], v[1], v[2], v[3], v[4], v[5]), (int)v[6]));
+        }
+        return list;
     }
 
     /// <summary>
@@ -704,6 +752,13 @@ internal static class SessionIndex
         /// Twelve thousand buckets across this machine's whole history, against eighty-three thousand
         /// turns — the resolution T332 settled on. Excludes cache reads.</summary>
         public Dictionary<string, long> Minutes { get; set; } = new(StringComparer.Ordinal);
+        /// <summary>
+        /// The per-model split again, per quarter hour of UTC (T392): <c>"&lt;quarter&gt;|&lt;model&gt;"</c>
+        /// → <c>[In, Out, Cc, Cr, C1h, C5m, Calls]</c>. What a calendar total is folded from: a turn counts
+        /// on the local day it landed, which a conversation's own first and last turn cannot say once it
+        /// runs past midnight. Includes cache reads, because the period table shows them as a column.
+        /// </summary>
+        public Dictionary<string, long[]> Quarters { get; set; } = new(StringComparer.Ordinal);
 
         /// <summary>Bytes this pass read for the entry — 0 when it came from the cache. Not persisted.</summary>
         [System.Text.Json.Serialization.JsonIgnore]

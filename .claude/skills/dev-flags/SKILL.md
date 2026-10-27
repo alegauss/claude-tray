@@ -307,6 +307,11 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   many transcripts the fan-out wrote, models. Newest 20 unless
                                       #   --all; --refresh re-reads every transcript past the per-file
                                       #   cache, which is the only way a wrong cached row is falsifiable
+--sessions --by day|week|month [--json] [--all] [--project <slug-or-name>]
+                                      # the CALENDAR total (T392): sessions, calls, tokens, cache read and
+                                      #   the list-price equivalent per period, each turn counted on the
+                                      #   local day it landed (a conversation past midnight is split), and
+                                      #   the date the transcripts on disk start. Any other period exits 1.
 --activity [--numbers|--refresh|--measured|--fold] [--root <dir>]
                                       # the weekly activity shape behind the projection as a 24x7 grid;
                                       #   --measured is the same week out of the folded hourly store and

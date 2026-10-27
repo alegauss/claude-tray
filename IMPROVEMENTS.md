@@ -968,3 +968,19 @@ then compare `statusline\<dir-key>.json`'s rewrite times against the poll cadenc
 substitute lines in `usage-history.jsonl` (no `ux`/`ix`) with the API lines around them. A gap of
 more than a point in either window, or a share of covered ticks under a third, is the finding.
 Either one changes `ApiAtLeastEverySeconds` or the 0.9 floor, not the design.
+
+### CVI.10 Rates for the models the table does not know (T399)
+
+Seen on 2026-10-27 while checking T392's calendar totals against this machine: every day and week
+with a Haiku 5 call prints `≥$…`. `ListPrices.Rates` stops at `claude-haiku-4-5`, so a
+`claude-haiku-5*` id resolves to nothing, and its tokens land in `UnpricedTokens`. The surface does
+what it promises: the figure is marked as a floor rather than reading as a cheap day. But the floor
+is now on most recent rows, because Claude Code runs Haiku 5 for its own background calls.
+
+The fix is one row per family the transcripts name and the table does not: read the rate from
+Anthropic's published pricing page, add it, and move `ListPrices.Read` to that day. Do not infer a
+rate from the previous Haiku generation. A wrong rate is worse than a visible floor, and the table's
+own rule is that an equivalent errs upward if it errs at all.
+
+To find what else is missing, use `--sessions --by month --all`. A `≥` names the months, and the
+models column shows which ids answered.

@@ -236,6 +236,9 @@ internal static partial class SelfTestCli
         Section("usage — where the quota stands, for a script (Block F)");
         UsageReadOut();
 
+        Section("periods — what a day, a week, a month came to (Block AK)");
+        PeriodFold();
+
         Section("projects — a count of directories, not of keys (Block N)");
         ProjectCount();
 

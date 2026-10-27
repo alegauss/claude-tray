@@ -2304,6 +2304,59 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T392. What a day, a week and a month came to, folded from synthetic quarter hours in zones the
+    /// check chooses — one of them half an hour off UTC, where a quarter boundary is a local midnight.
+    /// </summary>
+    private static void PeriodFold()
+    {
+        TimeZoneInfo plus3 = TimeZoneInfo.CreateCustomTimeZone("selftest+3", TimeSpan.FromHours(3), "+3", "+3");
+        TimeZoneInfo plus530 = TimeZoneInfo.CreateCustomTimeZone("selftest+530", new TimeSpan(5, 30, 0), "+530", "+530");
+        // Wednesday 2026-10-14, 20:45 UTC = 23:45 at +3; the next quarter-and-a-half lands after midnight.
+        long late = (long)(new DateTimeOffset(2026, 10, 14, 20, 45, 0, TimeSpan.Zero).ToUnixTimeSeconds() / SessionIndex.Quarter);
+        QuarterSpend Q(long quarter, string model, long input, int calls) =>
+            new(quarter, model, new TokenBits(input, 10, 0, 1000, 0, 0), calls);
+        var night = new SessionRow("s-night", "d--x", "x", 0, 0, 3, default, new[] { "claude-opus-4-5" }, 0,
+                                   Quarters: new[] { Q(late, "claude-opus-4-5", 100, 1), Q(late + 2, "claude-opus-4-5", 200, 2) });
+        var other = new SessionRow("s-other", "d--y", "y", 0, 0, 1, default, new[] { "claude-sonnet-4-5" }, 0,
+                                   Quarters: new[] { Q(late + 2, "claude-sonnet-4-5", 50, 1) });
+
+        List<PeriodRow> days = PeriodTotals.Fold(new[] { night, other }, Period.Day, plus3);
+        Check("a conversation past local midnight is split across the two days its turns landed on",
+              days.Count == 2 && days[0].Start == new DateOnly(2026, 10, 15) && days[1].Start == new DateOnly(2026, 10, 14)
+              && days[1].Bits.Input == 100 && days[0].Bits.Input == 250,
+              string.Join("; ", days.Select(d => $"{d.Start} {d.Bits.Input}")));
+        Check("and each day counts the sessions that touched it, once",
+              days[0].Sessions == 2 && days[1].Sessions == 1 && days[0].Calls == 3);
+        Check("the same turns in UTC fall on one day — the day is the reader's zone, not the file's",
+              PeriodTotals.Fold(new[] { night, other }, Period.Day, TimeZoneInfo.Utc).Count == 1);
+
+        // 18:15 UTC is 23:45 at +5:30, 18:30 is midnight: a quarter never straddles it.
+        long q1815 = (long)(new DateTimeOffset(2026, 10, 14, 18, 15, 0, TimeSpan.Zero).ToUnixTimeSeconds() / SessionIndex.Quarter);
+        var india = new SessionRow("s-in", "d--z", "z", 0, 0, 2, default, Array.Empty<string>(), 0,
+                                   Quarters: new[] { Q(q1815, "m", 1, 1), Q(q1815 + 1, "m", 2, 1) });
+        Check("at +5:30 the quarter starting at local midnight belongs to the new day",
+              PeriodTotals.Fold(new[] { india }, Period.Day, plus530).Count == 2);
+
+        List<PeriodRow> weeks = PeriodTotals.Fold(new[] { night, other }, Period.Week, plus3);
+        Check("a week opens on the day it is told to: both days are in the week of Monday the 12th",
+              weeks.Count == 1 && weeks[0].Start == new DateOnly(2026, 10, 12) && weeks[0].Bits.Input == 350);
+        Check("a month is its calendar month",
+              PeriodTotals.Fold(new[] { night }, Period.Month, plus3).Single().Start == new DateOnly(2026, 10, 1));
+        Check("a period is priced by its per-model split, the same arithmetic a session row uses",
+              Math.Abs(weeks[0].Price.Dollars - ListPrices.Of(weeks[0].PerModel).Dollars) < 1e-12
+              && weeks[0].PerModel.Count == 2 && weeks[0].Price.Dollars > 0);
+        Check("and says where the transcripts on disk start, rather than drawing quiet weeks before them",
+              PeriodTotals.DataStarts(new[] { night, other }, plus3) == new DateOnly(2026, 10, 14));
+
+        string json = SessionsCli.PeriodJson(days, Period.Day, new DateOnly(2026, 10, 14), 1);
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        Check("--sessions --by day --json is numbered, cut where asked, and dated as digits",
+              doc.RootElement.GetProperty("schema").GetInt32() == UsageCli.Schema
+              && doc.RootElement.GetProperty("periods").GetArrayLength() == 1
+              && doc.RootElement.GetProperty("periods")[0].GetProperty("start").GetString() == "2026-10-15");
+    }
+
+    /// <summary>
     /// T390. When a status-line reading may stand in for a poll, asked of the rule with no tray: the payload
     /// as Claude Code documents it, each thing the payload cannot say refusing the substitute on its own, and
     /// the file the two processes hand the reading through.

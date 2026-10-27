@@ -19,6 +19,18 @@ internal static class SessionsCli
         string? root = rootAt >= 0 && rootAt + 1 < flags.Length ? flags[rootAt + 1] : null;
         int projAt = Array.IndexOf(flags, "--project");
         string? project = projAt >= 0 && projAt + 1 < flags.Length ? flags[projAt + 1] : null;
+        int byAt = Array.IndexOf(flags, "--by");
+        string? by = byAt >= 0 && byAt + 1 < flags.Length ? flags[byAt + 1] : null;
+        Period? period = by?.ToLowerInvariant() switch
+        {
+            "day" => Period.Day, "week" => Period.Week, "month" => Period.Month, _ => null,
+        };
+        if (byAt >= 0 && period is null)
+        {
+            Console.WriteLine($"--by takes day, week or month, not \"{by}\".");
+            Environment.ExitCode = 1;
+            return;
+        }
 
         var mode = flags.Contains("--refresh")
             ? ActivityProfile.SweepCacheMode.Rebuild
@@ -28,10 +40,22 @@ internal static class SessionsCli
 
         // A bare argument is a session id (or a prefix of one): print that conversation's call tree
         // instead of the list. The read-out equivalent of clicking a row (T329).
-        string? pick = flags.FirstOrDefault(f => !f.StartsWith("--") && f != root && f != project);
+        string? pick = flags.FirstOrDefault(f => !f.StartsWith("--") && f != root && f != project && f != by);
         if (pick is { Length: > 0 })
         {
             PrintTree(rows, pick, root);
+            return;
+        }
+
+        // Calendar totals (T392): the same rows folded by the day each turn landed on.
+        if (period is { } p)
+        {
+            if (project is { Length: > 0 }) rows = Matching(rows, project);
+            List<PeriodRow> periods = PeriodTotals.Fold(rows, p, TimeZoneInfo.Local);
+            DateOnly? starts = PeriodTotals.DataStarts(rows, TimeZoneInfo.Local);
+            int count = flags.Contains("--all") ? periods.Count : Math.Min(periods.Count, 20);
+            if (flags.Contains("--json")) Console.WriteLine(PeriodJson(periods, p, starts, count));
+            else PrintPeriods(periods, p, starts, count);
             return;
         }
 
@@ -80,6 +104,58 @@ internal static class SessionsCli
 
         if (show < rows.Count)
             Console.WriteLine($"… and {rows.Count - show:N0} more — --all lists them.");
+    }
+
+    private static void PrintPeriods(List<PeriodRow> periods, Period p, DateOnly? starts, int show)
+    {
+        Console.WriteLine($"Totals by {p.ToString().ToLowerInvariant()} — " +
+                          (starts is { } s ? $"transcripts on disk start {PeriodTotals.Label(s, Period.Day)}; " +
+                                             "Claude Code deletes older ones, so nothing before that is counted"
+                                           : "no transcripts on disk"));
+        Console.WriteLine($"≈ $ is the API list-price equivalent (rates read {ListPrices.Read:yyyy-MM-dd}), not a bill; " +
+                          "≥ marks a figure missing a model the rate table does not know.");
+        Console.WriteLine();
+        if (periods.Count == 0) return;
+
+        Console.WriteLine($"{"period",-14}  {"sessions",8}  {"calls",7}  {"tokens",14}  {"cache read",14}  {"≈ $",10}  models");
+        foreach (PeriodRow r in periods.Take(show))
+        {
+            ListPrices.Equivalent price = r.Price;
+            string money = (price.Complete ? "" : "≥") + "$" + price.Dollars.ToString("N2");
+            long billed = r.Bits.Input + r.Bits.Output + r.Bits.CacheCreate;
+            Console.WriteLine($"{PeriodTotals.Label(r.Start, p),-14}  {r.Sessions,8}  {r.Calls,7:N0}  {billed,14:N0}  " +
+                              $"{r.Bits.CacheRead,14:N0}  {money,10}  {string.Join(",", r.Models.Select(Short))}");
+        }
+        if (show < periods.Count)
+            Console.WriteLine($"… and {periods.Count - show:N0} more — --all lists them.");
+    }
+
+    /// <summary>The calendar totals as JSON (T392), under the same <see cref="UsageCli.Schema"/>.</summary>
+    internal static string PeriodJson(List<PeriodRow> periods, Period p, DateOnly? starts, int show)
+    {
+        var doc = new Dictionary<string, object?>
+        {
+            ["schema"] = UsageCli.Schema,
+            ["period"] = p.ToString().ToLowerInvariant(),
+            ["dataStarts"] = starts is { } s ? PeriodTotals.Label(s, Period.Day) : null,
+            ["listPricesRead"] = ListPrices.Read.ToString("yyyy-MM-dd"),
+            ["periods"] = periods.Take(show).Select(r => new Dictionary<string, object?>
+            {
+                ["start"] = PeriodTotals.Label(r.Start, Period.Day),
+                ["sessions"] = r.Sessions,
+                ["calls"] = r.Calls,
+                ["tokens"] = new Dictionary<string, long>
+                {
+                    ["input"] = r.Bits.Input, ["output"] = r.Bits.Output,
+                    ["cacheCreate"] = r.Bits.CacheCreate, ["cacheRead"] = r.Bits.CacheRead,
+                },
+                ["listPriceUsd"] = Math.Round(r.Price.Dollars, 2),
+                ["priceComplete"] = r.Price.Complete,
+                ["models"] = r.Models.ToArray(),
+            }).ToList(),
+        };
+        return System.Text.Json.JsonSerializer.Serialize(doc,
+            new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
     }
 
     private static IReadOnlyList<SessionRow> Matching(IReadOnlyList<SessionRow> rows, string project) =>

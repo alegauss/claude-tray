@@ -746,6 +746,8 @@ both windows with their resets, whether each is ahead of pace, when it would rea
 the reading is. It never calls the API itself. The exit code follows the icon: `0` on pace, `10`
 ahead of pace or at 90% or more, `11` at a limit, `20` nothing to judge (no reading, or one more than
 an hour old). `--sessions --json` lists conversations the same way, with no titles and no prompts.
+`--sessions --by day|week|month` totals sessions, calls, tokens and the list-price equivalent per
+calendar period, each turn on the local day it landed. It starts where the transcripts on disk start.
 Both documents carry a `schema` number that changes only when a field does.
 
 ## Credentials (setup)

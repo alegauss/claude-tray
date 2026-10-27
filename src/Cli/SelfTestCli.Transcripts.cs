@@ -462,6 +462,13 @@ internal static partial class SelfTestCli
               r.Project == "d--selftest" && r.Name.Length > 0, $"{r.Project} / {r.Name}");
         Check("the opening prompt is the first line a person actually typed",
               r.Prompt == "the real question", r.Prompt);
+        // T392: the quarter-hour split a calendar total is folded from sums to the row it belongs to,
+        // fan-out and second model included — anything else is a day total that disagrees with its rows.
+        Check("the quarter-hour split sums to the row: every call, every token class",
+              r.Quarters is { } qs && qs.Sum(q => q.Calls) == r.Calls
+              && qs.Sum(q => q.Bits.Input) == r.Bits.Input && qs.Sum(q => q.Bits.CacheRead) == r.Bits.CacheRead
+              && qs.Select(q => q.Model).Distinct().Count() == 2,
+              r.Quarters is null ? "no quarters" : $"{r.Quarters.Sum(q => q.Calls)} calls in quarters of {r.Calls}");
 
         // The cache: same answer, nothing re-read. A row served from the cache that disagrees with the
         // row the scan produced is the failure this exists for.
