@@ -765,6 +765,9 @@ internal static partial class SelfTestCli
             @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe")
         {
             UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true,
+            // This exe has no console of its own, so a console child without this opens a window on the
+            // desk of whoever runs the suite — several per run, seen 2026-10-27.
+            CreateNoWindow = true,
         };
         foreach (string a in new[] { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script })
             psi.ArgumentList.Add(a);
@@ -922,6 +925,7 @@ internal static partial class SelfTestCli
                 new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{target}\"")
                 {
                     UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true,
+                    CreateNoWindow = true,   // see PowerShell above: no console window on the user's desk
                 });
             p?.WaitForExit(10_000);
             return p is { ExitCode: 0 } && Directory.Exists(link);
