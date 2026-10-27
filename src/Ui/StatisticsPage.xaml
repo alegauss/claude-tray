@@ -764,7 +764,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                <TextBlock x:Name="SessionsCount" FontSize="13"
+                                <TextBlock x:Name="SessionsCount" FontSize="13" TextWrapping="Wrap"
                                            Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                                 <!-- The heaviest five hours in the range on screen (T332). A
                                      measurement of a window that has closed, which is a different
@@ -808,6 +808,17 @@
                                         </StackPanel>
                                     </Border>
                                 </Popup>
+                                <!-- T392: conversations, or the calendar totals folded from the same
+                                     index — one turn on the local day it landed. The range below still
+                                     applies, as whole periods. -->
+                                <ComboBox x:Name="SessionsGroup" MinWidth="140" Margin="0,0,8,0"
+                                          SelectedIndex="0" VerticalAlignment="Center"
+                                          AutomationProperties.Name="{local:Loc stats.sessions.group}">
+                                    <ComboBoxItem Content="{local:Loc stats.sessions.groupNone}" />
+                                    <ComboBoxItem Content="{local:Loc stats.sessions.groupDay}" />
+                                    <ComboBoxItem Content="{local:Loc stats.sessions.groupWeek}" />
+                                    <ComboBoxItem Content="{local:Loc stats.sessions.groupMonth}" />
+                                </ComboBox>
                                 <!-- Bounded by default: the index covers every transcript on disk and the
                                      list opens on the seven days the rest of the window reports on. -->
                                 <ComboBox x:Name="SessionsRange" MinWidth="150"
@@ -884,7 +895,39 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                         </StackPanel>
-                        <Border Grid.Row="3" Margin="0,12,0,0" Padding="8,0,8,6"
+                        <!-- The calendar view's header (T392): the same column widths as the
+                             conversation list's, so the two read as one table with different rows. -->
+                        <Border x:Name="SessionsPeriodHeader" Grid.Row="3" Margin="0,12,0,0" Padding="8,0,8,6"
+                                BorderThickness="0,0,0,1" Visibility="Collapsed"
+                                BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" MinWidth="120" />
+                                    <ColumnDefinition Width="112" />
+                                    <ColumnDefinition Width="76" />
+                                    <ColumnDefinition Width="64" />
+                                    <ColumnDefinition Width="84" />
+                                    <ColumnDefinition Width="124" />
+                                    <ColumnDefinition x:Name="SessionsPeriodGutter" Width="0" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="{local:Loc stats.sessions.col.period}" FontSize="12"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                <TextBlock Grid.Column="1" Grid.ColumnSpan="2" Text="{local:Loc stats.sessions.col.sessions}"
+                                           FontSize="12" HorizontalAlignment="Right" Margin="0,0,12,0"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                <TextBlock Grid.Column="3" Text="{local:Loc stats.sessions.col.turns}"
+                                           FontSize="12" HorizontalAlignment="Right" Margin="0,0,12,0"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                <TextBlock Grid.Column="4" Text="{local:Loc stats.sessions.col.tokens}"
+                                           FontSize="12" HorizontalAlignment="Right" Margin="0,0,12,0"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                <TextBlock Grid.Column="5" Text="{local:Loc stats.sessions.col.money}"
+                                           FontSize="12" HorizontalAlignment="Stretch" TextAlignment="Right"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            </Grid>
+                        </Border>
+                        <Border x:Name="SessionsListHeader" Grid.Row="3" Margin="0,12,0,0" Padding="8,0,8,6"
                                 BorderThickness="0,0,0,1"
                                 BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
                             <Grid>
@@ -930,8 +973,44 @@
 
                         <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Visible"
                                       HorizontalScrollBarVisibility="Disabled" Margin="0,2,0,0">
-                            <ItemsControl x:Name="SessionList"
-                                          ItemTemplate="{StaticResource SessionRowTemplate}" />
+                            <Grid>
+                                <ItemsControl x:Name="SessionList"
+                                              ItemTemplate="{StaticResource SessionRowTemplate}" />
+                                <ItemsControl x:Name="SessionPeriods" Visibility="Collapsed">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Padding="8,7" BorderThickness="0,0,0,1"
+                                                    BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" MinWidth="120" />
+                                                        <ColumnDefinition Width="112" />
+                                                        <ColumnDefinition Width="76" />
+                                                        <ColumnDefinition Width="64" />
+                                                        <ColumnDefinition Width="84" />
+                                                        <ColumnDefinition Width="124" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="13"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                    <TextBlock Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Sessions}"
+                                                               FontSize="13" HorizontalAlignment="Right" Margin="0,0,12,0"
+                                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                    <TextBlock Grid.Column="3" Text="{Binding Turns}" FontSize="13"
+                                                               HorizontalAlignment="Right" Margin="0,0,12,0"
+                                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                    <TextBlock Grid.Column="4" Text="{Binding Tokens}" FontSize="13"
+                                                               HorizontalAlignment="Right" Margin="0,0,12,0"
+                                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                    <TextBlock Grid.Column="5" Text="{Binding Money}" FontSize="13"
+                                                               HorizontalAlignment="Right" ToolTip="{Binding MoneyTip}"
+                                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
                         </ScrollViewer>
 
                         <!-- Empty is a sentence, not a frame drawn around nothing — and "no

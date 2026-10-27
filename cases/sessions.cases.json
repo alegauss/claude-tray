@@ -182,6 +182,57 @@
           "named": "the row discloses the call tree that was not in the tree before it was clicked"
         }
       ]
+    },
+
+    {
+      // T392. The calendar view swaps the list for a second ItemsControl, collapsed until the picker
+      // asks for it — and a collapsed WPF element is absent from the accessibility tree, so the only
+      // way to know the period rows are readable is to make them visible and read one.
+      "name": "grouping by day replaces the conversations with period rows a reader can read",
+      "catches": "a period list that renders in every capture and is missing from the accessibility tree, or that never comes back to the conversations",
+      "filed": "T392",
+      "tags": ["sessions"],
+      "fixture": "the main window for the sessions pane",
+      "needs": ["a transcript to report on"],
+
+      "steps": [
+        {
+          "locator": "TabItem#SessionsPane",
+          "act": "select",
+          "expect": "selected",
+          "reads": "selected",
+          "named": "the Sessions tab is the selected one, so its pane is built"
+        },
+        {
+          // Index 1 rather than the English label, so the case reads the same in every language.
+          "locator": "ComboBox#SessionsGroup",
+          "act": "pick at",
+          "with": "1",
+          "reads": "picked",
+          "answers": true,
+          "named": "the picker moves to one row per day"
+        },
+        {
+          "locator": "#SessionPeriods > DataItem[order=top]",
+          "act": "read",
+          "spoken": true,
+          "named": "the newest day reads as text rather than as a picture"
+        },
+        {
+          "locator": "ComboBox#SessionsGroup",
+          "act": "pick at",
+          "with": "0",
+          "reads": "picked",
+          "answers": true,
+          "named": "and back to conversations, leaving the window as it was found"
+        },
+        {
+          "locator": "#SessionList > DataItem[order=top]",
+          "act": "read",
+          "spoken": true,
+          "named": "the conversation list is in the tree again"
+        }
+      ]
     }
   ]
 }

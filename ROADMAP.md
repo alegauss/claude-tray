@@ -52,7 +52,6 @@
 
 ## Block AK — Sessions — what one conversation cost, and what it did
 
-- ⏳ **T392** (deps: —) **No answer to what a day, a week or a month cost** — The Sessions tab has no period choice, so the calendar totals exist only on the command line. → §CVI.3
 - 📋 **T393** (deps: —) **Conversations older than Claude Code's transcript cleanup vanish from the Sessions list** — The index cache keeps only files still on disk, so after the 30-day cleanup everything on disk quietly means the last month. → §CVI.4
 - 📋 **T399** (deps: —) **Haiku 5 calls are left unpriced, so most recent totals show only a floor** — The list-price table stops at Haiku 4.5, so every day with a Claude Code background call on Haiku 5 prints its equivalent as a floor (the leading sign) instead of a figure. → §CVI.10
 

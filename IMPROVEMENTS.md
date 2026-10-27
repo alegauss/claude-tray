@@ -845,23 +845,6 @@ positioning question for STRATEGY.md, not a task; hook-driven "Claude is waiting
 because a hook is a write to Claude Code's settings (§I.4) and its payload carries message text
 (§I.1); and macOS, Linux or mobile builds.
 
-### CVI.3 Totals by day, week and month (T392)
-
-ccusage's default report is one row per day — tokens split into input, output, cache write and cache
-read, the models used, and cost at list prices — with weekly and monthly views of the same table.
-Claude Code Usage Monitor prints the same daily and monthly tables. Here the Sessions tab answers
-per conversation and the 24h submenu answers for one day, and nothing answers "was this week heavier
-than the last four", which is a question about calendar totals.
-
-The shape: a period choice over the data the session index already holds — one row per day, week or
-month, with the columns the session list has, including `≈ $ at list prices` and its caveat that it
-is not a bill. A turn counts on the day its own timestamp falls, in local time, not on the day its
-conversation started, so a conversation that runs past midnight is split — the thing a session row
-cannot show. The same table from the command line, as `--sessions --by day|week|month`.
-
-A deleted transcript cannot be counted, so until history outlives Claude Code's cleanup the longest
-period is the last month, and the table says where its data starts rather than drawing quiet weeks.
-
 ### CVI.4 History that outlives the transcripts (T393)
 
 Claude Code deletes transcripts older than `cleanupPeriodDays`, 30 by default. The session index's

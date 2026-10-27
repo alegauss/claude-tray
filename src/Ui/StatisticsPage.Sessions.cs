@@ -48,6 +48,16 @@ internal partial class StatisticsPage
     /// rows to answer a question about today.</summary>
     private int SessionDays => SessionsRange.SelectedIndex switch { 1 => 30, 2 => 0, _ => 7 };
 
+    /// <summary>Select a calendar grouping, for the preview that shows it (T392). The picker's items are
+    /// conversations first, then the periods in <see cref="Period"/>'s own order.</summary>
+    internal void GroupSessionsBy(Period p) => SessionsGroup.SelectedIndex = (int)p + 1;
+
+    /// <summary>The calendar unit the list is folded into, or null for one row per conversation (T392).</summary>
+    private Period? SessionGroup => SessionsGroup.SelectedIndex switch
+    {
+        1 => Period.Day, 2 => Period.Week, 3 => Period.Month, _ => null,
+    };
+
     private void WireSessionsTab()
     {
         // From the system metric rather than a number that looks about right. Two insets, not one,
@@ -55,8 +65,8 @@ internal partial class StatisticsPage
         // reserving it in the header alone moved the headings left of their values and left the thumb
         // sitting on top of the first two rows' numbers. Both captures are why this is measured.
         double gutter = SystemParameters.VerticalScrollBarWidth;
-        SessionsGutter.Width = new GridLength(gutter);
-        SessionList.Margin = new Thickness(0, 0, gutter, 0);
+        SessionsGutter.Width = SessionsPeriodGutter.Width = new GridLength(gutter);
+        SessionList.Margin = SessionPeriods.Margin = new Thickness(0, 0, gutter, 0);
         // The whole row opens it, not a hit-target the size of a chevron: the glyph says a row can be
         // opened and the row is what you click.
         SessionList.AddHandler(System.Windows.Input.Mouse.MouseUpEvent,
@@ -69,6 +79,7 @@ internal partial class StatisticsPage
                                       ListPrices.Read.ToString("yyyy-MM-dd"));
 
         SessionsRange.SelectionChanged += (_, _) => RenderSessions();
+        SessionsGroup.SelectionChanged += (_, _) => RenderSessions();
         SortByWhen.Click += (_, _) => { _sessionSort = SessionSort.Clock; RenderSessions(); };
         SortByTokens.Click += (_, _) => { _sessionSort = SessionSort.Tokens; RenderSessions(); };
     }
@@ -348,5 +359,41 @@ internal partial class StatisticsPage
         // and one of them is doing something.
         SortByWhen.FontWeight = _sessionSort == SessionSort.Clock ? FontWeights.SemiBold : FontWeights.Normal;
         SortByTokens.FontWeight = _sessionSort == SessionSort.Tokens ? FontWeights.SemiBold : FontWeights.Normal;
+
+        // The calendar view replaces the list and keeps everything above it (T392).
+        Period? group = SessionGroup;
+        bool grouped = group is not null;
+        SessionList.Visibility = SessionsListHeader.Visibility = grouped ? Visibility.Collapsed : Visibility.Visible;
+        SessionPeriods.Visibility = SessionsPeriodHeader.Visibility = grouped ? Visibility.Visible : Visibility.Collapsed;
+        if (group is { } p) RenderPeriods(all, floor, p);
+    }
+
+    /// <summary>
+    /// The index folded into days, weeks or months (T392). Over the whole index rather than the rows the
+    /// range lists, because a conversation is listed by its last turn and a period wants every turn that
+    /// landed in it; the range then keeps the <em>whole</em> periods it reaches into, since a week cut at
+    /// "seven days ago" is a total of nothing anyone asked about.
+    /// </summary>
+    private void RenderPeriods(IReadOnlyList<SessionRow> all, double floor, Period p)
+    {
+        DayOfWeek firstDay = L.DateCulture.DateTimeFormat.FirstDayOfWeek;
+        List<PeriodRow> periods = PeriodTotals.Fold(all, p, TimeZoneInfo.Local, firstDay);
+        if (floor > 0)
+        {
+            DateOnly from = PeriodTotals.StartOf(
+                DateOnly.FromDateTime(DateTimeOffset.FromUnixTimeSeconds((long)floor).LocalDateTime), p, firstDay);
+            periods = periods.Where(r => r.Start >= from).ToList();
+        }
+        SessionPeriods.ItemsSource = periods.Select(r => new PeriodListRow(r, p)).ToList();
+
+        bool empty = periods.Count == 0;
+        SessionsEmpty.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
+        if (empty)
+            SessionsEmpty.Text = L.T(all.Count == 0 ? "stats.sessions.none" : "stats.sessions.noneInRange");
+        // Where the files start, in place of the conversation count: Claude Code deletes old transcripts,
+        // so a short history has to read as short rather than as quiet weeks before it.
+        SessionsCount.Text = PeriodTotals.DataStarts(all, TimeZoneInfo.Local) is { } starts
+            ? L.T("stats.sessions.periodsFrom", Dates.MonthDay(starts.ToDateTime(TimeOnly.MinValue)))
+            : "";
     }
 }

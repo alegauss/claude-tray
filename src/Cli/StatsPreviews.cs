@@ -40,6 +40,7 @@ internal static class StatsPreviews
         bool Thin = false,
         bool MethodOpen = false,
         bool Sessions = false,
+        Period? SessionsBy = null,
         bool Error = false,
         Func<long, PaceReport>? Report = null)
     {
@@ -62,6 +63,9 @@ internal static class StatsPreviews
         // and a screenshot cannot be un-published (T335).
         new("sessions", "the Sessions pane over an invented projects tree — the one to publish, because " +
                         "the real pane carries this machine's own prompts", Sample, Sessions: true),
+        // The same tree folded by day (T392): the calendar view, over invented work for the same reason.
+        new("sessions-days", "the Sessions pane grouped by day, over the same invented tree", Sample,
+            Sessions: true, SessionsBy: Period.Day),
 
         new("idle", "the not-using-Claude state: a fresh 5h session at 0%, a week still carrying usage, " +
                     "so the window opens on the weekly tab",
@@ -232,6 +236,8 @@ internal static class StatsPreviews
         // loaded — the same order the interactive preview used before this table existed.
         if (c.Variant.Report is { } build)
             page.Loaded += (_, _) => page.PreviewReport(build(now), c.Error);
+        if (c.Variant.SessionsBy is { } by)
+            page.Loaded += (_, _) => page.GroupSessionsBy(by);
         return page;
     }
 

@@ -258,6 +258,12 @@ many turns and how many tokens. A fan-out is one row, not twelve — a workflow'
 the session that spawned them, which is where their cost actually belongs. Sort by clock or by tokens
 on the column header, and pick the range: the last 7 days by default, 30 days, or everything on disk.
 
+**Group by day, week or month** and the rows become calendar totals: how many conversations touched
+each period, its turns, its tokens and the list-price equivalent. A turn counts on the day it landed
+in your time zone, so a conversation that runs past midnight is split across the two days. Claude
+Code deletes old transcripts, so the line above the table says where the files on disk start. Weeks
+before that are not counted, not quiet.
+
 The last column reads **≈ $ at list prices** — what those tokens come to at Anthropic's published API
 rate card, per model, so a $2 conversation and a $40 one stop looking alike. Tokens rank the list;
 this explains it, because the same token count is a different amount of work on a dearer model. **It is

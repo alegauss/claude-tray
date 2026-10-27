@@ -237,7 +237,9 @@ public sealed class CasesLoad
         var loaded = ScenarioFile.Across(ScenarioFile.LoadAll(Path.Combine(Repository(), "cases")));
         var sessions = loaded.Where(one => one.Tags.Contains("sessions")).ToList();
 
-        Assert.Equal(2, sessions.Count);
+        // Three since T392: the calendar view's period rows are a third surface of the same pane, and
+        // the rules below — acts, needs a transcript, lends no window — hold for it unchanged.
+        Assert.Equal(3, sessions.Count);
         Assert.All(sessions, one => Assert.True(one.Justified, "a case that says nothing about why it exists says nothing about deleting it"));
         Assert.All(sessions, one => Assert.Equal(["a transcript to report on"], one.Needs));
 
