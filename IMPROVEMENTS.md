@@ -845,25 +845,6 @@ positioning question for STRATEGY.md, not a task; hook-driven "Claude is waiting
 because a hook is a write to Claude Code's settings (§I.4) and its payload carries message text
 (§I.1); and macOS, Linux or mobile builds.
 
-### CVI.4 History that outlives the transcripts (T393)
-
-Claude Code deletes transcripts older than `cleanupPeriodDays`, 30 by default. The session index's
-cache is rewritten from the files a sweep found, so a deleted transcript takes its row with it, and
-"everything on disk" in the range picker quietly means the last month. Claude Code Usage Monitor
-keeps a local warehouse for exactly this, with a year's retention.
-
-The shape: keep a row whose file has gone instead of dropping it, marked as coming from a transcript
-that no longer exists, so a drill-down says the call tree is gone rather than failing. The row holds
-only what the list already shows — counts, models, effort, cost and the 200-character title — so
-keeping it reads nothing new and §I.1 holds. The call tree is not kept: it is read on demand from
-the file, and copying it would be a second store of the conversation's shape.
-
-Retention needs a bound and a way out: a year by default, and a Settings line that says how many
-kept rows there are and clears them. The tray never touches `cleanupPeriodDays` (§I.4).
-
-Measure first: the cache's size per thousand rows, so the bound is set in bytes rather than by
-habit.
-
 ### CVI.5 Claude Code inside WSL (T394)
 
 A good share of Claude Code use on Windows runs inside WSL, where the configuration folder is

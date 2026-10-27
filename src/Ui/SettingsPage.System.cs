@@ -197,6 +197,24 @@ internal partial class SettingsPage
         SysDataDir.Text = DisplayPath(Settings.DataDir);
         SysOpenData.Tag = Settings.DataDir;
         SysOpenData.IsEnabled = System.IO.Directory.Exists(Settings.DataDir);
+        ShowKept();
+    }
+
+    // What the Sessions tab keeps after Claude Code deletes a transcript (T393), counted as conversations
+    // because that is the unit the tab lists. The button is off when there is nothing to forget.
+    private void ShowKept()
+    {
+        (int conversations, _) = SessionIndex.KeptSummary();
+        SysKept.Text = L.N("settings.sys.keptCount", conversations);
+        SysForgetKept.IsEnabled = conversations > 0;
+    }
+
+    // Forget them. The index keeps reading what is still on disk, so nothing a transcript can re-derive
+    // is lost — only rows that exist nowhere else, which is why it is a button and not a timer.
+    private void SysForgetKept_Click(object sender, RoutedEventArgs e)
+    {
+        SessionIndex.ForgetGone();
+        ShowKept();
     }
 
     // "12.5% of the allowance in use" — the one figure this page states, out of the nested local function

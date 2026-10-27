@@ -77,6 +77,10 @@ internal static class SessionsCli
         Console.WriteLine($"scan: {st.Read:N0} read ({st.BytesRead / 1048576.0:0.#} MB, {st.Lines:N0} responses), " +
                           $"{st.Ms:0}ms" + (root == null ? "" : " (fixture root — cache bypassed)"));
         if (root == null) Console.WriteLine("cache: " + SessionIndex.CachePath);
+        // T393: rows the index kept after their transcripts were deleted, said rather than blended in.
+        if (st.Kept > 0)
+            Console.WriteLine($"kept: {st.Kept:N0} transcripts Claude Code deleted, their rows kept for " +
+                              $"{SessionIndex.RetainDays} days and marked [deleted]");
         Console.WriteLine();
 
         if (project is { Length: > 0 }) rows = Matching(rows, project);
@@ -94,7 +98,7 @@ internal static class SessionsCli
             Console.WriteLine(
                 $"{last:MM-dd HH:mm}     {Trim(r.Name, NameWidth),-NameWidth}  {Dur(r.Seconds),6}  " +
                 $"{r.Calls,6}  {billed,12:N0}  {r.Bits.CacheRead,12:N0}  {(r.Agents > 0 ? r.Agents.ToString() : "-"),6}  " +
-                $"{string.Join(",", r.Models.Select(Short))}");
+                $"{string.Join(",", r.Models.Select(Short))}" + (r.Gone ? "  [deleted]" : ""));
             // What the conversation is called, on its own line: the generated title, or the opening
             // prompt where there is none. Indented under the row, never in a column, because it is as
             // long as somebody made it (T336).
@@ -192,6 +196,8 @@ internal static class SessionsCli
                 },
                 ["agents"] = r.Agents,
                 ["models"] = r.Models,
+                // T393: kept after Claude Code deleted the transcript; every other field still holds.
+                ["gone"] = r.Gone,
             }).ToList(),
         };
         return System.Text.Json.JsonSerializer.Serialize(doc,

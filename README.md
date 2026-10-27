@@ -264,6 +264,11 @@ in your time zone, so a conversation that runs past midnight is split across the
 Code deletes old transcripts, so the line above the table says where the files on disk start. Weeks
 before that are not counted, not quiet.
 
+From this version on, a conversation whose transcript Claude Code deletes keeps its row for a year,
+marked as deleted: the counts, models, list-price equivalent and title stay, and there is no call
+tree to open. Settings → System information says how many are kept and has a **Forget** button. The
+tray never changes Claude Code's own cleanup setting.
+
 The last column reads **≈ $ at list prices** — what those tokens come to at Anthropic's published API
 rate card, per model, so a $2 conversation and a $40 one stop looking alike. Tokens rank the list;
 this explains it, because the same token count is a different amount of work on a dearer model. **It is

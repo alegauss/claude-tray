@@ -44,6 +44,9 @@ internal readonly record struct TaskRow(string Kind, string Name, double First, 
 /// is the sum of these and stays the figure every token column reads; this is what
 /// <see cref="ListPrices"/> needs, because two models in one conversation have different rates and an
 /// aggregate cannot be priced. Empty for a row from a cache generation that predates the split.</param>
+/// <param name="Quarters">The per-model split per UTC quarter hour, which calendar totals fold (T392).</param>
+/// <param name="Gone">The conversation's transcript has been deleted, and this row is what the index kept
+/// of it (T393): every column still reads, and there is no call tree to open.</param>
 internal readonly record struct SessionRow(
     string Session, string Project, string Name,
     double FirstUnix, double LastUnix, int Calls, TokenBits Bits, string[] Models, int Agents,
@@ -52,7 +55,8 @@ internal readonly record struct SessionRow(
     IReadOnlyDictionary<long, long>? Minutes = null,
     IReadOnlyList<TaskRow>? Tasks = null,
     IReadOnlyDictionary<string, TokenBits>? PerModel = null,
-    IReadOnlyList<QuarterSpend>? Quarters = null)
+    IReadOnlyList<QuarterSpend>? Quarters = null,
+    bool Gone = false)
 {
     /// <summary>Wall-clock seconds from the first answered turn to the last. Zero for a session with a
     /// single turn, which is a real answer and not a missing one.</summary>
@@ -80,7 +84,7 @@ internal readonly record struct PersonAsk(string Text, int Chars, bool Command);
 /// <summary>What one <see cref="SessionIndex.Load"/> cost, so "the cache is doing something" is a
 /// number rather than a claim — the same reason <see cref="ActivityProfile"/> reports its own.</summary>
 internal readonly record struct SessionScanStats(
-    string Root, int Files, int Read, long BytesRead, int Lines, int Sessions, double Ms);
+    string Root, int Files, int Read, long BytesRead, int Lines, int Sessions, double Ms, int Kept = 0);
 
 /// <summary>
 /// One pass over a profile's <c>projects/**/*.jsonl</c>, producing one row per conversation.
@@ -172,7 +176,9 @@ internal static class SessionIndex
         string root = projectsDir ?? (profile ?? ProfileStore.MonitoredRef).ProjectsDir;
         string cache = cacheFile ?? CachePath;
 
-        Dictionary<string, FileEntry> known = mode == ActivityProfile.SweepCacheMode.Use ? ReadCache(cache) : new(PathComparer);
+        // Read under Rebuild too, never trusted there: the only entries a rebuild takes from the cache are
+        // the ones no walk can re-derive — transcripts Claude Code has deleted (T393).
+        Dictionary<string, FileEntry> known = mode != ActivityProfile.SweepCacheMode.Off ? ReadCache(cache) : new(PathComparer);
         var swept = new Dictionary<string, FileEntry>(PathComparer);
         int seen = 0, read = 0, lines = 0;
         long bytes = 0;
@@ -181,7 +187,8 @@ internal static class SessionIndex
             foreach (FileInfo f in SafeWalk.Files(root, "*.jsonl"))
             {
                 if (++seen > MaxFiles) break;
-                if (known.TryGetValue(f.FullName, out FileEntry? hit) &&
+                if (mode == ActivityProfile.SweepCacheMode.Use &&
+                    known.TryGetValue(f.FullName, out FileEntry? hit) && !hit.Gone &&
                     hit.Bytes == SafeLength(f) && hit.Ticks == SafeTicks(f))
                 {
                     swept[f.FullName] = hit;
@@ -194,12 +201,64 @@ internal static class SessionIndex
                 lines += entry.Calls;
             }
 
-        if (mode != ActivityProfile.SweepCacheMode.Off) WriteCache(cache, swept);
+        // T393. What the walk did not find is one of two things. Under this tree and no longer on disk, it is
+        // a transcript Claude Code's cleanup deleted, and its row is kept — marked, and only for
+        // RetainDays — because the row is all that is left of that conversation. Under another tree, it is
+        // another profile's, and it is written back untouched: the cache is shared, and rewriting it from
+        // one tree's walk used to drop every other profile's entries, which then cost a full rescan.
+        int kept = 0;
+        var others = new List<FileEntry>();
+        double keepFrom = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - RetainDays * 86400.0;
+        foreach (FileEntry e in known.Values)
+        {
+            if (swept.ContainsKey(e.Path)) continue;
+            if (!Under(root, e.Path)) { others.Add(e); continue; }
+            if (!e.Gone && File.Exists(e.Path)) continue;   // on disk and unwalked: a capped walk, not a deletion
+            if (e.Last < keepFrom) continue;
+            e.Gone = true;
+            swept[e.Path] = e;
+            kept++;
+        }
+
+        if (mode != ActivityProfile.SweepCacheMode.Off) WriteCache(cache, swept.Values.Concat(others));
 
         List<SessionRow> rows = Merge(swept.Values);
         stats = new SessionScanStats(root, seen, read, bytes, lines, rows.Count,
-                                     System.Diagnostics.Stopwatch.GetElapsedTime(t0).TotalMilliseconds);
+                                     System.Diagnostics.Stopwatch.GetElapsedTime(t0).TotalMilliseconds, kept);
         return rows;
+    }
+
+    /// <summary>
+    /// How long a row outlives its transcript (T393). A year, against a cost measured rather than guessed:
+    /// the cache holds 1.75 MB per thousand transcripts, and this machine writes about twelve a day, so a
+    /// year of deleted ones is about 7.5 MB of JSON read once per scan.
+    /// </summary>
+    internal const int RetainDays = 365;
+
+    private static bool Under(string root, string path)
+    {
+        string r = root.TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+        return path.StartsWith(r, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>How many conversations the cache keeps only because their transcripts were deleted, and
+    /// how many transcripts that is — the Settings line that says what is kept (T393).</summary>
+    public static (int Conversations, int Transcripts) KeptSummary(string? cacheFile = null)
+    {
+        List<FileEntry> gone = ReadCache(cacheFile ?? CachePath).Values.Where(e => e.Gone).ToList();
+        return (gone.Select(e => e.Project + "\0" + e.Session).Distinct(StringComparer.Ordinal).Count(), gone.Count);
+    }
+
+    /// <summary>Drop every kept row whose transcript is gone, leaving live entries alone (T393). Returns
+    /// how many entries went. An observing process changes nothing and answers 0.</summary>
+    public static int ForgetGone(string? cacheFile = null)
+    {
+        if (ProfileStore.Observing) return 0;
+        string cache = cacheFile ?? CachePath;
+        Dictionary<string, FileEntry> all = ReadCache(cache);
+        int gone = all.Values.Count(e => e.Gone);
+        if (gone > 0) WriteCache(cache, all.Values.Where(e => !e.Gone));
+        return gone;
     }
 
     // ---------------------------------------------------------------- one file
@@ -610,7 +669,10 @@ internal static class SessionIndex
                                       kv => new TokenBits(kv.Value[0], kv.Value[1], kv.Value[2],
                                                           kv.Value[3], kv.Value[4], kv.Value[5]),
                                       StringComparer.Ordinal),
-                Quarters(quarters)));
+                Quarters(quarters),
+                // Gone when the conversation's own transcript is: that is the file its call tree is
+                // read from, and an agent's file surviving it does not bring the tree back (T393).
+                group.Any(e => !e.Agent && e.Gone) || group.All(e => e.Gone)));
         }
 
         rows.Sort((a, b) => b.LastUnix.CompareTo(a.LastUnix));
@@ -759,6 +821,10 @@ internal static class SessionIndex
         /// runs past midnight. Includes cache reads, because the period table shows them as a column.
         /// </summary>
         public Dictionary<string, long[]> Quarters { get; set; } = new(StringComparer.Ordinal);
+        /// <summary>The transcript this entry was read from has been deleted — by Claude Code's cleanup,
+        /// as a rule — and the entry is kept as the only record of it (T393). Absent on every entry
+        /// written before, which reads as false and is true of them: they were all on disk.</summary>
+        public bool Gone { get; set; }
 
         /// <summary>Bytes this pass read for the entry — 0 when it came from the cache. Not persisted.</summary>
         [System.Text.Json.Serialization.JsonIgnore]
@@ -788,7 +854,7 @@ internal static class SessionIndex
         catch { return new(PathComparer); }
     }
 
-    private static void WriteCache(string path, Dictionary<string, FileEntry> entries)
+    private static void WriteCache(string path, IEnumerable<FileEntry> entries)
     {
         // T239: an observing tray reads this store and adds nothing to it.
         if (ProfileStore.Observing) return;
@@ -796,7 +862,7 @@ internal static class SessionIndex
         {
             StoreFile.CreateDirectory(Path.GetDirectoryName(path)!);
             string tmp = path + ".tmp";
-            StoreFile.WriteAllText(tmp, JsonSerializer.Serialize(entries.Values));
+            StoreFile.WriteAllText(tmp, JsonSerializer.Serialize(entries.ToList()));
             StoreFile.Move(tmp, path, overwrite: true);
         }
         catch { /* the cache is an optimization; failing to write it costs one slow scan */ }

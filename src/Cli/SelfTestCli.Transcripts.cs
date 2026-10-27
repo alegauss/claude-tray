@@ -490,6 +490,36 @@ internal static partial class SelfTestCli
                           mode: ActivityProfile.SweepCacheMode.Rebuild, cacheFile: cache);
         Check("--refresh re-reads every transcript past the cache",
               forced.Read == forced.Files, $"{forced.Read} of {forced.Files}");
+
+        // T393. Another profile's tree, scanned into the same shared cache: its walk must not take this
+        // tree's entries out, which it used to — every load rewrote the cache from its own tree alone.
+        string elsewhere = Path.Combine(root, "elsewhere", "projects");
+        Directory.CreateDirectory(Path.Combine(elsewhere, "d--other"));
+        File.WriteAllText(Path.Combine(elsewhere, "d--other", "sess-9.jsonl"), Turn(now, "req-9", 7) + "\n");
+        SessionIndex.Load(projectsDir: elsewhere, cacheFile: cache);
+        SessionIndex.Load(out SessionScanStats back, projectsDir: projects, cacheFile: cache);
+        Check("a second profile's scan leaves this one's cache entries in place",
+              back.Read == 0, $"{back.Read} of {back.Files} re-read after the other tree was scanned");
+
+        // Claude Code's cleanup, played: the conversation's files deleted from disk.
+        File.Delete(Path.Combine(slug, "sess-1.jsonl"));
+        File.Delete(Path.Combine(flow, "agent-aaa.jsonl"));
+        IReadOnlyList<SessionRow> kept = SessionIndex.Load(out SessionScanStats after, projectsDir: projects,
+                                                            cacheFile: cache);
+        Check("a conversation whose transcripts were deleted keeps its row, marked as gone",
+              kept.Count == 1 && kept[0].Gone && after.Kept == 2, $"{kept.Count} rows, {after.Kept} kept");
+        Check("and the row is what it was: the same totals, calls and models",
+              kept.Count == 1 && kept[0].Bits == r.Bits && kept[0].Calls == r.Calls
+              && kept[0].Models.SequenceEqual(r.Models) && kept[0].Quarters?.Count == r.Quarters?.Count);
+        Check("--refresh cannot re-derive it, so it keeps it rather than dropping it",
+              SessionIndex.Load(projectsDir: projects, mode: ActivityProfile.SweepCacheMode.Rebuild,
+                                cacheFile: cache) is { Count: 1 } again && again[0].Gone);
+        Check("Settings can say how much is kept",
+              SessionIndex.KeptSummary(cache) == (1, 2), SessionIndex.KeptSummary(cache).ToString());
+        Check("and forget it, which leaves the other profile's live entry alone",
+              SessionIndex.ForgetGone(cache) == 2
+              && SessionIndex.Load(projectsDir: projects, cacheFile: cache).Count == 0
+              && SessionIndex.KeptSummary(cache) == (0, 0));
     }
 
     /// <summary>One <c>user</c> line carrying one text block — the shape §I.1's amended exception reads,

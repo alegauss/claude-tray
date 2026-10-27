@@ -1048,6 +1048,23 @@
                                                 Content="{local:Loc settings.sys.open}" />
                                     </StackPanel>
                                 </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <!-- T393: the rows the Sessions tab keeps after Claude Code deletes their
+                                     transcripts — what is kept, and the way to drop it. The tray never
+                                     touches cleanupPeriodDays itself (§I.4). -->
+                                <local:SettingsRow Header="{local:Loc settings.sys.kept}"
+                                                   Description="{local:Loc settings.sys.keptDesc}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="SysKept" Style="{StaticResource ValueText}"
+                                                   VerticalAlignment="Center" />
+                                        <Button x:Name="SysForgetKept" MinWidth="86" Padding="12,5"
+                                                Margin="14,0,0,0" VerticalAlignment="Center"
+                                                Click="SysForgetKept_Click"
+                                                Content="{local:Loc settings.sys.keptClear}" />
+                                    </StackPanel>
+                                </local:SettingsRow>
                             </StackPanel>
                         </Border>
 

@@ -135,7 +135,8 @@ internal partial class StatisticsPage
         SessionListRow? row = null;
         for (DependencyObject? d = hit; d != null && row == null; d = System.Windows.Media.VisualTreeHelper.GetParent(d))
             if (d is FrameworkElement { DataContext: SessionListRow r }) row = r;
-        if (row == null) return;
+        // A kept row has no transcript to walk (T393); it says so on its own line.
+        if (row == null || row.Row.Gone) return;
 
         if (row.Detail != null) { row.Open = !row.Open; return; }
 
@@ -183,7 +184,7 @@ internal partial class StatisticsPage
         if (SessionList.ItemsSource is not IEnumerable<SessionListRow> shown) return;
         SessionListRow? row = shown.FirstOrDefault(r => r.Row.Session == model.Session &&
                                                         r.Row.Project == model.Project);
-        if (row == null) return;
+        if (row == null || row.Row.Gone) return;
 
         // An ItemsControl, not a ListBox: it has no ScrollIntoView, so the row's own container is
         // asked to come into view. Null while the container has not been realised, which is a

@@ -195,16 +195,22 @@ public sealed class SessionListRow : INotifyPropertyChanged
 
     public Visibility DetailVisibility => _open && _detail is { Count: > 0 } ? Visibility.Visible : Visibility.Collapsed;
 
+    /// <summary>Said on a row whose transcript Claude Code deleted (T393): the columns are what the index
+    /// kept, and there is no call tree to open — so the row says so instead of drawing a chevron that
+    /// opens onto nothing.</summary>
+    public string GoneNote => Row.Gone ? L.T("stats.sessions.gone") : "";
+    public Visibility GoneVisibility => Row.Gone ? Visibility.Visible : Visibility.Collapsed;
+
     /// <summary>The disclosure glyph, from the icon font the rest of the window uses. Down means
     /// "there is more under this", up means "it is showing" — the first capture
     /// had them the other way round, which reads as an instruction to do what has already been done.</summary>
-    public string Chevron => _open ? "" : "";
+    public string Chevron => Row.Gone ? "" : _open ?"" : "";
 
     /// <summary>What the chevron says to a screen reader: the state it draws, as a word (WW482). Its
     /// text is a Segoe MDL2 codepoint, so without a name of its own the automation tree announced the
     /// codepoint, which is T175's worst case one pane over. The glyph is the only thing on the row that
     /// says whether the call tree is showing, so it is named rather than taken out of the tree.</summary>
-    public string ChevronSaid => L.T(_open ? "stats.sessions.rowOpen" : "stats.sessions.rowShut");
+    public string ChevronSaid => Row.Gone ? GoneNote : L.T(_open ? "stats.sessions.rowOpen" : "stats.sessions.rowShut");
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

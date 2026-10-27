@@ -146,6 +146,10 @@
                             <TextBlock Text="{Binding Effort}" Visibility="{Binding EffortVisibility}"
                                        FontSize="11" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
                                        Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                            <!-- T393: a row the index kept after Claude Code deleted its transcript. -->
+                            <TextBlock Text="{Binding GoneNote}" Visibility="{Binding GoneVisibility}"
+                                       FontSize="11" FontStyle="Italic" Margin="0,2,0,0" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                         </StackPanel>
                     </Grid>
                     <TextBlock Grid.Column="1" Text="{Binding When}" FontSize="13" VerticalAlignment="Top"
