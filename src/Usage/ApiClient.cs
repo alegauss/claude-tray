@@ -68,6 +68,11 @@ internal sealed class UsageData
                                 // opening Claude Code silently refreshes the access token (no browser)
     public bool Transient;      // true when Error is a timeout/network/5xx blip worth retrying quietly
 
+    /// <summary>This reading came from Claude Code's status-line payload rather than from a response
+    /// (T390): its four window numbers are measured, everything else is carried from the last API reading,
+    /// so the stores write the numbers and nothing it only carries. See <see cref="StatusLineFeed"/>.</summary>
+    public bool FromStatusLine;
+
     /// <summary>The overage utilization as a reading rather than a number: null when the account has no
     /// overage header at all, <c>0</c> when it has one and nothing has been spent past the included
     /// quota. The two are different facts and only this form keeps them apart — <see cref="Extra"/> is
@@ -111,8 +116,14 @@ internal sealed class ApiClient
     /// </summary>
     private readonly string _credsPath;
 
-    public ApiClient(string? configDir = null) =>
-        _credsPath = Path.Combine(configDir ?? ClaudeAccount.ConfigDir, ".credentials.json");
+    /// <summary>The config dir this client reads — also where its status-line feed is filed (T390).</summary>
+    public string ConfigDir { get; }
+
+    public ApiClient(string? configDir = null)
+    {
+        ConfigDir = configDir ?? ClaudeAccount.ConfigDir;
+        _credsPath = Path.Combine(ConfigDir, ".credentials.json");
+    }
 
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
 

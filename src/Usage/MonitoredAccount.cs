@@ -89,6 +89,12 @@ internal sealed class MonitoredAccount
     /// and that is the whole difference between the two callers.</summary>
     public bool PollAgain;
 
+    /// <summary>The last reading that came from the API itself, and when — what a status-line reading is
+    /// allowed to stand in for, and what it carries everything else from (T390). The outgoing account's
+    /// would carry that account's overage onto this one.</summary>
+    public UsageData? LastApi;
+    public long LastApiUnix;
+
     /// <summary>This account's utilization history, and the projection over it. A fresh one rather than a
     /// cleared one, so there is no <c>Clear()</c> for a switch to forget to call.</summary>
     public BurnTracker Burn { get; } = new();

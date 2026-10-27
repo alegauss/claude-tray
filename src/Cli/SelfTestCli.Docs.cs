@@ -1385,6 +1385,8 @@ internal static partial class SelfTestCli
             new(now,        0.30, 0, 0.15, 0, null, 0),
         }, now);
         ContextNudges.Mark(key, "selftest-observing", DateTime.UtcNow);
+        // T390's feed, under the monitored profile's own config dir — the file a status line would write.
+        StatusLineFeed.Write(ProfileStore.MonitoredDir, new StatusLineFeed.Reading(now, 0.1, now + 3600, 0.2, now + 86400));
         // T305, and the store that had been missing from this list. `HeaderProbe.Record` writes a file and
         // consulted nothing, so an observing tray appended to `header-probe.jsonl` on a new header shape —
         // and `Trim` then rewrote the whole file, which is a promise broken twice. The shape is invented so

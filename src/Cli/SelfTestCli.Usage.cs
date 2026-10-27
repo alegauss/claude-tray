@@ -2236,6 +2236,74 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T390. When a status-line reading may stand in for a poll, asked of the rule with no tray: the payload
+    /// as Claude Code documents it, each thing the payload cannot say refusing the substitute on its own, and
+    /// the file the two processes hand the reading through.
+    /// </summary>
+    private static void StatusLineSubstitute()
+    {
+        double now = Now;
+        string payload = "{\"model\":{\"display_name\":\"Opus\"},\"rate_limits\":{" +
+                         "\"five_hour\":{\"used_percentage\":23.5,\"resets_at\":" + (long)(now + 3600) + "}," +
+                         "\"seven_day\":{\"used_percentage\":41.2,\"resets_at\":" + (long)(now + 86400) + "}}}";
+        StatusLineFeed.Reading? parsed = StatusLineFeed.Parse(payload, now);
+        Check("the payload's percentages are read as fractions, its resets as unix seconds",
+              parsed is { } p && Math.Abs(p.Util5h - 0.235) < 1e-9 && Math.Abs(p.Util7d - 0.412) < 1e-9
+              && p.Reset5h == (long)(now + 3600) && p.T == now);
+        Check("a payload with one window is no reading — it cannot stand in for a poll that reads two",
+              StatusLineFeed.Parse("{\"rate_limits\":{\"five_hour\":{\"used_percentage\":5,\"resets_at\":1}}}", now) is null);
+        Check("and neither is one before the first response, or one that is not JSON",
+              StatusLineFeed.Parse("{\"model\":{}}", now) is null && StatusLineFeed.Parse("not json", now) is null);
+
+        var api = new UsageData { Status = "allowed", Status7d = "allowed", HasExtra = true, Extra = 0,
+                                  StatusExtra = "allowed", Session5h = 0.1, Week7d = 0.3 };
+        var feed = new StatusLineFeed.Reading(now - 10, 0.2, now + 3600, 0.4, now + 86400);
+        UsageData? sub = StatusLineFeed.Substitute(feed, api, now - 120, now, 300);
+        Check("a fresh reading inside the quota stands in for the call",
+              sub is { FromStatusLine: true, Session5h: 0.2, Week7d: 0.4 } s && s.Reset7d == now + 86400);
+        Check("and carries what the payload lacks from the last API reading, rather than defaults",
+              sub is { HasExtra: true, StatusExtra: "allowed", Status: "allowed" });
+
+        Check("a reading older than the tick does not stand in for it",
+              StatusLineFeed.Substitute(feed with { T = now - 300 }, api, now - 120, now, 300) is null);
+        Check("no API reading yet means nothing to carry, so the call is made",
+              StatusLineFeed.Substitute(feed, null, 0, now, 300) is null);
+        Check("an API reading older than an hour is refreshed whatever the status line says",
+              StatusLineFeed.Substitute(feed, api, now - StatusLineFeed.ApiAtLeastEverySeconds, now, 300) is null);
+        var spending = new UsageData { Status = "allowed", Status7d = "allowed", ExtraInUse = true };
+        Check("an account spending past its quota is always asked — the payload has no overage",
+              StatusLineFeed.Substitute(feed, spending, now - 120, now, 300) is null);
+        var warned = new UsageData { Status = "allowed_warning", Status7d = "allowed" };
+        Check("a status only the API sends is not carried past a warning",
+              StatusLineFeed.Substitute(feed, warned, now - 120, now, 300) is null);
+        Check("a window at the API's warning threshold is fetched, not substituted",
+              StatusLineFeed.Substitute(feed with { Util7d = StatusLineFeed.NearLimit }, api, now - 120, now, 300) is null);
+        Check("a reset already past is last cycle's number",
+              StatusLineFeed.Substitute(feed with { Reset5h = now - 1 }, api, now - 120, now, 300) is null);
+
+        // The hand-off itself, under a config dir no Claude Code install has, removed after.
+        string dir = Path.Combine(Path.GetTempPath(), "claudetray-selftest-statusline-" + Environment.ProcessId);
+        string file = StatusLineFeed.PathFor(dir);
+        try
+        {
+            StatusLineFeed.Write(dir, feed);
+            Check("what --statusline writes is what the tray reads back",
+                  StatusLineFeed.Read(dir) is { } back && back.T == (long)feed.T
+                  && Math.Abs(back.Util5h - 0.2) < 1e-9 && back.Reset7d == (long)(now + 86400));
+            Check("filed by config dir, under the key a profile without an account already has",
+                  Path.GetFileNameWithoutExtension(file) == ProfileStore.DirKeyFor(dir + "\\"));
+        }
+        finally
+        {
+            try { File.Delete(file); } catch { /* removed or never written */ }
+            // Only when empty, which is a machine where no status line has run yet.
+            try { Directory.Delete(Path.GetDirectoryName(file)!); } catch { /* holds a real feed */ }
+        }
+        Check("the bar's line names both windows", StatusLineFeed.Line(feed).Contains("20%")
+                                                    && StatusLineFeed.Line(feed).Contains("40%"));
+    }
+
+    /// <summary>
     /// T277. The one value the complement cannot take. The card's bar renders quota <em>still available</em>,
     /// so it is drawn from <c>1 − figure</c> — and the spell of 2026-08-04 reported the figure as <c>0.0</c>
     /// on every reading, which draws it <b>full</b>: a complete allowance behind a sentence saying the quota

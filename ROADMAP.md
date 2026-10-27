@@ -34,7 +34,7 @@
 
 ## Block D — Auth & API resilience
 
-- 📋 **T390** (deps: —) **The tray spends an API call on a reading Claude Code already hands its status line** — The status-line payload carries both windows' percentages and resets, so a status-line command could feed the store and stretch the automated poll the README calls a gray area. → §CVI.1
+- ⏳ **T390** (deps: —) **The tray spends an API call on a reading Claude Code already hands its status line** — Settings has no row with the command to paste, the README still calls every reading a poll, and nobody has measured how often the status line runs. → §CVI.1
 
 ## Block E — Reset notifications & toasts
 

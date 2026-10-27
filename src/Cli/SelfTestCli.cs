@@ -230,6 +230,9 @@ internal static partial class SelfTestCli
         Section("the pace alarm — the icon's red, said once per window and reset cycle (Block AM)");
         PaceAlarmCycle();
 
+        Section("statusline — a reading Claude Code already has, standing in for a poll (Block D)");
+        StatusLineSubstitute();
+
         Section("projects — a count of directories, not of keys (Block N)");
         ProjectCount();
 

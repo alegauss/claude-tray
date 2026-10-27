@@ -240,6 +240,14 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   before the first move when it needs a file symlink on a machine
                                       #   with no Developer Mode. Exits 1 on a bad index or the same dir
                                       #   twice.
+--statusline                          # NOT a dev flag: the command Claude Code's status line runs (T390).
+                                      #   Reads the payload on stdin, files its rate_limits windows under
+                                      #   the inherited CLAUDE_CONFIG_DIR (statusline\<dir-key>.json) and
+                                      #   prints one line for the bar. A tray tick finding a reading younger
+                                      #   than its interval, inside the quota and under 90%, skips the API
+                                      #   call. Prints nothing, writes nothing, exits 0 on a payload with
+                                      #   no rate_limits. Try it: '{"rate_limits":{...}}' | ClaudeTray.exe
+                                      #   --statusline.
 --probe [--live | --recorded] [--all] # the rate-limit headers VERBATIM: the recorded capture log first,
                                       #   then one live call — which is itself recorded (T212), against
                                       #   the monitored profile and filed under its key. --live skips

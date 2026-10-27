@@ -1063,6 +1063,13 @@ internal sealed class TrayContext : ApplicationContext
     /// </summary>
     private static void RecordReading(string profileKey, long now, UsageData d)
     {
+        // A status-line reading measured the four window numbers and carries the rest (T390): the overage
+        // columns are written absent rather than as a measurement nobody took, and it has no headers.
+        if (d.FromStatusLine)
+        {
+            UsageHistory.Append(profileKey, now, d.Session5h, d.Reset5h, d.Week7d, d.Reset7d);
+            return;
+        }
         UsageHistory.Append(profileKey, now, d.Session5h, d.Reset5h, d.Week7d, d.Reset7d,
                             d.ExtraUtil, d.ResetExtra, d.ExtraInUse);
         // Keep the headers themselves whenever their shape moves (T181). The reading that says what the
@@ -1134,7 +1141,19 @@ internal sealed class TrayContext : ApplicationContext
     /// </summary>
     private async Task PollOnceAsync(MonitoredAccount account)
     {
-        UsageData fresh = await _api.FetchAsync();
+        // A status-line reading younger than the tick stands in for the API call when it can (T390): the
+        // payload carries the same two windows Claude Code just read, and the call is the automated use the
+        // README calls a gray area. StatusLineFeed.Substitute says when it cannot.
+        ApiClient api = _api;
+        long started = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        UsageData fresh = StatusLineFeed.Substitute(StatusLineFeed.Read(api.ConfigDir), account.LastApi,
+                                                    account.LastApiUnix, started, _settings.RefreshSeconds)
+                          ?? await api.FetchAsync();
+        if (!fresh.FromStatusLine && fresh.Error == null)
+        {
+            account.LastApi = fresh;
+            account.LastApiUnix = started;
+        }
 
         if (!ReferenceEquals(account, _monitored))
         {

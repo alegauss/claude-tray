@@ -125,6 +125,15 @@ internal static class Program
     {
         Utf8Console();
 
+        // The status-line command (T390), before anything else is set up: Claude Code runs it on every
+        // status refresh, so its cost is paid per keystroke, and it shows no window for the hook below to
+        // answer about.
+        if (args.Length >= 1 && args[0] == "--statusline")
+        {
+            Environment.ExitCode = StatusLineCli.Run();
+            return;
+        }
+
         // WW480. The one line the in-app half needs, and it is armed by the environment rather than
         // by this call: with no WINWRIGHT_RENDERS naming a directory, it hooks the windows and
         // answers nothing, which is what makes it safe to ship. `Everywhere` rather than one window,

@@ -93,7 +93,12 @@ internal static class ProfileStore
     public static string KeyFor(ClaudeInfo profile) =>
         profile.AccountUuid is { Length: > 0 } uuid
             ? "acct-" + Digest(uuid.ToLowerInvariant())
-            : "dir-" + Digest(profile.ConfigDir.TrimEnd('\\', '/').ToLowerInvariant());
+            : DirKeyFor(profile.ConfigDir);
+
+    /// <summary>The key a config dir has when no account names it — also what the status-line feed is
+    /// filed under (T390), since that process knows the directory and not the account.</summary>
+    public static string DirKeyFor(string configDir) =>
+        "dir-" + Digest(configDir.TrimEnd('\\', '/').ToLowerInvariant());
 
     /// <summary>The directory for a profile key, created on demand. Falls back to the flat data dir if
     /// it cannot be created, so a denied ACL degrades to the old behaviour instead of losing readings.
