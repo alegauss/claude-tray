@@ -42,8 +42,6 @@
 
 ## Block F — Statistics window (pace report)
 
-- 📋 **T391** (deps: —) **A script cannot ask the tray where the quota stands** — Every read-out prints prose for a person, so a hook, a CI step or a status bar has nothing to parse and no exit code meaning near the limit, which ccusage and Usage Monitor both give. → §CVI.2
-
 ## Block H — Tray display options
 
 - 💭 **T396** (deps: —) **The icon shows one window at a time** — Watching the week hides the session and the reverse, while CodexBar stacks both; whether two bars still read at 16 px has to be measured first. → §CVI.7

@@ -233,6 +233,9 @@ internal static partial class SelfTestCli
         Section("statusline — a reading Claude Code already has, standing in for a poll (Block D)");
         StatusLineSubstitute();
 
+        Section("usage — where the quota stands, for a script (Block F)");
+        UsageReadOut();
+
         Section("projects — a count of directories, not of keys (Block N)");
         ProjectCount();
 

@@ -2236,6 +2236,74 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T391. What <c>--usage</c> tells a script: the report over one stored reading and the exit code it
+    /// branches on, each state driven with no store and no clock — and the verdict held to the icon's.
+    /// </summary>
+    private static void UsageReadOut()
+    {
+        const double day = 86400;
+        double now = Now;
+        double r7 = now + 4 * day;                 // three days into the week: the pace line is at 3/7
+        double r5 = now + 4 * 3600;                // one hour into the session: the pace line is at 1/5
+        UsageSample Reading(double u5, double u7, double age = 60, double? extra = null, bool? inUse = null) =>
+            new(now - age, u5, r5, u7, r7, extra, 0, inUse);
+
+        UsageCli.Report fine = UsageCli.Compose("p", Reading(0.10, 0.30), now);
+        Check("a reading under both pace lines exits 0", UsageCli.ExitCode(fine) == UsageCli.ExitOk);
+        Check("and says when it was read, from the reading rather than the clock", fine.Age == 60);
+
+        UsageCli.Report ahead = UsageCli.Compose("p", Reading(0.10, 0.60), now);
+        Check("a window ahead of its pace line exits 10 — the icon's red, by the icon's arithmetic",
+              UsageCli.ExitCode(ahead) == UsageCli.ExitNear
+              && ahead.Windows.Single(w => w.Key == "7d").Verdict
+                 == BurnTracker.PaceLine(0.60, r7, now, BurnTracker.WindowSeconds("7d")).verdict);
+        Check("and gives the moment it reaches 100%, before its reset",
+              ahead.Windows.Single(w => w.Key == "7d").ExhaustAt is { } x && x > now && x < r7);
+        Check("a window on pace has no exhaust time: it resets first",
+              fine.Windows.Single(w => w.Key == "7d").ExhaustAt is null);
+        Check("at the API's warning threshold it exits 10 even on pace",
+              UsageCli.ExitCode(UsageCli.Compose("p", Reading(0.10, StatusLineFeed.NearLimit), now))
+                  == UsageCli.ExitNear);
+        Check("a window at its limit exits 11",
+              UsageCli.ExitCode(UsageCli.Compose("p", Reading(1.0, 0.30), now)) == UsageCli.ExitAtLimit);
+
+        Check("no reading on file exits 20 — nothing to judge",
+              UsageCli.ExitCode(UsageCli.Compose("p", null, now)) == UsageCli.ExitNothing);
+        UsageCli.Report old = UsageCli.Compose("p", Reading(0.10, 0.30, age: UsageCli.StaleSeconds + 1), now);
+        Check("a reading older than an hour is stale, says so, and exits 20 rather than passing as current",
+              old.Stale && UsageCli.ExitCode(old) == UsageCli.ExitNothing
+              && UsageCli.Text(old).First().Contains("STALE"));
+        UsageCli.Report rolled = UsageCli.Compose("p", new UsageSample(now - 60, 0.95, now - 1, 0.30, r7), now);
+        Check("a window whose reset has passed is unknown, not 95% — and does not make the code 10",
+              rolled.Windows.Single(w => w.Key == "5h").Expired && UsageCli.ExitCode(rolled) == UsageCli.ExitOk);
+
+        // The contract: parseable, numbered, and absent overage written as null rather than 0 (T179).
+        using var doc = System.Text.Json.JsonDocument.Parse(UsageCli.Json(fine));
+        System.Text.Json.JsonElement root = doc.RootElement;
+        Check("the JSON carries its schema number and the exit code a script would get",
+              root.GetProperty("schema").GetInt32() == UsageCli.Schema
+              && root.GetProperty("exitCode").GetInt32() == UsageCli.ExitOk);
+        Check("each window's used, reset and verdict are fields, not prose",
+              root.GetProperty("windows").GetProperty("7d").GetProperty("verdict").GetString() == "ok"
+              && Math.Abs(root.GetProperty("windows").GetProperty("5h").GetProperty("used").GetDouble() - 0.10) < 1e-9);
+        Check("a reading with no overage figure says null, not a measured zero",
+              root.GetProperty("extra").ValueKind == System.Text.Json.JsonValueKind.Null);
+
+        // --sessions --json: the columns, and never the two fields a person wrote or a model derived from it.
+        var row = new SessionRow("sess-1", "D--Git-x", "Git/x", now - 600, now, 7,
+                                 new TokenBits(10, 20, 30, 40, 0, 30), new[] { "claude-opus" }, 2,
+                                 Prompt: "PROMPT-WORDS-T391", Title: "TITLE-WORDS-T391");
+        string sessions = SessionsCli.Json(new[] { row, row with { Session = "sess-2" } }, 1);
+        Check("a session row in JSON carries neither the opening prompt nor the generated title (§I.1)",
+              !sessions.Contains("PROMPT-WORDS-T391") && !sessions.Contains("TITLE-WORDS-T391"));
+        using var sdoc = System.Text.Json.JsonDocument.Parse(sessions);
+        Check("and is the list's columns, cut where the text cuts it, with the total beside",
+              sdoc.RootElement.GetProperty("total").GetInt32() == 2
+              && sdoc.RootElement.GetProperty("sessions").GetArrayLength() == 1
+              && sdoc.RootElement.GetProperty("sessions")[0].GetProperty("tokens").GetProperty("cacheRead").GetInt64() == 40);
+    }
+
+    /// <summary>
     /// T390. When a status-line reading may stand in for a poll, asked of the rule with no tray: the payload
     /// as Claude Code documents it, each thing the payload cannot say refusing the substitute on its own, and
     /// the file the two processes hand the reading through.

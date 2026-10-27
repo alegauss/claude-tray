@@ -35,6 +35,15 @@ internal static class SessionsCli
             return;
         }
 
+        // The same rows for a script (T391), under the same --project and --all, with nothing printed
+        // around them so stdout is one JSON document.
+        if (flags.Contains("--json"))
+        {
+            if (project is { Length: > 0 }) rows = Matching(rows, project);
+            Console.WriteLine(Json(rows, flags.Contains("--all") ? rows.Count : Math.Min(rows.Count, 20)));
+            return;
+        }
+
         Console.WriteLine($"Sessions — {st.Sessions:N0} conversations in {st.Files:N0} transcripts");
         // Which tree, always: this reads a *profile's* transcripts, and "whose numbers are these"
         // is the question T128 exists to keep answerable.
@@ -46,9 +55,7 @@ internal static class SessionsCli
         if (root == null) Console.WriteLine("cache: " + SessionIndex.CachePath);
         Console.WriteLine();
 
-        if (project is { Length: > 0 })
-            rows = rows.Where(r => r.Project.Contains(project, StringComparison.OrdinalIgnoreCase) ||
-                                   r.Name.Contains(project, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (project is { Length: > 0 }) rows = Matching(rows, project);
 
         if (rows.Count == 0) { Console.WriteLine("no conversations found."); return; }
 
@@ -73,6 +80,46 @@ internal static class SessionsCli
 
         if (show < rows.Count)
             Console.WriteLine($"… and {rows.Count - show:N0} more — --all lists them.");
+    }
+
+    private static IReadOnlyList<SessionRow> Matching(IReadOnlyList<SessionRow> rows, string project) =>
+        rows.Where(r => r.Project.Contains(project, StringComparison.OrdinalIgnoreCase) ||
+                        r.Name.Contains(project, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    /// <summary>
+    /// The list as JSON (T391), newest first, the first <paramref name="show"/> of them.
+    ///
+    /// <para><b>No title and no prompt.</b> Those two are the Sessions list's exception to §I.1, made for
+    /// a person recognising their own morning on their own screen — and JSON is for piping somewhere
+    /// else. A row here is what the columns are: ids, the project, times and counts. Carries
+    /// <see cref="UsageCli.Schema"/>, since both documents are one contract.</para>
+    /// </summary>
+    internal static string Json(IReadOnlyList<SessionRow> rows, int show)
+    {
+        var doc = new Dictionary<string, object?>
+        {
+            ["schema"] = UsageCli.Schema,
+            ["total"] = rows.Count,
+            ["sessions"] = rows.Take(show).Select(r => new Dictionary<string, object?>
+            {
+                ["session"] = r.Session,
+                ["project"] = r.Project,
+                ["name"] = r.Name,
+                ["firstAt"] = (long)r.FirstUnix,
+                ["lastAt"] = (long)r.LastUnix,
+                ["seconds"] = (long)r.Seconds,
+                ["calls"] = r.Calls,
+                ["tokens"] = new Dictionary<string, long>
+                {
+                    ["input"] = r.Bits.Input, ["output"] = r.Bits.Output,
+                    ["cacheCreate"] = r.Bits.CacheCreate, ["cacheRead"] = r.Bits.CacheRead,
+                },
+                ["agents"] = r.Agents,
+                ["models"] = r.Models,
+            }).ToList(),
+        };
+        return System.Text.Json.JsonSerializer.Serialize(doc,
+            new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
     }
 
     /// <summary>

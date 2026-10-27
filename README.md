@@ -741,6 +741,13 @@ It still calls the API at least once an hour, at 90% of a window or past it, and
 spending past the quota, because the status line carries no overage figure. The entry replaces any
 status line you already have. The tray never edits `settings.json` itself.
 
+**For scripts.** `ClaudeTray.exe --usage --json` prints the newest reading the tray has stored:
+both windows with their resets, whether each is ahead of pace, when it would reach 100%, and how old
+the reading is. It never calls the API itself. The exit code follows the icon: `0` on pace, `10`
+ahead of pace or at 90% or more, `11` at a limit, `20` nothing to judge (no reading, or one more than
+an hour old). `--sessions --json` lists conversations the same way, with no titles and no prompts.
+Both documents carry a `schema` number that changes only when a field does.
+
 ## Credentials (setup)
 
 There is **nothing to configure manually** — the app reuses Claude Code's own credentials.

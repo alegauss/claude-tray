@@ -298,6 +298,14 @@ internal static class Program
             return;
         }
 
+        // Where the quota stands, for a script (T391): the newest stored reading, never a fetch, with an exit
+        // code taken from the icon's own verdict.
+        if (args.Length >= 1 && args[0] == "--usage")
+        {
+            Environment.ExitCode = UsageCli.Run(args.Skip(1).ToArray());
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--insights")
         {
             var d = UsageInsights.Compute(DateTimeOffset.UtcNow.UtcDateTime);

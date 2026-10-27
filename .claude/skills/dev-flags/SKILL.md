@@ -240,6 +240,14 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   before the first move when it needs a file symlink on a machine
                                       #   with no Developer Mode. Exits 1 on a bad index or the same dir
                                       #   twice.
+--usage [--json]                      # where the quota stands, for a SCRIPT (T391): the monitored
+                                      #   profile's newest STORED reading (never an API call), both
+                                      #   windows with resets, the icon's pace verdict and when each hits
+                                      #   100%. Exit 0 fine | 10 ahead of pace or >=90% | 11 at a limit |
+                                      #   20 nothing to judge (no reading, or one older than an hour, which
+                                      #   is printed as STALE). --json carries `schema` (1 today).
+                                      #   `--sessions --json` is the list's rows for a script under the
+                                      #   same --all/--project, with NO title and NO prompt (§I.1).
 --statusline                          # NOT a dev flag: the command Claude Code's status line runs (T390).
                                       #   Reads the payload on stdin, files its rate_limits windows under
                                       #   the inherited CLAUDE_CONFIG_DIR (statusline\<dir-key>.json) and

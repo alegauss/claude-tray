@@ -845,24 +845,6 @@ positioning question for STRATEGY.md, not a task; hook-driven "Claude is waiting
 because a hook is a write to Claude Code's settings (§I.4) and its payload carries message text
 (§I.1); and macOS, Linux or mobile builds.
 
-### CVI.2 A read-out a script can parse (T391)
-
-The read-outs this app has — `--tooltip`, `--sessions`, `--insights` — print text written for a
-person. ccusage answers every report with `--json`, and Claude Code Usage Monitor adds `--once` with
-exit codes (0 fine, 10 near the limit, 11 at it, 20 nothing to judge), so a git hook, a CI step or a
-status bar can branch on the quota without parsing prose.
-
-The shape: `--json` on the read-outs that already exist rather than new ones, starting with the
-current reading — both windows with their resets, each window's verdict and projected time to 100%,
-extra usage, and the reading's age — and `--sessions`. An exit code on the reading alone, taken from
-the same verdict the icon uses, so a script and the icon cannot disagree.
-
-Two rules carry over. The JSON holds nothing a screen would not, and less than the Sessions list:
-the conversation title is that list's exception (§I.1) and stays there, so a session row in JSON has
-no title. And a stale reading is reported as stale, with its age, never as current.
-
-Field names become a contract the moment they ship, so the first release carries a `schema` number.
-
 ### CVI.3 Totals by day, week and month (T392)
 
 ccusage's default report is one row per day — tokens split into input, output, cache write and cache
