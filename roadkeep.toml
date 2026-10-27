@@ -128,6 +128,13 @@ why = 200
 # this number's habit of coming down when content genuinely leaves.
 "AGENTS.md" = { lines = 323, bytes = 25500 }
 
+[requirements]
+# What a line can need that no code here can supply, so `pick` sets it aside on a machine without it
+# instead of offering it to every session. `wsl-claude` is a WSL distro, running, with Claude Code signed
+# in inside it (T394): the developer's machine has two distros and neither has one, and the only way to
+# test the stopped one is to boot it, which is the very side effect that task must prove it avoids.
+declared = ["wsl-claude"]
+
 [markers]
 open = ["📋", "💭", "⏳", "🛠"]
 # Which of those still have their design to write. `pick --designed` sets these aside for a
