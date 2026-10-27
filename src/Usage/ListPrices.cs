@@ -47,9 +47,10 @@ internal static class ListPrices
         ("claude-mythos-5",   10.00, 50.00, 0.1),
         ("claude-opus-5-5",    4.00, 20.00, 0.05),
         ("claude-sonnet-5-5",  2.00, 10.00, 0.05),
-        // Up to 100K tokens of prompt; past that the card lists $0.50/$2.50, which a per-model table cannot
-        // tell apart — so a long-context Haiku call reads low here (T402).
+        // Up to 100K tokens of prompt, and five times that above it (T402) — the second row is reached only
+        // through the key PriceKey gives a call past the line, so the bare id keeps the cheaper one.
         ("claude-haiku-5-5",   0.10,  0.50, 0.1),
+        ("claude-haiku-5-5" + LongPrompt, 0.50, 2.50, 0.1),
         ("claude-opus-5",      5.00, 25.00, 0.1),
         ("claude-opus-4-8",    5.00, 25.00, 0.1),
         ("claude-opus-4-7",    5.00, 25.00, 0.1),
@@ -123,6 +124,29 @@ internal static class ListPrices
         }
         return new Equivalent(dollars, priced, unpriced);
     }
+
+    /// <summary>What a key carries after the model id when its call ran past a long-prompt line (T402).
+    /// Not a character a model id contains, so <see cref="ModelOf"/> can take it off again.</summary>
+    internal const string LongPrompt = ">100k";
+
+    /// <summary>The prompt size above which Haiku 5.5's dearer row applies: input, cache writes and cache
+    /// reads together, which is what the card calls the prompt.</summary>
+    internal const long LongPromptTokens = 100_000;
+
+    /// <summary>
+    /// The key one call's tokens are summed under (T402): its model id, or the id with
+    /// <see cref="LongPrompt"/> when the card prices that model by prompt size and this prompt is past the
+    /// line. Decided per call because a session's sums cannot say which of its calls were long.
+    /// </summary>
+    internal static string PriceKey(string model, TokenBits call) =>
+        model.StartsWith("claude-haiku-5-5", StringComparison.OrdinalIgnoreCase)
+        && call.Input + call.CacheCreate + call.CacheRead > LongPromptTokens
+            ? model + LongPrompt
+            : model;
+
+    /// <summary>The model id a price key names — what a list of models shows.</summary>
+    internal static string ModelOf(string key) =>
+        key.EndsWith(LongPrompt, StringComparison.Ordinal) ? key[..^LongPrompt.Length] : key;
 
     /// <summary>Whether the table can price this model id at all — the question the Sessions pane asks
     /// before it promises a total.</summary>

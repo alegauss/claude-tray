@@ -986,6 +986,22 @@ internal static partial class SelfTestCli
              ListPrices.Of(new Dictionary<string, TokenBits>(StringComparer.Ordinal)
              { ["claude-sonnet-5-20260301"] = new TokenBits(1_000_000, 1_000_000, 0, 0, 0, 0) }).Dollars,
              12.0, 1e-9);
+
+        // T402. Haiku 5.5's long-prompt row is reached per call: a prompt is input, cache writes and cache
+        // reads together, and past 100K tokens the same tokens cost five times as much.
+        var shortCall = new TokenBits(2_000, 300, 1_000, 90_000, 0, 1_000);
+        var longCall = new TokenBits(2_000, 300, 1_000, 120_000, 0, 1_000);
+        Check("a Haiku 5.5 call under 100K prompt tokens keeps its model's key; one over it gets the long one",
+              ListPrices.PriceKey("claude-haiku-5-5", shortCall) == "claude-haiku-5-5"
+              && ListPrices.PriceKey("claude-haiku-5-5", longCall) == "claude-haiku-5-5" + ListPrices.LongPrompt);
+        Check("a model the card does not tier keeps its key however long the prompt",
+              ListPrices.PriceKey("claude-opus-5-5", longCall) == "claude-opus-5-5");
+        Near("the long key is priced at the dearer row: a million in is $0.50, not $0.10",
+             ListPrices.Of(new Dictionary<string, TokenBits>(StringComparer.Ordinal)
+             { ["claude-haiku-5-5" + ListPrices.LongPrompt] = new TokenBits(1_000_000, 0, 0, 0, 0, 0) }).Dollars,
+             0.50, 1e-9);
+        Check("and a list of models names the model, not the key",
+              ListPrices.ModelOf("claude-haiku-5-5" + ListPrices.LongPrompt) == "claude-haiku-5-5");
     }
 
     /// <summary>

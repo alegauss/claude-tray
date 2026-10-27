@@ -46,8 +46,6 @@
 
 ## Block AK — Sessions — what one conversation cost, and what it did
 
-- 📋 **T402** (deps: —) **A Haiku 5.5 call on a prompt over 100K tokens is priced at a fifth of its rate** — The card prices Haiku 5.5 five times higher above 100K prompt tokens, and a per-model table can hold only the cheaper row. → §CVI.13
-
 ## Block AI — Verification — the checks that prove a change
 
 ## Non-goals (do NOT add as tasks)

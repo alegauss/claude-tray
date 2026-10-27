@@ -142,8 +142,9 @@ internal static class SessionIndex
     /// conversation at whichever rate the reader picked. See <see cref="FileEntry.V"/>.
     /// 10 keeps the same split per quarter hour (T392), so a calendar total counts each turn on the
     /// local day it landed rather than on the day its conversation started.
+    /// 11 keys both splits by price rather than by model (T402), so a long-prompt Haiku call sums apart.
     /// </summary>
-    private const int Schema = 10;
+    private const int Schema = 11;
 
     private static readonly StringComparer PathComparer = StringComparer.OrdinalIgnoreCase;
 
@@ -335,11 +336,14 @@ internal static class SessionIndex
                 // cannot be priced (T346). Keyed on the id the transcript stated; a call whose line
                 // named no model lands under the empty key rather than being dropped, so the split
                 // still sums to the aggregate above and the pricer reports it as unpriced.
-                Attribute(entry.PerModel, model ?? "", bits);
+                // Keyed for pricing, not for display (T402): a call past a long-prompt line is summed under
+                // its own key, because a session's sums cannot say which of its calls were long.
+                string priceKey = ListPrices.PriceKey(model ?? "", bits);
+                Attribute(entry.PerModel, priceKey, bits);
                 // The same split, per quarter hour of UTC (T392). A quarter rather than an hour because
                 // every UTC offset in use is a multiple of fifteen minutes, so whichever zone the reader
                 // folds in, no bucket straddles a local midnight.
-                Attribute(entry.Quarters, QuarterKey((long)(t / Quarter), model ?? ""), bits, call: true);
+                Attribute(entry.Quarters, QuarterKey((long)(t / Quarter), priceKey), bits, call: true);
                 // Counted per call, not per session: the mix is the reading, and a session that ran
                 // ten of fifty calls at the dear level is not an instance of that level (T331).
                 if (effort is { Length: > 0 })

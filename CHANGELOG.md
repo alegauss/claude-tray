@@ -53,7 +53,7 @@
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
 | [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
-| [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did (active — see ROADMAP) |
+| [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did |
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
 | [AM](#block-am--danger-is-said-not-only-coloured) | Danger is said, not only coloured |
 | [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system |
@@ -747,6 +747,7 @@
 - **T393** — A conversation whose transcript Claude Code deleted keeps its row for a year, marked as deleted, and Settings counts the kept rows with a button that forgets them (design §CVI.4 recorded in `src/Usage/SessionIndex.cs`).
 - **T399** — Opus 5.5, Sonnet 5.5 and Haiku 5.5 have rows of their own, so Opus 5.5 is no longer priced through the Opus 5 prefix and Haiku 5.5 calls are no longer left out of the figure.
 - **T401** — Every row now carries the cache-read multiple the card gives it, Fable 5.1 and Mythos 5.1 have rows of their own, and Sonnet 5 is at the $2/$10 that became standard (design §CVI.12 recorded in `src/Usage/ListPrices.cs`).
+- **T402** — A Haiku 5.5 call whose prompt passes 100K tokens is summed under a key of its own and priced at the dearer row the card gives that tier.
 
 ## Block AL — The site is a workspace, not a page
 

@@ -14,7 +14,8 @@ internal sealed record PeriodRow(DateOnly Start, TokenBits Bits, int Calls, int 
 
     /// <summary>The models that answered, heaviest first.</summary>
     public IEnumerable<string> Models => PerModel.Where(kv => kv.Key.Length > 0)
-                                                 .OrderByDescending(kv => kv.Value.Total).Select(kv => kv.Key);
+                                                 .OrderByDescending(kv => kv.Value.Total)
+                                                 .Select(kv => ListPrices.ModelOf(kv.Key)).Distinct();
 }
 
 /// <summary>

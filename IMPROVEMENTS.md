@@ -885,21 +885,3 @@ then compare `statusline\<dir-key>.json`'s rewrite times against the poll cadenc
 substitute lines in `usage-history.jsonl` (no `ux`/`ix`) with the API lines around them. A gap of
 more than a point in either window, or a share of covered ticks under a third, is the finding.
 Either one changes `ApiAtLeastEverySeconds` or the 0.9 floor, not the design.
-
-### CVI.13 Haiku's long-prompt tier (T402)
-
-The pricing page, read 2026-10-27, gives Claude Haiku 5.5 two rows: $0.10 in and $0.50 out for
-prompts up to 100,000 tokens, and $0.50 in and $2.50 out above it. The cache-write and cache-read
-rates are five times higher above the line too. `ListPrices` prices per model, from a session's
-per-model token sums, so it can only hold the cheaper row: a Haiku call over 100K tokens is priced
-at a fifth of the card.
-
-Which row a call belongs to is decidable from the transcript. A call's prompt is its input plus its
-cache creation plus its cache read, and the parser already reads all three per call. So the fix is a
-price per call, applied before the sums: either `SessionIndex` keeps a per-model, per-tier split
-beside `PerModel`, which bumps the cache schema, or the tier is a second model key
-(`claude-haiku-5-5>100k`) that the table prices like any other row. The second keeps `ListPrices.Of`
-unchanged and is the cheaper build.
-
-Measured here on 2026-10-27, Haiku 5.5 is two sessions out of 339, Claude Code's own background
-calls, so the error on this machine is cents. It matters to whoever runs Haiku on long prompts.
