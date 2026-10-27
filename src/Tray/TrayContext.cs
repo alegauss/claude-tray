@@ -1615,6 +1615,21 @@ internal sealed class TrayContext : ApplicationContext
         => _monitored.Data is { Error: null } d ? Math.Min(1.0, d.Metric(IconMetric())) : 0.0;
 
     // Projection for the window the icon's number is about (session vs. week vs. extra).
+    /// <summary>The window the digits do not name, for the split tile (T396), or null when the setting is off,
+    /// there is no good reading, or the icon shows the overage figure, which has no fixed window to stand
+    /// beside. Its verdict is the pace line, the arithmetic the digits' own window is judged by.</summary>
+    private IconRenderer.OtherWindow? SplitOther()
+    {
+        if (!_settings.ShowBothWindows || _monitored.Data is not { Error: null } d) return null;
+        string metric = IconMetric();
+        if (metric is not ("5h" or "7d")) return null;
+        string otherKey = metric == "5h" ? "7d" : "5h";
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var (verdict, _, _) = _monitored.Burn.Project(otherKey, d.Metric(otherKey), d.ResetOf(otherKey),
+                                                      now, BurnTracker.WindowSeconds(otherKey));
+        return new IconRenderer.OtherWindow(d.Metric(otherKey), verdict);
+    }
+
     private (Projection verdict, double eta) CurrentProjection()
     {
         if (_monitored.Data is not { Error: null } d) return (Projection.Unknown, 0);
@@ -1680,7 +1695,7 @@ internal sealed class TrayContext : ApplicationContext
                     // Which window the digits are about (T321) — the same answer everything else scoped to
                     // the figure reads, because a colour naming one window over a number from another is
                     // worse than saying nothing.
-                    IconMetric());
+                    IconMetric(), SplitOther());
         SetTrayIcon(bmp);
         // Tagged at the FRONT under --second-tray (T237), so it survives the 127-character truncation and
         // so a check can tell this icon from the resident tray's: the notification area's elements belong

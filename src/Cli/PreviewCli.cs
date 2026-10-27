@@ -204,6 +204,9 @@ internal static class PreviewCli
         // tellable apart at 16px over every bar colour they can land on.
         SaveScopeSheet(Path.Combine(dir, "scope_sheet.png"));
 
+        // The fourth (T396): both windows as half-width bars. The measurement that decides whether it ships.
+        SaveSplitSheet(Path.Combine(dir, "split_sheet.png"));
+
         // The same cases carrying each profile accent (T147), plus a contact sheet magnified 8x with
         // the real 16px pixels preserved — the band has to be judged at tray size, and a 16px PNG
         // viewed at 16px cannot be judged at all.
@@ -344,6 +347,64 @@ internal static class PreviewCli
         }
         using (FileStream fs = OutFile.Create(path)) sheet.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
         Console.WriteLine("scope sheet: " + Path.GetFullPath(path));
+    }
+
+    /// <summary>
+    /// The sheet T396 said had to exist before the split tile could ship: two half-width bars, session left
+    /// and week right, at <b>16 and 20 px with the profile band on</b>, each pair once with the digits on
+    /// the session and once on the week. The hard pairs are the point — two windows in the same colour at
+    /// nearly the same level, one red beside one green, a nearly empty half beside a nearly full one, the
+    /// flash, and remaining mode — because the question is whether a glance can still say which half is
+    /// which and which one is the red one. 8× for which pixels, then the real size for the judgement.
+    /// </summary>
+    private static void SaveSplitSheet(string path)
+    {
+        const int zoom = 8, gap = 8;
+        int[] sizes = { 16, 20 };
+        (double s, Projection sv, double w, Projection wv, bool flash, bool remaining)[] pairs =
+        {
+            (0.35, Projection.Ok, 0.60, Projection.Danger, false, false),
+            (0.92, Projection.Danger, 0.20, Projection.Ok, false, false),
+            (0.10, Projection.Unknown, 0.95, Projection.Danger, false, false),
+            (0.58, Projection.Ok, 0.62, Projection.Ok, false, false),
+            (0.95, Projection.Danger, 0.70, Projection.Danger, true, false),
+            (0.35, Projection.Ok, 0.80, Projection.Danger, false, true),
+        };
+        string[] scopes = { "5h", "7d" };
+
+        int cell = 20 * zoom + gap;
+        int band = cell + 20 + gap;
+        int w = gap + pairs.Length * scopes.Length * cell;
+        int h = gap + sizes.Length * 2 * band;
+
+        using var sheet = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using var g = Graphics.FromImage(sheet);
+        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
+
+        int row = 0;
+        foreach (int px in sizes)
+            foreach (bool dark in new[] { true, false })
+            {
+                int top = gap / 2 + row * band;
+                using (var bg = new SolidBrush(dark ? Color.FromArgb(32, 32, 32) : Color.FromArgb(240, 240, 240)))
+                    g.FillRectangle(bg, 0, top, w, band);
+                int col = 0;
+                foreach (var (s, sv, wk, wv, flash, remaining) in pairs)
+                    foreach (string scope in scopes)
+                    {
+                        bool onWeek = scope == "7d";
+                        using var bmp = IconRenderer.Render(onWeek ? wk : s, IconRenderer.State.Ok, flash, px,
+                            onWeek ? wv : sv, showRemaining: remaining, accent: 0, scope: scope,
+                            other: new IconRenderer.OtherWindow(onWeek ? s : wk, onWeek ? sv : wv));
+                        g.DrawImage(bmp, gap + col * cell, top + gap / 2, px * zoom, px * zoom);
+                        g.DrawImage(bmp, gap + col * (px + 4), top + gap / 2 + cell, px, px);
+                        col++;
+                    }
+                row++;
+            }
+        using (FileStream fs = OutFile.Create(path)) sheet.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
+        Console.WriteLine("split sheet: " + Path.GetFullPath(path));
     }
 
     /// <summary>

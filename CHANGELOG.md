@@ -24,7 +24,7 @@
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization |
-| [H](#block-h--tray-display-options) | Tray display options (active — see ROADMAP) |
+| [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
 | [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
 | [K](#block-k--live-throughput) | Live throughput |
@@ -51,7 +51,7 @@
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
-| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
+| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 | [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did (active — see ROADMAP) |
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
@@ -199,6 +199,7 @@
 - **T63** — Remaining-mode projection wording — "runs out" rather than a "0% left" that reads like a present value. (`c675cff`)
 - **T64** — Softer session-expired tray message, framed around usage rather than an error. (`54b0e03`)
 - **T65** — Opt-in near-limit flash: the icon blinks every 500 ms above 90% (the point the API reports `allowed_warning`). Off by default — the warning color tracks the limit regardless. (`52cba9b`)
+- **T396** — Settings > Display can split the icon bar into the session on the left and the week on the right, each in its own pace colour; measured at 16 px, it ships off by default (design §CVI.7 recorded in `src/Tray/IconRenderer.cs`).
 
 ## Block I — Context Load Inspector
 

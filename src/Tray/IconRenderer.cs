@@ -93,6 +93,10 @@ internal static class IconRenderer
 
     public enum State { Ok, Error, Connecting }
 
+    /// <summary>The window the digits do <em>not</em> name, for the split tile (T396): its used fraction and
+    /// its own verdict. Billing is the account's and is passed once, on <see cref="Render"/>.</summary>
+    internal readonly record struct OtherWindow(double Used, Projection Verdict);
+
     /// <summary>
     /// Render a square tray bitmap of side <paramref name="size"/> px. The usage fill bar is
     /// colored by the projection <paramref name="verdict"/>: blue while still undefined (not
@@ -109,7 +113,9 @@ internal static class IconRenderer
     /// something more urgent to say (T322). It defaults to the session, so a caller that has nothing to say
     /// about scope draws the cream digits this icon always had.
     /// </summary>
-    public static Bitmap Render(double pct, State state, bool flash, int size, Projection verdict = Projection.Unknown, bool showNumber = true, bool showRemaining = false, int accent = -1, bool billing = false, string scope = "5h")
+    /// <param name="other">When set and <paramref name="scope"/> is a bounded window, the fill bar splits in
+    /// two: the session on the left half and the week on the right, whichever the digits name (T396).</param>
+    public static Bitmap Render(double pct, State state, bool flash, int size, Projection verdict = Projection.Unknown, bool showNumber = true, bool showRemaining = false, int accent = -1, bool billing = false, string scope = "5h", OtherWindow? other = null)
     {
         // pct is always the *used* fraction. In "remaining" mode we display its complement (full
         // at 100%, draining to 0%), but the danger color still keys off `used` so the bar warms to
@@ -138,24 +144,48 @@ internal static class IconRenderer
 
         // Vertical fill bar (Task-Manager style): a blue level rising from the bottom,
         // proportional to the percentage — 100% = whole tile, 50% = bottom half.
-        if (state == State.Ok && shown > 0)
+        // Blue until a projection exists; green when on track; in danger, blend orange→red by how close
+        // usage is to 100%, so the bar deepens to the full alarming red as it nears the limit. Billing
+        // outranks the projection: a projection answers "will you run out", and for an account already
+        // past its quota that question is settled — what is left to say is which side of the line it is on
+        // (T182).
+        Color BarColor(double u, Projection v) => billing ? BarBilling : v switch
+        {
+            Projection.Unknown => BarUnknown,
+            Projection.Danger  => Lerp(BarOrange, BarDanger, u),
+            _                  => BarFill,
+        };
+
+        bool split = other is not null && scope is "5h" or "7d";
+        if (state == State.Ok && split && other is { } o)
+        {
+            // T396: two half-width bars, the session on the left and the week on the right, so each
+            // window has a fixed side whatever the digits name. A one-pixel gutter of tile colour keeps two
+            // levels of the same colour from reading as one bar with a step in it.
+            using var clip = new Region(tile);
+            g.Clip = clip;
+            double otherUsed = Math.Min(Math.Max(o.Used, 0.0), 1.0);
+            (double u, Projection v) left = scope == "5h" ? (used, verdict) : (otherUsed, o.Verdict);
+            (double u, Projection v) right = scope == "5h" ? (otherUsed, o.Verdict) : (used, verdict);
+            float half = size / 2f;
+            float gutter = Math.Max(1f, size / 16f);
+            foreach (((double u, Projection v) w, float x, float width) in new[]
+                     { (left, 0f, half - gutter / 2), (right, half + gutter / 2, half - gutter / 2) })
+            {
+                double fill = showRemaining ? 1.0 - w.u : w.u;
+                if (fill <= 0) continue;
+                float h = (float)(fill * size);
+                using var brush = new SolidBrush(BarColor(w.u, w.v));
+                g.FillRectangle(brush, x, size - h, width, h);
+            }
+            g.ResetClip();
+        }
+        else if (state == State.Ok && shown > 0)
         {
             float barH = (float)(shown * size);
             using var clip = new Region(tile);
             g.Clip = clip;
-            // Blue until a projection exists; green when on track; in danger, blend orange→red
-            // by how close usage is to 100%, so the bar deepens to the full alarming red as it
-            // nears the limit.
-            // Billing outranks the projection: a projection answers "will you run out", and for an
-            // account already past its quota that question is settled — what is left to say is which
-            // side of the line it is on (T182).
-            Color barColor = billing ? BarBilling : verdict switch
-            {
-                Projection.Unknown => BarUnknown,
-                Projection.Danger  => Lerp(BarOrange, BarDanger, used),
-                _                  => BarFill,
-            };
-            using (var barBrush = new SolidBrush(barColor))
+            using (var barBrush = new SolidBrush(BarColor(used, verdict)))
                 g.FillRectangle(barBrush, 0, size - barH, size, barH);
             g.ResetClip();
         }

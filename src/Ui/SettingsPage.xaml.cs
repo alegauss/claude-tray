@@ -88,6 +88,7 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
         EnvSyncCheck.IsChecked = _settings.SyncEnvironmentProfile;
         ShowPctCheck.IsChecked = _settings.ShowPercentage;
         ShowRemainingCheck.IsChecked = _settings.ShowRemaining;
+        ShowBothWindowsCheck.IsChecked = _settings.ShowBothWindows;
         FlashCheck.IsChecked = _settings.FlashNearLimit;
         NotifyResetCheck.IsChecked = _settings.NotifyOnUnexpectedReset;
         NotifyWeeklyCheck.IsChecked = _settings.NotifyOnScheduledReset;
@@ -240,6 +241,7 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
         _settings.RefreshSeconds = (int)Math.Round(IntervalSlider.Value * 60.0);
         _settings.ShowPercentage = ShowPctCheck.IsChecked == true;
         _settings.ShowRemaining = ShowRemainingCheck.IsChecked == true;
+        _settings.ShowBothWindows = ShowBothWindowsCheck.IsChecked == true;
         _settings.FlashNearLimit = FlashCheck.IsChecked == true;
         _settings.NotifyOnUnexpectedReset = NotifyResetCheck.IsChecked == true;
         _settings.NotifyOnScheduledReset = NotifyWeeklyCheck.IsChecked == true;

@@ -42,8 +42,6 @@
 
 ## Block H — Tray display options
 
-- 💭 **T396** (deps: —) **The icon shows one window at a time** — Watching the week hides the session and the reverse, while CodexBar stacks both; whether two bars still read at 16 px has to be measured first. → §CVI.7
-
 ## Block O — Profiles
 
 - 📋 **T394** (deps: —) (requires: wsl-claude) **Claude Code run inside WSL is invisible to the tray** — Discovery looks only at Windows folders, so a login and transcripts under a WSL home give no reading, no sessions and no context scan. → §CVI.5
@@ -51,6 +49,10 @@
 ## Block AK — Sessions — what one conversation cost, and what it did
 
 - 📋 **T399** (deps: —) **Haiku 5 calls are left unpriced, so most recent totals show only a floor** — The list-price table stops at Haiku 4.5, so every day with a Claude Code background call on Haiku 5 prints its equivalent as a floor (the leading sign) instead of a figure. → §CVI.10
+
+## Block AI — Verification — the checks that prove a change
+
+- 📋 **T400** (deps: —) **A slow mklink makes the self-test report a junction it could not create, and the run goes red** — The link check waits ten seconds per mklink process and reads a timeout as a refusal, so a loaded machine fails the build with no code changed. → §CVI.11
 
 ## Non-goals (do NOT add as tasks)
 

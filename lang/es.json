@@ -185,6 +185,8 @@
   "settings.display.showPctDesc": "Dibuja el número de porcentaje de uso en el icono de la bandeja; si no, solo la barra de relleno.",
   "settings.display.showRemaining": "Mostrar lo restante en vez de lo usado",
   "settings.display.showRemainingDesc": "Cuenta atrás la cuota que te queda: el icono empieza lleno al 100% y baja hasta 0%, y la información sobre herramientas muestra «… restante». El color de aviso y las alertas no cambian.",
+  "settings.display.bothWindows": "Mostrar las dos ventanas en el icono",
+  "settings.display.bothWindowsDesc": "Divide la barra en dos: la sesión de 5 horas a la izquierda, la semana a la derecha, cada una en su color de ritmo. El número sigue mostrando la ventana elegida arriba.",
   "settings.display.flashWarn": "Parpadear el icono cerca del límite",
   "settings.display.flashWarnDesc": "Hace parpadear el icono de la bandeja cerca del límite: en el umbral que la API indica en la respuesta que lo cruza, o el 90% en las lecturas donde no indica ninguno. Desactivado por defecto: el color de aviso sigue reflejando el límite de todos modos.",
 

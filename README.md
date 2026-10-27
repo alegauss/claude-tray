@@ -63,7 +63,10 @@ To build from source instead, see [Build and run](#build-and-run).
   projection says usage will hit 100% **before** the window resets (see below). Prefer to see
   quota *left* instead? **Settings → Display → Show remaining instead of used** inverts it — the
   icon starts full at 100% and drains to 0%, and the tooltip reads "… left" (color and alerts
-  are unchanged)
+  are unchanged). Want both windows at once? **Settings → Display → Show both windows on the icon**
+  splits the bar: the 5-hour session on the left, the week on the right, each in its own pace
+  colour, while the number stays on the window you picked. It is off by default because at 16
+  pixels two bars of the same colour read as one
 - **3D bevel border**: light highlight on the top/left and shadow on the bottom/right → relief
 - Number: large digits with a **dark outline** (readable at any size), and their colour says what the
   number is about — **white** for the 5h session, **yellow** for the 7d week, and **orange whenever

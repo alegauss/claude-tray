@@ -358,6 +358,14 @@
 
                                 <Border Style="{StaticResource RowDivider}" />
 
+                                <!-- T396: both windows as half-width bars. Off by default; see Settings. -->
+                                <local:SettingsRow Header="{local:Loc settings.display.bothWindows}"
+                                                   Description="{local:Loc settings.display.bothWindowsDesc}">
+                                    <ToggleButton x:Name="ShowBothWindowsCheck" Style="{StaticResource ToggleSwitch}" />
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
                                 <local:SettingsRow Header="{local:Loc settings.display.flashWarn}"
                                                    Description="{local:Loc settings.display.flashWarnDesc}">
                                     <ToggleButton x:Name="FlashCheck" Style="{StaticResource ToggleSwitch}" />

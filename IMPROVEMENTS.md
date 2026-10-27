@@ -43,6 +43,8 @@
 
 ---
 
+## Block AI — Verification — the checks that prove a change
+
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -864,22 +866,6 @@ records is a Linux path, so `ProjectSlug` walking it up must not assume a drive 
 
 Measure: a sweep over the 9P share is far slower than over NTFS, and the transcript scans run on it.
 
-### CVI.7 Both windows on one tile (T396)
-
-Show on icon picks one of session, week or extra, and the tooltip carries the rest. CodexBar's
-stacked layout draws two bars in one menu-bar item, so both windows are visible without a hover.
-
-This is an idea, not a design, because the tile is already full: the fill bar, the digits, the
-profile band, the verdict colour and the flash share 16 pixels at 100% scale. The candidate is two
-half-width bars — session left, week right — with the digits still belonging to the window the user
-picked. What has to be measured before building it: whether a half-width bar still reads at 16 and
-20 pixels with the profile band on, and whether two verdict colours side by side still say which
-window is the red one. If either fails at 100% scale, it becomes an option for larger scales or it
-does not ship.
-
-What must not change: the digits mean one window and say which by their colour, and every colour
-keeps the meaning the README gives it.
-
 ### CVI.8 A poll paced by activity (T397)
 
 Every poll is one automated call against the subscription — the gray area the README describes. With
@@ -932,3 +918,22 @@ own rule is that an equivalent errs upward if it errs at all.
 
 To find what else is missing, use `--sessions --by month --all`. A `≥` names the months, and the
 models column shows which ids answered.
+
+### CVI.11 A junction created without a deadline (T400)
+
+Seen on 2026-10-27, twice in a row and then not again: the full `--selftest` reported `UNEXPECTED
+SKIP the already-linked branch over a real reparse point — only 6 of 7 junctions could be created
+here`, which makes the run red (T218). No code under test had changed between the red runs and the
+green one.
+
+`SelfTestCli.Junction` starts `cmd.exe /c mklink /J` per directory and waits 10 seconds. If the
+process has not exited by then, `p.ExitCode` throws, the `catch` answers false, and the junction
+counts as one that could not be created. That is a timing reading reported as a capability reading.
+The machine was loaded at the time: several Claude sessions, builds and a case run in parallel.
+
+What to build: create the junction without a process, so a slow machine cannot make it fail. .NET
+has `Directory.CreateSymbolicLink`, but that is a symlink, not a junction, and needs Developer Mode.
+A junction is a `FSCTL_SET_REPARSE_POINT` with a mount-point buffer. If P/Invoke is judged too much,
+keep `mklink` but wait without a deadline, or with one long enough to be about a hang and not about
+load, and tell "the process timed out" apart from "mklink refused" in the skip's reason. The skip
+should name which of the two happened, because only the second is about the machine.

@@ -2283,6 +2283,43 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T396. The split tile asked of its pixels: each window keeps its own side whichever the digits name,
+    /// each half carries its own verdict colour, and the setting off draws the one bar it always drew.
+    /// </summary>
+    private static void SplitTile()
+    {
+        const int px = 32;
+        // Below the digits and inside the bevel: a row near the bottom, a quarter in from each edge.
+        static System.Drawing.Color At(System.Drawing.Bitmap b, bool left) => b.GetPixel(left ? px / 4 : px * 3 / 4, px - 5);
+        static bool Red(System.Drawing.Color c) => c.R > c.G + 60;
+        static bool Green(System.Drawing.Color c) => c.G > c.R + 40;
+
+        var danger = new IconRenderer.OtherWindow(0.90, Projection.Danger);
+        using (var onSession = IconRenderer.Render(0.20, IconRenderer.State.Ok, false, px, Projection.Ok,
+                   showNumber: false, scope: "5h", other: danger))
+            Check("digits on the session: the session is the left half, the week the right, each in its colour",
+                  Green(At(onSession, true)) && Red(At(onSession, false)),
+                  $"{At(onSession, true)} / {At(onSession, false)}");
+
+        var session = new IconRenderer.OtherWindow(0.20, Projection.Ok);
+        using (var onWeek = IconRenderer.Render(0.90, IconRenderer.State.Ok, false, px, Projection.Danger,
+                   showNumber: false, scope: "7d", other: session))
+            Check("digits on the week: the sides do not swap — the week is still on the right",
+                  Green(At(onWeek, true)) && Red(At(onWeek, false)),
+                  $"{At(onWeek, true)} / {At(onWeek, false)}");
+
+        using (var single = IconRenderer.Render(0.90, IconRenderer.State.Ok, false, px, Projection.Danger,
+                   showNumber: false, scope: "7d"))
+            Check("with no second window the bar is one colour edge to edge, as before",
+                  Red(At(single, true)) && Red(At(single, false)));
+
+        using (var extra = IconRenderer.Render(0.90, IconRenderer.State.Ok, false, px, Projection.Danger,
+                   showNumber: false, scope: "extra", other: session))
+            Check("the overage figure has no fixed window to stand beside, so it is never split",
+                  Red(At(extra, true)) && Red(At(extra, false)));
+    }
+
+    /// <summary>
     /// T391. What <c>--usage</c> tells a script: the report over one stored reading and the exit code it
     /// branches on, each state driven with no store and no clock — and the verdict held to the icon's.
     /// </summary>

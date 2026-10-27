@@ -230,6 +230,9 @@ internal static partial class SelfTestCli
         Section("the pace alarm — the icon's red, said once per window and reset cycle (Block AM)");
         PaceAlarmCycle();
 
+        Section("split — both windows on one tile, each on its own side (Block H)");
+        SplitTile();
+
         Section("levels — the thresholds a person picks, once per window and cycle (Block E)");
         LevelAlarmCycle();
 

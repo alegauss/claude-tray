@@ -185,6 +185,8 @@
   "settings.display.showPctDesc": "Dessine le pourcentage de consommation sur l'icône ; sinon, seulement la barre de remplissage.",
   "settings.display.showRemaining": "Afficher le restant au lieu du consommé",
   "settings.display.showRemainingDesc": "Décompte le quota qu'il vous reste : l'icône démarre pleine à 100% et descend jusqu'à 0%, et l'info-bulle indique « … restant ». La couleur d'avertissement et les alertes sont inchangées.",
+  "settings.display.bothWindows": "Afficher les deux fenêtres sur l'icône",
+  "settings.display.bothWindowsDesc": "Coupe la barre en deux : la session de 5 heures à gauche, la semaine à droite, chacune dans sa propre couleur de rythme. Le nombre affiche toujours la fenêtre choisie ci-dessus.",
   "settings.display.flashWarn": "Faire clignoter l'icône près de la limite",
   "settings.display.flashWarnDesc": "Fait clignoter l’icône de la barre d’état près de la limite : au seuil que l’API indique sur la réponse qui le franchit, ou 90% sur les lectures où elle n’en indique aucun. Désactivé par défaut — la couleur d’avertissement continue de suivre la limite dans tous les cas.",
 

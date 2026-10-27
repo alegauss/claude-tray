@@ -50,6 +50,14 @@ internal sealed class Settings
     public bool ShowRemaining { get; set; } = false;
 
     /// <summary>
+    /// Split the icon's bar in two, the session on the left and the week on the right, so both windows show
+    /// without a hover (T396). The digits still name the one window <see cref="Metric"/> picks. Off by
+    /// default: measured at 16px, which half is the red one reads, but two levels in one colour read as one
+    /// bar, so it is a trade a person opts into rather than the tile everybody gets.
+    /// </summary>
+    public bool ShowBothWindows { get; set; } = false;
+
+    /// <summary>
     /// Blink the tray icon (background flashes every 500 ms) once usage crosses the near-limit
     /// warning threshold — the one the API names on the response where it is crossed, or
     /// <see cref="FlashWarnThreshold"/> on the readings it names none. Off by default: the constant
