@@ -866,3 +866,8 @@ then compare `statusline\<dir-key>.json`'s rewrite times against the poll cadenc
 status-line lines in `usage-history.jsonl` (`s:1`) with the API lines (`s:0`) around them. A gap of
 more than a point in either window, or a share of covered ticks under a third, is the finding.
 Either one changes `ApiAtLeastEverySeconds` or the 0.9 floor, not the design.
+
+## CVII Profiles
+
+Accounts, profiles and the machine-wide config dir: how the tray finds them, which one the icon
+follows, and what it writes outside its own folder.

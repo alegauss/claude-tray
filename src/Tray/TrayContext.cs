@@ -510,6 +510,8 @@ internal sealed class TrayContext : ApplicationContext
         // change only takes effect after a restart, since localized strings resolve when a window is
         // parsed, whether the *active* language would move has to be asked before the swap.
         bool languageChanged = L.Resolve(updated.Language) != L.Current;
+        // The two settings that decide the machine-wide variable, before the swap (T407).
+        bool followWas = _settings.FollowActiveProfile, syncWas = _settings.SyncEnvironmentProfile;
 
         // Take the edited model whole rather than field by field: the window handed back a total copy
         // of what it was given, so anything it doesn't edit is already the live value, and no field can
@@ -529,7 +531,13 @@ internal sealed class TrayContext : ApplicationContext
         // The page no longer changes the standing choice, but it still owns the auto-follow toggle, so
         // the environment is reconciled from both: switching the toggle off restores the old value
         // here (T145).
-        SyncEnvironmentToPin(DeliberateProfile());
+        //
+        // Only when one of the two actually moved (T407). The pin lives in memory, so after a restart
+        // with auto-follow on there is no deliberate profile — and reconciling on every Save then
+        // restored the variable to "unset", which is what a Save of an unrelated field did on
+        // 2026-10-27: the next bare `claude` opened in the wrong profile and signed in there.
+        if (EnvironmentNeedsReconcile(followWas, syncWas, _settings.FollowActiveProfile, _settings.SyncEnvironmentProfile))
+            SyncEnvironmentToPin(DeliberateProfile());
         if (!_settings.FollowActiveProfile) { _lastTurn.Clear(); _sharedTree.Clear(); }
         // The profile list drives the "Open Claude Code" submenu, so it is rebuilt right here rather
         // than waiting for a restart.
@@ -916,6 +924,11 @@ internal sealed class TrayContext : ApplicationContext
         _profilePinned || !_settings.FollowActiveProfile
             ? ClaudeAccount.PickMonitored(_watched, _settings.MonitoredConfigDir)
             : null;
+
+    /// <summary>Whether a Save has to touch the machine-wide variable at all (T407): only when it moved one
+    /// of the two settings that decide it. Static so <c>--selftest</c> can hold it.</summary>
+    internal static bool EnvironmentNeedsReconcile(bool followWas, bool syncWas, bool followNow, bool syncNow) =>
+        followWas != followNow || syncWas != syncNow;
 
     /// <summary>
     /// Keep the user-scope <c>CLAUDE_CONFIG_DIR</c> in step with the **pinned** profile (T145).

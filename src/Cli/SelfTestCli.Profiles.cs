@@ -80,6 +80,15 @@ internal static partial class SelfTestCli
         Check("and a config dir that is not ~/.claude is selected inside Linux, never in Windows",
               WslProfiles.LaunchArguments(@"\\wsl.localhost\Ubuntu\home\ubuntu\.claude-work", "claude")
                   == "wsl.exe -d Ubuntu -u ubuntu --cd ~ -- bash -lc \"CLAUDE_CONFIG_DIR='/home/ubuntu/.claude-work' claude\"");
+        // T407. A Save that leaves both switches where they were does not touch the machine-wide variable —
+        // after a restart there is no pin in memory, and reconciling anyway restored it to unset.
+        Check("saving settings that leave auto-follow and the machine-wide switch alone leaves the variable alone",
+              !TrayContext.EnvironmentNeedsReconcile(true, true, true, true)
+              && !TrayContext.EnvironmentNeedsReconcile(false, true, false, true));
+        Check("and either switch moving is what reconciles it",
+              TrayContext.EnvironmentNeedsReconcile(true, true, false, true)
+              && TrayContext.EnvironmentNeedsReconcile(true, true, true, false));
+
         // T406. One poll per account a tick: the same login in Windows and in WSL is one quota, and polling
         // it twice was two API calls and two identical history lines on every tick.
         ClaudeInfo Acct(string dir, string uuid, AuthMethod auth = AuthMethod.Subscription) =>
