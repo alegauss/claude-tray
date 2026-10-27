@@ -66,6 +66,24 @@ internal static partial class SelfTestCli
         // T173: what a queued write reports back. Driven on the outcome itself, because the states worth
         // asserting are a write that threw and a write that silently did not take, and manufacturing
         // either on this machine means rewriting the developer's own CLAUDE_CONFIG_DIR.
+        // T394. A profile inside WSL, as Windows reaches it.
+        Check("a \\\\wsl.localhost config dir splits into its distro and the Linux path it names",
+              WslProfiles.TryParse(@"\\wsl.localhost\Ubuntu\home\ubuntu\.claude", out string distro, out string linux)
+              && distro == "Ubuntu" && linux == "/home/ubuntu/.claude"
+              && WslProfiles.TryParse(@"\\wsl$\Debian\root\.claude", out string legacy, out _) && legacy == "Debian"
+              && !WslProfiles.IsWsl(@"C:\Users\x\.claude"));
+        Check("wsl.exe's UTF-16 listing reads as names, the default marker and the NULs dropped",
+              WslProfiles.ParseList("U\0b\0u\0n\0t\0u\0\r\0\n\0* Debian\r\n\r\n").SequenceEqual(new[] { "Ubuntu", "Debian" }));
+        Check("launching runs claude in the distro, as the home's user, in its home",
+              WslProfiles.LaunchArguments(@"\\wsl.localhost\Ubuntu\home\ubuntu\.claude", "claude")
+                  == "wsl.exe -d Ubuntu -u ubuntu --cd ~ -- claude");
+        Check("and a config dir that is not ~/.claude is selected inside Linux, never in Windows",
+              WslProfiles.LaunchArguments(@"\\wsl.localhost\Ubuntu\home\ubuntu\.claude-work", "claude")
+                  == "wsl.exe -d Ubuntu -u ubuntu --cd ~ -- env CLAUDE_CONFIG_DIR=\"/home/ubuntu/.claude-work\" claude");
+        Check("a Linux cwd resolves to its project with no drive letter added",
+              ProjectSlug.RootFor("-home-ubuntu-proj", "/home/ubuntu/proj/src/deep") == "/home/ubuntu/proj"
+              && ProjectSlug.NameFor("-home-ubuntu-proj", "/home/ubuntu/proj/src") == "ubuntu/proj");
+
         Check("a value that reads back as itself landed",
               new EnvironmentProfile.WriteOutcome(work, work, null, true).Landed);
         Check("and a value that reads back as something else did not",

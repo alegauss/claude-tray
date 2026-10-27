@@ -42,7 +42,7 @@
 
 ## Block O — Profiles
 
-- 📋 **T394** (deps: —) (requires: wsl-claude) **Claude Code run inside WSL is invisible to the tray** — Discovery looks only at Windows folders, so a login and transcripts under a WSL home give no reading, no sessions and no context scan. → §CVI.5
+- ⏳ **T394** (deps: —) (requires: wsl-claude) **Claude Code run inside WSL is invisible to the tray** — No signed-in WSL profile has been polled yet, so its quota reading, sessions and context scan over the share are unverified. → §CVI.5
 
 ## Block AK — Sessions — what one conversation cost, and what it did
 

@@ -50,6 +50,16 @@ internal static class ProjectSlug
     public static string? RootFor(string slug, string cwd)
     {
         if (slug.Length == 0 || cwd.Length == 0) return null;
+        // A Linux cwd, from Claude Code run inside WSL (T394), walked as text: DirectoryInfo roots it on
+        // the current drive, so `/home/u/proj` became `D:\home\u\proj` and encoded to a slug Claude Code
+        // never wrote. No drive letter is assumed and none is added.
+        if (cwd.StartsWith('/'))
+        {
+            string p = cwd.TrimEnd('/');
+            for (int up = 0; p.Length > 0 && up < MaxDepth; up++, p = p[..Math.Max(0, p.LastIndexOf('/'))])
+                if (string.Equals(Encode(p), slug, StringComparison.Ordinal)) return p;
+            return null;
+        }
         try
         {
             var dir = new DirectoryInfo(cwd.TrimEnd('\\', '/'));

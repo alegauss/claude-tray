@@ -22,6 +22,9 @@ internal sealed class ClaudeInfo
     /// <summary>True for the config dir Claude Code would use with no override — i.e. the profile a
     /// bare <c>claude</c> in a fresh shell lands in.</summary>
     public bool IsDefault;
+    /// <summary>A config dir inside a WSL distro (T394): launched through <c>wsl.exe</c>, and never
+    /// written into the Windows <c>CLAUDE_CONFIG_DIR</c>.</summary>
+    public bool IsWsl => WslProfiles.IsWsl(ConfigDir);
     /// <summary>True when this dir is in the user's registered list, rather than merely discovered.
     /// Only a registered profile can be renamed or removed from the list.</summary>
     public bool IsRegistered;
@@ -544,8 +547,10 @@ internal static class ClaudeAccount
             if (!isRegistered && !LooksLikeProfile(norm)) continue;
 
             ClaudeInfo info = Read(norm);
-            // Same account through a second path (copied config, junction): keep the first.
-            if (info.AccountUuid is { Length: > 0 } uuid && !seenAccounts.Add(uuid)) continue;
+            // Same account through a second path (copied config, junction): keep the first. Not across the
+            // WSL boundary (T394): a login inside a distro is a second place with its own token and its own
+            // transcripts, not a copy of the Windows one, and dropping it hides that work entirely.
+            if (info.AccountUuid is { Length: > 0 } uuid && !info.IsWsl && !seenAccounts.Add(uuid)) continue;
             if (!isRegistered && !info.HasAccount && !HasCredentials(norm)) continue;
             found.Add(info);
         }
@@ -569,6 +574,9 @@ internal static class ClaudeAccount
         }
 
         foreach (string d in ConventionDirs()) yield return d;
+        // Inside each running WSL distro (T394), after everything on the Windows side so a Windows
+        // profile keeps its place at the top of the list.
+        foreach (string d in WslProfiles.Candidates()) yield return d;
         foreach (string d in registered) yield return d;
     }
 
@@ -673,6 +681,16 @@ internal static class ClaudeAccount
     /// <summary>How a profile reads in a picker. Never asks the user: the organization when there is
     /// one, "Personal" for an account without one, and the folder name when nothing identifies it.</summary>
     private static string DeriveLabel(ClaudeInfo info)
+    {
+        // A profile inside a distro says which one, so the same account in Windows and in WSL reads as
+        // two places rather than one name twice (T394).
+        string label = DeriveBaseLabel(info);
+        return WslProfiles.TryParse(info.ConfigDir, out string distro, out _)
+            ? L.T("settings.sys.profileWsl", label, distro)
+            : label;
+    }
+
+    private static string DeriveBaseLabel(ClaudeInfo info)
     {
         if (info.OrgName is { Length: > 0 } org && !IsPersonalOrgName(org)) return org;
         if (info.HasAccount) return L.T("settings.sys.profilePersonal");

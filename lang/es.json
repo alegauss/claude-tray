@@ -298,6 +298,7 @@
   "settings.sys.profile": "Viendo",
   "settings.sys.profileDesc": "De qué perfil muestra información esta página de solo lectura. No cambia lo que muestra el icono de la bandeja ni lo que usa Claude Code — para eso, consulta la página Claude Code.",
   "settings.sys.profilePersonal": "Personal",
+  "settings.sys.profileWsl": "{0} (WSL {1})",
   "settings.sys.profileDefault": "{0} (predeterminado)",
   "settings.sys.profileCount": "{0} perfiles encontrados",
   "settings.sys.title": "Información del sistema",

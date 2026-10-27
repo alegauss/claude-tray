@@ -298,6 +298,7 @@
   "settings.sys.profile": "Visualizando",
   "settings.sys.profileDesc": "De qual perfil esta página somente leitura mostra informações. Isso não muda o que o ícone da bandeja mostra nem o que o Claude Code usa — para isso, veja a página Claude Code.",
   "settings.sys.profilePersonal": "Pessoal",
+  "settings.sys.profileWsl": "{0} (WSL {1})",
   "settings.sys.profileDefault": "{0} (padrão)",
   "settings.sys.profileCount": "{0} perfis encontrados",
   "settings.sys.title": "Informações do sistema",

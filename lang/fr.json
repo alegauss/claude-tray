@@ -298,6 +298,7 @@
   "settings.sys.profile": "Affichage",
   "settings.sys.profileDesc": "De quel profil cette page en lecture seule montre les informations. Cela ne change ni ce que montre l'icône, ni ce qu'utilise Claude Code — pour cela, voir la page Claude Code.",
   "settings.sys.profilePersonal": "Personnel",
+  "settings.sys.profileWsl": "{0} (WSL {1})",
   "settings.sys.profileDefault": "{0} (par défaut)",
   "settings.sys.profileCount": "{0} profils trouvés",
   "settings.sys.title": "Informations système",

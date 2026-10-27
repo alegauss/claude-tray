@@ -931,6 +931,9 @@ internal sealed class TrayContext : ApplicationContext
     private void SyncEnvironmentToPin(ClaudeInfo? pinned)
     {
         if (!_settings.SyncEnvironmentProfile && !_settings.EnvironmentProfileOwned) return;
+        // A profile inside WSL is not selected by a Windows variable, and a \\wsl.localhost path written
+        // there would point every Windows `claude` into a Linux home (T394). The variable stays as it is.
+        if (pinned is { IsWsl: true }) return;
         bool ok = _settings.SyncEnvironmentProfile && pinned is not null
             ? EnvironmentProfile.Adopt(_settings, pinned.ConfigDir)
             : EnvironmentProfile.Restore(_settings);
@@ -1981,6 +1984,15 @@ internal sealed class TrayContext : ApplicationContext
                 : _monitored.Data is { NeedsFullLogin: true }
                     ? $"/k echo {L.T("cli.loginHint")} & {launch}"
                     : $"/k echo {L.T("cli.refreshHint")} & {launch}";
+            // Inside WSL (T394): the same command, run by wsl.exe in the profile's distro and home, with no
+            // Windows CLAUDE_CONFIG_DIR and no Windows working directory — neither means anything there.
+            if (profile is { IsWsl: true })
+            {
+                Process.Start(new ProcessStartInfo("cmd.exe",
+                    command.Replace(launch, WslProfiles.LaunchArguments(profile.ConfigDir, launch)))
+                    { UseShellExecute = true });
+                return;
+            }
             var psi = new ProcessStartInfo
             {
                 FileName = "cmd.exe",

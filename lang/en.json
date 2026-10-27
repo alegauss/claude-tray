@@ -302,6 +302,7 @@
   "settings.sys.profile": "Viewing",
   "settings.sys.profileDesc": "Which profile's information this read-only page shows. It does not change what the tray icon shows or what Claude Code uses — for that, see the Claude Code page.",
   "settings.sys.profilePersonal": "Personal",
+  "settings.sys.profileWsl": "{0} (WSL {1})",
   "settings.sys.profileDefault": "{0} (default)",
   "settings.sys.profileCount": "{0} profiles found",
   "settings.sys.title": "System information",

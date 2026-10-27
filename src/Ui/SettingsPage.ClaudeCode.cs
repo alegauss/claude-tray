@@ -125,7 +125,8 @@ internal partial class SettingsPage
             // the second half of that reason: `~/.claude` is never selectable by *setting* the variable,
             // whichever profile happens to be the default, so the setx form would be a footgun there
             // even when the dir is not the current default.
-            bool offerTerminalDefault = p is { IsDefault: false }
+            // Nor for one inside WSL (T394): no Windows variable selects a profile that lives in a distro.
+            bool offerTerminalDefault = p is { IsDefault: false, IsWsl: false }
                 && !ClaudeAccount.SamePath(p.ConfigDir, ClaudeAccount.HomeConfigDir);
             ProfileTerminalRow.Visibility = ProfileTerminalDivider.Visibility =
                 offerTerminalDefault ? Visibility.Visible : Visibility.Collapsed;
