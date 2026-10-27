@@ -733,6 +733,14 @@ A minimal call to the Anthropic API (Haiku, 1 token) every 5 min reads the
 `~/.claude/.credentials.json`. No extra configuration. The usage-insights submenu instead
 reads the local session transcripts (see above).
 
+**Optional: let the status line feed it.** Claude Code already hands its status-line command both
+windows' percentages and reset times. Settings → Claude Code → **Status line** shows the
+`statusLine` entry to paste into a profile's `settings.json`. With it in place, the bar shows your
+5h and 7d usage, and while you work the tray takes that reading instead of making its own call.
+It still calls the API at least once an hour, at 90% of a window or past it, and while you are
+spending past the quota, because the status line carries no overage figure. The entry replaces any
+status line you already have. The tray never edits `settings.json` itself.
+
 ## Credentials (setup)
 
 There is **nothing to configure manually** — the app reuses Claude Code's own credentials.
@@ -795,7 +803,9 @@ What this means for this tool:
   Anthropic points developers to) would report *API* limits, not your subscription's.
 - **To minimize exposure**, keep the refresh interval conservative (Settings → refresh interval)
   — every poll is one automated API call, and the tray never has two polls of one account in flight
-  at once, so the interval you set is a ceiling rather than an average.
+  at once, so the interval you set is a ceiling rather than an average. Pasting the **status line**
+  entry (see [Data source](#data-source)) cuts further: a poll that finds a fresh status-line reading
+  makes no call at all.
 
 Governing terms: [Consumer Terms](https://www.anthropic.com/legal/consumer-terms) (Free/Pro/Max),
 [Commercial Terms](https://www.anthropic.com/legal/commercial-terms) (Team/Enterprise/API),

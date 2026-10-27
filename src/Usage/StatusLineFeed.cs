@@ -142,6 +142,27 @@ internal static class StatusLineFeed
         };
     }
 
+    /// <summary>
+    /// The <c>statusLine</c> member a person pastes into a profile's <c>settings.json</c> — shown and copied,
+    /// never written (§I.4). Composed by the serializer, so a path's quotes and escapes are JSON's rather
+    /// than hand-typed; forward slashes, because Claude Code runs the command through a shell that may be
+    /// Git Bash, and quoted only where a space would split it.
+    /// </summary>
+    public static string Snippet(string exePath)
+    {
+        string exe = exePath.Replace('\\', '/');
+        string command = (exe.Contains(' ') ? $"\"{exe}\"" : exe) + " --statusline";
+        string body = JsonSerializer.Serialize(new { type = "command", command },
+                                               new JsonSerializerOptions
+                                               {
+                                                   WriteIndented = true,
+                                                   // The default encoder writes a quote as ": valid,
+                                                   // and unreadable on a page meant to be read.
+                                                   Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                                               });
+        return "\"statusLine\": " + body.Replace("\r\n", "\n");
+    }
+
     /// <summary>What the status bar shows: both windows, in the tray's own words and number style.</summary>
     public static string Line(Reading r) =>
         $"{L.T("menu.metric.5h")} {Nums.Pct(r.Util5h)} · {L.T("menu.metric.7d")} {Nums.Pct(r.Util7d)}";

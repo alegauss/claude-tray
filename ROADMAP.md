@@ -34,7 +34,7 @@
 
 ## Block D — Auth & API resilience
 
-- ⏳ **T390** (deps: —) **The tray spends an API call on a reading Claude Code already hands its status line** — Settings has no row with the command to paste, the README still calls every reading a poll, and nobody has measured how often the status line runs. → §CVI.1
+- 📋 **T398** (deps: —) **Nobody knows how many polls the status-line feed actually saves, or whether its numbers match the API** — T390 skips the API call on a fresh status-line reading, but how often one is fresh, and whether its percentages agree with the headers, were assumed and never read. → §CVI.9
 
 ## Block E — Reset notifications & toasts
 

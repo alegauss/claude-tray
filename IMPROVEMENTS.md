@@ -845,27 +845,6 @@ positioning question for STRATEGY.md, not a task; hook-driven "Claude is waiting
 because a hook is a write to Claude Code's settings (§I.4) and its payload carries message text
 (§I.1); and macOS, Linux or mobile builds.
 
-### CVI.1 A reading the status line already carries (T390)
-
-Claude Code hands its status-line command a JSON payload on stdin, and for Pro and Max that payload
-carries `rate_limits.five_hour` and `rate_limits.seven_day`, each with `used_percentage` and
-`resets_at`. Those are the two numbers this app spends a Haiku call on every poll — the automated
-call the README's terms section calls a gray area. Claude Code Usage Monitor already reads them this
-way.
-
-The shape: `ClaudeTray.exe --statusline` reads the payload, writes the reading into the store of the
-profile whose `CLAUDE_CONFIG_DIR` the process inherited, prints one compact line for the status bar
-and exits fast, since it runs on every status refresh. The tray treats a status-line reading younger
-than its interval as a poll and skips the API call.
-
-The poll stays as the fallback, because the payload cannot replace it: it has no extra-usage figure
-and no per-window status, appears only after a session's first response, and drops a window once it
-resets — so an idle machine still needs the API. The tray never writes `settings.json` (§I.4):
-Settings shows the line to paste, with a Copy button, the way the `setx` row does.
-
-Measure before building: how often the status line actually runs, and whether its percentages match
-the headers' on the same minute.
-
 ### CVI.2 A read-out a script can parse (T391)
 
 The read-outs this app has — `--tooltip`, `--sessions`, `--insights` — print text written for a
@@ -987,3 +966,23 @@ then the return to the normal rate lands on the next scheduled poll, not the sec
 Work on another machine or on claude.ai leaves no transcript here, so the stretched interval must
 stay short enough that the weekly reading is never badly stale. Settings must say when the interval
 is stretched, and by how much.
+
+### CVI.9 How much the status line actually saves (T398)
+
+T390 lets a tray tick take Claude Code's status-line reading instead of calling the API, under four
+refusals in `StatusLineFeed.Substitute`: an API reading under an hour old, no spending past the
+quota, both statuses `allowed`, both windows under 0.9. Two numbers were assumed rather than read:
+
+1. **How often the status line runs while somebody works.** Claude Code documents event-driven runs
+   with a 300ms debounce, but not their spacing across a working hour. If most five-minute ticks
+   find a reading younger than the interval, the saving is real; if the payload goes quiet between
+   responses, few ticks are covered and the hourly floor dominates.
+2. **Whether its percentages match the headers on the same minute.** Both come from the same
+   account's rate-limit state, but the payload is what Claude Code last received, and that may lag
+   the API by a response.
+
+How to measure, with no new mechanism: paste the Settings row's entry into one profile, work a day,
+then compare `statusline\<dir-key>.json`'s rewrite times against the poll cadence, and pair the
+substitute lines in `usage-history.jsonl` (no `ux`/`ix`) with the API lines around them. A gap of
+more than a point in either window, or a share of covered ticks under a third, is the finding.
+Either one changes `ApiAtLeastEverySeconds` or the 0.9 floor, not the design.

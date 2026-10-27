@@ -2299,6 +2299,21 @@ internal static partial class SelfTestCli
             // Only when empty, which is a machine where no status line has run yet.
             try { Directory.Delete(Path.GetDirectoryName(file)!); } catch { /* holds a real feed */ }
         }
+        // The member the Settings row hands over: pasted inside a settings.json's braces it must parse, and
+        // a path with a space must reach the shell as one word.
+        string Command(string exe)
+        {
+            using var snip = System.Text.Json.JsonDocument.Parse("{" + StatusLineFeed.Snippet(exe) + "}");
+            System.Text.Json.JsonElement sl = snip.RootElement.GetProperty("statusLine");
+            return sl.GetProperty("type").GetString() == "command" ? sl.GetProperty("command").GetString() ?? "" : "";
+        }
+        Check("the settings.json member parses, and runs this exe with --statusline",
+              Command(@"C:\Tools\ClaudeTray.exe") == "C:/Tools/ClaudeTray.exe --statusline");
+        Check("a path with a space is quoted, so the shell does not split it",
+              Command(@"C:\Program Files\ClaudeTray\ClaudeTray.exe")
+                  == "\"C:/Program Files/ClaudeTray/ClaudeTray.exe\" --statusline");
+        Check("and the quotes are readable on the page, not \\u0022",
+              !StatusLineFeed.Snippet(@"C:\Program Files\x.exe").Contains("\\u0022"));
         Check("the bar's line names both windows", StatusLineFeed.Line(feed).Contains("20%")
                                                     && StatusLineFeed.Line(feed).Contains("40%"));
     }

@@ -154,6 +154,20 @@ internal partial class SettingsPage
         }
     }
 
+    // Copies the status-line member; never writes it — same reason as the setx row above (T390, §I.4).
+    private void StatusLineCopy_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Windows.Clipboard.SetText(StatusLineSnippet.Text);
+            StatusLineHint.Text = L.T("settings.sys.copied");
+        }
+        catch (Exception ex)
+        {
+            StatusLineHint.Text = ex.Message;
+        }
+    }
+
     private void Profile_Changed(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (_fillingProfile) return;

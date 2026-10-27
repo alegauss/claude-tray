@@ -413,6 +413,29 @@
                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
                                 </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <!-- T390: the status line's payload already carries both windows, so a
+                                     tick that finds a fresh one skips its API call. The same shape as the
+                                     setx row: the tray shows and copies the lines, and never writes a
+                                     Claude Code settings.json itself (§I.4). -->
+                                <local:SettingsRow Header="{local:Loc settings.cc.statusLine}"
+                                                   Description="{local:Loc settings.cc.statusLineDesc}">
+                                    <StackPanel MaxWidth="290">
+                                        <TextBlock x:Name="StatusLineSnippet" Style="{StaticResource ValueText}"
+                                                   FontFamily="Consolas" FontSize="12.5" TextWrapping="Wrap"
+                                                   TextAlignment="Left" />
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                            <TextBlock x:Name="StatusLineHint" VerticalAlignment="Center"
+                                                       Margin="0,0,12,0" FontSize="11"
+                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                            <Button x:Name="StatusLineCopyButton" MinWidth="90" Padding="14,5"
+                                                    Content="{local:Loc settings.cc.profileTerminalCopy}"
+                                                    Click="StatusLineCopy_Click" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                </local:SettingsRow>
                             </StackPanel>
                         </Border>
 

@@ -199,6 +199,8 @@
   "settings.cc.autoOpenDesc": "Inicia o Claude Code quando uma verificação detecta que você está desconectado, para que ele possa renovar o token expirado.",
   "settings.cc.retry": "Repetir enquanto desconectado",
   "settings.cc.retryDesc": "Com que frequência reverificar seu uso após uma desconexão, até você autenticar novamente.",
+  "settings.cc.statusLine": "Linha de status",
+  "settings.cc.statusLineDesc": "Cole no settings.json de cada perfil. Enquanto você trabalha, o tray lê seu uso pela linha de status em vez de fazer sua própria requisição. Substitui qualquer linha de status que você já tenha.",
 
   "settings.cc.profiles": "Perfis",
   "settings.cc.profilesGlobal": "Todos os perfis",

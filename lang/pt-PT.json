@@ -200,6 +200,8 @@
   "settings.cc.autoOpenDesc": "Inicia o Claude Code quando uma verificação deteta que está sem sessão, para que possa renovar o token expirado.",
   "settings.cc.retry": "Repetir enquanto sem sessão",
   "settings.cc.retryDesc": "Com que frequência reverificar a sua utilização após terminar sessão, até autenticar novamente.",
+  "settings.cc.statusLine": "Linha de estado",
+  "settings.cc.statusLineDesc": "Cole no settings.json de cada perfil. Enquanto trabalha, o tray lê a sua utilização a partir da linha de estado em vez de fazer o seu próprio pedido. Substitui qualquer linha de estado que já tenha.",
 
   "settings.cc.profiles": "Perfis",
   "settings.cc.profilesGlobal": "Todos os perfis",
