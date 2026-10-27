@@ -438,10 +438,16 @@
                                 <local:SettingsRow Header="{local:Loc settings.cc.statusLine}"
                                                    Description="{local:Loc settings.cc.statusLineDesc}">
                                     <StackPanel MaxWidth="290">
+                                        <!-- T404: what each profile's settings.json already says, read and
+                                             never written — so a row that is done says so instead of asking
+                                             for a paste that already happened. -->
+                                        <TextBlock x:Name="StatusLineState" Style="{StaticResource ValueText}"
+                                                   TextWrapping="Wrap" TextAlignment="Left" Margin="0,0,0,8" />
                                         <TextBlock x:Name="StatusLineSnippet" Style="{StaticResource ValueText}"
                                                    FontFamily="Consolas" FontSize="12.5" TextWrapping="Wrap"
                                                    TextAlignment="Left" />
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                                        <StackPanel x:Name="StatusLineCopyRow" Orientation="Horizontal"
+                                                    HorizontalAlignment="Right" Margin="0,8,0,0">
                                             <TextBlock x:Name="StatusLineHint" VerticalAlignment="Center"
                                                        Margin="0,0,12,0" FontSize="11"
                                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" />

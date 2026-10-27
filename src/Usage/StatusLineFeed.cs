@@ -163,6 +163,50 @@ internal static class StatusLineFeed
         return "\"statusLine\": " + body.Replace("\r\n", "\n");
     }
 
+    /// <summary>What a profile's <c>settings.json</c> says about the status line (T404).</summary>
+    internal enum Setup { Missing, Ours, Other }
+
+    /// <summary>
+    /// Whether a profile already runs this app's status line — read, never written (§I.4), so the Settings
+    /// row can say it is done instead of asking for a paste that already happened. Ours is any command that
+    /// runs ClaudeTray with <c>--statusline</c>, wherever the exe lives; anything else is somebody's own
+    /// status line, which pasting would replace. A file that cannot be read says Missing.
+    /// </summary>
+    public static Setup SetupIn(string configDir)
+    {
+        try
+        {
+            string path = Path.Combine(configDir, "settings.json");
+            return File.Exists(path) ? Classify(File.ReadAllText(path)) : Setup.Missing;
+        }
+        catch { return Setup.Missing; }
+    }
+
+    /// <summary>The same answer from a settings file's text — pure, for <c>--selftest</c>. Comments and
+    /// trailing commas are accepted, because a hand-edited settings file has both.</summary>
+    internal static Setup Classify(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json, new JsonDocumentOptions
+            {
+                AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip,
+            });
+            if (doc.RootElement.ValueKind != JsonValueKind.Object
+                || !doc.RootElement.TryGetProperty("statusLine", out JsonElement sl)
+                || sl.ValueKind != JsonValueKind.Object)
+                return Setup.Missing;
+            string command = sl.TryGetProperty("command", out JsonElement c) && c.ValueKind == JsonValueKind.String
+                ? c.GetString() ?? ""
+                : "";
+            return command.Contains("ClaudeTray", StringComparison.OrdinalIgnoreCase)
+                   && command.Contains("--statusline", StringComparison.OrdinalIgnoreCase)
+                ? Setup.Ours
+                : Setup.Other;
+        }
+        catch (JsonException) { return Setup.Missing; }
+    }
+
     /// <summary>What the status bar shows: both windows, in the tray's own words and number style.</summary>
     public static string Line(Reading r) =>
         $"{L.T("menu.metric.5h")} {Nums.Pct(r.Util5h)} · {L.T("menu.metric.7d")} {Nums.Pct(r.Util7d)}";

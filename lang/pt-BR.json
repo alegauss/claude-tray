@@ -204,7 +204,10 @@
   "settings.cc.retry": "Repetir enquanto desconectado",
   "settings.cc.retryDesc": "Com que frequência reverificar seu uso após uma desconexão, até você autenticar novamente.",
   "settings.cc.statusLine": "Linha de status",
-  "settings.cc.statusLineDesc": "Cole no settings.json de cada perfil. Enquanto você trabalha, o tray lê seu uso pela linha de status em vez de fazer sua própria requisição. Substitui qualquer linha de status que você já tenha.",
+  "settings.cc.statusLineDesc": "Com esta linha de status no settings.json de um perfil, o tray lê seu uso por ela enquanto você trabalha, em vez de fazer sua própria requisição.",
+  "settings.cc.statusLineOn": "✓ Configurada em {0}.",
+  "settings.cc.statusLineMissing": "Não configurada em {0}: cole a entrada abaixo no settings.json.",
+  "settings.cc.statusLineOther": "{0} usa outra linha de status, que colar esta substituiria.",
 
   "settings.cc.profiles": "Perfis",
   "settings.cc.profilesGlobal": "Todos os perfis",

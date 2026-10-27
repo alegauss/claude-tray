@@ -2554,6 +2554,20 @@ internal static partial class SelfTestCli
                   == "\"C:/Program Files/ClaudeTray/ClaudeTray.exe\" --statusline");
         Check("and the quotes are readable on the page, not \\u0022",
               !StatusLineFeed.Snippet(@"C:\Program Files\x.exe").Contains("\\u0022"));
+        // T404. What a profile's settings.json already says, so the row can show it is done.
+        Check("a settings file that runs this app with --statusline is ours, wherever the exe lives",
+              StatusLineFeed.Classify("""{ "statusLine": { "type": "command", "command": "C:/x/ClaudeTray.exe --statusline" } }""")
+                  == StatusLineFeed.Setup.Ours
+              && StatusLineFeed.Classify("""{ "statusLine": { "command": "\"D:/Git/claude-tray/bin/Debug/ClaudeTray.exe\" --statusline" } }""")
+                  == StatusLineFeed.Setup.Ours);
+        Check("somebody's own status line is another one, which pasting would replace",
+              StatusLineFeed.Classify("""{ "statusLine": { "type": "command", "command": "~/.claude/statusline.sh" } }""")
+                  == StatusLineFeed.Setup.Other);
+        Check("no statusLine, an unreadable file and a file with comments and a trailing comma each answer",
+              StatusLineFeed.Classify("""{ "theme": "dark" }""") == StatusLineFeed.Setup.Missing
+              && StatusLineFeed.Classify("not json") == StatusLineFeed.Setup.Missing
+              && StatusLineFeed.Classify("{ // mine\n \"statusLine\": { \"command\": \"ClaudeTray.exe --statusline\" }, }")
+                  == StatusLineFeed.Setup.Ours);
         Check("the bar's line names both windows", StatusLineFeed.Line(feed).Contains("20%")
                                                     && StatusLineFeed.Line(feed).Contains("40%"));
     }

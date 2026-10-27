@@ -756,7 +756,7 @@ reads the local session transcripts (see above).
 
 **Optional: let the status line feed it.** Claude Code already hands its status-line command both
 windows' percentages and reset times. Settings → Claude Code → **Status line** shows the
-`statusLine` entry to paste into a profile's `settings.json`. With it in place, the bar shows your
+`statusLine` entry to paste into a profile's `settings.json`, and says which profiles already have it. With it in place, the bar shows your
 5h and 7d usage, and while you work the tray takes that reading instead of making its own call.
 It still calls the API at least once an hour, at 90% of a window or past it, and while you are
 spending past the quota, because the status line carries no overage figure. The entry replaces any

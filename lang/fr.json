@@ -204,7 +204,10 @@
   "settings.cc.retry": "Réessayer tant que déconnecté",
   "settings.cc.retryDesc": "Fréquence de revérification de votre consommation après une déconnexion, jusqu'à ce que vous vous authentifiiez de nouveau.",
   "settings.cc.statusLine": "Ligne d'état",
-  "settings.cc.statusLineDesc": "À coller dans le settings.json de chaque profil. Pendant que vous travaillez, l'icône lit votre consommation depuis la ligne d'état au lieu de faire sa propre requête. Remplace toute ligne d'état existante.",
+  "settings.cc.statusLineDesc": "Avec cette ligne d'état dans le settings.json d'un profil, l'icône lit votre consommation depuis elle pendant que vous travaillez, au lieu de faire sa propre requête.",
+  "settings.cc.statusLineOn": "✓ Configurée dans {0}.",
+  "settings.cc.statusLineMissing": "Pas configurée dans {0} : collez l'entrée ci-dessous dans le settings.json.",
+  "settings.cc.statusLineOther": "{0} utilise une autre ligne d'état, que coller celle-ci remplacerait.",
 
   "settings.cc.profiles": "Profils",
   "settings.cc.profilesGlobal": "Tous les profils",

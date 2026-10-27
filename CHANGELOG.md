@@ -136,6 +136,7 @@
 - **T305** — HeaderProbe.Record consults the observing gate, so a second tray no longer appends to header-probe.jsonl - nor lets Trim rewrite it, which was the same promise broken twice. Written in the order the design demanded: the drive went into --selftest ObservingTray first and the run went red twice over, once on Record answering true and once on the store-tree comparison naming header-probe.jsonl as moved. That second failure is the evidence the check was already sound and only the drive was missing, which is what the doc comment on ProfileStore.Observing had said would happen - the call sites are a list with no owner, and the one it forgets is the one that keeps writing. Record answers false to an observing caller, which is what nothing was recorded already meant to every caller of it.
 - **T390** — ClaudeTray.exe --statusline files the payload's two windows per config dir, a tray tick takes a fresh one instead of the API call while inside the quota and under 90%, and Settings > Claude Code shows the entry to paste (design §CVI.1 recorded in `src/Usage/StatusLineFeed.cs`).
 - **T398 (each reading records its source)** — Every line usage-history.jsonl writes now says whether the reading came from the API or the status line, which is what the day of readings will be measured from.
+- **T404** — The Settings row reads each profile settings.json and says where the status line is already set up, hiding the paste once every profile has it.
 
 ## Block E — Reset notifications & toasts
 

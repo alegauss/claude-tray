@@ -4,6 +4,9 @@
       "Edit(/.claude/skills/file-map/**)",
       "Edit(/.claude/skills/dev-flags/**)",
       "Edit(/.claude/skills/roadmap-docs/**)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\alexa\\.claude-pessoal"
     ]
   }
 }

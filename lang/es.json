@@ -204,7 +204,10 @@
   "settings.cc.retry": "Reintentar mientras no haya sesión",
   "settings.cc.retryDesc": "Con qué frecuencia volver a comprobar tu uso tras cerrar sesión, hasta que te autentiques de nuevo.",
   "settings.cc.statusLine": "Línea de estado",
-  "settings.cc.statusLineDesc": "Pégalo en el settings.json de cada perfil. Mientras trabajas, la bandeja lee tu uso desde la línea de estado en lugar de hacer su propia petición. Sustituye cualquier línea de estado que ya tengas.",
+  "settings.cc.statusLineDesc": "Con esta línea de estado en el settings.json de un perfil, la bandeja lee tu uso desde ella mientras trabajas, en lugar de hacer su propia petición.",
+  "settings.cc.statusLineOn": "✓ Configurada en {0}.",
+  "settings.cc.statusLineMissing": "Sin configurar en {0}: pega la entrada de abajo en el settings.json.",
+  "settings.cc.statusLineOther": "{0} usa otra línea de estado, que pegar esta sustituiría.",
 
   "settings.cc.profiles": "Perfiles",
   "settings.cc.profilesGlobal": "Todos los perfiles",

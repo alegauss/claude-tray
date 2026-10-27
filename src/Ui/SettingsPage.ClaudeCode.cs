@@ -58,6 +58,7 @@ internal partial class SettingsPage
     private void LoadProfiles(string? selectDir = null)
     {
         _ccProfiles = DiscoverProfiles();
+        ShowStatusLineSetup();
 
         _fillingProfile = true;
         CcProfileCombo.Items.Clear();
@@ -153,6 +154,35 @@ internal partial class SettingsPage
             // The clipboard can be locked by another process; say so instead of failing silently.
             ProfileTerminalHint.Text = ex.Message;
         }
+    }
+
+    /// <summary>
+    /// Say where the status line is already set up (T404), from each Windows profile's own settings.json.
+    /// Done everywhere, the row says so and the paste goes away; otherwise it names what is missing, and a
+    /// profile running somebody else's status line is named too, since pasting would replace it. WSL
+    /// profiles are left out: their settings.json runs a Linux command this row does not offer.
+    /// </summary>
+    private void ShowStatusLineSetup()
+    {
+        List<(string Name, StatusLineFeed.Setup Setup)> found = _ccProfiles
+            .Where(p => !p.IsWsl)
+            .Select(p => (p.Label, StatusLineFeed.SetupIn(p.ConfigDir)))
+            .ToList();
+        string Names(StatusLineFeed.Setup s) =>
+            string.Join(", ", found.Where(f => f.Setup == s).Select(f => f.Name));
+
+        bool done = found.Count > 0 && found.All(f => f.Setup == StatusLineFeed.Setup.Ours);
+        var lines = new List<string>();
+        if (Names(StatusLineFeed.Setup.Ours) is { Length: > 0 } ours)
+            lines.Add(L.T("settings.cc.statusLineOn", ours));
+        if (Names(StatusLineFeed.Setup.Missing) is { Length: > 0 } missing)
+            lines.Add(L.T("settings.cc.statusLineMissing", missing));
+        if (Names(StatusLineFeed.Setup.Other) is { Length: > 0 } other)
+            lines.Add(L.T("settings.cc.statusLineOther", other));
+
+        StatusLineState.Text = string.Join(Environment.NewLine, lines);
+        StatusLineState.Visibility = lines.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        StatusLineSnippet.Visibility = StatusLineCopyRow.Visibility = done ? Visibility.Collapsed : Visibility.Visible;
     }
 
     // Copies the status-line member; never writes it — same reason as the setx row above (T390, §I.4).

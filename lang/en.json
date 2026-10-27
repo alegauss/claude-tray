@@ -208,7 +208,10 @@
   "settings.cc.retry": "Retry while signed out",
   "settings.cc.retryDesc": "How often to re-check your usage after a sign-out, until you authenticate again.",
   "settings.cc.statusLine": "Status line",
-  "settings.cc.statusLineDesc": "Paste into each profile's settings.json. While you work, the tray reads your usage from the status line instead of making its own request. It replaces any status line you already have.",
+  "settings.cc.statusLineDesc": "With this status line in a profile's settings.json, the tray reads your usage from it while you work instead of making its own request.",
+  "settings.cc.statusLineOn": "✓ Set up in {0}.",
+  "settings.cc.statusLineMissing": "Not set up in {0}: paste the entry below into the settings.json.",
+  "settings.cc.statusLineOther": "{0} uses another status line, which pasting this one would replace.",
 
   "settings.cc.profiles": "Profiles",
   "settings.cc.profilesGlobal": "All profiles",
