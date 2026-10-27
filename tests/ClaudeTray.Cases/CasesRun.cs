@@ -124,7 +124,14 @@ public sealed class CasesRun(TheMachine machine)
         // names no case. `Render()` is the line per case, and a reader needs the line, not the count.
         // A red step carries its diagnosis is this project's rule about steps, and it is no different
         // one layer up.
-        Assert.True(verdict.Outcome == RunOutcome.Passed, Read(verdict));
+        //
+        // T403. And printed on every run, green included. xUnit shows an assertion's message only where
+        // it fails, so a pass built this reading and dropped it — the first guest run came back 13 of 13
+        // with no way to say which cases ran and which were holes, and a hole is not a pass. The green
+        // run is the one that most needs the line per case.
+        string reading = Read(verdict);
+        Console.WriteLine(reading);
+        Assert.True(verdict.Outcome == RunOutcome.Passed, reading);
         Assert.Equal(0, verdict.ExitCode);
 
         // And nothing was left on the desk. This is the finding the old harness produced by having

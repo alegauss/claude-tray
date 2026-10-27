@@ -26,10 +26,12 @@ if "%RESULTS%"=="" set RESULTS=TestResults
 dotnet build "%~dp0ClaudeTray.csproj" --configuration %CONFIG% --nologo || exit /b 1
 
 rem A trx and not just the console, because the runner copies a file out of the guest and cannot read
-rem what scrolled past in it.
+rem what scrolled past in it. The console at detailed (T403), because that is the verbosity at which a
+rem passing test's output is shown at all - and the line per case, holes included, is that output.
 dotnet test "%~dp0tests\ClaudeTray.Cases\ClaudeTray.Cases.csproj" ^
   --configuration %CONFIG% --nologo ^
   --logger "trx;LogFileName=cases.trx" ^
+  --logger "console;verbosity=detailed" ^
   --results-directory "%~dp0%RESULTS%"
 
 exit /b %ERRORLEVEL%
