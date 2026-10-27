@@ -50,8 +50,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T400** (deps: —) **A slow mklink makes the self-test report a junction it could not create, and the run goes red** — The link check waits ten seconds per mklink process and reads a timeout as a refusal, so a loaded machine fails the build with no code changed. → §CVI.11
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

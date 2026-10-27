@@ -160,9 +160,9 @@ internal static partial class SelfTestCli
         string link = Path.Combine(root, "linked");
         Directory.CreateDirectory(Path.Combine(real, "projects"));
         Directory.CreateDirectory(link);
-        if (!Junction(Path.Combine(link, "projects"), Path.Combine(real, "projects")))
+        if (Junction(Path.Combine(link, "projects"), Path.Combine(real, "projects")) is { } refusal)
         {
-            Skip("a junction resolves to the tree it points at", "no junction could be created here");
+            Skip("a junction resolves to the tree it points at", "no junction could be created here: " + refusal);
             return;
         }
 
@@ -514,10 +514,10 @@ internal static partial class SelfTestCli
         // run worked. Skipped where a junction cannot be created, since that is the environment refusing.
         string linked = Path.Combine(secondary, "file-history");
         Directory.Delete(linked);
-        if (!Junction(linked, Path.Combine(primary, "file-history")))
+        if (Junction(linked, Path.Combine(primary, "file-history")) is { } refused)
         {
             Directory.CreateDirectory(linked);
-            Skip("a second run finds the link it made and does nothing", "no junction could be created here");
+            Skip("a second run finds the link it made and does nothing", "no junction could be created here: " + refused);
             return;
         }
 
@@ -531,7 +531,7 @@ internal static partial class SelfTestCli
         // forever: link `projects` too, and the plan no longer costs anything auto-follow had.
         string tree = Path.Combine(secondary, "projects");
         Directory.Delete(tree, recursive: true);
-        if (Junction(tree, Path.Combine(primary, "projects")))
+        if (Junction(tree, Path.Combine(primary, "projects")) is null)
         {
             ProfileLink.Plan shared = ProfileLink.For(primary, secondary, "Personal", "Work");
             Check("once the transcripts are shared, the plan no longer costs auto-follow",

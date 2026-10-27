@@ -886,25 +886,6 @@ substitute lines in `usage-history.jsonl` (no `ux`/`ix`) with the API lines arou
 more than a point in either window, or a share of covered ticks under a third, is the finding.
 Either one changes `ApiAtLeastEverySeconds` or the 0.9 floor, not the design.
 
-### CVI.11 A junction created without a deadline (T400)
-
-Seen on 2026-10-27, twice in a row and then not again: the full `--selftest` reported `UNEXPECTED
-SKIP the already-linked branch over a real reparse point — only 6 of 7 junctions could be created
-here`, which makes the run red (T218). No code under test had changed between the red runs and the
-green one.
-
-`SelfTestCli.Junction` starts `cmd.exe /c mklink /J` per directory and waits 10 seconds. If the
-process has not exited by then, `p.ExitCode` throws, the `catch` answers false, and the junction
-counts as one that could not be created. That is a timing reading reported as a capability reading.
-The machine was loaded at the time: several Claude sessions, builds and a case run in parallel.
-
-What to build: create the junction without a process, so a slow machine cannot make it fail. .NET
-has `Directory.CreateSymbolicLink`, but that is a symlink, not a junction, and needs Developer Mode.
-A junction is a `FSCTL_SET_REPARSE_POINT` with a mount-point buffer. If P/Invoke is judged too much,
-keep `mklink` but wait without a deadline, or with one long enough to be about a hang and not about
-load, and tell "the process timed out" apart from "mklink refused" in the skip's reason. The skip
-should name which of the two happened, because only the second is about the machine.
-
 ### CVI.12 Cache-read rates per model (T401)
 
 Found while adding the 5.5 rows (T399), against Anthropic's model table cached 2026-10-06.

@@ -830,8 +830,9 @@ internal static partial class SelfTestCli
         //    `projects` is linked, the one that costs auto-follow nothing.
         (a, b) = Pair(root, "linked");
         foreach (string d in dirs) { Dir(a, d); }
-        int junctions = 0;
-        foreach (string d in dirs) if (Junction(Path.Combine(b, d), Path.Combine(a, d))) junctions++;
+        var refused = new List<string>();
+        foreach (string d in dirs)
+            if (Junction(Path.Combine(b, d), Path.Combine(a, d)) is { } why) refused.Add($"{d}: {why}");
         plans.Add(("already-linked", ProfileLink.For(a, b, "Keeps", "Links")));
 
         // 3. Directories on the primary only: link with nothing to merge first, and no file anywhere, so
@@ -860,9 +861,12 @@ internal static partial class SelfTestCli
         File.WriteAllText(Path.Combine(a, "settings.json"), "{}\n");
         plans.Add(("settings-one-sided", ProfileLink.For(a, b, "Keeps", "Links")));
 
-        if (junctions < dirs.Length)
+        // Each refusal named with its reason (T400): a machine that will not make a junction and a machine
+        // that was slow to are different findings, and only the first is about the environment.
+        if (refused.Count > 0)
             Skip("the already-linked branch over a real reparse point",
-                 $"only {junctions} of {dirs.Length} junctions could be created here");
+                 $"{dirs.Length - refused.Count} of {dirs.Length} junctions could be created here — " +
+                 string.Join("; ", refused));
         return plans;
     }
 
@@ -913,24 +917,34 @@ internal static partial class SelfTestCli
         return n;
     }
 
-    /// <summary>Make a directory junction, or answer false where the environment will not have one.
+    /// <summary>Make a directory junction: null when it exists, otherwise why it does not.
     /// <c>mklink /J</c> rather than <see cref="Directory.CreateSymbolicLink"/>, which needs Developer
     /// Mode or an elevated process — a junction is the link the case being tested is actually made
-    /// of.</summary>
-    private static bool Junction(string link, string target)
+    /// of.
+    /// <para>The wait is about a hang, not about load (T400). It was ten seconds and an unexited process
+    /// read as a refusal — <c>ExitCode</c> throws on one, and the catch answered false — so a busy machine
+    /// turned the build red with nothing changed. A process still running after a minute is named as
+    /// that, and a refusal carries mklink's own words.</para></summary>
+    private static string? Junction(string link, string target)
     {
         try
         {
-            var p = System.Diagnostics.Process.Start(
+            using var p = System.Diagnostics.Process.Start(
                 new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{target}\"")
                 {
                     UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true,
                     CreateNoWindow = true,   // see PowerShell above: no console window on the user's desk
                 });
-            p?.WaitForExit(10_000);
-            return p is { ExitCode: 0 } && Directory.Exists(link);
+            if (p is null) return "cmd.exe did not start";
+            if (!p.WaitForExit(60_000))
+            {
+                try { p.Kill(); } catch { /* it may have finished between the two calls */ }
+                return "mklink was still running after a minute, which is a hang and not a refusal";
+            }
+            if (p.ExitCode != 0) return $"mklink refused ({p.ExitCode}): {p.StandardError.ReadToEnd().Trim()}";
+            return Directory.Exists(link) ? null : "mklink answered 0 and no junction is there";
         }
-        catch { return false; }
+        catch (Exception ex) { return ex.Message; }
     }
 
     /// <summary>The line declaring the member a line sits inside, or -1. The same backwards read
