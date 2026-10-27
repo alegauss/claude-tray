@@ -46,7 +46,7 @@
 
 ## Block AK — Sessions — what one conversation cost, and what it did
 
-- 📋 **T399** (deps: —) **Haiku 5 calls are left unpriced, so most recent totals show only a floor** — The list-price table stops at Haiku 4.5, so every day with a Claude Code background call on Haiku 5 prints its equivalent as a floor (the leading sign) instead of a figure. → §CVI.10
+- 📋 **T401** (deps: —) **Cache reads on the 5.5 models are priced at a ratio their rate card does not use** — Every cache read is priced at a tenth of input, but Opus 5.5 lists a twentieth, so the dominant component of a figure here reads about twice the card. → §CVI.12
 
 ## Block AI — Verification — the checks that prove a change
 

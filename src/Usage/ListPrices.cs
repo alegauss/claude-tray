@@ -20,8 +20,11 @@ namespace ClaudeTray;
 internal static class ListPrices
 {
     /// <summary>When these rates were read from Anthropic's published pricing. Shown to the reader
-    /// rather than kept in a comment: it is the difference between a figure and a fossil.</summary>
-    public static readonly DateOnly Read = new(2026, 6, 24);
+    /// rather than kept in a comment: it is the difference between a figure and a fossil.
+    /// <para>2026-10-06 is the model table the 5.5 rows came from (T399), against which the 5 and 4.x input
+    /// and output rates still agree — Sonnet 5 aside, which that table lists at $2/$10 and this one keeps at
+    /// $3/$15 (T401).</para></summary>
+    public static readonly DateOnly Read = new(2026, 10, 6);
 
     /// <summary>
     /// Base dollars per million tokens, by model id prefix — longest match wins, so a dated id
@@ -39,6 +42,14 @@ internal static class ListPrices
     {
         ("claude-fable-5",   10.00, 50.00),
         ("claude-mythos-5",  10.00, 50.00),
+        // T399. The 5.5 generation has rows of its own because its ids share a prefix with 5's: without
+        // them `claude-opus-5-5` resolved through `claude-opus-5` at $5/$25, a quarter high on the model
+        // nearly every turn here runs on, and `claude-haiku-5-5` resolved through nothing at all.
+        ("claude-opus-5-5",   4.00, 20.00),
+        ("claude-sonnet-5-5", 2.00, 10.00),
+        // Up to 100K tokens of prompt; past that Anthropic lists $0.50/$2.50, which a per-model table
+        // cannot tell apart — so a long-context Haiku call reads low here (T401).
+        ("claude-haiku-5-5",  0.10,  0.50),
         ("claude-opus-5",     5.00, 25.00),
         ("claude-opus-4-8",   5.00, 25.00),
         ("claude-opus-4-7",   5.00, 25.00),

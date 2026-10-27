@@ -886,22 +886,6 @@ substitute lines in `usage-history.jsonl` (no `ux`/`ix`) with the API lines arou
 more than a point in either window, or a share of covered ticks under a third, is the finding.
 Either one changes `ApiAtLeastEverySeconds` or the 0.9 floor, not the design.
 
-### CVI.10 Rates for the models the table does not know (T399)
-
-Seen on 2026-10-27 while checking T392's calendar totals against this machine: every day and week
-with a Haiku 5 call prints `≥$…`. `ListPrices.Rates` stops at `claude-haiku-4-5`, so a
-`claude-haiku-5*` id resolves to nothing, and its tokens land in `UnpricedTokens`. The surface does
-what it promises: the figure is marked as a floor rather than reading as a cheap day. But the floor
-is now on most recent rows, because Claude Code runs Haiku 5 for its own background calls.
-
-The fix is one row per family the transcripts name and the table does not: read the rate from
-Anthropic's published pricing page, add it, and move `ListPrices.Read` to that day. Do not infer a
-rate from the previous Haiku generation. A wrong rate is worse than a visible floor, and the table's
-own rule is that an equivalent errs upward if it errs at all.
-
-To find what else is missing, use `--sessions --by month --all`. A `≥` names the months, and the
-models column shows which ids answered.
-
 ### CVI.11 A junction created without a deadline (T400)
 
 Seen on 2026-10-27, twice in a row and then not again: the full `--selftest` reported `UNEXPECTED
@@ -920,3 +904,25 @@ A junction is a `FSCTL_SET_REPARSE_POINT` with a mount-point buffer. If P/Invoke
 keep `mklink` but wait without a deadline, or with one long enough to be about a hang and not about
 load, and tell "the process timed out" apart from "mklink refused" in the skip's reason. The skip
 should name which of the two happened, because only the second is about the machine.
+
+### CVI.12 Cache-read rates per model (T401)
+
+Found while adding the 5.5 rows (T399), against Anthropic's model table cached 2026-10-06.
+`ListPrices` prices every cache read at 0.1 times the model's input rate. The 5.5 generation does
+not follow that ratio: Opus 5.5 lists cache reads at $0.20 per million against a $4 input rate
+(0.05x), Sonnet 5.5 at $0.20 against $2 (0.1x), and Fable 5.1 at $0.25 against $10 (0.025x). On this
+machine nearly every turn is Opus 5.5 and cache reads are billions of tokens a week, so the
+cache-read component, which dominates the figure, reads about twice what the card says.
+
+Two smaller gaps in the same table:
+
+1. **Haiku 5.5 has a long-prompt tier**: $0.10/$0.50 up to 100K prompt tokens, $0.50/$2.50 beyond. A
+   per-model rate cannot tell the two apart, and a transcript line carries its prompt size, so the tier
+   is decidable per call. It needs a per-call price in the index rather than a per-model sum.
+2. **Sonnet 5**: the 2026-10-06 table lists $2/$10. This table keeps $3/$15 because the earlier source
+   called $2/$10 introductory through 2026-08-31. Read the published pricing page and settle it.
+
+What to build: a cache-read rate per row (defaulting to 0.1x input where the card says nothing
+different), and the cache-write multipliers checked against the same page. Move `ListPrices.Read` to
+the day it is read. The selftest's fixed figures (39.0, 7.8) are Opus 5 and Haiku 4.5, whose ratios
+this does not change.

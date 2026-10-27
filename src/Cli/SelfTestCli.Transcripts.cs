@@ -964,6 +964,15 @@ internal static partial class SelfTestCli
              ListPrices.Of(new Dictionary<string, TokenBits>(StringComparer.Ordinal)
              { ["claude-opus-5"] = new TokenBits(0, 0, 1_000_000, 0, 0, 0) }).Dollars,
              10.0, 1e-9);
+
+        // T399. A 5.5 id is its own row, not the 5 row its prefix also matches: a million in and a million
+        // out on Opus 5.5 is $4 + $20, where the 5 row would say $30.
+        Near("Opus 5.5 is priced at its own rate, not through the Opus 5 prefix it shares",
+             ListPrices.Of(new Dictionary<string, TokenBits>(StringComparer.Ordinal)
+             { ["claude-opus-5-5"] = new TokenBits(1_000_000, 1_000_000, 0, 0, 0, 0) }).Dollars,
+             24.0, 1e-9);
+        Check("and Haiku 5.5, which no row priced, now has one",
+              ListPrices.Knows("claude-haiku-5-5") && ListPrices.Knows("claude-sonnet-5-5"));
     }
 
     /// <summary>
