@@ -73,6 +73,35 @@
           "named": "an arrow key drives the retry slider"
         }
       ]
+    },
+
+    {
+      // T395. The level boxes are the only place a person types a list into this app, and AGENTS.md's
+      // seventh rule is why that is verified here and not in a picture: under the tray's own pump.
+      // Nothing presses Save, as above, so the run writes no setting of yours.
+      "name": "a warning level can be typed under the tray's pump",
+      "catches": "a level box that renders in every capture and takes no keystroke where the tray hosts it, which would leave the feature unusable while every picture of it looked right",
+      "filed": "T395",
+      "tags": ["keyboard"],
+      "fixture": "the settings window under the tray's own pump",
+
+      "steps": [
+        {
+          // 'Notifications' is the English label; the fixture fixes the language to en.
+          "locator": "Text[name=\"Notifications\"][order=left]",
+          "act": "click",
+          "with": "PointerIsTheAct",
+          "named": "navigate to the Notifications page by clicking the sidebar"
+        },
+        {
+          "locator": "Edit#Levels7dBox",
+          "act": "type",
+          "with": "50, 80",
+          "expect": "50, 80",
+          "reads": "value",
+          "named": "typing reaches the weekly level box"
+        }
+      ]
     }
   ]
 }

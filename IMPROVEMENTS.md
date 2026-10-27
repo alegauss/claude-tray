@@ -864,22 +864,6 @@ records is a Linux path, so `ProjectSlug` walking it up must not assume a drive 
 
 Measure: a sweep over the 9P share is far slower than over NTFS, and the transcript scans run on it.
 
-### CVI.6 A warning at a level you choose (T395)
-
-The pace toast answers "will I run out before the reset", and the flash answers "I am almost out".
-Neither answers "tell me when I reach half the week", which is how somebody rationing a weekly quota
-actually works, and which cli-usage-bar and CodexBar both offer as configurable thresholds.
-
-The shape: per window, a short list of levels under Settings → Notifications, empty by default so
-nothing new interrupts anyone who did not ask. A level fires once per window per reset, on the
-reading that crosses it, on the same card as the other toasts that are not celebrations, with a bar.
-With Show remaining instead of used on, the level is read as quota left, so the setting and the icon
-count the same way.
-
-What carries over: a credit that drops usage below a level does not re-arm it inside the same
-window; no wording may suggest switching profiles because one is filling up (§I.7); and every string
-reaches all five languages.
-
 ### CVI.7 Both windows on one tile (T396)
 
 Show on icon picks one of session, week or extra, and the tooltip carries the rest. CodexBar's

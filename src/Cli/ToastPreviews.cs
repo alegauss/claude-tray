@@ -113,7 +113,21 @@ internal static class ToastPreviews
 
         new("danger-session", "the same card for the 5-hour session, 70% used an hour and a half in",
             now => Pace("5h", 0.70, now + (long)(3.5 * 3600), now)),
+
+        new("level", "a level the user picked was reached (T395): the week passing 50%, read as used",
+            now => Level("7d", 50, 0.52, now + 3 * 86400, now, remaining: false)),
+
+        new("level-left", "the same card with Show remaining on, where a level of 25 means a quarter left",
+            now => Level("5h", 25, 0.76, now + 2 * 3600, now, remaining: true)),
     };
+
+    /// <summary>The level card, from the same <see cref="TrayContext.LevelToastContent"/> the notifier uses.</summary>
+    private static ToastWindow Level(string key, int level, double util, long reset, long now, bool remaining)
+    {
+        var (emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme) =
+            TrayContext.LevelToastContent(key, level, util, reset, now, remaining);
+        return new ToastWindow(emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme);
+    }
 
     /// <summary>The pace card, from the same <see cref="TrayContext.PaceToastContent"/> the notifier uses.</summary>
     private static ToastWindow Pace(string key, double util, long reset, long now)

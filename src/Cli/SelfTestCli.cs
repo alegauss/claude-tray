@@ -230,6 +230,9 @@ internal static partial class SelfTestCli
         Section("the pace alarm — the icon's red, said once per window and reset cycle (Block AM)");
         PaceAlarmCycle();
 
+        Section("levels — the thresholds a person picks, once per window and cycle (Block E)");
+        LevelAlarmCycle();
+
         Section("statusline — a reading Claude Code already has, standing in for a poll (Block D)");
         StatusLineSubstitute();
 
@@ -452,6 +455,8 @@ internal static partial class SelfTestCli
                 // default sits inside, so default±1 is in range without this knowing the range.
                 var t when t == typeof(int) => Ints(p),
                 var t when t == typeof(string) => ("alpha", "beta"),
+                // A level list (T395): two lists the normaliser keeps as they are — ascending, in range.
+                var t when t == typeof(List<int>) => (new List<int> { 50 }, new List<int> { 25, 75 }),
                 _ => ((object?, object?)?)null,
             },
         };

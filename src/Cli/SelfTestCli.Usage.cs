@@ -2236,6 +2236,53 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T395. The levels a person picks, as a sequence driven with no tray: the crossing, the highest of
+    /// several, a credit that does not re-arm, a new cycle that does, the seed, and remaining mode.
+    /// </summary>
+    private static void LevelAlarmCycle()
+    {
+        double now = Now;
+        double reset = now + 3 * 86400;
+        int[] levels = { 50, 80 };
+
+        var alarm = new LevelAlarm(null);
+        Check("below every level nothing is said", alarm.Note("7d", 0.40, reset, levels, false) is null);
+        Check("the reading that passes 50% says 50", alarm.Note("7d", 0.52, reset, levels, false) == 50);
+        Check("once: the next reading above it is quiet", alarm.Note("7d", 0.55, reset, levels, false) is null);
+        Check("a credit back under 50 and a climb past it again does not repeat it in the same cycle",
+              alarm.Note("7d", 0.30, reset, levels, false) is null && alarm.Note("7d", 0.60, reset, levels, false) is null);
+        Check("a reset header drifting by seconds is still the same cycle",
+              alarm.Note("7d", 0.61, reset + 9, levels, false) is null);
+        Check("a jump past two levels at once is one answer, the higher",
+              new LevelAlarm(null) is { } jump && jump.Note("7d", 0.10, reset, levels, false) is null
+              && jump.Note("7d", 0.85, reset, levels, false) == 80);
+        Check("the next cycle starts again from nothing",
+              alarm.Note("7d", 0.51, reset + 7 * 86400, levels, false) == 50);
+        Check("a level added while usage is already above it is not news",
+              alarm.Note("7d", 0.53, reset + 7 * 86400, new[] { 20, 50 }, false) is null);
+        Check("the windows are watched apart", alarm.Note("5h", 0.51, now + 3600, levels, false) == 50);
+
+        var seeded = new LevelAlarm(new UsageSample(now - 300, 0.1, now + 3600, 0.58, reset));
+        Check("a tray restarted at 58% does not announce the 50 it has already said",
+              seeded.Note("7d", 0.59, reset, levels, false) is null && seeded.Note("7d", 0.81, reset, levels, false) == 80);
+
+        var left = new LevelAlarm(null);
+        Check("with Show remaining on, 25 means a quarter left: quiet at 70% used, said at 76%",
+              left.Note("5h", 0.70, now + 3600, new[] { 25 }, true) is null
+              && left.Note("5h", 0.76, now + 3600, new[] { 25 }, true) == 25);
+
+        Check("what is typed is normalised: commas, spaces and % accepted; repeats, 0 and 100 dropped; sorted",
+              Settings.ParseLevels("80, 50 50% 0 100 x 120 ;30").SequenceEqual(new[] { 30, 50, 80 }));
+        Check("and capped, so a list is a few thresholds and not a progress bar",
+              Settings.ParseLevels("10 20 30 40 50 60 70").Count == Settings.MaxLevels);
+        Check("the card names the level the way it was set: used, or left",
+              TrayContext.LevelToastContent("7d", 50, 0.52, reset, (long)now, false).title.Contains("50")
+              && TrayContext.LevelToastContent("5h", 25, 0.76, now + 3600, (long)now, true).subtitle.Contains("24"));
+        Check("both level previews are in the catalogue",
+              new[] { "level", "level-left" }.All(n => ToastPreviews.Catalogue.Any(v => v.Name == n)));
+    }
+
+    /// <summary>
     /// T391. What <c>--usage</c> tells a script: the report over one stored reading and the exit code it
     /// branches on, each state driven with no store and no clock — and the verdict held to the icon's.
     /// </summary>

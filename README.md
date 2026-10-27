@@ -437,6 +437,7 @@ Not every thing worth knowing is good news. These use the same card without the 
 | 📇 **Heavy startup context** | **Ochre** | A project's instruction files, memory and skills have grown enough that **every session pays for them before you type** — with what a cold-cache load costs | Context growth (**off** by default) |
 | 🧾 **Extra usage has started** | **Clay** | You've passed the quota included in your plan and work is now being **charged as extra usage** | Extra usage starts |
 | 📈 **On pace to run out** | **Red** | At the pace that turns the icon red, the **5-hour or weekly limit runs out before it resets** — with when, and when it resets. Once per window per reset, never in a window's first tenth | On pace to run out |
+| 🔔 **A level you picked** | **Indigo** | A window passed a **percentage you chose**, such as half the week. Read as quota left when the icon shows what is left. Once per level per window per reset, and a credit that lowers usage does not repeat it | Levels for the 5-hour session / for the week (**empty** by default) |
 | 💻 **Profile set for Windows** | **Slate** | The machine-wide profile switch **landed** — with the directory it wrote, or, if the write didn't take, what `CLAUDE_CONFIG_DIR` still reads | — (only when you switch) |
 
 Writing the machine-wide profile is the least visible thing this app does: nothing on screen changes,

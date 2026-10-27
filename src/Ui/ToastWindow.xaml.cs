@@ -24,7 +24,7 @@ namespace ClaudeTray;
 internal partial class ToastWindow : Window
 {
     /// <summary>Color theme per notification type, so each is identifiable at a glance.</summary>
-    internal enum ToastTheme { Surprise, Bonus, Weekly, Session, Context, ExtraUsage, Profile, Pace }
+    internal enum ToastTheme { Surprise, Bonus, Weekly, Session, Context, ExtraUsage, Profile, Pace, Level }
 
     /// <summary>
     /// The card's text stack, and the one every card's <b>glyph</b> is drawn in — separately, because they
@@ -159,6 +159,9 @@ internal partial class ToastWindow : Window
         // Red: the colour the icon's bar already wears for this verdict (T388), so the card and the icon
         // say the same thing. Darker than the bar's alarm red, which white text would not read on.
         ToastTheme.Pace => ("#E8726A", "#C8402F", "#8E2318"),
+        // Indigo: a level the user picked was reached (T395). Neither good news nor a verdict — it is the
+        // answer to a question they asked — so it borrows neither the reset colours nor the pace red.
+        ToastTheme.Level => ("#8E91E0", "#5B5FC7", "#34378A"),
         _ => throw new ArgumentOutOfRangeException(nameof(theme), theme, "no card colour for this toast"),
     };
 
@@ -188,7 +191,9 @@ internal partial class ToastWindow : Window
         // one is a receipt, which is the least celebratory thing this app has to say. A profile switch
         // is a confirmation of something the user just did, which is nobody's idea of a party. And a window
         // on pace to run out (T388) is the one piece of bad news here that arrives before it happens.
-        if (_theme is not (ToastTheme.Context or ToastTheme.ExtraUsage or ToastTheme.Profile or ToastTheme.Pace))
+        // A level the user picked (T395) is an answer, not a celebration.
+        if (_theme is not (ToastTheme.Context or ToastTheme.ExtraUsage or ToastTheme.Profile or ToastTheme.Pace
+                           or ToastTheme.Level))
             LaunchConfetti();
 
         // Auto-dismiss after a comfortable read; the user can also close or act before then.

@@ -87,7 +87,9 @@ Three different hosts, and the difference matters — see UI convention 7 in AGE
                                       #   gets reviewed at all. Add --lang to read it in a translation.
 --simulate-reset [variant]            # a toast card on screen: unexpected (the default early weekly reset)
                                       #   | scheduled | credit | session | context | extra | profile |
-                                      #   profile-failed | extra-bare | danger | danger-session. extra-bare
+                                      #   profile-failed | extra-bare | danger | danger-session | level |
+                                      #   level-left. The level rows are a threshold the user picked being
+                                      #   reached, read as used and as left (T395). extra-bare
                                       #   is the extra-usage card as the measured spell reports it - in use,
                                       #   no figure, and so no bar at all, since 1 - 0 draws a full one
                                       #   (T277). The two danger rows are the on-pace-to-run-out card for

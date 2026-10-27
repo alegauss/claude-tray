@@ -1243,6 +1243,14 @@ internal sealed class TrayContext : ApplicationContext
                 if (_monitored.PaceAlarm.Note(key, fresh.Metric(key), fresh.ResetOf(key), now)
                     && _settings.NotifyOnPaceDanger)
                     NotifyPace(key, fresh.Metric(key), fresh.ResetOf(key), now);
+
+            // The levels the user picked (T395), offered every poll so the high-water mark is kept even
+            // with no list set. An empty list is the setting being off.
+            foreach (string key in PaceAlarm.Windows)
+                if (_monitored.LevelAlarm.Note(key, fresh.Metric(key), fresh.ResetOf(key),
+                                               key == "7d" ? _settings.Levels7d : _settings.Levels5h,
+                                               _settings.ShowRemaining) is { } level)
+                    NotifyLevel(key, level, fresh.Metric(key), fresh.ResetOf(key), now);
         }
         _flashOn = false;
         Render();
@@ -1459,6 +1467,42 @@ internal sealed class TrayContext : ApplicationContext
             _tray.BalloonTipIcon = ToolTipIcon.Warning;
             _tray.ShowBalloonTip(10_000);
         }
+    }
+
+    // A window passed a level the user picked (T395): said once per cycle, with a bar.
+    private void NotifyLevel(string key, int level, double util, double reset, long now)
+    {
+        var (emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme) =
+            LevelToastContent(key, level, util, reset, now, _settings.ShowRemaining);
+        try
+        {
+            EnsureWpfApp();
+            new ToastWindow(emoji, title, subtitle, fromUsage, toUsage, caption, quotaLabel, theme).Show();
+        }
+        catch
+        {
+            _tray.BalloonTipTitle = $"{emoji} {title}";
+            _tray.BalloonTipText = $"{subtitle} — {caption}";
+            _tray.BalloonTipIcon = ToolTipIcon.Info;
+            _tray.ShowBalloonTip(10_000);
+        }
+    }
+
+    /// <summary>The level card's strings, shared by the notifier and the <c>level</c> preview (T395). It says
+    /// the level in the terms it was set in — used, or left when the icon counts what is left — and when the
+    /// window resets, and stops: no advice and no other account (§I.7).</summary>
+    internal static (string emoji, string title, string subtitle, double fromUsage, double toUsage,
+        string caption, string quotaLabel, ToastWindow.ToastTheme theme)
+        LevelToastContent(string key, int level, double util, double reset, long now, bool remaining)
+    {
+        bool weekly = key == "7d";
+        string window = L.T(weekly ? "toast.limitNoun.weekly" : "toast.limitNoun.session");
+        int pct = (int)Math.Round(Math.Clamp(remaining ? 1 - util : util, 0, 1) * 100);
+        return ("🔔",
+            L.T(remaining ? "toast.level.titleLeft" : "toast.level.titleUsed", level),
+            L.T(remaining ? "toast.level.subtitleLeft" : "toast.level.subtitleUsed", window, pct),
+            util, util, L.T("toast.pace.caption", FmtDays(reset - now)),
+            L.T(weekly ? "toast.quotaLeft.weekly" : "toast.quotaLeft.session"), ToastWindow.ToastTheme.Level);
     }
 
     /// <summary>The pace card's strings, shared by the notifier and the <c>danger</c> previews so the wording

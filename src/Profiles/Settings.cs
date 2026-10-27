@@ -110,6 +110,32 @@ internal sealed class Settings
     /// </summary>
     public bool NotifyOnPaceDanger { get; set; } = true;
 
+    /// <summary>
+    /// Levels, in percent, at which to say so once per reset cycle (T395): one list per window, empty by
+    /// default so nothing new interrupts anyone who did not ask. Read as quota left when
+    /// <see cref="ShowRemaining"/> is on, the way the icon counts. Normalised on load and save — whole
+    /// percents from 1 to 99, no repeats, ascending, at most <see cref="MaxLevels"/>.
+    /// </summary>
+    public List<int> Levels5h { get; set; } = new();
+    /// <inheritdoc cref="Levels5h"/>
+    public List<int> Levels7d { get; set; } = new();
+
+    /// <summary>How many levels a window may carry. A list longer than this is a progress bar in toasts.</summary>
+    public const int MaxLevels = 5;
+
+    /// <summary>The levels a person typed — "50, 80" or "50 80" or "50%" — normalised, with anything that
+    /// is not a whole percent in range dropped rather than refused.</summary>
+    public static List<int> ParseLevels(string text) =>
+        NormaliseLevels(text.Split(new[] { ',', ';', ' ', '%' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(t => int.TryParse(t, System.Globalization.NumberStyles.Integer,
+                                                      System.Globalization.CultureInfo.InvariantCulture, out int v) ? v : 0));
+
+    /// <summary>The list as the box shows it.</summary>
+    public static string FormatLevels(IEnumerable<int> levels) => string.Join(", ", levels);
+
+    private static List<int> NormaliseLevels(IEnumerable<int>? levels) =>
+        (levels ?? Enumerable.Empty<int>()).Where(v => v is >= 1 and <= 99).Distinct().Order().Take(MaxLevels).ToList();
+
     /// <summary>Eager-token threshold for that nudge. The measured spread across real projects is
     /// ≈4k–22k (IMPROVEMENTS §III), so the default sits above the middle of it.</summary>
     public int ContextNudgeTokens { get; set; } = DefaultContextNudgeTokens;
@@ -322,6 +348,8 @@ internal sealed class Settings
         SessionResetMinPercent = Math.Clamp(SessionResetMinPercent, MinResetNotifyPercent, MaxResetNotifyPercent);
         ScheduledResetMinPercent = Math.Clamp(ScheduledResetMinPercent, MinResetNotifyPercent, MaxResetNotifyPercent);
         ContextNudgeTokens = Math.Clamp(ContextNudgeTokens, MinContextNudgeTokens, MaxContextNudgeTokens);
+        Levels5h = NormaliseLevels(Levels5h);
+        Levels7d = NormaliseLevels(Levels7d);
         if (string.IsNullOrWhiteSpace(ClaudeCodeDirectory))
             ClaudeCodeDirectory = DefaultDirectory;
         if (Array.IndexOf(ValidMetrics, Metric) < 0)

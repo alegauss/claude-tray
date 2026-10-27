@@ -38,8 +38,6 @@
 
 ## Block E — Reset notifications & toasts
 
-- 📋 **T395** (deps: —) **No warning at a usage level the user picks** — The only level-based signal is the flash near the limit, so somebody rationing the week has no way to be told at half of it, which cli-usage-bar and CodexBar offer. → §CVI.6
-
 ## Block F — Statistics window (pace report)
 
 ## Block H — Tray display options

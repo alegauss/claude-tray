@@ -770,6 +770,25 @@
                                                    Description="{local:Loc settings.notif.paceDesc}">
                                     <ToggleButton x:Name="NotifyPaceCheck" Style="{StaticResource ToggleSwitch}" />
                                 </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <!-- T395: levels the user picks, per window, empty by default. A text box
+                                     and not a list editor: "50, 80" is the whole of the input, and Save
+                                     normalises whatever was typed (Settings.ParseLevels). -->
+                                <local:SettingsRow Header="{local:Loc settings.notif.levels5h}"
+                                                   Description="{local:Loc settings.notif.levelsDesc}">
+                                    <TextBox x:Name="Levels5hBox" Width="140"
+                                             VerticalContentAlignment="Center" Padding="8,5" />
+                                </local:SettingsRow>
+
+                                <Border Style="{StaticResource RowDivider}" />
+
+                                <local:SettingsRow Header="{local:Loc settings.notif.levels7d}"
+                                                   Description="{local:Loc settings.notif.levelsDesc}">
+                                    <TextBox x:Name="Levels7dBox" Width="140"
+                                             VerticalContentAlignment="Center" Padding="8,5" />
+                                </local:SettingsRow>
                             </StackPanel>
                         </Border>
 
