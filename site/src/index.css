@@ -103,6 +103,12 @@ html {
   align-items: center;
   gap: 7px;
 }
+/* SiteButton is an anchor, and site.css resets `.vg-site a` to the inherited colour — a rule
+   that outranks the primary button's own white. Dark mode hid it (the inherited colour is
+   light there); in light mode the label went near-black on clay. */
+a.vg-site-btn-primary {
+  color: #fff;
+}
 .vg-site-sec-head code {
   color: var(--vg-brand);
   font-size: 0.88em;
