@@ -80,6 +80,20 @@ internal static partial class SelfTestCli
         Check("and a config dir that is not ~/.claude is selected inside Linux, never in Windows",
               WslProfiles.LaunchArguments(@"\\wsl.localhost\Ubuntu\home\ubuntu\.claude-work", "claude")
                   == "wsl.exe -d Ubuntu -u ubuntu --cd ~ -- bash -lc \"CLAUDE_CONFIG_DIR='/home/ubuntu/.claude-work' claude\"");
+        // T406. One poll per account a tick: the same login in Windows and in WSL is one quota, and polling
+        // it twice was two API calls and two identical history lines on every tick.
+        ClaudeInfo Acct(string dir, string uuid, AuthMethod auth = AuthMethod.Subscription) =>
+            new() { ConfigDir = dir, AccountUuid = uuid, Auth = auth };
+        ClaudeInfo icon = Acct(@"C:\u\.claude-a", "u1");
+        ClaudeInfo sameInWsl = Acct(@"\\wsl.localhost\Ubuntu\home\u\.claude", "u1");
+        ClaudeInfo second = Acct(@"C:\u\.claude-b", "u2");
+        ClaudeInfo secondAgain = Acct(@"\\wsl.localhost\Ubuntu\home\v\.claude", "u2");
+        ClaudeInfo apiKey = Acct(@"C:\u\.claude-c", "u3", AuthMethod.ApiKey);
+        List<ClaudeInfo> polled = TrayContext.OthersToPoll(new[] { icon, sameInWsl, second, secondAgain, apiKey });
+        Check("a tick polls each other account once, never the icon's account again, never an API key",
+              polled.Count == 1 && ReferenceEquals(polled[0], second),
+              string.Join(", ", polled.Select(p => p.ConfigDir)));
+
         Check("a Linux project path is opened through the share of the distro it was recorded in",
               WslProfiles.ToWindows(@"\\wsl.localhost\Ubuntu\home\ubuntu\.claude", "/home/ubuntu/proj")
                   == @"\\wsl.localhost\Ubuntu\home\ubuntu\proj"

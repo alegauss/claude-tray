@@ -791,7 +791,11 @@ internal sealed class TrayContext : ApplicationContext
         {
             ClaudeInfo p = _watched[i];
             bool monitored = i == 0;
-            UsageData? d = monitored ? _monitored.Data : _otherData.GetValueOrDefault(ProfileStore.KeyFor(p));
+            // A second profile of the account the icon follows (a WSL login of it, T406) shows the icon's
+            // reading: it is not polled separately, and its quota is the same quota.
+            UsageData? d = monitored || ProfileStore.KeyFor(p) == _monitored.Key
+                ? _monitored.Data
+                : _otherData.GetValueOrDefault(ProfileStore.KeyFor(p));
 
             string reading = !p.CountsAgainstSubscription
                 // An API-key/Bedrock/Vertex profile has no quota window to read (T124), and polling it
@@ -1039,18 +1043,31 @@ internal sealed class TrayContext : ApplicationContext
         if (_watched.Count < 2) return;
         long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
-        foreach (ClaudeInfo profile in _watched.Skip(1))
+        foreach (ClaudeInfo profile in OthersToPoll(_watched))
         {
-            // A profile that isn't on the subscription has no quota window to read: an API key bills
-            // per use, so polling it would spend money to learn nothing about a limit.
-            if (!profile.CountsAgainstSubscription) continue;
-
             UsageData d = await new ApiClient(profile.ConfigDir).FetchAsync();
             string key = ProfileStore.KeyFor(profile);
             _otherData[key] = d;
             // Its own series, so its history is ready if the icon ever follows it (T125).
             if (d.Error == null) RecordReading(key, now, d);
         }
+    }
+
+    /// <summary>
+    /// The profiles besides the monitored one that a tick polls: one per **account** (T406), and only those
+    /// on the subscription. A profile that isn't on it has no quota window to read — an API key bills per
+    /// use, so polling it would spend money to learn nothing about a limit. And a second profile of an
+    /// account already read this tick — the same login in Windows and in WSL — would ask for the same quota
+    /// again and file it in the same series: measured on 2026-10-27, two identical history lines and two
+    /// API calls on every tick.
+    /// </summary>
+    internal static List<ClaudeInfo> OthersToPoll(IReadOnlyList<ClaudeInfo> watched)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        if (watched.Count > 0) seen.Add(ProfileStore.KeyFor(watched[0]));
+        return watched.Skip(1)
+                      .Where(p => p.CountsAgainstSubscription && seen.Add(ProfileStore.KeyFor(p)))
+                      .ToList();
     }
 
     /// <summary>
