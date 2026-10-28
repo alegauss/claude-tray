@@ -991,7 +991,16 @@ internal sealed class TrayContext : ApplicationContext
     /// pins the icon there — auto-follow will not move it again until "Resume following" (T139).</summary>
     private void SetMonitoredProfile(ClaudeInfo profile)
     {
-        if (_watched.Count > 0 && ProfileStore.KeyFor(_watched[0]) == ProfileStore.KeyFor(profile)) return;
+        if (_watched.Count > 0 && ProfileStore.KeyFor(_watched[0]) == ProfileStore.KeyFor(profile))
+        {
+            // Already the icon's — but the click is still a choice (T408). The pin lives in memory, so after
+            // a restart the profile the icon shows is unpinned and the machine-wide variable may not be
+            // ours; returning here left no way to take it back short of picking another profile first.
+            _profilePinned = true;
+            SyncEnvironmentToPin(profile);
+            RefreshProfileMenu();
+            return;
+        }
 
         _followFloorUnix = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         _profilePinned = true;

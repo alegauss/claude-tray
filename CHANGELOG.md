@@ -602,6 +602,7 @@
 - **T394** — A signed-in WSL profile is found, polled through its own credentials, launched through wsl.exe, and its sessions and context scan read over the share with Linux paths translated (design §CVI.5 recorded in `src/Profiles/WslProfiles.cs`).
 - **T406** — A tick polls each account once, skipping a second profile of an account already read and the icon account, so a WSL login of it no longer doubles the calls and the history.
 - **T407** — A Settings save reconciles CLAUDE_CONFIG_DIR only when it moves auto-follow or the machine-wide switch, so a restart, whose pin is gone from memory, no longer lets an unrelated Save restore the variable to unset.
+- **T408** — Picking the profile the icon already shows pins it and writes CLAUDE_CONFIG_DIR, so after a restart the menu can take the variable back without picking another profile first.
 
 ## Block N — System information
 
