@@ -49,13 +49,13 @@ Sponsored by **Viglet** (https://www.viglet.org). Open source search and
 content tools for organisations with a lot to publish — run on your own
 servers, with no per-user licence.
 
-- **Viglet Turing** (https://turing.viglet.org) — Search for sites with a
+- **Viglet Turing** (https://openviglet.github.io/turing/) — Search for sites with a
   lot of content. People ask in their own words — “evening management course”,
   “engineering at the north campus” — and find it, with filters that match how
   they actually choose. AI answers using only your own published content, so
   it never invents a price or a deadline. Runs on your servers, your data
   stays in house, and there is no per-user licence.
-- **Viglet Shio** (https://shio.viglet.org) — A content system that takes
+- **Viglet Shio** (https://openviglet.github.io/shio/) — A content system that takes
   the page out of the development queue: AI builds it, your communications
   team reviews and approves it, seeing exactly how it will look before it goes
   live. Every version is kept, so you can see what changed and roll back. Runs
