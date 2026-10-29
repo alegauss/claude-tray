@@ -53,7 +53,7 @@
 
        It is compiled in like any other assembly, so the single self-contained .exe is unaffected. -->
   <ItemGroup>
-    <PackageReference Include="Winwright.InApp" Version="1.1.2" />
+    <PackageReference Include="Winwright.InApp" Version="1.1.5" />
   </ItemGroup>
 
   <!-- Single self-contained .exe when published (see README) — Release only, and that is the point (T341).
