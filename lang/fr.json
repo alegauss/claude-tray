@@ -168,6 +168,7 @@
   "settings.general.startup": "Démarrage",
   "settings.general.startWithWindows": "Démarrer avec Windows",
   "settings.general.startWithWindowsDesc": "Lancer Claude Code Tray automatiquement à votre connexion.",
+  "settings.general.startupOpenSettings": "Ouvrir les paramètres de démarrage de Windows",
   "settings.general.language": "Langue",
   "settings.general.appLanguage": "Langue d'affichage",
   "settings.general.appLanguageDesc": "Langue des menus, des paramètres et des rapports de l'app. La modifier redémarre l'app.",

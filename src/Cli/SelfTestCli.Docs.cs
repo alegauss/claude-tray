@@ -1708,6 +1708,33 @@ internal static partial class SelfTestCli
                                     : $"'{pitch}' is missing from: {string.Join(" | ", stale)}");
     }
 
+    /// <summary>
+    /// The Store package (T409) is one claim in two places: the manifest declares an execution alias and a set
+    /// of logos, and the exe has to run under that alias and draw those logos. A rename on either side builds
+    /// a package that installs and then breaks quietly — the status line pointing at a command no shell finds,
+    /// or makeappx refusing a logo nobody drew — so both are read from the manifest itself.
+    /// </summary>
+    private static void StoreManifest(string root)
+    {
+        var xml = System.Xml.Linq.XDocument.Load(Path.Combine(root, "build", "msix", "AppxManifest.xml"));
+        string[] aliases = xml.Descendants().Where(e => e.Name.LocalName == "ExecutionAlias")
+                              .Select(e => (string?)e.Attribute("Alias") ?? "").ToArray();
+        Check("the package's execution alias is the one the status-line command runs",
+              aliases.Length == 1 && aliases[0] == PackageIdentity.Alias,
+              $"manifest declares [{string.Join(", ", aliases)}], PackageIdentity.Alias is {PackageIdentity.Alias}");
+
+        string[] named = xml.Descendants()
+            .SelectMany(e => e.Attributes().Where(a => a.Name.LocalName.EndsWith("Logo", StringComparison.Ordinal))
+                              .Select(a => a.Value)
+                              .Concat(e.Name.LocalName == "Logo" ? new[] { e.Value } : Array.Empty<string>()))
+            .Select(v => Path.GetFileName(v.Trim())).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        string[] undrawn = named.Where(n => !PreviewCli.MsixLogos.Any(l => l.File.Equals(n, StringComparison.OrdinalIgnoreCase)))
+                                .ToArray();
+        Check($"every logo the manifest names is one --msix-assets draws ({named.Length})",
+              named.Length >= 3 && undrawn.Length == 0,
+              undrawn.Length > 0 ? $"nothing draws {string.Join(", ", undrawn)}" : $"only {named.Length} logo(s) found");
+    }
+
     /// <summary>Whether a family has a real glyph for every codepoint in <paramref name="text"/>. Asked of
     /// the typeface, not of a rendering: a missing glyph draws a box, which is ink like any other.</summary>
     private static bool Maps(System.Windows.Media.FontFamily family, string text)

@@ -355,6 +355,10 @@ internal static partial class SelfTestCli
         Repo("the README and the published page point at things that exist", UserSurfaces,
              "README.md", "site/src/lib/site-content.ts", "site/public/shots");
 
+        Section("store package — the manifest and the exe it packages (Block B)");
+        Repo("the Store manifest names the alias and the logos this exe provides", StoreManifest,
+             "build/msix/AppxManifest.xml");
+
         if (quick)
         {
             Console.WriteLine();

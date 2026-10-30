@@ -330,7 +330,14 @@
                         <Border Style="{StaticResource GroupCard}" Margin="0,0,0,4">
                             <local:SettingsRow Header="{local:Loc settings.general.startWithWindows}"
                                                Description="{local:Loc settings.general.startWithWindowsDesc}">
-                                <ToggleButton x:Name="StartupCheck" Style="{StaticResource ToggleSwitch}" />
+                                <!-- The Store package starts through its manifest's startupTask, which only
+                                     Windows can switch (T409): there the toggle gives way to the page that does. -->
+                                <Grid>
+                                    <ToggleButton x:Name="StartupCheck" Style="{StaticResource ToggleSwitch}" />
+                                    <Button x:Name="StartupOpenSettings" Visibility="Collapsed"
+                                            Content="{local:Loc settings.general.startupOpenSettings}"
+                                            Click="StartupOpenSettings_Click" />
+                                </Grid>
                             </local:SettingsRow>
                         </Border>
                     </StackPanel>

@@ -2573,11 +2573,14 @@ internal static partial class SelfTestCli
         Check("unpackaged, it runs this exe's own path",
               PackageIdentity.StatusLineExe(false, @"C:\Tools\ClaudeTray.exe") == @"C:\Tools\ClaudeTray.exe");
         // The detection is the switch that turns the updater off, so it is checked against a second signal
-        // rather than trusted: a package's exe is installed under WindowsApps and nothing else is. A false
-        // positive would silence every installer's updates; a false negative, run the installer over a package.
-        Check("package identity agrees with where the exe lives, so an installed copy keeps its updater",
+        // rather than trusted: a package's exe sits beside the AppxManifest.xml it was installed from — under
+        // WindowsApps from the Store, in the layout folder from build-msix's -Register — and nothing else
+        // ships one. A false positive would silence every installer's updates; a false negative, run the
+        // installer over a package.
+        Check("package identity agrees with a manifest beside the exe, so an installed copy keeps its updater",
               PackageIdentity.IsPackaged
-                  == (Environment.ProcessPath ?? "").Contains(@"\WindowsApps\", StringComparison.OrdinalIgnoreCase));
+                  == File.Exists(Path.Combine(Path.GetDirectoryName(Environment.ProcessPath ?? "") ?? "",
+                                              "AppxManifest.xml")));
         // T404. What a profile's settings.json already says, so the row can show it is done.
         Check("a settings file that runs this app with --statusline is ours, wherever the exe lives",
               StatusLineFeed.Classify("""{ "statusLine": { "type": "command", "command": "C:/x/ClaudeTray.exe --statusline" } }""")

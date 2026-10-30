@@ -878,22 +878,21 @@ follows, and what it writes outside its own folder.
 
 ## CVIII Packaging, self-update, CI
 
-### CVIII.1 A Microsoft Store package (T409)
+### CVIII.2 Submitting the Store package (T412)
 
-The installer is not signed, so everyone who downloads it from a release meets the SmartScreen
-warning before the app ever runs. The portfolio review of 30/10/2026 (visibility repo, task VS58)
-chose the Microsoft Store over buying a certificate: the Store signs the package, and claude-tray is
-the first app of the family to try that path.
+T409 built the Store package and measured it on a copy installed from its layout.
+`build\build-msix.cmd` makes the unsigned `dist\ClaudeTray.msix` under the Alegauss reservation
+(Store ID 9P27BHWNT56D), whose family name matches Partner Center's. Inside it the updater stands
+down, startup is the manifest's `startupTask`, the status line runs the `ClaudeTray.exe` alias, and
+the user-scope `CLAUDE_CONFIG_DIR` write reaches shells outside the package, so no restricted
+capability is needed.
 
-The design, in the order it can break:
+What is left is the owner's, in order:
 
-1. **The status-line feed.** `StatusLineFeed.Snippet` bakes `Environment.ProcessPath` into the command Claude Code runs; inside a package that is a `WindowsApps` path nothing outside may launch. The MSIX declares an app execution alias and the snippet names it.
-2. **The registry writes.** `CLAUDE_CONFIG_DIR` goes to `HKCU\Environment` through `SetEnvironmentVariable` (`EnvironmentProfile`), and the startup toggle writes the `Run` key itself (`Program`). If either write is virtualized, the profile switch silently never reaches a new shell. Startup becomes a `windows.startupTask` the toggle drives; the environment write is checked from a shell outside the package.
-3. **One binary.** Landed: `PackageIdentity.IsPackaged` asks `GetCurrentPackageFullName` at runtime, the updater stands down under a package, and the status-line snippet already names the `ClaudeTray.exe` alias, so point 1 needs only the manifest's `uap5:AppExecutionAlias` to match it.
-4. **Certification.** The listing needs the privacy text (nothing leaves the machine, no telemetry), the unofficial disclaimer, screenshots, and an answer to the policy check on reusing the Claude Code token.
+1. **Submit** `dist\ClaudeTray.msix` with the text in `build\msix\store-listing.md` and screenshots from the README's set.
+2. **Answer the policy question** on reusing the Claude Code sign-in. The listing file states the facts and leaves the answer to the owner.
+3. **A week on the Store build** in place of the winget one. They cannot run side by side: they share the `Local\ClaudeTray.SingleInstance` mutex, and the package's `%LocalAppData%` is redirected, so its settings start fresh.
 
-The packaged copy cannot run beside the winget one: they share the `Local\ClaudeTray.SingleInstance`
-mutex, and its `%LocalAppData%` is redirected. Done means a Store build passes certification and
-replaces the winget install for a week with all four points holding. If certification objects to the
-one invitation to star the repository (T410), `StarInvite.Note` is where
-`PackageIdentity.IsPackaged` turns it off.
+If certification objects to the one invitation to star the repository (T410), `StarInvite.Note` is
+where `PackageIdentity.IsPackaged` turns it off. Done means the Store lists the app and a week of
+use held the startup task, the alias and a profile switch.

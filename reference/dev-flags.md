@@ -188,6 +188,9 @@ are held open by `PageWindow` for every popup, not per call site.
                                       #   asserting two claims cannot say which of them failed.
 --makeicon [ClaudeTray.ico]           # regenerate the multi-resolution app icon
 --social [build\social-preview.png]   # the 1280x640 GitHub repository card
+--msix-assets [dir]                   # the Store package's logos at the sizes build\msix\AppxManifest.xml
+                                      #   names (T409); build-msix.ps1 writes them into the package layout.
+                                      #   Default docs\_preview\msix-assets.
 ```
 
 Every one of these creates the directory it is given (T187), so a fresh output folder is fine.

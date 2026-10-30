@@ -482,6 +482,23 @@ internal static class PreviewCli
 
     // Dev helper: build a multi-resolution .ico for the app (PNG-compressed entries, valid on
     // Windows Vista+) from the GDI+ logo renderer.
+    /// <summary>The logos <c>build\msix\AppxManifest.xml</c> names, at the sizes it names them (T409).</summary>
+    internal static readonly (string File, int Size)[] MsixLogos =
+    {
+        ("Square44x44Logo.png", 44), ("Square150x150Logo.png", 150), ("StoreLogo.png", 50),
+    };
+
+    internal static void MsixAssets(string dir)
+    {
+        foreach ((string file, int size) in MsixLogos)
+        {
+            string path = Path.Combine(dir, file);
+            using Bitmap bmp = IconRenderer.RenderLogo(size);
+            using (FileStream fs = OutFile.Create(path)) bmp.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
+            Console.WriteLine("wrote " + Path.GetFullPath(path));
+        }
+    }
+
     internal static void MakeIcon(string path)
     {
         int[] sizes = { 16, 24, 32, 48, 64, 128, 256 };

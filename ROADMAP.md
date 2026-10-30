@@ -48,7 +48,7 @@
 
 ## Block B — Packaging, self-update, CI
 
-- ⏳ **T409** (deps: —) (requires: store-account) **Everyone who downloads the installer meets the SmartScreen warning, because nothing signs it** — The manifest, the startup task, the environment-write check and Store certification remain, and all of them need a Partner Center account to test. → §CVIII.1
+- 📋 **T412** (deps: —) (requires: store-account) **No Store build has passed certification or replaced the winget install for a week** — The package is built and measured locally, but only a submission shows the Store accepts it and only a week of use shows it can replace winget. → §CVIII.2
 
 ## Block AO — What a stranger meets first
 

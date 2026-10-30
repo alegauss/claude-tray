@@ -117,7 +117,14 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
         UpdateContextThresholdLabel();
         // "Start with Windows" is a registry entry (HKCU\…\Run), not part of the Settings model;
         // read its live state here and apply it directly on Save.
-        StartupCheck.IsChecked = StartupManager.IsEnabled();
+        // In the Store package it is the manifest's startup task, which only Windows switches (T409).
+        if (PackageIdentity.IsPackaged)
+        {
+            StartupCheck.Visibility = Visibility.Collapsed;
+            StartupOpenSettings.Visibility = Visibility.Visible;
+        }
+        else
+            StartupCheck.IsChecked = StartupManager.IsEnabled();
         VersionText.Text = L.T("settings.version", Updater.CurrentVersion);
 
         // About page: the same crisp logo the tray draws, plus the live version chip.
@@ -268,7 +275,8 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
         bool startup = StartupCheck.IsChecked == true;
         try
         {
-            if (StartupManager.IsEnabled() != startup)
+            // Packaged, the hidden toggle says nothing: Windows owns the startup task (T409).
+            if (!PackageIdentity.IsPackaged && StartupManager.IsEnabled() != startup)
                 StartupManager.SetEnabled(startup);
         }
         catch (Exception ex)
@@ -279,6 +287,12 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
 
         _onSave(_settings, _opened);
         ConfirmSaved();
+    }
+
+    private void StartupOpenSettings_Click(object sender, RoutedEventArgs e)
+    {
+        try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("ms-settings:startupapps") { UseShellExecute = true }); }
+        catch { /* no Settings app to open is not worth a dialog */ }
     }
 
     /// <summary>

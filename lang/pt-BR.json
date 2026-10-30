@@ -168,6 +168,7 @@
   "settings.general.startup": "Inicialização",
   "settings.general.startWithWindows": "Iniciar com o Windows",
   "settings.general.startWithWindowsDesc": "Iniciar o Claude Code Tray automaticamente quando você fizer login.",
+  "settings.general.startupOpenSettings": "Abrir as configurações de inicialização do Windows",
   "settings.general.language": "Idioma",
   "settings.general.appLanguage": "Idioma da interface",
   "settings.general.appLanguageDesc": "Idioma dos menus, das configurações e dos relatórios do app. Alterar reinicia o app.",

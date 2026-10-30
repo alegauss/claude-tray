@@ -286,6 +286,15 @@ internal static class Program
             return;
         }
 
+        // The Store package's logos (T409), drawn by the same RenderLogo as the .ico at each size the
+        // manifest names, so the package carries no second copy of the mark. build-msix.ps1 calls it into
+        // the package layout; with no directory it writes under the git-ignored docs\_preview\.
+        if (args.Length >= 1 && args[0] == "--msix-assets")
+        {
+            PreviewCli.MsixAssets(args.Length >= 2 ? args[1] : @"docs\_preview\msix-assets");
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--social")
         {
             // build\, not the site: this is the 1280x640 card GitHub shows for the repository, which is
