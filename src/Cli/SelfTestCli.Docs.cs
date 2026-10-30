@@ -1683,6 +1683,29 @@ internal static partial class SelfTestCli
         Check("and it is the one the manifest publishes",
               ids.Length == 1 && File.Exists(Path.Combine(root, "build", "winget", $"{ids[0]}.yaml")),
               $"{(ids.Length == 1 ? ids[0] : "several")} names no manifest beside {Path.GetFileName(manifest)}");
+
+        // T411. The one piece of wording that is a claim rather than copy: the pitch. A search result, a
+        // shared link and the GitHub page show the descriptions, not the README, so each must open with what
+        // the README's headline says after its colon — taken from the README, so a rewrite there moves the
+        // target, and the next rewrite of either side cannot drift alone.
+        Match head = Regex.Match(readmeText, @"^\*\*[^*:]+:\s*([^*]+?)\.?\*\*\s*$", RegexOptions.Multiline);
+        if (!Check("the README's headline names a pitch after its colon", head.Success,
+                   "no bold line of the form '**<what>: <pitch>.**' — the check has nothing to compare"))
+            return;
+        string pitch = head.Groups[1].Value;
+        string copy = File.ReadAllText(Path.Combine(root, "site", "src", "lib", "site-content.ts"));
+        var described = Regex.Matches(copy, @"(?:description:|githubDescription =)\s*""([^""]+)""")
+            .Select(m => m.Groups[1].Value)
+            .Concat(Regex.Matches(File.ReadAllText(Path.Combine(root, "site", "index.html")),
+                                  @"name=""description""\s+content=""([^""]+)""")
+                         .Select(m => m.Groups[1].Value))
+            .ToArray();
+        string[] stale = described.Where(d => !d.Contains(pitch, StringComparison.OrdinalIgnoreCase)).ToArray();
+        Check($"every description a stranger is shown carries the README's pitch ({described.Length})",
+              described.Length == 4 && stale.Length == 0,
+              described.Length != 4 ? $"found {described.Length} descriptions, expected the page's two, its " +
+                                      "head's and GitHub's"
+                                    : $"'{pitch}' is missing from: {string.Join(" | ", stale)}");
     }
 
     /// <summary>Whether a family has a real glyph for every codepoint in <paramref name="text"/>. Asked of

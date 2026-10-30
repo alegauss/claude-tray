@@ -16,16 +16,25 @@ export type Rich = Run[];
 
 /* ------------------------------------------------------------------ meta + chrome */
 
+// The descriptions are what a search result and every shared link preview show, so they open with
+// the README's headline pitch, word for word; `ClaudeTray.exe --selftest` fails if either drifts
+// from it (T411).
 export const meta = {
   title: "Claude Code Tray — Claude usage in your Windows tray",
   description:
-    "A native Windows tray monitor for your Claude Code usage. A crisp DPI-aware icon, burn-rate projection with a warning before a limit runs out, per-session cost at API list prices and a context audit — computed on your own machine, with no API key to paste.",
+    "Your Claude Code limit in the Windows tray: red before you run out, and a weekly forecast paced to the hours you actually work. Per-session cost at API list prices and a context audit too — computed on your own machine, with no API key to paste.",
   og: {
     title: "Claude Code Tray",
     description:
-      "Rate-limit %, burn-rate projection with a warning before a limit runs out, per-session cost at list prices and a context audit — always in your Windows tray. Nothing leaves your machine.",
+      "Red before you run out, and a weekly forecast paced to the hours you actually work — your Claude Code limit, always in your Windows tray. Nothing leaves your machine.",
   },
 } as const;
+
+// The GitHub repository's About text, which the awesome lists and GitHub search show. Kept here
+// beside the page's so the two cannot say different things; the owner applies it with
+// `gh repo edit alegauss/claude-tray --description "<this>"`, since it changes a public surface.
+export const githubDescription =
+  "Unofficial Windows tray app for your Claude Code limit: red before you run out, and a weekly forecast paced to the hours you actually work. Runs locally, no API key.";
 
 export const repoUrl = "https://github.com/alegauss/claude-tray";
 export const parentUrl = "https://alegauss.github.io/";

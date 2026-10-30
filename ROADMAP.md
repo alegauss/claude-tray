@@ -52,8 +52,6 @@
 
 ## Block AO — What a stranger meets first
 
-- 📋 **T411** (deps: —) **Search results, link previews and the GitHub page still describe the old pitch, not the forecast** — The VS30 pitch is the one thing that sets the app apart from 28 winget monitors, and only the README and winget say it today. → §CIX.2
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

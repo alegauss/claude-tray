@@ -897,23 +897,3 @@ mutex, and its `%LocalAppData%` is redirected. Done means a Store build passes c
 replaces the winget install for a week with all four points holding. If certification objects to the
 one invitation to star the repository (T410), `StarInvite.Note` is where
 `PackageIdentity.IsPackaged` turns it off.
-
-## CIX What a stranger meets first
-
-### CIX.2 The site and the GitHub description carry the VS30 pitch (T411)
-
-The pitch approved in VS30 (visibility repo, 15/10/2026) is "red before you run out, and a weekly
-forecast paced to the hours you actually work": warning before the limit no longer sets the app
-apart from the 28 quota monitors on winget, the forecast paced to working hours does. The README and
-the winget short description already open with it. The two surfaces a stranger meets first still say
-the older pitch:
-
-- **The site's title and descriptions.** `site/src/lib/site-content.ts` holds the description and `og.description` the prerender (`site/scripts/prerender.mjs`) writes into every route, and `site/index.html` repeats the first. They speak of "burn-rate projection" and "per-session cost", which is what search results and every shared link preview show.
-- **The GitHub repository description** still reads "shows your rate-limit %, projects when you'll run out", which is what the awesome lists and the GitHub search show.
-
-The portfolio review of 30/10/2026 (`estrategia/portfolio.md`, `produtos/claude-tray.md`) makes this
-a rule: no new channel before the page, the release and the README say the same thing. A rule that
-is one claim in two places is a check here: `--selftest` asserts the site's description carries the
-README's headline pitch, so the next rewrite of either cannot drift alone. The repo prepares the new
-site text and the exact description string; the owner runs the `gh repo edit`, since it changes a
-public surface.

@@ -1,9 +1,9 @@
 # Claude Code Tray
 
-> A native Windows (10/11) system-tray monitor for Claude Code usage. It shows your
-> rate-limit usage percentage as a crisp, DPI-aware vector icon, projects when you'll
-> hit 100% (a pace line for the weekly window, burn-rate regression for the 5h session),
-> and provides a privacy-first 24h usage breakdown computed locally. Built in C# (.NET 10,
+> Your Claude Code limit in the Windows (10/11) tray: red before you run out, and a weekly
+> forecast paced to the hours you actually work. The icon shows your rate-limit usage
+> percentage as a crisp, DPI-aware vector, turns red when the projection says the limit
+> arrives before the reset, and a privacy-first usage breakdown is computed locally. Built in C# (.NET 10,
 > WinForms + GDI+). Zero configuration — it reuses the OAuth token Claude Code already
 > stores on your machine. Installable via the Windows Package Manager:
 > `winget install alegauss.ClaudeCodeTray`.
