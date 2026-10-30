@@ -13,6 +13,7 @@ in step with the README: the pitch, the privacy facts and the unofficial disclai
 |---|---|
 | Poster art 9:16 | `poster-9x16-1440x2160.png` |
 | Box art 1:1 | `box-1x1-2160x2160.png` |
+| Super hero art 16:9 (Windows and Xbox image) | `hero-16x9-3840x2160.png` — no text on purpose: the Store overlays the title |
 | App tile icon 300x300 | `tile-300x300.png` |
 | 1:1 150x150 | `tile-150x150.png` |
 | 1:1 71x71 | `tile-71x71.png` |

@@ -401,6 +401,43 @@ internal static class IconRenderer
         return bmp;
     }
 
+    /// <summary>
+    /// Render the Store's 16:9 hero art (T412): the same backdrop with the logo tile in the upper right and no
+    /// words at all — the Store lays the product title over the lower left, so anything placed there is
+    /// covered, and a name drawn here would be printed twice.
+    /// </summary>
+    public static Bitmap RenderStoreHero(int w, int h)
+    {
+        var bmp = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+
+        using (var bg = new LinearGradientBrush(new Rectangle(0, 0, w, h),
+                   Color.FromArgb(32, 24, 20), Color.FromArgb(14, 10, 8), 25f))
+            g.FillRectangle(bg, 0, 0, w, h);
+
+        // A clay glow behind the tile, so the empty side reads as backdrop rather than as a blank.
+        int logo = (int)(h * 0.42f);
+        float cx = w * 0.70f, cy = h * 0.40f;
+        float glow = logo * 1.9f;
+        using (var path = new GraphicsPath())
+        {
+            path.AddEllipse(cx - glow, cy - glow, glow * 2, glow * 2);
+            using var radial = new PathGradientBrush(path)
+            {
+                CenterColor = Color.FromArgb(70, ClaudeClay),
+                SurroundColors = new[] { Color.FromArgb(0, ClaudeClay) },
+            };
+            g.FillPath(radial, path);
+        }
+
+        using (var tile = RenderLogo(logo))
+            g.DrawImage(tile, cx - logo / 2f, cy - logo / 2f, logo, logo);
+
+        return bmp;
+    }
+
     /// <summary>Linearly interpolate between two colors; <paramref name="t"/> is clamped to [0,1].</summary>
     private static Color Lerp(Color a, Color b, double t)
     {

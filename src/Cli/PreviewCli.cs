@@ -501,7 +501,7 @@ internal static class PreviewCli
 
     /// <summary>
     /// The images Partner Center's listing asks for (T412), each at the largest size its slot accepts: the 9:16
-    /// poster, the 1:1 box art, and the three app tiles. Uploaded by hand, so each file is named for its slot.
+    /// poster, the 1:1 box art, the 16:9 hero art, and the three app tiles. Uploaded by hand, so each file is named for its slot.
     /// </summary>
     internal static void StoreArt(string dir)
     {
@@ -516,6 +516,7 @@ internal static class PreviewCli
 
         Save(IconRenderer.RenderStoreArt(1440, 2160), "poster-9x16-1440x2160.png");
         Save(IconRenderer.RenderStoreArt(2160, 2160), "box-1x1-2160x2160.png");
+        Save(IconRenderer.RenderStoreHero(3840, 2160), "hero-16x9-3840x2160.png");
         foreach (int size in new[] { 300, 150, 71 })
             Save(IconRenderer.RenderLogo(size), $"tile-{size}x{size}.png");
     }

@@ -191,8 +191,8 @@ are held open by `PageWindow` for every popup, not per call site.
 --msix-assets [dir]                   # the Store package's logos at the sizes build\msix\AppxManifest.xml
                                       #   names (T409); build-msix.ps1 writes them into the package layout.
                                       #   Default docs\_preview\msix-assets.
---store-art [dir]                     # the Store listing's uploads (T412): 9:16 poster, 1:1 box art and
-                                      #   the 300/150/71 tiles, each named for its Partner Center slot.
+--store-art [dir]                     # the Store listing's uploads (T412): 9:16 poster, 1:1 box art, 16:9
+                                      #   hero art and the 300/150/71 tiles, each named for its Partner Center slot.
                                       #   build-msix.ps1 writes them to dist\store-art; default
                                       #   docs\_preview\store-art.
 ```
