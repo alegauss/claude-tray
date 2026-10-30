@@ -881,20 +881,20 @@ follows, and what it writes outside its own folder.
 ### CVIII.1 A Microsoft Store package (T409)
 
 The installer is not signed, so everyone who downloads it from a release meets the SmartScreen
-warning before the app ever runs. The portfolio review of 30/10/2026 (visibility repo,
-`estrategia/portfolio.md` and `produtos/claude-tray.md`, task VS58 there) chose the Microsoft Store
-over buying a certificate: the Store signs the package, and claude-tray is the first app of the
-family to try that path; what it learns becomes a task in the other Windows apps.
+warning before the app ever runs. The portfolio review of 30/10/2026 (visibility repo, task VS58)
+chose the Microsoft Store over buying a certificate: the Store signs the package, and claude-tray is
+the first app of the family to try that path.
 
 The design, in the order it can break:
 
-1. **Reading `%USERPROFILE%\.claude` from inside the package.** The token, the transcripts and the settings live there. A full-trust MSIX (`runFullTrust`) keeps file access outside the package, but the redirection of writes to AppData has to be checked, since the app writes the environment file and its own settings.
-2. **Starting with Windows.** The installer's Run key does not exist in a package; the MSIX declares a `windows.startupTask`, and the Settings toggle has to drive it instead of the registry.
-3. **No self-update in the Store build.** The Store updates the package; `Updater.cs` downloading an installer into a packaged app would fight it. One build flag turns the updater and its menu item off.
+1. **The status-line feed.** `StatusLineFeed.Snippet` bakes `Environment.ProcessPath` into the command Claude Code runs; inside a package that is a `WindowsApps` path nothing outside may launch. The MSIX declares an app execution alias and the snippet names it.
+2. **The registry writes.** `CLAUDE_CONFIG_DIR` goes to `HKCU\Environment` through `SetEnvironmentVariable` (`EnvironmentProfile`), and the startup toggle writes the `Run` key itself (`Program`). If either write is virtualized, the profile switch silently never reaches a new shell. Startup becomes a `windows.startupTask` the toggle drives; the environment write is checked from a shell outside the package.
+3. **One binary.** The updater and its menu item turn off when the process runs packaged, detected at runtime, not by a build flag: `--selftest` keeps running the exe that ships.
 4. **Certification.** The listing needs the privacy text (nothing leaves the machine, no telemetry), the unofficial disclaimer, screenshots, and an answer to the policy check on reusing the Claude Code token.
 
-Done means a Store build passes certification and runs a week beside the winget install without
-drift.
+The packaged copy cannot run beside the winget one: they share the `Local\ClaudeTray.SingleInstance`
+mutex, and its `%LocalAppData%` is redirected. Done means a Store build passes certification and
+replaces the winget install for a week with all four points holding.
 
 ## CIX What a stranger meets first
 
@@ -907,10 +907,10 @@ for one invitation, without insistence, after a week of use.
 
 The design:
 
-- **When.** Once the app has been running on at least 7 distinct days, counted locally from the first-run date in the settings file. No network call, no telemetry: the count never leaves the machine.
-- **Where.** One toast, in the same style as the reset toasts, saying the app is free and that a star helps others find it, with two actions: open the repository, or dismiss.
-- **Never again.** Either action, or the toast timing out, writes a flag to settings; the invitation is not repeated, not even after an update or a profile switch. A Settings toggle ("Ask me for a star") defaults on and, when off, prevents it entirely.
-- **Not in the Store build** if the Store policy objects to it (see the MSIX task); the flag is enough to turn it off there.
+- **When.** Once the app has run on 7 distinct local days. Nothing records that today: `Settings` has no first-run date and `usage-history` keeps 8 days, so a counter and its last day go into the settings file, and the settings round-trip check covers both. No network call, no telemetry.
+- **Where.** One toast saying the app is free and that a star helps others find it. `ToastWindow` has a close button and nothing else, so this adds an action row: open the repository, or dismiss. Its strings go into all five `lang/*.json`.
+- **Never again.** Either action, or the toast timing out, writes a flag to settings; the invitation is not repeated, not after an update or a profile switch. No Settings toggle: it would matter only for the first six days.
+- **Not in the Store build** if the Store policy objects: the runtime packaged check from the MSIX task (T409) turns it off there.
 
 A check proves it shows once: day 6 no toast, day 7 one toast, day 8 and after none.
 
@@ -922,10 +922,12 @@ apart from the 28 quota monitors on winget, the forecast paced to working hours 
 the winget short description already open with it. The two surfaces a stranger meets first still say
 the older pitch:
 
-- **The site's title and meta description** (`site/index.html`, and the per-route copies `scripts/prerender.mjs` patches, plus `og:description`) speak of "burn-rate projection" and "per-session cost", which is what search results and every shared link preview show.
+- **The site's title and descriptions.** `site/src/lib/site-content.ts` holds the description and `og.description` the prerender (`site/scripts/prerender.mjs`) writes into every route, and `site/index.html` repeats the first. They speak of "burn-rate projection" and "per-session cost", which is what search results and every shared link preview show.
 - **The GitHub repository description** still reads "shows your rate-limit %, projects when you'll run out", which is what the awesome lists and the GitHub search show.
 
 The portfolio review of 30/10/2026 (`estrategia/portfolio.md`, `produtos/claude-tray.md`) makes this
-a rule: no new channel before the page, the release and the README say the same thing. The repo
-prepares the new site text and the exact description string; Alexandre runs the `gh repo edit`
-himself, since it changes a public surface.
+a rule: no new channel before the page, the release and the README say the same thing. A rule that
+is one claim in two places is a check here: `--selftest` asserts the site's description carries the
+README's headline pitch, so the next rewrite of either cannot drift alone. The repo prepares the new
+site text and the exact description string; the owner runs the `gh repo edit`, since it changes a
+public surface.
