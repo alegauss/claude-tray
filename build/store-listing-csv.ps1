@@ -14,8 +14,14 @@ param(
     [string]$Out,
     # So o texto: os campos de imagem ficam como vieram no CSV exportado. Serve para separar um erro de
     # importacao do texto de um erro das imagens.
-    [switch]$TextOnly
+    [switch]$TextOnly,
+    # Copia as imagens de um idioma (ex.: es-es) para os outros, como URLs do Partner Center. E o caminho que
+    # funciona: a importacao recusa imagem citada por nome de arquivo, mas as que ja subiram pela tela num
+    # idioma voltam no CSV exportado como URL, e a mesma URL serve as outras colunas. Implica -TextOnly
+    # para os arquivos locais.
+    [string]$ImagesFrom
 )
+if ($ImagesFrom) { $TextOnly = $true }
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 if (-not $Out) { $Out = Join-Path $root 'dist\store-listing' }
@@ -67,6 +73,27 @@ foreach ($f in @($images.Values) + @($shots | ForEach-Object Name)) {
 
 # --- 3) O CSV ---------------------------------------------------------------------
 $rows = Import-Csv $Template -Encoding UTF8
+$imageField = '^(DesktopScreenshot\d+|StoreLogo\w+|PromoImage\w+|OverrideLogosForWin10)$'
+$shotCount = 0
+if ($ImagesFrom) {
+    if (-not ($rows[0].PSObject.Properties.Name -contains $ImagesFrom)) { throw "coluna $ImagesFrom nao existe no CSV" }
+    $shotCount = @($rows | Where-Object { $_.Field -match '^DesktopScreenshot\d+$' -and $_.$ImagesFrom }).Count
+}
+foreach ($row in $rows) {
+    if ($ImagesFrom -and $row.Field -match $imageField) {
+        foreach ($code in $langs.Keys) {
+            if ($code -ne $ImagesFrom -and ($row.PSObject.Properties.Name -contains $code)) { $row.$code = $row.$ImagesFrom }
+        }
+    }
+    if ($ImagesFrom -and $row.Field -match '^DesktopScreenshotCaption(\d+)$') {
+        $i = [int]$Matches[1] - 1
+        foreach ($code in $langs.Keys) {
+            if ($row.PSObject.Properties.Name -contains $code) {
+                $row.$code = if ($i -lt $shotCount -and $i -lt $langs[$code].Captions.Count) { $langs[$code].Captions[$i] } else { '' }
+            }
+        }
+    }
+}
 foreach ($row in $rows) {
     foreach ($code in $langs.Keys) {
         if (-not ($row.PSObject.Properties.Name -contains $code)) { continue }

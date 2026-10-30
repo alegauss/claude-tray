@@ -4,10 +4,19 @@ What Partner Center asks for when the package is submitted, kept beside the mani
 the code it describes are reviewed together. Keep the wording in step with the README: the pitch, the
 privacy facts and the unofficial disclaimer are the same claims.
 
-**This file is the source; the listing CSV is generated from it.** Export the listing from Partner Center
-(Store listings > Export listings), then run
-`powershell -File build\store-listing-csv.ps1 -Template <the exported .csv>` and import the folder it
-writes, `dist\store-listing\`, which holds the filled CSV and every image it names. Each language section
+**This file is the source; the listing CSV is generated from it.** The import refuses an image named by
+file (measured 30/10/2026: the CSV with file names failed for every language, the same text with the
+export's own image cells went through), so images go up once by hand and the rest is copied:
+
+1. Upload the images from `dist\store-art\` in **one** language's listing through the Partner Center page.
+2. Export the listings (Store listings > Export listings). That language's image cells now hold Partner
+   Center URLs.
+3. Run `powershell -File build\store-listing-csv.ps1 -Template <the exported .csv> -ImagesFrom <that
+   language, e.g. es-es> -Out dist\store-listing-urls` and import the CSV it writes. It fills every
+   language's text from this file, copies the image URLs to the other languages, and turns on a
+   caption for each screenshot that exists.
+
+`-TextOnly` writes the text alone and leaves every image cell as exported. Each language section
 below must keep its shape — four bold headers (short description, description, features, captions) and
 two `**Label:**` lines (keywords, then copyright) — or the script stops and says which section broke.
 
