@@ -18,7 +18,7 @@
 | Block | Theme |
 |---|---|
 | [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
-| [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI |
+| [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI (active — see ROADMAP) |
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
@@ -57,6 +57,7 @@
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
 | [AM](#block-am--danger-is-said-not-only-coloured) | Danger is said, not only coloured |
 | [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system |
+| [AO](#block-ao--what-a-stranger-meets-first) | What a stranger meets first (active — see ROADMAP) |
 
 ## Block A — Foundation (tray, icon, API, projection)
 
