@@ -192,7 +192,8 @@ are held open by `PageWindow` for every popup, not per call site.
                                       #   names (T409); build-msix.ps1 writes them into the package layout.
                                       #   Default docs\_preview\msix-assets.
 --store-art [dir]                     # the Store listing's uploads (T412): 9:16 poster, 1:1 box art, 16:9
-                                      #   hero art and the 300/150/71 tiles, each named for its Partner Center slot.
+                                      #   hero art, the 300/150/71 tiles and, in a checkout, the README
+                                      #   screenshots composed onto 1920x1080 (the Store refuses smaller), each named for its Partner Center slot.
                                       #   build-msix.ps1 writes them to dist\store-art; default
                                       #   docs\_preview\store-art.
 ```

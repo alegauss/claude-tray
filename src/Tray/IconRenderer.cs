@@ -438,6 +438,28 @@ internal static class IconRenderer
         return bmp;
     }
 
+    /// <summary>
+    /// A screenshot for the Store listing (T412): <paramref name="shot"/> centred on the store art's backdrop,
+    /// scaled down to fit with a margin and never up, since enlarging a capture only blurs it.
+    /// </summary>
+    public static Bitmap RenderStoreShot(Bitmap shot, int w, int h)
+    {
+        var bmp = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+        using (var bg = new LinearGradientBrush(new Rectangle(0, 0, w, h),
+                   Color.FromArgb(32, 24, 20), Color.FromArgb(14, 10, 8), 25f))
+            g.FillRectangle(bg, 0, 0, w, h);
+
+        float scale = Math.Min(1f, Math.Min(w * 0.88f / shot.Width, h * 0.88f / shot.Height));
+        float sw = shot.Width * scale, sh = shot.Height * scale;
+        g.DrawImage(shot, (w - sw) / 2f, (h - sh) / 2f, sw, sh);
+        return bmp;
+    }
+
     /// <summary>Linearly interpolate between two colors; <paramref name="t"/> is clamped to [0,1].</summary>
     private static Color Lerp(Color a, Color b, double t)
     {

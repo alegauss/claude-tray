@@ -299,7 +299,11 @@ internal static class Program
         // rather than from the package. build-msix.ps1 writes them to dist\store-art beside the package.
         if (args.Length >= 1 && args[0] == "--store-art")
         {
-            PreviewCli.StoreArt(args.Length >= 2 ? args[1] : @"docs\_preview\store-art");
+            string artDir = args.Length >= 2 ? args[1] : @"docs\_preview\store-art";
+            PreviewCli.StoreArt(artDir);
+            // The screenshots come from the README's set, so only a checkout has them.
+            if (Directory.Exists(@"site\public\shots"))
+                PreviewCli.StoreShots(@"site\public\shots", artDir);
             return;
         }
 

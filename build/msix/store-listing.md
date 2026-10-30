@@ -1,8 +1,15 @@
 # Microsoft Store listing — Claude Code Tray (T409, T412)
 
 What Partner Center asks for when the package is submitted, kept beside the manifest so a submission and
-the code it describes are reviewed together. Paste each block into the field it names. Keep the wording
-in step with the README: the pitch, the privacy facts and the unofficial disclaimer are the same claims.
+the code it describes are reviewed together. Keep the wording in step with the README: the pitch, the
+privacy facts and the unofficial disclaimer are the same claims.
+
+**This file is the source; the listing CSV is generated from it.** Export the listing from Partner Center
+(Store listings > Export listings), then run
+`powershell -File build\store-listing-csv.ps1 -Template <the exported .csv>` and import the folder it
+writes, `dist\store-listing\`, which holds the filled CSV and every image it names. Each language section
+below must keep its shape — four bold headers (short description, description, features, captions) and
+two `**Label:**` lines (keywords, then copyright) — or the script stops and says which section broke.
 
 ## Images
 
@@ -18,8 +25,7 @@ in step with the README: the pitch, the privacy facts and the unofficial disclai
 | 1:1 150x150 | `tile-150x150.png` |
 | 1:1 71x71 | `tile-71x71.png` |
 
-Screenshots: the README's set under `site/public/shots/` (Windows needs at least one, 1366x768 or larger
-is accepted; PNG).
+| Desktop screenshots 1-6 | `screenshot-<n>-<source>.png`: six of the README's shots, in the order of `PreviewCli.StoreShotSources`, each composed onto 1920x1080 because the Store refuses a desktop screenshot under 1366x768 |
 
 ## Once per submission (not per language)
 
@@ -92,6 +98,17 @@ Anthropic. "Claude" and "Claude Code" are trademarks of Anthropic, PBC.
 
 **Keywords:** Claude Code, usage, rate limit, tray, quota, forecast, developer tools
 
+**Copyright and trademark:** © Alegauss. "Claude" and "Claude Code" are trademarks of Anthropic, PBC.
+
+**Screenshot captions**
+
+1. The weekly forecast, paced to the hours you actually work
+2. The 5-hour session and where your pace takes it
+3. A warning while there is still time to change course
+4. Every session, with its cost at API list prices
+5. What Claude Code loads before your first prompt
+6. Two profiles, one setup: history, skills and plugins shared
+
 ## Português (Brasil) (pt-br)
 
 **Descrição curta**
@@ -128,6 +145,17 @@ Anthropic. "Claude" e "Claude Code" são marcas registradas da Anthropic, PBC.
 
 **Palavras-chave:** Claude Code, uso, limite, bandeja, cota, previsão, ferramentas de desenvolvimento
 
+**Direitos autorais e marcas:** © Alegauss. "Claude" e "Claude Code" são marcas registradas da Anthropic, PBC.
+
+**Legendas das capturas de tela**
+
+1. A previsão semanal, no ritmo das horas em que você trabalha
+2. A sessão de 5 horas e onde o seu ritmo vai levá-la
+3. Um aviso enquanto ainda dá tempo de mudar o rumo
+4. Cada sessão, com o custo a preços de lista da API
+5. O que o Claude Code carrega antes do primeiro prompt
+6. Dois perfis, uma configuração: histórico, skills e plugins compartilhados
+
 ## Português (Portugal) (pt-pt)
 
 **Descrição breve**
@@ -163,6 +191,17 @@ Anthropic. "Claude" e "Claude Code" são marcas registadas da Anthropic, PBC.
 - Sem chave de API, sem configuração, sem telemetria
 
 **Palavras-chave:** Claude Code, utilização, limite, área de notificação, quota, previsão, ferramentas de programação
+
+**Direitos de autor e marcas:** © Alegauss. "Claude" e "Claude Code" são marcas registadas da Anthropic, PBC.
+
+**Legendas das capturas de ecrã**
+
+1. A previsão semanal, ao ritmo das horas em que trabalha
+2. A sessão de 5 horas e onde o seu ritmo a leva
+3. Um aviso enquanto ainda há tempo para mudar de rumo
+4. Cada sessão, com o custo a preços de tabela da API
+5. O que o Claude Code carrega antes do primeiro prompt
+6. Dois perfis, uma configuração: histórico, skills e plugins partilhados
 
 ## Français (fr-fr)
 
@@ -201,6 +240,17 @@ approuvée, ni sponsorisée par Anthropic. « Claude » et « Claude Code » son
 
 **Mots-clés :** Claude Code, usage, limite, zone de notification, quota, prévision, outils de développement
 
+**Droits d'auteur et marques:** © Alegauss. « Claude » et « Claude Code » sont des marques d'Anthropic, PBC.
+
+**Légendes des captures d'écran**
+
+1. La prévision hebdomadaire, calée sur vos heures de travail
+2. La session de 5 heures, et où votre rythme la mène
+3. Une alerte tant qu'il est temps de changer de cap
+4. Chaque session, avec son coût aux tarifs publics de l'API
+5. Ce que Claude Code charge avant votre premier prompt
+6. Deux profils, une configuration : historique, skills et plugins partagés
+
 ## Español (es-es)
 
 **Descripción breve**
@@ -235,3 +285,14 @@ por Anthropic. «Claude» y «Claude Code» son marcas comerciales de Anthropic,
 - Sin clave de API, sin configuración, sin telemetría
 
 **Palabras clave:** Claude Code, uso, límite, bandeja, cuota, previsión, herramientas de desarrollo
+
+**Derechos de autor y marcas:** © Alegauss. «Claude» y «Claude Code» son marcas comerciales de Anthropic, PBC.
+
+**Leyendas de las capturas de pantalla**
+
+1. La previsión semanal, al ritmo de las horas en que trabajas
+2. La sesión de 5 horas y adónde la lleva tu ritmo
+3. Un aviso mientras aún hay tiempo de cambiar el rumbo
+4. Cada sesión, con su coste a precios de lista de la API
+5. Lo que Claude Code carga antes de tu primer prompt
+6. Dos perfiles, una configuración: historial, skills y plugins compartidos

@@ -521,6 +521,30 @@ internal static class PreviewCli
             Save(IconRenderer.RenderLogo(size), $"tile-{size}x{size}.png");
     }
 
+    /// <summary>
+    /// The README screenshots the Store listing shows, in its order (T412). The Store refuses a desktop
+    /// screenshot under 1366x768 and most of these are smaller, so each is composed onto a 1920x1080 canvas
+    /// of the store art's backdrop rather than uploaded as it is.
+    /// </summary>
+    internal static readonly string[] StoreShotSources =
+    {
+        "statistics-7d.png", "statistics-5h.png", "notify-pace.png",
+        "statistics-sessions.png", "context.png", "link-profiles.png",
+    };
+
+    internal static void StoreShots(string shotsDir, string dir)
+    {
+        for (int i = 0; i < StoreShotSources.Length; i++)
+        {
+            string source = Path.Combine(shotsDir, StoreShotSources[i]);
+            using var shot = new Bitmap(source);
+            using Bitmap canvas = IconRenderer.RenderStoreShot(shot, 1920, 1080);
+            string path = Path.Combine(dir, $"screenshot-{i + 1}-{StoreShotSources[i]}");
+            using (FileStream fs = OutFile.Create(path)) canvas.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
+            Console.WriteLine("wrote " + Path.GetFullPath(path));
+        }
+    }
+
     internal static void MakeIcon(string path)
     {
         int[] sizes = { 16, 24, 32, 48, 64, 128, 256 };
