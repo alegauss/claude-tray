@@ -45,6 +45,10 @@
 
 ## Block AI — Verification — the checks that prove a change
 
+## Block B — Packaging, self-update, CI
+
+## Block AO — What a stranger meets first
+
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -871,3 +875,57 @@ Either one changes `ApiAtLeastEverySeconds` or the 0.9 floor, not the design.
 
 Accounts, profiles and the machine-wide config dir: how the tray finds them, which one the icon
 follows, and what it writes outside its own folder.
+
+## CVIII Packaging, self-update, CI
+
+### CVIII.1 A Microsoft Store package (T409)
+
+The installer is not signed, so everyone who downloads it from a release meets the SmartScreen
+warning before the app ever runs. The portfolio review of 30/10/2026 (visibility repo,
+`estrategia/portfolio.md` and `produtos/claude-tray.md`, task VS58 there) chose the Microsoft Store
+over buying a certificate: the Store signs the package, and claude-tray is the first app of the
+family to try that path; what it learns becomes a task in the other Windows apps.
+
+The design, in the order it can break:
+
+1. **Reading `%USERPROFILE%\.claude` from inside the package.** The token, the transcripts and the settings live there. A full-trust MSIX (`runFullTrust`) keeps file access outside the package, but the redirection of writes to AppData has to be checked, since the app writes the environment file and its own settings.
+2. **Starting with Windows.** The installer's Run key does not exist in a package; the MSIX declares a `windows.startupTask`, and the Settings toggle has to drive it instead of the registry.
+3. **No self-update in the Store build.** The Store updates the package; `Updater.cs` downloading an installer into a packaged app would fight it. One build flag turns the updater and its menu item off.
+4. **Certification.** The listing needs the privacy text (nothing leaves the machine, no telemetry), the unofficial disclaimer, screenshots, and an answer to the policy check on reusing the Claude Code token.
+
+Done means a Store build passes certification and runs a week beside the winget install without
+drift.
+
+## CIX What a stranger meets first
+
+### CIX.1 One invitation to star, after a week (T410)
+
+Nobody who installs the app is ever told the repository exists, and stars are the one public signal
+the family has: the GitHub page, the awesome lists and every Show HN reader read them before
+anything else. The portfolio review of 30/10/2026 (visibility repo, `estrategia/portfolio.md`) asks
+for one invitation, without insistence, after a week of use.
+
+The design:
+
+- **When.** Once the app has been running on at least 7 distinct days, counted locally from the first-run date in the settings file. No network call, no telemetry: the count never leaves the machine.
+- **Where.** One toast, in the same style as the reset toasts, saying the app is free and that a star helps others find it, with two actions: open the repository, or dismiss.
+- **Never again.** Either action, or the toast timing out, writes a flag to settings; the invitation is not repeated, not even after an update or a profile switch. A Settings toggle ("Ask me for a star") defaults on and, when off, prevents it entirely.
+- **Not in the Store build** if the Store policy objects to it (see the MSIX task); the flag is enough to turn it off there.
+
+A check proves it shows once: day 6 no toast, day 7 one toast, day 8 and after none.
+
+### CIX.2 The site and the GitHub description carry the VS30 pitch (T411)
+
+The pitch approved in VS30 (visibility repo, 15/10/2026) is "red before you run out, and a weekly
+forecast paced to the hours you actually work": warning before the limit no longer sets the app
+apart from the 28 quota monitors on winget, the forecast paced to working hours does. The README and
+the winget short description already open with it. The two surfaces a stranger meets first still say
+the older pitch:
+
+- **The site's title and meta description** (`site/index.html`, and the per-route copies `scripts/prerender.mjs` patches, plus `og:description`) speak of "burn-rate projection" and "per-session cost", which is what search results and every shared link preview show.
+- **The GitHub repository description** still reads "shows your rate-limit %, projects when you'll run out", which is what the awesome lists and the GitHub search show.
+
+The portfolio review of 30/10/2026 (`estrategia/portfolio.md`, `produtos/claude-tray.md`) makes this
+a rule: no new channel before the page, the release and the README say the same thing. The repo
+prepares the new site text and the exact description string; Alexandre runs the `gh repo edit`
+himself, since it changes a public surface.

@@ -46,6 +46,15 @@
 
 ## Block AI — Verification — the checks that prove a change
 
+## Block B — Packaging, self-update, CI
+
+- 📋 **T409** (deps: —) **Everyone who downloads the installer meets the SmartScreen warning, because nothing signs it** — The Store signs the package for free, and claude-tray is the first app of the family to test that path before the others follow. → §CVIII.1
+
+## Block AO — What a stranger meets first
+
+- 📋 **T410** (deps: —) **Someone who has used the app for weeks is never told a star on GitHub is how others find it** — Stars are the first thing the GitHub page, the awesome lists and a Show HN reader see, and one local, never-repeated invitation costs nothing. → §CIX.1
+- 📋 **T411** (deps: —) **Search results, link previews and the GitHub page still describe the old pitch, not the forecast** — The VS30 pitch is the one thing that sets the app apart from 28 winget monitors, and only the README and winget say it today. → §CIX.2
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
