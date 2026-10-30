@@ -62,6 +62,33 @@ when idle), using the OAuth sign-in Claude Code already stores in
 Code's local transcripts it reads token counts, model ids, flags, tool and skill names and the working
 directory — never message content. Everything it stores stays in its own app data folder.
 
+### Restricted capability: runFullTrust
+
+Partner Center asks why the package declares `runFullTrust` (Packages > Restricted capabilities). Every
+Win32 app packaged as MSIX declares it; the answer is what the app does with it:
+
+> Claude Code Tray is a classic Win32 desktop application (.NET, WinForms and WPF) packaged as MSIX with
+> the Desktop Bridge, so it runs as Windows.FullTrustApplication. runFullTrust is what lets it work as the
+> desktop app it is; it does not elevate, install services or drivers, and runs entirely as the signed-in
+> user.
+>
+> It needs full trust for these features:
+> 1. A notification-area (system tray) icon that shows the user's Claude Code usage, drawn with
+>    Shell_NotifyIcon and updated every few minutes.
+> 2. Reading the files Claude Code keeps in the user's profile (%USERPROFILE%\.claude): its sign-in, used
+>    only to read the user's own usage limits, and its session transcripts, from which only token counts,
+>    model ids and similar metadata are read, never message content. These files are outside the app's
+>    package and app data folders.
+> 3. When the user turns it on in Settings, writing the user-scope CLAUDE_CONFIG_DIR environment variable
+>    so that new terminals start Claude Code with the profile the user picked.
+> 4. Launching Claude Code (the "claude" command-line tool) in a terminal from the tray menu, in the folder
+>    the user chose.
+> 5. Being run by Claude Code's status-line command through the ClaudeTray.exe execution alias, which
+>    passes the current usage to the app on standard input.
+>
+> No data is sent to the developer; the only network request is a minimal call to the Anthropic API with
+> the user's existing Claude Code sign-in, to read the rate-limit headers that show the user's own usage.
+
 ### Reusing the Claude Code sign-in (the policy question)
 
 The app does not ask for, store or transmit credentials of its own. It reads the OAuth token Claude Code
