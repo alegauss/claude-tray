@@ -48,7 +48,7 @@
 
 ## Block B — Packaging, self-update, CI
 
-- 📋 **T412** (deps: —) (requires: store-account) **No Store build has passed certification or replaced the winget install for a week** — The package is built and measured locally, but only a submission shows the Store accepts it and only a week of use shows it can replace winget. → §CVIII.2
+- ⏳ **T412** (deps: —) (requires: store-account) **No Store build has passed certification or replaced the winget install for a week** — Submitting the package, the token-reuse policy answer and a week on the Store build in place of winget are left, all of them the owner's. → §CVIII.2
 
 ## Block AO — What a stranger meets first
 

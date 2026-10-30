@@ -41,6 +41,12 @@ if ($p.ExitCode -ne 0) { throw "--msix-assets saiu com $($p.ExitCode)" }
 
 Write-Host "layout: $layout  (versao $version)"
 
+# As imagens da listagem (poster, arte de caixa, blocos) nao vao no pacote: sobem a mao no Partner Center.
+$art = Join-Path $dist 'store-art'
+$p = Start-Process $exe -ArgumentList '--store-art', $art -Wait -PassThru -NoNewWindow
+if ($p.ExitCode -ne 0) { throw "--store-art saiu com $($p.ExitCode)" }
+Write-Host "imagens da listagem: $art"
+
 # --- 3) makeappx ---------------------------------------------------------------
 $kits = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
 $makeappx = Get-ChildItem $kits -Recurse -Filter makeappx.exe -ErrorAction SilentlyContinue |

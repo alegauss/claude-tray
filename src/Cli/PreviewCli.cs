@@ -499,6 +499,27 @@ internal static class PreviewCli
         }
     }
 
+    /// <summary>
+    /// The images Partner Center's listing asks for (T412), each at the largest size its slot accepts: the 9:16
+    /// poster, the 1:1 box art, and the three app tiles. Uploaded by hand, so each file is named for its slot.
+    /// </summary>
+    internal static void StoreArt(string dir)
+    {
+        void Save(Bitmap bmp, string file)
+        {
+            string path = Path.Combine(dir, file);
+            using (bmp)
+            using (FileStream fs = OutFile.Create(path))
+                bmp.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
+            Console.WriteLine("wrote " + Path.GetFullPath(path));
+        }
+
+        Save(IconRenderer.RenderStoreArt(1440, 2160), "poster-9x16-1440x2160.png");
+        Save(IconRenderer.RenderStoreArt(2160, 2160), "box-1x1-2160x2160.png");
+        foreach (int size in new[] { 300, 150, 71 })
+            Save(IconRenderer.RenderLogo(size), $"tile-{size}x{size}.png");
+    }
+
     internal static void MakeIcon(string path)
     {
         int[] sizes = { 16, 24, 32, 48, 64, 128, 256 };

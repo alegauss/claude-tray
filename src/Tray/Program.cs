@@ -295,6 +295,14 @@ internal static class Program
             return;
         }
 
+        // The listing's own images (T412): poster, box art and tiles, which Partner Center takes as uploads
+        // rather than from the package. build-msix.ps1 writes them to dist\store-art beside the package.
+        if (args.Length >= 1 && args[0] == "--store-art")
+        {
+            PreviewCli.StoreArt(args.Length >= 2 ? args[1] : @"docs\_preview\store-art");
+            return;
+        }
+
         if (args.Length >= 1 && args[0] == "--social")
         {
             // build\, not the site: this is the 1280x640 card GitHub shows for the repository, which is

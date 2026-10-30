@@ -360,6 +360,47 @@ internal static class IconRenderer
         return bmp;
     }
 
+    /// <summary>
+    /// Render the Microsoft Store's poster (9:16) and box art (1:1) (T412): the social card's backdrop, with the
+    /// logo tile above the name, centred, and scaled to the canvas. No tagline: one image serves every listing
+    /// language, and the words belong to each language's description.
+    /// </summary>
+    public static Bitmap RenderStoreArt(int w, int h)
+    {
+        var bmp = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+
+        using (var bg = new LinearGradientBrush(new Rectangle(0, 0, w, h),
+                   Color.FromArgb(32, 24, 20), Color.FromArgb(14, 10, 8), 65f))
+            g.FillRectangle(bg, 0, 0, w, h);
+
+        float unit = Math.Min(w, h);
+        int logo = (int)(unit * 0.40f);
+        float titleSize = unit * 0.105f;
+        using var titleFont = new Font("Segoe UI", titleSize, FontStyle.Bold, GraphicsUnit.Pixel);
+        float lineH = titleSize * 1.22f;
+
+        // The block — logo, gap, two title lines — centred as a whole, a little above the middle.
+        float gap = unit * 0.09f;
+        float block = logo + gap + 2 * lineH;
+        float top = (h - block) / 2f - h * 0.03f;
+
+        using (var tile = RenderLogo(logo))
+            g.DrawImage(tile, (w - logo) / 2f, top, logo, logo);
+
+        using var white = new SolidBrush(Color.FromArgb(245, 244, 242));
+        using var clay = new SolidBrush(ClaudeClay);
+        using var centre = new StringFormat { Alignment = StringAlignment.Center };
+        float ty = top + logo + gap;
+        g.DrawString("Claude Code", titleFont, white, new RectangleF(0, ty, w, lineH * 1.2f), centre);
+        g.DrawString("Tray", titleFont, clay, new RectangleF(0, ty + lineH, w, lineH * 1.2f), centre);
+
+        return bmp;
+    }
+
     /// <summary>Linearly interpolate between two colors; <paramref name="t"/> is clamped to [0,1].</summary>
     private static Color Lerp(Color a, Color b, double t)
     {
