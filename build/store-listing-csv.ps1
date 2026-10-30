@@ -11,7 +11,10 @@
 # As imagens saem de dist\store-art (build-msix.cmd, ou ClaudeTray.exe --store-art dist\store-art).
 param(
     [Parameter(Mandatory = $true)][string]$Template,
-    [string]$Out
+    [string]$Out,
+    # So o texto: os campos de imagem ficam como vieram no CSV exportado. Serve para separar um erro de
+    # importacao do texto de um erro das imagens.
+    [switch]$TextOnly
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -55,6 +58,7 @@ $images = @{
     'PromoImage1920x1080'      = 'hero-16x9-3840x2160.png'
 }
 $shots = @(Get-ChildItem $art -Filter 'screenshot-*.png' | Sort-Object { [int]($_.Name -replace '^screenshot-(\d+)-.*$', '$1') })
+if ($TextOnly) { $images = @{}; $shots = @() }
 foreach ($f in @($images.Values) + @($shots | ForEach-Object Name)) {
     $src = Join-Path $art $f
     if (-not (Test-Path $src)) { throw "imagem ausente: $src (rode build-msix.cmd)" }
@@ -74,19 +78,30 @@ foreach ($row in $rows) {
             '^ShortDescription$'              { $value = $l.Short }
             '^DevStudio$'                     { $value = 'Alegauss' }
             '^CopyrightTrademarkInformation$' { $value = $l.Copyright }
-            '^OverrideLogosForWin10$'         { $value = 'True' }
+            '^OverrideLogosForWin10$'         { if (-not $TextOnly) { $value = 'True' } }
             '^Feature(\d+)$'                  { $i = [int]$Matches[1] - 1; $value = if ($i -lt $l.Features.Count) { $l.Features[$i] } else { '' } }
             '^SearchTerm(\d+)$'               { $i = [int]$Matches[1] - 1; $value = if ($i -lt $l.Keywords.Count) { $l.Keywords[$i] } else { '' } }
-            '^DesktopScreenshot(\d+)$'        { $i = [int]$Matches[1] - 1; $value = if ($i -lt $shots.Count) { $shots[$i].Name } else { '' } }
-            '^DesktopScreenshotCaption(\d+)$' { $i = [int]$Matches[1] - 1; $value = if ($i -lt $l.Captions.Count -and $i -lt $shots.Count) { $l.Captions[$i] } else { '' } }
+            '^DesktopScreenshot(\d+)$'        { if (-not $TextOnly) { $i = [int]$Matches[1] - 1; $value = if ($i -lt $shots.Count) { $shots[$i].Name } else { '' } } }
+            '^DesktopScreenshotCaption(\d+)$' { if (-not $TextOnly) { $i = [int]$Matches[1] - 1; $value = if ($i -lt $l.Captions.Count -and $i -lt $shots.Count) { $l.Captions[$i] } else { '' } } }
         }
         if ($images.ContainsKey($f)) { $value = $images[$f] }
         if ($null -ne $value) { $row.$code = $value }
     }
 }
 
-$csv = ($rows | ConvertTo-Csv -NoTypeInformation) -join "`r`n"
+# Gravado no formato exato que o Partner Center exporta, e nao com ConvertTo-Csv: a importacao recusou
+# (sem dizer por que) o arquivo do ConvertTo-Csv, que poe aspas em todo campo e no cabecalho. Aqui: aspas so
+# onde o campo precisa, LF dentro de um campo, CRLF entre linhas, BOM, e sem quebra de linha no fim.
+function Cell([string]$v) {
+    if ($null -eq $v) { return '' }
+    $v = $v -replace "`r`n", "`n"
+    if ($v -match '[",\n]') { return '"' + $v.Replace('"', '""') + '"' }
+    return $v
+}
+$columns = $rows[0].PSObject.Properties.Name
+$lines = @(($columns | ForEach-Object { Cell $_ }) -join ',')
+foreach ($row in $rows) { $lines += (($columns | ForEach-Object { Cell $row.$_ }) -join ',') }
 $file = Join-Path $Out (Split-Path -Leaf $Template)
-[IO.File]::WriteAllText($file, $csv + "`r`n", (New-Object Text.UTF8Encoding $true))
+[IO.File]::WriteAllText($file, ($lines -join "`r`n"), (New-Object Text.UTF8Encoding $true))
 Write-Host "listagem: $file"
 Write-Host "importe a pasta $Out no Partner Center (Listagens da Store > Importar)"
