@@ -889,7 +889,7 @@ The design, in the order it can break:
 
 1. **The status-line feed.** `StatusLineFeed.Snippet` bakes `Environment.ProcessPath` into the command Claude Code runs; inside a package that is a `WindowsApps` path nothing outside may launch. The MSIX declares an app execution alias and the snippet names it.
 2. **The registry writes.** `CLAUDE_CONFIG_DIR` goes to `HKCU\Environment` through `SetEnvironmentVariable` (`EnvironmentProfile`), and the startup toggle writes the `Run` key itself (`Program`). If either write is virtualized, the profile switch silently never reaches a new shell. Startup becomes a `windows.startupTask` the toggle drives; the environment write is checked from a shell outside the package.
-3. **One binary.** The updater and its menu item turn off when the process runs packaged, detected at runtime, not by a build flag: `--selftest` keeps running the exe that ships.
+3. **One binary.** Landed: `PackageIdentity.IsPackaged` asks `GetCurrentPackageFullName` at runtime, the updater stands down under a package, and the status-line snippet already names the `ClaudeTray.exe` alias, so point 1 needs only the manifest's `uap5:AppExecutionAlias` to match it.
 4. **Certification.** The listing needs the privacy text (nothing leaves the machine, no telemetry), the unofficial disclaimer, screenshots, and an answer to the policy check on reusing the Claude Code token.
 
 The packaged copy cannot run beside the winget one: they share the `Local\ClaudeTray.SingleInstance`

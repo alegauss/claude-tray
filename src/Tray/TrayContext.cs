@@ -1469,7 +1469,8 @@ internal sealed class TrayContext : ApplicationContext
     // Ask GitHub for the latest release; if newer, surface it in the menu and notify once.
     private async Task CheckForUpdateAsync()
     {
-        if (_updating) return;
+        // A Store package is updated by the Store (T409); the installer would land beside it.
+        if (_updating || PackageIdentity.IsPackaged) return;
         UpdateInfo? info = await _updater.CheckAsync();
         if (info == null || (_update != null && info.Version <= _update.Version)) return;
 

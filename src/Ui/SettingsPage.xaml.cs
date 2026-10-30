@@ -83,7 +83,7 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
             ? Settings.DefaultDirectory
             : _settings.ClaudeCodeDirectory;
         AutoOpenCheck.IsChecked = _settings.AutoOpenOnUnauthenticated;
-        StatusLineSnippet.Text = StatusLineFeed.Snippet(Environment.ProcessPath ?? "ClaudeTray.exe");
+        StatusLineSnippet.Text = StatusLineFeed.Snippet(PackageIdentity.StatusLineExe(PackageIdentity.IsPackaged, Environment.ProcessPath));
         FollowActiveCheck.IsChecked = _settings.FollowActiveProfile;
         EnvSyncCheck.IsChecked = _settings.SyncEnvironmentProfile;
         ShowPctCheck.IsChecked = _settings.ShowPercentage;

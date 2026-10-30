@@ -135,7 +135,9 @@ why = 200
 # test the stopped one is to boot it, which is the very side effect that task must prove it avoids.
 # `statusline-day` is a build with T390 installed, its status-line entry pasted into a profile, and a
 # working day of readings behind it (T398): a measurement of a habit, which no session can produce.
-declared = ["wsl-claude", "statusline-day"]
+# `store-account` is a Partner Center account the MSIX can be submitted under (T409): the manifest, the
+# startup task and certification are only proven by a real Store submission, which no session can make.
+declared = ["wsl-claude", "statusline-day", "store-account"]
 
 [markers]
 open = ["📋", "💭", "⏳", "🛠"]

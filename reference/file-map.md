@@ -23,6 +23,7 @@ AGENTS.md states all three, because getting them wrong costs a redo.
 | `src/Tray/TrayContext.cs` | The resident app: tray icon, menu, poll/flash/update timers plus the 6h `_backgroundSample` one (context scan + activity-grid warm-up), `ApplySettings`, tooltip, icon render, the watched-profile list and `OpenMain` — the **one** entry point to the **one** window (T158), from a left-click on the icon or the menu's bold *Open*. |
 | `src/Tray/IconRenderer.cs` | GDI+ icon (vector number + outline + fill bar + projection color) at the real size; also the app `.ico` and social image. |
 | `src/Tray/Updater.cs` | Checks GitHub Releases; downloads/runs the installer for in-app self-update. `CurrentVersion`. |
+| `src/Tray/PackageIdentity.cs` | Whether the process runs inside the Store's MSIX package, asked at runtime (T409): the updater stands down under one, and the status-line command names the package's execution alias instead of a `WindowsApps` path. |
 | `src/Tray/TooltipText.cs` | What the tooltip says, composed from an explicit `Input` rather than from a live tray (T214) — it is `NOTIFYICONDATA.szTip`, drawn by the shell, so there is nothing to screenshot and nothing in the accessibility tree, and composing it away from the tray is the only way the surface can be reviewed at all. Owns `Cap`, the 127 characters that survive the Windows limit and decide whether the projection sentence appears in full, compact or not at all. |
 
 ## `src/Cli/` — the headless printers

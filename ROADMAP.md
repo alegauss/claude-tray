@@ -48,7 +48,7 @@
 
 ## Block B — Packaging, self-update, CI
 
-- 📋 **T409** (deps: —) **Everyone who downloads the installer meets the SmartScreen warning, because nothing signs it** — The Store signs the package for free, and claude-tray is the first app of the family to test that path before the others follow. → §CVIII.1
+- ⏳ **T409** (deps: —) (requires: store-account) **Everyone who downloads the installer meets the SmartScreen warning, because nothing signs it** — The manifest, the startup task, the environment-write check and Store certification remain, and all of them need a Partner Center account to test. → §CVIII.1
 
 ## Block AO — What a stranger meets first
 

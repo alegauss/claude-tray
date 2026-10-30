@@ -2563,6 +2563,21 @@ internal static partial class SelfTestCli
                   == "\"C:/Program Files/ClaudeTray/ClaudeTray.exe\" --statusline");
         Check("and the quotes are readable on the page, not \\u0022",
               !StatusLineFeed.Snippet(@"C:\Program Files\x.exe").Contains("\\u0022"));
+        // T409. A Store package's own path is a WindowsApps folder nothing outside it may launch, so the
+        // command names the alias the package puts on PATH — and a copy outside one keeps its own path.
+        Check("packaged, the status line runs the execution alias rather than the WindowsApps path",
+              Command(PackageIdentity.StatusLineExe(true, @"C:\Program Files\WindowsApps\x\ClaudeTray.exe"))
+                  == "ClaudeTray.exe --statusline"
+              && StatusLineFeed.Classify("""{ "statusLine": { "command": "ClaudeTray.exe --statusline" } }""")
+                  == StatusLineFeed.Setup.Ours);
+        Check("unpackaged, it runs this exe's own path",
+              PackageIdentity.StatusLineExe(false, @"C:\Tools\ClaudeTray.exe") == @"C:\Tools\ClaudeTray.exe");
+        // The detection is the switch that turns the updater off, so it is checked against a second signal
+        // rather than trusted: a package's exe is installed under WindowsApps and nothing else is. A false
+        // positive would silence every installer's updates; a false negative, run the installer over a package.
+        Check("package identity agrees with where the exe lives, so an installed copy keeps its updater",
+              PackageIdentity.IsPackaged
+                  == (Environment.ProcessPath ?? "").Contains(@"\WindowsApps\", StringComparison.OrdinalIgnoreCase));
         // T404. What a profile's settings.json already says, so the row can show it is done.
         Check("a settings file that runs this app with --statusline is ours, wherever the exe lives",
               StatusLineFeed.Classify("""{ "statusLine": { "type": "command", "command": "C:/x/ClaudeTray.exe --statusline" } }""")
