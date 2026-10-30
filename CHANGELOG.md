@@ -774,3 +774,4 @@
 
 ## Block AO — What a stranger meets first
 
+- **T410** — On the seventh distinct local day the tray runs, one card invites a star on GitHub, with a button that opens the repository and one that dismisses; the days are counted in the settings file, nothing leaves the machine to decide it, and it is never shown again.

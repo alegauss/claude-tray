@@ -255,6 +255,19 @@ internal sealed class Settings
     /// <see cref="EnvironmentProfileOwned"/>.</summary>
     public string? EnvironmentProfileRestore { get; set; }
 
+    /// <summary>How many distinct local days the tray has run on, counted toward the one invitation to star
+    /// the repository (<see cref="StarInvite"/>, T410). The tray's own bookkeeping, with no control on any
+    /// page, so no window ever changes it.</summary>
+    public int DaysUsed { get; set; } = 0;
+
+    /// <summary>The last local day <see cref="DaysUsed"/> counted, as <c>yyyy-MM-dd</c>, so a day counts
+    /// once however often the tray starts on it. Empty until the first.</summary>
+    public string LastUsedDay { get; set; } = "";
+
+    /// <summary>Set the moment the invitation is shown, and never cleared: it is not repeated after an
+    /// update, a profile switch or a dismissal (T410).</summary>
+    public bool StarInvited { get; set; } = false;
+
     /// <summary>Where the app keeps its own state — <c>%LocalAppData%\ClaudeTray</c>: this file, the
     /// caches, the usage/context history and the reset log. Public so the System information page can
     /// show (and open) it without a second copy of the path.</summary>
@@ -366,6 +379,8 @@ internal sealed class Settings
         ContextNudgeTokens = Math.Clamp(ContextNudgeTokens, MinContextNudgeTokens, MaxContextNudgeTokens);
         Levels5h = NormaliseLevels(Levels5h);
         Levels7d = NormaliseLevels(Levels7d);
+        DaysUsed = Math.Max(0, DaysUsed);
+        LastUsedDay ??= "";
         if (string.IsNullOrWhiteSpace(ClaudeCodeDirectory))
             ClaudeCodeDirectory = DefaultDirectory;
         if (Array.IndexOf(ValidMetrics, Metric) < 0)

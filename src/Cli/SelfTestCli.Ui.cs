@@ -94,6 +94,35 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// The invitation to star the repository is shown once, on the seventh distinct day of use (T410): day 6
+    /// shows nothing, day 7 shows it, and no day after it — a restart, an update or the next week — shows it
+    /// again. Run over a fresh model and a fixed calendar, so the user's own settings file is never read.
+    /// </summary>
+    private static void StarInviteOnce()
+    {
+        var s = new Settings();
+        var day1 = new DateTime(2026, 3, 1, 9, 0, 0);
+        int shown = 0;
+        bool sixth = false, seventh = false;
+        for (int d = 0; d < StarInvite.Days + 3; d++)
+        {
+            // Two starts on each day: the second must count nothing.
+            bool show = StarInvite.Note(s, day1.AddDays(d)).Show | StarInvite.Note(s, day1.AddDays(d).AddHours(8)).Show;
+            if (show) shown++;
+            if (d == StarInvite.Days - 2) sixth = show;
+            if (d == StarInvite.Days - 1) seventh = show;
+        }
+        Check("the star invitation waits out six days of use", !sixth);
+        Check("and shows on the seventh, once, however often the tray starts",
+              seventh && shown == 1 && s.StarInvited, $"shown {shown} time(s), {s.DaysUsed} day(s) counted");
+
+        var back = new Settings();
+        StarInvite.Note(back, day1.AddDays(3));
+        (bool changed, _) = StarInvite.Note(back, day1);
+        Check("a clock set back to an earlier day counts nothing", !changed && back.DaysUsed == 1);
+    }
+
+    /// <summary>
     /// What T188 was: two toasts wearing the same clay for opposite news — quota back early, and you have
     /// started paying. A colour on these cards is a claim about what kind of news it is, so the rule is one
     /// row per <see cref="ToastWindow.ToastTheme"/> and no two rows alike, and it is asserted rather than

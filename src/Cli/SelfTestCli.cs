@@ -151,6 +151,7 @@ internal static partial class SelfTestCli
 
         Section("settings — the page's copy and the tray's carry (Blocks S and Z)");
         SettingsRoundTrip();
+        StarInviteOnce();
 
         Section("lang — five files, one key set and one set of holes (Block AF)");
         Translations();

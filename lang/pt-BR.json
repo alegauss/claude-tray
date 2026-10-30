@@ -760,6 +760,11 @@
   "toast.profile.subtitle": "{0} — {1}",
   "toast.profile.caption": "As sessões iniciadas de agora em diante usam este perfil. Uma já aberta mantém o perfil com que começou.",
   "toast.profile.captionFailed": "O CLAUDE_CONFIG_DIR ainda diz {0}.",
+  "toast.star.title": "Gostando do Claude Code Tray?",
+  "toast.star.subtitle": "Ele é gratuito e de código aberto.",
+  "toast.star.caption": "Uma estrela no GitHub é como outras pessoas o encontram. Este pedido não se repete.",
+  "toast.star.open": "Dar estrela no GitHub",
+  "toast.star.later": "Não, obrigado",
   "toast.extra.quotaLabel": "uso extra até agora",
   "toast.context.quotaLabel": "Janela de contexto ainda livre"
 }

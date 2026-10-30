@@ -52,7 +52,6 @@
 
 ## Block AO — What a stranger meets first
 
-- 📋 **T410** (deps: —) **Someone who has used the app for weeks is never told a star on GitHub is how others find it** — Stars are the first thing the GitHub page, the awesome lists and a Show HN reader see, and one local, never-repeated invitation costs nothing. → §CIX.1
 - 📋 **T411** (deps: —) **Search results, link previews and the GitHub page still describe the old pitch, not the forecast** — The VS30 pitch is the one thing that sets the app apart from 28 winget monitors, and only the README and winget say it today. → §CIX.2
 
 ## Non-goals (do NOT add as tasks)

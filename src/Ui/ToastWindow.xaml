@@ -27,6 +27,26 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- The action row's buttons: a rounded label, brighter under the pointer. -->
+        <Style x:Key="Pill" TargetType="Button">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="13"
+                                Padding="14,5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <!-- Root carries the entrance slide + fade (set in code-behind). -->
@@ -98,6 +118,16 @@
                         </StackPanel>
                         <TextBlock x:Name="Caption" FontSize="12" Foreground="#CCFFFFFF"
                                    Margin="0,7,0,0" TextWrapping="Wrap" />
+                        <!-- Collapsed unless a card asks a question (WithActions, T410). -->
+                        <StackPanel x:Name="ActionRow" Orientation="Horizontal" Margin="0,12,0,0"
+                                    Visibility="Collapsed">
+                            <Button x:Name="ToastActionButton" Style="{StaticResource Pill}"
+                                    Background="White" Foreground="#1A2142" FontWeight="SemiBold"
+                                    Click="Action_Click" />
+                            <Button x:Name="ToastDismissButton" Style="{StaticResource Pill}"
+                                    Background="#22FFFFFF" Foreground="White" Margin="8,0,0,0"
+                                    Click="Close_Click" />
+                        </StackPanel>
                     </StackPanel>
                 </Grid>
             </Grid>

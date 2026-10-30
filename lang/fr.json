@@ -760,6 +760,11 @@
   "toast.profile.subtitle": "{0} — {1}",
   "toast.profile.caption": "Les sessions lancées à partir de maintenant l’utilisent. Une session déjà ouverte garde le profil avec lequel elle a démarré.",
   "toast.profile.captionFailed": "CLAUDE_CONFIG_DIR indique toujours {0}.",
+  "toast.star.title": "Vous appréciez Claude Code Tray ?",
+  "toast.star.subtitle": "Il est gratuit et open source.",
+  "toast.star.caption": "Une étoile sur GitHub aide d’autres personnes à le trouver. Cette demande ne sera pas répétée.",
+  "toast.star.open": "Étoile sur GitHub",
+  "toast.star.later": "Non merci",
   "toast.extra.quotaLabel": "usage supplémentaire à ce jour",
   "toast.context.quotaLabel": "Fenêtre de contexte encore libre"
 }

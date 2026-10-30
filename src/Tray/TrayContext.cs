@@ -101,7 +101,7 @@ internal sealed class TrayContext : ApplicationContext
         _flash.Start();
         _updateCheck.Tick += async (_, _) => await CheckForUpdateAsync();
         _updateCheck.Start();
-        _backgroundSample.Tick += (_, _) => { ScanContextInBackground(); WarmActivityProfile(); };
+        _backgroundSample.Tick += (_, _) => { ScanContextInBackground(); WarmActivityProfile(); NoteDayOfUse(); };
         _backgroundSample.Start();
 
         _tray.BalloonTipClicked += (_, _) => { if (_update != null) _ = ApplyUpdateAsync(); };
@@ -116,6 +116,25 @@ internal sealed class TrayContext : ApplicationContext
         RecomputeInsights(); // build the 24h usage breakdown in the background
         ScanContextInBackground(); // record context drift, and nudge if the user asked to be nudged
         WarmActivityProfile();     // keep the weekly shape fresh even if Statistics is never opened
+        NoteDayOfUse();            // count today toward the one invitation to star the repository
+    }
+
+    // T410. Launch and the 6h tick both land here, so a tray left running for a week still counts each day.
+    // Not from a tray that only observes (a check run beside the user's): its settings write is a no-op, so
+    // it would invite again on every run.
+    private void NoteDayOfUse()
+    {
+        if (ProfileStore.Observing) return;
+        (bool changed, bool show) = StarInvite.Note(_settings, DateTime.Now);
+        if (changed) SaveSettingsQuietly();
+        if (!show) return;
+        try
+        {
+            EnsureWpfApp();
+            StarInvite.Card(() => Process.Start(new ProcessStartInfo(StarInvite.RepositoryUrl) { UseShellExecute = true }))
+                      .Show();
+        }
+        catch { /* an invitation that cannot be drawn is not news worth a balloon */ }
     }
 
     /// <summary>

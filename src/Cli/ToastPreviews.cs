@@ -119,6 +119,12 @@ internal static class ToastPreviews
 
         new("level-left", "the same card with Show remaining on, where a level of 25 means a quarter left",
             now => Level("5h", 25, 0.76, now + 2 * 3600, now, remaining: true)),
+
+        new("star", "the one invitation to star the repository, on the seventh day of use (T410): the " +
+                    "first card with an action row, and no bar, since it is about no quota",
+            // The preview's button opens nothing: a capture run must not start a browser.
+            _ => StarInvite.Card(() => { }),
+            Bar: false),
     };
 
     /// <summary>The level card, from the same <see cref="TrayContext.LevelToastContent"/> the notifier uses.</summary>

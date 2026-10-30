@@ -24,7 +24,7 @@ namespace ClaudeTray;
 internal partial class ToastWindow : Window
 {
     /// <summary>Color theme per notification type, so each is identifiable at a glance.</summary>
-    internal enum ToastTheme { Surprise, Bonus, Weekly, Session, Context, ExtraUsage, Profile, Pace, Level }
+    internal enum ToastTheme { Surprise, Bonus, Weekly, Session, Context, ExtraUsage, Profile, Pace, Level, Star }
 
     /// <summary>
     /// The card's text stack, and the one every card's <b>glyph</b> is drawn in — separately, because they
@@ -95,6 +95,10 @@ internal partial class ToastWindow : Window
         _theme = theme;
         Card.Background = Gradient(theme);
         Emoji.Text = emoji;
+        // The glyph is the emoji font's monochrome layer (see BodyFont), drawn in the inherited black — fine on
+        // every light gradient and invisible on the night-sky one, where it is the star itself (T410).
+        if (theme == ToastTheme.Star)
+            Emoji.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FFD93D"));
         TitleText.Text = title;
         Subtitle.Text = subtitle;
         QuotaLabel.Text = quotaLabel;
@@ -162,6 +166,9 @@ internal partial class ToastWindow : Window
         // Indigo: a level the user picked was reached (T395). Neither good news nor a verdict — it is the
         // answer to a question they asked — so it borrows neither the reset colours nor the pace red.
         ToastTheme.Level => ("#8E91E0", "#5B5FC7", "#34378A"),
+        // Night sky: the invitation to star the repository (T410). About the app, not about any quota, so it
+        // wears none of the quota colours; darker than Profile's slate, so the gold star is what you see.
+        ToastTheme.Star => ("#4F5D8A", "#2F3A66", "#1A2142"),
         _ => throw new ArgumentOutOfRangeException(nameof(theme), theme, "no card colour for this toast"),
     };
 
@@ -191,13 +198,14 @@ internal partial class ToastWindow : Window
         // one is a receipt, which is the least celebratory thing this app has to say. A profile switch
         // is a confirmation of something the user just did, which is nobody's idea of a party. And a window
         // on pace to run out (T388) is the one piece of bad news here that arrives before it happens.
-        // A level the user picked (T395) is an answer, not a celebration.
+        // A level the user picked (T395) is an answer, not a celebration, and an invitation (T410) is a request.
         if (_theme is not (ToastTheme.Context or ToastTheme.ExtraUsage or ToastTheme.Profile or ToastTheme.Pace
-                           or ToastTheme.Level))
+                           or ToastTheme.Level or ToastTheme.Star))
             LaunchConfetti();
 
-        // Auto-dismiss after a comfortable read; the user can also close or act before then.
-        var life = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
+        // Auto-dismiss after a comfortable read; the user can also close or act before then. A card that asks
+        // for a choice stays longer, since reading it and then deciding is two things.
+        var life = new DispatcherTimer { Interval = TimeSpan.FromSeconds(_onAction is null ? 8 : 20) };
         life.Tick += (_, _) => { life.Stop(); Dismiss(); };
         life.Start();
     }
@@ -387,6 +395,28 @@ internal partial class ToastWindow : Window
         encoder.Frames.Add(BitmapFrame.Create(rtb));
         using FileStream fs = OutFile.Create(path);
         encoder.Save(fs);
+    }
+
+    private Action? _onAction;
+
+    /// <summary>
+    /// Give the card an action row: one button that does something, and one that only dismisses (T410).
+    /// Until T410 every card was a notice with a close button; this is the first that asks a question.
+    /// Either button closes the card, so a choice is made once.
+    /// </summary>
+    internal ToastWindow WithActions(string action, string dismiss, Action onAction)
+    {
+        _onAction = onAction;
+        ToastActionButton.Content = action;
+        ToastDismissButton.Content = dismiss;
+        ActionRow.Visibility = Visibility.Visible;
+        return this;
+    }
+
+    private void Action_Click(object sender, RoutedEventArgs e)
+    {
+        try { _onAction?.Invoke(); } catch { /* no browser to open is not worth an error card */ }
+        Dismiss();
     }
 
     private void Close_Click(object sender, RoutedEventArgs e) => Dismiss();

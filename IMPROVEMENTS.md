@@ -894,25 +894,11 @@ The design, in the order it can break:
 
 The packaged copy cannot run beside the winget one: they share the `Local\ClaudeTray.SingleInstance`
 mutex, and its `%LocalAppData%` is redirected. Done means a Store build passes certification and
-replaces the winget install for a week with all four points holding.
+replaces the winget install for a week with all four points holding. If certification objects to the
+one invitation to star the repository (T410), `StarInvite.Note` is where
+`PackageIdentity.IsPackaged` turns it off.
 
 ## CIX What a stranger meets first
-
-### CIX.1 One invitation to star, after a week (T410)
-
-Nobody who installs the app is ever told the repository exists, and stars are the one public signal
-the family has: the GitHub page, the awesome lists and every Show HN reader read them before
-anything else. The portfolio review of 30/10/2026 (visibility repo, `estrategia/portfolio.md`) asks
-for one invitation, without insistence, after a week of use.
-
-The design:
-
-- **When.** Once the app has run on 7 distinct local days. Nothing records that today: `Settings` has no first-run date and `usage-history` keeps 8 days, so a counter and its last day go into the settings file, and the settings round-trip check covers both. No network call, no telemetry.
-- **Where.** One toast saying the app is free and that a star helps others find it. `ToastWindow` has a close button and nothing else, so this adds an action row: open the repository, or dismiss. Its strings go into all five `lang/*.json`.
-- **Never again.** Either action, or the toast timing out, writes a flag to settings; the invitation is not repeated, not after an update or a profile switch. No Settings toggle: it would matter only for the first six days.
-- **Not in the Store build** if the Store policy objects: the runtime packaged check from the MSIX task (T409) turns it off there.
-
-A check proves it shows once: day 6 no toast, day 7 one toast, day 8 and after none.
 
 ### CIX.2 The site and the GitHub description carry the VS30 pitch (T411)
 
