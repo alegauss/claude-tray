@@ -4,14 +4,20 @@ What Partner Center asks for when the package is submitted, kept beside the mani
 the code it describes are reviewed together. Keep the wording in step with the README: the pitch, the
 privacy facts and the unofficial disclaimer are the same claims.
 
-**This file is the source; the listing CSV and the screenshots are generated from it.** The import
-refuses an image named by file (measured 30/10/2026: the CSV with file names failed for every language,
-the same text with the export's own image cells went through), so images go up through the Partner
-Center page and the CSV carries the rest:
+**This file is the source; the listing CSV and the screenshots are generated from it.** The CSV import
+refuses an image named by file, though its own type column says a relative path is allowed (measured
+twice, the second time with the CSV byte-for-byte in the export's format and the images in the imported
+folder), while a Partner Center URL passes, even one from another language. So screenshots go up through
+the submission API or the page, and the CSV carries the rest:
 
 1. `powershell -File build\store-shots.ps1` captures the window in each language over synthetic data
    (`--lang`, `--sample`) and composes each capture under its caption below, into
-   `dist\store-shots\<language>\screenshot-1..6.png`. Upload each folder in **its own** language.
+   `dist\store-shots\<language>\screenshot-1..6.png`. Then `powershell -File build\store-submit.ps1`
+   (`-DryRun` first) swaps every language's screenshots and captions through the Store submission API
+   and commits the submission — it needs a Microsoft Entra app with the Manager role in Partner Center
+   (Account settings > User management > Microsoft Entra applications), whose tenant id, client id and
+   key go in the user variables `STORE_TENANT_ID`, `STORE_CLIENT_ID` and `STORE_CLIENT_SECRET`. Without
+   the API, upload each folder in **its own** language through the page.
 2. Upload the logos and the hero art from `dist\store-art\` in **one** language.
 3. Export the listings (Store listings > Export listings); the uploaded images come back as Partner
    Center URLs.

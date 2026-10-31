@@ -7,10 +7,12 @@
 #
 #   powershell -File build\store-listing-csv.ps1 -Template <listingData-...csv> [-ImagesFrom es-es]
 #
-# Imagens: a importacao recusa imagem citada por nome de arquivo (medido em 30/10/2026), entao elas sobem pela
-# tela do Partner Center e voltam no CSV exportado como URL. As capturas de tela sao por idioma
-# (build\store-shots.ps1) e sobem em cada idioma; este script so liga a legenda de cada captura que o idioma
-# tem. Logos e arte de super-heroi valem para todos: -ImagesFrom copia as URLs de um idioma para os outros.
+# Imagens: a importacao recusa imagem citada por nome de arquivo, apesar de a coluna de tipo dizer "Caminho
+# relativo (ou URL...)". Medido duas vezes: em 30/10/2026 junto com um defeito de formato, e em 31/10/2026 com
+# o formato ja identico ao export e as imagens na pasta importada - o mesmo erro, sem detalhe. Uma URL do
+# Partner Center, essa sim, passa, inclusive a de outro idioma. Entao as capturas por idioma vao pela tela ou
+# por build\store-submit.ps1 (a API de submissao); este script cuida do texto, liga a legenda de cada captura
+# que o idioma ja tem, e com -ImagesFrom copia as URLs de logos e arte de super-heroi de um idioma para os outros.
 param(
     [Parameter(Mandatory = $true)][string]$Template,
     [string]$Out,
@@ -25,6 +27,9 @@ $langs = Read-StoreListing
 $rows = Import-Csv $Template -Encoding UTF8
 $columns = $rows[0].PSObject.Properties.Name
 if ($ImagesFrom -and -not ($columns -contains $ImagesFrom)) { throw "coluna $ImagesFrom nao existe no CSV" }
+
+if (Test-Path $Out) { Remove-Item $Out -Recurse -Force }
+New-Item -ItemType Directory -Force $Out | Out-Null
 
 # Quantas capturas cada idioma tem, para ligar so as legendas delas.
 $shotCount = @{}
@@ -66,8 +71,6 @@ function Cell([string]$v) {
 }
 $lines = @(($columns | ForEach-Object { Cell $_ }) -join ',')
 foreach ($row in $rows) { $lines += (($columns | ForEach-Object { Cell $row.$_ }) -join ',') }
-if (Test-Path $Out) { Remove-Item $Out -Recurse -Force }
-New-Item -ItemType Directory -Force $Out | Out-Null
 $file = Join-Path $Out (Split-Path -Leaf $Template)
 [IO.File]::WriteAllText($file, ($lines -join "`r`n"), (New-Object Text.UTF8Encoding $true))
 Write-Host "listagem: $file"
