@@ -67,6 +67,8 @@ internal sealed class UsageData
                                 // browser /login is required; false = a refresh token exists, so just
                                 // opening Claude Code silently refreshes the access token (no browser)
     public bool Transient;      // true when Error is a timeout/network/5xx blip worth retrying quietly
+    public bool ClaudeMissing;  // when Unauthorized: nothing says Claude Code is installed here (T415), so
+                                // the install page helps and "open Claude Code and /login" does not
 
     /// <summary>This reading came from Claude Code's status-line payload rather than from a response
     /// (T390): its four window numbers are measured, everything else is carried from the last API reading,
@@ -190,7 +192,8 @@ internal sealed class ApiClient
             // No usable token on disk yet (file missing, or no claudeAiOauth.accessToken). Treat it
             // like an HTTP 401 so the tray shows the "needs auth" state and the faster retry/auto-open
             // kicks in — but with a message that says to sign in, not a raw file-not-found error.
-            return new UsageData { Error = e.Message, Unauthorized = true, NeedsFullLogin = true };
+            return new UsageData { Error = e.Message, Unauthorized = true, NeedsFullLogin = true,
+                                   ClaudeMissing = ClaudeInstall.Missing(ConfigDir) };
         }
         catch (Exception e)
         {

@@ -100,6 +100,10 @@ internal static class TooltipCli
         new("signedout", "no usable token on disk, so Claude Code needs a full browser login",
             _ => Empty with { Data = new UsageData { Error = "401", Unauthorized = true, NeedsFullLogin = true } }),
 
+        new("notinstalled", "no token, and nothing on this machine says Claude Code was ever installed (T415)",
+            _ => Empty with { Data = new UsageData { Error = "401", Unauthorized = true, NeedsFullLogin = true,
+                                                     ClaudeMissing = true } }),
+
         new("error", "the API answered something this app could not use",
             _ => Empty with { Data = new UsageData { Error = "403 payment required" } }),
     };

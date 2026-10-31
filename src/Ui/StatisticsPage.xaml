@@ -359,10 +359,17 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <TextBlock x:Name="StatsStatusText" Grid.RowSpan="2"
-                       Margin="4,24,4,0" FontSize="14" TextWrapping="Wrap"
-                       Visibility="Collapsed"
-                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <StackPanel Grid.RowSpan="2" VerticalAlignment="Top">
+                <TextBlock x:Name="StatsStatusText"
+                           Margin="4,24,4,0" FontSize="14" TextWrapping="Wrap"
+                           Visibility="Collapsed"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <!-- Only with the "not installed" status (T415): the one action that helps there. -->
+                <Button x:Name="StatsInstallClaude" Margin="4,16,4,0" HorizontalAlignment="Left"
+                        Visibility="Collapsed" Style="{DynamicResource AccentButtonStyle}"
+                        Content="{local:Loc stats.installClaude}"
+                        Click="InstallClaude_Click" />
+            </StackPanel>
 
             <TabControl x:Name="PanesBody" Grid.Row="0" Visibility="Collapsed"
                         Style="{StaticResource SegControl}" ItemContainerStyle="{StaticResource SegItem}">

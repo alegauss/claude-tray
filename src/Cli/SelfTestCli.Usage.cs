@@ -2592,6 +2592,38 @@ internal static partial class SelfTestCli
                   && TrayIconPlacement.Classify(new[] { (@"D:\other\ClaudeTray.exe", (object?)null) }, Exe, Folder) == null
                   && TrayIconPlacement.Classify(new[] { (@"{00000000-0000-0000-0000-000000000001}\x\ClaudeTray.exe", (object?)null) }, Exe, Folder) == null);
         }
+        // T415. Not installed is the absence of every trace Claude Code leaves, and any one trace is enough
+        // to keep the signed-out wording — so each is added alone to an empty home and must flip it.
+        {
+            string home = Path.Combine(Path.GetTempPath(), "claudetray-install-" + Guid.NewGuid().ToString("N"));
+            string bin = Path.Combine(home, "bin");
+            Directory.CreateDirectory(bin);
+            try
+            {
+                string cfg = Path.Combine(home, ".claude"), alt = Path.Combine(home, ".claude-work");
+                bool Missing(string? path = null) => ClaudeInstall.Missing(alt, cfg, home, path);
+                bool empty = Missing(bin);
+                File.WriteAllText(Path.Combine(bin, "claude.cmd"), "");
+                bool onPath = !Missing(bin) && Missing(null);
+                File.Delete(Path.Combine(bin, "claude.cmd"));
+                Directory.CreateDirectory(Path.Combine(home, ".local", "bin"));
+                File.WriteAllText(Path.Combine(home, ".local", "bin", "claude.exe"), "");
+                bool nativeInstaller = !Missing();
+                Directory.Delete(Path.Combine(home, ".local"), true);
+                File.WriteAllText(Path.Combine(home, ".claude.json"), "{}");
+                bool claudeJson = !Missing();
+                File.Delete(Path.Combine(home, ".claude.json"));
+                Directory.CreateDirectory(cfg);
+                bool homeDir = !Missing();
+                Directory.Delete(cfg);
+                Directory.CreateDirectory(alt);
+                bool configDir = !Missing();
+                Check("Claude Code reads as not installed only when every trace of it is absent",
+                      empty && onPath && nativeInstaller && claudeJson && homeDir && configDir,
+                      $"empty {empty}, PATH {onPath}, ~/.local/bin {nativeInstaller}, .claude.json {claudeJson}, ~/.claude {homeDir}, config dir {configDir}");
+            }
+            finally { try { Directory.Delete(home, true); } catch { /* a temp dir left behind is harmless */ } }
+        }
         // The detection is the switch that turns the updater off, so it is checked against a second signal
         // rather than trusted: a package's exe sits beside the AppxManifest.xml it was installed from — under
         // WindowsApps from the Store, in the layout folder from build-msix's -Register — and nothing else

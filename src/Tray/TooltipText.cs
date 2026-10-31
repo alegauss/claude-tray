@@ -90,7 +90,8 @@ internal static class TooltipText
         if (data.Error != null)
         {
             if (data.Unauthorized)
-                return data.NeedsFullLogin ? L.T("tip.notSignedIn") : L.T("tip.willAppear");
+                return data.ClaudeMissing ? L.T("tip.notInstalled")
+                     : data.NeedsFullLogin ? L.T("tip.notSignedIn") : L.T("tip.willAppear");
             return L.T("tip.apiError", data.Error);
         }
 

@@ -404,7 +404,12 @@ internal sealed class TrayContext : ApplicationContext
         // profile on the machine it becomes a submenu, one item per profile (T123) — unless the
         // environment already carries the profile, which collapses it back to a command (T146).
         _openClaudeItem = new ToolStripMenuItem(L.T("menu.openClaude"));
-        _openClaudeItem.Click += (_, _) => OpenClaudeCode(profile: _openClaudeProfile);
+        _openClaudeItem.Click += (_, _) =>
+        {
+            // With no Claude Code to open, a terminal would only answer "'claude' is not recognized" (T415).
+            if (_monitored.Data is { ClaudeMissing: true }) OpenInstallPage();
+            else OpenClaudeCode(profile: _openClaudeProfile);
+        };
         RefreshProfileMenu();
         menu.Items.Add(_openClaudeItem);
 
@@ -1361,7 +1366,8 @@ internal sealed class TrayContext : ApplicationContext
         {
             _monitored.AutoOpenedForAuth = false;
         }
-        else if (_settings.AutoOpenOnUnauthenticated && !_monitored.AutoOpenedForAuth)
+        else if (_settings.AutoOpenOnUnauthenticated && !_monitored.AutoOpenedForAuth
+                 && _monitored.Data is not { ClaudeMissing: true })
         {
             _monitored.AutoOpenedForAuth = true;
             OpenClaudeCode(forReauth: true);
@@ -1981,7 +1987,8 @@ internal sealed class TrayContext : ApplicationContext
             // Null while auto-follow is the thing driving: nothing has been chosen, the tray owns no
             // variable, and inheriting is the honest launch.
             _openClaudeProfile = profiles.Count > 1 ? DeliberateProfile() : null;
-            _openClaudeItem.Text = _openClaudeProfile is { HasCredentialsFile: false }
+            _openClaudeItem.Text = _monitored.Data is { ClaudeMissing: true } ? L.T("menu.installClaude")
+                : _openClaudeProfile is { HasCredentialsFile: false }
                 ? L.T("menu.profileNoLogin", L.T("menu.openClaude"))
                 : L.T("menu.openClaude");
             _openClaudeItem.ToolTipText = _openClaudeProfile?.ConfigDir;
@@ -2041,6 +2048,12 @@ internal sealed class TrayContext : ApplicationContext
     //
     // With a profile, the launch carries that profile's CLAUDE_CONFIG_DIR — which is the whole
     // switching mechanism: nothing is written, and Claude Code owns everything inside that dir.
+    internal static void OpenInstallPage()
+    {
+        try { Process.Start(new ProcessStartInfo(ClaudeInstall.InstallUrl) { UseShellExecute = true }); }
+        catch { /* no browser to open it in is not worth an error dialog */ }
+    }
+
     private void OpenClaudeCode(bool forReauth = false, ClaudeInfo? profile = null)
     {
         try

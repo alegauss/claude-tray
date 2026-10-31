@@ -173,7 +173,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         if (_snapshot is not null)
             Reload();
         else
-            ShowStatus(error is { Length: > 0 } ? L.T("stats.apiError", error) : L.T("stats.connect"));
+            ShowNoReading(error);
     }
 
     /// <summary>True once the host window's <c>StateChanged</c> has been subscribed to. Minimizing is a
@@ -187,6 +187,21 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         _hostHooked = true;
         host.StateChanged += (_, _) => SyncLiveClock();
     }
+
+    /// <summary>
+    /// The page with no reading to chart: the API's own message when there is one, else the hint to
+    /// connect — unless nothing on this machine says Claude Code is installed (T415), where "connect
+    /// Claude Code" names a thing that is not there, and the install page is the action that helps.
+    /// </summary>
+    private void ShowNoReading(string? error)
+    {
+        bool missing = error is not { Length: > 0 } && ClaudeInstall.Missing();
+        ShowStatus(error is { Length: > 0 } ? L.T("stats.apiError", error)
+                   : missing ? L.T("stats.notInstalled") : L.T("stats.connect"));
+        StatsInstallClaude.Visibility = missing ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void InstallClaude_Click(object sender, RoutedEventArgs e) => TrayContext.OpenInstallPage();
 
     private void Refresh_Click(object sender, RoutedEventArgs e)
     {
@@ -213,7 +228,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         if (_snapshot is not null)
             Reload();
         else
-            ShowStatus(error is { Length: > 0 } ? L.T("stats.apiError", error) : L.T("stats.connect"));
+            ShowNoReading(error);
     }
 
     /// <summary>
@@ -389,6 +404,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
     {
         StatsStatusText.Text = message;
         StatsStatusText.Visibility = Visibility.Visible;
+        StatsInstallClaude.Visibility = Visibility.Collapsed;
         PanesBody.Visibility = Visibility.Collapsed;
         // No report, nothing to explain: the "i" goes with the panes it describes, and its popup is
         // closed rather than left hanging over a status message.
@@ -506,6 +522,7 @@ internal partial class StatisticsPage : System.Windows.Controls.UserControl
         }
 
         StatsStatusText.Visibility = Visibility.Collapsed;
+        StatsInstallClaude.Visibility = Visibility.Collapsed;
         PanesBody.Visibility = Visibility.Visible;
         MethodInfo.Visibility = Visibility.Visible;
         ApplyErrorBanner();

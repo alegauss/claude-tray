@@ -71,7 +71,9 @@ Three different hosts, and the difference matters — see UI convention 7 in AGE
                                       #   against the 127 cap (T214). No variant prints them all: ok
                                       #   (the default) | track | danger | remaining | profile | extra
                                       #   | extraunspent | billingelsewhere | billingremaining | atlimit |
-                                      #   stoppedelsewhere | connecting | signedout | error. The first two
+                                      #   stoppedelsewhere | connecting | signedout | notinstalled | error.
+                                      #   notinstalled is signedout on a machine with no trace of Claude
+                                      #   Code, which names the install instead of /login (T415). The first two
                                       #   billing rows differ by whether a
                                       #   cent has been spent, which is what decides where the news is
                                       #   written (T222); the third is the window on the icon not being the

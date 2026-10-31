@@ -52,8 +52,6 @@
 
 ## Block AO — What a stranger meets first
 
-- 📋 **T415** (deps: —) **Without Claude Code installed, the app asks to open Claude Code and run /login, and the menu entry fails** — Not installed is a different state from signed out, and only the install page helps someone who has neither. → §CX.3
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

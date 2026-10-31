@@ -57,7 +57,7 @@
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
 | [AM](#block-am--danger-is-said-not-only-coloured) | Danger is said, not only coloured |
 | [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system |
-| [AO](#block-ao--what-a-stranger-meets-first) | What a stranger meets first (active — see ROADMAP) |
+| [AO](#block-ao--what-a-stranger-meets-first) | What a stranger meets first |
 
 ## Block A — Foundation (tray, icon, API, projection)
 
@@ -780,3 +780,4 @@
 - **T411** — The site's search and link-preview descriptions, its social card and llms.txt now open with the README's pitch, the GitHub About text is prepared beside them in site-content.ts for the owner's gh repo edit, and --selftest fails any description that drops the README's headline.
 - **T413** — **Opening the app shows it.** The Store package asks Windows how it was activated and opens the window on every launch except the startup task at sign-in, which stays silent, as an unreadable answer and an installer copy also do; and a launch that finds the tray already running no longer exits silently but sets a named event the resident tray waits on, handing on its right to the foreground, so the window opens or comes forward in front of what had focus. --selftest holds which activation kinds open it.
 - **T414** — **The window says when the icon is hidden.** It reads Explorer's NotifyIconSettings record for this exe's own path, with the known-folder GUID resolved, and while the record says the icon is in the overflow a strip under the nav says so in all five languages and opens the taskbar settings where it is turned on; it is re-read on every activation, so it is gone on the first return, and a machine with no record shows nothing. --selftest holds the matching rule.
+- **T415** — **A machine without Claude Code is told so.** When there is no token and no trace of Claude Code (no config dir, ~/.claude, ~/.claude.json, nor a claude on PATH or in ~/.local/bin), the tooltip says it is not installed, the Statistics page says what the app needs and offers the official install page, and the menu entry opens that page instead of a terminal that fails, in all five languages; any one trace keeps the signed-out wording, which --selftest holds signal by signal.

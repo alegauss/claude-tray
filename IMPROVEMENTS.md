@@ -901,21 +901,3 @@ use held the startup task, the alias and a profile switch.
 
 The first minutes of somebody who has never seen the app: what the first launch shows, what an icon
 in the overflow says, and what the app says on a machine it cannot read anything from yet.
-
-### CX.3 Claude Code is not installed (T415)
-
-With no Claude Code on the machine there is no `.credentials.json`, and the app reads that as
-"signed out": the tooltip says to open Claude Code and run `/login`, the window says to connect it,
-and the menu's **Open Claude Code** starts a terminal that answers `'claude' is not recognized`.
-Every sentence assumes the one thing that is missing. A Store install is the first time a stranger
-can meet the app without having come from Claude Code, and certification is likely run on a machine
-without it.
-
-Not installed is told apart from signed out by what Claude Code leaves behind: no profile directory
-discovered (no `~/.claude`, no `.claude.json`, no registered or WSL profile) and no `claude` on
-PATH. Either one present means installed. Then the tooltip and the window say the app reads Claude
-Code's limit and Claude Code is not installed, the window offers the official install page, and the
-menu entry opens that page instead of a terminal that fails.
-
-Done means a machine with neither signal shows that sentence and link in all five languages, and one
-with either keeps today's signed-out wording.
