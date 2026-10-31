@@ -14,7 +14,14 @@
 #   powershell -File build\store-submit.ps1           # faz a troca e envia para certificacao
 param(
     [string]$AppId = '9P27BHWNT56D',
-    [switch]$DryRun
+    [switch]$DryRun,
+    # So le: mostra o que a submissao pendente tem de diferente da ultima publicada.
+    [switch]$Compare,
+    # Apaga a submissao pendente e cria outra pela API. So serve para uma pendente que a propria API criou:
+    # a API nao edita nem apaga uma criada pela tela do Partner Center ("can only update, delete, and commit
+    # submissions that are created through the API", medido 31/10/2026) - essa se apaga pela tela, e depois o
+    # script cria a sua. Rode -Compare antes: o que a pendente tem de diferente da publicada se perde.
+    [switch]$ReplacePending
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -40,8 +47,10 @@ $base = "https://manage.devcenter.microsoft.com/v1.0/my/applications/$AppId"
 
 function Api([string]$method, [string]$uri, $body) {
     $req = @{ Method = $method; Uri = $uri; Headers = $headers }
-    if ($null -ne $body) {
-        $json = $body | ConvertTo-Json -Depth 50
+    # A API recusa ate um POST sem corpo que nao se diga JSON ("Only JSON content is accepted", medido ao
+    # criar a submissao), entao todo POST e PUT vai como JSON, vazio quando nao ha o que mandar.
+    if ($method -in 'Post', 'Put') {
+        $json = if ($null -ne $body) { $body | ConvertTo-Json -Depth 50 } else { '' }
         $req.Body = [Text.Encoding]::UTF8.GetBytes($json)
         $req.ContentType = 'application/json; charset=utf-8'
     }
@@ -67,9 +76,39 @@ if ($DryRun) {
     return
 }
 
+# O que a pendente tem de diferente da ultima publicada, campo a campo, antes de alguem decidir apaga-la.
+if ($Compare) {
+    if (-not $pendingId) { Write-Host 'nenhuma pendente para comparar'; return }
+    $pub = Api 'Get' "$base/submissions/$($app.lastPublishedApplicationSubmission.id)"
+    $pen = Api 'Get' "$base/submissions/$pendingId"
+    function Flat($o, [string]$path, $acc) {
+        if ($null -eq $o -or $o -is [string] -or $o -is [ValueType]) { $acc[$path] = "$o"; return }
+        if ($o -is [Array]) { for ($i = 0; $i -lt $o.Count; $i++) { Flat $o[$i] "$path[$i]" $acc }; return }
+        foreach ($p in $o.PSObject.Properties) { Flat $p.Value "$path.$($p.Name)" $acc }
+    }
+    $a = @{}; $b = @{}
+    Flat $pub '' $a; Flat $pen '' $b
+    $skip = '^\.(id|status|statusDetails|fileUploadUrl|friendlyName|targetPublishDate)|\.(fileName|id|fileStatus)$|\.applicationPackages'
+    $keys = @($a.Keys) + @($b.Keys) | Sort-Object -Unique | Where-Object { $_ -notmatch $skip -and $a[$_] -ne $b[$_] }
+    Write-Host "campos lidos: publicada $($a.Count), pendente $($b.Count) (publicada $($app.lastPublishedApplicationSubmission.id))"
+    Write-Host "campos diferentes (fora ids, status e nomes de arquivo): $($keys.Count)"
+    $keys | Select-Object -First 60 | ForEach-Object {
+        $va = "$($a[$_])"; $vb = "$($b[$_])"
+        Write-Host ("  {0}`n    publicada: {1}`n    pendente:  {2}" -f $_, $va.Substring(0, [Math]::Min(90, $va.Length)), $vb.Substring(0, [Math]::Min(90, $vb.Length)))
+    }
+    return
+}
+
+if ($pendingId -and $ReplacePending) {
+    Api 'Delete' "$base/submissions/$pendingId" $null | Out-Null
+    Write-Host "submissao pendente $pendingId apagada"
+    $pendingId = $null
+}
 if ($pendingId) {
     $sub = Api 'Get' "$base/submissions/$pendingId"
     if ($sub.status -ne 'PendingCommit') { throw "a submissao pendente esta em '$($sub.status)'; so uma em PendingCommit pode ser editada" }
+    # A pendente criada pela tela devolve PendingCommit no GET e recusa o PUT; avisar antes de montar o ZIP.
+    Write-Host 'aviso: se esta pendente foi criada pela tela do Partner Center, a API vai recusa-la; apague-a pela tela e rode de novo'
 } else {
     $sub = Api 'Post' "$base/submissions"
     Write-Host "submissao criada: $($sub.id)"
