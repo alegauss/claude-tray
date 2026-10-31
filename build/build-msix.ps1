@@ -53,6 +53,15 @@ $makeappx = Get-ChildItem $kits -Recurse -Filter makeappx.exe -ErrorAction Silen
     Where-Object { $_.FullName -like '*\x64\*' } | Sort-Object FullName -Descending | Select-Object -First 1
 if (-not $makeappx) { throw 'makeappx.exe nao encontrado: instale o Windows SDK' }
 
+# O resources.pri e o que faz o shell achar as variantes targetsize/altform-unplated do logo (T416):
+# sem ele, o icone da barra de tarefas e desenhado sobre um quadrado na cor de destaque.
+$makepri = Join-Path $makeappx.DirectoryName 'makepri.exe'
+$priconfig = Join-Path $dist 'msix\priconfig.xml'
+& $makepri createconfig /cf $priconfig /dq en-US /pv 10.0.0 /o | Out-Host
+if ($LASTEXITCODE -ne 0) { throw "makepri createconfig saiu com $LASTEXITCODE" }
+& $makepri new /pr $layout /cf $priconfig /mn (Join-Path $layout 'AppxManifest.xml') /of (Join-Path $layout 'resources.pri') /o | Out-Host
+if ($LASTEXITCODE -ne 0) { throw "makepri new saiu com $LASTEXITCODE" }
+
 $msix = Join-Path $dist 'ClaudeTray.msix'
 & $makeappx.FullName pack /o /d $layout /p $msix | Out-Host
 if ($LASTEXITCODE -ne 0) { throw "makeappx saiu com $LASTEXITCODE" }

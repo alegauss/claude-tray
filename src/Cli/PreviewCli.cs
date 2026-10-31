@@ -488,9 +488,25 @@ internal static class PreviewCli
         ("Square44x44Logo.png", 44), ("Square150x150Logo.png", 150), ("StoreLogo.png", 50),
     };
 
+    /// <summary>
+    /// The sizes the shell asks the 44 px logo for on the taskbar, in Start and in the alt-tab list (T416).
+    /// Each is written twice: the plain <c>targetsize</c> variant and its <c>altform-unplated</c> twin. A
+    /// logo with no unplated variant is drawn on a square in the accent colour, which read as a blue
+    /// border around the tile — and the shell only finds the variants through the <c>resources.pri</c>
+    /// that <c>build-msix.ps1</c> makes, so a file here without that index changes nothing.
+    /// </summary>
+    internal static readonly int[] MsixTargetSizes = { 16, 24, 32, 48, 256 };
+
+    internal static IEnumerable<(string File, int Size)> MsixTargetLogos() =>
+        MsixTargetSizes.SelectMany(s => new[]
+        {
+            ($"Square44x44Logo.targetsize-{s}.png", s),
+            ($"Square44x44Logo.targetsize-{s}_altform-unplated.png", s),
+        });
+
     internal static void MsixAssets(string dir)
     {
-        foreach ((string file, int size) in MsixLogos)
+        foreach ((string file, int size) in MsixLogos.Concat(MsixTargetLogos()))
         {
             string path = Path.Combine(dir, file);
             using Bitmap bmp = IconRenderer.RenderLogo(size);

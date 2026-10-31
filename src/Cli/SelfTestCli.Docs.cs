@@ -1733,6 +1733,12 @@ internal static partial class SelfTestCli
         Check($"every logo the manifest names is one --msix-assets draws ({named.Length})",
               named.Length >= 3 && undrawn.Length == 0,
               undrawn.Length > 0 ? $"nothing draws {string.Join(", ", undrawn)}" : $"only {named.Length} logo(s) found");
+
+        // T416. A target size with no unplated twin is drawn on the accent-coloured plate.
+        string[] targets = PreviewCli.MsixTargetLogos().Select(l => l.File).ToArray();
+        Check("every target size of the taskbar logo has an unplated twin, so the shell draws no accent plate",
+              PreviewCli.MsixTargetSizes.All(s => targets.Contains($"Square44x44Logo.targetsize-{s}_altform-unplated.png"))
+              && PreviewCli.MsixTargetSizes.All(s => targets.Contains($"Square44x44Logo.targetsize-{s}.png")));
     }
 
     /// <summary>Whether a family has a real glyph for every codepoint in <paramref name="text"/>. Asked of
