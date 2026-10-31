@@ -48,7 +48,7 @@
 
 ## Block B — Packaging, self-update, CI
 
-- ⏳ **T412** (deps: —) (requires: store-account) **No Store build has passed certification or replaced the winget install for a week** — Submitting the package, the token-reuse policy answer and a week on the Store build in place of winget are left, all of them the owner's. → §CVIII.2
+- ⏳ **T412** (deps: —) (requires: store-account) **The Store build has not yet replaced the winget install for a week of daily use** — The app is listed on the Store as 9P27BHWNT56D; a week on that build in place of winget, holding the startup task, the alias and a profile switch, is left. → §CVIII.2
 
 ## Block AO — What a stranger meets first
 

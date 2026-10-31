@@ -887,15 +887,13 @@ down, startup is the manifest's `startupTask`, the status line runs the `ClaudeT
 the user-scope `CLAUDE_CONFIG_DIR` write reaches shells outside the package, so no restricted
 capability is needed.
 
-What is left is the owner's, in order:
+The package passed certification and the Store lists the app
+(apps.microsoft.com/detail/9P27BHWNT56D), so the submission and the sign-in policy question are
+behind it. What is left is the owner's: **a week on the Store build** in place of the winget one.
+They cannot run side by side: they share the `Local\ClaudeTray.SingleInstance` mutex, and the
+package's `%LocalAppData%` is redirected, so its settings start fresh.
 
-1. **Submit** `dist\ClaudeTray.msix` with the text in `build\msix\store-listing.md` and screenshots from the README's set.
-2. **Answer the policy question** on reusing the Claude Code sign-in. The listing file states the facts and leaves the answer to the owner.
-3. **A week on the Store build** in place of the winget one. They cannot run side by side: they share the `Local\ClaudeTray.SingleInstance` mutex, and the package's `%LocalAppData%` is redirected, so its settings start fresh.
-
-If certification objects to the one invitation to star the repository (T410), `StarInvite.Note` is
-where `PackageIdentity.IsPackaged` turns it off. Done means the Store lists the app and a week of
-use held the startup task, the alias and a profile switch.
+Done means a week of use on the Store build held the startup task, the alias and a profile switch.
 
 ## CX What a stranger meets first
 
