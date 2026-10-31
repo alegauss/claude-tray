@@ -522,27 +522,18 @@ internal static class PreviewCli
     }
 
     /// <summary>
-    /// The README screenshots the Store listing shows, in its order (T412). The Store refuses a desktop
-    /// screenshot under 1366x768 and most of these are smaller, so each is composed onto a 1920x1080 canvas
-    /// of the store art's backdrop rather than uploaded as it is.
+    /// One Store listing screenshot (T412): a capture composed under its headline at 1920x1080, the size the
+    /// Store's desktop slot takes (it refuses anything under 1366x768). The captures and the headlines are
+    /// per language, so <c>build\store-shots.ps1</c> runs this once per image.
     /// </summary>
-    internal static readonly string[] StoreShotSources =
+    internal static int StoreShot(string input, string output, string headline)
     {
-        "statistics-7d.png", "statistics-5h.png", "notify-pace.png",
-        "statistics-sessions.png", "context.png", "link-profiles.png",
-    };
-
-    internal static void StoreShots(string shotsDir, string dir)
-    {
-        for (int i = 0; i < StoreShotSources.Length; i++)
-        {
-            string source = Path.Combine(shotsDir, StoreShotSources[i]);
-            using var shot = new Bitmap(source);
-            using Bitmap canvas = IconRenderer.RenderStoreShot(shot, 1920, 1080);
-            string path = Path.Combine(dir, $"screenshot-{i + 1}-{StoreShotSources[i]}");
-            using (FileStream fs = OutFile.Create(path)) canvas.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
-            Console.WriteLine("wrote " + Path.GetFullPath(path));
-        }
+        if (!File.Exists(input)) { Console.WriteLine("no capture at " + input); return 1; }
+        using var shot = new Bitmap(input);
+        using Bitmap canvas = IconRenderer.RenderStoreShot(shot, headline);
+        using (FileStream fs = OutFile.Create(output)) canvas.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
+        Console.WriteLine("wrote " + Path.GetFullPath(output));
+        return 0;
     }
 
     internal static void MakeIcon(string path)

@@ -439,24 +439,84 @@ internal static class IconRenderer
     }
 
     /// <summary>
-    /// A screenshot for the Store listing (T412): <paramref name="shot"/> centred on the store art's backdrop,
-    /// scaled down to fit with a margin and never up, since enlarging a capture only blurs it.
+    /// A screenshot for the Store listing (T412), laid out the way the Store's own featured listings are: a
+    /// headline across the top, the window large beneath it, on a warm clay-lit backdrop. A window taller than
+    /// the room left runs off the bottom edge rather than shrinking to a thumbnail — the top of a window is
+    /// what says what it is. A capture with a transparent corner (a toast, which carries its own shadow) is
+    /// drawn as it is; an opaque one gets rounded corners and a shadow, the frame a window has on a desktop.
     /// </summary>
-    public static Bitmap RenderStoreShot(Bitmap shot, int w, int h)
+    public static Bitmap RenderStoreShot(Bitmap shot, string headline, int w = 1920, int h = 1080)
     {
         var bmp = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
         using var g = Graphics.FromImage(bmp);
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.InterpolationMode = InterpolationMode.HighQualityBicubic;
         g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
 
+        // Backdrop: the clay-brown the Store tints this listing's header with, falling to near-black, and a
+        // glow behind where the window sits so it reads as lit rather than pasted on.
         using (var bg = new LinearGradientBrush(new Rectangle(0, 0, w, h),
-                   Color.FromArgb(32, 24, 20), Color.FromArgb(14, 10, 8), 25f))
+                   Color.FromArgb(78, 44, 32), Color.FromArgb(18, 12, 10), 90f))
             g.FillRectangle(bg, 0, 0, w, h);
+        using (var path = new GraphicsPath())
+        {
+            path.AddEllipse(w * 0.15f, h * 0.20f, w * 0.70f, h * 1.10f);
+            using var glow = new PathGradientBrush(path)
+            {
+                CenterColor = Color.FromArgb(60, ClaudeClay),
+                SurroundColors = new[] { Color.FromArgb(0, ClaudeClay) },
+            };
+            g.FillPath(glow, path);
+        }
 
-        float scale = Math.Min(1f, Math.Min(w * 0.88f / shot.Width, h * 0.88f / shot.Height));
+        // Headline, centred, on one line where it fits: the type shrinks before it wraps, down to a floor,
+        // because a second line holding one orphaned word pushes the window down and reads as an accident.
+        float headW = w * 0.88f;
+        float headSize = h * 0.058f;
+        using var centre = new StringFormat { Alignment = StringAlignment.Center };
+        Font headFont = new("Segoe UI Semibold", headSize, FontStyle.Regular, GraphicsUnit.Pixel);
+        while (headSize > h * 0.042f && g.MeasureString(headline, headFont).Width > headW)
+        {
+            headFont.Dispose();
+            headSize -= 1f;
+            headFont = new Font("Segoe UI Semibold", headSize, FontStyle.Regular, GraphicsUnit.Pixel);
+        }
+        using Font disposeHead = headFont;
+        using var cream = new SolidBrush(Color.FromArgb(247, 242, 236));
+        SizeF measured = g.MeasureString(headline, headFont, (int)headW, centre);
+        float headTop = h * 0.075f;
+        g.DrawString(headline, headFont, cream, new RectangleF((w - headW) / 2f, headTop, headW, measured.Height + 4), centre);
+
+        // The window: as large as the width allows, up to 1.3 of the room below (the rest runs off the edge),
+        // and never enlarged past 1.4 — a toast is already rendered at twice its size.
+        float top = headTop + measured.Height + h * 0.05f;
+        float room = h - top;
+        float scale = Math.Min(Math.Min(w * 0.80f / shot.Width, room * 1.3f / shot.Height), 1.4f);
         float sw = shot.Width * scale, sh = shot.Height * scale;
-        g.DrawImage(shot, (w - sw) / 2f, (h - sh) / 2f, sw, sh);
+        float x = (w - sw) / 2f;
+        float y = sh < room ? top + (room - sh) / 2f - h * 0.02f : top;
+
+        bool framed = shot.GetPixel(0, 0).A == 255;
+        if (framed)
+        {
+            float r = 18f;
+            for (int i = 12; i >= 1; i--)
+            {
+                using var shadowPath = RoundedRect(new RectangleF(x - i * 2, y - i * 2 + 14, sw + i * 4, sh + i * 4), r + i * 2);
+                using var shadow = new SolidBrush(Color.FromArgb(9, 0, 0, 0));
+                g.FillPath(shadow, shadowPath);
+            }
+            using var clip = RoundedRect(new RectangleF(x, y, sw, sh), r);
+            g.SetClip(clip);
+            g.DrawImage(shot, x, y, sw, sh);
+            g.ResetClip();
+            using var edge = new Pen(Color.FromArgb(40, 255, 255, 255), 1.5f);
+            g.DrawPath(edge, clip);
+        }
+        else
+            g.DrawImage(shot, x, y, sw, sh);
+
         return bmp;
     }
 

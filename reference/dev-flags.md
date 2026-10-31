@@ -192,10 +192,14 @@ are held open by `PageWindow` for every popup, not per call site.
                                       #   names (T409); build-msix.ps1 writes them into the package layout.
                                       #   Default docs\_preview\msix-assets.
 --store-art [dir]                     # the Store listing's uploads (T412): 9:16 poster, 1:1 box art, 16:9
-                                      #   hero art, the 300/150/71 tiles and, in a checkout, the README
-                                      #   screenshots composed onto 1920x1080 (the Store refuses smaller), each named for its Partner Center slot.
+                                      #   hero art and the 300/150/71 tiles, each named for its Partner Center slot.
                                       #   build-msix.ps1 writes them to dist\store-art; default
                                       #   docs\_preview\store-art.
+--store-shot <in.png> <out.png> <headline>
+                                      # one Store listing screenshot (T412): the capture large under its
+                                      #   headline on a clay-lit backdrop, 1920x1080. build\store-shots.ps1
+                                      #   runs it per image after capturing each language with --lang
+                                      #   and --sample, so no screenshot carries this machine's data.
 ```
 
 Every one of these creates the directory it is given (T187), so a fresh output folder is fine.

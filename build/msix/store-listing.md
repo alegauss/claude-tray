@@ -4,21 +4,26 @@ What Partner Center asks for when the package is submitted, kept beside the mani
 the code it describes are reviewed together. Keep the wording in step with the README: the pitch, the
 privacy facts and the unofficial disclaimer are the same claims.
 
-**This file is the source; the listing CSV is generated from it.** The import refuses an image named by
-file (measured 30/10/2026: the CSV with file names failed for every language, the same text with the
-export's own image cells went through), so images go up once by hand and the rest is copied:
+**This file is the source; the listing CSV and the screenshots are generated from it.** The import
+refuses an image named by file (measured 30/10/2026: the CSV with file names failed for every language,
+the same text with the export's own image cells went through), so images go up through the Partner
+Center page and the CSV carries the rest:
 
-1. Upload the images from `dist\store-art\` in **one** language's listing through the Partner Center page.
-2. Export the listings (Store listings > Export listings). That language's image cells now hold Partner
+1. `powershell -File build\store-shots.ps1` captures the window in each language over synthetic data
+   (`--lang`, `--sample`) and composes each capture under its caption below, into
+   `dist\store-shots\<language>\screenshot-1..6.png`. Upload each folder in **its own** language.
+2. Upload the logos and the hero art from `dist\store-art\` in **one** language.
+3. Export the listings (Store listings > Export listings); the uploaded images come back as Partner
    Center URLs.
-3. Run `powershell -File build\store-listing-csv.ps1 -Template <the exported .csv> -ImagesFrom <that
-   language, e.g. es-es> -Out dist\store-listing-urls` and import the CSV it writes. It fills every
-   language's text from this file, copies the image URLs to the other languages, and turns on a
-   caption for each screenshot that exists.
+4. Run `powershell -File build\store-listing-csv.ps1 -Template <the exported .csv> -ImagesFrom <the
+   language of step 2>` and import the CSV it writes to `dist\store-listing\`. It fills every language's
+   text from this file, copies the logo and hero URLs to the other languages, and turns on the caption of
+   each screenshot that language has.
 
-`-TextOnly` writes the text alone and leaves every image cell as exported. Each language section
-below must keep its shape — four bold headers (short description, description, features, captions) and
-two `**Label:**` lines (keywords, then copyright) — or the script stops and says which section broke.
+Each language section below must keep its shape — four bold headers (short description, description,
+features, captions) and two `**Label:**` lines (keywords, then copyright) — or the scripts stop and say
+which section broke. The captions are also the screenshots' headlines, in the order `store-shots.ps1`
+captures: week, 5-hour session, pace warning, sessions, throughput, profiles.
 
 ## Images
 
@@ -34,7 +39,8 @@ two `**Label:**` lines (keywords, then copyright) — or the script stops and sa
 | 1:1 150x150 | `tile-150x150.png` |
 | 1:1 71x71 | `tile-71x71.png` |
 
-| Desktop screenshots 1-6 | `screenshot-<n>-<source>.png`: six of the README's shots, in the order of `PreviewCli.StoreShotSources`, each composed onto 1920x1080 because the Store refuses a desktop screenshot under 1366x768 |
+The desktop screenshots are per language, from `build\store-shots.ps1` (step 1 above): 1920x1080, since
+the Store refuses one under 1366x768.
 
 ## Once per submission (not per language)
 
@@ -142,7 +148,7 @@ Anthropic. "Claude" and "Claude Code" are trademarks of Anthropic, PBC.
 2. The 5-hour session and where your pace takes it
 3. A warning while there is still time to change course
 4. Every session, with its cost at API list prices
-5. What Claude Code loads before your first prompt
+5. Live throughput, project by project and token by token
 6. Two profiles, one setup: history, skills and plugins shared
 
 ## Português (Brasil) (pt-br)
@@ -189,7 +195,7 @@ Anthropic. "Claude" e "Claude Code" são marcas registradas da Anthropic, PBC.
 2. A sessão de 5 horas e onde o seu ritmo vai levá-la
 3. Um aviso enquanto ainda dá tempo de mudar o rumo
 4. Cada sessão, com o custo a preços de lista da API
-5. O que o Claude Code carrega antes do primeiro prompt
+5. Vazão ao vivo, por projeto e por tipo de token
 6. Dois perfis, uma configuração: histórico, skills e plugins compartilhados
 
 ## Português (Portugal) (pt-pt)
@@ -236,7 +242,7 @@ Anthropic. "Claude" e "Claude Code" são marcas registadas da Anthropic, PBC.
 2. A sessão de 5 horas e onde o seu ritmo a leva
 3. Um aviso enquanto ainda há tempo para mudar de rumo
 4. Cada sessão, com o custo a preços de tabela da API
-5. O que o Claude Code carrega antes do primeiro prompt
+5. Débito ao vivo, por projeto e por tipo de token
 6. Dois perfis, uma configuração: histórico, skills e plugins partilhados
 
 ## Français (fr-fr)
@@ -284,7 +290,7 @@ approuvée, ni sponsorisée par Anthropic. « Claude » et « Claude Code » son
 2. La session de 5 heures, et où votre rythme la mène
 3. Une alerte tant qu'il est temps de changer de cap
 4. Chaque session, avec son coût aux tarifs publics de l'API
-5. Ce que Claude Code charge avant votre premier prompt
+5. Le débit en direct, par projet et par type de token
 6. Deux profils, une configuration : historique, skills et plugins partagés
 
 ## Español (es-es)
@@ -330,5 +336,5 @@ por Anthropic. «Claude» y «Claude Code» son marcas comerciales de Anthropic,
 2. La sesión de 5 horas y adónde la lleva tu ritmo
 3. Un aviso mientras aún hay tiempo de cambiar el rumbo
 4. Cada sesión, con su coste a precios de lista de la API
-5. Lo que Claude Code carga antes de tu primer prompt
+5. El rendimiento en vivo, por proyecto y por tipo de token
 6. Dos perfiles, una configuración: historial, skills y plugins compartidos
