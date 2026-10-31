@@ -869,8 +869,13 @@ internal static class Program
         // the first poll, the environment reconcile, an auto-follow save — reaches their files.
         if (SecondTray) ProfileStore.Observe();
         _instanceMutex = new Mutex(initiallyOwned: true, @"Local\ClaudeTray.SingleInstance", out bool createdNew);
+        // The launch that found it held is the user asking for the app, so the resident tray opens its
+        // window rather than leaving the click with nothing to show.
         if (!createdNew && !SecondTray)
+        {
+            ShowRequest.Signal();
             return;
+        }
 
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
         ApplicationConfiguration.Initialize();

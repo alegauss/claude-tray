@@ -39,6 +39,71 @@ internal static class PackageIdentity
     public static string StatusLineExe(bool packaged, string? processPath) =>
         packaged ? Alias : processPath ?? Alias;
 
+    /// <summary><c>ActivationKind.StartupTask</c>: the manifest's startup task launched us at sign-in.</summary>
+    public const int StartupTaskKind = 1020;
+
+    /// <summary>
+    /// Whether this launch should open the window rather than start silently in the tray.
+    ///
+    /// <para>The Store's "Open" button, the Start menu tile and the alias all start the package the same
+    /// way the startup task does, and a tray icon that appears in the overflow is invisible: the user
+    /// clicked, nothing happened. Only the startup task is meant to be silent, and the package is the one
+    /// place that says which it was. An unpackaged copy keeps starting silently — the Run key, and the
+    /// installer relaunching after a self-update, both pass through here — and a kind that cannot be read
+    /// is treated the same, so a failure never opens a window at sign-in.</para>
+    /// </summary>
+    public static bool OpensWindow(bool packaged, int? activationKind) =>
+        packaged && activationKind is { } kind && kind != StartupTaskKind;
+
+    /// <summary>How the package was activated, or null when it is not packaged or the answer is unreadable.</summary>
+    public static int? ActivationKind()
+    {
+        if (!IsPackaged) return null;
+        IntPtr name = IntPtr.Zero;
+        try
+        {
+            const string AppInstance = "Windows.ApplicationModel.AppInstance";
+            if (WindowsCreateString(AppInstance, AppInstance.Length, out name) != 0) return null;
+            Guid iid = typeof(IAppInstanceStatics).GUID;
+            if (RoGetActivationFactory(name, ref iid, out IAppInstanceStatics statics) != 0) return null;
+            if (statics.GetActivatedEventArgs(out IActivatedEventArgs? args) != 0 || args is null) return null;
+            return args.GetKind(out int kind) == 0 ? kind : null;
+        }
+        catch { return null; }
+        finally { if (name != IntPtr.Zero) WindowsDeleteString(name); }
+    }
+
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetCurrentPackageFullName(ref int packageFullNameLength, char[]? packageFullName);
+
+    [DllImport("combase.dll", CharSet = CharSet.Unicode)]
+    private static extern int WindowsCreateString(string source, int length, out IntPtr hstring);
+
+    [DllImport("combase.dll")]
+    private static extern int WindowsDeleteString(IntPtr hstring);
+
+    [DllImport("combase.dll")]
+    private static extern int RoGetActivationFactory(IntPtr activatableClassId, ref Guid iid,
+        [MarshalAs(UnmanagedType.Interface)] out IAppInstanceStatics factory);
+
+    // The two WinRT interfaces this needs, declared by hand rather than taking on the Windows SDK
+    // projection for one call. IInspectable's three methods are placeholders that keep the slots aligned.
+    [ComImport, Guid("9d11e77f-9ea6-47af-a6ec-46784c5ba254"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IAppInstanceStatics
+    {
+        void GetIids();
+        void GetRuntimeClassName();
+        void GetTrustLevel();
+        void GetRecommendedInstance();
+        [PreserveSig] int GetActivatedEventArgs([MarshalAs(UnmanagedType.Interface)] out IActivatedEventArgs? args);
+    }
+
+    [ComImport, Guid("cf651713-cd08-4fd8-b697-a281b6544e2e"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IActivatedEventArgs
+    {
+        void GetIids();
+        void GetRuntimeClassName();
+        void GetTrustLevel();
+        [PreserveSig] int GetKind(out int kind);
+    }
 }

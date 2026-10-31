@@ -52,6 +52,9 @@
 
 ## Block AO — What a stranger meets first
 
+- 📋 **T414** (deps: —) **Nothing tells the user the tray icon is hidden in the overflow, so the app looks like it is not running** — Explorer records whether the icon is promoted, so the window can say when it is hidden and open the page that shows it. → §CX.2
+- 📋 **T415** (deps: —) **Without Claude Code installed, the app asks to open Claude Code and run /login, and the menu entry fails** — Not installed is a different state from signed out, and only the install page helps someone who has neither. → §CX.3
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

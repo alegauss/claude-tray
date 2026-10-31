@@ -2572,6 +2572,12 @@ internal static partial class SelfTestCli
                   == StatusLineFeed.Setup.Ours);
         Check("unpackaged, it runs this exe's own path",
               PackageIdentity.StatusLineExe(false, @"C:\Tools\ClaudeTray.exe") == @"C:\Tools\ClaudeTray.exe");
+        // The Store's "Open" button starts the package like the startup task does, with the icon in the
+        // overflow, so only the startup task stays silent — and an unreadable kind or an installer copy too.
+        Check("packaged, a launch the user asked for opens the window and the startup task does not",
+              PackageIdentity.OpensWindow(true, 0) && PackageIdentity.OpensWindow(true, 1021)
+              && !PackageIdentity.OpensWindow(true, PackageIdentity.StartupTaskKind)
+              && !PackageIdentity.OpensWindow(true, null) && !PackageIdentity.OpensWindow(false, 0));
         // The detection is the switch that turns the updater off, so it is checked against a second signal
         // rather than trusted: a package's exe sits beside the AppxManifest.xml it was installed from — under
         // WindowsApps from the Store, in the layout folder from build-msix's -Register — and nothing else

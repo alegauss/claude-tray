@@ -57,7 +57,7 @@
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
 | [AM](#block-am--danger-is-said-not-only-coloured) | Danger is said, not only coloured |
 | [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system |
-| [AO](#block-ao--what-a-stranger-meets-first) | What a stranger meets first |
+| [AO](#block-ao--what-a-stranger-meets-first) | What a stranger meets first (active — see ROADMAP) |
 
 ## Block A — Foundation (tray, icon, API, projection)
 
@@ -777,3 +777,4 @@
 
 - **T410** — On the seventh distinct local day the tray runs, one card invites a star on GitHub, with a button that opens the repository and one that dismisses; the days are counted in the settings file, nothing leaves the machine to decide it, and it is never shown again.
 - **T411** — The site's search and link-preview descriptions, its social card and llms.txt now open with the README's pitch, the GitHub About text is prepared beside them in site-content.ts for the owner's gh repo edit, and --selftest fails any description that drops the README's headline.
+- **T413** — **Opening the app shows it.** The Store package asks Windows how it was activated and opens the window on every launch except the startup task at sign-in, which stays silent, as an unreadable answer and an installer copy also do; and a launch that finds the tray already running no longer exits silently but sets a named event the resident tray waits on, handing on its right to the foreground, so the window opens or comes forward in front of what had focus. --selftest holds which activation kinds open it.

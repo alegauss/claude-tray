@@ -94,6 +94,16 @@ internal sealed class TrayContext : ApplicationContext
         // left-button filter keeps the right-click context menu untouched.
         _tray.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) OpenMain(); };
 
+        // A launch the user asked for shows the window, since the icon itself may be in the overflow: a
+        // later launch through ShowRequest, and the package's own launch unless the startup task made it.
+        // Not for a check's tray, which must neither answer the user's launches nor open on its own.
+        if (!Program.SecondTray)
+        {
+            ShowRequest.Listen(() => _ui.Post(_ => OpenMain(), null));
+            if (PackageIdentity.OpensWindow(PackageIdentity.IsPackaged, PackageIdentity.ActivationKind()))
+                _ui.Post(_ => OpenMain(), null);
+        }
+
         _poll.Interval = _settings.RefreshSeconds * 1000;
         _poll.Tick += async (_, _) => await RefreshAsync();
         _poll.Start();
