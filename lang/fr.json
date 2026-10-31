@@ -32,6 +32,8 @@
   "main.nav.statistics": "Statistiques",
   "main.nav.context": "Contexte",
   "main.nav.settings": "Paramètres",
+  "main.iconHidden.text": "L’icône de Claude Code Tray est masquée dans le menu de dépassement de la barre des tâches (^). Activez-la dans « Autres icônes de la barre d’état système » pour voir votre limite sans rien ouvrir.",
+  "main.iconHidden.button": "Ouvrir les paramètres de la barre des tâches",
   "menu.refreshNow": "Actualiser maintenant",
   "menu.openClaude": "Ouvrir Claude Code",
   "menu.updateAvailable": "Mise à jour disponible",

@@ -36,6 +36,8 @@
   "main.nav.statistics": "Statistics",
   "main.nav.context": "Context",
   "main.nav.settings": "Settings",
+  "main.iconHidden.text": "The Claude Code Tray icon is hidden in the taskbar overflow (^). Turn it on under “Other system tray icons” to see your limit without opening anything.",
+  "main.iconHidden.button": "Open taskbar settings",
   "menu.refreshNow": "Refresh now",
   "menu.openClaude": "Open Claude Code",
   "menu.updateAvailable": "Update available",

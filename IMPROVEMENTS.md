@@ -902,22 +902,6 @@ use held the startup task, the alias and a profile switch.
 The first minutes of somebody who has never seen the app: what the first launch shows, what an icon
 in the overflow says, and what the app says on a machine it cannot read anything from yet.
 
-### CX.2 Saying the icon is hidden, while it is (T414)
-
-The startup task at sign-in stays silent — a window at every login is the fastest way to have the
-startup entry turned off — so the icon is the only thing that says the app runs, and on Windows 11 a
-new icon lands in the overflow, where it says nothing.
-
-The app cannot promote its own icon: there is no API, by design. What it can do is know. Explorer
-records each icon under `HKCU\Control Panel\NotifyIconSettings\<id>`, with the `ExecutablePath` it
-belongs to and `IsPromoted = 1` once the user dragged it out. Reading that key is a fact about this
-machine rather than a guess, so the window can say, only while it is true, that the icon is hidden,
-and offer the taskbar settings page (`ms-settings:taskbar`) where it is shown. Absent key or absent
-value both mean hidden: that is the state of every icon before it is touched.
-
-Done means the window carries the hint while the icon is in the overflow, the button opens the
-settings page, and the hint is gone on the next open after the icon is shown.
-
 ### CX.3 Claude Code is not installed (T415)
 
 With no Claude Code on the machine there is no `.credentials.json`, and the app reads that as

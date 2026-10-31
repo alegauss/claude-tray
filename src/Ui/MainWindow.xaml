@@ -64,6 +64,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /><!-- nav strip -->
+            <RowDefinition Height="Auto" /><!-- the hidden-icon hint, collapsed unless it is true -->
             <RowDefinition Height="*" />   <!-- the selected destination -->
         </Grid.RowDefinitions>
 
@@ -99,6 +100,31 @@
              Every page that has been visited stays here, collapsed, exactly like the Settings pages
              inside their own sidebar: state (a scan, a chart's history, half-edited settings) survives
              switching away, and a destination nobody opened is never built at all. -->
-        <Grid x:Name="DestinationHost" Grid.Row="1" />
+        <!-- ===== Hidden-icon hint (T414) =====
+             Shown only while Explorer records the icon as in the overflow, and re-read every time the
+             window is activated, so it is gone on the first return from the settings page that fixed it.
+             Window chrome rather than part of a page: it is about the app, not about any destination. -->
+        <Border x:Name="MainIconHiddenBar" Grid.Row="1" Visibility="Collapsed"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                Padding="18,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="MainIconHiddenText" Grid.Column="0" VerticalAlignment="Center"
+                           TextWrapping="Wrap" Margin="0,0,16,0"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                           Text="{local:Loc main.iconHidden.text}" />
+                <Button x:Name="MainIconHiddenShow" Grid.Column="1" VerticalAlignment="Center"
+                        Content="{local:Loc main.iconHidden.button}"
+                        AutomationProperties.HelpText="{local:Loc main.iconHidden.text}"
+                        Click="IconHiddenShow_Click" />
+            </Grid>
+        </Border>
+
+        <Grid x:Name="DestinationHost" Grid.Row="2" />
     </Grid>
 </Window>

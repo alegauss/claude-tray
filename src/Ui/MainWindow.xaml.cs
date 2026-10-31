@@ -72,6 +72,22 @@ internal partial class MainWindow : Window
         NavStatistics.IsChecked = true;   // the default destination, now that there is one to show
 
         Loaded += (_, _) => FitToScreen();
+        Activated += (_, _) => ShowIconHint(TrayIconPlacement.IsHidden() == true);
+    }
+
+    /// <summary>Show or hide the hidden-icon hint (T414). Internal so a preview can show the state this
+    /// machine is not in.</summary>
+    internal void ShowIconHint(bool hidden) =>
+        MainIconHiddenBar.Visibility = hidden ? Visibility.Visible : Visibility.Collapsed;
+
+    private void IconHiddenShow_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(TrayIconPlacement.SettingsUri)
+                { UseShellExecute = true });
+        }
+        catch { /* a settings page that will not open is not worth an error over a hint */ }
     }
 
     /// <summary>

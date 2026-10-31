@@ -33,6 +33,8 @@
   "main.nav.statistics": "Estatísticas",
   "main.nav.context": "Contexto",
   "main.nav.settings": "Definições",
+  "main.iconHidden.text": "O ícone do Claude Code Tray está escondido no menu de excedente da barra de tarefas (^). Ative-o em “Outros ícones do tabuleiro do sistema” para ver o seu limite sem abrir nada.",
+  "main.iconHidden.button": "Abrir definições da barra de tarefas",
   "menu.refreshNow": "Atualizar agora",
   "menu.openClaude": "Abrir Claude Code",
   "menu.updateAvailable": "Atualização disponível",

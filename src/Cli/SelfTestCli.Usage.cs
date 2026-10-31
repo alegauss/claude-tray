@@ -2578,6 +2578,20 @@ internal static partial class SelfTestCli
               PackageIdentity.OpensWindow(true, 0) && PackageIdentity.OpensWindow(true, 1021)
               && !PackageIdentity.OpensWindow(true, PackageIdentity.StartupTaskKind)
               && !PackageIdentity.OpensWindow(true, null) && !PackageIdentity.OpensWindow(false, 0));
+        // T414. Explorer's record of the icon, matched on this exe's own path with the known-folder GUID
+        // resolved; no IsPromoted is an icon nobody moved, and no record at all is unknown, never hidden.
+        {
+            Guid programFiles = new("6D809377-6AF0-444B-8957-A3773F02200E");
+            string? Folder(Guid g) => g == programFiles ? @"C:\Program Files" : null;
+            const string Exe = @"C:\Program Files\WindowsApps\Pkg\ClaudeTray.exe";
+            const string Stored = @"{6D809377-6AF0-444B-8957-A3773F02200E}\WindowsApps\Pkg\ClaudeTray.exe";
+            Check("the tray icon reads as hidden until Explorer records it promoted, matched on this exe's path",
+                  TrayIconPlacement.Classify(new[] { (Stored, (object?)null) }, Exe, Folder) == true
+                  && TrayIconPlacement.Classify(new[] { (Stored, (object?)0) }, Exe, Folder) == true
+                  && TrayIconPlacement.Classify(new[] { (@"D:\other\ClaudeTray.exe", (object?)null), (Stored, (object?)1) }, Exe, Folder) == false
+                  && TrayIconPlacement.Classify(new[] { (@"D:\other\ClaudeTray.exe", (object?)null) }, Exe, Folder) == null
+                  && TrayIconPlacement.Classify(new[] { (@"{00000000-0000-0000-0000-000000000001}\x\ClaudeTray.exe", (object?)null) }, Exe, Folder) == null);
+        }
         // The detection is the switch that turns the updater off, so it is checked against a second signal
         // rather than trusted: a package's exe sits beside the AppxManifest.xml it was installed from — under
         // WindowsApps from the Store, in the layout folder from build-msix's -Register — and nothing else
