@@ -10,11 +10,20 @@
 #      dist\store-shots\<idioma> (build\store-shots.ps1), com a legenda daquele idioma do store-listing.md;
 #   4) envia as imagens num ZIP para a URL que a submissao fornece, confirma a submissao e acompanha o status.
 #
+#
+# Com -Package (T417), envia tambem dist\ClaudeTray.msix (build\build-msix.cmd) no mesmo ZIP, marcando os
+# pacotes da ultima publicada para remocao; as capturas so sao trocadas junto se -Screenshots vier tambem.
+#
 #   powershell -File build\store-submit.ps1 -DryRun   # so le: confere credenciais, app e submissao pendente
 #   powershell -File build\store-submit.ps1           # faz a troca e envia para certificacao
+#   powershell -File build\store-submit.ps1 -Package  # envia o pacote novo, mantendo as capturas
 param(
     [string]$AppId = '9P27BHWNT56D',
     [switch]$DryRun,
+    # Envia dist\ClaudeTray.msix no lugar dos pacotes publicados (T417).
+    [switch]$Package,
+    # Troca as capturas; e o padrao quando -Package nao vem.
+    [switch]$Screenshots,
     # So le: mostra o que a submissao pendente tem de diferente da ultima publicada.
     [switch]$Compare,
     # Apaga a submissao pendente e cria outra pela API. So serve para uma pendente que a propria API criou:
@@ -62,6 +71,24 @@ $app = Api 'Get' $base
 Write-Host "app: $($app.primaryName) ($AppId)"
 $pendingId = $app.pendingApplicationSubmission.id
 if ($pendingId) { Write-Host "submissao pendente: $pendingId" } else { Write-Host 'nenhuma submissao pendente' }
+
+if (-not $Package) { $Screenshots = $true }
+$msix = Join-Path $root 'dist\ClaudeTray.msix'
+if ($Package) {
+    # A Store recusa um pacote que nao sobe a versao, mas so depois do upload e da validacao; conferir antes.
+    $csproj = [IO.File]::ReadAllText((Join-Path $root 'ClaudeTray.csproj'))
+    if ($csproj -notmatch '<Version>\s*([0-9]+\.[0-9]+\.[0-9]+)\s*</Version>') { throw '<Version> nao encontrado em ClaudeTray.csproj' }
+    $newVersion = [version]"$($Matches[1]).0"
+    if (-not (Test-Path $msix)) { throw "sem $msix (rode build\build-msix.cmd)" }
+    if ((Get-Item $msix).LastWriteTime -lt (Get-Item (Join-Path $root 'ClaudeTray.csproj')).LastWriteTime) {
+        throw "$msix e mais antigo que o ClaudeTray.csproj; rode build\build-msix.cmd de novo"
+    }
+    $published = Api 'Get' "$base/submissions/$($app.lastPublishedApplicationSubmission.id)"
+    $live = @($published.applicationPackages | ForEach-Object { [version]$_.version })
+    $highest = $live | Sort-Object -Descending | Select-Object -First 1
+    Write-Host "pacote: $newVersion (publicado: $(($live | ForEach-Object { "$_" }) -join ', '))"
+    if ($highest -and $newVersion -le $highest) { throw "a versao $newVersion nao e maior que a publicada $highest; suba <Version>" }
+}
 
 if ($DryRun) {
     if ($pendingId) {
@@ -123,7 +150,18 @@ $zipPath = Join-Path $zipDir 'images.zip'
 Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 $zip = [IO.Compression.ZipFile]::Open($zipPath, 'Create')
 try {
-    foreach ($p in $sub.listings.PSObject.Properties) {
+    if ($Package) {
+        [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $msix, 'ClaudeTray.msix')
+        $old = @($sub.applicationPackages | ForEach-Object { $_.fileStatus = 'PendingDelete'; $_ })
+        $sub.applicationPackages = @($old) + @([pscustomobject]@{
+                fileName              = 'ClaudeTray.msix'
+                fileStatus            = 'PendingUpload'
+                minimumDirectXVersion = 'None'
+                minimumSystemRam      = 'None'
+            })
+        Write-Host "  pacote $newVersion adicionado, $($old.Count) antigo(s) removido(s)"
+    }
+    foreach ($p in $(if ($Screenshots) { $sub.listings.PSObject.Properties })) {
         $code = $p.Name.ToLowerInvariant()
         if (-not $langs.ContainsKey($code)) { Write-Host "  $code - sem texto no store-listing.md, mantido"; continue }
         $src = Join-Path $root "dist\store-shots\$code"
