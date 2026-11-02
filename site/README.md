@@ -7,7 +7,7 @@ needs it, and `build.yml` / `check.yml` never touch it.
 It replaces the single hand-written `docs/index.html` this project published for its first
 year. That file was one scroll, dark-only, fetched its fonts from a CDN, and its `sitemap.xml`
 listed one URL because it was written when the site was one URL. The structure here is the
-same one [freewilly](https://github.com/alegauss/freewilly) uses, so the two sites under
+same one [freeharbor](https://github.com/alegauss/freeharbor) uses, so the two sites under
 `alegauss.github.io` are now maintained the same way.
 
 The chrome is not this site's own. The nav, hero, section heads, buttons, copy button, feature
