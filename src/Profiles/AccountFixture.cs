@@ -372,7 +372,7 @@ internal static class AccountFixture
         return map;
     }
 
-    private static string Iso(DateTime utc) => utc.ToString("yyyy-MM-ddTHH:mm:ss.000Z");
+    private static string Iso(DateTime utc) => utc.ToString("yyyy-MM-ddTHH:mm:ss.000Z", System.Globalization.CultureInfo.InvariantCulture);
 
     private static void Write(string path, string content)
     {

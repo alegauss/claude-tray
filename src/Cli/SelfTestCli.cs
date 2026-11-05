@@ -286,6 +286,8 @@ internal static partial class SelfTestCli
 
         Section("dates — the fields are in the order the culture puts them (Block G)");
         DateOrder();
+        IsoStamps();
+        Repo("every date is formatted through Dates or with a stated culture", DatesThroughDates, "src");
 
         Section("names — a page or destination this build does not have is refused (Block AI)");
         PageNames();

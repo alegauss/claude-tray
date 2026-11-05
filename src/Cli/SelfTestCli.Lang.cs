@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Globalization;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -720,6 +721,43 @@ internal static partial class SelfTestCli
     }
 
     // ---------------------------------------------------------------- Block A: the handover between accounts
+
+    /// <summary>
+    /// T440: a stamp is Gregorian whatever the machine's calendar. A pattern with no culture formats on the
+    /// OS culture's own calendar — a Thai system wrote 2569 for 2026 — so it is run here under th-TH, the
+    /// calendar that proved it, and the culture is put back whatever happens.
+    /// </summary>
+    private static void IsoStamps()
+    {
+        CultureInfo was = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("th-TH");
+            var day = new DateTime(2026, 11, 5, 14, 10, 0);
+            Check("a stamp is written on the Gregorian calendar under a Thai system culture",
+                  Dates.Iso(day) == "2026-11-05" && Dates.Iso(DateOnly.FromDateTime(day)) == "2026-11-05",
+                  $"{Dates.Iso(day)} / {Dates.Iso(DateOnly.FromDateTime(day))}");
+        }
+        finally { CultureInfo.CurrentCulture = was; }
+    }
+
+    /// <summary>T440, the callers: no source formats a date with a fixed pattern and no culture, and none
+    /// names a month with a fixed field order outside <see cref="Dates"/>. The order check tests Dates; this
+    /// is what keeps the windows using it.</summary>
+    private static void DatesThroughDates(string root)
+    {
+        var bare = new Regex(@"\.ToString\(""(yyyy|MMM|d MMM)[^""]*""\)");
+        var order = new Regex(@"""MMM d[^""]*""");
+        string[] hits = Directory.GetFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories)
+            .Where(f => !Path.GetFileName(f).StartsWith("SelfTestCli", StringComparison.Ordinal)
+                        && Path.GetFileName(f) != "Dates.cs")
+            .SelectMany(f => File.ReadAllLines(f).Select((l, n) => (f, l, n)))
+            .Where(x => !x.l.TrimStart().StartsWith("//", StringComparison.Ordinal)
+                        && (bare.IsMatch(x.l) || order.IsMatch(x.l)))
+            .Select(x => $"{Path.GetFileName(x.f)}:{x.n + 1}")
+            .ToArray();
+        Check("every date is formatted through Dates or with a stated culture", hits.Length == 0, string.Join(", ", hits));
+    }
 
     /// <summary>
     /// T263. A date's <b>order</b> comes from the culture, not from a pattern written in the source. It did

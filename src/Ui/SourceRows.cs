@@ -77,7 +77,7 @@ public sealed class SourceRow
         Tokens = TokenEstimate.Format(s.Tokens);
         Eager = s.EagerTokens > 0 ? TokenEstimate.Format(s.EagerTokens) : "—";
         EagerWeight = s.EagerTokens > 0 ? "SemiBold" : "Normal";
-        Modified = s.ModifiedUtc.ToLocalTime().ToString("yyyy-MM-dd");
+        Modified = Dates.Iso(s.ModifiedUtc.ToLocalTime());
 
         bool indexed = s.Mode == LoadMode.Lazy && s.EagerTokens > 0;
         (ChipBackground, ChipForeground) = s.Mode switch
@@ -127,7 +127,7 @@ public sealed class SourceRow
         UsedTip = !eligible ? null
             : stat is { Total: > 0 }
                 ? L.T("context.usage.tip", stat.Total, evidence!.WindowDays, stat.Recent,
-                    evidence.RecentDays, stat.LastUsedUtc.ToLocalTime().ToString("yyyy-MM-dd"))
+                    evidence.RecentDays, Dates.Iso(stat.LastUsedUtc.ToLocalTime()))
                 : canReportZero
                     ? L.T("context.usage.neverTip", evidence!.WindowDays)
                     : L.T("context.usage.unknownTip");

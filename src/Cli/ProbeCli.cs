@@ -371,11 +371,11 @@ internal static class ProbeCli
     }
 
     private static string When(double t) =>
-        DateTimeOffset.FromUnixTimeSeconds((long)t).ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+        DateTimeOffset.FromUnixTimeSeconds((long)t).ToLocalTime().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
 
     private static void Dump(double t, IReadOnlyDictionary<string, string> headers, string indent)
     {
-        string when = DateTimeOffset.FromUnixTimeSeconds((long)t).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+        string when = DateTimeOffset.FromUnixTimeSeconds((long)t).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
         Console.WriteLine($"{indent}{when}");
         foreach (string line in Marked(headers))
             Console.WriteLine($"{indent}  {line}");

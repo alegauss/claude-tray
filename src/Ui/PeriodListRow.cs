@@ -30,8 +30,8 @@ public sealed class PeriodListRow
         ListPrices.Equivalent price = row.Price;
         Money = price.PricedTokens > 0 ? L.T("stats.sessions.money", Nums.Of(price.Dollars, "0.00")) : "";
         MoneyTip = price.Complete
-            ? L.T("stats.sessions.periodTip", ListPrices.Read.ToString("yyyy-MM-dd"))
-            : L.T("stats.sessions.periodPartial", ListPrices.Read.ToString("yyyy-MM-dd"));
+            ? L.T("stats.sessions.periodTip", Dates.Iso(ListPrices.Read))
+            : L.T("stats.sessions.periodPartial", Dates.Iso(ListPrices.Read));
     }
 
     public string Label { get; }

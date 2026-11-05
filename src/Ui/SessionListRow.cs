@@ -90,7 +90,7 @@ public sealed class SessionListRow : INotifyPropertyChanged
             ? when.ToString("HH:mm")
             : when.Date == nowLocal.Date.AddDays(-1)
                 ? L.T("stats.sessions.yesterday", when.ToString("HH:mm"))
-                : when.ToString("MMM d, HH:mm", L.DateCulture);
+                : Dates.MonthDayTime(when);
         Duration = Span(row.Seconds);
         Turns = Nums.Of(row.Calls, "N0");
         // Cache reads are out, as everywhere else a token figure is shown here: they are two orders of
@@ -125,8 +125,8 @@ public sealed class SessionListRow : INotifyPropertyChanged
         MoneyTip = price.PricedTokens == 0
             ? L.T("stats.sessions.moneyNone")
             : price.Complete
-                ? L.T("stats.sessions.moneyTip", ListPrices.Read.ToString("yyyy-MM-dd"))
-                : L.T("stats.sessions.moneyPartial", ListPrices.Read.ToString("yyyy-MM-dd"));
+                ? L.T("stats.sessions.moneyTip", Dates.Iso(ListPrices.Read))
+                : L.T("stats.sessions.moneyPartial", Dates.Iso(ListPrices.Read));
 
         // The hover carries the identifiers, which is what makes a row actionable without making it
         // descriptive: the id is what `claude --resume` takes.

@@ -36,6 +36,17 @@ internal static class Dates
     public static string MonthDay(DateTime local) =>
         local.ToString(C.DateTimeFormat.MonthDayPattern.Replace("MMMM", "MMM"), C);
 
+    /// <summary>
+    /// A date as <c>yyyy-MM-dd</c> on the Gregorian calendar, whatever the machine runs (T440). A pattern
+    /// with no culture formats on the OS culture's calendar: measured on .NET 10, a Thai system writes
+    /// 2569-11-05 and a Saudi one 1448-05-25 for the same day. This is for a stamp read as a stamp — a
+    /// rate card's date, a file's modified day — which no reader expects in their own calendar.
+    /// </summary>
+    public static string Iso(DateTime when) => when.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    /// <inheritdoc cref="Iso(DateTime)"/>
+    public static string Iso(DateOnly when) => when.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
     /// <summary>A month and a day with the time after it: "Aug 3, 16:26" / "3 août, 16:26".</summary>
     public static string MonthDayTime(DateTime local) => MonthDay(local) + ", " + Time(local);
 

@@ -142,7 +142,7 @@ internal static class SessionsCli
             ["schema"] = UsageCli.Schema,
             ["period"] = p.ToString().ToLowerInvariant(),
             ["dataStarts"] = starts is { } s ? PeriodTotals.Label(s, Period.Day) : null,
-            ["listPricesRead"] = ListPrices.Read.ToString("yyyy-MM-dd"),
+            ["listPricesRead"] = Dates.Iso(ListPrices.Read),
             ["periods"] = periods.Take(show).Select(r => new Dictionary<string, object?>
             {
                 ["start"] = PeriodTotals.Label(r.Start, Period.Day),

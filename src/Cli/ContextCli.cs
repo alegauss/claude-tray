@@ -344,7 +344,7 @@ internal static class ContextCli
             string used = stat is { Total: > 0 }
                 ? stat.Total.ToString()
                 : unused ? "never" : "—";
-            string last = stat is { Total: > 0 } ? stat.LastUsedUtc.ToLocalTime().ToString("yyyy-MM-dd") : "";
+            string last = stat is { Total: > 0 } ? Dates.Iso(stat.LastUsedUtc.ToLocalTime()) : "";
             Console.WriteLine($"{Clip(source.Label, 42),-42} {used,9} {stat?.Recent ?? 0,5} " +
                               $"{TokenEstimate.Format(source.EagerTokens),7}  {last}");
         }

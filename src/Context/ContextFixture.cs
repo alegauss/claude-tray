@@ -199,7 +199,7 @@ internal static class ContextFixture
         Directory.CreateDirectory(dir);
 
         string cwd = System.Text.Json.JsonSerializer.Serialize(repoPath);
-        string stamp = when.ToString("yyyy-MM-ddTHH:mm:ss.000Z");
+        string stamp = when.ToString("yyyy-MM-ddTHH:mm:ss.000Z", System.Globalization.CultureInfo.InvariantCulture);
         var sb = new StringBuilder();
         sb.Append("{\"type\":\"user\",\"cwd\":").Append(cwd).Append(",\"timestamp\":\"").Append(stamp)
           .Append("\",\"message\":{\"role\":\"user\"}}\n");

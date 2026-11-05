@@ -83,7 +83,7 @@ internal partial class StatisticsPage
         // because the one thing it interpolates is the date the rate card was read — a compile-time fact
         // that cannot change while the window is open, and a binding would imply it could.
         SessionsMethodBody.Text = L.T("stats.sessions.method",
-                                      ListPrices.Read.ToString("yyyy-MM-dd"));
+                                      Dates.Iso(ListPrices.Read));
 
         SessionsRange.SelectionChanged += (_, _) => RenderSessions();
         SessionsGroup.SelectionChanged += (_, _) => RenderSessions();
@@ -407,7 +407,7 @@ internal partial class StatisticsPage
 
             // Through the UI language's culture, not the machine's: an English window rendering a
             // Portuguese month is what the published capture caught this doing (T335).
-            string when = peak.StartLocal.ToString("MMM d, HH:mm", L.DateCulture);
+            string when = Dates.MonthDayTime(peak.StartLocal);
             string head = L.T("stats.sessions.peak", TokenEstimate.Format(
                 (int)Math.Min(int.MaxValue, peak.Tokens)), when);
 

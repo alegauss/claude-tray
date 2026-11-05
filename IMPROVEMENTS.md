@@ -926,19 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.22 Dates outside the Dates path (T440)
-
-T263 routed dates through `Dates` because a fixed pattern pins the field order. `SessionListRow`
-(:93) and the Sessions peak line (StatisticsPage.Sessions.cs:343) still format `"MMM d, HH:mm"` with
-`L.DateCulture`, so French reads "août 3, 14:10"; `Dates.MonthDayTime` exists (Dates.cs:40). The
-DateOrder check (SelfTestCli.Lang.cs:699-752) tests `Dates` itself, not its callers.
-
-`ToString("yyyy-MM-dd")` with no culture runs on the OS calendar: a probe on .NET 10 gives
-2569-11-05 under th-TH and 1448-05-25 under ar-SA, for `DateOnly` too. The tray never sets an
-invariant culture, so this reaches SourceRows.cs:80 and :130, SessionListRow.cs:128-129,
-PeriodListRow.cs:33-34 and StatisticsPage.Sessions.cs:79. Pass the invariant culture, or route them
-through `Dates`.
-
 ### CXI.23 Skill usage that says never (T441)
 
 Three faults in `ContextUsage`, each feeding the `never-invoked` advice (ContextRules.cs:421).
