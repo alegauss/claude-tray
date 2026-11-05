@@ -152,7 +152,10 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
             _debounce.Tick += (_, _) =>
             {
                 _debounce!.Stop();
-                _liveRefresh = true;
+                // A scan already running did not see this edit, so it must not call itself an automatic
+                // update; the one queued behind it will (T435).
+                if (_scanning) _queuedLive = true;
+                else _liveRefresh = true;
                 StartScan();
             };
 
@@ -202,12 +205,21 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
     /// <summary>The profile key the scan in hand was taken for (T421).</summary>
     private string? _scannedFor;
 
+    /// <summary>A rescan asked for while one was running (T435): run once more when it lands, instead of
+    /// dropping the edit that asked for it.</summary>
+    private bool _rescanQueued;
+    /// <summary>The queued rescan was asked for by the watcher, so it is the one that says so.</summary>
+    private bool _queuedLive;
+
     private async void StartScan()
     {
-        if (_scanning) return;
+        if (_scanning) { _rescanQueued = true; return; }
         _scanning = true;
         RescanButton.IsEnabled = false;
-        ShowStatus(L.T("context.scanning"));
+        // Only take the screen away when there is nothing on it yet (T435, as Statistics does since T118):
+        // every Rescan, revisit and watcher refresh used to collapse both panes and rebuild them.
+        if (ProjectList.ItemsSource is null) ShowStatus(L.T("context.scanning"));
+        else ScanInfo.Text = L.T("context.scanning");
 
         ContextScan scan;
         // The monitored profile's tree (T421), and the key its history files under, taken together once.
@@ -236,6 +248,14 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         }
 
         Apply(scan);
+
+        if (_rescanQueued)
+        {
+            _rescanQueued = false;
+            _liveRefresh |= _queuedLive;
+            _queuedLive = false;
+            StartScan();
+        }
     }
 
     private void Apply(ContextScan scan)
@@ -264,8 +284,13 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         // Keep the user on the project they were looking at across a rescan; otherwise honor the
         // slug the window was opened with, and fall back to the heaviest (the list is already
         // sorted by eager tokens).
-        string? keep = (ProjectList.SelectedItem as ProjectRow)?.Slug
-                       ?? (_selected ? null : _initialSelection);
+        // The All projects row has an empty slug, which matches no row, so it is kept by name (T435) —
+        // otherwise every rescan swapped the overview for the heaviest project.
+        string? keep = ProjectList.SelectedItem is ProjectRow was
+                           ? (was.IsAll ? "all" : was.Slug)
+                           : (_selected ? null : _initialSelection);
+        // And where the list was scrolled to: a rebuilt list starts at the top.
+        double? scrolled = _selected && ListScroller() is { } before ? before.VerticalOffset : null;
 
         // "All projects" leads the list: the duplication and dead-directory problems only exist
         // between projects, so there has to be somewhere they are visible. The default selection is
@@ -283,9 +308,13 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
                 : rows.FirstOrDefault(r => r.Matches(keep))
                   ?? rows.FirstOrDefault(r => !r.IsAll)
                   ?? rows[0];
-        // The list is sorted by weight, so a project named on the command line — or simply kept
-        // across a rescan — is usually below the fold; without this the selection is invisible.
-        ProjectList.ScrollIntoView(ProjectList.SelectedItem);
+        // The list is sorted by weight, so a project named on the command line is usually below the
+        // fold; without this the selection is invisible. A rescan puts the list back where it was.
+        if (scrolled is { } offset)
+            Dispatcher.BeginInvoke(() => ListScroller()?.ScrollToVerticalOffset(offset),
+                                   System.Windows.Threading.DispatcherPriority.Loaded);
+        else
+            ProjectList.ScrollIntoView(ProjectList.SelectedItem);
         _selected = true;
 
         StartUsagePass();
@@ -319,6 +348,17 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
     }
 
     private bool _usageRunning;
+
+    /// <summary>The project list's own scroller, found under its template.</summary>
+    private ScrollViewer? ListScroller()
+    {
+        DependencyObject? at = ProjectList;
+        while (at is not null and not ScrollViewer)
+            at = System.Windows.Media.VisualTreeHelper.GetChildrenCount(at) > 0
+                ? System.Windows.Media.VisualTreeHelper.GetChild(at, 0)
+                : null;
+        return at as ScrollViewer;
+    }
 
     private void ShowStatus(string text)
     {

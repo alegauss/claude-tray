@@ -926,21 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.17 What a Context rescan throws away (T435)
-
-`StartScan` calls `ShowStatus("scanning")` unconditionally (ContextPage.xaml.cs:207), which
-collapses `MasterPane` and `DetailPane` (:316-322) on every Rescan, every revisit (:123) and every
-watcher refresh (:155-156); `Apply` then replaces `ProjectList.ItemsSource` (:271), so the scroll
-resets. Statistics stopped exactly this blink in T118 (StatisticsPage.xaml.cs:371-378).
-
-The selection to keep is read as `SelectedItem?.Slug` (:261), which is `""` for the All projects row
-(ProjectRow.cs:53); `Matches("")` is false, so the overview is replaced by the heaviest project
-(:278).
-
-A debounced rescan that fires while a scan runs returns at `if (_scanning) return;` (:204) after
-`_liveRefresh` was already set at :155, so the edit is never picked up and the running scan is
-labelled "updated automatically" whether or not it saw the change. It should queue one more scan.
-
 ### CXI.18 The Sessions pane on every poll (T436)
 
 Each poll runs `UpdateSnapshot` -> `Reload` -> `Render` -> `LoadSessions`
