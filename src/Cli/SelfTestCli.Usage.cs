@@ -2599,7 +2599,7 @@ internal static partial class SelfTestCli
         Check("packaged, the status line runs the execution alias rather than the WindowsApps path",
               Command(PackageIdentity.StatusLineExe(true, @"C:\Program Files\WindowsApps\x\ClaudeTray.exe"))
                   == "ClaudeTray.exe --statusline"
-              && StatusLineFeed.Classify("""{ "statusLine": { "command": "ClaudeTray.exe --statusline" } }""")
+              && StatusLineFeed.Classify("""{ "statusLine": { "command": "ClaudeTray.exe --statusline" } }""", There)
                   == StatusLineFeed.Setup.Ours);
         Check("unpackaged, it runs this exe's own path",
               PackageIdentity.StatusLineExe(false, @"C:\Tools\ClaudeTray.exe") == @"C:\Tools\ClaudeTray.exe");
@@ -2666,17 +2666,27 @@ internal static partial class SelfTestCli
                                               "AppxManifest.xml")));
         // T404. What a profile's settings.json already says, so the row can show it is done.
         Check("a settings file that runs this app with --statusline is ours, wherever the exe lives",
-              StatusLineFeed.Classify("""{ "statusLine": { "type": "command", "command": "C:/x/ClaudeTray.exe --statusline" } }""")
+              StatusLineFeed.Classify("""{ "statusLine": { "type": "command", "command": "C:/x/ClaudeTray.exe --statusline" } }""", There)
                   == StatusLineFeed.Setup.Ours
-              && StatusLineFeed.Classify("""{ "statusLine": { "command": "\"D:/Git/claude-tray/bin/Debug/ClaudeTray.exe\" --statusline" } }""")
+              && StatusLineFeed.Classify("""{ "statusLine": { "command": "\"D:/Git/claude-tray/bin/Debug/ClaudeTray.exe\" --statusline" } }""", There)
                   == StatusLineFeed.Setup.Ours);
         Check("somebody's own status line is another one, which pasting would replace",
-              StatusLineFeed.Classify("""{ "statusLine": { "type": "command", "command": "~/.claude/statusline.sh" } }""")
+              StatusLineFeed.Classify("""{ "statusLine": { "type": "command", "command": "~/.claude/statusline.sh" } }""", There)
                   == StatusLineFeed.Setup.Other);
         Check("no statusLine, an unreadable file and a file with comments and a trailing comma each answer",
-              StatusLineFeed.Classify("""{ "theme": "dark" }""") == StatusLineFeed.Setup.Missing
-              && StatusLineFeed.Classify("not json") == StatusLineFeed.Setup.Missing
-              && StatusLineFeed.Classify("{ // mine\n \"statusLine\": { \"command\": \"ClaudeTray.exe --statusline\" }, }")
+              StatusLineFeed.Classify("""{ "theme": "dark" }""", There) == StatusLineFeed.Setup.Missing
+              && StatusLineFeed.Classify("not json", There) == StatusLineFeed.Setup.Missing
+              && StatusLineFeed.Classify("{ // mine\n \"statusLine\": { \"command\": \"ClaudeTray.exe --statusline\" }, }", There)
+                  == StatusLineFeed.Setup.Ours);
+        // T445. Ours by its words and running nothing: the Inno install that the command named was removed
+        // when the Store build replaced it, and the page called that set up and hid the paste.
+        Check("a status line naming a ClaudeTray that is not there is stale, not set up",
+              StatusLineFeed.Classify("""{ "statusLine": { "command": "%LOCALAPPDATA%/ClaudeTray/ClaudeTray.exe --statusline" } }""", _ => false)
+                  == StatusLineFeed.Setup.Stale
+              && StatusLineFeed.Classify("""{ "statusLine": { "command": "ClaudeTray.exe --statusline" } }""", _ => false)
+                  == StatusLineFeed.Setup.Stale);
+        Check("and a command wrapped in a shell is not second-guessed",
+              StatusLineFeed.Classify("""{ "statusLine": { "command": "cmd /c ClaudeTray.exe --statusline" } }""", _ => false)
                   == StatusLineFeed.Setup.Ours);
         Check("the bar's line names both windows", StatusLineFeed.Line(feed).Contains("20%")
                                                     && StatusLineFeed.Line(feed).Contains("40%"));
@@ -2707,4 +2717,7 @@ internal static partial class SelfTestCli
               new[] { "extra", "extra-bare" }
                   .All(n => ToastPreviews.Catalogue.Any(v => v.Name == n)));
     }
+
+    /// <summary>An exe that resolves, for the checks whose claim is about a command's words (T445).</summary>
+    private static bool There(string exe) => true;
 }

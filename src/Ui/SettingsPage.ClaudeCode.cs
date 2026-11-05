@@ -179,6 +179,8 @@ internal partial class SettingsPage
             lines.Add(L.T("settings.cc.statusLineMissing", missing));
         if (Names(StatusLineFeed.Setup.Other) is { Length: > 0 } other)
             lines.Add(L.T("settings.cc.statusLineOther", other));
+        if (Names(StatusLineFeed.Setup.Stale) is { Length: > 0 } stale)
+            lines.Add(L.T("settings.cc.statusLineStale", stale));
 
         StatusLineState.Text = string.Join(Environment.NewLine, lines);
         StatusLineState.Visibility = lines.Count > 0 ? Visibility.Visible : Visibility.Collapsed;

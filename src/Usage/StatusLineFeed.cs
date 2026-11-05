@@ -178,8 +178,9 @@ internal static class StatusLineFeed
         return "\"statusLine\": " + body.Replace("\r\n", "\n");
     }
 
-    /// <summary>What a profile's <c>settings.json</c> says about the status line (T404).</summary>
-    internal enum Setup { Missing, Ours, Other }
+    /// <summary>What a profile's <c>settings.json</c> says about the status line (T404). Stale is ours by its
+    /// words and runs nothing: the ClaudeTray it names is not there (T445).</summary>
+    internal enum Setup { Missing, Ours, Other, Stale }
 
     /// <summary>
     /// Whether a profile already runs this app's status line — read, never written (§I.4), so the Settings
@@ -199,7 +200,11 @@ internal static class StatusLineFeed
 
     /// <summary>The same answer from a settings file's text — pure, for <c>--selftest</c>. Comments and
     /// trailing commas are accepted, because a hand-edited settings file has both.</summary>
-    internal static Setup Classify(string json)
+    internal static Setup Classify(string json) => Classify(json, Resolves);
+
+    /// <inheritdoc cref="Classify(string)"/>
+    /// <param name="exists">Whether the exe a command names is there, so a check can say so without a disk.</param>
+    internal static Setup Classify(string json, Func<string, bool> exists)
     {
         try
         {
@@ -214,12 +219,38 @@ internal static class StatusLineFeed
             string command = sl.TryGetProperty("command", out JsonElement c) && c.ValueKind == JsonValueKind.String
                 ? c.GetString() ?? ""
                 : "";
-            return command.Contains("ClaudeTray", StringComparison.OrdinalIgnoreCase)
-                   && command.Contains("--statusline", StringComparison.OrdinalIgnoreCase)
-                ? Setup.Ours
-                : Setup.Other;
+            if (!command.Contains("ClaudeTray", StringComparison.OrdinalIgnoreCase)
+                || !command.Contains("--statusline", StringComparison.OrdinalIgnoreCase))
+                return Setup.Other;
+            // Ours by its words — but the Store build replaced the Inno install, which took the exe the
+            // command named with it, and a status line that runs nothing feeds nothing (T445).
+            return ExeOf(command) is { } exe && !exists(exe) ? Setup.Stale : Setup.Ours;
         }
         catch (JsonException) { return Setup.Missing; }
+    }
+
+    /// <summary>The program a command runs, when it is this app named by path or by name; null for a
+    /// command whose first word is something else (a shell wrapping it), which this does not second-guess.</summary>
+    internal static string? ExeOf(string command)
+    {
+        string c = command.Trim();
+        string first = c.StartsWith('"')
+            ? c[1..Math.Max(1, c.IndexOf('"', 1))]
+            : c.Split(' ', 2)[0];
+        first = Environment.ExpandEnvironmentVariables(first);
+        string leaf = Path.GetFileNameWithoutExtension(first);
+        return leaf.Equals("ClaudeTray", StringComparison.OrdinalIgnoreCase) ? first : null;
+    }
+
+    /// <summary>Whether a program a status line names would run: a path that exists, or a bare name found
+    /// on <c>PATH</c> — which is where the Store build's alias lives.</summary>
+    private static bool Resolves(string exe)
+    {
+        if (Path.IsPathRooted(exe)) return File.Exists(exe);
+        string name = Path.HasExtension(exe) ? exe : exe + ".exe";
+        return (Environment.GetEnvironmentVariable("PATH") ?? "")
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Any(dir => { try { return File.Exists(Path.Combine(dir, name)); } catch { return false; } });
     }
 
     /// <summary>What the status bar shows: both windows, in the tray's own words and number style.</summary>

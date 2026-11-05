@@ -926,19 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.27 A status line set up on a removed exe (T445)
-
-`StatusLineFeed.Classify` (StatusLineFeed.cs:217) recognises any `ClaudeTray ... --statusline`
-command as the app's own, and the Claude Code settings page (SettingsPage.ClaudeCode.cs:174-185)
-then reports it set up and hides the command to paste. On this machine both profiles'
-`settings.json` run `%LOCALAPPDATA%/ClaudeTray/ClaudeTray.exe --statusline`, and that exe was
-removed when the Store build replaced the Inno install (T412): the profile histories hold 1894 and
-95 API readings and no status-line reading, and the feed's directory holds one reading from
-2026-10-27.
-
-This is also why the day of readings T398 waits for cannot start. Classify should check that the
-command's exe resolves, and the page should offer the alias form when it does not.
-
 ### CXI.28 A repository check that throws (T446)
 
 `SelfTestCli.Repo` (SelfTestCli.cs:1026) calls its assert with no `try`. Every `Temp` section is
@@ -986,6 +973,6 @@ select the Sessions tab, press Enter with focus on `#SessionList > DataItem[orde
 that the row's call tree is in the tree, as the existing row-click case does. The chart strip wants
 the same with Space on `#ChartProjects`, reading that the Sessions tab became the selected one.
 
-winwright cannot say it yet. `press` sends only Tab, Shift+Tab and the arrows, and it sends them at
-the window, so no step can put focus on an element and press Enter there. Filed upstream as WW610.
-When WW610 ships, write the two steps above and close this line.
+winwright cannot say it yet. `press` already names Enter and Space, but it sends them at the window,
+so no step can put focus on an element first. Filed upstream as WW610, which adds a `focus` act.
+When it ships, write each case as `focus` on the row and then `press`, and close this line.

@@ -222,6 +222,7 @@
   "settings.cc.statusLineOn": "✓ Set up in {0}.",
   "settings.cc.statusLineMissing": "Not set up in {0}: paste the entry below into the settings.json.",
   "settings.cc.statusLineOther": "{0} uses another status line, which pasting this one would replace.",
+  "settings.cc.statusLineStale": "{0} runs a ClaudeTray that is no longer installed, so it feeds nothing: paste the entry below again.",
 
   "settings.cc.profiles": "Profiles",
   "settings.cc.profilesGlobal": "All profiles",

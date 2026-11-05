@@ -218,6 +218,7 @@
   "settings.cc.statusLineOn": "✓ Configurada em {0}.",
   "settings.cc.statusLineMissing": "Não configurada em {0}: cole a entrada abaixo no settings.json.",
   "settings.cc.statusLineOther": "{0} usa outra linha de status, que colar esta substituiria.",
+  "settings.cc.statusLineStale": "{0} executa um ClaudeTray que não está mais instalado, então não envia nada: cole a entrada abaixo de novo.",
 
   "settings.cc.profiles": "Perfis",
   "settings.cc.profilesGlobal": "Todos os perfis",

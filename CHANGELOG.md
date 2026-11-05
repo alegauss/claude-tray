@@ -149,6 +149,7 @@
 - **T404** — The Settings row reads each profile settings.json and says where the status line is already set up, hiding the paste once every profile has it.
 - **T405** — A status-line reading now stands in for a poll at allowed_warning too, while its resets name the same cycles as the last API reading, so an account past 75% of its week is spared.
 - **T423** — A credentials file read mid-refresh is shared, retried, and reported as a transient poll so the last good reading stays; every ApiClient shares one HttpClient.
+- **T445** — A status-line command that names a ClaudeTray no longer installed reads as stale: Settings says so and offers the entry to paste again, instead of calling it set up.
 
 ## Block E — Reset notifications & toasts
 
