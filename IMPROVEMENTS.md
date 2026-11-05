@@ -926,19 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.15 Release notes and installer text (T433)
-
-T418 made `build/release-notes.md` the single source of a release's text: `update-release.cmd`
-passes it with `--notes-file` (:81) and `update-winget.ps1` requires it (:109-119). When `build.yml`
-runs on a tag that has no release yet, it creates one with `gh release create ... --generate-notes`
-(build.yml:72), so the release body and the winget manifest's `ReleaseNotes` say different things
-for one version. The normal flow creates the release first, so only the fallback is affected.
-
-`installer.iss` offers English in `[Languages]` (:42-43) but writes the task descriptions and groups
-(:46-47), the uninstall icon's name (:54) and the finish-page run text (:65) as Portuguese literals,
-with no `[CustomMessages]` or `{cm:}` lookup. An English install shows "Iniciar ... com o Windows"
-and a Start-menu entry named "Desinstalar".
-
 ### CXI.16 Two dev tools that report the wrong outcome (T434)
 
 `scripts/Encode-Clip.ps1` sets `$ErrorActionPreference = "Stop"` (:31), which Windows PowerShell

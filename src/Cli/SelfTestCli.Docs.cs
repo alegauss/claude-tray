@@ -1609,6 +1609,32 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T433: a release says one thing in every place it is published, in the language it was installed in.
+    /// The build's fallback created a release with generated notes while the winget manifest took
+    /// <c>build/release-notes.md</c>, and the installer wrote its task, shortcut and finish-page text as
+    /// Portuguese literals under an English wizard. Read off the two files rather than off a build: CI has
+    /// no Inno compiler on the check job, and a literal is visible in the script itself.
+    /// </summary>
+    private static void ReleaseText(string root)
+    {
+        string build = File.ReadAllText(Path.Combine(root, ".github", "workflows", "build.yml"));
+        Check("the build never publishes generated release notes",
+              !build.Contains("generate-notes", StringComparison.Ordinal)
+              && build.Contains("notes-file", StringComparison.Ordinal));
+
+        var shown = new Regex(@"\b(Description|GroupDescription):\s*""([^""]*)""");
+        var icon = new Regex(@"^Name:\s*""\{group\}\\([^""]*)""");
+        string[] literal = File.ReadAllLines(Path.Combine(root, "build", "installer.iss"))
+            .Select((l, i) => (l, i))
+            .Where(x => shown.Matches(x.l).Any(m => !m.Groups[2].Value.StartsWith("{cm:", StringComparison.Ordinal))
+                        || icon.Match(x.l) is { Success: true } m2 && !m2.Groups[1].Value.StartsWith('{'))
+            .Select(x => $"installer.iss:{x.i + 1}")
+            .ToArray();
+        Check("every line the installer shows is a message in the install's language", literal.Length == 0,
+              string.Join(", ", literal));
+    }
+
+    /// <summary>
     /// T431: the licence the About page names is the one <c>LICENSE</c> declares, in every language. The
     /// disclaimer said MIT in all five for as long as the project had been Apache-2.0, because nothing read
     /// the string against the file.

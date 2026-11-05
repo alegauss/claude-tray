@@ -69,7 +69,15 @@ jobs:
           if ($LASTEXITCODE -eq 0) {
             gh release upload $tag dist/ClaudeTray-Setup.exe --clobber
           } else {
-            gh release create $tag dist/ClaudeTray-Setup.exe --title $tag --generate-notes
+            # The release's text is build/release-notes.md, the same file the winget manifest's
+            # ReleaseNotes is written from (T418) - generated notes here would make the two disagree
+            # for one version (T433). Notes for another version are refused, as update-winget.ps1 does.
+            $notes = 'build/release-notes.md'
+            $first = Get-Content $notes -TotalCount 1
+            if ($first -notmatch "\b$([regex]::Escape($tag))\b") {
+              throw "build/release-notes.md starts with '$first', not the notes for $tag - write them before tagging."
+            }
+            gh release create $tag dist/ClaudeTray-Setup.exe --title $tag --notes-file $notes
           }
 
       # --- winget: regenerate manifests and open the PR to microsoft/winget-pkgs ---

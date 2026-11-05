@@ -358,6 +358,8 @@ internal static partial class SelfTestCli
         Repo("the README and the published page point at things that exist", UserSurfaces,
              "README.md", "site/src/lib/site-content.ts", "site/public/shots");
         Repo("the About page names the licence LICENSE declares", LicenceNamed, "LICENSE", "lang");
+        Repo("a release says one thing, in the language it was installed in", ReleaseText,
+             ".github/workflows/build.yml", "build/installer.iss");
         Repo("the winget manifests keep the shape the published version has", WingetShape,
              "build/winget", "build/release-notes.md");
 

@@ -42,16 +42,28 @@ RestartApplications=no
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
+; Every line the wizard shows is a message looked up in the install's language (T433): written as literals,
+; an English install offered "Iniciar ... com o Windows" and a Start-menu entry named "Desinstalar". The
+; uninstall entry, the finish-page run and the shortcuts group use Inno's own translated messages; the
+; startup task has none, so it is declared here once per language.
+[CustomMessages]
+english.StartupGroup=Startup:
+english.StartupTask=Start %1 with Windows
+english.StartMenuTask=Create a Start menu shortcut
+brazilianportuguese.StartupGroup=Inicialização:
+brazilianportuguese.StartupTask=Iniciar o %1 com o Windows
+brazilianportuguese.StartMenuTask=Criar atalho no Menu Iniciar
+
 [Tasks]
-Name: "startupicon"; Description: "Iniciar o {#MyAppName} com o Windows"; GroupDescription: "Inicialização:"
-Name: "startmenuicon"; Description: "Criar atalho no Menu Iniciar"; GroupDescription: "Atalhos:"
+Name: "startupicon"; Description: "{cm:StartupTask,{#MyAppName}}"; GroupDescription: "{cm:StartupGroup}"
+Name: "startmenuicon"; Description: "{cm:StartMenuTask}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
 Source: "{#MyPublishDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: startmenuicon
-Name: "{group}\Desinstalar {#MyAppName}"; Filename: "{uninstallexe}"; Tasks: startmenuicon
+Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"; Tasks: startmenuicon
 
 [Registry]
 ; Autostart per-user (mirrors the in-app "Start with Windows" toggle).
@@ -62,7 +74,7 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
 [Run]
 ; postinstall (no skipifsilent) so a silent self-update relaunches the app automatically;
 ; in an interactive install it appears as the usual checked "start now" finish-page option.
-Filename: "{app}\{#MyAppExeName}"; Description: "Iniciar o {#MyAppName} agora"; \
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; \
     Flags: nowait postinstall
 
 [UninstallRun]

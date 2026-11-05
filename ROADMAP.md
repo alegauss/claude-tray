@@ -58,7 +58,6 @@
 ## Block B — Packaging, self-update, CI
 
 - ⏳ **T412** (deps: —) (requires: store-account) **The Store build has not yet replaced the winget install for a week of daily use** — The app is listed on the Store as 9P27BHWNT56D; a week on that build in place of winget, holding the startup task, the alias and a profile switch, is left. → §CVIII.2
-- 📋 **T433** (deps: —) **A release CI creates gets generated notes, and the English installer shows Portuguese task text** — The fallback runs gh release create --generate-notes instead of T418's release-notes.md, and installer.iss writes its task, icon and run text as Portuguese literals. → §CXI.15
 
 ## Block AO — What a stranger meets first
 
