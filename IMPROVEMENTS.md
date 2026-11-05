@@ -926,13 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.13 The About page's licence (T431)
-
-`settings.about.disclaimer` reads "Released under the MIT License." in every `lang/*.json` (en:412,
-es/fr/pt-BR:408, pt-PT:409). T11 moved the project to Apache-2.0: `LICENSE`, README.md:1020 and the
-winget locale manifests all say so. Fix the five strings, and add a one-claim-in-two-places check
-that the licence named in `lang/en.json` matches the one `LICENSE` declares.
-
 ### CXI.14 Counted strings with one form (T432)
 
 Strings that take a count through `L.T` with a single form: `stats.sessions.count`
@@ -1103,3 +1096,17 @@ removed when the Store build replaced the Inno install (T412): the profile histo
 
 This is also why the day of readings T398 waits for cannot start. Classify should check that the
 command's exe resolves, and the page should offer the alias form when it does not.
+
+### CXI.28 A repository check that throws (T446)
+
+`SelfTestCli.Repo` (SelfTestCli.cs:1026) calls its assert with no `try`. Every `Temp` section is
+wrapped (`Temp` turns a throw into "the section threw" and carries on), but a repository check is
+not, so one that throws ends the process in an unhandled exception: no summary line, no named skips,
+and whatever sections come after it never run. Found while writing T431's licence check, whose first
+draft parsed `lang/*.json` without skipping comments and took the whole suite down at that line.
+
+The exit code is still non-zero, so CI goes red, but the report a reader needs is the one thing that
+is missing: which claim threw, and what the rest of the suite would have said. Wrap the call the way
+`Temp` does — a throw becomes a `Fail` naming the claim and the exception's message — so a broken
+check is one red line among the rest. A deliberate throw inside a `Repo` assert is the check that
+this works, seen to fail without the wrap.

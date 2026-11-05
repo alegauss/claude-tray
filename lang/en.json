@@ -409,7 +409,7 @@
   "settings.about.involved2": "🐛  Open an issue for any bug or feature idea",
   "settings.about.involved3": "🔧  Fork it, run \"dotnet build\", and send a pull request",
   "settings.about.involved4": "📖  Read the README for the architecture notes",
-  "settings.about.disclaimer": "Unofficial community project — not affiliated with, endorsed by, or sponsored by Anthropic. \"Claude\" and \"Claude Code\" are trademarks of Anthropic. Released under the MIT License.",
+  "settings.about.disclaimer": "Unofficial community project — not affiliated with, endorsed by, or sponsored by Anthropic. \"Claude\" and \"Claude Code\" are trademarks of Anthropic. Released under the Apache License 2.0.",
 
   // ================= Statistics window =================
   "stats.title": "Statistics",

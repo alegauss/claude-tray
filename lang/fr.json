@@ -405,7 +405,7 @@
   "settings.about.involved2": "🐛  Ouvrez une issue pour tout bug ou idée de fonctionnalité",
   "settings.about.involved3": "🔧  Forkez, lancez \"dotnet build\" et envoyez une pull request",
   "settings.about.involved4": "📖  Lisez le README pour les notes d'architecture",
-  "settings.about.disclaimer": "Projet communautaire non officiel — sans affiliation, approbation ni parrainage d'Anthropic. « Claude » et « Claude Code » sont des marques d'Anthropic. Distribué sous licence MIT.",
+  "settings.about.disclaimer": "Projet communautaire non officiel — sans affiliation, approbation ni parrainage d'Anthropic. « Claude » et « Claude Code » sont des marques d'Anthropic. Distribué sous licence Apache 2.0.",
 
   // ================= Statistics window =================
   "stats.title": "Statistiques",

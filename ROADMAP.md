@@ -53,6 +53,8 @@
 
 ## Block AI — Verification — the checks that prove a change
 
+- 📋 **T446** (deps: —) **A repository check that throws ends --selftest with an unhandled exception and no summary** — SelfTestCli.Repo calls its assert with no try, unlike Temp, so a repository check that throws ends the process before the summary and every later section. → §CXI.28
+
 ## Block B — Packaging, self-update, CI
 
 - ⏳ **T412** (deps: —) (requires: store-account) **The Store build has not yet replaced the winget install for a week of daily use** — The app is listed on the Store as 9P27BHWNT56D; a week on that build in place of winget, holding the startup task, the alias and a profile switch, is left. → §CVIII.2
@@ -62,7 +64,6 @@
 
 ## Block C — Settings window (WPF Fluent)
 
-- 📋 **T431** (deps: —) **The About page says the app is MIT-licensed while the repository is Apache-2.0** — settings.about.disclaimer names MIT in all five languages while LICENSE and T11 say Apache-2.0, and no check holds the string against the file. → §CXI.13
 - 📋 **T437** (deps: —) **A second Save in one Settings visit writes back over a toggle flipped in the tray menu** — The page's opened snapshot is not renewed after a Save, so the next merge compares against stale values and the defect T229 fixed returns on the second Save. → §CXI.19
 - 📋 **T444** (deps: —) **A truncated settings.json silently resets every setting and profile to defaults** — Load swallows a parse failure into new Settings() and the next Save overwrites the file, which is written in place rather than through a temp file and a rename. → §CXI.26
 

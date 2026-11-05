@@ -1609,6 +1609,31 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T431: the licence the About page names is the one <c>LICENSE</c> declares, in every language. The
+    /// disclaimer said MIT in all five for as long as the project had been Apache-2.0, because nothing read
+    /// the string against the file.
+    /// </summary>
+    private static void LicenceNamed(string root)
+    {
+        string head = string.Join(" ", File.ReadLines(Path.Combine(root, "LICENSE")).Take(5));
+        string? family = head.Contains("Apache License", StringComparison.Ordinal) ? "Apache"
+                        : head.Contains("MIT License", StringComparison.Ordinal) ? "MIT"
+                        : null;
+        if (!Check("LICENSE declares a licence this check can name", family != null, head.Trim())) return;
+
+        string[] wrong = Directory.GetFiles(Path.Combine(root, "lang"), "*.json")
+            .Where(f => System.Text.Json.JsonDocument.Parse(File.ReadAllText(f), new System.Text.Json.JsonDocumentOptions
+                            { CommentHandling = System.Text.Json.JsonCommentHandling.Skip, AllowTrailingCommas = true })
+                            .RootElement
+                            .GetProperty("settings.about.disclaimer").GetString() is not { } d
+                        || !d.Contains(family!, StringComparison.Ordinal))
+            .Select(Path.GetFileName)
+            .ToArray()!;
+        Check($"the About page names the {family} licence LICENSE declares, in every language",
+              wrong.Length == 0, string.Join(", ", wrong));
+    }
+
+    /// <summary>
     /// The two documents a person outside this repository actually reads (T250): <c>README.md</c> and the
     /// published site. The user-facing-surface gate names three surfaces a shipped feature owes, and only
     /// <c>lang\*.json</c> was held to it — T185 fails a key that reached one language file. These two were

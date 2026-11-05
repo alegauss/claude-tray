@@ -51,7 +51,7 @@
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
-| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
+| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags (active — see ROADMAP) |
 | [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did (active — see ROADMAP) |
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
@@ -119,6 +119,7 @@
 - **T26** — Notifications settings page. (`1d236e2`)
 - **T27** — `SettingsRow` control; Display and Claude Code split into their own pages; wider default window so descriptions aren't cramped. (`bd85eb4`, `538c38a`, `374478b`)
 - **T362** — The four cards under Projeto & links draw an octopus, a package, a bug and a star again, and a check now says why they cannot silently break twice. Reported from the running app; the bytes had been wrong in the file since T310, when an editor read SettingsPage.xaml as CP1252 and wrote it back - every non-ASCII character in it, and in StatisticsPage.xaml, took the same trip. 37 lines were repaired, five of them user-visible literals and the rest em-dashes and arrows in comments. Nothing was going to catch it: T259 asks whether a .ps1 carries a mark and T347 whether a source holds a NUL, both about a decoder failing loudly, and double-encoded text decodes perfectly - it is well-formed UTF-8 that spells the wrong character. The new assertion scans runs rather than lines, deliberately: asking whether a whole line round-trips would miss any line that also carries one correctly-encoded dash, since that dash maps to a byte no valid sequence can start. Its CP1252 table is written as escapes, because five of the thirty-two entries are invisible C1 controls and because a table spelled literally is one this check could not survive being applied to. Verified by injecting both shapes - the original defect and a mojibake octopus beside a good em dash - and confirming the run goes red naming line and intended character for each, then green over 96 files once restored; the repaired About page was captured in pt-BR and looked at. The warning glyph on the System page is the one repair no capture here can show: its card renders only when a profile authenticates off-subscription.
+- **T431** — The About page names the Apache License 2.0 in all five languages, and the self-test holds every disclaimer to the licence LICENSE declares.
 
 ## Block D — Auth & API resilience
 

@@ -356,6 +356,7 @@ internal static partial class SelfTestCli
         Section("surfaces — what a stranger reads: the README and the page (Block AJ)");
         Repo("the README and the published page point at things that exist", UserSurfaces,
              "README.md", "site/src/lib/site-content.ts", "site/public/shots");
+        Repo("the About page names the licence LICENSE declares", LicenceNamed, "LICENSE", "lang");
         Repo("the winget manifests keep the shape the published version has", WingetShape,
              "build/winget", "build/release-notes.md");
 
