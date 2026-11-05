@@ -945,19 +945,21 @@ When it ships, write each case as `focus` on the row and then `press`, and close
 
 ### CXI.31 A washed-out Context preview (T449)
 
-`preview.cmd context` runs the preview case "the context load page over its own fixture", which
-draws `--context --window --sample --observing --lang en` into `docs\_preview\the context load page
-over its own fixture\context-window.png`. On this machine (Windows in dark mode) the picture is
-almost unreadable. The page and its cards are white, and every label is a near-white grey on them.
-Only the selected project row, the grade chips, the bar segments and the legend dots carry colour.
+Every picture the preview cases draw on this machine (Windows in dark mode) is washed out: a white
+page with near-white labels, only self-filled controls (an accent button, a selected row, the grade
+chips) readable. `preview.cmd shell`, `panels` and `context` all do it, and their pictures from
+2026-10-27 already did. The cases pass.
 
-It is not new: a build of HEAD at 4d38049 draws the same picture, found while T447 checked its
-strings. It reads as the page's dark-theme foreground brushes drawn over a background that came out
-white. A `Window` whose background is left to the theme, rendered by the engine off the tree, would
-do that. `--capture-stats`, which renders through `RenderTargetBitmap`, draws the Statistics page
-correctly dark on the same machine.
+Measured while T447 checked its strings, and the first guess was wrong. It is not `PageWindow`: the
+real shell (`--main`) is washed out the same way. It is not a fade either: moving the harness from
+Winwright 0.1.0-alpha.18 to 1.1.7, which carries WW583's wait for one, draws the same picture. The
+windows set `ThemeMode="System"`, which leaves their background to the system backdrop (Mica), and
+the backdrop is drawn by DWM outside the WPF tree the in-app render reads. Dark-theme text lands on
+white. `--capture-stats`, which renders through `RenderTargetBitmap` onto its own fill, is
+unaffected.
 
-What to settle: whether `PageWindow` (the code-only host the `--context --window` preview uses) sets
-a theme-resolved background, as the shell does, or leaves it transparent. The fix is that host, not
-the case. Then add a check that a preview capture is not mostly one near-white colour, which is the
-only way a washed-out picture can fail anything rather than pass as "rendered".
+The fix is winwright's, filed there as WW611: paint the theme's window background under a backdrop
+window before rendering it, or refuse the picture. Giving the app's windows an opaque background
+would cost users Mica only to make pictures right. When WW611 ships, bump `Winwright` in
+`tests/ClaudeTray.Cases` (the harness here is still on 0.1.0-alpha.18 while `Winwright.InApp` is on
+1.1.5), re-run `preview.cmd shell` and look.

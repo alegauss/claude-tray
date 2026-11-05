@@ -139,7 +139,9 @@ why = 200
 # startup task and certification are only proven by a real Store submission, which no session can make.
 # `winwright-ww610` is a winwright whose `press` can put focus on an element and send Enter or Space there
 # (T448): until winwright ships WW610, no case here can say a focused row opens from the keyboard.
-declared = ["wsl-claude", "statusline-day", "store-account", "winwright-ww610"]
+# `winwright-ww611` is a winwright whose in-app render paints a backdrop window's background (T449): until
+# it ships, no preview picture of a dark-themed window can be read.
+declared = ["wsl-claude", "statusline-day", "store-account", "winwright-ww610", "winwright-ww611"]
 
 [markers]
 open = ["📋", "💭", "⏳", "🛠"]

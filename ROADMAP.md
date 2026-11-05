@@ -47,7 +47,7 @@
 ## Block AI — Verification — the checks that prove a change
 
 - 📋 **T448** (deps: —) (requires: winwright-ww610) **No case proves a Sessions row or the chart strip opens on Enter or Space** — T438's focusable rows open on Enter or Space, but winwright's press cannot focus an element and press Enter there (WW610), so no case holds the keyboard path. → §CXI.30
-- 📋 **T449** (deps: —) **The Context page's preview capture is washed out: near-white labels on a white page** — The page's labels are drawn in near-white on a white background in the preview picture, so a layout check of the Context page cannot be read. → §CXI.31
+- 📋 **T449** (deps: —) (requires: winwright-ww611) **Every preview case's picture of a dark-themed window is washed out: near-white labels on a white page** — The in-app render cannot see the Mica backdrop the windows leave their background to, so dark-theme text lands on white, and the cases still pass. → §CXI.31
 
 ## Block B — Packaging, self-update, CI
 
