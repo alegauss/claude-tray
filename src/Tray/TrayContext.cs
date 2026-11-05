@@ -179,19 +179,23 @@ internal sealed class TrayContext : ApplicationContext
             try
             {
                 DateTime now = DateTimeOffset.UtcNow.UtcDateTime;
-                ContextScan scan = ContextScanner.Scan(now);
+                // The monitored profile's own tree, taken once (T421): the history and nudges are filed
+                // under its key, so scanning a fixed ~/.claude gave a second profile the default's numbers,
+                // and a switch mid-scan must not file one profile's scan under the other.
+                ProfileRef who = ProfileStore.MonitoredRef;
+                ContextScan scan = ContextScanner.Scan(now, new ContextScanner.Options { ClaudeRoot = who.ClaudeRoot });
                 if (scan.Error != null) return ((ContextProject, int)?)null;
 
-                ContextHistory.Record(ProfileStore.Monitored, scan, now);
+                ContextHistory.Record(who.Key, scan, now);
                 if (!_settings.NotifyOnContextGrowth) return null;
 
                 foreach (ContextProject p in scan.Projects)
                 {
                     int eager = scan.EstimatedSessionZero(p);
                     if (eager < _settings.ContextNudgeTokens) continue;
-                    if (!ContextNudges.ShouldNotify(ProfileStore.Monitored, p.Slug, now)) continue;
+                    if (!ContextNudges.ShouldNotify(who.Key, p.Slug, now)) continue;
 
-                    ContextNudges.Mark(ProfileStore.Monitored, p.Slug, now);
+                    ContextNudges.Mark(who.Key, p.Slug, now);
                     return (p, eager);   // one nudge per pass, never a burst of them
                 }
                 return null;

@@ -140,7 +140,7 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         if (_watcher is not null) return;   // called again on every return to this destination
         try
         {
-            string root = ScanRoot ?? ContextScanner.DefaultClaudeRoot;
+            string root = ScanRoot ?? ProfileStore.MonitoredRef.ClaudeRoot;   // the tree the scan reads (T421)
             if (!Directory.Exists(root)) return;
 
             _debounce = new System.Windows.Threading.DispatcherTimer
@@ -199,6 +199,9 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
     // Scan off the UI thread, then render. Deliberately re-plans rather than forcing a cold walk:
     // the scanner's fingerprint is over every candidate file's path+size+mtime, so a cached result is
     // only reused when nothing that matters changed — which is exactly what "rescan" should mean.
+    /// <summary>The profile key the scan in hand was taken for (T421).</summary>
+    private string? _scannedFor;
+
     private async void StartScan()
     {
         if (_scanning) return;
@@ -207,12 +210,15 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         ShowStatus(L.T("context.scanning"));
 
         ContextScan scan;
+        // The monitored profile's tree (T421), and the key its history files under, taken together once.
+        ProfileRef who = ProfileStore.MonitoredRef;
+        _scannedFor = who.Key;
         try
         {
             scan = await Task.Run(() => ContextScanner.Scan(DateTimeOffset.UtcNow.UtcDateTime,
                 new ContextScanner.Options
                 {
-                    ClaudeRoot = ScanRoot ?? ContextScanner.DefaultClaudeRoot,
+                    ClaudeRoot = ScanRoot ?? who.ClaudeRoot,
                     // A fixture scan must never write to (or read from) the real cache.
                     UseCache = ScanRoot is null,
                 }));
@@ -249,7 +255,7 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         _findings = ContextRules.Evaluate(scan, DateTimeOffset.UtcNow.UtcDateTime, _evidence);
         // One line per project per day, and only when the number moved - see ContextHistory. Skipped
         // for a fixture scan: sample projects have no business in the real drift history.
-        if (ScanRoot is null) ContextHistory.Record(ProfileStore.Monitored, scan, DateTimeOffset.UtcNow.UtcDateTime);
+        if (ScanRoot is null) ContextHistory.Record(_scannedFor ?? ProfileStore.Monitored, scan, DateTimeOffset.UtcNow.UtcDateTime);
 
         ContextStatusText.Visibility = Visibility.Collapsed;
         MasterPane.Visibility = Visibility.Visible;
@@ -298,7 +304,8 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
             _evidence = await Task.Run(() => ContextUsage.Compute(DateTimeOffset.UtcNow.UtcDateTime,
                 new ContextUsage.Options
                 {
-                    ClaudeRoot = ScanRoot ?? ContextScanner.DefaultClaudeRoot,
+                    // The same tree the scan read (T421): the evidence feeds that scan's never-invoked rule.
+                    ClaudeRoot = ScanRoot ?? ProfileStore.MonitoredRef.ClaudeRoot,
                     UseCache = ScanRoot is null,
                 }));
             // The evidence unlocks one more rule (never-invoked), so the findings are recomputed with
@@ -648,7 +655,7 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         else
         {
             findings = MachineFindings();
-            title = ContextScanner.DefaultClaudeRoot;
+            title = ScanRoot ?? ProfileStore.MonitoredRef.ClaudeRoot;
         }
 
         // The footer says the walk was capped; the clipboard has to say it too (T267). This text goes to

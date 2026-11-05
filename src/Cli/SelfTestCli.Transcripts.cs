@@ -602,6 +602,43 @@ internal static partial class SelfTestCli
               SessionIndex.KeptSummary(cache).ToString());
     }
 
+    /// <summary>
+    /// T421: the insights and the Context scan read the profile they are filed under. Two config dirs,
+    /// one turn in the first and two in the second: each profile is answered from its own tree.
+    /// </summary>
+    private static void ProfileTrees(string root)
+    {
+        DateTime now = DateTime.Now;
+        string a = Path.Combine(root, "a"), b = Path.Combine(root, "b");
+        Directory.CreateDirectory(Path.Combine(a, "projects", "d--x"));
+        Directory.CreateDirectory(Path.Combine(b, "projects", "d--x"));
+        File.WriteAllText(Path.Combine(a, "projects", "d--x", "s.jsonl"), Turn(now, "a-1") + "\n");
+        File.WriteAllText(Path.Combine(b, "projects", "d--x", "s.jsonl"),
+                          Turn(now.AddMinutes(-1), "b-1") + "\n" + Turn(now, "b-2") + "\n");
+
+        int ra = UsageInsights.Compute(DateTime.UtcNow, new ProfileRef("a", a)).Requests;
+        int rb = UsageInsights.Compute(DateTime.UtcNow, new ProfileRef("b", b)).Requests;
+        Check("usage insights read the profile they were asked about", ra == 1 && rb == 2,
+              $"{ra} and {rb} requests, expected 1 and 2");
+        Check("a profile's Claude root is its config dir, and the default's is ~/.claude",
+              new ProfileRef("b", b).ClaudeRoot == b
+              && new ProfileRef("", "").ClaudeRoot == ContextScanner.DefaultClaudeRoot);
+    }
+
+    /// <summary>T421, the other half: no tray or window code reads a fixed <c>~/.claude</c>. Every scan there
+    /// files under the monitored profile's key, so a fixed root hands that profile the default's numbers.</summary>
+    private static void NoFixedRoot(string root)
+    {
+        string[] hits = new[] { "src/Tray", "src/Ui" }
+            .SelectMany(d => Directory.GetFiles(Path.Combine(root, d), "*.cs"))
+            .SelectMany(f => File.ReadAllLines(f).Select((l, i) => (f, l, i)))
+            .Where(x => x.l.Contains("DefaultClaudeRoot", StringComparison.Ordinal)
+                        || Regex.IsMatch(x.l, @"ContextScanner\.Scan\(\s*\w+\s*\)"))
+            .Select(x => $"{Path.GetFileName(x.f)}:{x.i + 1}")
+            .ToArray();
+        Check("no tray or window code scans a fixed ~/.claude", hits.Length == 0, string.Join(", ", hits));
+    }
+
     /// <summary>One <c>user</c> line carrying one text block — the shape §I.1's amended exception reads,
     /// and the only line type in this file that is not a turn.</summary>
     private static string Prompt(string text)

@@ -258,4 +258,8 @@ internal readonly record struct ProfileRef(string Key, string ConfigDir)
     /// <summary>That profile's transcripts. One resolver, shared with the auto-follow probe that reads
     /// the same directory's timestamps (T126).</summary>
     public string ProjectsDir => ProfileActivity.ProjectsDir(ConfigDir);
+
+    /// <summary>That profile's Claude Code root — its config dir, or <c>~/.claude</c> for the default —
+    /// which is what the Context scan reads (T421).</summary>
+    public string ClaudeRoot => ConfigDir.Length > 0 ? ConfigDir : ContextScanner.DefaultClaudeRoot;
 }

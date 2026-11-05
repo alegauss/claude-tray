@@ -926,20 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.3 Two readers that ignore the monitored profile (T421)
-
-`UsageInsights.ProjectsDir` is `%USERPROFILE%\.claude\projects` (UsageInsights.cs:26) and `Compute`
-takes no profile (TrayContext.cs:352), while every other transcript reader takes one: `UsageReport`
-(:189), `SessionIndex` (:177), `SessionTasks` (:104), `ActivityProfile` (:406, :423), the throughput
-pane.
-
-`ContextScanner.DefaultClaudeRoot` (ContextScanner.cs:235) is the same fixed root, scanned from
-TrayContext.cs:182 and ContextPage.xaml.cs:215 and recorded under `ProfileStore.Monitored`. T125
-keyed the Context history and nudges by profile because each profile loads different instructions,
-but the scan that feeds them never reads the other profile's tree. With a second profile monitored,
-its drift history and nudges describe the default one. Both should take the monitored profile's
-config dir.
-
 ### CXI.4 A second rate card (T422)
 
 `UsageInsights.Price` (UsageInsights.cs:36) hardcodes opus and unknown at 5/25, sonnet 3/15, haiku

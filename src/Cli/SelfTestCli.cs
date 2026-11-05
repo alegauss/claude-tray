@@ -389,6 +389,10 @@ internal static partial class SelfTestCli
             Section("sessions — a deleted conversation behind a junctioned tree (Block AK)");
             Temp(JunctionedGone);
 
+            Section("profiles — the insights and the Context scan read the monitored tree (Block O)");
+            Temp(ProfileTrees);
+            Repo("no tray or window code scans a fixed ~/.claude", NoFixedRoot, "src/Tray", "src/Ui");
+
             Section("sessions — the one field a person wrote (Block AK)");
             Temp(OpeningPrompt);
 

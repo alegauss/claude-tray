@@ -23,10 +23,6 @@ internal sealed class InsightsData
 
 internal static class UsageInsights
 {
-    private static readonly string ProjectsDir = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        ".claude", "projects");
-
     private const double ContextThreshold = 150_000;   // "large context" line, in tokens
 
     // Price per 1M tokens: (input, output, cacheWrite5m, cacheRead). cacheWrite = 1.25x input,
@@ -41,12 +37,17 @@ internal static class UsageInsights
         return (5, 25, 6.25, 0.50); // opus / unknown
     }
 
-    public static InsightsData Compute(DateTime nowUtc)
+    /// <param name="profile">Whose transcripts — the monitored profile when omitted, like every other
+    /// transcript reader; a fixed <c>~/.claude</c> here described the default profile while the icon
+    /// followed another (T421).</param>
+    /// <param name="projectsDir">A tree to read instead, for a fixture.</param>
+    public static InsightsData Compute(DateTime nowUtc, ProfileRef? profile = null, string? projectsDir = null)
     {
+        string projects = projectsDir ?? (profile ?? ProfileStore.MonitoredRef).ProjectsDir;
         var data = new InsightsData { ComputedUtc = nowUtc };
         try
         {
-            if (!Directory.Exists(ProjectsDir))
+            if (!Directory.Exists(projects))
             {
                 data.Error = L.T("insights.noTranscripts");
                 return data;
@@ -63,7 +64,7 @@ internal static class UsageInsights
             double total = 0, heavyCtx = 0, subagent = 0;
             int requests = 0;
 
-            foreach (string file in SafeWalk.Paths(ProjectsDir, "*.jsonl"))
+            foreach (string file in SafeWalk.Paths(projects, "*.jsonl"))
             {
                 // Skip files untouched in the window — bounds the work to recent sessions.
                 if (File.GetLastWriteTimeUtc(file) < cutoff) continue;
