@@ -68,6 +68,7 @@ internal static partial class SelfTestCli
         Plurals(en);
         NoParenthesisedPlural();
         CountedOnce();
+        SingleFormCounts(en);
     }
 
     /// <summary>
@@ -170,6 +171,63 @@ internal static partial class SelfTestCli
             .ToArray();
         Check($"a count of one reads differently from a count of many ({stems.Length} strings, {L.Codes.Count} languages)",
               same.Length == 0, Named(same, "whose .one is its .many, so one still reads as a plural"));
+    }
+
+    /// <summary>
+    /// T447: the sweep T432 ran by hand, kept. A placeholder followed by a plural noun, on a key that is not
+    /// half of a <c>.one</c>/<c>.many</c> pair, is a string that can print "1 conversations" — unless the
+    /// number there is proven never to be one, or is not a count at all. Every key the sweep still matches is
+    /// named below with the reason it may, so the next single-form count is red at the commit that adds it.
+    /// </summary>
+    private static readonly Dictionary<string, string> PluralAfterCount = new(StringComparer.Ordinal)
+    {
+        ["tip.status"] = "a name before a noun, not a count",
+        ["update.body"] = "a version before a verb",
+        ["toast.sub.credit"] = "a name before a noun",
+        ["settings.cc.statusLineOther"] = "profile names before a verb",
+        ["settings.cc.statusLineStale"] = "profile names before a verb",
+        ["toast.context.subtitle"] = "a project name before a verb",
+        ["toast.pace.subtitle"] = "a window name before a verb",
+        ["toast.level.subtitleUsed"] = "a figure before a verb",
+        ["toast.level.subtitleLeft"] = "a figure before a verb",
+        ["stats.live.cacheRead"] = "a figure before an article",
+        ["stats.sessions.tip"] = "a line break before a heading",
+        ["settings.cost.stats"] = "rates and estimates per hour, never a count",
+        ["stats.live.head"] = "a token estimate, formatted as ≈1.2k",
+        ["stats.live.projectTip"] = "a token estimate",
+        ["stats.live.scaleTip"] = "a rate in tokens per second",
+        ["stats.live.readSeries"] = "a token estimate",
+        ["stats.tps.head"] = "a token estimate",
+        ["stats.tps.tip"] = "a token estimate",
+        ["context.drift.up"] = "a token estimate, and the week is a constant",
+        ["context.drift.down"] = "a token estimate, and the week is a constant",
+        ["context.footer"] = "milliseconds, a unit",
+        ["settings.cost.profiles"] = "shown only when two or more profiles are polled",
+        ["settings.cc.profileMax"] = "Settings.MaxProfiles, a constant above one",
+        ["stats.sessions.peakMedian"] = "shown only over three or more active days",
+        ["stats.methodNote.shape"] = "effective weeks, shown only past the three-week confidence gate",
+        ["stats.methodNote.shapeMeasured"] = "measured weeks, shown only past the same gate",
+        ["stats.methodNote.thin"] = "ActivityProfile.ConfidentWeeks, a constant of three",
+        ["context.health.stale"] = "shown only past the stale threshold in days",
+        ["context.all.dup"] = "a duplicate is held by two or more projects",
+        ["context.usage.tip"] = "the evidence window and its recent part, both constants",
+        ["context.usage.neverTip"] = "the evidence window, a constant",
+    };
+
+    private static void SingleFormCounts(IReadOnlyDictionary<string, string> en)
+    {
+        var shape = new Regex(@"\{\d(?::[^}]*)?\}\s+(?:[A-Za-z-]+\s+)?[a-z]+s\b");
+        string[] counted = en
+            .Where(kv => !L.Plural.Any(p => kv.Key.EndsWith(p, StringComparison.Ordinal))
+                         && shape.IsMatch(kv.Value) && !PluralAfterCount.ContainsKey(kv.Key))
+            .Select(kv => kv.Key).Order(StringComparer.Ordinal).ToArray();
+        Check("no single-form string puts a count of one before a plural noun", counted.Length == 0,
+              Named(counted, "matching the plural-after-count shape — make it a .one/.many pair through L.N, "
+                             + "or allow it in PluralAfterCount with the reason its number is never one"));
+        string[] gone = PluralAfterCount.Keys.Where(k => !en.ContainsKey(k) || !shape.IsMatch(en[k]))
+                                             .Order(StringComparer.Ordinal).ToArray();
+        Check("and every allowance still names a string the sweep matches", gone.Length == 0,
+              Named(gone, "allowed but no longer matching, so the reason is stale"));
     }
 
     /// <summary>T432: no code picks a counted string by <c>== 1</c> itself — that is <c>L.N</c>'s job, and a

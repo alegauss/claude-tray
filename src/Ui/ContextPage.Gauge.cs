@@ -184,7 +184,7 @@ internal partial class ContextPage
             ? L.T(trend.DeltaTokens >= 0 ? "context.drift.up" : "context.drift.down",
                 TokenEstimate.Format(Math.Abs(trend.DeltaTokens)),
                 ContextText.Size(Math.Abs(trend.DeltaBytes)), ContextHistory.WeekDays)
-            : L.T("context.drift.building", trend.Points.Count, trend.SpanDays);
+            : L.T("context.drift.building", L.N("context.drift.measurements", trend.Points.Count), L.N("context.drift.days", trend.SpanDays));
 
         DrawSparkline(trend);
     }

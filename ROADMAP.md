@@ -47,6 +47,7 @@
 ## Block AI — Verification — the checks that prove a change
 
 - 📋 **T448** (deps: —) (requires: winwright-ww610) **No case proves a Sessions row or the chart strip opens on Enter or Space** — T438's focusable rows open on Enter or Space, but winwright's press cannot focus an element and press Enter there (WW610), so no case holds the keyboard path. → §CXI.30
+- 📋 **T449** (deps: —) **The Context page's preview capture is washed out: near-white labels on a white page** — The page's labels are drawn in near-white on a white background in the preview picture, so a layout check of the Context page cannot be read. → §CXI.31
 
 ## Block B — Packaging, self-update, CI
 
@@ -57,8 +58,6 @@
 ## Block C — Settings window (WPF Fluent)
 
 ## Block G — Localization
-
-- 📋 **T447** (deps: —) **About twenty more strings may print a count of one before a plural noun** — T432 fixed the strings its audit named, but a sweep of en.json finds about twenty more counts before a plural noun, and nothing checks the shape. → §CXI.29
 
 ## Block I — Context Load Inspector
 

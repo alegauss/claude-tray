@@ -272,7 +272,7 @@ internal partial class StatisticsPage
         for (int i = 0; i < projects.Length; i++)
         {
             ProjectSlice p = projects[i];
-            string name = p.IsOthers ? L.T("stats.live.others", p.Slug.TrimStart('+')) : p.Display;
+            string name = p.IsOthers ? L.N("stats.live.others", int.TryParse(p.Slug.TrimStart('+'), out int n) ? n : 2) : p.Display;
             LegendProjects.Children.Add(LegendEntry(palette[i], L.T("stats.tps.legend", name, Rate(p.TokensPerSecond)),
                 L.T("stats.live.projectTip", p.IsOthers ? name : p.Slug, Big(p.WindowTokens))));
         }
@@ -350,7 +350,7 @@ internal partial class StatisticsPage
             ProjectSlice p = projects[i];
             long raw = TokensAt(p.PerSecond, secondsBack);
             landed += raw;
-            string name = p.IsOthers ? L.T("stats.live.others", p.Slug.TrimStart('+')) : p.Display;
+            string name = p.IsOthers ? L.N("stats.live.others", int.TryParse(p.Slug.TrimStart('+'), out int n) ? n : 2) : p.Display;
             rows.Add(L.T("stats.live.readSeries", name, Rate(drawn[i]), Big(raw)));
         }
         return Card(secondsBack, rows, landed);

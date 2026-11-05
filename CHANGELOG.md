@@ -23,7 +23,7 @@
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
-| [G](#block-g--localization) | Localization (active — see ROADMAP) |
+| [G](#block-g--localization) | Localization |
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector |
 | [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
@@ -210,6 +210,7 @@
 - **T378** — --selftest refuses a parenthesised plural in any of the five language files, so the pair convention is a rule rather than a cleanup that happens twice. Matched by shape and not by a list of three: a suffix of one to three letters glued to a word, because the four this repository actually used were four of a family and a check naming only them is one the fifth walks past; a parenthetical with a space in front of it is prose and is left alone. Swept over every language and not just en, which is the half nothing else could see - a Portuguese-only regra(s) is neither a missing key nor a missing hole, so the key-set and placeholder comparisons both pass on it, and breaking exactly that case is what proved the sweep earns its place. No allowlist: none of the 300-odd strings needs a literal one, and inventing the escape hatch for a case that has never occurred is how a check becomes something people route around - the day a string needs one, the red build is that conversation. AGENTS.md's string rule now names the pair and this refusal in the four lines it already had.
 - **T432** — The thirteen counted strings T432 named read in the singular at one in all five languages through L.N, the two hand-rolled 1/N pairs included, and the self-test refuses a .one copied from its .many or a code-side == 1 choice.
 - **T440** — Session dates follow the display language's field order through Dates.MonthDayTime, and every yyyy-MM-dd stamp is Gregorian on any system calendar through Dates.Iso, the fixtures included.
+- **T447** — T447 made every counted string that can reach one a .one/.many pair, and the self-test now sweeps en.json for a count before a plural noun, each remaining match allowed with its reason.
 
 ## Block H — Tray display options
 

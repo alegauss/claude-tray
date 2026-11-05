@@ -32,7 +32,7 @@ internal partial class SettingsPage
         SysProfileCombo.Items.Clear();   // this runs again whenever the profile list is edited
         if (several)
         {
-            SysProfileCount.Text = L.T("settings.sys.profileCount", _profiles.Count);
+            SysProfileCount.Text = L.N("settings.sys.profileCount", _profiles.Count);
             foreach (ClaudeInfo p in _profiles)
                 SysProfileCombo.Items.Add(new System.Windows.Controls.ComboBoxItem
                 {
@@ -338,7 +338,7 @@ internal partial class SettingsPage
                      // Which profile this reading is of, and how many exist — otherwise a pasted
                      // report from a multi-profile machine is ambiguous about whose numbers it holds.
                      (L.T("settings.sys.profile"), _profiles.Count > 1
-                         ? $"{_profiles[_profile].Label} ({L.T("settings.sys.profileCount", _profiles.Count)})"
+                         ? $"{_profiles[_profile].Label} ({L.N("settings.sys.profileCount", _profiles.Count)})"
                          : ""),
                      (L.T("settings.sys.plan"), Line(SysPlan, SysPlanTier)),
                      (L.T("settings.sys.holder"), Line(SysHolder, SysHolderMail)),

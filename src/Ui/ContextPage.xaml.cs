@@ -416,7 +416,7 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         else
         {
             ObservedValue.Text = "—";
-            ObservedParts.Text = L.T("context.observed.none", row.Project!.TranscriptsRead);
+            ObservedParts.Text = L.N("context.observed.none", row.Project!.TranscriptsRead);
         }
 
         // Preview hook: seed the selection once, before the gauge is drawn, so the first render
@@ -461,7 +461,7 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         long bytes = scan.Shared.Sum(s => s.Bytes) + scan.Projects.Sum(p => p.Bytes);
 
         AllSubtitle.Text = L.T("context.all.subtitle",
-            scan.Projects.Count, files, ContextText.Size(bytes));
+            L.N("context.projectCount", scan.Projects.Count), L.N("context.measuredFiles", files), ContextText.Size(bytes));
         AllFootprint.Text = ContextText.Size(bytes);
         AllShared.Text = TokenEstimate.Format(scan.SharedEagerTokens);
 
@@ -590,7 +590,7 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         foreach (ContextRules.DuplicateCluster c in ContextRules.DuplicateMemoryDirs(scan))
         {
             AddIssue(style.ProblemDot, L.T("context.severity.high"),
-                L.T("context.all.dup", c.Projects.Count, c.Files, ContextText.Size(c.Bytes),
+                L.T("context.all.dup", c.Projects.Count, L.N("context.memoryFiles", c.Files), ContextText.Size(c.Bytes),
                     string.Join(", ", c.Projects.Select(p => p.ShortPath))),
                 L.T("context.all.dupFix"));
             shown++;

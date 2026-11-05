@@ -34,7 +34,7 @@ public sealed class ProjectRow
         GradeTip = debt is null
             ? null
             : L.T("context.grade.tip", debt.Grade, TokenEstimate.Format(debt.EagerTokens),
-                debt.Findings, debt.High, debt.Medium, debt.Low);
+                L.N("context.grade.findings", debt.Findings), debt.High, debt.Medium, debt.Low);
         Estimated = project is null ? 0 : scan.EstimatedSessionZero(project);
     }
 

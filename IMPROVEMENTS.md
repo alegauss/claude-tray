@@ -926,26 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.29 The counted strings T432 did not name (T447)
-
-T432 converted the thirteen strings its audit named. A sweep of `lang/en.json` for a placeholder
-followed by a plural noun, on keys that are not `.one`/`.many`, finds about twenty more that may
-take a count of one: `settings.cost.stats`, `settings.cost.profiles`, `settings.cc.profileMax`,
-`settings.sys.profileCount`, `stats.sessions.peakMedian`, `stats.methodNote.shape`,
-`stats.methodNote.shapeMeasured`, `stats.methodNote.thin`, `stats.live.others`,
-`context.observed.none`, `context.health.stale`, `context.all.subtitle`, `context.all.dup`,
-`context.usage.tip`, `context.usage.neverTip`, `context.grade.tip`, `context.drift.up`,
-`context.drift.down` and `context.drift.building`.
-
-Some cannot be one: a duplicated memory names at least two projects, and a profile count is only
-shown with two or more. Each needs reading at its call site, not converting blind. The ones that can
-reach one become `.one`/`.many` pairs through `L.N`, split into parts where a string carries two
-counts, as T432 did for `context.footer`.
-
-Then the sweep itself becomes the check: the `en` regex T432 ran by hand, with an allow-list of the
-keys whose count is proven never to be one, each with the reason. That is what makes the next
-single-form count red at the commit that adds it.
-
 ### CXI.30 The keyboard path T438 added, with no case (T448)
 
 T438 made the Sessions rows and the live chart's project strip focusable, opening on Enter or Space,
@@ -962,3 +942,22 @@ the same with Space on `#ChartProjects`, reading that the Sessions tab became th
 winwright cannot say it yet. `press` already names Enter and Space, but it sends them at the window,
 so no step can put focus on an element first. Filed upstream as WW610, which adds a `focus` act.
 When it ships, write each case as `focus` on the row and then `press`, and close this line.
+
+### CXI.31 A washed-out Context preview (T449)
+
+`preview.cmd context` runs the preview case "the context load page over its own fixture", which
+draws `--context --window --sample --observing --lang en` into `docs\_preview\the context load page
+over its own fixture\context-window.png`. On this machine (Windows in dark mode) the picture is
+almost unreadable. The page and its cards are white, and every label is a near-white grey on them.
+Only the selected project row, the grade chips, the bar segments and the legend dots carry colour.
+
+It is not new: a build of HEAD at 4d38049 draws the same picture, found while T447 checked its
+strings. It reads as the page's dark-theme foreground brushes drawn over a background that came out
+white. A `Window` whose background is left to the theme, rendered by the engine off the tree, would
+do that. `--capture-stats`, which renders through `RenderTargetBitmap`, draws the Statistics page
+correctly dark on the same machine.
+
+What to settle: whether `PageWindow` (the code-only host the `--context --window` preview uses) sets
+a theme-resolved background, as the shell does, or leaves it transparent. The fix is that host, not
+the case. Then add a check that a preview capture is not mostly one near-white colour, which is the
+only way a washed-out picture can fail anything rather than pass as "rendered".

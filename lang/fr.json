@@ -314,7 +314,8 @@
   "settings.sys.profilePersonal": "Personnel",
   "settings.sys.profileWsl": "{0} (WSL {1})",
   "settings.sys.profileDefault": "{0} (par défaut)",
-  "settings.sys.profileCount": "{0} profils trouvés",
+  "settings.sys.profileCount.one": "{0} profil trouvé",
+  "settings.sys.profileCount.many": "{0} profils trouvés",
   "settings.sys.title": "Informations système",
   "settings.sys.subtitle": "Votre formule Claude, cette installation de Claude Code et cette machine — lues depuis ce que Claude Code conserve déjà sur ce disque. Rien n'est envoyé où que ce soit, et rien n'est modifié.",
   "settings.sys.account": "Compte Claude",
@@ -539,7 +540,8 @@
   "stats.live.off": "Débit en direct indisponible — impossible de surveiller le dossier des transcriptions.",
   "stats.live.sessions.one": "{0} session active",
   "stats.live.sessions.many": "{0} sessions actives",
-  "stats.live.others": "{0} autres",
+  "stats.live.others.one": "{0} autre",
+  "stats.live.others.many": "{0} autres",
   "stats.live.projectTip": "{0} — {1} tokens sur la dernière minute",
   "stats.live.axis": "{0}/s",
   "stats.live.scaleTip": "Hauteur maximale ≈ {0} tokens/s — le point le plus haut des 3 minutes affichées, arrondi au palier supérieur. La ligne pointillée en est la moitié. Les lectures de cache sont exclues, comme pour le nombre au-dessus.",
@@ -647,7 +649,8 @@
   "context.observed": "Mesuré sur les sessions récentes",
   "context.observed.parts.one": "médiane de {0} session ({1}–{2}) · ≈{3} $ pour charger à froid",
   "context.observed.parts.many": "médiane de {0} sessions ({1}–{2}) · ≈{3} $ pour charger à froid",
-  "context.observed.none": "Aucune session depuis 30 jours ({0} transcriptions vérifiées)",
+  "context.observed.none.one": "Aucune session depuis 30 jours ({0} transcription vérifiée)",
+  "context.observed.none.many": "Aucune session depuis 30 jours ({0} transcriptions vérifiées)",
   "context.baseNote": "L'estimation ne compte que les fichiers ci-dessous ; la mesure inclut aussi le prompt système et les définitions d'outils de Claude Code — le segment gris ci-dessus, qu'aucune analyse de fichiers ne peut voir. Chaque nombre de tokens ici est une estimation, c'est le sens du ≈.",
 
   // Jauge de la session zéro
@@ -711,7 +714,9 @@
   // Vue inter-projets (« Tous les projets »)
   "context.all.title": "Tous les projets",
   "context.all.rowDetail": "{0} · {1}",
-  "context.all.subtitle": "{0} projets · {1} fichiers mesurés · {2} sur le disque",
+  "context.all.subtitle": "{0} · {1} · {2} sur le disque",
+  "context.measuredFiles.one": "{0} fichier mesuré",
+  "context.measuredFiles.many": "{0} fichiers mesurés",
   "context.all.footprint": "Empreinte totale sur le disque",
   "context.all.shared": "Contexte fixe partagé, compté une seule fois",
   "context.all.heaviestStat": "Session zéro la plus lourde",
@@ -720,7 +725,7 @@
   "context.all.heaviestHint": "Ce que coûte une session dans chaque projet avant le premier prompt. Cliquez une ligne pour l'ouvrir.",
   "context.all.crossProject": "Problèmes visibles seulement entre projets",
   "context.all.none": "Rien à signaler : aucun répertoire de mémoire dupliqué, et aucun répertoire de projet dont le chemin réel a disparu.",
-  "context.all.dup": "{0} projets contiennent les mêmes {1} fichiers de mémoire ({2}) octet pour octet : {3}",
+  "context.all.dup": "{0} projets partagent, octet pour octet, {1} ({2}) : {3}",
   "context.all.dupFix": "Gardez un seul répertoire et faites pointer les autres dessus par une jonction, pour qu'ils ne divergent pas.",
   "context.all.dead": "{0} — le répertoire du projet n'existe plus, mais {1} de contexte y est toujours stocké.",
   "context.all.deadEmpty": "{0} — le répertoire du projet n'existe plus ; rien n'y est stocké.",
@@ -756,10 +761,16 @@
   "context.fix.copyFailed": "Impossible de copier dans le presse-papiers :\n{0}",
 
   // Note de dette de contexte + dérive
-  "context.grade.tip": "Note {0} — d'après {1} de contexte fixe plus {2} constats ouverts ({3} élevés, {4} moyens, {5} faibles). Un résumé, pas un verdict : la mesure, ce sont les nombres au-dessus.",
+  "context.grade.tip": "Note {0} — d'après {1} de contexte fixe plus {2} ({3} élevés, {4} moyens, {5} faibles). Un résumé, pas un verdict : la mesure, ce sont les nombres au-dessus.",
+  "context.grade.findings.one": "{0} constat ouvert",
+  "context.grade.findings.many": "{0} constats ouverts",
   "context.drift.up": "+{0} tokens (+{1}) sur les {2} derniers jours",
   "context.drift.down": "−{0} tokens (−{1}) sur les {2} derniers jours",
-  "context.drift.building": "Suivi de la dérive : {0} mesures sur {1} jours pour l'instant — une comparaison hebdomadaire demande une semaine d'historique.",
+  "context.drift.building": "Suivi de la dérive : {0} sur {1} pour l'instant — une comparaison hebdomadaire demande une semaine d'historique.",
+  "context.drift.measurements.one": "{0} mesure",
+  "context.drift.measurements.many": "{0} mesures",
+  "context.drift.days.one": "{0} jour",
+  "context.drift.days.many": "{0} jours",
 
   // Alerte de charge de contexte (Paramètres -> Notifications, et le toast lui-même)
   "settings.notif.context": "Charge de contexte",

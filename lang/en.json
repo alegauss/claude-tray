@@ -318,7 +318,8 @@
   "settings.sys.profilePersonal": "Personal",
   "settings.sys.profileWsl": "{0} (WSL {1})",
   "settings.sys.profileDefault": "{0} (default)",
-  "settings.sys.profileCount": "{0} profiles found",
+  "settings.sys.profileCount.one": "{0} profile found",
+  "settings.sys.profileCount.many": "{0} profiles found",
   "settings.sys.title": "System information",
   "settings.sys.subtitle": "Your Claude plan, this Claude Code installation and this machine — read from what Claude Code already keeps on this disk. Nothing here is sent anywhere, and nothing is edited.",
   "settings.sys.account": "Claude account",
@@ -543,7 +544,8 @@
   "stats.live.off": "Live throughput unavailable — the transcript folder couldn't be watched.",
   "stats.live.sessions.one": "{0} session active",
   "stats.live.sessions.many": "{0} sessions active",
-  "stats.live.others": "{0} others",
+  "stats.live.others.one": "{0} other",
+  "stats.live.others.many": "{0} others",
   "stats.live.projectTip": "{0} — {1} tokens in the last minute",
   "stats.live.axis": "{0}/s",
   "stats.live.scaleTip": "Full height ≈ {0} tokens/s — the highest point of the 3 minutes on screen, rounded up. The dashed line is half that. Cache reads are excluded, as in the number above.",
@@ -651,7 +653,8 @@
   "context.observed": "Measured in recent sessions",
   "context.observed.parts.one": "median of {0} session ({1}–{2}) · ≈${3} to load on a cold cache",
   "context.observed.parts.many": "median of {0} sessions ({1}–{2}) · ≈${3} to load on a cold cache",
-  "context.observed.none": "No session in the last 30 days ({0} transcripts checked)",
+  "context.observed.none.one": "No session in the last 30 days ({0} transcript checked)",
+  "context.observed.none.many": "No session in the last 30 days ({0} transcripts checked)",
   "context.baseNote": "The estimate counts only the files below; the measurement also carries Claude Code's own system prompt and tool definitions — the gray segment above, which no file scan can see. Every token count here is an estimate, which is what the ≈ means.",
 
   // The session-zero gauge
@@ -715,7 +718,9 @@
   // Cross-project overview ("All projects")
   "context.all.title": "All projects",
   "context.all.rowDetail": "{0} · {1}",
-  "context.all.subtitle": "{0} projects · {1} measured files · {2} on disk",
+  "context.all.subtitle": "{0} · {1} · {2} on disk",
+  "context.measuredFiles.one": "{0} measured file",
+  "context.measuredFiles.many": "{0} measured files",
   "context.all.footprint": "Total footprint on disk",
   "context.all.shared": "Shared eager context, counted once",
   "context.all.heaviestStat": "Heaviest session zero",
@@ -724,7 +729,7 @@
   "context.all.heaviestHint": "What a session in each project costs before the first prompt. Click a row to open it.",
   "context.all.crossProject": "Problems only visible between projects",
   "context.all.none": "Nothing to report: no duplicated memory directories, and no project directory whose real path has gone.",
-  "context.all.dup": "{0} projects hold the same {1} memory files ({2}) byte for byte: {3}",
+  "context.all.dup": "{0} projects hold the same {1} ({2}) byte for byte: {3}",
   "context.all.dupFix": "Keep one directory and point the others at it with a junction, so they cannot drift apart.",
   "context.all.dead": "{0} — the project directory no longer exists, but {1} of context is still stored for it.",
   "context.all.deadEmpty": "{0} — the project directory no longer exists; nothing is stored for it.",
@@ -760,10 +765,16 @@
   "context.fix.copyFailed": "Couldn't copy to the clipboard:\n{0}",
 
   // Context debt grade + drift
-  "context.grade.tip": "Grade {0} — from {1} of eager context plus {2} open findings ({3} high, {4} medium, {5} low). A summary, not a verdict: the numbers above it are the measurement.",
+  "context.grade.tip": "Grade {0} — from {1} of eager context plus {2} ({3} high, {4} medium, {5} low). A summary, not a verdict: the numbers above it are the measurement.",
+  "context.grade.findings.one": "{0} open finding",
+  "context.grade.findings.many": "{0} open findings",
   "context.drift.up": "+{0} tokens (+{1}) in the last {2} days",
   "context.drift.down": "−{0} tokens (−{1}) in the last {2} days",
-  "context.drift.building": "Tracking drift: {0} measurements over {1} days so far — a weekly comparison needs a week of history.",
+  "context.drift.building": "Tracking drift: {0} over {1} so far — a weekly comparison needs a week of history.",
+  "context.drift.measurements.one": "{0} measurement",
+  "context.drift.measurements.many": "{0} measurements",
+  "context.drift.days.one": "{0} day",
+  "context.drift.days.many": "{0} days",
 
   // Context-load nudge (Settings -> Notifications, and the toast itself)
   "settings.notif.context": "Context load",
