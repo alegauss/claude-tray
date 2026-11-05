@@ -193,6 +193,25 @@
                 <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource SourceRowTemplate}" />
             </StackPanel>
         </DataTemplate>
+        <!-- T438. A heaviest-project row on the overview: a Button so Tab reaches it, Enter and Space open
+             it and a screen reader meets a control, drawn as the transparent row it was. -->
+        <Style x:Key="OverviewRow" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="5,3,5,3" />
+            <Setter Property="Margin" Value="-5,0,-5,0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Stretch" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </UserControl.Resources>
 
     <Grid>

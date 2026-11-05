@@ -95,8 +95,9 @@
 
         <DataTemplate x:Key="SessionRowTemplate">
           <StackPanel>
+            <!-- Focusable so Tab reaches a row and Enter or Space opens it (T438): the row was mouse-only. -->
             <Border Padding="8,7" CornerRadius="5" Background="Transparent" ToolTip="{Binding Tip}"
-                    Cursor="Hand">
+                    Cursor="Hand" Focusable="True">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" MinWidth="120" />
@@ -667,6 +668,7 @@
                     </StackPanel>
                         <Border x:Name="ChartProjects" Grid.Row="1" Cursor="Hand"
                                 MouseLeftButtonUp="LiveChart_Clicked"
+                                Focusable="True" KeyDown="LiveChart_Key"
                                 ToolTip="{local:Loc stats.live.clickTip}"
                                 Margin="0,6,0,0" CornerRadius="6" ClipToBounds="True"
                                 Background="{DynamicResource SubtleFillColorSecondaryBrush}" />

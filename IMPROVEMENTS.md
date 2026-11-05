@@ -926,20 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.20 Controls the keyboard cannot reach (T438)
-
-The six Settings sidebar items are `Border`s with only `MouseLeftButtonUp`
-(SettingsPage.xaml:181-252), so a keyboard user cannot leave the General page;
-keyboard.cases.json:33 already notes the item offers no Invoke. The four About link cards are the
-same (:1189, :1203, :1217, :1231), with no automation name. The Sessions rows
-(StatisticsPage.xaml:98, StatisticsPage.Sessions.cs:72), the live chart's project link (:668) and
-the Context overview's heaviest-project rows (ContextPage.xaml.cs:516-530) open on a mouse-up only.
-There is no `KeyDown` handler or `InputBinding` anywhere in `src/Ui`.
-
-`ToastWindow`'s close button has `Content="✕"` and no `AutomationProperties.Name`
-(ToastWindow.xaml:91), the shape T175 fixed elsewhere. T142 did not reach these. They want to be
-buttons (or carry focus, a peer and Enter/Space), and the `keyboard` case should Tab to each.
-
 ### CXI.21 The error banner's colours (T439)
 
 `ErrorBanner` sets `Background="#332B1416"`, `BorderBrush="#66E33B30"` and the glyph's
@@ -1054,3 +1040,20 @@ counts, as T432 did for `context.footer`.
 Then the sweep itself becomes the check: the `en` regex T432 ran by hand, with an allow-list of the
 keys whose count is proven never to be one, each with the reason. That is what makes the next
 single-form count red at the commit that adds it.
+
+### CXI.30 The keyboard path T438 added, with no case (T448)
+
+T438 made the Sessions rows and the live chart's project strip focusable, opening on Enter or Space,
+and turned the Context overview's rows and the Settings sidebar into buttons. The buttons are
+covered: the keyboard, panels and names cases address them, and a pointer click or the Invoke
+pattern reaches each. The two focusable rows are not. Their keyboard path was checked once by hand,
+and no case holds it.
+
+The case wanted, in `cases/sessions.cases.json` under `--main` (the WinForms pump, convention 7):
+select the Sessions tab, press Enter with focus on `#SessionList > DataItem[order=top]`, then read
+that the row's call tree is in the tree, as the existing row-click case does. The chart strip wants
+the same with Space on `#ChartProjects`, reading that the Sessions tab became the selected one.
+
+winwright cannot say it yet. `press` sends only Tab, Shift+Tab and the arrows, and it sends them at
+the window, so no step can put focus on an element and press Enter there. Filed upstream as WW610.
+When WW610 ships, write the two steps above and close this line.

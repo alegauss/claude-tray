@@ -560,20 +560,18 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
             grid.Children.Add(value);
 
             // Clicking a row opens that project — the overview is a way in, not a dead end.
-            var hit = new Border
+            // A Button rather than a clickable Border (T438), so the keyboard reaches it and it has a name.
+            var hit = new System.Windows.Controls.Button
             {
-                Background = Brushes.Transparent,
-                CornerRadius = new CornerRadius(4),
-                Padding = new Thickness(5, 3, 5, 3),
-                Margin = new Thickness(-5, 0, -5, 0),
-                Cursor = System.Windows.Input.Cursors.Hand,
-                Child = grid,
+                Style = (Style)FindResource("OverviewRow"),
+                Content = grid,
                 Tag = project.Slug,
                 ToolTip = project.Path.Length > 0 ? project.Path : project.Slug,
             };
-            hit.MouseLeftButtonUp += (s, _) =>
+            System.Windows.Automation.AutomationProperties.SetName(hit, project.ShortPath);
+            hit.Click += (s, _) =>
             {
-                if ((s as Border)?.Tag is string slug) SelectProject(slug);
+                if ((s as System.Windows.Controls.Button)?.Tag is string slug) SelectProject(slug);
             };
             AllHeaviestList.Children.Add(hit);
         }

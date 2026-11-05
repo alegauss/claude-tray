@@ -71,6 +71,13 @@ internal partial class StatisticsPage
         // opened and the row is what you click.
         SessionList.AddHandler(System.Windows.Input.Mouse.MouseUpEvent,
                                new System.Windows.Input.MouseButtonEventHandler(Row_Clicked), handledEventsToo: true);
+        // And from the keyboard (T438): a focused row opens on Enter or Space, as a click opens it.
+        SessionList.KeyDown += (_, e) =>
+        {
+            if (e.Key is not (System.Windows.Input.Key.Enter or System.Windows.Input.Key.Space)) return;
+            if (System.Windows.Input.Keyboard.FocusedElement is not DependencyObject focused) return;
+            e.Handled = ToggleRowAt(focused);
+        };
 
         // The money column's method, behind this pane's own ⓘ (T346). Set once here rather than bound,
         // because the one thing it interpolates is the date the rate card was read — a compile-time fact
@@ -142,16 +149,23 @@ internal partial class StatisticsPage
     {
         if (e.ChangedButton != System.Windows.Input.MouseButton.Left) return;
         if ((e.OriginalSource as DependencyObject) is not { } hit) return;
+        ToggleRowAt(hit);
+    }
 
-        // Up the visual tree to the row this pixel belongs to, because the click lands on a TextBlock.
+    /// <summary>Open or close the row an element sits in — the click's half and the key's half (T438).
+    /// True when there was a row to toggle.</summary>
+    private bool ToggleRowAt(DependencyObject hit)
+    {
+        // Up the visual tree to the row this element belongs to, because a click lands on a TextBlock.
         SessionListRow? row = null;
         for (DependencyObject? d = hit; d != null && row == null; d = System.Windows.Media.VisualTreeHelper.GetParent(d))
             if (d is FrameworkElement { DataContext: SessionListRow r }) row = r;
         // A kept row has no transcript to walk (T393); it says so on its own line.
-        if (row == null || row.Row.Gone) return;
+        if (row == null || row.Row.Gone) return false;
 
-        if (row.Detail != null) { row.Open = !row.Open; return; }
+        if (row.Detail != null) { row.Open = !row.Open; return true; }
         OpenRow(row);
+        return true;
     }
 
     /// <summary>Show a row's call tree, walking its transcripts off the UI thread.</summary>
@@ -183,6 +197,19 @@ internal partial class StatisticsPage
     private void LiveChart_Clicked(object sender, System.Windows.Input.MouseButtonEventArgs e)
     {
         if (e.ChangedButton != System.Windows.Input.MouseButton.Left) return;
+        NameRunning();
+    }
+
+    /// <summary>The same jump from the keyboard (T438): Enter or Space on the focused strip.</summary>
+    private void LiveChart_Key(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key is not (System.Windows.Input.Key.Enter or System.Windows.Input.Key.Space)) return;
+        e.Handled = true;
+        NameRunning();
+    }
+
+    private void NameRunning()
+    {
         if (_sessions is not { } rows) { LoadSessions(); return; }
 
         double now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();

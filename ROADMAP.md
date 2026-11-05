@@ -52,6 +52,7 @@
 ## Block AI — Verification — the checks that prove a change
 
 - 📋 **T446** (deps: —) **A repository check that throws ends --selftest with an unhandled exception and no summary** — SelfTestCli.Repo calls its assert with no try, unlike Temp, so a repository check that throws ends the process before the summary and every later section. → §CXI.28
+- 📋 **T448** (deps: —) (requires: winwright-ww610) **No case proves a Sessions row or the chart strip opens on Enter or Space** — T438's focusable rows open on Enter or Space, but winwright's press cannot focus an element and press Enter there (WW610), so no case holds the keyboard path. → §CXI.30
 
 ## Block B — Packaging, self-update, CI
 
@@ -76,8 +77,6 @@
 ## Block L — Scan resilience
 
 ## Block Q — Keyboard input in the windows
-
-- ⏳ **T438** (deps: —) **The Settings sidebar, About cards and session rows are mouse-only, and the toast close reads as a glyph** — The Sessions rows, the live chart's project link and the Context overview's heaviest-project rows still open on a mouse-up only, and the keyboard case does not yet Tab to each. → §CXI.20
 
 ## Block AJ — Working here — the repo's own docs and flags
 

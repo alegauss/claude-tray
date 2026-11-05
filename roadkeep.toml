@@ -137,7 +137,9 @@ why = 200
 # working day of readings behind it (T398): a measurement of a habit, which no session can produce.
 # `store-account` is a Partner Center account the MSIX can be submitted under (T409): the manifest, the
 # startup task and certification are only proven by a real Store submission, which no session can make.
-declared = ["wsl-claude", "statusline-day", "store-account"]
+# `winwright-ww610` is a winwright whose `press` can put focus on an element and send Enter or Space there
+# (T448): until winwright ships WW610, no case here can say a focused row opens from the keyboard.
+declared = ["wsl-claude", "statusline-day", "store-account", "winwright-ww610"]
 
 [markers]
 open = ["📋", "💭", "⏳", "🛠"]
