@@ -294,9 +294,10 @@ internal static class SessionIndex
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var models = new List<string>();
         long read = 0;
+        bool whole = false;
         try
         {
-            foreach (string line in File.ReadLines(file.FullName))
+            foreach (string line in SharedRead.Lines(file.FullName))
             {
                 read += line.Length;
                 // The one field a person wrote, taken once, from the conversation's own transcript
@@ -359,8 +360,13 @@ internal static class SessionIndex
                     entry.Minutes[minute] = entry.Minutes.TryGetValue(minute, out long was) ? was + spend : spend;
                 }
             }
+            whole = true;
         }
-        catch { /* a transcript being written, or an unreadable file — keep what we got */ }
+        catch { /* an unreadable file, or one deleted mid-read — keep what we got, but not in the cache */ }
+
+        // A partial read is this scan's best answer and nothing more (T419): a time no file has, so the
+        // next scan's size-and-mtime match misses and reads it again instead of keeping it.
+        if (!whole) entry.Ticks = ActivityProfile.Unread;
 
         entry.Models = models.ToArray();
 

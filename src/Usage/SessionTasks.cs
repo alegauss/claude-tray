@@ -146,7 +146,7 @@ internal static class SessionTasks
 
         try
         {
-            foreach (string line in File.ReadLines(path))
+            foreach (string line in SharedRead.Lines(path))
             {
                 if (SessionIndex.TryReadPersonAsk(line, out PersonAsk ask))
                 {
@@ -251,7 +251,7 @@ internal static class SessionTasks
         var b = new Builder { Kind = kind, Label = label };
         try
         {
-            foreach (string line in File.ReadLines(path))
+            foreach (string line in SharedRead.Lines(path))
             {
                 if (!UsageReport.LooksLikeSample(line)) continue;
                 if (!UsageReport.TryParseSample(line, 0, double.MaxValue, out double t, out TokenBits bits,

@@ -156,7 +156,7 @@ internal static class ContextHistory
         string path = FilePath(profileKey);
         if (!File.Exists(path)) yield break;
 
-        foreach (string line in File.ReadLines(path))
+        foreach (string line in SharedRead.Lines(path))
         {
             if (line.Length == 0) continue;
             ContextSample sample;
@@ -205,7 +205,7 @@ internal static class ContextHistory
             long cutoff = now - RetentionDays * 86400L;
             long trigger = now - TriggerDays * 86400L;
 
-            foreach (string line in File.ReadLines(path))
+            foreach (string line in SharedRead.Lines(path))
             {
                 if (line.Length == 0) continue;
                 long t;

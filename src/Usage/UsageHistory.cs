@@ -109,7 +109,7 @@ internal static class UsageHistory
             string path = FilePath(profileKey);
             if (!File.Exists(path)) return null;
 
-            foreach (string line in File.ReadLines(path))
+            foreach (string line in SharedRead.Lines(path))
             {
                 if (line.Length == 0) continue;
                 // Lines are appended in time order, but a stray out-of-order line shouldn't win — keep
@@ -133,7 +133,7 @@ internal static class UsageHistory
             string path = FilePath(profileKey);
             if (!File.Exists(path)) return list;
 
-            foreach (string line in File.ReadLines(path))
+            foreach (string line in SharedRead.Lines(path))
             {
                 if (line.Length == 0) continue;
                 if (TryParse(line, out UsageSample s) && s.T >= sinceUnix)
@@ -151,7 +151,7 @@ internal static class UsageHistory
     private static void PruneIfStale(string profileKey, string path, double nowUnix)
     {
         string? first = null;
-        foreach (string line in File.ReadLines(path))
+        foreach (string line in SharedRead.Lines(path))
         {
             if (line.Length == 0) continue;
             first = line;
@@ -165,14 +165,14 @@ internal static class UsageHistory
         // measured rather than inferred once these lines are gone. Already-folded days are skipped
         // there, so running this on the same lines twice is harmless.
         var all = new List<UsageSample>();
-        foreach (string line in File.ReadLines(path))
+        foreach (string line in SharedRead.Lines(path))
             if (line.Length > 0 && TryParse(line, out UsageSample s))
                 all.Add(s);
         HourlyUsage.Fold(profileKey, all, (long)nowUnix);
 
         double keepFrom = nowUnix - RetentionSeconds;
         var kept = new List<string>();
-        foreach (string line in File.ReadLines(path))
+        foreach (string line in SharedRead.Lines(path))
             if (line.Length > 0 && TryGetT(line, out double t) && t >= keepFrom)
                 kept.Add(line);
 

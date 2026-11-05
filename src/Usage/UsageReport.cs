@@ -490,7 +490,7 @@ internal static class UsageReport
 
     private static IEnumerable<string> ReadLinesSafe(string file)
     {
-        try { return File.ReadLines(file); }
+        try { return SharedRead.Lines(file); }
         catch { return Array.Empty<string>(); }
     }
 

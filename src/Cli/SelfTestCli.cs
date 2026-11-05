@@ -383,6 +383,9 @@ internal static partial class SelfTestCli
             Section("sessions — one row per conversation (Block AK)");
             Temp(Sessions);
 
+            Section("sessions — a transcript being written (Block L)");
+            Temp(Live);
+
             Section("sessions — the one field a person wrote (Block AK)");
             Temp(OpeningPrompt);
 

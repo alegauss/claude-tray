@@ -683,9 +683,10 @@ internal sealed class ActivityProfile
     {
         var hours = new Dictionary<long, int>();
         long read = 0;
+        bool whole = false;
         try
         {
-            foreach (string line in File.ReadLines(file.FullName))
+            foreach (string line in SharedRead.Lines(file.FullName))
             {
                 read += line.Length;
                 if (!IsRequestLine(line)) continue;
@@ -694,8 +695,9 @@ internal sealed class ActivityProfile
                 long key = whenUtc.ToLocalTime().Ticks / TimeSpan.TicksPerHour;
                 hours[key] = hours.TryGetValue(key, out int n) ? n + 1 : 1;
             }
+            whole = true;
         }
-        catch { /* a transcript being written, or an unreadable file — keep what we got */ }
+        catch { /* an unreadable file, or one deleted mid-read — keep what we got, but not in the cache */ }
 
         long[] keys = hours.Keys.ToArray();
         Array.Sort(keys);
@@ -706,12 +708,18 @@ internal sealed class ActivityProfile
         {
             Path = file.FullName,
             Bytes = SafeLength(file),
-            Ticks = SafeTicks(file),
+            // A read that failed is this sweep's best answer and nothing more (T419): stamped with a
+            // time no file has, so the next sweep's size-and-mtime match misses and opens it again.
+            Ticks = whole ? SafeTicks(file) : Unread,
             H = keys,
             N = counts,
             Read = read,
         };
     }
+
+    /// <summary>The mtime a cache entry carries when its file could not be read whole (T419) — never a
+    /// real one, and distinct from <see cref="SafeTicks"/>' -1, so no walk ever matches it.</summary>
+    internal const long Unread = long.MinValue;
 
     private static long SafeLength(FileInfo f) { try { return f.Length; } catch { return -1; } }
     private static long SafeTicks(FileInfo f) { try { return f.LastWriteTimeUtc.Ticks; } catch { return -1; } }

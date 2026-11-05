@@ -522,6 +522,45 @@ internal static partial class SelfTestCli
               && SessionIndex.KeptSummary(cache) == (0, 0));
     }
 
+    /// <summary>
+    /// T419: the conversation running now is a transcript with a writer's handle open on it, and every
+    /// reader but the tail used to open it with a share mode that refuses one — so it read as empty, and
+    /// the per-file caches kept that answer. Played here with the handle Claude Code holds
+    /// (<c>ReadWrite | Delete</c> shared), then with one that refuses every reader, which is the only way
+    /// to make a read fail on purpose and see what the cache does with it.
+    /// </summary>
+    private static void Live(string root)
+    {
+        string projects = Path.Combine(root, "projects");
+        string slug = Path.Combine(projects, "d--selftest");
+        Directory.CreateDirectory(slug);
+        string file = Path.Combine(slug, "sess-live.jsonl");
+        string cache = Path.Combine(root, "session-index.json");
+        DateTime now = DateTime.Now;
+        File.WriteAllText(file, Turn(now.AddMinutes(-5), "req-1", 100) + "\n" + Turn(now, "req-2", 200) + "\n");
+
+        using (new FileStream(file, FileMode.Open, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
+        {
+            int lines = SharedRead.Lines(file).Count();
+            Check("a transcript with a writer's handle open reads whole", lines == 2, $"{lines} of 2 lines");
+            IReadOnlyList<SessionRow> rows = SessionIndex.Load(projectsDir: projects, cacheFile: cache);
+            Check("and the conversation running now is a session row with its calls",
+                  rows.Count == 1 && rows[0].Calls == 2,
+                  rows.Count == 0 ? "no row" : $"{rows[0].Calls} calls, expected 2");
+        }
+
+        // A read that cannot happen at all: the scan must answer without it, and must not keep that answer.
+        File.Delete(cache);
+        using (new FileStream(file, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            SessionIndex.Load(projectsDir: projects, cacheFile: cache);
+        IReadOnlyList<SessionRow> after = SessionIndex.Load(out SessionScanStats again, projectsDir: projects,
+                                                             cacheFile: cache);
+        Check("a read that failed is not cached: the next scan opens the file again",
+              again.Read == 1, $"{again.Read} of {again.Files} re-read");
+        Check("and finds what the failed read could not",
+              after.Count == 1 && after[0].Calls == 2, after.Count == 0 ? "no row" : $"{after[0].Calls} calls");
+    }
+
     /// <summary>One <c>user</c> line carrying one text block — the shape §I.1's amended exception reads,
     /// and the only line type in this file that is not a turn.</summary>
     private static string Prompt(string text)

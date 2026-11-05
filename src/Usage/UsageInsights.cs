@@ -113,7 +113,7 @@ internal static class UsageInsights
     private static IEnumerable<string> ReadLinesSafe(string file)
     {
         // A session being written to can throw on open; skip it rather than failing the whole scan.
-        try { return File.ReadLines(file); }
+        try { return SharedRead.Lines(file); }
         catch { return Array.Empty<string>(); }
     }
 

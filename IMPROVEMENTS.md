@@ -926,25 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.1 A transcript being written reads as empty (T419)
-
-Every transcript reader but one opens with `File.ReadLines`, whose share mode refuses a concurrent
-writer: a probe on .NET 10 throws `IOException` while any write handle is open, even one that itself
-shares `ReadWrite | Delete`. Each site swallows the throw and returns what it had, which is nothing:
-`UsageReport.ReadLinesSafe` (UsageReport.cs:493), `UsageInsights` (:116), `SessionIndex.ScanFile`
-(:299), `ActivityProfile.SweepFile` (:688), `SessionTasks.Cut` and `Summarize` (:149, :254), and
-`ContextScanner.FirstRequest` (:888). Two of them make it stick: `SessionIndex` and
-`ActivityProfile` file the empty result under the size and mtime taken during the walk, before the
-read.
-
-The same share mode makes `UsageHistory.Load` and `Append` block each other (:112, :136, :98): a
-poll's reading that lands during an off-thread `ComputePace` is dropped, though the doc comment says
-that overlap is safe.
-
-`TranscriptTail` already opens with `FileShare.ReadWrite | Delete` (T97); T109 fixed the
-directory-level failure in these same readers, not this one. One shared open is the fix, plus a rule
-that a failed open is never cached as a counted file.
-
 ### CXI.2 Deleted conversations behind a junctioned projects tree (T420)
 
 `SafeWalk` resolves the root it is given (SafeWalk.cs:90), so on a profile whose `projects` folder
@@ -1214,8 +1195,9 @@ Three faults in `ContextUsage`, each feeding the `never-invoked` advice (Context
 `CountFile` opens with `File.ReadLines` and returns empty counts on failure (ContextUsage.cs:267,
 :277), yet `FilesRead` still increments (:213), `Complete` is set because every file was read
 (:220), and the zero is cached under the walk-time fingerprint (:203-204). T261 promised that a
-partial read is reported as one. The cause is the share mode in §CXI.1; the fix here is that a
-failed open is never complete.
+partial read is reported as one. T419 fixed the share mode (src/Core/SharedRead.cs) and keeps a
+failed read out of the cache; what is left here is that a failed open is never counted as read, nor
+complete.
 
 `Named` keeps the full `input.skill` value, while `Candidates` yields only the frontmatter name and
 the label tail (:99-105, :318), so a `plugin:skill` call, which this machine's transcripts do carry,

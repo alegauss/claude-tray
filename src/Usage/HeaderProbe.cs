@@ -148,7 +148,7 @@ internal static class HeaderProbe
         {
             string path = FilePath(profileKey);
             if (!File.Exists(path)) return list;
-            foreach (string line in File.ReadLines(path))
+            foreach (string line in SharedRead.Lines(path))
                 if (line.Length > 0 && TryParse(line, out ProbeEntry e))
                     list.Add(e);
         }
@@ -379,7 +379,7 @@ internal static class HeaderProbe
 
     private static void Trim(string path)
     {
-        var lines = new List<string>(File.ReadLines(path));
+        var lines = new List<string>(SharedRead.Lines(path));
         if (lines.Count <= MaxEntries) return;
         StoreFile.WriteAllLines(path, lines.GetRange(lines.Count - MaxEntries, MaxEntries));
     }

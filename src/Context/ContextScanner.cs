@@ -885,7 +885,7 @@ internal static class ContextScanner
         try
         {
             int seen = 0;
-            foreach (string line in File.ReadLines(f.FullName))
+            foreach (string line in SharedRead.Lines(f.FullName))
             {
                 if (++seen > HeadLines) return null;
                 if (line.Length == 0) continue;
@@ -935,7 +935,7 @@ internal static class ContextScanner
             try
             {
                 int seen = 0;
-                foreach (string line in File.ReadLines(f.FullName))
+                foreach (string line in SharedRead.Lines(f.FullName))
                 {
                     if (++seen > HeadLines) break;
                     if (!line.Contains("\"cwd\"")) continue;

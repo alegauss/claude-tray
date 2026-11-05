@@ -92,8 +92,6 @@
 
 ## Block L — Scan resilience
 
-- 📋 **T419** (deps: —) **The conversation running now drops out of tokens, insights, sessions, activity and startup cost** — File.ReadLines shares only Read, so a transcript mid-append fails to open and reads as empty, and two readers cache that empty answer. → §CXI.1
-
 ## Block Q — Keyboard input in the windows
 
 - 📋 **T438** (deps: —) **The Settings sidebar, About cards and session rows are mouse-only, and the toast close reads as a glyph** — They are clickable Borders, not focusable named controls, so Tab skips them and a screen reader announces the toast's close button as a bare glyph. → §CXI.20

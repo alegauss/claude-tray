@@ -196,6 +196,9 @@ internal static class ContextUsage
 
                     FileCounts counts = CountFile(f);
                     perFile[i] = counts;
+                    // A read that failed counts for this scan and is never kept (T419), or the cache
+                    // would answer "nothing here" for as long as the file stays unchanged.
+                    if (!counts.Whole) return;
                     lock (fresh)
                         fresh[f.FullName] = new CacheEntry
                         {
@@ -244,7 +247,8 @@ internal static class ContextUsage
     }
 
     private sealed record FileCounts(
-        Dictionary<string, int> Skills, Dictionary<string, int> Agents, DateTime WhenUtc, long BytesRead);
+        Dictionary<string, int> Skills, Dictionary<string, int> Agents, DateTime WhenUtc, long BytesRead,
+        bool Whole = true);
 
     // The names of the tools whose invocation is the evidence. The agent tool has been called both
     // Task and Agent across versions, so both are counted.
@@ -261,10 +265,11 @@ internal static class ContextUsage
         var skills = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         var agents = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         long bytes = 0;
+        bool whole = false;
 
         try
         {
-            foreach (string line in File.ReadLines(file.FullName))
+            foreach (string line in SharedRead.Lines(file.FullName))
             {
                 bytes += line.Length;
                 if (!line.Contains("\"tool_use\"", StringComparison.Ordinal)) continue;
@@ -273,10 +278,11 @@ internal static class ContextUsage
 
                 CountLine(line, skills, agents);
             }
+            whole = true;
         }
-        catch { /* a transcript being written, or an unreadable file — count what we got */ }
+        catch { /* an unreadable file, or one deleted mid-read — count what we got */ }
 
-        return new FileCounts(skills, agents, file.LastWriteTimeUtc, bytes);
+        return new FileCounts(skills, agents, file.LastWriteTimeUtc, bytes, whole);
     }
 
     private static void CountLine(string line, Dictionary<string, int> skills, Dictionary<string, int> agents)

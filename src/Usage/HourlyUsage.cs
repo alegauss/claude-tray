@@ -572,7 +572,7 @@ internal static class HourlyUsage
             string path = FilePath(profileKey);
             if (!File.Exists(path)) return map;
 
-            foreach (string line in File.ReadLines(path))
+            foreach (string line in SharedRead.Lines(path))
             {
                 if (line.Length == 0) continue;
                 try
