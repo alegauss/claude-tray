@@ -926,15 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.26 An unreadable settings.json (T444)
-
-`Settings.Load` catches every exception and returns defaults (Settings.cs:285-292). `Save` writes in
-place through `File.WriteAllText` (:369, StoreFile.cs:47), unlike `UsageHistory`, which writes a
-temp file and moves it (UsageHistory.cs:179-181). A crash mid-save leaves a truncated file; the next
-launch loads defaults and the first quiet save (`NoteDayOfUse`, TrayContext.cs:138-139) writes them
-over the registered profiles, the monitored dir and the level lists. T20 clamps bad values, not a
-bad file. Save atomically, and on a parse failure keep the file aside instead of overwriting it.
-
 ### CXI.27 A status line set up on a removed exe (T445)
 
 `StatusLineFeed.Classify` (StatusLineFeed.cs:217) recognises any `ClaudeTray ... --statusline`

@@ -58,8 +58,6 @@
 
 ## Block C — Settings window (WPF Fluent)
 
-- 📋 **T444** (deps: —) **A truncated settings.json silently resets every setting and profile to defaults** — Load swallows a parse failure into new Settings() and the next Save overwrites the file, which is written in place rather than through a temp file and a rename. → §CXI.26
-
 ## Block G — Localization
 
 - 📋 **T447** (deps: —) **About twenty more strings may print a count of one before a plural noun** — T432 fixed the strings its audit named, but a sweep of en.json finds about twenty more counts before a plural noun, and nothing checks the shape. → §CXI.29

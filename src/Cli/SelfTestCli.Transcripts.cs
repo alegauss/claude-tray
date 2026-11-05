@@ -626,6 +626,34 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T444: a settings file is written whole or not at all, a broken one is kept aside rather than
+    /// written over, and one nobody could open is not overwritten with defaults. On a temp path, never the
+    /// user's own file.
+    /// </summary>
+    private static void SettingsFile(string root)
+    {
+        string path = Path.Combine(root, "settings.json");
+        new Settings { RefreshSeconds = 600 }.Save(path);
+        Check("a saved settings file reads back, and no temp file is left beside it",
+              Settings.Load(path).RefreshSeconds == 600 && !File.Exists(path + ".tmp"));
+
+        File.WriteAllText(path, "{\"RefreshSeconds\": 600, \"Profiles\": [");      // a crash mid-write
+        Settings fallback = Settings.Load(path);
+        string[] aside = Directory.GetFiles(root, "settings.json.broken-*");
+        Check("a truncated settings file is kept aside before the defaults are used",
+              fallback.RefreshSeconds == Settings.DefaultRefreshSeconds && !File.Exists(path)
+              && aside.Length == 1 && File.ReadAllText(aside[0]).Contains("\"Profiles\"", StringComparison.Ordinal),
+              $"{aside.Length} kept aside, original {(File.Exists(path) ? "still there" : "moved")}");
+
+        new Settings { RefreshSeconds = 900 }.Save(path);
+        using (new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            fallback = Settings.Load(path);
+        fallback.Save(path);
+        Check("and a file nobody could open is not overwritten with the defaults read in its place",
+              Settings.Load(path).RefreshSeconds == 900, $"{Settings.Load(path).RefreshSeconds}s");
+    }
+
+    /// <summary>
     /// T443: a config file caught mid-rewrite keeps the profile its last reading named. Read as no account,
     /// the store key fell from the account to the folder digest and the tray took it for another profile.
     /// </summary>

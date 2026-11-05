@@ -278,19 +278,61 @@ internal sealed class Settings
 
     /// <remarks>Both paths go through <see cref="SwitchFixture.Over"/> (WW86), so a process started with
     /// <c>--sample-switches</c> reads the sampled position whichever caller asks.</remarks>
-    public static Settings Load()
+    public static Settings Load() => SwitchFixture.Over(Load(FilePath));
+
+    /// <summary>
+    /// Read one settings file (T444). Three outcomes, and only one is "defaults": no file at all.
+    /// <list type="bullet">
+    /// <item>A file that does not parse is moved aside to <c>settings.json.broken-&lt;stamp&gt;</c> before
+    /// the defaults are used, so the next Save cannot write them over the profiles, the monitored dir and
+    /// the level lists the broken file still holds — they stay recoverable by hand.</item>
+    /// <item>A file that cannot be opened (held by another writer) is retried, and if it stays shut the
+    /// defaults are used but <b>Save holds back</b> until a read succeeds: overwriting a file nobody could
+    /// read is the same loss by another route.</item>
+    /// </list>
+    /// </summary>
+    internal static Settings Load(string path)
     {
-        try
+        for (int attempt = 0; ; attempt++)
         {
-            if (File.Exists(FilePath) &&
-                JsonSerializer.Deserialize<Settings>(File.ReadAllText(FilePath)) is { } s)
+            try
             {
+                if (!File.Exists(path)) { HeldBack.Remove(path); return new Settings(); }
+                string text = string.Join("\n", SharedRead.Lines(path));
+                Settings s = JsonSerializer.Deserialize<Settings>(text) ?? throw new JsonException("null document");
                 s.Clamp();
-                return SwitchFixture.Over(s);
+                HeldBack.Remove(path);
+                return s;
+            }
+            catch (JsonException)
+            {
+                SetAside(path);
+                return new Settings();
+            }
+            catch (IOException) when (attempt < 3)
+            {
+                Thread.Sleep(100);
+            }
+            catch
+            {
+                HeldBack.Add(path);
+                return new Settings();
             }
         }
-        catch { /* corrupt or unreadable — fall back to defaults */ }
-        return SwitchFixture.Over(new Settings());
+    }
+
+    /// <summary>Settings files that could not be read, so must not be written over (T444).</summary>
+    private static readonly HashSet<string> HeldBack = new(StringComparer.OrdinalIgnoreCase);
+
+    private static void SetAside(string path)
+    {
+        if (ProfileStore.Observing) return;
+        try
+        {
+            string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", System.Globalization.CultureInfo.InvariantCulture);
+            StoreFile.Move(path, path + ".broken-" + stamp);
+        }
+        catch { HeldBack.Add(path); }   // could not move it either: then at least do not overwrite it
     }
 
     /// <summary>
@@ -364,10 +406,22 @@ internal sealed class Settings
         // MonitoredConfigDir on its own and saves, so a check run beside the user's tray could repoint
         // the icon their tray follows — the settings file is one per machine, not one per process.
         if (ProfileStore.Observing) return;
+        Save(FilePath);
+    }
+
+    /// <summary>
+    /// Write one settings file whole or not at all (T444): to a temp file beside it, then moved over it.
+    /// Written in place, a crash mid-save left a truncated file — which the next launch read as no file.
+    /// </summary>
+    internal void Save(string path)
+    {
+        if (ProfileStore.Observing) return;   // T239, held at the write itself
+        if (HeldBack.Contains(path)) return;
         Clamp();
-        StoreFile.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-        StoreFile.WriteAllText(FilePath,
-            JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        StoreFile.CreateDirectory(Path.GetDirectoryName(path)!);
+        string tmp = path + ".tmp";
+        StoreFile.WriteAllText(tmp, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        StoreFile.Move(tmp, path, overwrite: true);
     }
 
     private void Clamp()
