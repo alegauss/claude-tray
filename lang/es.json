@@ -162,6 +162,7 @@
   "settings.saved": "Configuración guardada",
   "settings.cancel": "Cancelar",
   "settings.close": "Cerrar",
+  "toast.close": "Cerrar",
   "settings.version": "Versión {0}",
   "settings.heroVersion": "v{0}",
 

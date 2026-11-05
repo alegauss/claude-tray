@@ -163,7 +163,7 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
     private string _page = "General";
 
     // Switch the visible page (General / System / About …) and move the sidebar selection highlight.
-    private void Nav_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void Nav_Click(object sender, RoutedEventArgs e)
         => SelectPage((string)((FrameworkElement)sender).Tag);
 
     private void SelectPage(string page)
@@ -212,7 +212,7 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
     }
 
     // Open a card's Tag URL in the default browser.
-    private void Link_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void Link_Click(object sender, RoutedEventArgs e)
         => OpenUrl(((FrameworkElement)sender).Tag as string);
 
     private void OpenUrl(string? url)

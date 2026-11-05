@@ -166,6 +166,7 @@
   "settings.saved": "Settings saved",
   "settings.cancel": "Cancel",
   "settings.close": "Close",
+  "toast.close": "Close",
   "settings.version": "Version {0}",
   "settings.heroVersion": "v{0}",
 

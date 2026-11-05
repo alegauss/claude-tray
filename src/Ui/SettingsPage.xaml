@@ -25,6 +25,53 @@
             </Style.Triggers>
         </Style>
 
+        <!-- T438. The sidebar item and the About card were Borders with a mouse-up handler: Tab skipped
+             them, Enter did nothing, and a screen reader met no control at all. Buttons templated to the
+             same look carry focus, Enter/Space, an Invoke and a name; the focus ring is the system's. -->
+        <Style x:Key="NavItem" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="LinkCardButton" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Card" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                CornerRadius="10" Padding="14,12">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Card" Property="Background" Value="{DynamicResource CardBackgroundFillColorSecondaryBrush}" />
+                                <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentFillColorDefaultBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Translucent pill used for the version / platform tags over the hero gradient. -->
         <Style x:Key="HeroChip" TargetType="Border">
             <Setter Property="CornerRadius" Value="10" />
@@ -178,9 +225,9 @@
             <StackPanel Margin="12,16,12,12">
                 <!-- Nav items. Selection (accent bar + subtle background) is toggled in code-behind;
                      a transparent background keeps the whole row clickable even when unselected. -->
-                <Border x:Name="NavGeneral" CornerRadius="6" Height="40" Margin="0,0,0,4"
-                        Background="Transparent" Cursor="Hand"
-                        MouseLeftButtonUp="Nav_Click" Tag="General">
+                <Button x:Name="NavGeneral" Style="{StaticResource NavItem}"
+                        Click="Nav_Click" Tag="General"
+                        AutomationProperties.Name="{local:Loc settings.nav.general}">
                     <Grid>
                         <Border x:Name="AccentGeneral" Width="3" CornerRadius="2"
                                 HorizontalAlignment="Left" Margin="2,8,0,8"
@@ -189,11 +236,11 @@
                                    Margin="16,0,0,0" FontSize="14"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </Grid>
-                </Border>
+                </Button>
 
-                <Border x:Name="NavDisplay" CornerRadius="6" Height="40" Margin="0,0,0,4"
-                        Background="Transparent" Cursor="Hand"
-                        MouseLeftButtonUp="Nav_Click" Tag="Display">
+                <Button x:Name="NavDisplay" Style="{StaticResource NavItem}"
+                        Click="Nav_Click" Tag="Display"
+                        AutomationProperties.Name="{local:Loc settings.nav.display}">
                     <Grid>
                         <Border x:Name="AccentDisplay" Width="3" CornerRadius="2"
                                 HorizontalAlignment="Left" Margin="2,8,0,8"
@@ -203,11 +250,11 @@
                                    Margin="16,0,0,0" FontSize="14"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </Grid>
-                </Border>
+                </Button>
 
-                <Border x:Name="NavClaudeCode" CornerRadius="6" Height="40" Margin="0,0,0,4"
-                        Background="Transparent" Cursor="Hand"
-                        MouseLeftButtonUp="Nav_Click" Tag="ClaudeCode">
+                <Button x:Name="NavClaudeCode" Style="{StaticResource NavItem}"
+                        Click="Nav_Click" Tag="ClaudeCode"
+                        AutomationProperties.Name="{local:Loc settings.nav.claudeCode}">
                     <Grid>
                         <Border x:Name="AccentClaudeCode" Width="3" CornerRadius="2"
                                 HorizontalAlignment="Left" Margin="2,8,0,8"
@@ -217,11 +264,11 @@
                                    Margin="16,0,0,0" FontSize="14"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </Grid>
-                </Border>
+                </Button>
 
-                <Border x:Name="NavNotifications" CornerRadius="6" Height="40" Margin="0,0,0,4"
-                        Background="Transparent" Cursor="Hand"
-                        MouseLeftButtonUp="Nav_Click" Tag="Notifications">
+                <Button x:Name="NavNotifications" Style="{StaticResource NavItem}"
+                        Click="Nav_Click" Tag="Notifications"
+                        AutomationProperties.Name="{local:Loc settings.nav.notifications}">
                     <Grid>
                         <Border x:Name="AccentNotifications" Width="3" CornerRadius="2"
                                 HorizontalAlignment="Left" Margin="2,8,0,8"
@@ -231,11 +278,11 @@
                                    Margin="16,0,0,0" FontSize="14"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </Grid>
-                </Border>
+                </Button>
 
-                <Border x:Name="NavSystem" CornerRadius="6" Height="40" Margin="0,0,0,4"
-                        Background="Transparent" Cursor="Hand"
-                        MouseLeftButtonUp="Nav_Click" Tag="System">
+                <Button x:Name="NavSystem" Style="{StaticResource NavItem}"
+                        Click="Nav_Click" Tag="System"
+                        AutomationProperties.Name="{local:Loc settings.nav.system}">
                     <Grid>
                         <Border x:Name="AccentSystem" Width="3" CornerRadius="2"
                                 HorizontalAlignment="Left" Margin="2,8,0,8"
@@ -245,11 +292,11 @@
                                    Margin="16,0,0,0" FontSize="14"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </Grid>
-                </Border>
+                </Button>
 
-                <Border x:Name="NavAbout" CornerRadius="6" Height="40"
-                        Background="Transparent" Cursor="Hand"
-                        MouseLeftButtonUp="Nav_Click" Tag="About">
+                <Button x:Name="NavAbout" Style="{StaticResource NavItem}" Margin="0"
+                        Click="Nav_Click" Tag="About"
+                        AutomationProperties.Name="{local:Loc settings.nav.about}">
                     <Grid>
                         <Border x:Name="AccentAbout" Width="3" CornerRadius="2"
                                 HorizontalAlignment="Left" Margin="2,8,0,8"
@@ -259,7 +306,7 @@
                                    Margin="16,0,0,0" FontSize="14"
                                    Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                     </Grid>
-                </Border>
+                </Button>
             </StackPanel>
         </Border>
 
@@ -1186,9 +1233,9 @@
                                        Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
 
                             <UniformGrid Columns="2" Margin="-6,0,-6,0">
-                                <Border Style="{StaticResource LinkCard}" Margin="6"
-                                        MouseLeftButtonUp="Link_Click"
-                                        Tag="https://github.com/alegauss/claude-tray">
+                                <Button Style="{StaticResource LinkCardButton}" Margin="6"
+                                        Click="Link_Click" Tag="https://github.com/alegauss/claude-tray"
+                                        AutomationProperties.Name="{local:Loc settings.about.github}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="🐙" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
                                         <StackPanel VerticalAlignment="Center">
@@ -1198,11 +1245,11 @@
                                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                         </StackPanel>
                                     </StackPanel>
-                                </Border>
+                                </Button>
 
-                                <Border Style="{StaticResource LinkCard}" Margin="6"
-                                        MouseLeftButtonUp="Link_Click"
-                                        Tag="https://github.com/alegauss/claude-tray/releases">
+                                <Button Style="{StaticResource LinkCardButton}" Margin="6"
+                                        Click="Link_Click" Tag="https://github.com/alegauss/claude-tray/releases"
+                                        AutomationProperties.Name="{local:Loc settings.about.releases}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="📦" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
                                         <StackPanel VerticalAlignment="Center">
@@ -1212,11 +1259,11 @@
                                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                         </StackPanel>
                                     </StackPanel>
-                                </Border>
+                                </Button>
 
-                                <Border Style="{StaticResource LinkCard}" Margin="6"
-                                        MouseLeftButtonUp="Link_Click"
-                                        Tag="https://github.com/alegauss/claude-tray/issues/new">
+                                <Button Style="{StaticResource LinkCardButton}" Margin="6"
+                                        Click="Link_Click" Tag="https://github.com/alegauss/claude-tray/issues/new"
+                                        AutomationProperties.Name="{local:Loc settings.about.report}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="🐛" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
                                         <StackPanel VerticalAlignment="Center">
@@ -1226,11 +1273,11 @@
                                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                         </StackPanel>
                                     </StackPanel>
-                                </Border>
+                                </Button>
 
-                                <Border Style="{StaticResource LinkCard}" Margin="6"
-                                        MouseLeftButtonUp="Link_Click"
-                                        Tag="https://github.com/alegauss/claude-tray">
+                                <Button Style="{StaticResource LinkCardButton}" Margin="6"
+                                        Click="Link_Click" Tag="https://github.com/alegauss/claude-tray"
+                                        AutomationProperties.Name="{local:Loc settings.about.star}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="⭐" FontSize="22" VerticalAlignment="Center" Margin="0,0,12,0" />
                                         <StackPanel VerticalAlignment="Center">
@@ -1240,7 +1287,7 @@
                                                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                         </StackPanel>
                                     </StackPanel>
-                                </Border>
+                                </Button>
                             </UniformGrid>
 
                             <!-- Get involved -->

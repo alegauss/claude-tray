@@ -30,12 +30,10 @@
 
       "steps": [
         {
-          // The sidebar item is a Text: it resolves and offers no Invoke, so the pointer is the act
-          // rather than an escalation. Leftmost, because the page heading carries the same name.
-          //
-          // 'Claude Code' is the same string in all four languages this app ships, which is why the
-          // locator can name it. A label that differs by language needs the strings file instead.
-          "locator": "Text[name=\"Claude Code\"][order=left]",
+          // T438: the sidebar item is a Button now, named and focusable, and addressed by its id. It is
+          // still clicked rather than invoked, because every act in this case is synthesised input on
+          // purpose: the pattern routes all passed on the day nothing typed reached the window.
+          "locator": "Button#NavClaudeCode",
           "act": "click",
           "with": "PointerIsTheAct",
           "named": "navigate to the Claude Code page by clicking the sidebar"
@@ -87,8 +85,7 @@
 
       "steps": [
         {
-          // 'Notifications' is the English label; the fixture fixes the language to en.
-          "locator": "Text[name=\"Notifications\"][order=left]",
+          "locator": "Button#NavNotifications",
           "act": "click",
           "with": "PointerIsTheAct",
           "named": "navigate to the Notifications page by clicking the sidebar"

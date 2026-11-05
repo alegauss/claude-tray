@@ -111,49 +111,45 @@
 
       "steps": [
         {
-          "locator": "Text[name=\"{settings.nav.general}\"][order=left]",
-          "act": "click",
-          "with": "PointerIsTheAct",
+          "locator": "Button[name=\"{settings.nav.general}\"]",
+          "act": "invoke",
           "named": "open the General panel"
         },
         {
-          "locator": "Text[name=\"{settings.nav.general}\"][order=left]",
+          "locator": "Button[name=\"{settings.nav.general}\"]",
           "act": "capture",
           "with": "general",
           "named": "the General panel"
         },
         {
-          "locator": "Text[name=\"{settings.nav.display}\"][order=left]",
-          "act": "click",
-          "with": "PointerIsTheAct",
+          "locator": "Button[name=\"{settings.nav.display}\"]",
+          "act": "invoke",
           "named": "open the Display panel"
         },
         {
-          "locator": "Text[name=\"{settings.nav.display}\"][order=left]",
+          "locator": "Button[name=\"{settings.nav.display}\"]",
           "act": "capture",
           "with": "display",
           "named": "the Display panel"
         },
         {
-          "locator": "Text[name=\"{settings.nav.claudeCode}\"][order=left]",
-          "act": "click",
-          "with": "PointerIsTheAct",
+          "locator": "Button[name=\"{settings.nav.claudeCode}\"]",
+          "act": "invoke",
           "named": "open the Claude Code panel"
         },
         {
-          "locator": "Text[name=\"{settings.nav.claudeCode}\"][order=left]",
+          "locator": "Button[name=\"{settings.nav.claudeCode}\"]",
           "act": "capture",
           "with": "claude-code",
           "named": "the Claude Code panel"
         },
         {
-          "locator": "Text[name=\"{settings.nav.notifications}\"][order=left]",
-          "act": "click",
-          "with": "PointerIsTheAct",
+          "locator": "Button[name=\"{settings.nav.notifications}\"]",
+          "act": "invoke",
           "named": "open the Notifications panel"
         },
         {
-          "locator": "Text[name=\"{settings.nav.notifications}\"][order=left]",
+          "locator": "Button[name=\"{settings.nav.notifications}\"]",
           "act": "capture",
           "with": "notifications",
           "named": "the Notifications panel"
@@ -163,25 +159,23 @@
           // uses the account fixture. A preview is read and not published, and the picture lands in a
           // git-ignored folder — the rule about publishing is in the dev-flags catalogue, where the
           // flag that writes a tracked file is.
-          "locator": "Text[name=\"{settings.nav.system}\"][order=left]",
-          "act": "click",
-          "with": "PointerIsTheAct",
+          "locator": "Button[name=\"{settings.nav.system}\"]",
+          "act": "invoke",
           "named": "open the System information panel"
         },
         {
-          "locator": "Text[name=\"{settings.nav.system}\"][order=left]",
+          "locator": "Button[name=\"{settings.nav.system}\"]",
           "act": "capture",
           "with": "system",
           "named": "the System information panel"
         },
         {
-          "locator": "Text[name=\"{settings.nav.about}\"][order=left]",
-          "act": "click",
-          "with": "PointerIsTheAct",
+          "locator": "Button[name=\"{settings.nav.about}\"]",
+          "act": "invoke",
           "named": "open the About panel"
         },
         {
-          "locator": "Text[name=\"{settings.nav.about}\"][order=left]",
+          "locator": "Button[name=\"{settings.nav.about}\"]",
           "act": "capture",
           "with": "about",
           "named": "the About panel"

@@ -90,6 +90,7 @@
                         </StackPanel>
                         <Button x:Name="CloseButton" Style="{StaticResource Circle}"
                                 Content="✕" Width="26" Height="26" FontSize="11"
+                                AutomationProperties.Name="{local:Loc toast.close}"
                                 Background="#22FFFFFF" Foreground="White"
                                 HorizontalAlignment="Right" VerticalAlignment="Top"
                                 Cursor="Hand" Click="Close_Click" />

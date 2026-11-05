@@ -198,16 +198,14 @@
 
       "steps": [
         {
-          // The sidebar item, which is a bare Border with no automation peer — so the TextBlock inside
-          // is what reaches the tree and its words are the only thing that addresses one. Leftmost,
-          // because the page heading carries the same words.
+          // The sidebar item, a Button named by its words since T438 (it was a bare Border with no
+          // automation peer, addressed through the TextBlock inside and clicked with the pointer).
           //
           // WW273 is what makes the words a key rather than a string: `{}` is the member, read out of
           // the strings file in the language the fixture launched, so this walks the sidebar of a
           // Portuguese window as readily as an English one.
-          "locator": "Text[name=\"{}\"][order=left]",
-          "act": "click",
-          "with": "PointerIsTheAct",
+          "locator": "Button[name=\"{}\"]",
+          "act": "invoke",
           "named": "open the panel the sidebar names"
         },
         {

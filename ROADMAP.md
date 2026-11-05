@@ -77,7 +77,7 @@
 
 ## Block Q — Keyboard input in the windows
 
-- 📋 **T438** (deps: —) **The Settings sidebar, About cards and session rows are mouse-only, and the toast close reads as a glyph** — They are clickable Borders, not focusable named controls, so Tab skips them and a screen reader announces the toast's close button as a bare glyph. → §CXI.20
+- ⏳ **T438** (deps: —) **The Settings sidebar, About cards and session rows are mouse-only, and the toast close reads as a glyph** — The Sessions rows, the live chart's project link and the Context overview's heaviest-project rows still open on a mouse-up only, and the keyboard case does not yet Tab to each. → §CXI.20
 
 ## Block AJ — Working here — the repo's own docs and flags
 
