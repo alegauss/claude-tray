@@ -200,6 +200,10 @@ source of truth — the installer, winget manifests and the update check all der
 [STRATEGY.md](../../../STRATEGY.md) §S:IV). Cutting a release is a `chore: release vX.Y.Z` commit of
 its own, never bundled with a task.
 
+**Write `build\release-notes.md` first (T418).** It is the GitHub release's description and the en-US
+winget manifest's `ReleaseNotes`, one text in both; `update-winget.ps1` refuses a file whose first line
+names another version, so the release stops at step 2 rather than shipping last release's notes.
+
 **Before it, run the published `.exe` from outside the tree — once (T383).**
 
 ```

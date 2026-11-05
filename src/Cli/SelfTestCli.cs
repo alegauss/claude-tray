@@ -354,6 +354,8 @@ internal static partial class SelfTestCli
         Section("surfaces — what a stranger reads: the README and the page (Block AJ)");
         Repo("the README and the published page point at things that exist", UserSurfaces,
              "README.md", "site/src/lib/site-content.ts", "site/public/shots");
+        Repo("the winget manifests keep the shape the published version has", WingetShape,
+             "build/winget", "build/release-notes.md");
 
         Section("store package — the manifest and the exe it packages (Block B)");
         Repo("the Store manifest names the alias and the logos this exe provides", StoreManifest,

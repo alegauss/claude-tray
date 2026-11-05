@@ -5,7 +5,8 @@
 #
 # Atualiza, em TODOS os YAMLs de winget\ (inclui os locales pt-BR, en-US, etc.):
 #   PackageVersion, InstallerUrl, DisplayVersion, ReleaseNotesUrl,
-#   InstallerSha256 (hash do instalador) e ReleaseDate (data de hoje).
+#   InstallerSha256 (hash do instalador) e ReleaseDate (data de hoje);
+#   no locale padrao (en-US), ReleaseNotes a partir de build\release-notes.md (T418).
 #
 # Uso local:  build\build-installer.cmd   (gera dist\ClaudeTray-Setup.exe)
 #             powershell -File build\update-winget.ps1
@@ -105,6 +106,18 @@ function Write-Utf8([string]$path, [string]$text) { [System.IO.File]::WriteAllTe
 
 $dir = Join-Path $PSScriptRoot 'winget'
 
+# --- 4) Notas da release: build\release-notes.md, escrito antes do release (T418) -
+# A mesma fonte da descricao no GitHub (update-release.cmd). Um arquivo de outra versao e recusado:
+# publicaria as notas antigas sob o numero novo.
+$notesPath = Join-Path $PSScriptRoot 'release-notes.md'
+if (-not (Test-Path $notesPath)) { throw "Sem $notesPath - escreva as notas da v$version antes do release." }
+$notes = (Read-Utf8 $notesPath).Trim()
+$first = ($notes -split "`r?`n")[0]
+if ($first -notmatch "\bv$([regex]::Escape($version))\b") {
+    throw "build\release-notes.md comeca com '$first', nao com as notas da v$version - reescreva-o para esta versao."
+}
+$notesBlock = ($notes -split "`r?`n" | ForEach-Object { if ($_) { "  $_" } else { '' } }) -join "`n"
+
 foreach ($file in Get-ChildItem -Path $dir -Filter '*.yaml') {
     $path = $file.FullName
     $c = Read-Utf8 $path
@@ -115,6 +128,13 @@ foreach ($file in Get-ChildItem -Path $dir -Filter '*.yaml') {
     $c = $c -replace '(?m)^(\s*)DisplayVersion:\s*.+$', "`${1}DisplayVersion: $version"
     $c = $c -replace '(?m)^(\s*)InstallerSha256:\s*.+$', "`${1}InstallerSha256: $sha"
     $c = $c -replace '(?m)^ReleaseDate:\s*.+$', "ReleaseDate: $date"
+
+    # O locale padrao leva as notas da release (T418): o validador do winget compara com a versao
+    # publicada, e um moderador deu a ela um ReleaseNotes - sem ele, o PR fica retido.
+    if ($c -match '(?m)^ManifestType:\s*defaultLocale\s*$') {
+        $c = $c -replace '(?ms)^ReleaseNotes: \|-\r?\n(?:(?:  [^\r\n]*)?\r?\n)*(?=ReleaseNotesUrl:)', ''
+        $c = $c -replace '(?m)^(?=ReleaseNotesUrl:)', ("ReleaseNotes: |-`n" + $notesBlock + "`n").Replace('$', '$$')
+    }
 
     Write-Utf8 $path $c
     Write-Host "atualizado: winget\$($file.Name)"

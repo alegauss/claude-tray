@@ -1584,6 +1584,31 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T418. winget's validator compares a new version with the one already published, and a moderator
+    /// gave 1.8.0 two things this repository's manifests lacked: <c>AppsAndFeaturesEntries</c> at the
+    /// manifest level and a <c>ReleaseNotes</c> block. The 1.9.0 PR was held until both were fixed on its
+    /// branch by hand. So the shape is asserted here, and the notes must name the version they ship under,
+    /// because <c>update-winget.ps1</c> copies <c>build\release-notes.md</c> in and stale notes would go
+    /// out under the new number.
+    /// </summary>
+    private static void WingetShape(string root)
+    {
+        string dir = Path.Combine(root, "build", "winget");
+        string installer = File.ReadAllText(Path.Combine(dir, "alegauss.ClaudeCodeTray.installer.yaml"));
+        Check("the installer manifest declares AppsAndFeaturesEntries at the manifest level",
+              Regex.IsMatch(installer, @"^AppsAndFeaturesEntries:", RegexOptions.Multiline),
+              "absent or nested under an installer — the published version has it at the top, and the PR is held");
+
+        string locale = File.ReadAllText(Path.Combine(dir, "alegauss.ClaudeCodeTray.locale.en-US.yaml"));
+        string version = Regex.Match(locale, @"^PackageVersion:\s*(\S+)", RegexOptions.Multiline).Groups[1].Value;
+        Match notes = Regex.Match(locale, @"^ReleaseNotes: \|-\r?\n  (.+)$", RegexOptions.Multiline);
+        Check($"the en-US manifest carries ReleaseNotes for the version it ships ({version})",
+              notes.Success && Regex.IsMatch(notes.Groups[1].Value, $@"\bv{Regex.Escape(version)}\b"),
+              notes.Success ? $"they open with '{notes.Groups[1].Value.Trim()}'"
+                            : "no ReleaseNotes block — the published version has one, and the PR is held");
+    }
+
+    /// <summary>
     /// The two documents a person outside this repository actually reads (T250): <c>README.md</c> and the
     /// published site. The user-facing-surface gate names three surfaces a shipped feature owes, and only
     /// <c>lang\*.json</c> was held to it — T185 fails a key that reached one language file. These two were

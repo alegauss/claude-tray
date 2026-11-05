@@ -105,6 +105,7 @@
 - **T412 (listing, submission and certification)** — The listing is ready to paste in all five app languages, build-msix draws the poster, box art and tiles each Partner Center slot asks for into dist\store-art, and the package passed certification and is listed on the Microsoft Store as 9P27BHWNT56D.
 - **T416** — The package's taskbar and Start icon is drawn without the accent-coloured square behind it: --msix-assets now also draws the 44 px logo at the shell's five target sizes, each with its altform-unplated twin, build-msix.ps1 indexes them into a resources.pri with makepri before packing, and --selftest holds that every target size has its twin.
 - **T417** — build\store-submit.ps1 -Package sends dist\ClaudeTray.msix in place of the published packages, keeping the screenshots unless -Screenshots is given, and refuses before any upload a version that is not above the published one or an .msix older than the csproj.
+- **T418** — Release notes are written once in build\release-notes.md and reach both the GitHub release and the en-US winget manifest, the installer manifest keeps AppsAndFeaturesEntries at the manifest level, and --selftest fails a manifest that loses either or carries another version's notes.
 
 ## Block C — Settings window (WPF Fluent)
 

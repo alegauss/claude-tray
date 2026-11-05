@@ -10,6 +10,9 @@ REM      que grava InstallerSha256 e ReleaseDate).
 REM   3) [opcional] Se o 2o parametro for "upload": commita o bump, cria e
 REM      envia a tag vX.Y.Z e cria a release no GitHub com o instalador anexado.
 REM
+REM Antes: escreva build\release-notes.md para a versao nova (T418) - o passo 2
+REM recusa um arquivo cujo titulo nomeia outra versao.
+REM
 REM Uso (de qualquer pasta):  build\update-release 1.4.1
 REM                           build\update-release 1.4.2 upload
 REM ==========================================================================
@@ -73,8 +76,9 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Cria a release no GitHub com o instalador anexado (notas auto-geradas).
-gh release create "v%~1" "%~dp0..\dist\ClaudeTray-Setup.exe" --title "v%~1" --generate-notes
+REM Cria a release no GitHub com o instalador anexado. A descricao e build\release-notes.md, a
+REM mesma que update-winget.ps1 copiou para o ReleaseNotes do manifesto (T418).
+gh release create "v%~1" "%~dp0..\dist\ClaudeTray-Setup.exe" --title "v%~1" --notes-file "%~dp0release-notes.md"
 if errorlevel 1 (
     echo *** ERRO: falha ao criar a release no GitHub. ***
     exit /b 1
