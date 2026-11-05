@@ -11,11 +11,6 @@ internal partial class SettingsPage
 
     private const double OutputTokensPerCall = 1;
 
-    // Haiku 4.5 price per 1M tokens (input, output) — matches the table in UsageInsights.
-    private const double HaikuInputPerM = 1.0;
-
-    private const double HaikuOutputPerM = 5.0;
-
     private void IntervalSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         => UpdateIntervalLabel();
 
@@ -64,7 +59,9 @@ internal partial class SettingsPage
         double tokensPerCall = InputTokensPerCall + OutputTokensPerCall;
         double tokensPerHour = callsPerHour * tokensPerCall;
         double tokensPerDay = tokensPerHour * 24.0;
-        double costPerCall = (InputTokensPerCall * HaikuInputPerM + OutputTokensPerCall * HaikuOutputPerM) / 1_000_000.0;
+        // The model the poll calls, at the one rate card (T422) rather than a pair of constants beside it.
+        var card = ListPrices.Card(ApiClient.HeartbeatModel);
+        double costPerCall = (InputTokensPerCall * card.In + OutputTokensPerCall * card.Out) / 1_000_000.0;
         double costPerMonth = costPerCall * callsPerHour * 24.0 * 30.0;
 
         CostEstimate.Text = CostText(callsPerHour, tokensPerHour, tokensPerDay, costPerMonth, polled);

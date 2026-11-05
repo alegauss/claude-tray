@@ -129,6 +129,10 @@ internal sealed class ApiClient
 
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
 
+    /// <summary>The model every quota poll asks — named once, so the Settings page's cost estimate prices
+    /// the model actually called, through the one rate card (T422).</summary>
+    internal const string HeartbeatModel = "claude-haiku-4-5-20251001";
+
     public async Task<UsageData> FetchAsync()
     {
         try
@@ -137,7 +141,7 @@ internal sealed class ApiClient
 
             var body = new
             {
-                model = "claude-haiku-4-5-20251001",
+                model = HeartbeatModel,
                 max_tokens = 1,
                 messages = new[] { new { role = "user", content = "hi" } },
             };

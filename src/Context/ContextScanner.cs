@@ -121,7 +121,7 @@ internal sealed class SessionZero
     /// point of the number is the toll you pay for opening the project, not its best case.
     /// </summary>
     [JsonIgnore]
-    public double Cost => Median * UsageInsights.Price(Model).cw / 1_000_000.0;
+    public double Cost => Median * ListPrices.Card(Model).CacheWrite / 1_000_000.0;
 }
 
 /// <summary>One <c>~/.claude/projects/&lt;slug&gt;</c> directory and everything it loads.</summary>

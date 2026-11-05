@@ -1062,6 +1062,28 @@ internal static partial class SelfTestCli
              { ["claude-opus-4-5-20251101"] = new TokenBits(1_000_000, 0, 0, 0, 0, 0) }).Dollars,
              5.0, 1e-9);
 
+        // T422: the weighting card the insights and the Context page use is the same table, token kind by
+        // token kind — a second card beside this one is the thing that was never the one updated.
+        foreach (string m in new[] { "claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-4-5", "claude-fable-5-1" })
+        {
+            var c = ListPrices.Card(m);
+            double Of(TokenBits b) => ListPrices.Of(new Dictionary<string, TokenBits>(StringComparer.Ordinal) { [m] = b }).Dollars;
+            Check($"the weighting card agrees with the list-price total for {m}",
+                  Math.Abs(c.In - Of(new TokenBits(1_000_000, 0, 0, 0, 0, 0))) < 1e-9
+                  && Math.Abs(c.Out - Of(new TokenBits(0, 1_000_000, 0, 0, 0, 0))) < 1e-9
+                  && Math.Abs(c.CacheRead - Of(new TokenBits(0, 0, 0, 1_000_000, 0, 0))) < 1e-9
+                  && Math.Abs(c.CacheWrite - Of(new TokenBits(0, 0, 1_000_000, 0, 0, 1_000_000))) < 1e-9,
+                  $"{c}");
+        }
+        string[] cards = typeof(SelfTestCli).Assembly.GetTypes()
+            .Where(t => t != typeof(ListPrices))
+            .SelectMany(t => t.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic
+                                          | BindingFlags.DeclaredOnly))
+            .Where(mi => mi.Name == "Price")
+            .Select(mi => mi.DeclaringType!.Name + "." + mi.Name)
+            .ToArray();
+        Check("and no other type keeps a rate card of its own", cards.Length == 0, string.Join(", ", cards));
+
         // The case that must not be silent.
         ListPrices.Equivalent partial = ListPrices.Of(new Dictionary<string, TokenBits>(StringComparer.Ordinal)
         {

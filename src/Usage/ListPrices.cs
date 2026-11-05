@@ -148,6 +148,22 @@ internal static class ListPrices
     internal static string ModelOf(string key) =>
         key.EndsWith(LongPrompt, StringComparison.Ordinal) ? key[..^LongPrompt.Length] : key;
 
+    /// <summary>The model a weighting falls back to when the table has no row for an id — the one nearly
+    /// every turn on this machine runs. Only for <see cref="Card"/>: a list-price total never guesses
+    /// (<see cref="Equivalent.UnpricedTokens"/>), but a share or a per-token cost needs some weight.</summary>
+    internal const string FallbackModel = "claude-opus-5-5";
+
+    /// <summary>
+    /// One model's rates per million tokens — input, output, a five-minute cache write and a cache read —
+    /// for the surfaces that weight tokens rather than total them: the insights shares and every cost on
+    /// the Context page (T422). They used to keep a card of their own, which was never the one updated.
+    /// </summary>
+    internal static (double In, double Out, double CacheWrite, double CacheRead) Card(string model)
+    {
+        (double i, double o, double r) = RateFor(model) ?? RateFor(FallbackModel)!.Value;
+        return (i, o, i * CacheWrite5mMultiplier, i * r);
+    }
+
     /// <summary>Whether the table can price this model id at all — the question the Sessions pane asks
     /// before it promises a total.</summary>
     public static bool Knows(string model) => RateFor(model) is not null;

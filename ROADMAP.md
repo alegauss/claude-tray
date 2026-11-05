@@ -55,7 +55,6 @@
 
 ## Block AK — Sessions — what one conversation cost, and what it did
 
-- 📋 **T422** (deps: —) **The Context page and the Sessions list price the same tokens at different rates** — UsageInsights.Price keeps a rate card of its own beside ListPrices, which T346 and T401 maintain, so only one of the two is ever updated. → §CXI.4
 - 📋 **T436** (deps: —) **An open call tree on the Sessions pane collapses on every poll** — Render reloads the sessions list on each poll even when no row changed, which T118 stopped for the pace report and the Sessions pane of T329 brought back. → §CXI.18
 
 ## Block AI — Verification — the checks that prove a change

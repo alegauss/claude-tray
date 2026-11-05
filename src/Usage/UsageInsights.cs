@@ -25,18 +25,6 @@ internal static class UsageInsights
 {
     private const double ContextThreshold = 150_000;   // "large context" line, in tokens
 
-    // Price per 1M tokens: (input, output, cacheWrite5m, cacheRead). cacheWrite = 1.25x input,
-    // cacheRead = 0.1x input. Matched by substring of the model id; default = Opus-tier.
-    // Internal because the context scanner prices its session-zero measurement the same way — one
-    // table for the whole app, so a rate change can't be applied in one place and missed in another.
-    internal static (double inp, double outp, double cw, double cr) Price(string model)
-    {
-        if (model.Contains("haiku")) return (1, 5, 1.25, 0.10);
-        if (model.Contains("sonnet")) return (3, 15, 3.75, 0.30);
-        if (model.Contains("fable") || model.Contains("mythos")) return (10, 50, 12.5, 1.0);
-        return (5, 25, 6.25, 0.50); // opus / unknown
-    }
-
     /// <param name="profile">Whose transcripts — the monitored profile when omitted, like every other
     /// transcript reader; a fixed <c>~/.claude</c> here described the default profile while the icon
     /// followed another (T421).</param>
@@ -163,7 +151,7 @@ internal static class UsageInsights
             double cr = Num(u, "cache_read_input_tokens");
 
             context = inp + cw + cr;
-            var (pin, pout, pcw, pcr) = Price(model);
+            var (pin, pout, pcw, pcr) = ListPrices.Card(model);   // the one rate card (T422)
             cost = (inp * pin + outp * pout + cw * pcw + cr * pcr) / 1_000_000.0;
             return true;
         }

@@ -926,18 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.4 A second rate card (T422)
-
-`UsageInsights.Price` (UsageInsights.cs:36) hardcodes opus and unknown at 5/25, sonnet 3/15, haiku
-1/5 and a 0.1x cache read; `ListPrices` (ListPrices.cs:48-52), which T346 and T401 keep current, has
-opus-5-5 at 4/20, sonnet-5-5 at 2/10, haiku-5-5 at 0.10/0.50 and a 0.05x cache read. The comment
-above `Price` says it is the one table for the app.
-
-`Price` weights the insights shares and every cost figure on the Context page
-(ContextScanner.cs:124, TrayContext.cs:330, ContextPage.Gauge.cs:138, :241), so on this machine's
-Opus 5.5 transcripts the cache-read weight is double what the Sessions list uses. `Price` should
-read `ListPrices`, and a selftest should hold the two to one source.
-
 ### CXI.5 A token refresh and the connection per poll (T423)
 
 `ApiClient` reads `.credentials.json` with `File.ReadAllText` (ApiClient.cs:287). An open that

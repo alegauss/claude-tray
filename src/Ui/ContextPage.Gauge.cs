@@ -135,7 +135,7 @@ internal partial class ContextPage
 
         // Caption: the total, its share of the window, and what loading it costs on a cold cache —
         // priced with the observed session's model when there is one, else the Opus-tier default.
-        double cost = total * UsageInsights.Price(observed?.Model ?? "").cw / 1_000_000.0;
+        double cost = total * ListPrices.Card(observed?.Model ?? "").CacheWrite / 1_000_000.0;
         GaugeCaption.Text = CaptionText(total, window, cost);
 
         // Legend, including the free remainder — the empty part of the bar is a number too.
@@ -238,7 +238,7 @@ internal partial class ContextPage
         SimBanner.Visibility = Visibility.Visible;
         int before = _baseTokens + row.Estimated;
         int after = before - saving;
-        double saved = saving * UsageInsights.Price(model ?? "").cw / 1_000_000.0;
+        double saved = saving * ListPrices.Card(model ?? "").CacheWrite / 1_000_000.0;
         int ticked = Relevant(row).Count(s => _simulated.Contains(s.Path));
 
         SimHeadline.Text = SimHeadlineText(saving, saved);

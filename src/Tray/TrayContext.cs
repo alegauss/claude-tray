@@ -331,7 +331,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         int window = ContextScanner.ContextPageFor(project.Observed?.Model);
         double share = Math.Clamp((double)eager / window, 0, 1);
-        double cost = eager * UsageInsights.Price(project.Observed?.Model ?? "").cw / 1_000_000.0;
+        double cost = eager * ListPrices.Card(project.Observed?.Model ?? "").CacheWrite / 1_000_000.0;
 
         string title = L.T("toast.context.title");
         string subtitle = L.T("toast.context.subtitle", project.ShortPath);
