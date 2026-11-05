@@ -926,15 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.19 The second Save in one visit (T437)
-
-T229 made Save carry over any field the page did not change, by comparing the page's values with
-`_opened`, the snapshot taken when the page opened (SettingsPage.xaml.cs:26, :56, :288;
-Settings.cs:349-354). `_opened` is readonly and set once, and the page is rebuilt only on Cancel
-(MainWindow.xaml.cs:171-187). So after a first Save commits a page edit, a menu flip of that field,
-and a second Save, the page value still differs from `_opened` and is written back over the menu's.
-Renew the snapshot after each Save; a selftest of two Saves around a menu change would hold it.
-
 ### CXI.20 Controls the keyboard cannot reach (T438)
 
 The six Settings sidebar items are `Border`s with only `MouseLeftButtonUp`

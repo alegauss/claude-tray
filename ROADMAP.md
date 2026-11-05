@@ -61,7 +61,6 @@
 
 ## Block C — Settings window (WPF Fluent)
 
-- 📋 **T437** (deps: —) **A second Save in one Settings visit writes back over a toggle flipped in the tray menu** — The page's opened snapshot is not renewed after a Save, so the next merge compares against stale values and the defect T229 fixed returns on the second Save. → §CXI.19
 - 📋 **T444** (deps: —) **A truncated settings.json silently resets every setting and profile to defaults** — Load swallows a parse failure into new Settings() and the next Save overwrites the file, which is written in place rather than through a temp file and a rename. → §CXI.26
 
 ## Block G — Localization

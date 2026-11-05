@@ -23,7 +23,8 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
     /// <summary>What this page was built from, kept untouched beside the copy it edits. Save hands both
     /// back, because "which write is newer" is a comparison and needs the before as well as the after —
     /// see <see cref="Settings.CarryUnchangedFrom"/> (T229).</summary>
-    private readonly Settings _opened;
+    // Not readonly: each Save renews it (T437), see SnapshotAfterSave.
+    private Settings _opened;
 
     private readonly Action<Settings, Settings> _onSave;
 
@@ -285,9 +286,19 @@ internal partial class SettingsPage : System.Windows.Controls.UserControl
                 L.T("dialog.appName"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
+        Settings shown = SnapshotAfterSave(_settings);
         _onSave(_settings, _opened);
+        _opened = shown;
         ConfirmSaved();
     }
+
+    /// <summary>
+    /// What the next Save compares the page against (T437): the values the page held when it saved, taken
+    /// before the merge carries any of the tray's values into it. T229's merge treats a field equal to this
+    /// snapshot as untouched; left at the values the page opened with, a field committed by a first Save
+    /// still read as an edit on the second, and wrote back over whatever the tray menu had set since.
+    /// </summary>
+    internal static Settings SnapshotAfterSave(Settings page) => page.Clone();
 
     private void StartupOpenSettings_Click(object sender, RoutedEventArgs e)
     {

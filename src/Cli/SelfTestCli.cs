@@ -361,6 +361,7 @@ internal static partial class SelfTestCli
         Repo("a release says one thing, in the language it was installed in", ReleaseText,
              ".github/workflows/build.yml", "build/installer.iss");
         Repo("every WinForms-pumped preview ends when its window closes", PumpsEnd, "src/Tray/Program.cs");
+        Repo("Settings renews its opened snapshot after each Save", SaveRenewsSnapshot, "src/Ui/SettingsPage.xaml.cs");
         Repo("the winget manifests keep the shape the published version has", WingetShape,
              "build/winget", "build/release-notes.md");
 

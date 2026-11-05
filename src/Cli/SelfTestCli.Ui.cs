@@ -91,6 +91,35 @@ internal static partial class SelfTestCli
                   Equals(p.GetValue(applied), true),
                   $"got {Json(p.GetValue(applied))} — T171's environment write reconciles off this");
         }
+
+        // T437: two Saves in one visit, a menu flip between them. The first commits a page edit; the
+        // second, with nothing touched on the page since, must leave the menu's value standing.
+        {
+            var opened = new Settings { FlashNearLimit = false };
+            var page = opened.Clone();
+            page.FlashNearLimit = true;                                  // edited on the page
+            Settings first = page.Clone();
+            first.CarryUnchangedFrom(opened.Clone(), opened);            // Save #1: the edit lands
+            Settings next = SettingsPage.SnapshotAfterSave(page);
+            var live = first.Clone();
+            live.FlashNearLimit = false;                                 // the tray menu turns it off
+            Settings second = page.Clone();
+            second.CarryUnchangedFrom(live, next);                       // Save #2, the page untouched
+            Check("a second Save in one visit does not write back over a toggle the menu moved since the first",
+                  first.FlashNearLimit && !second.FlashNearLimit, $"after #1 {first.FlashNearLimit}, after #2 {second.FlashNearLimit}");
+        }
+    }
+
+    /// <summary>T437, the page's half: Save renews the snapshot it compares the next Save against. The merge
+    /// above is right only for the snapshot it is handed, and the page handed it the one it opened with.</summary>
+    private static void SaveRenewsSnapshot(string root)
+    {
+        string[] lines = File.ReadAllLines(Path.Combine(root, "src", "Ui", "SettingsPage.xaml.cs"));
+        int save = Array.FindIndex(lines, l => l.Contains("_onSave(_settings, _opened);", StringComparison.Ordinal));
+        bool renewed = save >= 0 && lines.Skip(save + 1).Take(3)
+            .Any(l => l.TrimStart().StartsWith("_opened = ", StringComparison.Ordinal));
+        Check("Settings renews its opened snapshot after each Save", renewed,
+              save < 0 ? "no _onSave(_settings, _opened) call found" : $"nothing assigns _opened after line {save + 1}");
     }
 
     /// <summary>
