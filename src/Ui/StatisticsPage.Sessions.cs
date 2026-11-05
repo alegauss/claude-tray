@@ -84,6 +84,9 @@ internal partial class StatisticsPage
         SortByTokens.Click += (_, _) => { _sessionSort = SessionSort.Tokens; RenderSessions(); };
     }
 
+    /// <summary>The profile whose conversations <c>_sessions</c> holds.</summary>
+    private string? _sessionsFor;
+
     /// <summary>
     /// Load the index for the shown profile, off the UI thread.
     ///
@@ -95,11 +98,18 @@ internal partial class StatisticsPage
     private void LoadSessions()
     {
         int gen = ++_sessionsGeneration;
-        _sessions = null;
-        SessionList.ItemsSource = null;
-        SessionsEmpty.Text = L.T("stats.sessions.loading");
-        SessionsEmpty.Visibility = Visibility.Visible;
-        SessionsCount.Text = "";
+        // Only take the list away when there is none on screen yet (T436, as T118 did for the pace report):
+        // this runs on every poll, and blanking it closed whatever call tree the user had open.
+        // Another profile's list is not kept up while this one's loads: that is T164's defect.
+        if (_sessionsFor != _profile.Key) _sessions = null;
+        _sessionsFor = _profile.Key;
+        if (_sessions is null)
+        {
+            SessionList.ItemsSource = null;
+            SessionsEmpty.Text = L.T("stats.sessions.loading");
+            SessionsEmpty.Visibility = Visibility.Visible;
+            SessionsCount.Text = "";
+        }
 
         ProfileRef profile = _profile;
         System.Threading.Tasks.Task.Run(() =>
@@ -112,6 +122,8 @@ internal partial class StatisticsPage
                 // A profile switched, or the page reloaded, while the scan ran: this answer is about a
                 // question nobody is asking any more.
                 if (gen != _sessionsGeneration) return;
+                // A poll that found the same conversations changes nothing on screen (T436).
+                if (_sessions is { } had && SameRows(had, rows)) return;
                 _sessions = rows;
                 RenderSessions();
             });
@@ -139,7 +151,12 @@ internal partial class StatisticsPage
         if (row == null || row.Row.Gone) return;
 
         if (row.Detail != null) { row.Open = !row.Open; return; }
+        OpenRow(row);
+    }
 
+    /// <summary>Show a row's call tree, walking its transcripts off the UI thread.</summary>
+    private void OpenRow(SessionListRow row)
+    {
         row.Open = true;
         SessionRow model = row.Row;
         ProfileRef profile = _profile;
@@ -277,6 +294,14 @@ internal partial class StatisticsPage
         UpdateLayout();
     }
 
+    /// <summary>Whether two loads list the same conversations at the same state — what a poll that found
+    /// nothing new looks like, and the case where nothing on screen should move (T436).</summary>
+    internal static bool SameRows(IReadOnlyList<SessionRow> a, IReadOnlyList<SessionRow> b) =>
+        a.Count == b.Count
+        && a.Zip(b).All(p => p.First.Project == p.Second.Project && p.First.Session == p.Second.Session
+                             && p.First.LastUnix == p.Second.LastUnix && p.First.Calls == p.Second.Calls
+                             && p.First.Gone == p.Second.Gone);
+
     private void RenderSessions()
     {
         if (_sessions is not { } all)
@@ -292,7 +317,22 @@ internal partial class StatisticsPage
             ? shown.OrderByDescending(r => r.Bits.Input + r.Bits.Output + r.Bits.CacheCreate)
             : shown.OrderByDescending(r => r.LastUnix);
 
+        // A rebuild keeps every tree the user opened (T436): the walk is kept where the conversation has
+        // not moved since, and walked again where it has, since its tasks may have grown.
+        var wasOpen = (SessionList.ItemsSource as IEnumerable<SessionListRow> ?? [])
+            .Where(r => r.Open)
+            .ToDictionary(r => (r.Row.Project, r.Row.Session), r => r);
         List<SessionListRow> rows = shown.Select(r => new SessionListRow(r, nowLocal)).ToList();
+        foreach (SessionListRow row in rows)
+        {
+            if (!wasOpen.TryGetValue((row.Row.Project, row.Row.Session), out SessionListRow? old)) continue;
+            if (old.Detail is { } kept && old.Row.LastUnix == row.Row.LastUnix && old.Row.Calls == row.Row.Calls)
+            {
+                row.Detail = kept;
+                row.Open = true;
+            }
+            else if (!row.Row.Gone) OpenRow(row);
+        }
         SessionList.ItemsSource = rows;
 
         // Empty is a state with a sentence, not a frame drawn around nothing — and the two ways to be

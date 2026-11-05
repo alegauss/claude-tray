@@ -625,6 +625,20 @@ internal static partial class SelfTestCli
               && new ProfileRef("", "").ClaudeRoot == ContextScanner.DefaultClaudeRoot);
     }
 
+    /// <summary>T436: a poll that found the same conversations leaves the Sessions list alone, and one where a
+    /// conversation moved does not — the test that decides whether an open call tree survives a poll.</summary>
+    private static void SessionsUnmoved()
+    {
+        SessionRow Row(string s, double last, int calls) =>
+            new(s, "d--x", "x", last - 60, last, calls, default, Array.Empty<string>(), 0);
+        var before = new[] { Row("a", 1000, 3), Row("b", 900, 2) };
+        Check("a poll that found the same conversations changes nothing on screen",
+              StatisticsPage.SameRows(before, new[] { Row("a", 1000, 3), Row("b", 900, 2) }));
+        Check("while one where a conversation moved, or a new one arrived, does",
+              !StatisticsPage.SameRows(before, new[] { Row("a", 1060, 4), Row("b", 900, 2) })
+              && !StatisticsPage.SameRows(before, new[] { Row("c", 1100, 1), Row("a", 1000, 3), Row("b", 900, 2) }));
+    }
+
     /// <summary>T426: a child the profile path runs is bounded by the wait — a wedged one comes back on time —
     /// and its stderr is drained, so a child that writes more than a pipe holds still finishes.</summary>
     private static void ChildBounds()

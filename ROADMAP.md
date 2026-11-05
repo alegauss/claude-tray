@@ -49,8 +49,6 @@
 
 ## Block AK — Sessions — what one conversation cost, and what it did
 
-- 📋 **T436** (deps: —) **An open call tree on the Sessions pane collapses on every poll** — Render reloads the sessions list on each poll even when no row changed, which T118 stopped for the pace report and the Sessions pane of T329 brought back. → §CXI.18
-
 ## Block AI — Verification — the checks that prove a change
 
 - 📋 **T446** (deps: —) **A repository check that throws ends --selftest with an unhandled exception and no summary** — SelfTestCli.Repo calls its assert with no try, unlike Temp, so a repository check that throws ends the process before the summary and every later section. → §CXI.28

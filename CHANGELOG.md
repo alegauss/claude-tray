@@ -53,7 +53,7 @@
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
 | [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
-| [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did (active — see ROADMAP) |
+| [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did |
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
 | [AM](#block-am--danger-is-said-not-only-coloured) | Danger is said, not only coloured |
 | [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system |
@@ -777,6 +777,7 @@
 - **T402** — A Haiku 5.5 call whose prompt passes 100K tokens is summed under a key of its own and priced at the dearer row the card gives that tier.
 - **T420** — SessionIndex asks whether a cached entry is its own of the walked root's real path too, so behind a junctioned projects tree a deleted conversation is kept and marked gone, and Forget empties it.
 - **T422** — UsageInsights, the Context page and the Settings heartbeat estimate weight tokens through ListPrices.Card, the one rate card, and the self-test holds it to the list-price totals.
+- **T436** — The Sessions pane keeps its list through a poll that found nothing new, and a rebuild keeps every call tree the user opened, re-walking only a conversation that moved.
 
 ## Block AL — The site is a workspace, not a page
 

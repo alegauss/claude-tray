@@ -403,6 +403,9 @@ internal static partial class SelfTestCli
             Section("profiles — what --profiles says a launch does (Block O)");
             Temp(LaunchLineReadOut);
 
+            Section("sessions — a poll that found nothing new leaves the list alone (Block AK)");
+            SessionsUnmoved();
+
             Section("profiles — a child process is bounded by the wait (Block O)");
             ChildBounds();
             Repo("no child's output is read to its end before the wait that bounds it", NoBlockingChildRead,

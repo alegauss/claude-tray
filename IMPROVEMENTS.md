@@ -926,15 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.18 The Sessions pane on every poll (T436)
-
-Each poll runs `UpdateSnapshot` -> `Reload` -> `Render` -> `LoadSessions`
-(StatisticsPage.xaml.cs:217-229, :582). `LoadSessions` nulls `ItemsSource`, shows "Reading your
-transcripts..." and rebuilds every row (StatisticsPage.Sessions.cs:98-102), so a call tree the user
-opened (T329) closes and the list blinks every five minutes by default. The comment says once per
-reload rather than per poll, but a reload happens on every poll. The list should rebuild only when
-the index changed, and keep each row's open state across a rebuild.
-
 ### CXI.19 The second Save in one visit (T437)
 
 T229 made Save carry over any field the page did not change, by comparing the page's values with
