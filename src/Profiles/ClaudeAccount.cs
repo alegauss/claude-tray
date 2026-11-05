@@ -208,7 +208,62 @@ internal static class ClaudeAccount
     /// </summary>
     private static void ReadConfig(ClaudeInfo info)
     {
-        string? best = PickConfigFile(ConfigPaths(info.ConfigDir).ToList());
+        List<string> candidates = ConfigPaths(info.ConfigDir).ToList();
+        // A file that is there and does not parse is Claude Code mid-rewrite (T443): asked again a moment
+        // later it reads whole. Bounded, and paid only when a read tore.
+        for (int attempt = 0; attempt < 3 && candidates.Any(Torn); attempt++)
+            Thread.Sleep(100);
+
+        ReadConfigOnce(info, candidates);
+
+        // Still torn, so the account this reading lacks is one the file did not say rather than one it
+        // stopped naming: keep the identity last read for this dir. Read as a different profile, it
+        // re-keyed every store under the folder digest and reset the burn tracker and the alarms.
+        lock (LastIdentity)
+        {
+            if (info.AccountUuid is { Length: > 0 })
+                LastIdentity[info.ConfigDir] = info;
+            else if (candidates.Any(Torn) && LastIdentity.TryGetValue(info.ConfigDir, out ClaudeInfo? known))
+                CopyIdentity(known, info);
+        }
+    }
+
+    /// <summary>The last reading that named an account, per config dir (T443).</summary>
+    private static readonly Dictionary<string, ClaudeInfo> LastIdentity = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Whether a config file exists and still does not parse: a rewrite caught half done.</summary>
+    internal static bool Torn(string path)
+    {
+        if (!File.Exists(path)) return false;
+        using JsonDocument? doc = TryParse(path);
+        return doc is null;
+    }
+
+    /// <summary>The fields a config file's account block carries — the ones a torn read loses.</summary>
+    private static void CopyIdentity(ClaudeInfo from, ClaudeInfo to)
+    {
+        to.AccountUuid = from.AccountUuid;
+        to.PlanTier = from.PlanTier;
+        to.Plan = from.Plan;
+        to.SeatTier = from.SeatTier;
+        to.BillingType = from.BillingType;
+        to.HolderName = from.HolderName;
+        to.HolderEmail = from.HolderEmail;
+        to.OrgName = from.OrgName;
+        to.OrgType = from.OrgType;
+        to.OrgRole = from.OrgRole;
+        to.ExtraUsage = from.ExtraUsage;
+        to.AccountCreated = from.AccountCreated;
+        to.SubscriptionCreated = from.SubscriptionCreated;
+        to.InstallMethod ??= from.InstallMethod;
+        to.AutoUpdates ??= from.AutoUpdates;
+        to.FirstToken ??= from.FirstToken;
+        if (to.ProjectCount == 0) to.ProjectCount = from.ProjectCount;
+    }
+
+    private static void ReadConfigOnce(ClaudeInfo info, List<string> candidates)
+    {
+        string? best = PickConfigFile(candidates);
         if (best is null) return;
         foreach (string path in new[] { best })
         {

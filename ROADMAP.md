@@ -43,8 +43,6 @@
 
 ## Block O — Profiles
 
-- 📋 **T443** (deps: —) **A profile's readings and alarms reset when Claude Code is caught mid-rewrite of its .claude.json** — A torn read finds no oauthAccount, so the store key falls back from the account to the config-dir digest and RefreshWatched treats it as a profile switch. → §CXI.25
-
 ## Block AK — Sessions — what one conversation cost, and what it did
 
 ## Block AI — Verification — the checks that prove a change

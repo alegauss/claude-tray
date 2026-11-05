@@ -408,6 +408,9 @@ internal static partial class SelfTestCli
             Section("profiles — what --profiles says a launch does (Block O)");
             Temp(LaunchLineReadOut);
 
+            Section("profiles — a config file caught mid-rewrite (Block O)");
+            Temp(TornConfig);
+
             Section("context — what the never-invoked advice stands on (Block I)");
             Temp(SkillUsage);
 

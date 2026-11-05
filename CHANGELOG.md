@@ -31,7 +31,7 @@
 | [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app |
 | [M](#block-m--explain-on-demand) | Explain on demand — the method note behind an ⓘ |
 | [N](#block-n--system-information) | System information — your plan, your install, this machine |
-| [O](#block-o--profiles) | Profiles — several Claude Code logins on one machine (active — see ROADMAP) |
+| [O](#block-o--profiles) | Profiles — several Claude Code logins on one machine |
 | [P](#block-p--project-layout) | Project layout — where a file lives |
 | [Q](#block-q--keyboard-input-in-the-windows) | Keyboard input in the windows |
 | [R](#block-r--profiles-second-pass-what-a-real-second-login-exposed) | Profiles, second pass — what a real second login exposed |
@@ -624,6 +624,7 @@
 - **T421** — Usage insights, the Context scan, its watcher and its usage pass read the monitored profile's own tree, and the scan's history and nudges file under the key taken with it.
 - **T424** — --profiles prints each profile's CLAUDE_CONFIG_DIR action and launch cwd, built by ProfilesCli.LaunchLine with the ternary bound before ??, and the self-test reads both cases back.
 - **T426** — The WSL listing and the claude auth status check run through ChildRun, which drains stdout and stderr alongside a bounded wait and kills the whole tree on timeout (design §CXI.8 recorded in `src/Core/ChildRun.cs`).
+- **T443** — A .claude.json caught mid-rewrite is read again a moment later, and a read still torn keeps the identity last read for that dir, so the profile's store key and alarms stay put.
 
 ## Block N — System information
 

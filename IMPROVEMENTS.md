@@ -926,18 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.25 A torn read of .claude.json (T443)
-
-`ClaudeAccount.TryParse` returns null on any failure (ClaudeAccount.cs:892-900), so `AccountUuid` is
-null (:229-236) and `ProfileStore.KeyFor` falls back from `acct-...` to `dir-...`
-(ProfileStore.cs:93-96). `RefreshWatched` runs on every menu open, sees a new key, and resets
-`MonitoredAccount` and the other profiles' data (TrayContext.cs:724-734), dropping the burn tracker,
-the extra-usage alarm and the last good reading, and filing readings under the other folder until
-the next good read flips it back.
-
-The path is verified; whether Claude Code rewrites `.claude.json` non-atomically was not. An
-unreadable file should keep the last known identity rather than read as a different one.
-
 ### CXI.26 An unreadable settings.json (T444)
 
 `Settings.Load` catches every exception and returns defaults (Settings.cs:285-292). `Save` writes in

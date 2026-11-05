@@ -626,6 +626,30 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T443: a config file caught mid-rewrite keeps the profile its last reading named. Read as no account,
+    /// the store key fell from the account to the folder digest and the tray took it for another profile.
+    /// </summary>
+    private static void TornConfig(string root)
+    {
+        string config = Path.Combine(root, ".claude.json");
+        File.WriteAllText(config, "{\"oauthAccount\":{\"accountUuid\":\"11111111-2222-3333-4444-555555555555\","
+                                  + "\"organizationName\":\"Selftest Org\",\"userRateLimitTier\":\"default_claude_max_5x\"}}");
+        ClaudeInfo whole = ClaudeAccount.Read(root);
+        string key = ProfileStore.KeyFor(whole);
+
+        File.WriteAllText(config, "{\"oauthAccount\":{\"accountUuid\":\"1111");   // a rewrite caught half done
+        ClaudeInfo torn = ClaudeAccount.Read(root);
+        Check("a config file caught mid-rewrite keeps the profile its last reading named",
+              key.StartsWith("acct-", StringComparison.Ordinal) && ProfileStore.KeyFor(torn) == key
+              && torn.OrgName == "Selftest Org",
+              $"{key} then {ProfileStore.KeyFor(torn)}");
+
+        File.WriteAllText(config, "{}");                                            // signed out, whole
+        Check("while one that parses and names no account is read as none",
+              ClaudeAccount.Read(root).AccountUuid is null);
+    }
+
+    /// <summary>
     /// T442: a project whose context has not moved in the drift window still has a drift — zero, against
     /// the value it has held since — and pruning keeps the line that says what that value is. Written to
     /// the suite's own scratch profile, never a real one.
