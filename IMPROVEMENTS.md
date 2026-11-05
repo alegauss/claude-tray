@@ -49,6 +49,18 @@
 
 ## Block AO — What a stranger meets first
 
+## Block C — Settings window (WPF Fluent)
+
+## Block G — Localization
+
+## Block I — Context Load Inspector
+
+## Block L — Scan resilience
+
+## Block Q — Keyboard input in the windows
+
+## Block AJ — Working here — the repo's own docs and flags
+
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -899,3 +911,357 @@ Done means a week of use on the Store build held the startup task, the alias and
 
 The first minutes of somebody who has never seen the app: what the first launch shows, what an icon
 in the overflow says, and what the app says on a machine it cannot read anything from yet.
+
+## CXI What the November 2026 audit found
+
+The defects the 2026-11-05 audit confirmed against the code: six scanners over the source
+partitions, each finding then checked by an adversarial verifier, and the survivors grouped so that
+one subsection is one fix that ships in one commit. The baseline was green when they were found
+(build with warnings as errors, `--selftest --quick`, the site's typecheck and tests, `roadkeep
+lint`), so none of these is caught by an existing check; where a check was meant to hold the
+property, the subsection says why it did not.
+
+Several share one cause and are grouped by it rather than by file: a transcript or store opened with
+a share mode that a concurrent writer refuses, a child process read to the end before its timed
+wait, a counted string with one form. Where a shipped task promised the property and the code no
+longer keeps it, the subsection names that task as a regression rather than as new design.
+
+### CXI.1 A transcript being written reads as empty (T419)
+
+Every transcript reader but one opens with `File.ReadLines`, whose share mode refuses a concurrent
+writer: a probe on .NET 10 throws `IOException` while any write handle is open, even one that itself
+shares `ReadWrite | Delete`. Each site swallows the throw and returns what it had, which is nothing:
+`UsageReport.ReadLinesSafe` (UsageReport.cs:493), `UsageInsights` (:116), `SessionIndex.ScanFile`
+(:299), `ActivityProfile.SweepFile` (:688), `SessionTasks.Cut` and `Summarize` (:149, :254), and
+`ContextScanner.FirstRequest` (:888). Two of them make it stick: `SessionIndex` and
+`ActivityProfile` file the empty result under the size and mtime taken during the walk, before the
+read.
+
+The same share mode makes `UsageHistory.Load` and `Append` block each other (:112, :136, :98): a
+poll's reading that lands during an off-thread `ComputePace` is dropped, though the doc comment says
+that overlap is safe.
+
+`TranscriptTail` already opens with `FileShare.ReadWrite | Delete` (T97); T109 fixed the
+directory-level failure in these same readers, not this one. One shared open is the fix, plus a rule
+that a failed open is never cached as a counted file.
+
+### CXI.2 Deleted conversations behind a junctioned projects tree (T420)
+
+`SafeWalk` resolves the root it is given (SafeWalk.cs:90), so on a profile whose `projects` folder
+is a junction every walked path lives under the target, and `SessionIndex.Under(root, path)`
+(SessionIndex.cs:239), a plain `StartsWith` on the unresolved root, is false for all of them. Each
+cached entry then goes to `others` (:216): it is never marked `Gone`, never kept for `RetainDays`,
+never pruned, and is written back to `session-index.json` on every scan.
+
+That is the retain-deleted promise of T393 failing on exactly the layout T365 set up on this machine
+(`~\.claude-pessoal\projects` is a junction into `~\.claude\projects`). No selftest covers a
+junctioned root: the two-tree check in SelfTestCli.Transcripts.cs:496 uses a plain second directory.
+The fix compares against the resolved root, and the check needs a junction fixture.
+
+### CXI.3 Two readers that ignore the monitored profile (T421)
+
+`UsageInsights.ProjectsDir` is `%USERPROFILE%\.claude\projects` (UsageInsights.cs:26) and `Compute`
+takes no profile (TrayContext.cs:352), while every other transcript reader takes one: `UsageReport`
+(:189), `SessionIndex` (:177), `SessionTasks` (:104), `ActivityProfile` (:406, :423), the throughput
+pane.
+
+`ContextScanner.DefaultClaudeRoot` (ContextScanner.cs:235) is the same fixed root, scanned from
+TrayContext.cs:182 and ContextPage.xaml.cs:215 and recorded under `ProfileStore.Monitored`. T125
+keyed the Context history and nudges by profile because each profile loads different instructions,
+but the scan that feeds them never reads the other profile's tree. With a second profile monitored,
+its drift history and nudges describe the default one. Both should take the monitored profile's
+config dir.
+
+### CXI.4 A second rate card (T422)
+
+`UsageInsights.Price` (UsageInsights.cs:36) hardcodes opus and unknown at 5/25, sonnet 3/15, haiku
+1/5 and a 0.1x cache read; `ListPrices` (ListPrices.cs:48-52), which T346 and T401 keep current, has
+opus-5-5 at 4/20, sonnet-5-5 at 2/10, haiku-5-5 at 0.10/0.50 and a 0.05x cache read. The comment
+above `Price` says it is the one table for the app.
+
+`Price` weights the insights shares and every cost figure on the Context page
+(ContextScanner.cs:124, TrayContext.cs:330, ContextPage.Gauge.cs:138, :241), so on this machine's
+Opus 5.5 transcripts the cache-read weight is double what the Sessions list uses. `Price` should
+read `ListPrices`, and a selftest should hold the two to one source.
+
+### CXI.5 A token refresh and the connection per poll (T423)
+
+`ApiClient` reads `.credentials.json` with `File.ReadAllText` (ApiClient.cs:287). An open that
+collides with Claude Code rewriting the file, or a parse of a half-written one, throws `IOException`
+or `JsonException`, neither of which `IsTransient` names (:261-263), so the poll returns `Transient
+= false` and TrayContext.cs:1253-1264 replaces the last good reading at once. Whether Claude Code
+rewrites in place was not established; the classification is wrong either way.
+
+Each `ApiClient` owns a `new HttpClient` (:130) and is not disposable, and one is built per other
+profile per tick (TrayContext.cs:1104) and on every menu open (:706). The pool closes idle
+connections, so this is a fresh TLS handshake per fetch and lingering sockets rather than an
+unbounded leak. One shared client fixes it.
+
+### CXI.6 The --profiles line that never prints (T424)
+
+ProfilesCli.cs:62 builds the continuation line as `"             " + (p.IsWsl ? ... : null) ??
+ClaudeAccount.ActionFor(...) switch { ... } + $"   cwd {workDir}"`. C# parses that as `("   " + x)
+?? (...)`, and the left side is a non-null string whatever `x` is, so the right side never runs.
+
+For a Windows profile the line is whitespace; for a WSL one the cwd is missing. The three
+`CLAUDE_CONFIG_DIR` cases, including the warning that an inherited dir would select another profile,
+and the missing-cwd note never reach the read-out that T144 made the app's statement of what a
+launch does. Parenthesise the ternary, and give `--profiles` a selftest that reads the line back.
+
+### CXI.7 The --context read-out's exits and its filter (T425)
+
+T261 made `ReadOut.Failed` the rule for this surface: a read-out that could not start exits 1
+(ReadOut.cs:7-10, :26), and `SessionsCli` follows it. `ContextCli` misses three sites. A fixture
+that fails to build under `--sample` prints and returns (ContextCli.cs:42). `WriteContextReport`
+catches the write failure and only prints (:211-214). `no project matching` is printed and returns 0
+(:102, :282).
+
+The filter matches `ContextProject.Name`, the leaf folder (ContextScanner.cs:144-146), with
+`FirstOrDefault` (ContextCli.cs:97, :274). The scanner's own comment notes three projects named
+`2026.3` here, so `--context 2026.3` shows one of them and says nothing about the others. An
+ambiguous filter should refuse and list the candidates by their full path.
+
+### CXI.8 Child processes on the profile path (T426)
+
+`WslProfiles.Running` calls `StandardOutput.ReadToEnd()` before `WaitForExit(10_000)`
+(WslProfiles.cs:97-98), so the bound is reached only after the child has exited; stderr is
+redirected and never read (:91). It runs under `lock (Gate)` (:74) and is reached on the UI thread
+from `RefreshWatched` (TrayContext.cs:693, via ClaudeAccount.Candidates :592), so a `wsl.exe` that
+never returns freezes the menu that was just opened. The result is cached, so it bites on a cache
+miss.
+
+`QueryAuthStatusAsync` cancels its reads after 30 s (ClaudeAccount.cs:436-438) but nothing kills
+`cmd` or `claude`, and disposing the `Process` does not stop it; stderr (:427) is never drained, so
+a chatty CLI can time out a healthy check. Both need a read that runs alongside the wait and a kill
+on timeout.
+
+### CXI.9 Timed waits that cannot time out (T427)
+
+`SelfTestCli.PowerShell()` reads `StandardOutput.ReadToEnd() + StandardError.ReadToEnd()` and only
+then calls `WaitForExit(60_000)` (SelfTestCli.cs:787-788). The stdout read blocks until the child
+closes stdout, so the 60 s bound documented for the `link` script run cannot fire, and a child that
+fills stderr first deadlocks both sides.
+
+`CasesRun.Profiles()` has the same order (CasesRun.cs:330-331), never reads the stderr it redirects
+(:319), ignores the wait's result and kills nothing, so a hung `--profiles` blocks the whole case
+run instead of producing the absence the harness is built to report. Both want the two streams read
+asynchronously and a kill when the wait expires.
+
+### CXI.10 Checks that claim more than they ran (T428)
+
+The resume-hour pair is gated on `advised.HasAdvice` (SelfTestCli.Usage.cs:78), which is what
+`ActivityShape.Build` produced, and the skip is on the allowed list (SelfTestCli.cs:67-68). A build
+that never advises passes with an allowed skip, which is the T161 shape AGENTS.md forbids; T218
+cannot turn it red because it is allowed. Gate on the fixture's precondition instead.
+
+`CasesRun` answers a desk that cannot observe with `Assert.True(true, ...)` and `return`
+(CasesRun.cs:82). xUnit prints the message only on failure, so a blind runner is green with zero
+cases run, though AGENTS.md says a hole is never a pass (T201).
+
+`ObservingTray` writes nothing, which the counted assertion holds, but it reads the real `~/.claude`
+tree and the shared caches (SelfTestCli.Docs.cs:1410-1415). AGENTS.md says a real profile's stores
+are never read; the sentence should say what the suite does.
+
+### CXI.11 Three anchors the design-system move dropped (T429)
+
+The "In depth" nav item points at `#features` (site-content.ts:60), which is the Why section's id
+(Why.tsx:6); the depth-page index is `SiteFeatureIndex`, whose id is `features-index`
+(Landing.tsx:65-66).
+
+The privacy feature sets `anchor: "privacy"` (features.ts:355), and its depth page links back to
+`/claude-tray/#privacy` (Feature.tsx:16), but nothing under `site/src` carries `id="privacy"`, so
+the link lands at the top. The same section is the only one using `className="wrap reveal"`
+(Privacy.tsx:7); `.wrap` is defined neither in `index.css` nor in the design system's CSS, so the
+banner runs full width while every neighbour uses `vg-site-wrap`. All three date from the T389 move.
+A site test that every in-page `href="#x"` resolves to an id would hold them.
+
+### CXI.12 Two privacy promises the site does not keep (T430)
+
+The consent banner says nothing is loaded until the visitor chooses (Consent.tsx:85). The footer
+renders `Ad` (Chrome.tsx:71, Ad.tsx:16), whose `useAds()` appends `https://ads.japode.com/v1/ads.js`
+on mount (ads.ts:40-43, :59-60), before any choice. The lint test guards only `googletagmanager.com`
+(lint.test.mjs:46-57). The sentence is what is false; whether this loader needs consent is a
+separate decision, since ads.ts:3-5 says it uses no identifiers.
+
+The privacy depth page says the one-token API call every five minutes is all that leaves the machine
+(features.ts:365, repeated at site-content.ts:804). §I.2 names two endpoints, the usage API and
+GitHub Releases, and the site's own Why card says the app checks Releases (site-content.ts:200). The
+cadence is also stale: an idle tray and the status-line feed both call less often
+(build/release-notes.md:15-16).
+
+### CXI.13 The About page's licence (T431)
+
+`settings.about.disclaimer` reads "Released under the MIT License." in every `lang/*.json` (en:412,
+es/fr/pt-BR:408, pt-PT:409). T11 moved the project to Apache-2.0: `LICENSE`, README.md:1020 and the
+winget locale manifests all say so. Fix the five strings, and add a one-claim-in-two-places check
+that the licence named in `lang/en.json` matches the one `LICENSE` declares.
+
+### CXI.14 Counted strings with one form (T432)
+
+Strings that take a count through `L.T` with a single form: `stats.sessions.count`
+(StatisticsPage.Sessions.cs:304), `context.fix.count` (ContextPage.Gauge.cs:133,
+ContextPage.xaml.cs:439), `insights.summary` (TrayContext.cs:652), `settings.sys.scopes`
+(SettingsPage.System.cs:158), `context.footer`, `context.project.detail`, `context.all.rowDetail`
+and `context.observed.parts` (ContextPage.xaml.cs:341, :345, ProjectRow.cs:72, :77), and
+`stats.tasks.promptChars` (SessionListRow.cs:57). Each renders "1 conversations", "1 things", "1
+requests" and so on.
+
+`stats.live.session1`/`sessionN` and `scaleTipClipped1`/`N` (StatisticsPage.Throughput.cs:213,
+StatisticsPage.Format.cs:54) choose by `== 1` in code; their output is right in the five shipped
+languages but they sit outside the pair rule.
+
+The plural checks (SelfTestCli.Lang.cs:94-146) catch `(s)` shapes and look only at keys already
+ending in `.one`/`.many`, so none of these is red. `L.N` takes one count, so `insights.summary` and
+the other two-count strings need splitting into parts.
+
+### CXI.15 Release notes and installer text (T433)
+
+T418 made `build/release-notes.md` the single source of a release's text: `update-release.cmd`
+passes it with `--notes-file` (:81) and `update-winget.ps1` requires it (:109-119). When `build.yml`
+runs on a tag that has no release yet, it creates one with `gh release create ... --generate-notes`
+(build.yml:72), so the release body and the winget manifest's `ReleaseNotes` say different things
+for one version. The normal flow creates the release first, so only the fallback is affected.
+
+`installer.iss` offers English in `[Languages]` (:42-43) but writes the task descriptions and groups
+(:46-47), the uninstall icon's name (:54) and the finish-page run text (:65) as Portuguese literals,
+with no `[CustomMessages]` or `{cm:}` lookup. An English install shows "Iniciar ... com o Windows"
+and a Start-menu entry named "Desinstalar".
+
+### CXI.16 Two dev tools that report the wrong outcome (T434)
+
+`scripts/Encode-Clip.ps1` sets `$ErrorActionPreference = "Stop"` (:31), which Windows PowerShell
+does not apply to a native exit code, and never reads `$LASTEXITCODE` after its three `ffmpeg` calls
+(:50, :57, :59), so a failed encode still prints `wrote <file>` beside a stale or empty output.
+
+`--settings-tray` and `--main` end with a bare WinForms `Application.Run()` (Program.cs:568, :600)
+beside a WPF application set to `OnExplicitShutdown` (:560, :579), and neither `PageWindow` nor
+`MainWindow` exits anything on `Closed`. Closing the window leaves a windowless process running. The
+case harness kills what it launches, so only a person or a script that waits on the process meets
+it.
+
+### CXI.17 What a Context rescan throws away (T435)
+
+`StartScan` calls `ShowStatus("scanning")` unconditionally (ContextPage.xaml.cs:207), which
+collapses `MasterPane` and `DetailPane` (:316-322) on every Rescan, every revisit (:123) and every
+watcher refresh (:155-156); `Apply` then replaces `ProjectList.ItemsSource` (:271), so the scroll
+resets. Statistics stopped exactly this blink in T118 (StatisticsPage.xaml.cs:371-378).
+
+The selection to keep is read as `SelectedItem?.Slug` (:261), which is `""` for the All projects row
+(ProjectRow.cs:53); `Matches("")` is false, so the overview is replaced by the heaviest project
+(:278).
+
+A debounced rescan that fires while a scan runs returns at `if (_scanning) return;` (:204) after
+`_liveRefresh` was already set at :155, so the edit is never picked up and the running scan is
+labelled "updated automatically" whether or not it saw the change. It should queue one more scan.
+
+### CXI.18 The Sessions pane on every poll (T436)
+
+Each poll runs `UpdateSnapshot` -> `Reload` -> `Render` -> `LoadSessions`
+(StatisticsPage.xaml.cs:217-229, :582). `LoadSessions` nulls `ItemsSource`, shows "Reading your
+transcripts..." and rebuilds every row (StatisticsPage.Sessions.cs:98-102), so a call tree the user
+opened (T329) closes and the list blinks every five minutes by default. The comment says once per
+reload rather than per poll, but a reload happens on every poll. The list should rebuild only when
+the index changed, and keep each row's open state across a rebuild.
+
+### CXI.19 The second Save in one visit (T437)
+
+T229 made Save carry over any field the page did not change, by comparing the page's values with
+`_opened`, the snapshot taken when the page opened (SettingsPage.xaml.cs:26, :56, :288;
+Settings.cs:349-354). `_opened` is readonly and set once, and the page is rebuilt only on Cancel
+(MainWindow.xaml.cs:171-187). So after a first Save commits a page edit, a menu flip of that field,
+and a second Save, the page value still differs from `_opened` and is written back over the menu's.
+Renew the snapshot after each Save; a selftest of two Saves around a menu change would hold it.
+
+### CXI.20 Controls the keyboard cannot reach (T438)
+
+The six Settings sidebar items are `Border`s with only `MouseLeftButtonUp`
+(SettingsPage.xaml:181-252), so a keyboard user cannot leave the General page;
+keyboard.cases.json:33 already notes the item offers no Invoke. The four About link cards are the
+same (:1189, :1203, :1217, :1231), with no automation name. The Sessions rows
+(StatisticsPage.xaml:98, StatisticsPage.Sessions.cs:72), the live chart's project link (:668) and
+the Context overview's heaviest-project rows (ContextPage.xaml.cs:516-530) open on a mouse-up only.
+There is no `KeyDown` handler or `InputBinding` anywhere in `src/Ui`.
+
+`ToastWindow`'s close button has `Content="✕"` and no `AutomationProperties.Name`
+(ToastWindow.xaml:91), the shape T175 fixed elsewhere. T142 did not reach these. They want to be
+buttons (or carry focus, a peer and Enter/Space), and the `keyboard` case should Tab to each.
+
+### CXI.21 The error banner's colours (T439)
+
+`ErrorBanner` sets `Background="#332B1416"`, `BorderBrush="#66E33B30"` and the glyph's
+`Foreground="#E86A5E"` (StatisticsPage.xaml:339-347), with no comment justifying them. They were
+tuned on a dark card; on a light one the wash is murky and the salmon glyph has poor contrast. UI
+convention 3 and §I.5 say a theme-able surface takes `{DynamicResource}` Fluent brushes; the
+critical-severity system brushes cover this case.
+
+### CXI.22 Dates outside the Dates path (T440)
+
+T263 routed dates through `Dates` because a fixed pattern pins the field order. `SessionListRow`
+(:93) and the Sessions peak line (StatisticsPage.Sessions.cs:343) still format `"MMM d, HH:mm"` with
+`L.DateCulture`, so French reads "août 3, 14:10"; `Dates.MonthDayTime` exists (Dates.cs:40). The
+DateOrder check (SelfTestCli.Lang.cs:699-752) tests `Dates` itself, not its callers.
+
+`ToString("yyyy-MM-dd")` with no culture runs on the OS calendar: a probe on .NET 10 gives
+2569-11-05 under th-TH and 1448-05-25 under ar-SA, for `DateOnly` too. The tray never sets an
+invariant culture, so this reaches SourceRows.cs:80 and :130, SessionListRow.cs:128-129,
+PeriodListRow.cs:33-34 and StatisticsPage.Sessions.cs:79. Pass the invariant culture, or route them
+through `Dates`.
+
+### CXI.23 Skill usage that says never (T441)
+
+Three faults in `ContextUsage`, each feeding the `never-invoked` advice (ContextRules.cs:421).
+
+`CountFile` opens with `File.ReadLines` and returns empty counts on failure (ContextUsage.cs:267,
+:277), yet `FilesRead` still increments (:213), `Complete` is set because every file was read
+(:220), and the zero is cached under the walk-time fingerprint (:203-204). T261 promised that a
+partial read is reported as one. The cause is the share mode in §CXI.1; the fix here is that a
+failed open is never complete.
+
+`Named` keeps the full `input.skill` value, while `Candidates` yields only the frontmatter name and
+the label tail (:99-105, :318), so a `plugin:skill` call, which this machine's transcripts do carry,
+never matches.
+
+`WhenUtc` is the transcript's mtime (:190, :279), so every call in a recently touched file counts as
+within 30 days and as last used today. That error leans toward more use, never toward a false never.
+
+### CXI.24 A stable project's drift (T442)
+
+`ContextHistory.Record` skips a value equal to the last one (ContextHistory.cs:73-75), and `Trend`
+keeps only samples from the last 60 days (:96-101). A project unchanged for longer has no sample in
+the window, so `Trend` returns null, which reads as never recorded; when it finally changes it has
+one point and no baseline, so the drift row stays hidden (ContextPage.Gauge.cs:176-178). `Trend`
+should carry the newest sample before the window in as the baseline.
+
+### CXI.25 A torn read of .claude.json (T443)
+
+`ClaudeAccount.TryParse` returns null on any failure (ClaudeAccount.cs:892-900), so `AccountUuid` is
+null (:229-236) and `ProfileStore.KeyFor` falls back from `acct-...` to `dir-...`
+(ProfileStore.cs:93-96). `RefreshWatched` runs on every menu open, sees a new key, and resets
+`MonitoredAccount` and the other profiles' data (TrayContext.cs:724-734), dropping the burn tracker,
+the extra-usage alarm and the last good reading, and filing readings under the other folder until
+the next good read flips it back.
+
+The path is verified; whether Claude Code rewrites `.claude.json` non-atomically was not. An
+unreadable file should keep the last known identity rather than read as a different one.
+
+### CXI.26 An unreadable settings.json (T444)
+
+`Settings.Load` catches every exception and returns defaults (Settings.cs:285-292). `Save` writes in
+place through `File.WriteAllText` (:369, StoreFile.cs:47), unlike `UsageHistory`, which writes a
+temp file and moves it (UsageHistory.cs:179-181). A crash mid-save leaves a truncated file; the next
+launch loads defaults and the first quiet save (`NoteDayOfUse`, TrayContext.cs:138-139) writes them
+over the registered profiles, the monitored dir and the level lists. T20 clamps bad values, not a
+bad file. Save atomically, and on a parse failure keep the file aside instead of overwriting it.
+
+### CXI.27 A status line set up on a removed exe (T445)
+
+`StatusLineFeed.Classify` (StatusLineFeed.cs:217) recognises any `ClaudeTray ... --statusline`
+command as the app's own, and the Claude Code settings page (SettingsPage.ClaudeCode.cs:174-185)
+then reports it set up and hides the command to paste. On this machine both profiles'
+`settings.json` run `%LOCALAPPDATA%/ClaudeTray/ClaudeTray.exe --statusline`, and that exe was
+removed when the Store build replaced the Inno install (T412): the profile histories hold 1894 and
+95 API readings and no status-line reading, and the feed's directory holds one reading from
+2026-10-27.
+
+This is also why the day of readings T398 waits for cannot start. Classify should check that the
+command's exe resolves, and the page should offer the alias form when it does not.

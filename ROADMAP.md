@@ -28,29 +28,79 @@
 
 ## Block AN — The site on the shared design system
 
+- 📋 **T429** (deps: —) **The site's In depth link lands on the Why section, and the Privacy section has no anchor or width** — The nav points In depth at #features, Privacy.tsx has no id for the link back to it, and its .wrap class is defined nowhere since the design-system move. → §CXI.11
+- 📋 **T430** (deps: —) **The site says nothing loads before consent and one API call is all that leaves the app; neither holds** — The ads.japode.com script loads on mount beside the banner's promise, and the privacy copy omits the GitHub Releases check and states a fixed 5-minute cadence. → §CXI.12
+
 ## Block A — Foundation (tray, icon, API, projection)
 
 ## Block D — Auth & API resilience
 
 - ⏳ **T398** (deps: —) (requires: statusline-day) **Nobody knows how many polls the status-line feed actually saves, or whether its numbers match the API** — Nobody has measured how often the status line runs while working, or whether its numbers match the headers on the same minute. → §CVI.9
+- 📋 **T423** (deps: —) **The icon can show an error while Claude Code refreshes its token, and each poll opens a new connection** — A credentials read mid-refresh is classed non-transient, which T33's tolerance skips, and every tick and menu open builds an ApiClient with its own HttpClient. → §CXI.5
+- 📋 **T445** (deps: —) **Settings says the status line is set up while its command runs an exe that was uninstalled** — Classify counts any ClaudeTray --statusline command as ours without checking its exe exists, so after the Store move both profiles feed nothing and the paste stays hidden. → §CXI.27
 
 ## Block E — Reset notifications & toasts
 
 ## Block F — Statistics window (pace report)
 
+- 📋 **T439** (deps: —) **The Statistics error banner is painted for a dark theme and reads poorly in a light one** — ErrorBanner sets its background, border and glyph in hex rather than Fluent brushes, which §I.5 forbids on a theme-able surface. → §CXI.21
+
 ## Block H — Tray display options
 
 ## Block O — Profiles
 
+- 📋 **T421** (deps: —) **Usage insights and the Context scan describe the default profile while the icon follows another** — Both read a root fixed to ~/.claude, and the Context scan files its history under the monitored profile's key, so that profile is given another's numbers. → §CXI.3
+- 📋 **T424** (deps: —) **--profiles prints a blank line where a profile's CLAUDE_CONFIG_DIR action and launch cwd belong** — The + binds tighter than ??, so the indent joined to a null ternary is never null and the ActionFor switch that carries the line is never reached. → §CXI.6
+- 📋 **T426** (deps: —) **The tray freezes while a wedged wsl.exe is listed, and a stuck sign-in check is never stopped** — WslProfiles reads wsl.exe to the end on the UI thread before its timed wait, and the auth check's timeout neither kills its child nor drains stderr. → §CXI.8
+- 📋 **T443** (deps: —) **A profile's readings and alarms reset when Claude Code is caught mid-rewrite of its .claude.json** — A torn read finds no oauthAccount, so the store key falls back from the account to the config-dir digest and RefreshWatched treats it as a profile switch. → §CXI.25
+
 ## Block AK — Sessions — what one conversation cost, and what it did
 
+- 📋 **T420** (deps: —) **A conversation whose transcript was deleted is never marked deleted when projects is a junction** — Under() compares the cached path with the resolved root by StartsWith, so behind a junctioned projects tree no row is ever Gone and the cache only grows. → §CXI.2
+- 📋 **T422** (deps: —) **The Context page and the Sessions list price the same tokens at different rates** — UsageInsights.Price keeps a rate card of its own beside ListPrices, which T346 and T401 maintain, so only one of the two is ever updated. → §CXI.4
+- 📋 **T436** (deps: —) **An open call tree on the Sessions pane collapses on every poll** — Render reloads the sessions list on each poll even when no row changed, which T118 stopped for the pace report and the Sessions pane of T329 brought back. → §CXI.18
+
 ## Block AI — Verification — the checks that prove a change
+
+- 📋 **T427** (deps: —) **A hung child process stalls --selftest and the case run instead of failing at its timeout** — Both call ReadToEnd before WaitForExit, so the timed wait is reached only after the child has exited, and stderr is read late or never. → §CXI.9
+- 📋 **T428** (deps: —) **The checks claim more than they ran: a skip that hides its claim, and a blind case run passed** — The resume-hour pair skips on the output it tests, CasesRun answers a blind desk with Assert.True(true), and AGENTS.md says selftest never reads stores it reads. → §CXI.10
 
 ## Block B — Packaging, self-update, CI
 
 - ⏳ **T412** (deps: —) (requires: store-account) **The Store build has not yet replaced the winget install for a week of daily use** — The app is listed on the Store as 9P27BHWNT56D; a week on that build in place of winget, holding the startup task, the alias and a profile switch, is left. → §CVIII.2
+- 📋 **T433** (deps: —) **A release CI creates gets generated notes, and the English installer shows Portuguese task text** — The fallback runs gh release create --generate-notes instead of T418's release-notes.md, and installer.iss writes its task, icon and run text as Portuguese literals. → §CXI.15
 
 ## Block AO — What a stranger meets first
+
+## Block C — Settings window (WPF Fluent)
+
+- 📋 **T431** (deps: —) **The About page says the app is MIT-licensed while the repository is Apache-2.0** — settings.about.disclaimer names MIT in all five languages while LICENSE and T11 say Apache-2.0, and no check holds the string against the file. → §CXI.13
+- 📋 **T437** (deps: —) **A second Save in one Settings visit writes back over a toggle flipped in the tray menu** — The page's opened snapshot is not renewed after a Save, so the next merge compares against stale values and the defect T229 fixed returns on the second Save. → §CXI.19
+- 📋 **T444** (deps: —) **A truncated settings.json silently resets every setting and profile to defaults** — Load swallows a parse failure into new Settings() and the next Save overwrites the file, which is written in place rather than through a temp file and a rename. → §CXI.26
+
+## Block G — Localization
+
+- 📋 **T432** (deps: —) **About a dozen counted strings have no singular, so a count of one reads as a plural** — The .one/.many rule (T376) is swept only for (s) suffixes and existing pairs (T378), so a single-form {0} count passes, and two hand-rolled 1/N keys bypass L.N. → §CXI.14
+- 📋 **T440** (deps: —) **Session dates ignore the language's field order, and a Thai system calendar dates files 543 years ahead** — SessionListRow formats MMM d, HH:mm itself instead of through Dates (T263), and yyyy-MM-dd elsewhere runs on the OS culture's calendar, not the invariant one. → §CXI.22
+
+## Block I — Context Load Inspector
+
+- 📋 **T425** (deps: —) **--context reports success after it failed, and a folder name two worktrees share picks one silently** — Three exits print an error and return without ReadOut.Failed, the helper T261 made for this, and the filter takes the first project whose leaf name matches. → §CXI.7
+- 📋 **T435** (deps: —) **Every Context rescan blanks the page, forgets All projects and the scroll, and drops an edit made mid-scan** — The rescan collapses the panes and rebuilds them with no selection or offset restored, and a debounced rescan arriving while one runs is discarded, not queued. → §CXI.17
+- 📋 **T441** (deps: —) **The Context page calls skills never invoked that were used, and dates their last use by file time** — A transcript that fails to open counts as a complete zero, a plugin:skill call never matches the bare skill name, and WhenUtc is the file's mtime. → §CXI.23
+- 📋 **T442** (deps: —) **A project whose context has not changed in 60 days loses its drift readout** — ContextHistory writes a line only on change but reads a 60-day window, so a stable project's newest line falls outside it and Trend returns null. → §CXI.24
+
+## Block L — Scan resilience
+
+- 📋 **T419** (deps: —) **The conversation running now drops out of tokens, insights, sessions, activity and startup cost** — File.ReadLines shares only Read, so a transcript mid-append fails to open and reads as empty, and two readers cache that empty answer. → §CXI.1
+
+## Block Q — Keyboard input in the windows
+
+- 📋 **T438** (deps: —) **The Settings sidebar, About cards and session rows are mouse-only, and the toast close reads as a glyph** — They are clickable Borders, not focusable named controls, so Tab skips them and a screen reader announces the toast's close button as a bare glyph. → §CXI.20
+
+## Block AJ — Working here — the repo's own docs and flags
+
+- 📋 **T434** (deps: —) **A clip that failed to encode is reported written, and closing --main or --settings-tray leaves the process alive** — Encode-Clip prints wrote without reading ffmpeg's exit code, and both previews run Application.Run() with nothing that exits it when their window closes. → §CXI.16
 
 ## Non-goals (do NOT add as tasks)
 
