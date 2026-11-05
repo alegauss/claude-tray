@@ -36,7 +36,6 @@
 ## Block D — Auth & API resilience
 
 - ⏳ **T398** (deps: —) (requires: statusline-day) **Nobody knows how many polls the status-line feed actually saves, or whether its numbers match the API** — Nobody has measured how often the status line runs while working, or whether its numbers match the headers on the same minute. → §CVI.9
-- 📋 **T423** (deps: —) **The icon can show an error while Claude Code refreshes its token, and each poll opens a new connection** — A credentials read mid-refresh is classed non-transient, which T33's tolerance skips, and every tick and menu open builds an ApiClient with its own HttpClient. → §CXI.5
 - 📋 **T445** (deps: —) **Settings says the status line is set up while its command runs an exe that was uninstalled** — Classify counts any ClaudeTray --statusline command as ours without checking its exe exists, so after the Store move both profiles feed nothing and the paste stays hidden. → §CXI.27
 
 ## Block E — Reset notifications & toasts

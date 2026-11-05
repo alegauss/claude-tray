@@ -127,7 +127,11 @@ internal sealed class ApiClient
         _credsPath = Path.Combine(ConfigDir, ".credentials.json");
     }
 
-    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(30) };
+    /// <summary>One connection pool for every client (T423). A client is built per profile per tick and on
+    /// every menu open, and each used to own an <see cref="HttpClient"/> — a fresh TLS handshake per fetch
+    /// and a socket left to the pool's idle timeout. Nothing per-request lives on it: the token is set on
+    /// each message, so sharing it across profiles shares no identity.</summary>
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(30) };
 
     /// <summary>The model every quota poll asks — named once, so the Settings page's cost estimate prices
     /// the model actually called, through the one rate card (T422).</summary>
@@ -137,7 +141,7 @@ internal sealed class ApiClient
     {
         try
         {
-            Creds creds = ReadCredentials();
+            Creds creds = await ReadCredentialsAsync().ConfigureAwait(false);
 
             var body = new
             {
@@ -152,7 +156,7 @@ internal sealed class ApiClient
             req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", creds.AccessToken);
             req.Headers.TryAddWithoutValidation("anthropic-version", "2023-06-01");
 
-            using HttpResponseMessage resp = await _http.SendAsync(req).ConfigureAwait(false);
+            using HttpResponseMessage resp = await Http.SendAsync(req).ConfigureAwait(false);
             string bodyText = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             UsageData d = ReadHeaders(name => S(resp, name));
@@ -262,8 +266,12 @@ internal sealed class ApiClient
 
     // Timeouts (HttpClient throws TaskCanceledException), DNS/connection failures and similar
     // network blips are worth swallowing for a poll or two before alarming the user.
+    // A credentials file that stayed unreadable through the retries is transient too (T423): Claude Code
+    // rewrites it on every token refresh, so a locked or half-written file is the refresh in progress, and
+    // T33's tolerance still alarms if it never clears.
     private static bool IsTransient(Exception e) =>
         e is TaskCanceledException or OperationCanceledException or HttpRequestException
+            or CredentialsUnreadableException
         || e.InnerException is HttpRequestException or System.Net.Sockets.SocketException;
 
     // Replace raw exception text (e.g. "The request was canceled due to the configured
@@ -283,12 +291,40 @@ internal sealed class ApiClient
     /// is on disk (which decides silent-refresh vs. full browser login on a 401).</summary>
     private readonly record struct Creds(string AccessToken, bool HasRefreshToken);
 
+    /// <summary>How often, and how far apart, a credentials read is tried before its failure is reported —
+    /// long enough to step over a rewrite, short enough not to delay a poll anyone would notice.</summary>
+    private const int CredentialTries = 3;
+    private static readonly TimeSpan CredentialRetry = TimeSpan.FromMilliseconds(150);
+
+    /// <summary>
+    /// The token, read the way a file another process rewrites has to be (T423): shared for that writer,
+    /// and retried when the read lands mid-rewrite — a sharing violation, a half-written document, or the
+    /// instant between a replace's delete and its rename. Only a file still missing after the retries means
+    /// "sign in"; one still unreadable is <see cref="CredentialsUnreadableException"/>, a transient poll.
+    /// </summary>
+    private async Task<Creds> ReadCredentialsAsync()
+    {
+        for (int attempt = 1; ; attempt++)
+        {
+            try { return ReadCredentials(); }
+            catch (Exception e) when (attempt < CredentialTries
+                                      && e is IOException or JsonException or NotAuthenticatedException)
+            {
+                await Task.Delay(CredentialRetry).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is IOException or JsonException)
+            {
+                throw new CredentialsUnreadableException(e.Message, e);
+            }
+        }
+    }
+
     private Creds ReadCredentials()
     {
         if (!File.Exists(_credsPath))
             throw new NotAuthenticatedException(SignInHint);
 
-        using var doc = JsonDocument.Parse(File.ReadAllText(_credsPath));
+        using var doc = JsonDocument.Parse(string.Join("\n", SharedRead.Lines(_credsPath)));
         if (doc.RootElement.TryGetProperty("claudeAiOauth", out var oauth)
             && oauth.TryGetProperty("accessToken", out var tok)
             && tok.GetString() is { Length: > 0 } token)
@@ -303,6 +339,9 @@ internal sealed class ApiClient
 
     /// <summary>No usable OAuth token on disk yet — surfaced as a "needs sign-in" state, not an error.</summary>
     private sealed class NotAuthenticatedException(string message) : Exception(message);
+
+    /// <summary>The credentials file is there and could not be read whole, retries included (T423).</summary>
+    private sealed class CredentialsUnreadableException(string message, Exception inner) : Exception(message, inner);
 
     /// <summary>Pull the human-readable message out of an Anthropic error body
     /// (<c>{"type":"error","error":{"type":"...","message":"..."}}</c>), or null if the body isn't

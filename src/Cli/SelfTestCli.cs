@@ -243,6 +243,9 @@ internal static partial class SelfTestCli
         Section("statusline — a reading Claude Code already has, standing in for a poll (Block D)");
         StatusLineSubstitute();
 
+        Section("credentials — a token being refreshed is a blip, not an error (Block D)");
+        Temp(CredentialsMidRefresh);
+
         Section("usage — where the quota stands, for a script (Block F)");
         UsageReadOut();
 

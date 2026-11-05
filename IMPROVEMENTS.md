@@ -926,19 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.5 A token refresh and the connection per poll (T423)
-
-`ApiClient` reads `.credentials.json` with `File.ReadAllText` (ApiClient.cs:287). An open that
-collides with Claude Code rewriting the file, or a parse of a half-written one, throws `IOException`
-or `JsonException`, neither of which `IsTransient` names (:261-263), so the poll returns `Transient
-= false` and TrayContext.cs:1253-1264 replaces the last good reading at once. Whether Claude Code
-rewrites in place was not established; the classification is wrong either way.
-
-Each `ApiClient` owns a `new HttpClient` (:130) and is not disposable, and one is built per other
-profile per tick (TrayContext.cs:1104) and on every menu open (:706). The pool closes idle
-connections, so this is a fresh TLS handshake per fetch and lingering sockets rather than an
-unbounded leak. One shared client fixes it.
-
 ### CXI.6 The --profiles line that never prints (T424)
 
 ProfilesCli.cs:62 builds the continuation line as `"             " + (p.IsWsl ? ... : null) ??

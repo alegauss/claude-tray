@@ -2476,6 +2476,37 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T423: Claude Code rewrites <c>.credentials.json</c> on every token refresh, so a poll can find it
+    /// locked or half-written. Both must come back as a transient poll — T33's tolerance keeps the last
+    /// good reading — and neither as "sign in". No request is sent: the read fails before one is built.
+    /// </summary>
+    private static void CredentialsMidRefresh(string root)
+    {
+        string creds = Path.Combine(root, ".credentials.json");
+        var client = new ApiClient(root);
+
+        File.WriteAllText(creds, "{\"claudeAiOauth\":{\"accessToken\":\"sk-");
+        UsageData half = client.FetchAsync().GetAwaiter().GetResult();
+        Check("a half-written credentials file is a transient poll, not a sign-in",
+              half.Transient && !half.Unauthorized, $"transient={half.Transient} unauthorized={half.Unauthorized}");
+
+        File.WriteAllText(creds, "{\"claudeAiOauth\":{\"accessToken\":\"x\"}}");
+        UsageData locked;
+        using (new FileStream(creds, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            locked = client.FetchAsync().GetAwaiter().GetResult();
+        Check("and so is one locked by the writer", locked.Transient && !locked.Unauthorized,
+              $"transient={locked.Transient} unauthorized={locked.Unauthorized}: {locked.Error}");
+
+        File.Delete(creds);
+        UsageData none = client.FetchAsync().GetAwaiter().GetResult();
+        Check("while one that is not there at all still asks for a sign-in", none.Unauthorized && !none.Transient);
+
+        Check("every client shares one HTTP connection pool",
+              !typeof(ApiClient).GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
+                  .Any(f => f.FieldType == typeof(System.Net.Http.HttpClient)));
+    }
+
+    /// <summary>
     /// T390. When a status-line reading may stand in for a poll, asked of the rule with no tray: the payload
     /// as Claude Code documents it, each thing the payload cannot say refusing the substitute on its own, and
     /// the file the two processes hand the reading through.
