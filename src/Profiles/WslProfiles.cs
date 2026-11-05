@@ -86,17 +86,15 @@ internal static class WslProfiles
         if (!File.Exists(wsl)) return Array.Empty<string>();
         try
         {
-            using var p = Process.Start(new ProcessStartInfo(wsl, "-l --running --quiet")
+            // Bounded by the wait, not by the child's exit (T426): reading to the end first is what let a
+            // wedged wsl.exe freeze the menu that asked for this.
+            ChildRun.Result r = ChildRun.Run(new ProcessStartInfo(wsl, "-l --running --quiet")
             {
-                UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true,
                 CreateNoWindow = true,
                 // wsl.exe writes its listing as UTF-16, and read as anything else every second byte is a NUL.
                 StandardOutputEncoding = Encoding.Unicode,
-            });
-            if (p is null) return Array.Empty<string>();
-            string output = p.StandardOutput.ReadToEnd();
-            if (!p.WaitForExit(10_000)) { try { p.Kill(); } catch { /* finished meanwhile */ } return Array.Empty<string>(); }
-            return p.ExitCode == 0 ? ParseList(output) : Array.Empty<string>();
+            }, TimeSpan.FromSeconds(10));
+            return r.ExitCode == 0 ? ParseList(r.Output) : Array.Empty<string>();
         }
         catch { return Array.Empty<string>(); }
     }

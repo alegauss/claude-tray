@@ -926,20 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.8 Child processes on the profile path (T426)
-
-`WslProfiles.Running` calls `StandardOutput.ReadToEnd()` before `WaitForExit(10_000)`
-(WslProfiles.cs:97-98), so the bound is reached only after the child has exited; stderr is
-redirected and never read (:91). It runs under `lock (Gate)` (:74) and is reached on the UI thread
-from `RefreshWatched` (TrayContext.cs:693, via ClaudeAccount.Candidates :592), so a `wsl.exe` that
-never returns freezes the menu that was just opened. The result is cached, so it bites on a cache
-miss.
-
-`QueryAuthStatusAsync` cancels its reads after 30 s (ClaudeAccount.cs:436-438) but nothing kills
-`cmd` or `claude`, and disposing the `Process` does not stop it; stderr (:427) is never drained, so
-a chatty CLI can time out a healthy check. Both need a read that runs alongside the wait and a kill
-on timeout.
-
 ### CXI.9 Timed waits that cannot time out (T427)
 
 `SelfTestCli.PowerShell()` reads `StandardOutput.ReadToEnd() + StandardError.ReadToEnd()` and only

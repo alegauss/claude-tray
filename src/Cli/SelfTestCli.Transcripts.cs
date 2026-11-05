@@ -625,6 +625,27 @@ internal static partial class SelfTestCli
               && new ProfileRef("", "").ClaudeRoot == ContextScanner.DefaultClaudeRoot);
     }
 
+    /// <summary>T426: a child the profile path runs is bounded by the wait — a wedged one comes back on time —
+    /// and its stderr is drained, so a child that writes more than a pipe holds still finishes.</summary>
+    private static void ChildBounds()
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        ChildRun.Result slow = ChildRun.Run(new System.Diagnostics.ProcessStartInfo("cmd.exe", "/c ping -n 30 127.0.0.1")
+                                            { CreateNoWindow = true }, TimeSpan.FromSeconds(1));
+        sw.Stop();
+        Check("a child that never finishes is stopped at the bound, not when it exits",
+              slow.TimedOut && slow.ExitCode is null && sw.Elapsed < TimeSpan.FromSeconds(8),
+              $"timedOut={slow.TimedOut} after {sw.Elapsed.TotalSeconds:0.0}s");
+
+        // ~240 KB to stderr, several times a pipe's buffer: undrained, the child blocks on its own write.
+        ChildRun.Result chatty = ChildRun.Run(new System.Diagnostics.ProcessStartInfo("cmd.exe",
+            "/c for /l %i in (1,1,4000) do @echo xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx 1>&2")
+            { CreateNoWindow = true }, TimeSpan.FromSeconds(30));
+        Check("a child that writes more to stderr than a pipe holds still finishes",
+              !chatty.TimedOut && chatty.ExitCode == 0 && chatty.Error.Length > 200_000,
+              $"timedOut={chatty.TimedOut} exit={chatty.ExitCode} stderr={chatty.Error.Length}");
+    }
+
     /// <summary>T424: the <c>--profiles</c> line that states what a launch does to <c>CLAUDE_CONFIG_DIR</c> and
     /// where it starts. It printed blank for every Windows profile, so it is read back here, both cases.</summary>
     private static void LaunchLineReadOut(string root)

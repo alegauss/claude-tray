@@ -423,21 +423,17 @@ internal static class ClaudeAccount
                 Arguments = "/c " + (WslProfiles.IsWsl(configDir)
                     ? WslProfiles.LaunchArguments(configDir, "claude auth status --json")
                     : "claude auth status --json"),
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
                 CreateNoWindow = true,
             };
             if (!WslProfiles.IsWsl(configDir)) ApplyConfigDir(psi, configDir);
 
-            using System.Diagnostics.Process? proc = System.Diagnostics.Process.Start(psi);
-            if (proc is null) return (AuthMethod.None, null, "could not start claude");
+            // stderr drained beside stdout and the whole tree killed on timeout (T426): cancelling the reads
+            // left cmd and claude running, and an undrained stderr could stall a healthy check.
+            ChildRun.Result r = await ChildRun.RunAsync(psi, TimeSpan.FromSeconds(30)).ConfigureAwait(false);
+            if (r.TimedOut) return (AuthMethod.None, null, "timeout");
+            if (r.ExitCode is null) return (AuthMethod.None, null, "could not start claude");
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            string json = await proc.StandardOutput.ReadToEndAsync(cts.Token).ConfigureAwait(false);
-            await proc.WaitForExitAsync(cts.Token).ConfigureAwait(false);
-
-            using JsonDocument doc = JsonDocument.Parse(json);
+            using JsonDocument doc = JsonDocument.Parse(r.Output);
             JsonElement root = doc.RootElement;
             bool loggedIn = root.TryGetProperty("loggedIn", out JsonElement li) && li.ValueKind == JsonValueKind.True;
             string? method = Str(root, "authMethod");

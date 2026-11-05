@@ -400,6 +400,9 @@ internal static partial class SelfTestCli
             Section("profiles — what --profiles says a launch does (Block O)");
             Temp(LaunchLineReadOut);
 
+            Section("profiles — a child process is bounded by the wait (Block O)");
+            ChildBounds();
+
             Section("sessions — the one field a person wrote (Block AK)");
             Temp(OpeningPrompt);
 
