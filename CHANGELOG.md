@@ -19,21 +19,21 @@
 |---|---|
 | [A](#block-a--foundation-tray-icon-api-projection) | Foundation — tray, icon, API, projection |
 | [B](#block-b--packaging-self-update-ci) | Packaging, self-update, CI (active — see ROADMAP) |
-| [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) |
+| [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) (active — see ROADMAP) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
-| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
-| [G](#block-g--localization) | Localization |
+| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) (active — see ROADMAP) |
+| [G](#block-g--localization) | Localization (active — see ROADMAP) |
 | [H](#block-h--tray-display-options) | Tray display options |
-| [I](#block-i--context-load-inspector) | Context Load Inspector |
+| [I](#block-i--context-load-inspector) | Context Load Inspector (active — see ROADMAP) |
 | [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
 | [K](#block-k--live-throughput) | Live throughput |
-| [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app |
+| [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app (active — see ROADMAP) |
 | [M](#block-m--explain-on-demand) | Explain on demand — the method note behind an ⓘ |
 | [N](#block-n--system-information) | System information — your plan, your install, this machine |
-| [O](#block-o--profiles) | Profiles — several Claude Code logins on one machine |
+| [O](#block-o--profiles) | Profiles — several Claude Code logins on one machine (active — see ROADMAP) |
 | [P](#block-p--project-layout) | Project layout — where a file lives |
-| [Q](#block-q--keyboard-input-in-the-windows) | Keyboard input in the windows |
+| [Q](#block-q--keyboard-input-in-the-windows) | Keyboard input in the windows (active — see ROADMAP) |
 | [R](#block-r--profiles-second-pass-what-a-real-second-login-exposed) | Profiles, second pass — what a real second login exposed |
 | [S](#block-s--settings-round-trip) | Settings round-trip — a field missing from the copy is a field reset |
 | [T](#block-t--one-profile-the-whole-environment) | One profile, the whole environment — the tray writes the user-scope `CLAUDE_CONFIG_DIR` |
@@ -51,12 +51,12 @@
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
-| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
-| [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
-| [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did |
+| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
+| [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags (active — see ROADMAP) |
+| [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did (active — see ROADMAP) |
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
 | [AM](#block-am--danger-is-said-not-only-coloured) | Danger is said, not only coloured |
-| [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system |
+| [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system (active — see ROADMAP) |
 | [AO](#block-ao--what-a-stranger-meets-first) | What a stranger meets first |
 
 ## Block A — Foundation (tray, icon, API, projection)
