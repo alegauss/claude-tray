@@ -3,8 +3,8 @@ import { SiteRich as Rich } from "@viglet/viglet-design-system/site";
 
 export function Privacy() {
   return (
-    <section style={{ paddingTop: "20px" }}>
-      <div className="wrap reveal">
+    <section id="privacy" style={{ paddingTop: "20px" }}>
+      <div className="vg-site-wrap reveal">
         <div className="banner">
           <div className="lock">{privacy.icon}</div>
           <h2>{privacy.heading}</h2>

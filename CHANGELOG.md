@@ -785,6 +785,7 @@
 ## Block AN — The site on the shared design system
 
 - **T389** — The site renders its nav, hero, section heads, buttons, copy button, feature index, sponsor block, footer and theme toggle from the design system's ./site on the warm tone, builds through prerenderSite and renderOgCard, and loads Google Analytics only after consent, sharing the hub's stored choice; every route's text, twin, sitemap and robots match the old build, and the consumers.json entry is VDS220's to land (design §CV recorded in `site/README.md`).
+- **T429** — The site nav's In depth link lands on the feature index, the Privacy section carries its id and the shared wrap, and a site test fails any in-page link whose id is missing.
 
 ## Block AO — What a stranger meets first
 

@@ -28,7 +28,6 @@
 
 ## Block AN — The site on the shared design system
 
-- 📋 **T429** (deps: —) **The site's In depth link lands on the Why section, and the Privacy section has no anchor or width** — The nav points In depth at #features, Privacy.tsx has no id for the link back to it, and its .wrap class is defined nowhere since the design-system move. → §CXI.11
 - 📋 **T430** (deps: —) **The site says nothing loads before consent and one API call is all that leaves the app; neither holds** — The ads.japode.com script loads on mount beside the banner's promise, and the privacy copy omits the GitHub Releases check and states a fixed 5-minute cadence. → §CXI.12
 
 ## Block A — Foundation (tray, icon, API, projection)

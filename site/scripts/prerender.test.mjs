@@ -178,3 +178,24 @@ test("the social card is a 1200x630 PNG", () => {
   assert.equal(buf.readUInt32BE(16), 1200, "og.png width");
   assert.equal(buf.readUInt32BE(20), 630, "og.png height");
 });
+
+// T429: every in-page link lands on an id. The design-system move dropped three — the nav's
+// "In depth" pointed at the Why section, and #privacy pointed at nothing — and a link to a
+// missing id fails silently: the browser just stays at the top.
+test("every #anchor a page links to is an id on the page it names", () => {
+  const ids = (html) => new Set([...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]));
+  const landing = manifest.routes.find((r) => r.path === "/");
+  assert.ok(landing, "no landing route in the manifest");
+  const landingIds = ids(readFileSync(join(distDir, landing.html), "utf8"));
+  const dangling = [];
+  for (const r of manifest.routes) {
+    const html = readFileSync(join(distDir, r.html), "utf8");
+    const own = ids(html);
+    for (const [, href] of html.matchAll(/\shref="([^"]*#[^"]+)"/g)) {
+      const [page, anchor] = href.split("#");
+      const target = page === "" ? own : page === "/claude-tray/" ? landingIds : null;
+      if (target && !target.has(anchor)) dangling.push(`${r.path}: ${href}`);
+    }
+  }
+  assert.deepEqual(dangling, [], "an in-page link whose id no element carries");
+});

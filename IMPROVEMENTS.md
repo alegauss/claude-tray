@@ -926,19 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.11 Three anchors the design-system move dropped (T429)
-
-The "In depth" nav item points at `#features` (site-content.ts:60), which is the Why section's id
-(Why.tsx:6); the depth-page index is `SiteFeatureIndex`, whose id is `features-index`
-(Landing.tsx:65-66).
-
-The privacy feature sets `anchor: "privacy"` (features.ts:355), and its depth page links back to
-`/claude-tray/#privacy` (Feature.tsx:16), but nothing under `site/src` carries `id="privacy"`, so
-the link lands at the top. The same section is the only one using `className="wrap reveal"`
-(Privacy.tsx:7); `.wrap` is defined neither in `index.css` nor in the design system's CSS, so the
-banner runs full width while every neighbour uses `vg-site-wrap`. All three date from the T389 move.
-A site test that every in-page `href="#x"` resolves to an id would hold them.
-
 ### CXI.12 Two privacy promises the site does not keep (T430)
 
 The consent banner says nothing is loaded until the visitor chooses (Consent.tsx:85). The footer

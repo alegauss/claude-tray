@@ -57,7 +57,7 @@ export const navLinks = [
   { href: "/claude-tray/#statistics", label: "Statistics" },
   { href: "/claude-tray/#context", label: "Context" },
   { href: "/claude-tray/#profiles", label: "Profiles" },
-  { href: "/claude-tray/#features", label: "In depth" },
+  { href: "/claude-tray/#features-index", label: "In depth" },
   // No "Download" link: it would sit immediately left of the download button and carry the
   // same destination twice. The button is the affordance.
 ] as const;
