@@ -68,8 +68,6 @@
 
 ## Block I — Context Load Inspector
 
-- 📋 **T442** (deps: —) **A project whose context has not changed in 60 days loses its drift readout** — ContextHistory writes a line only on change but reads a 60-day window, so a stable project's newest line falls outside it and Trend returns null. → §CXI.24
-
 ## Block L — Scan resilience
 
 ## Block Q — Keyboard input in the windows

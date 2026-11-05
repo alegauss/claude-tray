@@ -25,7 +25,7 @@
 | [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization (active — see ROADMAP) |
 | [H](#block-h--tray-display-options) | Tray display options |
-| [I](#block-i--context-load-inspector) | Context Load Inspector (active — see ROADMAP) |
+| [I](#block-i--context-load-inspector) | Context Load Inspector |
 | [J](#block-j--activity-aware-pacing) | Activity-aware pacing |
 | [K](#block-k--live-throughput) | Live throughput |
 | [L](#block-l--scan-resilience) | Scan resilience — one bad folder can't blank the app |
@@ -260,6 +260,7 @@
 - **T425** — --context exits 1 when its fixture, report or project filter fails, and a leaf name several projects share is refused with each candidate's full path.
 - **T435** — A Context rescan keeps the panes on screen, the All projects selection and the list's scroll, and a rescan asked for mid-scan runs once more instead of being dropped.
 - **T441** — The never-invoked advice counts a plugin:skill call for its skill, dates each call by its own line, and treats a transcript that could not be read as an incomplete pass rather than a zero.
+- **T442** — A project whose context has not changed in the drift window reads as unchanged against the value it has held since, and pruning keeps each project's newest history line however old.
 
 ## Block J — Activity-aware pacing
 

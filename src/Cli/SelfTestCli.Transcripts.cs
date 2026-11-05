@@ -626,6 +626,43 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T442: a project whose context has not moved in the drift window still has a drift — zero, against
+    /// the value it has held since — and pruning keeps the line that says what that value is. Written to
+    /// the suite's own scratch profile, never a real one.
+    /// </summary>
+    private static void StableDrift()
+    {
+        string path = ProfileStore.PathFor(ProfileKey, "context-history.jsonl");
+        long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        long day = 86400;
+        string Line(string slug, long t, int e) => $"{{\"t\":{t},\"s\":\"{slug}\",\"e\":{e},\"b\":{e * 4}}}";
+        StoreFile.CreateDirectory(Path.GetDirectoryName(path)!);
+        StoreFile.WriteAllLines(path, new[]
+        {
+            Line("d--stable", now - 90 * day, 5000),
+            Line("d--moving", now - 90 * day, 1000),
+            Line("d--moving", now - 3 * day, 1500),
+        });
+
+        DateTime nowUtc = DateTimeOffset.FromUnixTimeSeconds(now).UtcDateTime;
+        ContextTrend? stable = ContextHistory.Trend(ProfileKey, "d--stable", nowUtc);
+        Check("a project unchanged for longer than the window reads as unchanged, not as never recorded",
+              stable is { HasBaseline: true, DeltaTokens: 0, Current: 5000 },
+              stable is null ? "no trend" : $"baseline={stable.HasBaseline} delta={stable.DeltaTokens}");
+        ContextTrend? moving = ContextHistory.Trend(ProfileKey, "d--moving", nowUtc);
+        Check("and one that moved inside it measures from the value it held before",
+              moving is { HasBaseline: true, DeltaTokens: 500 },
+              moving is null ? "no trend" : $"baseline={moving.HasBaseline} delta={moving.DeltaTokens}");
+
+        // Old enough to trigger a prune: the stable project's only line must survive it.
+        StoreFile.WriteAllLines(path, new[] { Line("d--stable", now - 250 * day, 5000), Line("d--moving", now - day, 1500) });
+        ContextHistory.PruneIfStale(path, now);
+        Check("pruning keeps each project's newest line, however old",
+              ContextHistory.Trend(ProfileKey, "d--stable", nowUtc) is { Current: 5000 });
+        StoreFile.Delete(path);
+    }
+
+    /// <summary>
     /// T441: what the Context page's "never invoked" stands on. A plugin's skill is called as
     /// <c>plugin:skill</c> and has to match the skill named <c>skill</c>; a call is dated by its own line,
     /// not by the file it sits in; and a transcript that could not be read leaves the pass incomplete, so

@@ -96,9 +96,18 @@ internal static class ContextHistory
             long from = now - SparkDays * 86400L;
 
             var points = new List<ContextSample>();
+            ContextSample? before = null;
             foreach ((string s, ContextSample sample) in Read(profileKey))
-                if (sample.T >= from && string.Equals(s, slug, StringComparison.OrdinalIgnoreCase))
-                    points.Add(sample);
+            {
+                if (!string.Equals(s, slug, StringComparison.OrdinalIgnoreCase)) continue;
+                if (sample.T >= from) points.Add(sample);
+                else if (before is not { } had || sample.T > had.T) before = sample;
+            }
+            // A line is written only when the number moves, so a project that has not changed in the
+            // window has its value on a line older than it (T442). That value held at the window's start:
+            // carried in there, it is the baseline, and a stable project reads as unchanged, not unknown.
+            if (before is { } carried)
+                points.Add(new ContextSample(from, carried.Eager, carried.Bytes));
             if (points.Count == 0) return null;
 
             points.Sort((a, b) => a.T.CompareTo(b.T));
@@ -196,7 +205,7 @@ internal static class ContextHistory
            DateTimeOffset.FromUnixTimeSeconds(b).UtcDateTime.Date;
 
     // Rewrite only once the oldest line is well past retention, so a normal append stays one write.
-    private static void PruneIfStale(string path, long now)
+    internal static void PruneIfStale(string path, long now)
     {
         try
         {
@@ -204,22 +213,30 @@ internal static class ContextHistory
             bool stale = false;
             long cutoff = now - RetentionDays * 86400L;
             long trigger = now - TriggerDays * 86400L;
+            // Each project's newest line outlives the retention (T442): it is the project's current value,
+            // the one every later drift is measured from, and a stable project writes no newer one.
+            var newest = new Dictionary<string, (long T, string Line)>(StringComparer.OrdinalIgnoreCase);
 
             foreach (string line in SharedRead.Lines(path))
             {
                 if (line.Length == 0) continue;
                 long t;
+                string slug;
                 try
                 {
                     using JsonDocument doc = JsonDocument.Parse(line);
                     t = doc.RootElement.TryGetProperty("t", out JsonElement v) ? v.GetInt64() : 0;
+                    slug = doc.RootElement.TryGetProperty("s", out JsonElement sv) ? sv.GetString() ?? "" : "";
                 }
                 catch { continue; }
 
                 if (t < trigger) stale = true;
                 if (t >= cutoff) kept.Add(line);
+                if (!newest.TryGetValue(slug, out var had) || t >= had.T) newest[slug] = (t, line);
             }
 
+            foreach ((long t, string line) in newest.Values)
+                if (t < cutoff) kept.Insert(0, line);
             if (stale) StoreFile.WriteAllLines(path, kept);
         }
         catch { /* pruning is best-effort */ }

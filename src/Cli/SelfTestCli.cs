@@ -132,6 +132,8 @@ internal static partial class SelfTestCli
         try
         {
             Stores();
+            Section("context — a stable project's drift (Block I)");
+            StableDrift();
             Section("overage — a reading with somewhere to be written (Block AE)");
             Overage();
 

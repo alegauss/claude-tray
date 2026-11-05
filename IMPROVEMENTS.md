@@ -926,14 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.24 A stable project's drift (T442)
-
-`ContextHistory.Record` skips a value equal to the last one (ContextHistory.cs:73-75), and `Trend`
-keeps only samples from the last 60 days (:96-101). A project unchanged for longer has no sample in
-the window, so `Trend` returns null, which reads as never recorded; when it finally changes it has
-one point and no baseline, so the drift row stays hidden (ContextPage.Gauge.cs:176-178). `Trend`
-should carry the newest sample before the window in as the baseline.
-
 ### CXI.25 A torn read of .claude.json (T443)
 
 `ClaudeAccount.TryParse` returns null on any failure (ClaudeAccount.cs:892-900), so `AccountUuid` is
