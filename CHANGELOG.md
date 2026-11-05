@@ -56,7 +56,7 @@
 | [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did (active — see ROADMAP) |
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
 | [AM](#block-am--danger-is-said-not-only-coloured) | Danger is said, not only coloured |
-| [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system (active — see ROADMAP) |
+| [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system |
 | [AO](#block-ao--what-a-stranger-meets-first) | What a stranger meets first |
 
 ## Block A — Foundation (tray, icon, API, projection)
@@ -786,6 +786,7 @@
 
 - **T389** — The site renders its nav, hero, section heads, buttons, copy button, feature index, sponsor block, footer and theme toggle from the design system's ./site on the warm tone, builds through prerenderSite and renderOgCard, and loads Google Analytics only after consent, sharing the hub's stored choice; every route's text, twin, sitemap and robots match the old build, and the consumers.json entry is VDS220's to land (design §CV recorded in `site/README.md`).
 - **T429** — The site nav's In depth link lands on the feature index, the Privacy section carries its id and the shared wrap, and a site test fails any in-page link whose id is missing.
+- **T430** — The consent banner says analytics waits for a choice while the house ad loads either way, and the privacy copy names both requests the app makes: the rate-limit call at its real cadence and the Releases check.
 
 ## Block AO — What a stranger meets first
 

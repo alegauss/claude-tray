@@ -926,20 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.12 Two privacy promises the site does not keep (T430)
-
-The consent banner says nothing is loaded until the visitor chooses (Consent.tsx:85). The footer
-renders `Ad` (Chrome.tsx:71, Ad.tsx:16), whose `useAds()` appends `https://ads.japode.com/v1/ads.js`
-on mount (ads.ts:40-43, :59-60), before any choice. The lint test guards only `googletagmanager.com`
-(lint.test.mjs:46-57). The sentence is what is false; whether this loader needs consent is a
-separate decision, since ads.ts:3-5 says it uses no identifiers.
-
-The privacy depth page says the one-token API call every five minutes is all that leaves the machine
-(features.ts:365, repeated at site-content.ts:804). §I.2 names two endpoints, the usage API and
-GitHub Releases, and the site's own Why card says the app checks Releases (site-content.ts:200). The
-cadence is also stale: an idle tray and the status-line feed both call less often
-(build/release-notes.md:15-16).
-
 ### CXI.13 The About page's licence (T431)
 
 `settings.about.disclaimer` reads "Released under the MIT License." in every `lang/*.json` (en:412,

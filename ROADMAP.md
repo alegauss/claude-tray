@@ -28,8 +28,6 @@
 
 ## Block AN — The site on the shared design system
 
-- 📋 **T430** (deps: —) **The site says nothing loads before consent and one API call is all that leaves the app; neither holds** — The ads.japode.com script loads on mount beside the banner's promise, and the privacy copy omits the GitHub Releases check and states a fixed 5-minute cadence. → §CXI.12
-
 ## Block A — Foundation (tray, icon, API, projection)
 
 ## Block D — Auth & API resilience

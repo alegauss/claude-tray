@@ -82,8 +82,9 @@ export function ConsentBanner() {
   return (
     <section className="consent" aria-label="Analytics consent">
       <p>
-        This site counts visits with Google Analytics only if you allow it. Nothing is loaded
-        until you choose, and the tray app itself collects nothing either way.
+        This site counts visits with Google Analytics only if you allow it, and analytics is not
+        loaded until you choose. The house ad in the footer loads either way; it counts nothing and
+        sets no identifiers. The tray app itself collects nothing.
       </p>
       <div className="consent-actions">
         {/* SiteButton is an anchor, and these act rather than go somewhere: its classes on a button */}

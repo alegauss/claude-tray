@@ -56,6 +56,22 @@ test("analytics loads only from the consent banner", () => {
   );
 });
 
+test("the consent banner promises nothing a script loaded without consent breaks", () => {
+  // T430. The banner said nothing loads until a choice while the footer's ad loader ran on mount.
+  // Every third-party script the source appends, Google's aside, loads without asking — so the
+  // banner may not say nothing loads, and it has to name the one that does.
+  const banner = readFileSync(join(siteDir, "src", "components", "Consent.tsx"), "utf8");
+  const hosts = new Set(
+    sourceFiles
+      .flatMap((f) => [...readFileSync(f, "utf8").matchAll(/"https:\/\/([^/"]+)\/[^"]*\.js"/g)])
+      .map((m) => m[1])
+      .filter((h) => !h.endsWith("googletagmanager.com")),
+  );
+  if (hosts.size === 0) return;
+  assert.ok(!/nothing is loaded/i.test(banner), `the banner says nothing loads, and ${[...hosts]} does`);
+  assert.ok(/\bad\b/i.test(banner), "the banner does not name the ad that loads either way");
+});
+
 test("the ad slot declines the loader's recency memory", () => {
   // The privacy section claims nothing is written to this origin. The loader only honours
   // that when the slot says so, and the attribute is one word away from being dropped in an

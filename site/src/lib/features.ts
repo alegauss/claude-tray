@@ -346,10 +346,10 @@ export const features: FeatureRecord[] = [
     slug: "privacy",
     title: "Privacy: what this reads, what it doesn't, and what it sends",
     description:
-      "Token counts, model ids and flags — never message content, with one visible exception. One 1-token API call every five minutes, history on local disk, and nothing uploaded.",
+      "Token counts, model ids and flags — never message content, with one visible exception. A 1-token API call on a timer, an update check, history on local disk, and nothing uploaded.",
     ogTitle: "Claude Code Tray: privacy",
     ogDescription:
-      "One 1-token call every five minutes. Everything else is computed on your machine.",
+      "A 1-token call on a timer and an update check. Everything else is computed on your machine.",
     eyebrow: "Privacy by design",
     heading: "What it reads, and what it sends",
     anchor: "privacy",
@@ -360,9 +360,11 @@ export const features: FeatureRecord[] = [
       {
         heading: "What leaves your machine",
         body: [
-          "A single ",
-          { b: "1-token API call every five minutes" },
-          " — the rate-limit reading, which is the one thing that cannot be computed locally. That is all. There is no account to create, no telemetry endpoint, and nothing to log into: the app reuses the OAuth token Claude Code already stored, and never writes to a configuration folder.",
+          "Two requests, and neither carries anything about your work. ",
+          { b: "A 1-token API call" },
+          " reads your rate limits, the one thing that cannot be computed locally: every five minutes by default, less often while you are idle, and not at all while Claude Code's status line is already handing the tray that reading. And ",
+          { b: "a check of GitHub Releases" },
+          " looks for a newer version. That is all. There is no account to create, no telemetry endpoint, and nothing to log into: the app reuses the OAuth token Claude Code already stored, and never writes to a configuration folder.",
         ],
       },
       {

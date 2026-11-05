@@ -801,7 +801,7 @@ export const privacy = {
       " list names each conversation, using the title Claude Code generated for it or the prompt that opened it, because a list you cannot name is a list you cannot search. Both are capped at 200 characters before they are stored, they appear on that one screen, and nothing further into a conversation is ever read.",
     ] as Rich,
     [
-      "The insights scan is bounded to files touched in the last 24 hours and runs in the background. The rate-limit reading is a single 1-token API call every five minutes. Nothing leaves your machine beyond that, and there is nothing to log into. Usage history is stored locally on disk and never uploaded.",
+      "The insights scan is bounded to files touched in the last 24 hours and runs in the background. The rate-limit reading is a 1-token API call, every five minutes by default and less often while you are idle, and the only other request is a check of GitHub Releases for an update. Nothing else leaves your machine, and there is nothing to log into. Usage history is stored locally on disk and never uploaded.",
     ] as Rich,
     [
       "The context scan reads only sizes, names, timestamps and frontmatter from ",
