@@ -336,17 +336,20 @@
             </Border>
 
             <!-- Shown only during an API outage: the reason, over charts drawn from the last known
-                 local data. Kept collapsed otherwise. -->
+                 local data. Kept collapsed otherwise. Painted with the theme's critical-severity
+                 brushes (T439): hex tuned on a dark card read murky, the glyph faint, on a light one. -->
             <Border x:Name="ErrorBanner" Visibility="Collapsed" Margin="0,12,0,0"
-                    CornerRadius="8" Padding="12,9" Background="#332B1416" BorderThickness="1"
-                    BorderBrush="#66E33B30">
+                    CornerRadius="8" Padding="12,9" BorderThickness="1"
+                    Background="{DynamicResource SystemFillColorCriticalBackgroundBrush}"
+                    BorderBrush="{DynamicResource SystemFillColorCriticalBrush}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text="&#xE7BA;" FontFamily="Segoe MDL2 Assets" FontSize="15"
-                               VerticalAlignment="Top" Margin="0,1,10,0" Foreground="#E86A5E" />
+                               VerticalAlignment="Top" Margin="0,1,10,0"
+                               Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
                     <TextBlock Grid.Column="1" x:Name="ErrorBannerText" TextWrapping="Wrap" FontSize="13"
                                Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
                 </Grid>

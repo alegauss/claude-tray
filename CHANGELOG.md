@@ -22,7 +22,7 @@
 | [C](#block-c--settings-window-wpf-fluent) | Settings window (WPF Fluent) (active — see ROADMAP) |
 | [D](#block-d--auth--api-resilience) | Auth & API resilience (active — see ROADMAP) |
 | [E](#block-e--reset-notifications--toasts) | Reset notifications & toasts |
-| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) (active — see ROADMAP) |
+| [F](#block-f--statistics-window-pace-report) | Statistics window (pace report) |
 | [G](#block-g--localization) | Localization (active — see ROADMAP) |
 | [H](#block-h--tray-display-options) | Tray display options |
 | [I](#block-i--context-load-inspector) | Context Load Inspector (active — see ROADMAP) |
@@ -195,6 +195,7 @@
 - **T319** — An open report follows the icon. The tray rebuilds the picker where it already detects a switch, and the page carries a hand pick across by store key rather than by position — the reorder IS the switch — so a work account's 86% can no longer be drawn under a personal account's name, and the account being worked in no longer reads as the empty one. --selftest gained 12 checks: the index decision is pure over keys, and the call site is asserted to sit in RefreshWatched above the return only a switch passes; both were confirmed to fail against a deliberately un-fixed build.
 - **T323** — **The chart's chip states the account's state before the window's pace.** Both panes wear the clay Extra usage badge instead of the red At limit whenever their own readings say the spell is still running — chip and sentence reading one predicate, which also stops a stale overage figure from being read out in the present tense.
 - **T391** — --usage [--json] answers from the stored reading with exit 0/10/11/20 by the icon's own pace verdict, stale past an hour, and --sessions --json lists conversations with no title or prompt (design §CVI.2 recorded in `src/Cli/UsageCli.cs`).
+- **T439** — The Statistics outage banner paints its wash, border and glyph with the theme's critical-severity brushes, so it reads in a light theme as in a dark one.
 
 ## Block G — Localization
 

@@ -39,8 +39,6 @@
 
 ## Block F — Statistics window (pace report)
 
-- 📋 **T439** (deps: —) **The Statistics error banner is painted for a dark theme and reads poorly in a light one** — ErrorBanner sets its background, border and glyph in hex rather than Fluent brushes, which §I.5 forbids on a theme-able surface. → §CXI.21
-
 ## Block H — Tray display options
 
 ## Block O — Profiles

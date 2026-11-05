@@ -926,14 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.21 The error banner's colours (T439)
-
-`ErrorBanner` sets `Background="#332B1416"`, `BorderBrush="#66E33B30"` and the glyph's
-`Foreground="#E86A5E"` (StatisticsPage.xaml:339-347), with no comment justifying them. They were
-tuned on a dark card; on a light one the wash is murky and the salmon glyph has poor contrast. UI
-convention 3 and §I.5 say a theme-able surface takes `{DynamicResource}` Fluent brushes; the
-critical-severity system brushes cover this case.
-
 ### CXI.22 Dates outside the Dates path (T440)
 
 T263 routed dates through `Dates` because a fixed pattern pins the field order. `SessionListRow`
