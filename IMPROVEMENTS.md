@@ -926,19 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.7 The --context read-out's exits and its filter (T425)
-
-T261 made `ReadOut.Failed` the rule for this surface: a read-out that could not start exits 1
-(ReadOut.cs:7-10, :26), and `SessionsCli` follows it. `ContextCli` misses three sites. A fixture
-that fails to build under `--sample` prints and returns (ContextCli.cs:42). `WriteContextReport`
-catches the write failure and only prints (:211-214). `no project matching` is printed and returns 0
-(:102, :282).
-
-The filter matches `ContextProject.Name`, the leaf folder (ContextScanner.cs:144-146), with
-`FirstOrDefault` (ContextCli.cs:97, :274). The scanner's own comment notes three projects named
-`2026.3` here, so `--context 2026.3` shows one of them and says nothing about the others. An
-ambiguous filter should refuse and list the candidates by their full path.
-
 ### CXI.8 Child processes on the profile path (T426)
 
 `WslProfiles.Running` calls `StandardOutput.ReadToEnd()` before `WaitForExit(10_000)`

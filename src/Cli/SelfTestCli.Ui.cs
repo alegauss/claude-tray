@@ -729,6 +729,42 @@ internal static partial class SelfTestCli
               && new ContextScan { Error = "x" }.Projects.Count == 0);
         Check("and evidence does have one, which is why its error stays a note",
               typeof(UsageEvidence).GetProperty("Complete") is not null);
+
+        // T425: the --context filter. A leaf name three worktrees share is a question, not an answer.
+        var scan = new ContextScan
+        {
+            Projects =
+            {
+                new ContextProject { Slug = "d--a-turing-2026-3", Path = @"D:\a\turing\2026.3", State = PathState.Resolved },
+                new ContextProject { Slug = "d--a-shio-2026-3", Path = @"D:\a\shio\2026.3", State = PathState.Resolved },
+                new ContextProject { Slug = "d--a-roadkeep", Path = @"D:\a\roadkeep", State = PathState.Resolved },
+            },
+        };
+        Check("a leaf name two projects share is refused, naming each by its full path",
+              ContextCli.Match(scan, "2026.3", out string? twice) is null && twice is { } t
+              && t.Contains(@"D:\a\turing\2026.3", StringComparison.Ordinal)
+              && t.Contains(@"D:\a\shio\2026.3", StringComparison.Ordinal), twice ?? "matched");
+        Check("while the short path, the slug or a unique leaf picks exactly one",
+              ContextCli.Match(scan, "shio/2026.3", out _)?.Slug == "d--a-shio-2026-3"
+              && ContextCli.Match(scan, "d--a-turing-2026-3", out _)?.Path == @"D:\a\turing\2026.3"
+              && ContextCli.Match(scan, "roadkeep", out string? none) is { } && none is null);
+        Check("and a name that matches nothing is a refusal with its reason",
+              ContextCli.Match(scan, "nope", out string? missing) is null && missing is { Length: > 0 });
+    }
+
+    /// <summary>T425, the other half of T261: no headless read-out in <c>src/Cli</c> prints an error of its own
+    /// instead of going through <see cref="ReadOut.Failed"/>, which is what sets the exit code.</summary>
+    private static void NoSilentError(string root)
+    {
+        string[] hits = Directory.GetFiles(Path.Combine(root, "src", "Cli"), "*.cs")
+            .Where(f => !Path.GetFileName(f).StartsWith("SelfTestCli", StringComparison.Ordinal)
+                        && Path.GetFileName(f) != "ReadOut.cs")
+            .SelectMany(f => File.ReadAllLines(f).Select((l, i) => (f, l, i)))
+            .Where(x => Regex.IsMatch(x.l, @"Console\.WriteLine\(\$?""(error|no project matching)"))
+            .Select(x => $"{Path.GetFileName(x.f)}:{x.i + 1}")
+            .ToArray();
+        Check("no read-out prints an error without marking the run failed", hits.Length == 0,
+              string.Join(", ", hits));
     }
 
     /// <summary>

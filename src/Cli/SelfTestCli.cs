@@ -293,6 +293,7 @@ internal static partial class SelfTestCli
 
         Section("read-out — a scan that could not start exits 1 (Block I)");
         ReadOutExit();
+        Repo("no read-out prints an error without marking the run failed", NoSilentError, "src/Cli");
 
         Section("lang — a code this build does not ship is refused, not defaulted (Block AI)");
         LangOverride();

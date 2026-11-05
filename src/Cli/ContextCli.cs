@@ -39,7 +39,7 @@ internal static class ContextCli
             }
             catch (Exception e)
             {
-                Console.WriteLine("error building the sample fixture: " + e.Message);
+                ReadOut.Failed("building the sample fixture: " + e.Message);   // a read-out that could not start (T425)
                 return;
             }
         }
@@ -94,13 +94,9 @@ internal static class ContextCli
 
         if (filter != null)
         {
-            ContextProject? p = scan.Projects.FirstOrDefault(x =>
-                x.Slug.Equals(filter, StringComparison.OrdinalIgnoreCase) ||
-                x.Name.Equals(filter, StringComparison.OrdinalIgnoreCase) ||
-                x.ShortPath.Equals(filter, StringComparison.OrdinalIgnoreCase) ||
-                x.Path.Equals(filter, StringComparison.OrdinalIgnoreCase));
-            if (p == null) { Console.WriteLine($"no project matching '{filter}'"); return; }
-            PrintProjectDetail(scan, p);
+            ContextProject? p = Match(scan, filter, out string? refused);
+            if (ReadOut.Failed(refused)) return;
+            PrintProjectDetail(scan, p!);
             return;
         }
 
@@ -210,8 +206,29 @@ internal static class ContextCli
         }
         catch (Exception e)
         {
-            Console.WriteLine("error: " + e.Message);
+            ReadOut.Failed(e.Message);   // the report was not written, so the run did not succeed (T425)
         }
+    }
+
+    /// <summary>
+    /// The project a <c>--context</c> filter names, or the reason it names none (T425). A slug, a full path or
+    /// the two-segment short name is exact; the leaf folder name is not — three worktrees here are all called
+    /// <c>2026.3</c> — so a leaf that several projects share is refused with each candidate's full path,
+    /// instead of answering with whichever the scan listed first.
+    /// </summary>
+    internal static ContextProject? Match(ContextScan scan, string filter, out string? refused)
+    {
+        refused = null;
+        bool Is(string s) => s.Equals(filter, StringComparison.OrdinalIgnoreCase);
+        ContextProject[] hits = scan.Projects.Where(x => Is(x.Slug) || Is(x.Path) || Is(x.ShortPath)).ToArray();
+        if (hits.Length == 0) hits = scan.Projects.Where(x => Is(x.Name)).ToArray();
+        if (hits.Length == 1) return hits[0];
+
+        refused = hits.Length == 0
+            ? $"no project matching '{filter}'"
+            : $"'{filter}' names {hits.Length} projects — pass one of these instead:"
+              + string.Concat(hits.Select(x => "\n  " + (x.Path.Length > 0 ? x.Path : x.Slug)));
+        return null;
     }
 
     // The advisor's headless half (`--context --check`): every finding from ContextRules, grouped by
@@ -270,17 +287,11 @@ internal static class ContextCli
         });
         List<Finding> all = ContextRules.Evaluate(scan, now, evidence);
 
-        ContextProject? project = filter is { Length: > 0 }
-            ? scan.Projects.FirstOrDefault(x =>
-                x.Slug.Equals(filter, StringComparison.OrdinalIgnoreCase) ||
-                x.Name.Equals(filter, StringComparison.OrdinalIgnoreCase) ||
-                x.ShortPath.Equals(filter, StringComparison.OrdinalIgnoreCase))
-            : null;
-
-        if (filter is { Length: > 0 } && project == null)
+        ContextProject? project = null;
+        if (filter is { Length: > 0 })
         {
-            Console.WriteLine($"no project matching '{filter}'");
-            return;
+            project = Match(scan, filter, out string? refused);
+            if (ReadOut.Failed(refused)) return;
         }
 
         List<Finding> findings = project is null

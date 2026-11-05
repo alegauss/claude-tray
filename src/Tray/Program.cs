@@ -415,7 +415,7 @@ internal static class Program
                 if (contextFlags.Contains("--sample"))
                 {
                     try { windowRoot = ContextFixture.Build(DateTimeOffset.UtcNow.UtcDateTime); }
-                    catch (Exception e) { Console.WriteLine("error building the sample fixture: " + e.Message); return; }
+                    catch (Exception e) { ReadOut.Failed("building the sample fixture: " + e.Message); return; }
                 }
 
                 var contextApp = new System.Windows.Application();

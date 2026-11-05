@@ -80,7 +80,6 @@
 
 ## Block I — Context Load Inspector
 
-- 📋 **T425** (deps: —) **--context reports success after it failed, and a folder name two worktrees share picks one silently** — Three exits print an error and return without ReadOut.Failed, the helper T261 made for this, and the filter takes the first project whose leaf name matches. → §CXI.7
 - 📋 **T435** (deps: —) **Every Context rescan blanks the page, forgets All projects and the scroll, and drops an edit made mid-scan** — The rescan collapses the panes and rebuilds them with no selection or offset restored, and a debounced rescan arriving while one runs is discarded, not queued. → §CXI.17
 - 📋 **T441** (deps: —) **The Context page calls skills never invoked that were used, and dates their last use by file time** — A transcript that fails to open counts as a complete zero, a plugin:skill call never matches the bare skill name, and WhenUtc is the file's mtime. → §CXI.23
 - 📋 **T442** (deps: —) **A project whose context has not changed in 60 days loses its drift readout** — ContextHistory writes a line only on change but reads a 60-day window, so a stable project's newest line falls outside it and Trend returns null. → §CXI.24
