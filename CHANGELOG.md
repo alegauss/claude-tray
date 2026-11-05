@@ -710,6 +710,7 @@
 - **T387** — The refusal check's skip is listed, with the sentence that says which machine is expected to produce it: elevation satisfies the emitted preflight on its own, so the branch cannot be reached at all - expected on CI, whose Windows runner is an administrator, and never on a developer's machine, where it means the suite ran from an elevated shell and the one assertion this project has that is weaker on CI went unchecked. Found before it reached CI rather than by a red build: an unlisted skip exits 1 by T218's rule, and the check had been written one task earlier with no entry. Both directions were driven - forcing the elevated branch shows the skip printed with its allowance and no UNEXPECTED line, and removing the entry while it fires reports 1 UNEXPECTED and exits 1. The mirror of the entry above it, which is why these carry a sentence about a machine rather than a restatement of the condition.
 - **T400** — The link check waits a minute for each mklink and names a hang apart from a refusal, so a slow machine no longer turns the self-test red with nothing changed.
 - **T403** — The case run prints its line per case on every run, green included, and run-cases.cmd logs at the verbosity that shows it, so a guest run names its holes.
+- **T427** — The self-test's PowerShell and junction helpers run through ChildRun and the case run's --profiles count reads both streams alongside its wait, so a hung child fails at its bound.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

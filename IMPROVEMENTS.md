@@ -926,18 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.9 Timed waits that cannot time out (T427)
-
-`SelfTestCli.PowerShell()` reads `StandardOutput.ReadToEnd() + StandardError.ReadToEnd()` and only
-then calls `WaitForExit(60_000)` (SelfTestCli.cs:787-788). The stdout read blocks until the child
-closes stdout, so the 60 s bound documented for the `link` script run cannot fire, and a child that
-fills stderr first deadlocks both sides.
-
-`CasesRun.Profiles()` has the same order (CasesRun.cs:330-331), never reads the stderr it redirects
-(:319), ignores the wait's result and kills nothing, so a hung `--profiles` blocks the whole case
-run instead of producing the absence the harness is built to report. Both want the two streams read
-asynchronously and a kill when the wait expires.
-
 ### CXI.10 Checks that claim more than they ran (T428)
 
 The resume-hour pair is gated on `advised.HasAdvice` (SelfTestCli.Usage.cs:78), which is what

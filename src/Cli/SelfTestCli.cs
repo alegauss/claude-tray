@@ -402,6 +402,8 @@ internal static partial class SelfTestCli
 
             Section("profiles — a child process is bounded by the wait (Block O)");
             ChildBounds();
+            Repo("no child's output is read to its end before the wait that bounds it", NoBlockingChildRead,
+                 "src", "tests");
 
             Section("sessions — the one field a person wrote (Block AK)");
             Temp(OpeningPrompt);
@@ -800,13 +802,14 @@ internal static partial class SelfTestCli
             psi.ArgumentList.Add(a);
         if (apply) psi.ArgumentList.Add("-Apply");
 
+        // Through ChildRun (T427): both streams read alongside the wait, so the minute's bound can fire —
+        // reading stdout to its end first meant it was reached only after the script had exited.
         try
         {
-            using var p = System.Diagnostics.Process.Start(psi);
-            if (p is null) return (-1, "powershell.exe did not start");
-            string text = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd();
-            if (!p.WaitForExit(60_000)) { try { p.Kill(true); } catch { } return (-1, "timed out: " + text); }
-            return (p.ExitCode, text);
+            ChildRun.Result r = ChildRun.Run(psi, TimeSpan.FromSeconds(60));
+            string text = r.Output + r.Error;
+            if (r.TimedOut) return (-1, "timed out: " + text);
+            return (r.ExitCode ?? -1, r.ExitCode is null ? "powershell.exe did not start" : text);
         }
         catch (Exception e) { return (-1, e.Message); }
     }
@@ -956,19 +959,14 @@ internal static partial class SelfTestCli
     {
         try
         {
-            using var p = System.Diagnostics.Process.Start(
+            ChildRun.Result r = ChildRun.Run(
                 new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{target}\"")
                 {
-                    UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true,
                     CreateNoWindow = true,   // see PowerShell above: no console window on the user's desk
-                });
-            if (p is null) return "cmd.exe did not start";
-            if (!p.WaitForExit(60_000))
-            {
-                try { p.Kill(); } catch { /* it may have finished between the two calls */ }
-                return "mklink was still running after a minute, which is a hang and not a refusal";
-            }
-            if (p.ExitCode != 0) return $"mklink refused ({p.ExitCode}): {p.StandardError.ReadToEnd().Trim()}";
+                }, TimeSpan.FromSeconds(60));
+            if (r.TimedOut) return "mklink was still running after a minute, which is a hang and not a refusal";
+            if (r.ExitCode is null) return "cmd.exe did not start";
+            if (r.ExitCode != 0) return $"mklink refused ({r.ExitCode}): {r.Error.Trim()}";
             return Directory.Exists(link) ? null : "mklink answered 0 and no junction is there";
         }
         catch (Exception ex) { return ex.Message; }

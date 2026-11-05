@@ -327,8 +327,20 @@ public sealed class CasesRun(TheMachine machine)
             if (running is null)
                 return (0, $"{project.Executable} --profiles started nothing, so the count was never taken");
 
-            var said = running.StandardOutput.ReadToEnd();
-            running.WaitForExit(30_000);
+            // Both streams read alongside the wait, and a child still running at the bound is killed and
+            // reported as the absence it is (T427) — reading stdout to its end first meant a hung
+            // --profiles held the whole case run, and the stderr nobody read could stall it on its own.
+            var reading = running.StandardOutput.ReadToEndAsync();
+            var complaining = running.StandardError.ReadToEndAsync();
+            if (!running.WaitForExit(30_000))
+            {
+                try { running.Kill(entireProcessTree: true); }
+                catch (InvalidOperationException) { /* it exited between the wait and the kill */ }
+                return (0, $"{project.Executable} --profiles was still running after 30s, so the count was never taken");
+            }
+
+            var said = reading.GetAwaiter().GetResult();
+            _ = complaining.GetAwaiter().GetResult();
 
             var counted = System.Text.RegularExpressions.Regex.Match(
                 said, @"Claude Code profiles:\s*(\d+)", System.Text.RegularExpressions.RegexOptions.None,

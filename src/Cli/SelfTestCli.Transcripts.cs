@@ -646,6 +646,24 @@ internal static partial class SelfTestCli
               $"timedOut={chatty.TimedOut} exit={chatty.ExitCode} stderr={chatty.Error.Length}");
     }
 
+    /// <summary>T427: no code here — the app, the suite or the case harness — reads a child's stream to its
+    /// end synchronously. That read returns only when the child exits, so any timed wait after it cannot
+    /// fire; three sites did it, and a hung child stalled the run instead of failing at its bound.</summary>
+    private static void NoBlockingChildRead(string root)
+    {
+        string[] hits = new[] { "src", "tests" }
+            .Where(d => Directory.Exists(Path.Combine(root, d)))
+            .SelectMany(d => Directory.GetFiles(Path.Combine(root, d), "*.cs", SearchOption.AllDirectories))
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
+                        && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}"))
+            .SelectMany(f => File.ReadAllLines(f).Select((l, i) => (f, l, i)))
+            .Where(x => Regex.IsMatch(x.l, @"Standard(Output|Error)\.ReadToEnd\(\)"))
+            .Select(x => $"{Path.GetFileName(x.f)}:{x.i + 1}")
+            .ToArray();
+        Check("no child's output is read to its end before the wait that bounds it", hits.Length == 0,
+              string.Join(", ", hits));
+    }
+
     /// <summary>T424: the <c>--profiles</c> line that states what a launch does to <c>CLAUDE_CONFIG_DIR</c> and
     /// where it starts. It printed blank for every Windows profile, so it is read back here, both cases.</summary>
     private static void LaunchLineReadOut(string root)

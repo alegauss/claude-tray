@@ -56,7 +56,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T427** (deps: —) **A hung child process stalls --selftest and the case run instead of failing at its timeout** — Both call ReadToEnd before WaitForExit, so the timed wait is reached only after the child has exited, and stderr is read late or never. → §CXI.9
 - 📋 **T428** (deps: —) **The checks claim more than they ran: a skip that hides its claim, and a blind case run passed** — The resume-hour pair skips on the output it tests, CasesRun answers a blind desk with Assert.True(true), and AGENTS.md says selftest never reads stores it reads. → §CXI.10
 
 ## Block B — Packaging, self-update, CI
