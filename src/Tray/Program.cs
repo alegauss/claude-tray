@@ -563,6 +563,9 @@ internal static class Program
                 new SettingsPage(Settings.Load(), (_, _) => { }, PageArg(args),
                     SampleProfiles(args), args.Contains("--reveal")),
                 L.T("settings.title"), 880, 600, 760, 560);
+            // The WinForms pump has no window of its own to end with, and the WPF app is OnExplicitShutdown,
+            // so closing the window has to end the pump itself — or the process outlives it, windowless (T434).
+            trayHosted.Closed += (_, _) => Application.ExitThread();
             trayHosted.Show();
             trayHosted.Activate();
             Application.Run();
@@ -595,6 +598,7 @@ internal static class Program
                 () => mainSettings, (_, _) => { });
             shell.Statistics.SetProfiles(ClaudeAccount.Discover(mainSettings.Profiles));
             shell.Navigate(args.Length >= 2 ? args[1] : MainWindow.DestStatistics);
+            shell.Closed += (_, _) => Application.ExitThread();   // as --settings-tray above (T434)
             shell.Show();
             shell.Activate();
             Application.Run();

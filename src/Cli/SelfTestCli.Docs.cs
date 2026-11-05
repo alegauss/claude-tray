@@ -1635,6 +1635,23 @@ internal static partial class SelfTestCli
     }
 
     /// <summary>
+    /// T434: a preview pumped by WinForms ends when its window closes. <c>Application.Run()</c> with no form
+    /// has nothing of its own to end with, and the WPF app beside it is <c>OnExplicitShutdown</c>, so closing
+    /// <c>--main</c> or <c>--settings-tray</c> left a windowless process behind — a script waiting on it waited
+    /// forever. Each bare pump in <c>Program.cs</c> must have an <c>ExitThread</c> wired just above it.
+    /// </summary>
+    private static void PumpsEnd(string root)
+    {
+        string[] lines = File.ReadAllLines(Path.Combine(root, "src", "Tray", "Program.cs"));
+        string[] open = lines.Select((l, i) => (l, i))
+            .Where(x => x.l.Trim() == "Application.Run();"
+                        && !lines[Math.Max(0, x.i - 6)..x.i].Any(b => b.Contains("ExitThread", StringComparison.Ordinal)))
+            .Select(x => $"Program.cs:{x.i + 1}")
+            .ToArray();
+        Check("every WinForms-pumped preview ends when its window closes", open.Length == 0, string.Join(", ", open));
+    }
+
+    /// <summary>
     /// T431: the licence the About page names is the one <c>LICENSE</c> declares, in every language. The
     /// disclaimer said MIT in all five for as long as the project had been Apache-2.0, because nothing read
     /// the string against the file.

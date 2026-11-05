@@ -43,11 +43,22 @@ if (-not (Test-Path (Join-Path $InDir "frame_0000.png"))) {
 }
 $pattern = Join-Path $InDir "frame_%04d.png"
 
+# "Stop" does not apply to a native program's exit code in Windows PowerShell, so a failed ffmpeg ran on
+# to "wrote <file>" beside a stale or empty output (T434). Every call is read back, and the first that
+# failed ends the run with its code.
+function Assert-Encoded([string]$what) {
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "ffmpeg failed ($LASTEXITCODE) on $what - nothing was written."
+        exit $LASTEXITCODE
+    }
+}
+
 # MP4 (H.264, yuv420p for universal playback; even dimensions required by the codec).
 $vf = "scale=trunc(iw/2)*2:trunc(ih/2)*2"
 if ($MaxWidth -gt 0) { $vf = "scale='min($MaxWidth,iw)':-2" }
 $mp4 = "$OutBase.mp4"
 & ffmpeg -y -framerate $Fps -i $pattern -vf $vf -c:v libx264 -pix_fmt yuv420p -movflags +faststart $mp4
+Assert-Encoded $mp4
 Write-Host "wrote $mp4"
 
 # GIF (two-pass palette for the best quality GIF can manage; capped at 640px wide).
@@ -55,7 +66,9 @@ if ($Gif) {
     $gifw = if ($MaxWidth -gt 0 -and $MaxWidth -lt 640) { $MaxWidth } else { 640 }
     $pal = Join-Path $env:TEMP "ct_palette.png"
     & ffmpeg -y -i $pattern -vf "fps=$Fps,scale=${gifw}:-1:flags=lanczos,palettegen=stats_mode=diff" $pal
+    Assert-Encoded $pal
     $gif = "$OutBase.gif"
     & ffmpeg -y -framerate $Fps -i $pattern -i $pal -lavfi "fps=$Fps,scale=${gifw}:-1:flags=lanczos[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3" $gif
+    Assert-Encoded $gif
     Write-Host "wrote $gif"
 }

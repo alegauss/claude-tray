@@ -85,8 +85,6 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
-- 📋 **T434** (deps: —) **A clip that failed to encode is reported written, and closing --main or --settings-tray leaves the process alive** — Encode-Clip prints wrote without reading ffmpeg's exit code, and both previews run Application.Run() with nothing that exits it when their window closes. → §CXI.16
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

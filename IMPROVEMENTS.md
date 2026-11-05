@@ -926,18 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.16 Two dev tools that report the wrong outcome (T434)
-
-`scripts/Encode-Clip.ps1` sets `$ErrorActionPreference = "Stop"` (:31), which Windows PowerShell
-does not apply to a native exit code, and never reads `$LASTEXITCODE` after its three `ffmpeg` calls
-(:50, :57, :59), so a failed encode still prints `wrote <file>` beside a stale or empty output.
-
-`--settings-tray` and `--main` end with a bare WinForms `Application.Run()` (Program.cs:568, :600)
-beside a WPF application set to `OnExplicitShutdown` (:560, :579), and neither `PageWindow` nor
-`MainWindow` exits anything on `Closed`. Closing the window leaves a windowless process running. The
-case harness kills what it launches, so only a person or a script that waits on the process meets
-it.
-
 ### CXI.17 What a Context rescan throws away (T435)
 
 `StartScan` calls `ShowStatus("scanning")` unconditionally (ContextPage.xaml.cs:207), which
