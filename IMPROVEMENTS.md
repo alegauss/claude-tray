@@ -926,21 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.10 Checks that claim more than they ran (T428)
-
-The resume-hour pair is gated on `advised.HasAdvice` (SelfTestCli.Usage.cs:78), which is what
-`ActivityShape.Build` produced, and the skip is on the allowed list (SelfTestCli.cs:67-68). A build
-that never advises passes with an allowed skip, which is the T161 shape AGENTS.md forbids; T218
-cannot turn it red because it is allowed. Gate on the fixture's precondition instead.
-
-`CasesRun` answers a desk that cannot observe with `Assert.True(true, ...)` and `return`
-(CasesRun.cs:82). xUnit prints the message only on failure, so a blind runner is green with zero
-cases run, though AGENTS.md says a hole is never a pass (T201).
-
-`ObservingTray` writes nothing, which the counted assertion holds, but it reads the real `~/.claude`
-tree and the shared caches (SelfTestCli.Docs.cs:1410-1415). AGENTS.md says a real profile's stores
-are never read; the sentence should say what the suite does.
-
 ### CXI.11 Three anchors the design-system move dropped (T429)
 
 The "In depth" nav item points at `#features` (site-content.ts:60), which is the Why section's id

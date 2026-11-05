@@ -56,8 +56,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T428** (deps: —) **The checks claim more than they ran: a skip that hides its claim, and a blind case run passed** — The resume-hour pair skips on the output it tests, CasesRun answers a blind desk with Assert.True(true), and AGENTS.md says selftest never reads stores it reads. → §CXI.10
-
 ## Block B — Packaging, self-update, CI
 
 - ⏳ **T412** (deps: —) (requires: store-account) **The Store build has not yet replaced the winget install for a week of daily use** — The app is listed on the Store as 9P27BHWNT56D; a week on that build in place of winget, holding the startup task, the alias and a profile switch, is left. → §CVIII.2

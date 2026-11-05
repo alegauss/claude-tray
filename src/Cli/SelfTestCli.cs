@@ -64,8 +64,6 @@ internal static partial class SelfTestCli
     /// </summary>
     private static readonly (string Name, string Why)[] AllowedSkips =
     {
-        ("the resume hour closes the week under its own target",
-         "the synthetic week does not always produce a profile whose resume hour lands under its target"),
         ("the probe backtracks past a shorter directory that exists",
          "a temp path whose encoding cannot be rebuilt - unrepresentable, not an unwritten case (T169)"),
         ("the probe returns only directories that exist",

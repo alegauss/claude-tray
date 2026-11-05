@@ -70,23 +70,23 @@ internal static partial class SelfTestCli
 
         // T90: advice that lands on 100% is advice to get blocked, and advice to resume at 03:00 is
         // not advice. Both are properties of every answer it can give, not of the one it gave once.
+        // On a fixed clock — a Wednesday at 10:00 local, inside the working hours with two working days left
+        // before the reset (T428). On the real clock whether advice exists depends on the hour the suite runs,
+        // and the pair used to skip on the very output it tests, so a build that never advised passed.
         ActivityProfile working = WorkingHours();
         WindowPace burning = Week(util: 0.85, elapsed: 4.0 / 7.0);
-        ActivityShape? advised = ActivityShape.Build(burning, working, Now);
-        if (Check("a burning week with working hours builds a shape", advised is { RunsOut: true }))
+        double wednesday = new DateTimeOffset(new DateTime(2026, 11, 4, 10, 0, 0, DateTimeKind.Local)).ToUnixTimeSeconds();
+        ActivityShape? advised = ActivityShape.Build(burning, working, wednesday);
+        if (Check("a burning week with working hours builds a shape", advised is { RunsOut: true })
+            && Check("and on a working morning with days left, it says when to resume", advised!.HasAdvice))
         {
-            if (advised!.HasAdvice)
-            {
-                Check("the resume hour closes the week under its own target",
-                      advised.ResumeEndCum <= ActivityShape.AdviceTarget + 1e-9,
-                      $"closes at {advised.ResumeEndCum:0.0000}, target {ActivityShape.AdviceTarget:0.00}");
-                DateTime resume = DateTimeOffset.FromUnixTimeSeconds((long)advised.ResumeUnix).LocalDateTime;
-                Check("the resume hour is one the user actually works",
-                      working.At(resume) >= ActivityShape.IdleThreshold,
-                      $"p({resume:ddd HH:mm}) = {working.At(resume):0.00}");
-            }
-            else Skip("the resume hour closes the week under its own target",
-                      "no honest resume hour exists for this window, which is itself allowed");
+            Check("the resume hour closes the week under its own target",
+                  advised.ResumeEndCum <= ActivityShape.AdviceTarget + 1e-9,
+                  $"closes at {advised.ResumeEndCum:0.0000}, target {ActivityShape.AdviceTarget:0.00}");
+            DateTime resume = DateTimeOffset.FromUnixTimeSeconds((long)advised.ResumeUnix).LocalDateTime;
+            Check("the resume hour is one the user actually works",
+                  working.At(resume) >= ActivityShape.IdleThreshold,
+                  $"p({resume:ddd HH:mm}) = {working.At(resume):0.00}");
         }
 
         // The gate in front of all of it: a confident-looking staircase drawn on one week of data is

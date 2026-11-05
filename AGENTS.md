@@ -190,7 +190,8 @@ ClaudeTray.exe --selftest [--quick]      # exit 1 on failure — run it before c
 - **A change to a *document* needs no rebuild at all** — the repo-reading checks open their files at run
   time, so `--no-build` re-answers them in ~8s. T354's red marker was found and fixed that way (T345).
 - Everything it **writes** is synthetic and removed: a temp transcript tree and a `selftest` profile
-  dir. A real profile's stores are never read or written, and the repository files above are only read.
+  dir. A real profile's stores are never written; `ObservingTray` *reads* the real `~/.claude` and the
+  shared caches, to prove an observing tray writes nothing there. The repository files are only read.
 - **A check is not finished until it has been seen to fail.** Break the property deliberately, watch the
   assertion go red, then revert. Doing it is what shows *which* assertion catches what — T153's three
   broken builds are why the append-after-a-primed-read pair exists at all. An assertion that has only

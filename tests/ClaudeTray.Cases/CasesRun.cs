@@ -76,10 +76,15 @@ public sealed class CasesRun(TheMachine machine)
         var desk = Desk.Read();
         if (!desk.CanObserve)
         {
-            // Named rather than skipped silently. A run that could observe nothing is a third
-            // verdict, and a test framework with no word for it gets the closest honest thing: a
-            // pass that says out loud it checked nothing.
-            Assert.True(true, $"nothing ran: this desk lacks {desk.FirstAbsent!.Name}");
+            // A run that could observe nothing is a third verdict — a hole, never a pass (T201) — and
+            // xUnit 2 has no word for it. `Assert.True(true, why)` was green with zero cases run, and
+            // xUnit shows that message only on a failure, so the sentence reached nobody (T428).
+            // Printed where a green run is read, as T403 does for the verdict; and red on CI, the one
+            // desk that must observe (T194), where a blind runner means the gate stopped gating.
+            string hole = $"nothing ran, which is a hole and not a pass: this desk lacks {desk.FirstAbsent!.Name}";
+            Console.WriteLine(hole);
+            Assert.False(string.Equals(Environment.GetEnvironmentVariable("CI"), "true",
+                                       StringComparison.OrdinalIgnoreCase), hole);
             return;
         }
 

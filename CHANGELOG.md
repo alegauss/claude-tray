@@ -51,7 +51,7 @@
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
-| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
+| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags (active — see ROADMAP) |
 | [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did (active — see ROADMAP) |
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
@@ -711,6 +711,7 @@
 - **T400** — The link check waits a minute for each mklink and names a hang apart from a refusal, so a slow machine no longer turns the self-test red with nothing changed.
 - **T403** — The case run prints its line per case on every run, green included, and run-cases.cmd logs at the verbosity that shows it, so a guest run names its holes.
 - **T427** — The self-test's PowerShell and junction helpers run through ChildRun and the case run's --profiles count reads both streams alongside its wait, so a hung child fails at its bound.
+- **T428** — The resume-hour pair runs on a fixed working-morning clock with no allowed skip, a blind case-run desk prints its hole and fails on CI, and AGENTS.md says ObservingTray reads the real tree.
 
 ## Block AJ — Working here — the repo's own docs and flags
 
