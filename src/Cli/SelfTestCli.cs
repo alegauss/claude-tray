@@ -156,6 +156,7 @@ internal static partial class SelfTestCli
         Section("lang — five files, one key set and one set of holes (Block AF)");
         Translations();
         Repo("no code picks a counted string by == 1 instead of L.N", NoHandRolledPlural, "src");
+        if (RepoFile("AGENTS.md") is not null) RepoThrows();
 
         Section("keys — every key the code names is one the table holds (Block AI)");
         KeyScanning();
@@ -1075,7 +1076,10 @@ internal static partial class SelfTestCli
                    "copy, so it is red rather than a skip (T251)"))
             return;
 
-        assert(root);
+        // A check that throws is one red line among the rest (T446), as a Temp section's is: unwrapped,
+        // it ended the process before the summary and every section after it.
+        try { assert(root); }
+        catch (Exception e) { Fail($"{claim} — the check threw", $"{e.GetType().Name}: {e.Message}"); }
     }
 
     /// <summary>The claims <see cref="Repo"/> stood down this run, so the allowance is derived from the
@@ -1388,6 +1392,29 @@ internal static partial class SelfTestCli
     {
         Skipped.Add((name, why));
         Console.WriteLine($"  skip  {name} — {why}");
+    }
+
+    /// <summary>
+    /// T446: a repository check that throws is reported as a failure of its own and the run goes on. Driven
+    /// with a check that throws on purpose, and the failure it records is taken back out afterwards, so a
+    /// suite that is otherwise green stays green while the wrap is what is being shown to work.
+    /// </summary>
+    private static void RepoThrows()
+    {
+        int failedBefore = _failed, linesBefore = Failures.Count;
+        bool reachedAfter = false;
+        try
+        {
+            Repo("a check written to throw", _ => throw new InvalidOperationException("thrown on purpose"), "AGENTS.md");
+            reachedAfter = true;
+        }
+        catch { /* the wrap missing: the throw escaped Repo */ }
+        bool recorded = _failed == failedBefore + 1 && Failures.Count == linesBefore + 1
+                        && Failures[^1].Contains("the check threw", StringComparison.Ordinal);
+        if (recorded) { _failed--; Failures.RemoveAt(Failures.Count - 1); }
+        Console.WriteLine("        (the FAIL above was provoked on purpose and is not counted)");
+        Check("a repository check that throws is one failure among the rest, and the run goes on",
+              reachedAfter && recorded, $"returned={reachedAfter} recorded={recorded}");
     }
 
     private static void Fail(string name, string detail)

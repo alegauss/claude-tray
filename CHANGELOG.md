@@ -725,6 +725,7 @@
 - **T403** — The case run prints its line per case on every run, green included, and run-cases.cmd logs at the verbosity that shows it, so a guest run names its holes.
 - **T427** — The self-test's PowerShell and junction helpers run through ChildRun and the case run's --profiles count reads both streams alongside its wait, so a hung child fails at its bound.
 - **T428** — The resume-hour pair runs on a fixed working-morning clock with no allowed skip, a blind case-run desk prints its hole and fails on CI, and AGENTS.md says ObservingTray reads the real tree.
+- **T446** — A repository check that throws is reported as one failure naming the claim and the exception, and the rest of the suite runs on to its summary.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

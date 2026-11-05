@@ -926,20 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.28 A repository check that throws (T446)
-
-`SelfTestCli.Repo` (SelfTestCli.cs:1026) calls its assert with no `try`. Every `Temp` section is
-wrapped (`Temp` turns a throw into "the section threw" and carries on), but a repository check is
-not, so one that throws ends the process in an unhandled exception: no summary line, no named skips,
-and whatever sections come after it never run. Found while writing T431's licence check, whose first
-draft parsed `lang/*.json` without skipping comments and took the whole suite down at that line.
-
-The exit code is still non-zero, so CI goes red, but the report a reader needs is the one thing that
-is missing: which claim threw, and what the rest of the suite would have said. Wrap the call the way
-`Temp` does — a throw becomes a `Fail` naming the claim and the exception's message — so a broken
-check is one red line among the rest. A deliberate throw inside a `Repo` assert is the check that
-this works, seen to fail without the wrap.
-
 ### CXI.29 The counted strings T432 did not name (T447)
 
 T432 converted the thirteen strings its audit named. A sweep of `lang/en.json` for a placeholder

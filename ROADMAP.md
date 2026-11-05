@@ -46,7 +46,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T446** (deps: —) **A repository check that throws ends --selftest with an unhandled exception and no summary** — SelfTestCli.Repo calls its assert with no try, unlike Temp, so a repository check that throws ends the process before the summary and every later section. → §CXI.28
 - 📋 **T448** (deps: —) (requires: winwright-ww610) **No case proves a Sessions row or the chart strip opens on Enter or Space** — T438's focusable rows open on Enter or Space, but winwright's press cannot focus an element and press Enter there (WW610), so no case holds the keyboard path. → §CXI.30
 
 ## Block B — Packaging, self-update, CI
