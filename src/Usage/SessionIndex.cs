@@ -210,10 +210,13 @@ internal static class SessionIndex
         int kept = 0;
         var others = new List<FileEntry>();
         double keepFrom = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - RetainDays * 86400.0;
+        // The walk reports files under the root's target when the root is a junction (T420), so "mine" is
+        // asked of that path too — against the root as given, no entry behind a junction was ever Gone.
+        string real = SafeWalk.RealPath(root);
         foreach (FileEntry e in known.Values)
         {
             if (swept.ContainsKey(e.Path)) continue;
-            if (!Under(root, e.Path)) { others.Add(e); continue; }
+            if (!Under(root, e.Path) && !Under(real, e.Path)) { others.Add(e); continue; }
             if (!e.Gone && File.Exists(e.Path)) continue;   // on disk and unwalked: a capped walk, not a deletion
             if (e.Last < keepFrom) continue;
             e.Gone = true;

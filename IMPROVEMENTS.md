@@ -926,19 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.2 Deleted conversations behind a junctioned projects tree (T420)
-
-`SafeWalk` resolves the root it is given (SafeWalk.cs:90), so on a profile whose `projects` folder
-is a junction every walked path lives under the target, and `SessionIndex.Under(root, path)`
-(SessionIndex.cs:239), a plain `StartsWith` on the unresolved root, is false for all of them. Each
-cached entry then goes to `others` (:216): it is never marked `Gone`, never kept for `RetainDays`,
-never pruned, and is written back to `session-index.json` on every scan.
-
-That is the retain-deleted promise of T393 failing on exactly the layout T365 set up on this machine
-(`~\.claude-pessoal\projects` is a junction into `~\.claude\projects`). No selftest covers a
-junctioned root: the two-tree check in SelfTestCli.Transcripts.cs:496 uses a plain second directory.
-The fix compares against the resolved root, and the check needs a junction fixture.
-
 ### CXI.3 Two readers that ignore the monitored profile (T421)
 
 `UsageInsights.ProjectsDir` is `%USERPROFILE%\.claude\projects` (UsageInsights.cs:26) and `Compute`

@@ -109,6 +109,12 @@ internal static class SafeWalk
         }
     }
 
+    /// <summary>The path a walk of <paramref name="root"/> reports its files under (T420): the root with
+    /// its own reparse points followed, as <see cref="Descend"/> does before yielding it. A caller that
+    /// asks "is this walked path under my root" has to ask it of this, or every path behind a junctioned
+    /// root reads as somebody else's.</summary>
+    public static string RealPath(string root) => Resolve(new DirectoryInfo(root)).FullName;
+
     private static DirectoryInfo[]? Children(DirectoryInfo dir)
     {
         try { return dir.GetDirectories(); }

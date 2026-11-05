@@ -561,6 +561,47 @@ internal static partial class SelfTestCli
               after.Count == 1 && after[0].Calls == 2, after.Count == 0 ? "no row" : $"{after[0].Calls} calls");
     }
 
+    /// <summary>
+    /// T420: T393's kept row, on the layout a second profile has here — its <c>projects</c> a junction into
+    /// the first's. The walk reports every file under the junction's target, so a "mine" test against the
+    /// root as given put each cached entry with another profile's: never marked gone, never pruned.
+    /// </summary>
+    private static void JunctionedGone(string root)
+    {
+        string real = Path.Combine(root, "real", "projects");
+        string slug = Path.Combine(real, "d--selftest");
+        Directory.CreateDirectory(slug);
+        string link = Path.Combine(root, "linked");
+        Directory.CreateDirectory(link);
+        string projects = Path.Combine(link, "projects");
+        if (Junction(projects, real) is { } refusal)
+        {
+            Skip("a deleted conversation behind a junctioned tree keeps its row, marked as gone",
+                 "no junction could be created here: " + refusal);
+            return;
+        }
+
+        try { JunctionedGone(root, slug, projects); }
+        finally { Directory.Delete(projects); }   // the link alone, before the temp tree is removed under it
+    }
+
+    private static void JunctionedGone(string root, string slug, string projects)
+    {
+        string cache = Path.Combine(root, "session-index.json");
+        File.WriteAllText(Path.Combine(slug, "sess-j.jsonl"), Turn(DateTime.Now, "req-j", 300) + "\n");
+        IReadOnlyList<SessionRow> cold = SessionIndex.Load(projectsDir: projects, cacheFile: cache);
+        if (!Check("a conversation behind a junctioned tree is read", cold.Count == 1, $"{cold.Count} rows")) return;
+
+        File.Delete(Path.Combine(slug, "sess-j.jsonl"));
+        IReadOnlyList<SessionRow> kept = SessionIndex.Load(out SessionScanStats after, projectsDir: projects,
+                                                            cacheFile: cache);
+        Check("a deleted conversation behind a junctioned tree keeps its row, marked as gone",
+              kept.Count == 1 && kept[0].Gone && after.Kept == 1, $"{kept.Count} rows, {after.Kept} kept");
+        Check("and forgetting it empties the cache rather than writing it back",
+              SessionIndex.ForgetGone(cache) == 1 && SessionIndex.KeptSummary(cache) == (0, 0),
+              SessionIndex.KeptSummary(cache).ToString());
+    }
+
     /// <summary>One <c>user</c> line carrying one text block — the shape §I.1's amended exception reads,
     /// and the only line type in this file that is not a turn.</summary>
     private static string Prompt(string text)

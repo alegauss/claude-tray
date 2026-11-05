@@ -386,6 +386,9 @@ internal static partial class SelfTestCli
             Section("sessions — a transcript being written (Block L)");
             Temp(Live);
 
+            Section("sessions — a deleted conversation behind a junctioned tree (Block AK)");
+            Temp(JunctionedGone);
+
             Section("sessions — the one field a person wrote (Block AK)");
             Temp(OpeningPrompt);
 

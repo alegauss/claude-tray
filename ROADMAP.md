@@ -56,7 +56,6 @@
 
 ## Block AK — Sessions — what one conversation cost, and what it did
 
-- 📋 **T420** (deps: —) **A conversation whose transcript was deleted is never marked deleted when projects is a junction** — Under() compares the cached path with the resolved root by StartsWith, so behind a junctioned projects tree no row is ever Gone and the cache only grows. → §CXI.2
 - 📋 **T422** (deps: —) **The Context page and the Sessions list price the same tokens at different rates** — UsageInsights.Price keeps a rate card of its own beside ListPrices, which T346 and T401 maintain, so only one of the two is ever updated. → §CXI.4
 - 📋 **T436** (deps: —) **An open call tree on the Sessions pane collapses on every poll** — Render reloads the sessions list on each poll even when no row changed, which T118 stopped for the pace report and the Sessions pane of T329 brought back. → §CXI.18
 

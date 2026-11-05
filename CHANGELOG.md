@@ -763,6 +763,7 @@
 - **T399** — Opus 5.5, Sonnet 5.5 and Haiku 5.5 have rows of their own, so Opus 5.5 is no longer priced through the Opus 5 prefix and Haiku 5.5 calls are no longer left out of the figure.
 - **T401** — Every row now carries the cache-read multiple the card gives it, Fable 5.1 and Mythos 5.1 have rows of their own, and Sonnet 5 is at the $2/$10 that became standard (design §CVI.12 recorded in `src/Usage/ListPrices.cs`).
 - **T402** — A Haiku 5.5 call whose prompt passes 100K tokens is summed under a key of its own and priced at the dearer row the card gives that tier.
+- **T420** — SessionIndex asks whether a cached entry is its own of the walked root's real path too, so behind a junctioned projects tree a deleted conversation is kept and marked gone, and Forget empties it.
 
 ## Block AL — The site is a workspace, not a page
 
