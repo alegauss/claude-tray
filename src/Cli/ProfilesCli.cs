@@ -59,19 +59,7 @@ internal static class ProfilesCli
                               + $" -> {TrayContext.LaunchCommandFor(p)}");
             // What the launch does to the config dir — the three cases, because "nothing" and "remove
             // the inherited one" look identical from the outside and mean opposite things (T144).
-            Console.WriteLine("             "
-                              + (p.IsWsl ? WslProfiles.LaunchArguments(p.ConfigDir, TrayContext.LaunchCommandFor(p))
-                                           + "   (inside the distro, no Windows CLAUDE_CONFIG_DIR)" : null)
-                              ?? ClaudeAccount.ActionFor(p.ConfigDir) switch
-                              {
-                                  ClaudeAccount.ConfigDirAction.Set => $"CLAUDE_CONFIG_DIR={p.ConfigDir}",
-                                  ClaudeAccount.ConfigDirAction.Unset =>
-                                      "CLAUDE_CONFIG_DIR removed — inherited "
-                                      + $"{Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR")} would select another profile",
-                                  _ => "no CLAUDE_CONFIG_DIR — this is the dir a bare `claude` already uses",
-                              }
-                              + $"   cwd {workDir}"
-                              + (Directory.Exists(workDir) ? "" : "  (missing — OS default applies)"));
+            Console.WriteLine("             " + LaunchLine(p, workDir));
             // The identity band the icon wears while this profile owns it (T147) — printed so the
             // mapping can be checked without driving the taskbar.
             int slot = TrayContext.AccentSlotFor(profiles, p);
@@ -175,6 +163,30 @@ internal static class ProfilesCli
                 Console.WriteLine("auto-follow can say nothing on this machine: every followable profile's "
                                   + "transcripts are shared, so no reading is evidence about one of them");
         }
+    }
+
+    /// <summary>
+    /// What a launch does to the config dir, and where it starts — the line T144 made the read-out's
+    /// statement of a launch. The three <c>CLAUDE_CONFIG_DIR</c> cases are spelled out because "nothing"
+    /// and "remove the inherited one" look identical from outside and mean opposite things.
+    ///
+    /// <para>A method of its own since T424: written inline as <c>"indent" + (wsl ? … : null) ?? switch</c>,
+    /// the <c>+</c> bound first, so the left of <c>??</c> was never null and the line printed blank.</para>
+    /// </summary>
+    internal static string LaunchLine(ClaudeInfo p, string workDir)
+    {
+        string action = p.IsWsl
+            ? WslProfiles.LaunchArguments(p.ConfigDir, TrayContext.LaunchCommandFor(p))
+              + "   (inside the distro, no Windows CLAUDE_CONFIG_DIR)"
+            : ClaudeAccount.ActionFor(p.ConfigDir) switch
+            {
+                ClaudeAccount.ConfigDirAction.Set => $"CLAUDE_CONFIG_DIR={p.ConfigDir}",
+                ClaudeAccount.ConfigDirAction.Unset =>
+                    "CLAUDE_CONFIG_DIR removed — inherited "
+                    + $"{Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR")} would select another profile",
+                _ => "no CLAUDE_CONFIG_DIR — this is the dir a bare `claude` already uses",
+            };
+        return action + $"   cwd {workDir}" + (Directory.Exists(workDir) ? "" : "  (missing — OS default applies)");
     }
 
     /// <summary>

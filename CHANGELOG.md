@@ -611,6 +611,7 @@
 - **T407** — A Settings save reconciles CLAUDE_CONFIG_DIR only when it moves auto-follow or the machine-wide switch, so a restart, whose pin is gone from memory, no longer lets an unrelated Save restore the variable to unset.
 - **T408** — Picking the profile the icon already shows pins it and writes CLAUDE_CONFIG_DIR, so after a restart the menu can take the variable back without picking another profile first.
 - **T421** — Usage insights, the Context scan, its watcher and its usage pass read the monitored profile's own tree, and the scan's history and nudges file under the key taken with it.
+- **T424** — --profiles prints each profile's CLAUDE_CONFIG_DIR action and launch cwd, built by ProfilesCli.LaunchLine with the ternary bound before ??, and the self-test reads both cases back.
 
 ## Block N — System information
 

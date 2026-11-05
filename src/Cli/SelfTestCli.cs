@@ -396,6 +396,9 @@ internal static partial class SelfTestCli
             Temp(ProfileTrees);
             Repo("no tray or window code scans a fixed ~/.claude", NoFixedRoot, "src/Tray", "src/Ui");
 
+            Section("profiles — what --profiles says a launch does (Block O)");
+            Temp(LaunchLineReadOut);
+
             Section("sessions — the one field a person wrote (Block AK)");
             Temp(OpeningPrompt);
 

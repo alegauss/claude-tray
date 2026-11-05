@@ -926,17 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.6 The --profiles line that never prints (T424)
-
-ProfilesCli.cs:62 builds the continuation line as `"             " + (p.IsWsl ? ... : null) ??
-ClaudeAccount.ActionFor(...) switch { ... } + $"   cwd {workDir}"`. C# parses that as `("   " + x)
-?? (...)`, and the left side is a non-null string whatever `x` is, so the right side never runs.
-
-For a Windows profile the line is whitespace; for a WSL one the cwd is missing. The three
-`CLAUDE_CONFIG_DIR` cases, including the warning that an inherited dir would select another profile,
-and the missing-cwd note never reach the read-out that T144 made the app's statement of what a
-launch does. Parenthesise the ternary, and give `--profiles` a selftest that reads the line back.
-
 ### CXI.7 The --context read-out's exits and its filter (T425)
 
 T261 made `ReadOut.Failed` the rule for this surface: a read-out that could not start exits 1

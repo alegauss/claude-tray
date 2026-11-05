@@ -48,7 +48,6 @@
 
 ## Block O — Profiles
 
-- 📋 **T424** (deps: —) **--profiles prints a blank line where a profile's CLAUDE_CONFIG_DIR action and launch cwd belong** — The + binds tighter than ??, so the indent joined to a null ternary is never null and the ActionFor switch that carries the line is never reached. → §CXI.6
 - 📋 **T426** (deps: —) **The tray freezes while a wedged wsl.exe is listed, and a stuck sign-in check is never stopped** — WslProfiles reads wsl.exe to the end on the UI thread before its timed wait, and the auth check's timeout neither kills its child nor drains stderr. → §CXI.8
 - 📋 **T443** (deps: —) **A profile's readings and alarms reset when Claude Code is caught mid-rewrite of its .claude.json** — A torn read finds no oauthAccount, so the store key falls back from the account to the config-dir digest and RefreshWatched treats it as a profile switch. → §CXI.25
 

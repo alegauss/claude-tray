@@ -625,6 +625,22 @@ internal static partial class SelfTestCli
               && new ProfileRef("", "").ClaudeRoot == ContextScanner.DefaultClaudeRoot);
     }
 
+    /// <summary>T424: the <c>--profiles</c> line that states what a launch does to <c>CLAUDE_CONFIG_DIR</c> and
+    /// where it starts. It printed blank for every Windows profile, so it is read back here, both cases.</summary>
+    private static void LaunchLineReadOut(string root)
+    {
+        string dir = Path.Combine(root, "other-profile");
+        string line = ProfilesCli.LaunchLine(new ClaudeInfo { ConfigDir = dir }, root);
+        Check("a second profile's launch line names the CLAUDE_CONFIG_DIR it sets, and the cwd",
+              line.StartsWith($"CLAUDE_CONFIG_DIR={dir}", StringComparison.Ordinal)
+              && line.Contains($"cwd {root}", StringComparison.Ordinal) && !line.Contains("missing"), line);
+        string gone = Path.Combine(root, "no-such-dir");
+        string inherit = ProfilesCli.LaunchLine(new ClaudeInfo { ConfigDir = "" }, gone);
+        Check("the default profile's line says it sets nothing, and a missing cwd says so",
+              inherit.StartsWith("no CLAUDE_CONFIG_DIR", StringComparison.Ordinal)
+              && inherit.Contains("missing", StringComparison.Ordinal), inherit);
+    }
+
     /// <summary>T421, the other half: no tray or window code reads a fixed <c>~/.claude</c>. Every scan there
     /// files under the monitored profile's key, so a fixed root hands that profile the default's numbers.</summary>
     private static void NoFixedRoot(string root)
