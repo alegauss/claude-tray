@@ -131,7 +131,11 @@ internal static class ContextUsage
     // Through Settings.DataDir, not by composing the store root again (T354): this cache is
     // deliberately shared across profiles, but where the store lives is one fact and this file
     // is not the place it is decided.
-    private static string CachePath => Path.Combine(Settings.DataDir, "context-usage.json");
+    //
+    // T441: the entries carry each call's own time, not a count per file, so the file is a new one — an
+    // old entry has no times to read, and the name it lived under is removed on the first save.
+    private static string CachePath => Path.Combine(Settings.DataDir, "context-usage-calls.json");
+    private static string OldCachePath => Path.Combine(Settings.DataDir, "context-usage.json");
 
     /// <summary>Mine the transcripts. Safe on a background thread; never throws.</summary>
     public static UsageEvidence Compute(DateTime nowUtc, Options? options = null)
@@ -187,7 +191,7 @@ internal static class ContextUsage
                     if (cache.TryGetValue(f.FullName, out CacheEntry? hit) &&
                         hit.Bytes == f.Length && hit.Ticks == f.LastWriteTimeUtc.Ticks)
                     {
-                        perFile[i] = new FileCounts(hit.Skills, hit.Agents, f.LastWriteTimeUtc, 0);
+                        perFile[i] = new FileCounts(hit.Skills, hit.Agents, 0);
                         lock (fresh) fresh[f.FullName] = hit;
                         return;
                     }
@@ -210,14 +214,17 @@ internal static class ContextUsage
                         };
                 });
 
+            double recentFrom = new DateTimeOffset(recentCutoff, TimeSpan.Zero).ToUnixTimeSeconds();
             foreach (FileCounts? counts in perFile)
             {
                 if (counts is null) continue;
+                // A file that could not be read whole is not a file read (T441): counting it made the
+                // pass Complete, and a Complete pass is what lets a zero be reported as "never".
+                if (!counts.Whole) continue;
                 evidence.FilesRead++;
                 evidence.BytesRead += counts.BytesRead;
-                bool recent = counts.WhenUtc >= recentCutoff;
-                Merge(evidence.Skills, counts.Skills, counts.WhenUtc, recent);
-                Merge(evidence.Agents, counts.Agents, counts.WhenUtc, recent);
+                Merge(evidence.Skills, counts.Skills, recentFrom);
+                Merge(evidence.Agents, counts.Agents, recentFrom);
             }
 
             evidence.Complete = !timedOut && evidence.FilesRead == files.Count;
@@ -233,21 +240,27 @@ internal static class ContextUsage
         return evidence;
     }
 
-    private static void Merge(Dictionary<string, UsageStat> into, Dictionary<string, int> counts,
-        DateTime whenUtc, bool recent)
+    // Each call by its own time (T441). The file's mtime used to stand for every call in it, so a session
+    // touched today dated a call from last month as today and counted it as recent.
+    private static void Merge(Dictionary<string, UsageStat> into, Dictionary<string, List<long>> calls,
+        double recentFrom)
     {
-        foreach ((string name, int n) in counts)
+        foreach ((string name, List<long> times) in calls)
         {
             if (!into.TryGetValue(name, out UsageStat? stat))
                 into[name] = stat = new UsageStat();
-            stat.Total += n;
-            if (recent) stat.Recent += n;
-            if (whenUtc > stat.LastUsedUtc) stat.LastUsedUtc = whenUtc;
+            foreach (long t in times)
+            {
+                stat.Total++;
+                if (t >= recentFrom) stat.Recent++;
+                DateTime when = DateTimeOffset.FromUnixTimeSeconds(t).UtcDateTime;
+                if (when > stat.LastUsedUtc) stat.LastUsedUtc = when;
+            }
         }
     }
 
     private sealed record FileCounts(
-        Dictionary<string, int> Skills, Dictionary<string, int> Agents, DateTime WhenUtc, long BytesRead,
+        Dictionary<string, List<long>> Skills, Dictionary<string, List<long>> Agents, long BytesRead,
         bool Whole = true);
 
     // The names of the tools whose invocation is the evidence. The agent tool has been called both
@@ -262,10 +275,12 @@ internal static class ContextUsage
     /// </summary>
     private static FileCounts CountFile(FileInfo file)
     {
-        var skills = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var agents = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var skills = new Dictionary<string, List<long>>(StringComparer.OrdinalIgnoreCase);
+        var agents = new Dictionary<string, List<long>>(StringComparer.OrdinalIgnoreCase);
         long bytes = 0;
         bool whole = false;
+        // A line with no timestamp is dated by the file, the one time there is for it.
+        long fileTime = new DateTimeOffset(file.LastWriteTimeUtc, TimeSpan.Zero).ToUnixTimeSeconds();
 
         try
         {
@@ -276,20 +291,27 @@ internal static class ContextUsage
                 if (!line.Contains("\"skill\"", StringComparison.OrdinalIgnoreCase) &&
                     !line.Contains("\"subagent_type\"", StringComparison.Ordinal)) continue;
 
-                CountLine(line, skills, agents);
+                CountLine(line, skills, agents, fileTime);
             }
             whole = true;
         }
         catch { /* an unreadable file, or one deleted mid-read — count what we got */ }
 
-        return new FileCounts(skills, agents, file.LastWriteTimeUtc, bytes, whole);
+        return new FileCounts(skills, agents, bytes, whole);
     }
 
-    private static void CountLine(string line, Dictionary<string, int> skills, Dictionary<string, int> agents)
+    internal static void CountLine(string line, Dictionary<string, List<long>> skills,
+        Dictionary<string, List<long>> agents, long fallbackTime)
     {
         try
         {
             using JsonDocument doc = JsonDocument.Parse(line);
+            long when = doc.RootElement.TryGetProperty("timestamp", out JsonElement ts)
+                        && ts.ValueKind == JsonValueKind.String
+                        && DateTimeOffset.TryParse(ts.GetString(), System.Globalization.CultureInfo.InvariantCulture,
+                                                   System.Globalization.DateTimeStyles.AssumeUniversal, out DateTimeOffset at)
+                ? at.ToUnixTimeSeconds()
+                : fallbackTime;
             if (!doc.RootElement.TryGetProperty("message", out JsonElement msg) ||
                 msg.ValueKind != JsonValueKind.Object) return;
             if (!msg.TryGetProperty("content", out JsonElement content) ||
@@ -308,11 +330,13 @@ internal static class ContextUsage
                 // `input` is touched — see the privacy note on UsageEvidence.
                 if (tool == SkillTool)
                 {
-                    if (Named(input, "skill") is { Length: > 0 } skill) Bump(skills, skill);
+                    // Under the skill's own name (T441): a plugin's skill is called as `plugin:skill`, and the
+                    // source it is matched to is named by its frontmatter, which carries no prefix.
+                    if (Named(input, "skill") is { Length: > 0 } skill) Bump(skills, Bare(skill), when);
                 }
                 else if (AgentTools.Contains(tool))
                 {
-                    if (Named(input, "subagent_type") is { Length: > 0 } agent) Bump(agents, agent);
+                    if (Named(input, "subagent_type") is { Length: > 0 } agent) Bump(agents, agent, when);
                 }
             }
         }
@@ -324,8 +348,18 @@ internal static class ContextUsage
             ? v.GetString()?.Trim().ToLowerInvariant()
             : null;
 
-    private static void Bump(Dictionary<string, int> counts, string name)
-        => counts[name] = counts.TryGetValue(name, out int n) ? n + 1 : 1;
+    private static void Bump(Dictionary<string, List<long>> calls, string name, long when)
+    {
+        if (!calls.TryGetValue(name, out List<long>? times)) calls[name] = times = new List<long>();
+        times.Add(when);
+    }
+
+    /// <summary>The part after the last colon: what `plugin:skill` names, without the plugin.</summary>
+    internal static string Bare(string name)
+    {
+        int colon = name.LastIndexOf(':');
+        return colon >= 0 ? name[(colon + 1)..] : name;
+    }
 
     // ---------------------------------------------------------------- cache
 
@@ -335,8 +369,8 @@ internal static class ContextUsage
         public string Path { get; set; } = "";
         public long Bytes { get; set; }
         public long Ticks { get; set; }
-        public Dictionary<string, int> Skills { get; set; } = new();
-        public Dictionary<string, int> Agents { get; set; } = new();
+        public Dictionary<string, List<long>> Skills { get; set; } = new();
+        public Dictionary<string, List<long>> Agents { get; set; } = new();
     }
 
     private static Dictionary<string, CacheEntry> LoadCache()
@@ -362,6 +396,7 @@ internal static class ContextUsage
         {
             StoreFile.CreateDirectory(Path.GetDirectoryName(CachePath)!);
             StoreFile.WriteAllText(CachePath, JsonSerializer.Serialize(entries));
+            StoreFile.Delete(OldCachePath);   // the counts-per-file cache this one replaced (T441)
         }
         catch { /* the cache is an optimization; failing to write it costs one slow pass */ }
     }

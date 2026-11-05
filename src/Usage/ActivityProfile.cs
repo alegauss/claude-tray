@@ -726,7 +726,7 @@ internal sealed class ActivityProfile
 
     /// <summary>
     /// Shared by every profile rather than stored per profile, for the same reason
-    /// <c>context-usage.json</c> is (see <see cref="ProfileStore"/>): entries are keyed by absolute
+    /// <c>context-usage-calls.json</c> is (see <see cref="ProfileStore"/>): entries are keyed by absolute
     /// transcript path plus a size+mtime fingerprint, so one profile's entry cannot be mistaken for
     /// another's, and two profiles pointing at the same tree share the work instead of repeating it.
     /// </summary>

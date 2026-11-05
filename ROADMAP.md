@@ -68,7 +68,6 @@
 
 ## Block I — Context Load Inspector
 
-- 📋 **T441** (deps: —) **The Context page calls skills never invoked that were used, and dates their last use by file time** — A transcript that fails to open counts as a complete zero, a plugin:skill call never matches the bare skill name, and WhenUtc is the file's mtime. → §CXI.23
 - 📋 **T442** (deps: —) **A project whose context has not changed in 60 days loses its drift readout** — ContextHistory writes a line only on change but reads a 60-day window, so a stable project's newest line falls outside it and Trend returns null. → §CXI.24
 
 ## Block L — Scan resilience

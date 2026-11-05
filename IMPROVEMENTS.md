@@ -926,24 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.23 Skill usage that says never (T441)
-
-Three faults in `ContextUsage`, each feeding the `never-invoked` advice (ContextRules.cs:421).
-
-`CountFile` opens with `File.ReadLines` and returns empty counts on failure (ContextUsage.cs:267,
-:277), yet `FilesRead` still increments (:213), `Complete` is set because every file was read
-(:220), and the zero is cached under the walk-time fingerprint (:203-204). T261 promised that a
-partial read is reported as one. T419 fixed the share mode (src/Core/SharedRead.cs) and keeps a
-failed read out of the cache; what is left here is that a failed open is never counted as read, nor
-complete.
-
-`Named` keeps the full `input.skill` value, while `Candidates` yields only the frontmatter name and
-the label tail (:99-105, :318), so a `plugin:skill` call, which this machine's transcripts do carry,
-never matches.
-
-`WhenUtc` is the transcript's mtime (:190, :279), so every call in a recently touched file counts as
-within 30 days and as last used today. That error leans toward more use, never toward a false never.
-
 ### CXI.24 A stable project's drift (T442)
 
 `ContextHistory.Record` skips a value equal to the last one (ContextHistory.cs:73-75), and `Trend`

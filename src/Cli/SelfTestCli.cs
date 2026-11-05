@@ -406,6 +406,9 @@ internal static partial class SelfTestCli
             Section("profiles — what --profiles says a launch does (Block O)");
             Temp(LaunchLineReadOut);
 
+            Section("context — what the never-invoked advice stands on (Block I)");
+            Temp(SkillUsage);
+
             Section("sessions — a poll that found nothing new leaves the list alone (Block AK)");
             SessionsUnmoved();
 

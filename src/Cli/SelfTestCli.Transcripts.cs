@@ -625,6 +625,41 @@ internal static partial class SelfTestCli
               && new ProfileRef("", "").ClaudeRoot == ContextScanner.DefaultClaudeRoot);
     }
 
+    /// <summary>
+    /// T441: what the Context page's "never invoked" stands on. A plugin's skill is called as
+    /// <c>plugin:skill</c> and has to match the skill named <c>skill</c>; a call is dated by its own line,
+    /// not by the file it sits in; and a transcript that could not be read leaves the pass incomplete, so
+    /// no zero is reported as "never".
+    /// </summary>
+    private static void SkillUsage(string root)
+    {
+        string slug = Path.Combine(root, "projects", "d--x");
+        Directory.CreateDirectory(slug);
+        DateTime old = DateTime.UtcNow.AddDays(-60);
+        string call = "{\"type\":\"assistant\",\"timestamp\":\"" + old.ToString("o", System.Globalization.CultureInfo.InvariantCulture)
+                      + "\",\"message\":{\"content\":[{\"type\":\"tool_use\",\"name\":\"Skill\",\"input\":{\"skill\":\"someplugin:tidy\"}}]}}";
+        File.WriteAllText(Path.Combine(slug, "s.jsonl"), call + "\n");   // written now, so its mtime is today
+        var tidy = new ContextSource { Kind = ContextKind.Skill, Name = "tidy", Label = "someplugin:tidy" };
+        var opt = new ContextUsage.Options { ClaudeRoot = root, UseCache = false };
+
+        UsageEvidence e = ContextUsage.Compute(DateTime.UtcNow, opt);
+        UsageStat? stat = e.For(tidy);
+        Check("a plugin's skill called as plugin:skill counts for the skill", stat is { Total: 1 },
+              stat is null ? "no match" : $"{stat.Total} calls");
+        Check("and the call is dated by its own line, not by the file's time",
+              stat is { Recent: 0 } s && Math.Abs((s.LastUsedUtc - old).TotalMinutes) < 1,
+              stat is null ? "no match" : $"recent {stat.Recent}, last used {stat.LastUsedUtc:u}");
+
+        string locked = Path.Combine(slug, "busy.jsonl");
+        File.WriteAllText(locked, call + "\n");
+        using (new FileStream(locked, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            UsageEvidence partial = ContextUsage.Compute(DateTime.UtcNow, opt);
+            Check("a transcript that could not be read leaves the pass incomplete, so no zero says never",
+                  !partial.Complete && !partial.CanReportZero(tidy), $"complete={partial.Complete}, read {partial.FilesRead}");
+        }
+    }
+
     /// <summary>T436: a poll that found the same conversations leaves the Sessions list alone, and one where a
     /// conversation moved does not — the test that decides whether an open call tree survives a poll.</summary>
     private static void SessionsUnmoved()

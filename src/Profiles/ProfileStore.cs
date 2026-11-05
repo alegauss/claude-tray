@@ -70,7 +70,7 @@ internal static class ProfileStore
     /// The files that belong to one profile and were, until now, one per machine.
     ///
     /// <para>Two stores are deliberately **not** here. <c>context-cache.json</c> and
-    /// <c>context-usage.json</c> are keyed by absolute file path plus a size+mtime fingerprint, so an
+    /// <c>context-usage-calls.json</c> are keyed by absolute file path plus a size+mtime fingerprint, so an
     /// entry for one profile's <c>CLAUDE.md</c> cannot be mistaken for another's — sharing them costs
     /// nothing and saves rescanning what two profiles genuinely have in common. <c>settings.json</c> is
     /// the tray's own configuration, which is per machine by definition.</para>

@@ -259,6 +259,7 @@
 - **T268** — The word Measured names one quantity in that document again: the summary row that meant sources the scan kept is now two rows, Files walked and Sources kept, which also gives the capped-walk caveat above the table the two figures that show its shape - 1021 against 881 on the machine that produced the task. The scan header says files walked, so both artifacts of one scan share a vocabulary. The check names the word rather than sweeping for collisions, because the first draft of it fired on Findings, which is the same quantity at two scopes and misleads nobody - same word for the same thing is fine, and no regex tells that from the defect.
 - **T425** — --context exits 1 when its fixture, report or project filter fails, and a leaf name several projects share is refused with each candidate's full path.
 - **T435** — A Context rescan keeps the panes on screen, the All projects selection and the list's scroll, and a rescan asked for mid-scan runs once more instead of being dropped.
+- **T441** — The never-invoked advice counts a plugin:skill call for its skill, dates each call by its own line, and treats a transcript that could not be read as an incomplete pass rather than a zero.
 
 ## Block J — Activity-aware pacing
 
