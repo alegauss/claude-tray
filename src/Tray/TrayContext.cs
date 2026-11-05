@@ -653,7 +653,7 @@ internal sealed class TrayContext : ApplicationContext
         {
             void Line(string text) => parent.DropDownItems.Add(new ToolStripMenuItem(text) { Enabled = false });
 
-            Line(L.T("insights.summary", d.Requests, d.Sessions));
+            Line(L.T("insights.summary", L.N("insights.requests", d.Requests), L.N("insights.sessions", d.Sessions)));
             Line(L.T("insights.subagents", Pct(d.SubagentPct)));
             Line(L.T("insights.heavyContext", Pct(d.HeavyContextPct)));
             if (d.ByModel.Count > 0)

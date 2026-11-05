@@ -66,6 +66,7 @@ internal static partial class SelfTestCli
 
         Plurals(en);
         NoParenthesisedPlural();
+        CountedOnce();
     }
 
     /// <summary>
@@ -143,6 +144,45 @@ internal static partial class SelfTestCli
                                   .Order(StringComparer.Ordinal).ToArray();
         Check($"and every plural form takes the count ({stems.Length})", countless.Length == 0,
               Named(countless, "having no {0}, so it says what was counted and never how many"));
+    }
+
+    /// <summary>
+    /// T432: the counted strings that had one form, now pairs — and in every language the two forms are two
+    /// different sentences, since a <c>.one</c> pasted from its <c>.many</c> passes every check above and
+    /// still prints "1 conversations".
+    /// </summary>
+    private static void CountedOnce()
+    {
+        string[] stems =
+        {
+            "stats.sessions.count", "context.fix.count", "settings.sys.scopes", "stats.tasks.promptChars",
+            "context.observed.parts", "insights.requests", "insights.sessions", "context.projectCount",
+            "context.files", "context.sources", "context.memoryFiles", "stats.live.sessions",
+            "stats.live.scaleTipClipped",
+        };
+        string[] same = L.Codes
+            .SelectMany(code => stems
+                .Where(s => L.Strings(code).TryGetValue(s + L.Plural[0], out string? one)
+                            && L.Strings(code).TryGetValue(s + L.Plural[1], out string? many)
+                            && one == many)
+                .Select(s => $"{code}:{s}"))
+            .ToArray();
+        Check($"a count of one reads differently from a count of many ({stems.Length} strings, {L.Codes.Count} languages)",
+              same.Length == 0, Named(same, "whose .one is its .many, so one still reads as a plural"));
+    }
+
+    /// <summary>T432: no code picks a counted string by <c>== 1</c> itself — that is <c>L.N</c>'s job, and a
+    /// hand-rolled pair sits outside every check above.</summary>
+    private static void NoHandRolledPlural(string root)
+    {
+        var shape = new Regex(@"L\.T\(\s*[\w.]+\s*==\s*1\s*\?");
+        string[] hits = Directory.GetFiles(Path.Combine(root, "src"), "*.cs", SearchOption.AllDirectories)
+            .Where(f => !Path.GetFileName(f).StartsWith("SelfTestCli", StringComparison.Ordinal))
+            .SelectMany(f => File.ReadAllLines(f).Select((l, i) => (f, l, i)))
+            .Where(x => shape.IsMatch(x.l))
+            .Select(x => $"{Path.GetFileName(x.f)}:{x.i + 1}")
+            .ToArray();
+        Check("no code picks a counted string by == 1 instead of L.N", hits.Length == 0, string.Join(", ", hits));
     }
 
     // The keys of one table matching a predicate, ordered so the same gap reads the same way twice.

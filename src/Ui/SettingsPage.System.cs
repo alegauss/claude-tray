@@ -155,7 +155,7 @@ internal partial class SettingsPage
             ? L.T(exp > DateTime.Now ? "settings.sys.tokenValid" : "settings.sys.tokenExpired",
                   exp.ToString("g", culture))
             : Dash;
-        SysTokenSub.Text = c.ScopeCount > 0 ? L.T("settings.sys.scopes", c.ScopeCount) : "";
+        SysTokenSub.Text = c.ScopeCount > 0 ? L.N("settings.sys.scopes", c.ScopeCount) : "";
         SysTokenSub.Visibility = Shown(SysTokenSub.Text);
 
         // ---- The Claude Code installation ----

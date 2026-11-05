@@ -51,8 +51,7 @@ internal partial class StatisticsPage
     private static string ScaleTip(double ceiling, int clipped, double peak) =>
         clipped <= 0
             ? L.T("stats.live.scaleTip", Tick(ceiling))
-            : L.T(clipped == 1 ? "stats.live.scaleTipClipped1" : "stats.live.scaleTipClippedN",
-                  Tick(ceiling), clipped, Tick(peak));
+            : L.N("stats.live.scaleTipClipped", clipped, Tick(ceiling), Tick(peak));
 
     private static string Tick(double n) =>
         n >= 1_000_000 ? Num(n / 1e6, "0.##") + "M"

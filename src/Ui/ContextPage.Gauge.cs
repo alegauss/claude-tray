@@ -130,7 +130,7 @@ internal partial class ContextPage
         BuildDrift(row);
 
         int fixable = ProjectFindings(row).Count;
-        FixCount.Text = fixable > 0 ? L.T("context.fix.count", fixable) : L.T("context.fix.none");
+        FixCount.Text = fixable > 0 ? L.N("context.fix.count", fixable) : L.T("context.fix.none");
         FixHint.Text = L.T("context.fix.hint");
 
         // Caption: the total, its share of the window, and what loading it costs on a cold cache —

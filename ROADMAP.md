@@ -69,8 +69,8 @@
 
 ## Block G — Localization
 
-- 📋 **T432** (deps: —) **About a dozen counted strings have no singular, so a count of one reads as a plural** — The .one/.many rule (T376) is swept only for (s) suffixes and existing pairs (T378), so a single-form {0} count passes, and two hand-rolled 1/N keys bypass L.N. → §CXI.14
 - 📋 **T440** (deps: —) **Session dates ignore the language's field order, and a Thai system calendar dates files 543 years ahead** — SessionListRow formats MMM d, HH:mm itself instead of through Dates (T263), and yyyy-MM-dd elsewhere runs on the OS culture's calendar, not the invariant one. → §CXI.22
+- 📋 **T447** (deps: —) **About twenty more strings may print a count of one before a plural noun** — T432 fixed the strings its audit named, but a sweep of en.json finds about twenty more counts before a plural noun, and nothing checks the shape. → §CXI.29
 
 ## Block I — Context Load Inspector
 

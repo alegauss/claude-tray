@@ -301,7 +301,7 @@ internal partial class StatisticsPage
         SessionsEmpty.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
         if (empty)
             SessionsEmpty.Text = L.T(all.Count == 0 ? "stats.sessions.none" : "stats.sessions.noneInRange");
-        SessionsCount.Text = empty ? "" : L.T("stats.sessions.count", rows.Count);
+        SessionsCount.Text = empty ? "" : L.N("stats.sessions.count", rows.Count);
         SessionsPeak.Text = empty ? "" : PeakLine(shown, floor);
 
         // Which kind of work, over the same rows and the same range as everything else in this pane.

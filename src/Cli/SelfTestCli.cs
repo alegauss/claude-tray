@@ -153,6 +153,7 @@ internal static partial class SelfTestCli
 
         Section("lang — five files, one key set and one set of holes (Block AF)");
         Translations();
+        Repo("no code picks a counted string by == 1 instead of L.N", NoHandRolledPlural, "src");
 
         Section("keys — every key the code names is one the table holds (Block AI)");
         KeyScanning();

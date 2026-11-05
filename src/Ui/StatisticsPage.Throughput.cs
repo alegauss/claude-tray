@@ -210,7 +210,7 @@ internal partial class StatisticsPage
             ? L.T("stats.live.quiet")
             : L.T("stats.live.head", Rate(_live.TokensPerSecond),
                   Big(_live.Window.Total - _live.Window.CacheRead)) +
-              (sessions > 0 ? "  ·  " + L.T(sessions == 1 ? "stats.live.session1" : "stats.live.sessionN", sessions) : "");
+              (sessions > 0 ? "  ·  " + L.N("stats.live.sessions", sessions) : "");
         LiveHeadS.Text = LiveHeadW.Text = LiveHeadT.Text = head;
         ShowCacheReadNote(_live.CacheReadPerSecond, _live.TokensPerSecond);
 
@@ -438,7 +438,7 @@ internal partial class StatisticsPage
 
         LiveHeadS.Text = LiveHeadW.Text = LiveHeadT.Text =
             L.T("stats.live.head", Rate(demo.HeadRate), Big(demo.HeadTokens)) + "  ·  " +
-            L.T("stats.live.sessionN", demo.Sessions);
+            L.N("stats.live.sessions", demo.Sessions);
         ShowCacheReadNote(demo.CacheReadPerSecond, demo.HeadRate);
         RenderLive(animate: false);
 

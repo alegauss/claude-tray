@@ -69,12 +69,12 @@ public sealed class ProjectRow
             // Size rather than a file count: the footer already shows how many files were *walked*
             // (transcripts included), and two different file counts side by side read as a bug.
             if (IsAll)
-                return L.T("context.all.rowDetail", Scan.Projects.Count,
+                return L.T("context.all.rowDetail", L.N("context.projectCount", Scan.Projects.Count),
                     ContextText.Size(Scan.Shared.Sum(s => s.Bytes) + Scan.Projects.Sum(p => p.Bytes)));
 
             int memories = Project!.Sources.Count(s =>
                 s.Kind is ContextKind.MemoryFile or ContextKind.MemoryIndex);
-            string detail = L.T("context.project.detail", Project.Sources.Count, memories);
+            string detail = L.T("context.project.detail", L.N("context.sources", Project.Sources.Count), L.N("context.memoryFiles", memories));
             return Project.State switch
             {
                 PathState.Missing => detail + " · " + L.T("context.state.missing"),

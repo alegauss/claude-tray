@@ -926,24 +926,6 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.14 Counted strings with one form (T432)
-
-Strings that take a count through `L.T` with a single form: `stats.sessions.count`
-(StatisticsPage.Sessions.cs:304), `context.fix.count` (ContextPage.Gauge.cs:133,
-ContextPage.xaml.cs:439), `insights.summary` (TrayContext.cs:652), `settings.sys.scopes`
-(SettingsPage.System.cs:158), `context.footer`, `context.project.detail`, `context.all.rowDetail`
-and `context.observed.parts` (ContextPage.xaml.cs:341, :345, ProjectRow.cs:72, :77), and
-`stats.tasks.promptChars` (SessionListRow.cs:57). Each renders "1 conversations", "1 things", "1
-requests" and so on.
-
-`stats.live.session1`/`sessionN` and `scaleTipClipped1`/`N` (StatisticsPage.Throughput.cs:213,
-StatisticsPage.Format.cs:54) choose by `== 1` in code; their output is right in the five shipped
-languages but they sit outside the pair rule.
-
-The plural checks (SelfTestCli.Lang.cs:94-146) catch `(s)` shapes and look only at keys already
-ending in `.one`/`.many`, so none of these is red. `L.N` takes one count, so `insights.summary` and
-the other two-count strings need splitting into parts.
-
 ### CXI.15 Release notes and installer text (T433)
 
 T418 made `build/release-notes.md` the single source of a release's text: `update-release.cmd`
@@ -1110,3 +1092,23 @@ is missing: which claim threw, and what the rest of the suite would have said. W
 `Temp` does — a throw becomes a `Fail` naming the claim and the exception's message — so a broken
 check is one red line among the rest. A deliberate throw inside a `Repo` assert is the check that
 this works, seen to fail without the wrap.
+
+### CXI.29 The counted strings T432 did not name (T447)
+
+T432 converted the thirteen strings its audit named. A sweep of `lang/en.json` for a placeholder
+followed by a plural noun, on keys that are not `.one`/`.many`, finds about twenty more that may
+take a count of one: `settings.cost.stats`, `settings.cost.profiles`, `settings.cc.profileMax`,
+`settings.sys.profileCount`, `stats.sessions.peakMedian`, `stats.methodNote.shape`,
+`stats.methodNote.shapeMeasured`, `stats.methodNote.thin`, `stats.live.others`,
+`context.observed.none`, `context.health.stale`, `context.all.subtitle`, `context.all.dup`,
+`context.usage.tip`, `context.usage.neverTip`, `context.grade.tip`, `context.drift.up`,
+`context.drift.down` and `context.drift.building`.
+
+Some cannot be one: a duplicated memory names at least two projects, and a profile count is only
+shown with two or more. Each needs reading at its call site, not converting blind. The ones that can
+reach one become `.one`/`.many` pairs through `L.N`, split into parts where a string carries two
+counts, as T432 did for `context.footer`.
+
+Then the sweep itself becomes the check: the `en` regex T432 ran by hand, with an allow-list of the
+keys whose count is proven never to be one, each with the reason. That is what makes the next
+single-form count red at the commit that adds it.

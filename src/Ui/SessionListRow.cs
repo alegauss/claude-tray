@@ -54,7 +54,7 @@ public sealed class TaskLine
     private static string Name(TaskNode n) => n.Kind switch
     {
         TaskKind.Command => n.Label,
-        TaskKind.Prompt => n.Prompt.Length > 0 ? L.T("stats.tasks.prompt") : L.T("stats.tasks.promptChars", n.Chars),
+        TaskKind.Prompt => n.Prompt.Length > 0 ? L.T("stats.tasks.prompt") : L.N("stats.tasks.promptChars", n.Chars),
         TaskKind.Continuation => L.T("stats.tasks.inherited"),
         TaskKind.Workflow => L.T("stats.tasks.workflow", n.Label),
         _ => n.Label,

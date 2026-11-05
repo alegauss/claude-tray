@@ -345,11 +345,11 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
 
     // The page's two number-bearing sentences, out of the render so a check can call them (T216).
     private static string FooterText(int projects, int files, double elapsedMs, bool cached) =>
-        L.T("context.footer", projects, files, Nums.Of(elapsedMs, "0"),
+        L.T("context.footer", L.N("context.projectCount", projects), L.N("context.files", files), Nums.Of(elapsedMs, "0"),
             L.T(cached ? "context.footer.cached" : "context.footer.fresh"));
 
     private static string ObservedPartsText(int samples, int min, int max, double cost) =>
-        L.T("context.observed.parts", samples, TokenEstimate.Format(min), TokenEstimate.Format(max),
+        L.N("context.observed.parts", samples, TokenEstimate.Format(min), TokenEstimate.Format(max),
             Nums.Of(cost, "0.000"));
 
     private void ShowSelected()
@@ -443,7 +443,7 @@ internal partial class ContextPage : System.Windows.Controls.UserControl
         // no business advising about ~/.claude/settings.json.
         int machineWide = MachineFindings().Count;
         AllFixCount.Text = machineWide > 0
-            ? L.T("context.fix.count", machineWide)
+            ? L.N("context.fix.count", machineWide)
             : L.T("context.fix.none");
         AllFixHint.Text = L.T("context.fix.hint");
     }
