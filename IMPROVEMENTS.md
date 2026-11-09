@@ -61,6 +61,8 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
+## Block AQ — Where the Microsoft Store sends people: their language and the first run
+
 ## §I — House constraints
 
 Binding for every task. These are product decisions, not preferences — a task that violates one is
@@ -963,3 +965,92 @@ window before rendering it, or refuse the picture. Giving the app's windows an o
 would cost users Mica only to make pictures right. When WW611 ships, bump `Winwright` in
 `tests/ClaudeTray.Cases` (the harness here is still on 0.1.0-alpha.18 while `Winwright.InApp` is on
 1.1.5), re-run `preview.cmd shell` and look.
+
+## CXIII Where the Microsoft Store sends people (Block AQ)
+
+Partner Center's analytics, read on 2026-11-09 for 2026-10-30 to 2026-11-09, give the Store 164
+acquisitions in its first ten days with no promotion, 147 of them from inside the Store app. China
+(34) and Germany (15) are the first and fourth markets, and both see the listing in English. The
+funnel counts 328 page views, 64 acquisitions, 40 installs and 21 people who opened the app. This
+block is what those numbers ask of the app.
+
+### CXIII.1 Simplified Chinese and German (T453)
+
+**Why.** China gave 34 and Germany 15 of the first 164 Store acquisitions (Partner Center,
+2026-10-30 to 2026-11-09), the first and fourth markets, and the app answers both in English:
+`L.Languages` ships en, pt-BR, pt-PT, fr and es.
+
+**What.** Two files and two rows, as the summary on `L` (`src/Core/Localization.cs`) says a language
+is added:
+
+- `lang/zh-Hans.json` (Simplified Chinese), matched for `zh-CN`, `zh-SG` and `zh-Hans`; Traditional Chinese (`zh-TW`, 4 acquisitions) stays English for now and falls back cleanly.
+- `lang/de.json`, matched for any `de-*`, with `de-DE` dates.
+
+Every key translated, not machine-filled and left: the toast, the tooltip and the pace warning are
+the strings people read most. German runs about a third longer than English, so the tooltip budget
+(`Fit`, 127 characters) and the narrow cards of the main window and Statistics are checked in
+German. Chinese needs no font of its own (Segoe UI falls back to Microsoft YaHei), but the window is
+looked at in it once.
+
+**Done when** `SelfTestCli.Lang` passes for both languages, the Settings picker lists them by
+endonym (中文（简体）, Deutsch), an OS in either language opens the app in it, and the README and the site
+name the seven languages.
+
+### CXIII.2 The Store listing in Chinese and German (T454)
+
+**Why.** The Store offers a listing only in the languages the package declares, and
+`build/msix/AppxManifest.xml` declares en-us, pt-br, pt-pt, fr-fr and es-es. So a shopper in China
+or Germany, 49 of the first 164 acquisitions, reads the English page, searched by English keywords.
+
+**What.** Once the app speaks both languages:
+
+- `<Resource Language="zh-cn" />` and `<Resource Language="de-de" />` in the manifest.
+- Two sections in `build/msix/store-listing.md`, in the shape the scripts check: short description, description, features, captions, keywords and copyright. Keywords are what people type in the Store in that language (for German, words like "Nutzungslimit" and "Kontingent" beside "Claude Code"), not a translation of the English list.
+- `build/store-shots.ps1` captures the six screenshots in both languages, and `store-submit.ps1` sends them with the next submission.
+- `update-winget.ps1` may add the two locales to the winget manifest, if it carries more than one.
+
+**Done when** the Store page opens in Simplified Chinese and in German, with screenshots of the app
+in that language, and Partner Center's acquisitions by market can be compared before and after for
+China and Germany.
+
+### CXIII.3 The first launch says where the app went (T455)
+
+**Why.** Partner Center's funnel for 2026-10-30 to 2026-11-09 counts 40 people who installed from
+the Store and 21 who opened the app. The funnel lags and counts unique people, so the ratio is a
+hint, not a measure; but it fits what a Store install looks like. The person clicks Open, the app
+starts in the notification area, Windows 11 often hides a new icon in the overflow, and no window
+appears. From the outside nothing happened.
+
+**What.** The first launch after an install, and only that one, says where the app went:
+
+- a toast in the app's own words ("Claude Code Tray is in the notification area. Click the icon to see your limits"), with a button that opens the main window;
+- or the main window itself, once, closing to the tray as usual.
+
+Which of the two is the product's call; the toast is lighter, and the window shows the numbers at
+once. Either way, the first launch is remembered in settings, so a reinstall or an update says
+nothing. On a machine without Claude Code signed in, the same moment says so instead of showing an
+empty icon.
+
+**Done when** a clean install, from the MSIX and from the Inno installer, shows that first message
+once and never again, a case covers it, and the Store funnel's open rate can be compared over the
+four weeks after the release that carries it.
+
+### CXIII.4 The site and the README link to the Store (T456)
+
+**Why.** The app has been in the Microsoft Store since 2026-10-31
+(https://apps.microsoft.com/detail/9P27BHWNT56D), and there it is signed by the Store, updated by
+Windows and installed without a SmartScreen warning. It is also where people actually get it: 164
+acquisitions in the first ten days, against 43 visitors to the repository. Yet the site's Install
+section (`site/src/components/sections/Install.tsx`, `wingetCommand` in
+`site/src/lib/site-content.ts`), the README (lines 12 and 49) and `site/public/llms.txt` offer only
+`winget install` and the GitHub release, so a visitor who does not use a terminal is sent to the
+installer that SmartScreen warns about.
+
+**What.** The Store becomes the first way to install, with winget and the release after it:
+
+- the official "Get it from Microsoft" badge, in the visitor's language where the badge exists, linking to the Store page with a campaign id (`?cid=site`, `?cid=readme`), which Partner Center reports per campaign, so the site's share of acquisitions shows up there;
+- one line saying why: signed, updated by Windows, no SmartScreen warning;
+- the same in the README's first screen and its Install section, in `llms.txt`, and in the five languages the site already has.
+
+**Done when** the site and the README link to the Store above the winget command, the badge opens
+the Store page, and Partner Center shows acquisitions under the `site` and `readme` campaigns.

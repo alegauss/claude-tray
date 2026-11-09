@@ -67,6 +67,13 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
+## Block AQ — Where the Microsoft Store sends people: their language and the first run
+
+- 📋 **T453** (deps: —) **The app speaks no Chinese or German, though China and Germany are its first and fourth Store markets** — 34 and 15 of the first 164 Store acquisitions came from China and Germany, and both get the English strings. → §CXIII.1
+- 📋 **T454** (deps: T453) **The Store page has no Chinese or German listing, because the package declares neither language** — The Store lists only the languages the manifest declares, so 49 of the first 164 shoppers read an English page found by English keywords. → §CXIII.2
+- 📋 **T455** (deps: —) **A first launch from the Store shows nothing but an icon that Windows often hides in the overflow** — The Store funnel counts 40 installs and 21 opens in the first ten days; a click on Open that seems to do nothing loses half of them. → §CXIII.3
+- 📋 **T456** (deps: —) **The site and the README offer only winget and the GitHub installer, never the Microsoft Store** — The Store build has no SmartScreen warning and brought 164 acquisitions in ten days, yet a visitor without a terminal is sent to the warned installer. → §CXIII.4
+
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:
