@@ -133,7 +133,7 @@ test("every sitemap URL carries the base prefix", () => {
   const xml = readFileSync(join(distDir, "sitemap.xml"), "utf8");
   for (const [, loc] of xml.matchAll(/<loc>([^<]+)<\/loc>/g)) {
     assert.ok(
-      loc.startsWith(`https://alegauss.github.io${manifest.base}`),
+      loc.startsWith(`https://alegauss.com${manifest.base}`),
       `${loc} does not carry ${manifest.base}`,
     );
   }
@@ -166,7 +166,7 @@ test("robots allows everything and names a sitemap that was written", () => {
   // nothing is worse than no line, because it is a claim a crawler acts on.
   const url = named[1];
   assert.ok(url.startsWith("https://"), "the Sitemap: line is not absolute");
-  assert.equal(url, `https://alegauss.github.io${manifest.base}sitemap.xml`);
+  assert.equal(url, `https://alegauss.com${manifest.base}sitemap.xml`);
   assert.ok(existsSync(join(distDir, "sitemap.xml")), "robots names a sitemap that is not there");
 });
 

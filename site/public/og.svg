@@ -41,5 +41,5 @@
   <circle cx="118" cy="563" r="6" fill="#E89070"/>
   <text x="136" y="571" font-family="DejaVu Sans, sans-serif" font-size="20" fill="#b6a596">Windows 10 / 11 · No API key · Apache 2.0</text>
 
-  <text x="1110" y="571" text-anchor="end" font-family="DejaVu Sans Mono, monospace" font-size="20" fill="#8a7868">alegauss.github.io/claude-tray</text>
+  <text x="1110" y="571" text-anchor="end" font-family="DejaVu Sans Mono, monospace" font-size="20" fill="#8a7868">alegauss.com/claude-tray</text>
 </svg>

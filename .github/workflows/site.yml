@@ -22,7 +22,7 @@
 # │   Settings → Pages → Build and deployment → Source: "GitHub Actions"                 │
 # │ This replaced the docs/ folder Pages used to serve, so it is now the only publish    │
 # │ there is: until the setting is changed and this workflow is run once, the site is    │
-# │ down rather than stale. It is served at alegauss.github.io/claude-tray/, which Pages  │
+# │ down rather than stale. It is served at alegauss.com/claude-tray/, which Pages  │
 # │ derives from the repository name rather than from anything in this file.              │
 # └─────────────────────────────────────────────────────────────────────────────────────┘
 

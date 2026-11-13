@@ -50,9 +50,9 @@ the Store refuses one under 1366x768.
 
 ## Once per submission (not per language)
 
-**Privacy policy URL:** https://alegauss.github.io/claude-tray/features/privacy/
+**Privacy policy URL:** https://alegauss.com/claude-tray/features/privacy/
 
-**Website:** https://alegauss.github.io/claude-tray/
+**Website:** https://alegauss.com/claude-tray/
 
 **Support contact:** https://github.com/alegauss/claude-tray/issues
 

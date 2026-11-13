@@ -5,7 +5,7 @@ import { siteThemeScript } from "@viglet/viglet-design-system/site";
 import { THEME_KEY } from "./src/lib/site-content.ts";
 
 // GitHub Pages derives this from the repository name, so it is not a preference — the site
-// is served at https://alegauss.github.io/claude-tray/ and every canonical, asset path and
+// is served at https://alegauss.com/claude-tray/ and every canonical, asset path and
 // sitemap entry carries the prefix.
 export const BASE = "/claude-tray/";
 

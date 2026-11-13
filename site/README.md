@@ -8,7 +8,7 @@ It replaces the single hand-written `docs/index.html` this project published for
 year. That file was one scroll, dark-only, fetched its fonts from a CDN, and its `sitemap.xml`
 listed one URL because it was written when the site was one URL. The structure here is the
 same one [freeharbor](https://github.com/alegauss/freeharbor) uses, so the two sites under
-`alegauss.github.io` are now maintained the same way.
+`alegauss.com` are now maintained the same way.
 
 The chrome is not this site's own. The nav, hero, section heads, buttons, copy button, feature
 index, sponsor block, footer and theme toggle come from `@viglet/viglet-design-system/site`,
@@ -64,7 +64,7 @@ fallbacks rather than pulled from a CDN, and the design system's own font files 
 imported either. The product's claim is that it sends nothing anywhere, and a site that
 opened connections on load would be undercutting it on the page that makes the claim. So
 Google Analytics loads **only after the visitor allows it**, from the same consent banner and
-the same stored choice as the hub at `alegauss.github.io` (one origin, so one answer covers
+the same stored choice as the hub at `alegauss.com` (one origin, so one answer covers
 both). The footer's "Analytics settings" asks again. The one host this page reaches unasked
 is `ads.japode.com`, for the single house-ad slot above the footer, and the slot declines the
 loader's recency memory, so it writes nothing to this origin.
