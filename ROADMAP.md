@@ -74,7 +74,7 @@
 
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 
-- ⏳ **T454** (deps: T453 ✅) (requires: store-account) **The Store page has no Chinese or German listing, because the package declares neither language** — A Store submission carrying both listings and their screenshots, and acquisitions by market compared before and after for China and Germany. → §CXIII.2
+- ⏳ **T454** (deps: T453 ✅) (requires: store-release-day) **The Store page has no Chinese or German listing, because the package declares neither language** — Submission 1152921505702418202 (1.10.0, de-de and zh-cn listings) went in on 2026-11-16; acquisitions by market are left to compare. → §CXIII.2
 - ⏳ **T455** (deps: —) (requires: store-release-day) **A first launch from the Store shows nothing but an icon that Windows often hides in the overflow** — The Store funnel counted 40 installs and 21 opens in ten days; the first start opens the window now, and the case and the funnel remain. → §CXIII.3
 - ⏳ **T456** (deps: —) (requires: store-account) **The site and the README offer only winget and the GitHub installer, never the Microsoft Store** — The Store links and their campaign ids are live on the site and the README; Partner Center has yet to show acquisitions under them. → §CXIII.4
 
