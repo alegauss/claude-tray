@@ -10,6 +10,9 @@
 #      dist\store-shots\<idioma> (build\store-shots.ps1), com a legenda daquele idioma do store-listing.md;
 #   4) envia as imagens num ZIP para a URL que a submissao fornece, confirma a submissao e acompanha o status.
 #
+# Um idioma do store-listing.md que a submissao ainda nao tem ganha listagem nova (T454), clonada da en-us
+# com os textos daquele idioma; o pacote enviado precisa declarar o idioma, ou a Store recusa a listagem.
+#
 #
 # Com -Package (T417), envia tambem dist\ClaudeTray.msix (build\build-msix.cmd) no mesmo ZIP, marcando os
 # pacotes da ultima publicada para remocao; as capturas so sao trocadas junto se -Screenshots vier tambem.
@@ -160,6 +163,35 @@ try {
                 minimumSystemRam      = 'None'
             })
         Write-Host "  pacote $newVersion adicionado, $($old.Count) antigo(s) removido(s)"
+    }
+    # Idioma do store-listing.md que a submissao ainda nao tem (T454): a listagem nasce clonada da en-us,
+    # com os textos daquele idioma e o icone e a arte 16:9 de dist\store-art enviados de novo sob o codigo
+    # do idioma - a API nao aceita uma imagem que pertence a outra listagem. As capturas entram no laco abaixo.
+    if ($Screenshots) {
+        $have = @($sub.listings.PSObject.Properties | ForEach-Object { $_.Name.ToLowerInvariant() })
+        $template = $sub.listings.'en-us' | ConvertTo-Json -Depth 50
+        $art = @{ 'Icon' = 'tile-300x300.png'; 'PromotionalArt16x9' = 'hero-16x9-3840x2160.png' }
+        foreach ($code in ($langs.Keys | Sort-Object)) {
+            if ($have -contains $code) { continue }
+            $new = $template | ConvertFrom-Json
+            $t = $langs[$code]
+            $b = $new.baseListing
+            $b.shortDescription = $t.Short
+            $b.description = $t.Description
+            $b.features = @($t.Features)
+            $b.keywords = @($t.Keywords)
+            $b.copyrightAndTrademarkInfo = $t.Copyright
+            $b.releaseNotes = ''
+            $b.images = @(foreach ($kind in $art.Keys) {
+                    $file = Join-Path $root "dist\store-art\$($art[$kind])"
+                    if (-not (Test-Path $file)) { throw "sem $file (rode build\build-msix.cmd)" }
+                    $entry = "$code/$($art[$kind])"
+                    [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $file, $entry)
+                    [pscustomobject]@{ fileName = $entry; fileStatus = 'PendingUpload'; imageType = $kind; description = '' }
+                })
+            $sub.listings | Add-Member -NotePropertyName $code -NotePropertyValue $new
+            Write-Host "  $code - listagem nova, com o texto do store-listing.md"
+        }
     }
     foreach ($p in $(if ($Screenshots) { $sub.listings.PSObject.Properties })) {
         $code = $p.Name.ToLowerInvariant()
