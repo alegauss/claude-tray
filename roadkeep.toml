@@ -144,7 +144,10 @@ why = 200
 # `store-release-day` is a Store build that carries T457, installed and left running for a working day
 # with its memory sampled (T451): the 565 MB it is about was read on the Store build, and 1.9.0 cannot
 # start at all beside a wedged WSL, so neither the build nor the day can come from one session.
-declared = ["wsl-claude", "statusline-day", "store-account", "winwright-ww610", "winwright-ww611", "store-release-day"]
+# `winwright-memory` is a winwright whose case can read the private memory of the application it launched
+# (T452): the idle ceiling is a selftest reading, but a window that is never released only shows after it
+# has been opened and closed, and only a case drives the windows.
+declared = ["wsl-claude", "statusline-day", "store-account", "winwright-ww610", "winwright-ww611", "store-release-day", "winwright-memory"]
 
 [markers]
 open = ["📋", "💭", "⏳", "🛠"]

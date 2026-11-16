@@ -824,6 +824,7 @@
 - **T450** — The idle footprint is split, measured on HEAD after T457 with 4.2 GB of transcripts: the published exe holds 180 MB private (peak 233); the GC commits 64 MB of it, 25 MB free LOH space and 15 MB dead large strings (T462); single-file compression costs about 50 MB (186 vs 135 MB, T461); the rest, about 65-85 MB, is the runtime and the two UI stacks, a cost the app accepts. The 565 MB of the 1.9.0 Store build did not reproduce and goes to T451.
 - **T461** — The published exe is no longer a compressed bundle: idle private memory drops from about 186 to 135 MB, the installer shrinks from 67.5 to 49.8 MB, the MSIX holds level, and the installed exe grows to 166.8 MB (design §CXII.4 recorded in `ClaudeTray.csproj`).
 - **T462** — An idle tray hands back what startup used: the transcript tail reuses one buffer and decodes line by line (idle private 124 to 108 MB, free LOH 71 to 30 MB), and one LOH compaction five minutes in leaves 59 MB against 80 with free LOH at 1 MB (design §CXII.5 recorded in `src/Usage/TranscriptTail.cs`).
+- **T452 (idle ceiling)** — The full selftest launches the built exe as an observing tray over a 25 MB fixture and fails above 220 MB private, naming both numbers; Debug, Release and the published exe measure 129 to 146 MB.
 
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 

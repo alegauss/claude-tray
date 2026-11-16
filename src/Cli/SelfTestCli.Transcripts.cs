@@ -1678,6 +1678,81 @@ internal static partial class SelfTestCli
               string.Join(", ", rows.Select(r => r.Session).Where(s => !s.StartsWith("sample-"))));
     }
 
+    /// <summary>
+    /// The idle footprint's ceiling, in MB of private memory (T452), and the fixture it is stated against:
+    /// <see cref="FootprintFiles"/> transcripts of <see cref="FootprintTurns"/> turns each. A ceiling holds
+    /// only against a fixed input — CI's runner has an empty <c>~/.claude</c> and a working machine months of
+    /// transcripts — so the tray is pointed at this fixture through <c>CLAUDE_CONFIG_DIR</c>, never at the
+    /// machine's own tree.
+    ///
+    /// <para>Measured on 2026-11-16 over this fixture (25 MB), after T461 and T462: 137 MB idle in the Debug
+    /// build, 144 MB in the Release output <c>check.yml</c> runs, 129 MB in the published single-file exe
+    /// <c>build.yml</c> runs. The ceiling is half as much again as the highest of the three, so ordinary
+    /// drift passes, and under twice it, so a build that doubles the footprint fails.</para>
+    /// </summary>
+    private const int IdleCeilingMb = 220;
+    private const int FootprintFiles = 60;
+    private const int FootprintTurns = 1500;
+
+    /// <summary>
+    /// T452: launch this very exe as an observing second tray over a fixture of known size, let its startup
+    /// scans run, and read its private memory against <see cref="IdleCeilingMb"/>. The 565 MB that opened
+    /// Block AP was found by a person looking at Task Manager for another reason; this is the reading that
+    /// would have said so on the build that caused it.
+    /// </summary>
+    private static void IdleFootprint(string root)
+    {
+        string config = Path.Combine(root, "footprint-config");
+        string project = Path.Combine(config, "projects", "D--selftest-footprint");
+        Directory.CreateDirectory(project);
+        DateTime now = DateTime.Now;
+        long bytes = 0;
+        for (int f = 0; f < FootprintFiles; f++)
+        {
+            string path = Path.Combine(project, $"session-{f:D3}.jsonl");
+            var lines = new List<string>(FootprintTurns);
+            for (int t = 0; t < FootprintTurns; t++)
+                lines.Add(Turn(now.AddDays(-6.5).AddMinutes((f * FootprintTurns + t) * 0.1), $"fp{f}-{t}", 100 + t % 900));
+            File.WriteAllLines(path, lines);
+            bytes += new FileInfo(path).Length;
+        }
+
+        var psi = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!, "--second-tray")
+        {
+            UseShellExecute = false,
+        };
+        psi.Environment["CLAUDE_CONFIG_DIR"] = config;
+        using var tray = System.Diagnostics.Process.Start(psi)!;
+        long peak = 0, last = 0;
+        try
+        {
+            // Settled when a minute of startup has passed and private bytes moved under 2 MB in the last 10 s.
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            var window = new Queue<long>();
+            while (clock.Elapsed < TimeSpan.FromSeconds(120) && !tray.HasExited)
+            {
+                Thread.Sleep(1000);
+                tray.Refresh();
+                last = tray.PrivateMemorySize64 / (1024 * 1024);
+                peak = Math.Max(peak, last);
+                window.Enqueue(last);
+                if (window.Count > 10) window.Dequeue();
+                if (clock.Elapsed > TimeSpan.FromSeconds(60) && window.Count == 10 && window.Max() - window.Min() < 2)
+                    break;
+            }
+        }
+        finally
+        {
+            try { tray.Kill(entireProcessTree: true); tray.WaitForExit(5000); } catch { /* already gone */ }
+        }
+
+        long fixtureMb = bytes / (1024 * 1024);
+        Console.WriteLine($"  read  idle {last} MB private, peak {peak} MB, over {FootprintFiles} transcripts ({fixtureMb} MB)");
+        Check($"an idle tray over a {fixtureMb} MB fixture holds at most {IdleCeilingMb} MB private",
+              last > 0 && last <= IdleCeilingMb,
+              $"{last} MB private (peak {peak} MB) against a ceiling of {IdleCeilingMb} MB");
+    }
+
     /// <summary>One assistant line in the shape the transcript readers parse — a timestamp, a usage
     /// block and an id. No content, here as everywhere else.</summary>
     /// <param name="input">Input tokens for the line. Distinct per line where a check needs to say

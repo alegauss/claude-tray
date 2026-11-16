@@ -431,6 +431,10 @@ internal static partial class SelfTestCli
 
             Section("sessions — the call tree under one conversation (Block AK)");
             Temp(Tasks);
+
+            // A minute or two: the tray it launches has to finish its startup scans before it is read.
+            Section("footprint — an idle tray over a fixture of known size (Block AP)");
+            Temp(IdleFootprint);
         }
 
         // WW86. Above the two one-way sections below because it samples nothing: a refused mode is
