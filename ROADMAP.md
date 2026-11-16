@@ -69,7 +69,7 @@
 
 ## Block AP — The tray's own footprint: half a gigabyte to sit in the notification area
 
-- 📋 **T451** (deps: —) **An idle tray's private memory grew from 565 MB to 595 MB in ten minutes, and no one knows where it stops** — A tray runs for days, so growth that never levels off costs more than any fixed footprint T450 can find. → §CXII.2
+- 📋 **T451** (deps: —) (requires: store-release-day) **An idle tray's private memory grew from 565 MB to 595 MB in ten minutes, and no one knows where it stops** — A tray runs for days, so growth that never levels off costs more than any fixed footprint T450 can find. → §CXII.2
 - 📋 **T452** (deps: T450 ✅, T461, T462) **No check reads the tray's own memory, so a release can double it unnoticed** — The 565 MB was found by chance in Task Manager, and a footprint brought down by T450 will drift back without a ceiling. → §CXII.3
 - 📋 **T461** (deps: —) **The published single-file exe inflates every assembly it loads into private memory, about 50 MB at idle** — EnableCompressionInSingleFile stops the bundle being memory-mapped, and the MSIX and the installer compress it again anyway. → §CXII.4
 - 📋 **T462** (deps: —) **An idle tray keeps 40 MB of dead large objects and free LOH space that the startup scan left behind** — An idle tray allocates almost nothing after startup, so the gen-2 collection that would hand that memory back never runs. → §CXII.5

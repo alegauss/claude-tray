@@ -141,7 +141,10 @@ why = 200
 # (T448): until winwright ships WW610, no case here can say a focused row opens from the keyboard.
 # `winwright-ww611` is a winwright whose in-app render paints a backdrop window's background (T449): until
 # it ships, no preview picture of a dark-themed window can be read.
-declared = ["wsl-claude", "statusline-day", "store-account", "winwright-ww610", "winwright-ww611"]
+# `store-release-day` is a Store build that carries T457, installed and left running for a working day
+# with its memory sampled (T451): the 565 MB it is about was read on the Store build, and 1.9.0 cannot
+# start at all beside a wedged WSL, so neither the build nor the day can come from one session.
+declared = ["wsl-claude", "statusline-day", "store-account", "winwright-ww610", "winwright-ww611", "store-release-day"]
 
 [markers]
 open = ["📋", "💭", "⏳", "🛠"]
