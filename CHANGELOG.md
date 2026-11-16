@@ -58,6 +58,8 @@
 | [AM](#block-am--danger-is-said-not-only-coloured) | Danger is said, not only coloured |
 | [AN](#block-an--the-site-on-the-shared-design-system) | The site on the shared design system |
 | [AO](#block-ao--what-a-stranger-meets-first) | What a stranger meets first |
+| [AP](#block-ap--the-trays-own-footprint-half-a-gigabyte-to-sit-in-the-notification-area) | The tray's own footprint: half a gigabyte to sit in the notification area (active — see ROADMAP) |
+| [AQ](#block-aq--where-the-microsoft-store-sends-people-their-language-and-the-first-run) | Where the Microsoft Store sends people: their language and the first run (active — see ROADMAP) |
 
 ## Block A — Foundation (tray, icon, API, projection)
 
@@ -753,6 +755,7 @@
 - **T352** — Nine of the ten cited designs that shipped, so each now names the task whose changelog entry holds the claim — §XVI.2, §XVI.3 and §XVI.4 became T172, T173 and T174, §XVIII.1 and §XVIII.6 became T179 and T184 — which is how this repository refers to shipped work everywhere else, and is the correction the section asked for over repointing at a nearest surviving ancestor. §XVIII.9 was never a heading in any commit — §XVIII only ever carried .1 through .6 — so the two sentences leaning on it were corrected rather than repointed: §XXIII.4 states the rule it was citing, and §XXIII.5 cites §XXIII.4, which is the live section that actually declines. The tenth is not a citation to fix: STRATEGY.md's §S:V is a live anchor that roadkeep truncates to §S, filed upstream as RK1111 with the repro, so lint reports one finding on a known cause instead of nothing on a reworded sentence. Verified by putting one citation back and watching lint name it again.
 - **T384** — The paragraph closes on what a reader does with the list - if something you keep in one of those folders matters to you, that line is where you will see it - instead of on what the developers' own list had been missing and for how long. The sentence was off-register in a section where every other line says what the feature does, and its "four releases" was not even true: nothing shipped between those tasks. Left alone deliberately: the two older "used to" sentences elsewhere in the README, which describe a change in product behaviour a returning user would notice and are a defensible call, not the same thing as an omission in our own list. The reusable part is how it got there. Five tasks each appended a bolded paragraph to one section without re-reading the four above it; the result reads coherently, and the last one drifted because there was nothing left to say about the feature and something left to say about the work.
 - **T434** — Encode-Clip stops with ffmpeg's exit code instead of reporting a failed encode as written, and closing --main or --settings-tray ends the process, which the self-test holds for every WinForms-pumped preview.
+- **T460** — The ledger's block index lists AP and AQ, each marked active while its tasks are open, so every declared block has its row again.
 
 ## Block AB — What Block Z's own work left behind
 
