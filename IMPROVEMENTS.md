@@ -973,28 +973,6 @@ would cost users Mica only to make pictures right. When WW611 ships, bump `Winwr
 A tray icon that sits idle in the notification area was measured at 565 MB private on 2026-11-07.
 The sections below split that number, watch it over a day, and hold it once it is down.
 
-### CXII.1 Where an idle tray's 565 MB goes (T450)
-
-Measured on the developer's machine on 2026-11-07, Store build 1.9.0.0 (MSIX), idle with no window
-open: 454 MB working set a few seconds after launch, 639 MB a few minutes later, then flat for 90
-seconds at 639 MB working set, 565 MB private, about 1,050 handles and 17–28 threads. Nothing in the
-repository says what a tray icon should cost, so no one can tell whether 565 MB is a regression or
-the shape the app has always had.
-
-The first job is to say where the bytes are, before anything is changed: the managed GC heap
-(`dotnet-counters`, `dotnet-gcdump`) against native memory (VMMap), and inside the heap, which types
-hold it. Questions worth answering with that split: whether a startup scan of `~/.claude` (session
-JSONL, project histories, the context-load inspector) keeps its parsed results alive after the icon
-is drawn; whether a closed window stays reachable through something other than `TrayContext`'s own
-field, which its `Closed` handler already clears (a static event, a timer's handler); whether
-loading both WPF and WinForms costs a fixed block nobody chose; and whether the GC mode (server or
-workstation, concurrent, `GCHeapAffinitizeMask`, conserve-memory) holds freed memory on purpose.
-Record the size of `~/.claude` (transcript count and bytes) beside every reading: a cost that grows
-with history is not a fixed one, and T452's ceiling needs to know which it is.
-
-Done when the split is written down here as a table, with the top retainers named, and each one is
-either filed as its own task in this block or stated as a cost the app accepts.
-
 ### CXII.2 Whether the tray's memory keeps growing over a day (T451)
 
 Same session as T450, idle the whole time: private memory 565 MB at 18:45, flat for 90 seconds, then
@@ -1008,6 +986,12 @@ every few minutes across a working day, with the refresh tick, a session scan an
 and closed recorded on the same timeline, so a step in the curve can be matched to what ran. If the
 curve keeps rising, a `dotnet-gcdump` at the start and one hours later, diffed by type, names the
 retainer. If it settles, the ceiling is the number T450's table has to explain.
+
+T450 could not reproduce the 565 MB on 2026-11-16: HEAD after T457, published as the Store build is
+(single-file, compressed), resident on the same machine with 4.2 GB of transcripts, settled at 180
+MB private (peak 233) within five minutes. The 1.9.0 Store build could not be measured that day,
+because a wedged WSL held it at startup (T457). So the curve here is run on the Store build once a
+release carries T457, beside HEAD, before anything is called a leak.
 
 Done when the day's curve is recorded here and the growth is either gone, bounded with a stated
 reason, or filed as its own task with the retaining type named.
@@ -1032,6 +1016,43 @@ adds no dependency and runs in `check.yml`, or a winwright case does, which need
 winwright does not have. A run on an empty profile must not pass for a ceiling meant for a full one.
 
 Done when a run on a build that holds twice the ceiling fails and names both numbers.
+
+### CXII.4 What single-file compression costs at idle (T461)
+
+Measured by T450 on 2026-11-16, HEAD after T457, one machine, 4.2 GB of transcripts, idle after five
+minutes: the Release single-file publish with `EnableCompressionInSingleFile` holds about 186 MB
+private, and the same publish with compression off about 135 MB. The exe is 72.6 MB compressed and
+166.8 MB plain.
+
+A compressed bundle cannot be memory-mapped: every managed assembly the process loads is inflated
+into private memory and kept there, which is the WPF, WinForms and runtime assemblies the tray loads
+at startup. Plain, they are mapped from the file and their pages are shared and discardable.
+
+What compression buys is download size, and both things that ship it compress again: the MSIX is a
+zip, and Inno Setup compresses the installer with LZMA. So the first thing to measure is the size of
+`ClaudeTray-Setup.exe` and of the `.msix` both ways. If they grow by a few MB, turn compression off
+in `ClaudeTray.csproj`, re-measure idle private on the published exe, and keep the figures beside
+the property. If the setup grows by most of the 94 MB, say so here and keep it. The self-update
+download is the setup, so it is the number that decides.
+
+### CXII.5 The large object heap an idle tray never returns (T462)
+
+Measured by T450 on 2026-11-16 from a dump of the resident Release tray, idle at 180 MB private: the
+GC heap commits 64 MB, of which 25 MB is free space in the large object heap and 15 MB is 29 large
+strings (95 KB to 1.1 MB each) with no GC root. Every one was garbage, waiting for a gen-2
+collection that an idle tray never triggers, because it allocates almost nothing once the icon is
+drawn. The Debug build showed the same shape: 38 MB of a 77 MB heap free in the LOH.
+
+Two sources are visible. `TranscriptTail` primes each transcript with a fresh `byte[]` of up to
+`PrimeBytes` (256 KB, over the 85 KB LOH threshold), once per file: 653 files here. And whole-file
+reads of the tray's own caches (`session-index.json` is 1.8 MB, `context-cache.json` 867 KB) land as
+LOH strings.
+
+Two fixes, to be measured separately: reuse one priming buffer (or an `ArrayPool` rental) so the
+sweep stops allocating per file, and once the startup scans have settled, compact the LOH once
+(`GCSettings.LargeObjectHeapCompactionMode = CompactOnce`, then a blocking collection), so the
+memory the startup used goes back to Windows. Done when the idle private figure on the published exe
+is re-measured with each and the drop is written here.
 
 ## CXIII Where the Microsoft Store sends people (Block AQ)
 

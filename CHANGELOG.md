@@ -821,5 +821,7 @@
 
 ## Block AP — The tray's own footprint: half a gigabyte to sit in the notification area
 
+- **T450** — The idle footprint is split, measured on HEAD after T457 with 4.2 GB of transcripts: the published exe holds 180 MB private (peak 233); the GC commits 64 MB of it, 25 MB free LOH space and 15 MB dead large strings (T462); single-file compression costs about 50 MB (186 vs 135 MB, T461); the rest, about 65-85 MB, is the runtime and the two UI stacks, a cost the app accepts. The 565 MB of the 1.9.0 Store build did not reproduce and goes to T451.
+
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 
