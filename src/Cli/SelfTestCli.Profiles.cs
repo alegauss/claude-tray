@@ -80,6 +80,53 @@ internal static partial class SelfTestCli
         Check("and a config dir that is not ~/.claude is selected inside Linux, never in Windows",
               WslProfiles.LaunchArguments(@"\\wsl.localhost\Ubuntu\home\ubuntu\.claude-work", "claude")
                   == "wsl.exe -d Ubuntu -u ubuntu --cd ~ -- bash -lc \"CLAUDE_CONFIG_DIR='/home/ubuntu/.claude-work' claude\"");
+        // T457. A wsl.exe that never answers must not hold the caller: discovery runs on the UI thread, and a
+        // WSL wedged since boot kept the tray from ever creating its icon. Driven through a stand-in reader,
+        // so the machine's own WSL is never asked.
+        var savedReader = WslProfiles.Reader;
+        try
+        {
+            using var answer = new ManualResetEventSlim(false);
+            int asked = 0;
+            WslProfiles.ResetForTest();
+            WslProfiles.Reader = () =>
+            {
+                Interlocked.Increment(ref asked);
+                answer.Wait(TimeSpan.FromSeconds(30));
+                return (new[] { "Ubuntu" }, false);
+            };
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            IReadOnlyList<string> firstAnswer = WslProfiles.Running();
+            double firstMs = clock.Elapsed.TotalMilliseconds;
+            clock.Restart();
+            WslProfiles.Running();
+            double againMs = clock.Elapsed.TotalMilliseconds;
+            Check("a wsl.exe that never answers holds the first caller for at most its short wait, and nobody after",
+                  firstAnswer.Count == 0 && firstMs < 4000 && againMs < 200,
+                  $"first {firstMs:0} ms, again {againMs:0} ms");
+            Check("and a listing still in flight is not asked for a second time", Volatile.Read(ref asked) == 1,
+                  $"asked {asked} times");
+
+            answer.Set();
+            WslProfiles.InFlight?.Wait(TimeSpan.FromSeconds(10));
+            Check("the answer, once it lands, is what the next caller reads",
+                  WslProfiles.Running().SequenceEqual(new[] { "Ubuntu" }));
+
+            WslProfiles.ResetForTest(keepNames: true);
+            WslProfiles.Reader = () => (null, true);
+            WslProfiles.Running();
+            WslProfiles.InFlight?.Wait(TimeSpan.FromSeconds(10));
+            Check("a listing that timed out keeps the last names and waits minutes, not a minute, to ask again",
+                  WslProfiles.Running().SequenceEqual(new[] { "Ubuntu" })
+                  && WslProfiles.RetryAt > DateTime.UtcNow.AddMinutes(5),
+                  $"retry at {WslProfiles.RetryAt:o}");
+        }
+        finally
+        {
+            WslProfiles.Reader = savedReader;
+            WslProfiles.ResetForTest();
+        }
+
         // T407. A Save that leaves both switches where they were does not touch the machine-wide variable —
         // after a restart there is no pin in memory, and reconciling anyway restored it to unset.
         Check("saving settings that leave auto-follow and the machine-wide switch alone leaves the variable alone",

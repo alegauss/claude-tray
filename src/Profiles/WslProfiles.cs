@@ -27,9 +27,40 @@ internal static class WslProfiles
     private const string LegacyShare = @"\\wsl$\";
     private const int CacheSeconds = 60;
 
+    /// <summary>How long a wedged <c>wsl.exe</c> is left alone after it timed out, before it is asked again.
+    /// A WSL that hangs at boot stays hung, and asking every minute leaves one more stuck child each time.</summary>
+    private static readonly TimeSpan BackoffAfterTimeout = TimeSpan.FromMinutes(10);
+
+    /// <summary>How long the very first caller waits for the first listing. A healthy WSL answers well within
+    /// it; a wedged one must not hold up the tray's startup, which is where it first called this.</summary>
+    private static readonly TimeSpan FirstWait = TimeSpan.FromSeconds(2);
+
     private static readonly object Gate = new();
     private static IReadOnlyList<string> _running = Array.Empty<string>();
-    private static DateTime _readAt = DateTime.MinValue;
+    private static DateTime _retryAt = DateTime.MinValue;
+    private static bool _everStarted;
+    private static Task? _inFlight;
+
+    /// <summary>What asks for the listing: <see cref="ReadRunning"/>, or a reader <c>--selftest</c> puts in
+    /// its place to stand for a <c>wsl.exe</c> that never answers, without touching the machine's WSL.</summary>
+    internal static Func<(IReadOnlyList<string>? Names, bool TimedOut)> Reader = ReadRunning;
+
+    /// <summary>The background listing in flight, or null — so a check can wait for it to land.</summary>
+    internal static Task? InFlight { get { lock (Gate) return _inFlight; } }
+
+    /// <summary>Back to a process that has never asked, or (<paramref name="keepNames"/>) to one whose cached
+    /// answer is due for a refresh now. For <c>--selftest</c>, which restores <see cref="Reader"/> itself.</summary>
+    internal static void ResetForTest(bool keepNames = false)
+    {
+        lock (Gate)
+        {
+            if (!keepNames) { _running = Array.Empty<string>(); _everStarted = false; }
+            _retryAt = DateTime.MinValue;
+        }
+    }
+
+    /// <summary>When the next listing may be asked for.</summary>
+    internal static DateTime RetryAt { get { lock (Gate) return _retryAt; } }
 
     /// <summary>A config dir inside a distro, split into the distro and the Linux path it names there,
     /// or false for a Windows path.</summary>
@@ -68,22 +99,54 @@ internal static class WslProfiles
         return parts.Length >= 2 && parts[0] == "home" ? parts[1] : null;
     }
 
-    /// <summary>The distros running now, by name — cached, and empty where WSL is not installed.</summary>
+    /// <summary>
+    /// The distros running now, by name — cached, and empty where WSL is not installed.
+    ///
+    /// <para><b>Never waits on <c>wsl.exe</c>.</b> The listing is refreshed on a background task and the
+    /// caller gets the last answer at once; only the process's very first call waits, and only for
+    /// <see cref="FirstWait"/>. Discovery runs on the UI thread — in the tray's constructor, on every menu
+    /// open and poll — so a WSL wedged since boot (one stuck <c>wsl.exe -l</c> per call) used to keep the
+    /// tray from ever creating its icon, and with only T426's bound it would still freeze the UI for the
+    /// bound every minute. A timed-out listing keeps the previous answer and backs off.</para>
+    /// </summary>
     public static IReadOnlyList<string> Running()
     {
+        Task? first = null;
         lock (Gate)
         {
-            if ((DateTime.UtcNow - _readAt).TotalSeconds < CacheSeconds) return _running;
-            _readAt = DateTime.UtcNow;
-            _running = ReadRunning();
-            return _running;
+            if (_inFlight is null && DateTime.UtcNow >= _retryAt)
+            {
+                _inFlight = Task.Run(Refresh);
+                if (!_everStarted) first = _inFlight;
+                _everStarted = true;
+            }
+        }
+        if (first is not null)
+        {
+            try { first.Wait(FirstWait); } catch { /* Refresh swallows its own failures */ }
+        }
+        lock (Gate) return _running;
+    }
+
+    private static void Refresh()
+    {
+        IReadOnlyList<string>? names = null;
+        bool timedOut = false;
+        try { (names, timedOut) = Reader(); } catch { names = Array.Empty<string>(); }
+        lock (Gate)
+        {
+            if (names is not null) _running = names;
+            _retryAt = DateTime.UtcNow + (timedOut ? BackoffAfterTimeout : TimeSpan.FromSeconds(CacheSeconds));
+            _inFlight = null;
         }
     }
 
-    private static IReadOnlyList<string> ReadRunning()
+    /// <summary>The listing, or null names when it timed out — so the previous answer is kept rather than
+    /// replaced by an empty one that would drop a WSL profile from the menu for a hiccup.</summary>
+    private static (IReadOnlyList<string>? Names, bool TimedOut) ReadRunning()
     {
         string wsl = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "wsl.exe");
-        if (!File.Exists(wsl)) return Array.Empty<string>();
+        if (!File.Exists(wsl)) return (Array.Empty<string>(), false);
         try
         {
             // Bounded by the wait, not by the child's exit (T426): reading to the end first is what let a
@@ -94,9 +157,10 @@ internal static class WslProfiles
                 // wsl.exe writes its listing as UTF-16, and read as anything else every second byte is a NUL.
                 StandardOutputEncoding = Encoding.Unicode,
             }, TimeSpan.FromSeconds(10));
-            return r.ExitCode == 0 ? ParseList(r.Output) : Array.Empty<string>();
+            if (r.TimedOut) return (null, true);
+            return (r.ExitCode == 0 ? ParseList(r.Output) : Array.Empty<string>(), false);
         }
-        catch { return Array.Empty<string>(); }
+        catch { return (Array.Empty<string>(), false); }
     }
 
     /// <summary>The names in <c>wsl.exe -l --quiet</c>'s output, one per line, blanks and stray NULs

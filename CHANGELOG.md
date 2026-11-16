@@ -630,6 +630,7 @@
 - **T424** — --profiles prints each profile's CLAUDE_CONFIG_DIR action and launch cwd, built by ProfilesCli.LaunchLine with the ternary bound before ??, and the self-test reads both cases back.
 - **T426** — The WSL listing and the claude auth status check run through ChildRun, which drains stdout and stderr alongside a bounded wait and kills the whole tree on timeout (design §CXI.8 recorded in `src/Core/ChildRun.cs`).
 - **T443** — A .claude.json caught mid-rewrite is read again a moment later, and a read still torn keeps the identity last read for that dir, so the profile's store key and alarms stay put.
+- **T457** — Discovery reads the running WSL distros on a background task, so a wsl.exe that never answers costs the tray at most two seconds at startup and nothing after (design §CXI.32 recorded in `src/Profiles/WslProfiles.cs`).
 
 ## Block N — System information
 
