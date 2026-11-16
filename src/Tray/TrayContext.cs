@@ -39,6 +39,8 @@ internal sealed class TrayContext : ApplicationContext
     // exist to keep accumulating while every window is closed: the drift history (ContextHistory) and
     // the activity grid the icon's verdict is projected along.
     private readonly System.Windows.Forms.Timer _backgroundSample = new() { Interval = 21_600_000 }; // 6 h
+    // Fires once, after the startup scans have settled, to hand back what they used (T462).
+    private readonly System.Windows.Forms.Timer _settle = new() { Interval = 5 * 60 * 1000 };
     private readonly List<ToolStripMenuItem> _metricItems = new();
     private ToolStripMenuItem _updateItem = null!;
 
@@ -119,6 +121,8 @@ internal sealed class TrayContext : ApplicationContext
         _updateCheck.Start();
         _backgroundSample.Tick += (_, _) => { ScanContextInBackground(); WarmActivityProfile(); NoteDayOfUse(); };
         _backgroundSample.Start();
+        _settle.Tick += (_, _) => { _settle.Stop(); ReturnStartupMemory(); };
+        _settle.Start();
 
         _tray.BalloonTipClicked += (_, _) => { if (_update != null) _ = ApplyUpdateAsync(); };
 
@@ -1100,6 +1104,20 @@ internal sealed class TrayContext : ApplicationContext
     /// open on its own, and it could not record that it had.
     /// </summary>
     internal static bool WelcomesOnStart(bool welcomed, bool observing) => !welcomed && !observing;
+
+    /// <summary>
+    /// Compact the large object heap once and hand its free space back to Windows (T462). The startup scans
+    /// read hundreds of transcripts and the tray's own caches, and leave large objects behind that only a
+    /// gen-2 collection frees; an idle tray allocates almost nothing afterwards, so that collection never
+    /// came, and a dump of the idle Release tray found 40 MB of its 64 MB heap dead or free. One blocking
+    /// collection, five minutes in, is the cost of returning it. Later scans run every six hours and are
+    /// left to the GC, which by then has the steady state to size itself against.
+    /// </summary>
+    internal static void ReturnStartupMemory()
+    {
+        System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+        GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
+    }
 
     private static string AuthLabel(AuthMethod auth) => L.T(auth switch
     {

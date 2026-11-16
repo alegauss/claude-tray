@@ -1017,25 +1017,6 @@ winwright does not have. A run on an empty profile must not pass for a ceiling m
 
 Done when a run on a build that holds twice the ceiling fails and names both numbers.
 
-### CXII.5 The large object heap an idle tray never returns (T462)
-
-Measured by T450 on 2026-11-16 from a dump of the resident Release tray, idle at 180 MB private: the
-GC heap commits 64 MB, of which 25 MB is free space in the large object heap and 15 MB is 29 large
-strings (95 KB to 1.1 MB each) with no GC root. Every one was garbage, waiting for a gen-2
-collection that an idle tray never triggers, because it allocates almost nothing once the icon is
-drawn. The Debug build showed the same shape: 38 MB of a 77 MB heap free in the LOH.
-
-Two sources are visible. `TranscriptTail` primes each transcript with a fresh `byte[]` of up to
-`PrimeBytes` (256 KB, over the 85 KB LOH threshold), once per file: 653 files here. And whole-file
-reads of the tray's own caches (`session-index.json` is 1.8 MB, `context-cache.json` 867 KB) land as
-LOH strings.
-
-Two fixes, to be measured separately: reuse one priming buffer (or an `ArrayPool` rental) so the
-sweep stops allocating per file, and once the startup scans have settled, compact the LOH once
-(`GCSettings.LargeObjectHeapCompactionMode = CompactOnce`, then a blocking collection), so the
-memory the startup used goes back to Windows. Done when the idle private figure on the published exe
-is re-measured with each and the drop is written here.
-
 ## CXIII Where the Microsoft Store sends people (Block AQ)
 
 Partner Center's analytics, read on 2026-11-09 for 2026-10-30 to 2026-11-09, give the Store 164

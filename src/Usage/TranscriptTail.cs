@@ -437,6 +437,20 @@ internal sealed class TranscriptTail : IDisposable
             foreach (string path in dead) _cursors.Remove(path);
     }
 
+    /// <summary>
+    /// The one read buffer every sweep shares (T462), grown to the largest read up to <see cref="KeptBuffer"/>
+    /// and kept. Sweeps are serialized (<see cref="_sweeping"/>), so no two reads hold it at once.
+    ///
+    /// <para>Before this, each file's prime read allocated its own <c>byte[]</c> of up to
+    /// <see cref="PrimeBytes"/>, over the 85 KB large-object threshold, and decoded the whole span into one
+    /// string twice that size: a startup over 653 transcripts left tens of MB of dead large objects and free
+    /// LOH space that an idle tray, allocating almost nothing afterwards, never collected.</para>
+    /// </summary>
+    private byte[] _readBuffer = Array.Empty<byte>();
+
+    /// <summary>The largest read the shared buffer grows to and keeps; a larger one is read once and dropped.</summary>
+    private const int KeptBuffer = (int)PrimeBytes * 2;
+
     private void ReadAppended(FileInfo fi, double floor, double ceiling, ref List<TailSample>? found)
     {
         Cursor cur;
@@ -476,8 +490,13 @@ internal sealed class TranscriptTail : IDisposable
 
             int want = (int)Math.Min(len - cur.Offset, int.MaxValue / 2);
             fs.Seek(cur.Offset, SeekOrigin.Begin);
-            buf = new byte[want];
-            read = fs.ReadAtLeast(buf, want, throwOnEndOfStream: false);
+            if (want > KeptBuffer) buf = new byte[want];
+            else
+            {
+                if (_readBuffer.Length < want) _readBuffer = new byte[Math.Min(KeptBuffer, Math.Max(want, 64 * 1024))];
+                buf = _readBuffer;
+            }
+            read = fs.ReadAtLeast(buf.AsSpan(0, want), want, throwOnEndOfStream: false);
         }
         catch { return; }   // locked, deleted mid-sweep — the next sweep picks it up
         if (read <= 0) return;
@@ -502,7 +521,6 @@ internal sealed class TranscriptTail : IDisposable
             return;
         }
 
-        string text = Encoding.UTF8.GetString(buf, start, lastNl + 1 - start);
         cur.Offset += lastNl + 1;
 
         lock (_gate) _bytesRead += read;
@@ -512,9 +530,17 @@ internal sealed class TranscriptTail : IDisposable
         double skip = cur.SkipUpTo;
         cur.SkipUpTo = 0;
 
-        foreach (string line in text.Split('\n'))
+        // One line decoded at a time, straight from the shared buffer (T462): the whole span as one string
+        // was a large object per file, twice the bytes read.
+        int end = lastNl + 1;
+        for (int pos = start; pos < end;)
         {
-            if (line.Length == 0) continue;
+            int nl = Array.IndexOf(buf, (byte)'\n', pos, end - pos);
+            int stop = nl < 0 ? end : nl;
+            int from = pos;
+            pos = stop + 1;
+            if (stop == from) continue;
+            string line = Encoding.UTF8.GetString(buf, from, stop - from);
             if (!UsageReport.TryParseSample(line, floor, ceiling, out double t, out TokenBits bits,
                                             out string? id, out string? cwd))
                 continue;
