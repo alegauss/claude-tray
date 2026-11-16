@@ -76,6 +76,9 @@ internal static partial class SelfTestCli
         ActivityProfile working = WorkingHours();
         WindowPace burning = Week(util: 0.85, elapsed: 4.0 / 7.0);
         double wednesday = new DateTimeOffset(new DateTime(2026, 11, 4, 10, 0, 0, DateTimeKind.Local)).ToUnixTimeSeconds();
+        // T458. `Week()` resets relative to the real clock, which agreed with the fixed Wednesday only on the
+        // day this was written; twelve days on, the shape saw a window that had not started yet.
+        burning.ResetUnix = wednesday + burning.SecondsToReset;
         ActivityShape? advised = ActivityShape.Build(burning, working, wednesday);
         if (Check("a burning week with working hours builds a shape", advised is { RunsOut: true })
             && Check("and on a working morning with days left, it says when to resume", advised!.HasAdvice))
