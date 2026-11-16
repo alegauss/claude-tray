@@ -32,4 +32,4 @@ function Read-StoreListing {
 }
 
 # O codigo de idioma da listagem (pt-br) e o que o app entende em --lang (pt-BR).
-$StoreAppLang = @{ 'en-us' = 'en'; 'pt-br' = 'pt-BR'; 'pt-pt' = 'pt-PT'; 'fr-fr' = 'fr'; 'es-es' = 'es' }
+$StoreAppLang = @{ 'en-us' = 'en'; 'pt-br' = 'pt-BR'; 'pt-pt' = 'pt-PT'; 'fr-fr' = 'fr'; 'es-es' = 'es'; 'de-de' = 'de'; 'zh-cn' = 'zh-Hans' }

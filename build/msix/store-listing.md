@@ -344,3 +344,89 @@ por Anthropic. «Claude» y «Claude Code» son marcas comerciales de Anthropic,
 4. Cada sesión, con su coste a precios de lista de la API
 5. El rendimiento en vivo, por proyecto y por tipo de token
 6. Dos perfiles, una configuración: historial, skills y plugins compartidos
+
+## Deutsch (de-de)
+
+**Kurzbeschreibung**
+
+Ihr Claude-Code-Limit im Windows-Infobereich: rot, bevor es ausgeht, und eine Wochenprognose nach den
+Stunden, in denen Sie wirklich arbeiten.
+
+**Beschreibung**
+
+Claude Code Tray zeigt, wie viel Sie von der 5-Stunden-Sitzung und dem Wochenlimit von Claude Code
+verbraucht haben, als scharfes Symbol im Infobereich von Windows.
+
+Wenn Ihr aktuelles Tempo das Limit vor dem Reset aufbrauchen würde, wird das Symbol rot und eine
+Benachrichtigung sagt, wann – solange noch Zeit ist, gegenzusteuern. Die Wochenprognose folgt den
+Stunden, in denen Sie wirklich arbeiten, statt einer geraden Linie durch Nächte und Wochenenden.
+
+Dazu kommen die Kosten pro Sitzung zu API-Listenpreisen, Nutzungsstatistiken und eine Kontextprüfung
+dessen, was Claude Code vor Ihrem ersten Prompt lädt – alles auf Ihrem eigenen Computer berechnet. Die
+App nutzt die Anmeldung, die Claude Code hier bereits speichert: kein API-Schlüssel, keine Einrichtung.
+
+Dies ist eine inoffizielle, von der Community entwickelte App. Sie ist nicht mit Anthropic verbunden
+und wird von Anthropic weder unterstützt noch gesponsert. „Claude“ und „Claude Code“ sind Marken von
+Anthropic, PBC.
+
+**Produktmerkmale**
+
+- Ihre 5-Stunden- und Wochennutzung von Claude Code als scharfes Symbol
+- Wird rot, bevor das Kontingent ausgeht, mit Hinweis, solange Zeit ist
+- Wochenprognose nach den Stunden, in denen Sie wirklich arbeiten
+- Kosten pro Sitzung zu API-Listenpreisen
+- Kontextprüfung: was Claude Code vor dem ersten Prompt lädt
+- Mehrere Claude-Code-Profile, einen Klick voneinander entfernt
+- Kein API-Schlüssel, keine Einrichtung, keine Telemetrie
+
+**Suchbegriffe:** Claude Code, Nutzungslimit, Kontingent, Ratenlimit, Infobereich, Prognose, Entwicklertools
+
+**Urheberrecht und Marken:** © Alegauss. „Claude“ und „Claude Code“ sind Marken von Anthropic, PBC.
+
+**Bildunterschriften der Screenshots**
+
+1. Die Wochenprognose, nach den Stunden, in denen Sie arbeiten
+2. Die 5-Stunden-Sitzung und wohin Ihr Tempo sie führt
+3. Eine Warnung, solange noch Zeit zum Gegensteuern ist
+4. Jede Sitzung, mit ihren Kosten zu API-Listenpreisen
+5. Live-Durchsatz, nach Projekt und nach Tokenart
+6. Zwei Profile, eine Einrichtung: Verlauf, Skills und Plugins geteilt
+
+## 中文（简体） (zh-cn)
+
+**简短说明**
+
+在 Windows 托盘中显示您的 Claude Code 限额：在用尽之前变红，并按您实际工作的时段预测本周用量。
+
+**说明**
+
+Claude Code Tray 以 Windows 通知区域中的清晰图标，显示您已用掉多少 Claude Code 5 小时会话和每周限额。
+
+当按当前速度会在重置前用完限额时，图标会变红，并通过通知告诉您何时用完 — 趁还来得及调整。每周预测按您实际工作的时段计算，而不是一条贯穿夜晚和周末的直线。
+
+它还按 API 标价显示每个会话的费用、使用统计，以及对 Claude Code 在您第一个提示前加载内容的上下文审查 — 全部在您自己的电脑上计算。它使用 Claude Code 已保存在本机的登录信息，无需粘贴 API 密钥，也无需任何设置。
+
+这是一款非官方的社区应用。它与 Anthropic 无关联，亦未获 Anthropic 认可或赞助。“Claude”和“Claude Code”是 Anthropic, PBC 的商标。
+
+**产品功能**
+
+- 以清晰的托盘图标显示 Claude Code 5 小时和每周用量
+- 在用尽之前变红，并趁还有时间发出通知
+- 按您实际工作的时段预测本周用量
+- 按 API 标价计算每个会话的费用
+- 上下文审查：Claude Code 在第一个提示前加载了什么
+- 多个 Claude Code 配置文件，一键切换
+- 无需 API 密钥，无需设置，无遥测
+
+**关键字:** Claude Code, 用量, 限额, 配额, 托盘, 预测, 开发者工具
+
+**版权和商标:** © Alegauss。“Claude”和“Claude Code”是 Anthropic, PBC 的商标。
+
+**屏幕截图说明**
+
+1. 按您实际工作时段计算的每周预测
+2. 5 小时会话，以及您的速度会把它带到哪里
+3. 趁还来得及调整时发出的提醒
+4. 每个会话，以及按 API 标价计算的费用
+5. 实时吞吐量，按项目和 token 类型划分
+6. 两个配置文件，一套设置：共享历史、技能和插件

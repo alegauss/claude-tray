@@ -826,3 +826,4 @@
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 
 - **T453** — The app speaks Simplified Chinese as well as German: lang/zh-Hans.json opens for zh-CN, zh-SG and zh-Hans, the picker lists 中文（简体）, and the README and the site name all seven languages.
+- **T454 (package and listing)** — The package declares de-de and zh-cn, store-listing.md carries both listings with native keywords, and store-shots.ps1 composes their six screenshots in each language.
