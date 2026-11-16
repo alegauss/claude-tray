@@ -82,7 +82,14 @@
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <!-- Off on purpose (T461). A compressed bundle cannot be memory-mapped: every assembly the process
+         loads is inflated into private memory and kept there. Measured on 2026-11-16, same machine, idle
+         after five minutes: about 186 MB private compressed against 135 MB plain. What compression bought
+         was size, and both things that ship the exe compress it again: ClaudeTray-Setup.exe came out at
+         67.5 MB compressed against 49.8 MB plain (LZMA2 solid packs the raw image better than a
+         pre-compressed one), and the MSIX's deflate blocks at 67.1 against 66.7 MB. The cost is the
+         installed exe, 166.8 MB on disk against 72.6 MB. -->
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
   </PropertyGroup>
 
   <!-- Enabling UseWPF alongside UseWindowsForms drops System.IO from the SDK's implicit global

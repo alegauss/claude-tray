@@ -1017,24 +1017,6 @@ winwright does not have. A run on an empty profile must not pass for a ceiling m
 
 Done when a run on a build that holds twice the ceiling fails and names both numbers.
 
-### CXII.4 What single-file compression costs at idle (T461)
-
-Measured by T450 on 2026-11-16, HEAD after T457, one machine, 4.2 GB of transcripts, idle after five
-minutes: the Release single-file publish with `EnableCompressionInSingleFile` holds about 186 MB
-private, and the same publish with compression off about 135 MB. The exe is 72.6 MB compressed and
-166.8 MB plain.
-
-A compressed bundle cannot be memory-mapped: every managed assembly the process loads is inflated
-into private memory and kept there, which is the WPF, WinForms and runtime assemblies the tray loads
-at startup. Plain, they are mapped from the file and their pages are shared and discardable.
-
-What compression buys is download size, and both things that ship it compress again: the MSIX is a
-zip, and Inno Setup compresses the installer with LZMA. So the first thing to measure is the size of
-`ClaudeTray-Setup.exe` and of the `.msix` both ways. If they grow by a few MB, turn compression off
-in `ClaudeTray.csproj`, re-measure idle private on the published exe, and keep the figures beside
-the property. If the setup grows by most of the 94 MB, say so here and keep it. The self-update
-download is the setup, so it is the number that decides.
-
 ### CXII.5 The large object heap an idle tray never returns (T462)
 
 Measured by T450 on 2026-11-16 from a dump of the resident Release tray, idle at 180 MB private: the
