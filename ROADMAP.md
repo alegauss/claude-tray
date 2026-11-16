@@ -70,7 +70,7 @@
 ## Block AP — The tray's own footprint: half a gigabyte to sit in the notification area
 
 - 📋 **T451** (deps: —) (requires: store-release-day) **An idle tray's private memory grew from 565 MB to 595 MB in ten minutes, and no one knows where it stops** — A tray runs for days, so growth that never levels off costs more than any fixed footprint T450 can find. → §CXII.2
-- ⏳ **T452** (deps: T450 ✅, T461 ✅, T462 ✅) (requires: winwright-memory) **No check reads the tray's own memory, so a release can double it unnoticed** — An idle ceiling is checked on every build; a window that is never released still shows only after it is opened and closed. → §CXII.3
+- ⏳ **T452** (deps: T450 ✅, T461 ✅, T462 ✅) (requires: winwright-ww629) **No check reads the tray's own memory, so a release can double it unnoticed** — An idle ceiling is checked on every build; a window that is never released still shows only after it is opened and closed. → §CXII.3
 
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 
