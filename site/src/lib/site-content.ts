@@ -46,6 +46,10 @@ export const releasesUrl = `${repoUrl}/releases/latest`;
 
 export const wingetCommand = "winget install alegauss.ClaudeCodeTray";
 
+// The Microsoft Store page (T456). `cid` is the campaign Partner Center reports acquisitions under, so
+// the site's share shows up there beside the README's (`cid=readme`).
+export const storeUrl = "https://apps.microsoft.com/detail/9P27BHWNT56D?cid=site";
+
 // Where the light/dark choice is stored: read by the pre-paint script vite.config.ts inlines
 // and by the toggle, so the two agree on one key.
 export const THEME_KEY = "ct-theme";
@@ -831,9 +835,11 @@ export const install = {
     {
       title: "Install it",
       body: [
-        "One command with ",
+        "From the ",
+        { b: "Microsoft Store" },
+        ", one command with ",
         { b: "winget" },
-        ", or grab ",
+        ", or ",
         { code: "ClaudeTray-Setup.exe" },
         " from Releases. Per-user, no admin.",
       ] as Rich,
@@ -845,7 +851,13 @@ export const install = {
       ] as Rich,
     },
   ],
-  wingetLead: ["Install from the ", { b: "Windows Package Manager" }, ":"] as Rich,
+  storeCta: "Get it from the Microsoft Store",
+  storeNote: [
+    "Signed by the Store and updated by Windows, so there is no SmartScreen warning to click through: ",
+    { code: "apps.microsoft.com/detail/9P27BHWNT56D" },
+    ".",
+  ] as Rich,
+  wingetLead: ["Or from the ", { b: "Windows Package Manager" }, ":"] as Rich,
   wingetNote: ["Prefer a direct download? Grab the installer below."] as Rich,
   cta: "⬇ Download the latest release",
 };

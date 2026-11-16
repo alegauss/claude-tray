@@ -8,6 +8,8 @@
 
 <img src="site/public/shots/demo.gif" alt="The tray icon filling up as a session is used, turning red when the projection says the limit arrives before the reset, and the On pace to run out toast" width="640">
 
+**[Get it from the Microsoft Store](https://apps.microsoft.com/detail/9P27BHWNT56D?cid=readme)** · signed, updated by Windows, no SmartScreen warning
+
 ```
 winget install alegauss.ClaudeCodeTray
 ```
@@ -45,7 +47,11 @@ Français, Português (Brasil and Portugal) and 中文（简体）.
 
 ## Install
 
-The quickest way is the **Windows Package Manager** (winget):
+The easiest way is the
+**[Microsoft Store](https://apps.microsoft.com/detail/9P27BHWNT56D?cid=readme)**: the Store signs
+the package and Windows updates it, so there is no SmartScreen warning to click through.
+
+Or use the **Windows Package Manager** (winget):
 
 ```
 winget install alegauss.ClaudeCodeTray
@@ -53,7 +59,8 @@ winget install alegauss.ClaudeCodeTray
 
 Or download `ClaudeTray-Setup.exe` from the
 [latest release](https://github.com/alegauss/claude-tray/releases/latest) and run it — a
-per-user install (no admin). Either way, the app self-updates from GitHub Releases afterwards.
+per-user install (no admin). Installed either of these two ways, the app self-updates from GitHub
+Releases afterwards.
 To build from source instead, see [Build and run](#build-and-run).
 
 ## Look

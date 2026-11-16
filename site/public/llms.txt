@@ -5,7 +5,8 @@
 > percentage as a crisp, DPI-aware vector, turns red when the projection says the limit
 > arrives before the reset, and a privacy-first usage breakdown is computed locally. Built in C# (.NET 10,
 > WinForms + GDI+). Zero configuration — it reuses the OAuth token Claude Code already
-> stores on your machine. Installable via the Windows Package Manager:
+> stores on your machine. Installable from the Microsoft Store
+> (https://apps.microsoft.com/detail/9P27BHWNT56D) or the Windows Package Manager:
 > `winget install alegauss.ClaudeCodeTray`.
 
 This is an unofficial, open-source community project (Apache License 2.0). It is not
@@ -34,7 +35,8 @@ trademarks of Anthropic; the tool only reads usage data Claude Code already expo
 
 ## Installation
 
-- **winget (recommended)**: `winget install alegauss.ClaudeCodeTray` — published to the Microsoft winget-pkgs community repository, with `en-US` and `pt-BR` manifest locales.
+- **Microsoft Store (recommended)**: https://apps.microsoft.com/detail/9P27BHWNT56D — signed by the Store and updated by Windows, so there is no SmartScreen warning.
+- **winget**: `winget install alegauss.ClaudeCodeTray` — published to the Microsoft winget-pkgs community repository, with `en-US` and `pt-BR` manifest locales.
 - **Direct download**: run `ClaudeTray-Setup.exe` from the latest GitHub release. Per-user install (no admin); existing installs self-update from GitHub Releases.
 - **Prerequisite**: Claude Code installed and logged in at least once (`claude`), so the OAuth token exists at `%USERPROFILE%\.claude\.credentials.json`.
 
@@ -85,6 +87,7 @@ servers, with no per-user licence.
   not, and the one call that leaves the machine
 - [GitHub repository](https://github.com/alegauss/claude-tray): source code
 - [README / documentation](https://github.com/alegauss/claude-tray/blob/main/README.md): full setup, build, and troubleshooting guide
+- [Microsoft Store](https://apps.microsoft.com/detail/9P27BHWNT56D): install it signed and updated by Windows
 - [Latest release](https://github.com/alegauss/claude-tray/releases/latest): download the Windows installer (ClaudeTray-Setup.exe)
 - [winget package](https://winget.run/pkg/alegauss/ClaudeCodeTray): install via `winget install alegauss.ClaudeCodeTray`
 - [License](https://github.com/alegauss/claude-tray/blob/main/LICENSE): Apache License 2.0

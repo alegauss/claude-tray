@@ -1,4 +1,4 @@
-import { download, install, releasesUrl, wingetCommand } from "../../lib/site-content";
+import { download, install, releasesUrl, storeUrl, wingetCommand } from "../../lib/site-content";
 import {
   SiteButton,
   SiteCopyButton,
@@ -31,6 +31,15 @@ export function Install() {
             </div>
           ))}
         </div>
+
+        {/* The Store first (T456): it is where people get the app, and the one install with no
+            SmartScreen warning. The note is a fact an agent can use, so only the button is omitted. */}
+        <div className="vg-site-hero-actions reveal" data-twin="omit" style={{ marginTop: "24px" }}>
+          <SiteButton href={storeUrl}>{install.storeCta}</SiteButton>
+        </div>
+        <p className="install-note reveal">
+          <Rich runs={install.storeNote} />
+        </p>
 
         <div className="install-cmd reveal">
           <p className="install-lead">
