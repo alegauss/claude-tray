@@ -825,3 +825,4 @@
 
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 
+- **T453 (German)** — The app speaks German: lang/de.json translates every key, an OS in any de-* language opens in it, the picker lists Deutsch, and the toasts and every tooltip state fit at that length.

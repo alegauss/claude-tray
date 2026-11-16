@@ -33,6 +33,7 @@
   // is not what changes.
   "languageFiles": [
     "lang/en.json",
+    "lang/de.json",
     "lang/es.json",
     "lang/fr.json",
     "lang/pt-BR.json",

@@ -24,7 +24,7 @@ namespace ClaudeTray;
 /// </summary>
 internal static class L
 {
-    internal enum Lang { En, PtBr, PtPt, Fr, Es }
+    internal enum Lang { En, PtBr, PtPt, Fr, Es, De }
 
     /// <summary>One shipped language. <c>Code</c> is the value stored in Settings; <c>Culture</c> formats
     /// dates (empty = invariant, i.e. English); <c>Endonym</c> names it in the picker (in its own
@@ -42,6 +42,7 @@ internal static class L
         new(Lang.PtPt, "pt-PT", "pt-PT", "Português (Portugal)", c => Named(c, "pt-PT")),
         new(Lang.Fr,   "fr",    "fr-FR", "Français",             c => Two(c) == "fr"),
         new(Lang.Es,   "es",    "es-ES", "Español",              c => Two(c) == "es"),
+        new(Lang.De,   "de",    "de-DE", "Deutsch",              c => Two(c) == "de"),
     };
 
     private static Lang? _current;
@@ -176,7 +177,7 @@ internal static class L
     /// worst one — <i>"1 rule(s) would grant something new"</i> — because the interesting counts are
     /// small.</para>
     ///
-    /// <para><b>Two forms, and deliberately not more.</b> All five shipped languages have exactly two;
+    /// <para><b>Two forms, and deliberately not more.</b> Every shipped language has exactly two;
     /// Slavic three-form rules are real and are not a thing here, and a plural library is a NuGet package
     /// the single-<c>.exe</c> rule forbids (§I.3). If a sixth language ever needs three, that is the day
     /// to grow this — not before.</para>

@@ -910,7 +910,7 @@ internal static partial class SelfTestCli
 
         // The other direction. A near-miss and a wrong case are the typos that actually happen, and the
         // codes are matched exactly (`L.Resolve` is ordinal), so both must be refused rather than resolved.
-        foreach (string bad in new[] { "zz", "de", "pt_BR", "EN", "en-GB", "" })
+        foreach (string bad in new[] { "zz", "ja", "pt_BR", "EN", "en-GB", "" })
             Check($"'{bad}' is refused rather than becoming the machine's language",
                   L.RefuseOverride(bad) is not null);
 

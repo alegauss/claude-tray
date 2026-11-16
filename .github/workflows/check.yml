@@ -161,12 +161,12 @@ jobs:
       # refusal T228 added fires only where somebody takes a capture, and nobody was capturing that one.
       # T291's is the same shape one layer over: a bar drawn for a quantity nobody has fits perfectly
       # well, so the fit question could never have found it.
-      - name: Toast cards fit and draw the right bar, in all five languages
+      - name: Toast cards fit and draw the right bar, in every shipped language
         shell: pwsh
         run: |
           $exe = 'bin\Release\net10.0-windows\win-x64\ClaudeTray.exe'
           $bad = @()
-          foreach ($lang in 'en', 'pt-BR', 'pt-PT', 'fr', 'es') {
+          foreach ($lang in 'en', 'pt-BR', 'pt-PT', 'fr', 'es', 'de') {
             $p = Start-Process $exe -ArgumentList '--lang', $lang, '--check-toasts' -Wait -PassThru `
                    -RedirectStandardOutput "toasts-$lang.log" -RedirectStandardError "toasts-$lang.err"
             Get-Content "toasts-$lang.log", "toasts-$lang.err" -ErrorAction SilentlyContinue

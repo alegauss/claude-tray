@@ -381,7 +381,7 @@ No window, no screen — the arithmetic and the readings as text.
 ## Flags that go with anything
 
 ```
---lang <code>                         # render this run in en | pt-BR | pt-PT | fr | es | auto, whatever
+--lang <code>                         # render this run in en | pt-BR | pt-PT | fr | es | de | auto, whatever
                                       #   the saved preference is. Both tokens are stripped before
                                       #   anything else parses, so it can go anywhere. Published
                                       #   screenshots are English; use it to check a layout in the
