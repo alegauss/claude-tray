@@ -813,5 +813,7 @@
 - **T414** — **The window says when the icon is hidden.** It reads Explorer's NotifyIconSettings record for this exe's own path, with the known-folder GUID resolved, and while the record says the icon is in the overflow a strip under the nav says so in all five languages and opens the taskbar settings where it is turned on; it is re-read on every activation, so it is gone on the first return, and a machine with no record shows nothing. --selftest holds the matching rule.
 - **T415** — **A machine without Claude Code is told so.** When there is no token and no trace of Claude Code (no config dir, ~/.claude, ~/.claude.json, nor a claude on PATH or in ~/.local/bin), the tooltip says it is not installed, the Statistics page says what the app needs and offers the official install page, and the menu entry opens that page instead of a terminal that fails, in all five languages; any one trace keeps the signed-out wording, which --selftest holds signal by signal.
 
+## Block AP — The tray's own footprint: half a gigabyte to sit in the notification area
+
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 

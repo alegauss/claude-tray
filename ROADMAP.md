@@ -67,6 +67,12 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
+## Block AP — The tray's own footprint: half a gigabyte to sit in the notification area
+
+- 📋 **T450** (deps: —) **An idle tray with no window open holds 565 MB of private memory** — Nothing says where those bytes are, so nobody can tell a leak from a fixed cost or decide which one to cut first. → §CXII.1
+- 📋 **T451** (deps: —) **An idle tray's private memory grew from 565 MB to 595 MB in ten minutes, and no one knows where it stops** — A tray runs for days, so growth that never levels off costs more than any fixed footprint T450 can find. → §CXII.2
+- 📋 **T452** (deps: T450) **No check reads the tray's own memory, so a release can double it unnoticed** — The 565 MB was found by chance in Task Manager, and a footprint brought down by T450 will drift back without a ceiling. → §CXII.3
+
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 
 - 📋 **T453** (deps: —) **The app speaks no Chinese or German, though China and Germany are its first and fourth Store markets** — 34 and 15 of the first 164 Store acquisitions came from China and Germany, and both get the English strings. → §CXIII.1

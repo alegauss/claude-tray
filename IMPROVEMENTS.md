@@ -61,6 +61,8 @@
 
 ## Block AJ — Working here — the repo's own docs and flags
 
+## Block AP — The tray's own footprint: half a gigabyte to sit in the notification area
+
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 
 ## §I — House constraints
@@ -965,6 +967,71 @@ window before rendering it, or refuse the picture. Giving the app's windows an o
 would cost users Mica only to make pictures right. When WW611 ships, bump `Winwright` in
 `tests/ClaudeTray.Cases` (the harness here is still on 0.1.0-alpha.18 while `Winwright.InApp` is on
 1.1.5), re-run `preview.cmd shell` and look.
+
+## CXII The tray's own footprint (Block AP)
+
+A tray icon that sits idle in the notification area was measured at 565 MB private on 2026-11-07.
+The sections below split that number, watch it over a day, and hold it once it is down.
+
+### CXII.1 Where an idle tray's 565 MB goes (T450)
+
+Measured on the developer's machine on 2026-11-07, Store build 1.9.0.0 (MSIX), idle with no window
+open: 454 MB working set a few seconds after launch, 639 MB a few minutes later, then flat for 90
+seconds at 639 MB working set, 565 MB private, about 1,050 handles and 17–28 threads. Nothing in the
+repository says what a tray icon should cost, so no one can tell whether 565 MB is a regression or
+the shape the app has always had.
+
+The first job is to say where the bytes are, before anything is changed: the managed GC heap
+(`dotnet-counters`, `dotnet-gcdump`) against native memory (VMMap), and inside the heap, which types
+hold it. Questions worth answering with that split: whether a startup scan of `~/.claude` (session
+JSONL, project histories, the context-load inspector) keeps its parsed results alive after the icon
+is drawn; whether a closed window stays reachable through something other than `TrayContext`'s own
+field, which its `Closed` handler already clears (a static event, a timer's handler); whether
+loading both WPF and WinForms costs a fixed block nobody chose; and whether the GC mode (server or
+workstation, concurrent, `GCHeapAffinitizeMask`, conserve-memory) holds freed memory on purpose.
+Record the size of `~/.claude` (transcript count and bytes) beside every reading: a cost that grows
+with history is not a fixed one, and T452's ceiling needs to know which it is.
+
+Done when the split is written down here as a table, with the top retainers named, and each one is
+either filed as its own task in this block or stated as a cost the app accepts.
+
+### CXII.2 Whether the tray's memory keeps growing over a day (T451)
+
+Same session as T450, idle the whole time: private memory 565 MB at 18:45, flat for 90 seconds, then
+595 MB about ten minutes later (working set 639 → 670 MB). GDI objects 30 and USER objects 40 at the
+second reading, so the redrawn tray icon is not the leak: `TrayContext` already pairs every
+`GetHicon` with a `DestroyIcon`. Two readings ten minutes apart cannot tell a leak from a cache
+filling up to a ceiling, and the tray is meant to run for days.
+
+What would answer it: a sample of private bytes, managed heap size, gen-2 count, handles and threads
+every few minutes across a working day, with the refresh tick, a session scan and the windows opened
+and closed recorded on the same timeline, so a step in the curve can be matched to what ran. If the
+curve keeps rising, a `dotnet-gcdump` at the start and one hours later, diffed by type, names the
+retainer. If it settles, the ceiling is the number T450's table has to explain.
+
+Done when the day's curve is recorded here and the growth is either gone, bounded with a stated
+reason, or filed as its own task with the retaining type named.
+
+### CXII.3 A ceiling on the idle footprint, checked on every build (T452)
+
+The 565 MB in T450 was found by a user looking at Task Manager for a different reason, nine days
+after a reboot. No `--selftest` claim and no winwright case reads the process's own memory, so the
+number can double in a release and nothing here would say so.
+
+What the check needs: launch the built tray, let it reach idle, read private bytes and managed heap
+once, and fail above a ceiling stated next to the number it came from. It should also open and close
+each window a few times and read again, because a window that is never released only shows up after
+it has been closed. The ceiling is set from T450's measured idle figure after its fixes, with
+headroom written down rather than guessed, so it is a dep and not a parallel task.
+
+A ceiling holds only against a fixed input. CI's runner has an empty `~/.claude` and a working
+machine has months of transcripts, so the tray is pointed at a fixture of known size (a `--sample-*`
+root under `SampleRoot`) and the fixture's size is written beside the ceiling. Nothing here launches
+the exe and reads its memory yet: either `--selftest` starts the built exe as a child process, which
+adds no dependency and runs in `check.yml`, or a winwright case does, which needs a memory read
+winwright does not have. A run on an empty profile must not pass for a ceiling meant for a full one.
+
+Done when a run on a build that holds twice the ceiling fails and names both numbers.
 
 ## CXIII Where the Microsoft Store sends people (Block AQ)
 
