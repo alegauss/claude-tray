@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
 PackageIdentifier: alegauss.ClaudeCodeTray
-PackageVersion: 1.9.0
+PackageVersion: 1.10.0
 PackageLocale: en-US
 Publisher: Alexandre Oliveira
 PublisherUrl: https://github.com/alegauss
@@ -41,50 +41,36 @@ Tags:
   - usage-monitor
   - windows
 ReleaseNotes: |-
-  ## What's new in v1.9.0
+  ## What's new in v1.10.0
 
-  The app is now on the Microsoft Store. This release also adds a feed from Claude Code's status line, alerts at the usage levels you pick, a period view for sessions and support for WSL.
+  The app now speaks German and Simplified Chinese, uses far less memory while it sits in the tray, and no longer gets stuck at startup when WSL hangs.
 
-  ### 🛍️ On the Microsoft Store
+  ### 🌍 Deutsch and 中文（简体）
 
-  - **Install from the Store:** [Claude Code Tray on the Microsoft Store](https://apps.microsoft.com/detail/9P27BHWNT56D). The Store copy updates through the Store and starts at sign-in through Windows' own startup setting.
-  - **Opening the app shows it.** Launching it from the Store, the Start menu or a shortcut opens the window, so you can see it is running. Launching it again while it runs brings the window back. At sign-in it still starts quietly in the tray.
-  - **The window tells you when the icon is hidden.** If Windows put the icon in the overflow (the **^** next to the clock), a strip at the top of the window says so. One click opens the taskbar settings where you can pin it.
-  - **No Claude Code yet? It says so.** On a machine without Claude Code, the tooltip, the Statistics page and the menu say it is not installed and link to the official install page. They no longer ask you to run `/login` in a program you don't have.
-  - The taskbar icon of the Store copy no longer sits on a coloured square.
+  - **Two new languages.** The menus, settings, reports, tooltips and notifications are translated into German and Simplified Chinese. The app picks them up from your Windows display language, or you can choose one in **Settings → General**. That makes seven: English, Deutsch, Español, Français, Português (Brasil and Portugal) and 中文（简体）.
+  - The Microsoft Store page is now offered in both languages too.
 
-  ### 📈 Fresher readings, fewer calls
+  ### 🪶 Lighter in the tray
 
-  - **The status line feeds the tray.** Add the entry shown in **Settings → Claude Code** to Claude Code's status line, and each terminal session hands the tray its current quota. The tray then skips the API call that reading makes redundant. Settings tells you which profiles already have it set up.
-  - **Quieter when you're idle.** After 30 minutes with no Claude Code activity, the tray checks every 30 minutes and right after a reset. It goes back to its normal interval as soon as you work again.
-  - **Each account is checked once per round**, even when several profiles point at it.
+  - **Much less memory at idle.** The app gives back the memory its startup scan used, reads transcripts with one reusable buffer, and the installed program is no longer a compressed bundle that has to be unpacked into memory. Measured on the same machine, an idle tray dropped from about 180 MB to well under 100 MB.
+  - **A smaller installer:** `ClaudeTray-Setup.exe` is about 18 MB smaller.
 
-  ### 🔔 Alerts at your own levels
+  ### 🛠️ Fixes
 
-  **Settings → Notifications** takes a list of levels per window, for example 50%, 80% and 95% of the week. Each level is announced once per reset, when a reading passes it. When the icon shows what's left, the levels count what's left too.
-
-  ### 🗂️ Sessions by day, week or month
-
-  - **The Sessions tab groups by day, week or month**, with sessions, turns, tokens and the list-price equivalent for each period.
-  - **Deleted conversations keep their row for a year**, marked as deleted. Settings shows how many there are and can forget them.
-
-  ### 🐧 WSL
-
-  A Claude Code signed in inside a running WSL distro shows up as a profile of its own. Its quota, sessions and context load are read, and **Open Claude Code** launches it in that distro.
-
-  ### 🎛️ Smaller things
-
-  - **Both windows on the icon:** an option in **Settings → Display** splits the bar into the session on the left and the week on the right, each in its own pace colour. It is off by default.
-  - **For scripts:** `ClaudeTray.exe --usage --json` prints where the quota stands, with an exit code for on track, near the limit, at the limit, or no reading. `--sessions --json` lists conversations (no titles or prompts).
-  - **Prices:** Opus 5.5, Sonnet 5.5, Haiku 5.5, Fable 5.1 and Mythos 5.1 have their own rates. Cache reads use each model's own multiple, and Haiku 5.5 prompts over 100K tokens are priced at the higher tier.
-  - **Profiles:** saving Settings no longer resets `CLAUDE_CONFIG_DIR` when you only changed something else. Picking the profile the icon already shows now pins it.
-  - After a week of use, a card asks once whether you'd star the project on GitHub. Nothing leaves your machine to decide that, and it never shows again.
+  - **A hung WSL no longer stops the app from starting.** When WSL was stuck after a reboot, the tray never showed its icon and opening it again did nothing. It now waits at most two seconds for WSL and carries on.
+  - **The first start after installing opens the window**, so you can see the app is running even when Windows hides a new icon in the overflow. Updates and later starts stay quiet in the tray.
+  - **Keyboard:** the Sessions rows, the chart strip, the Context overview, the Settings sidebar and the About cards can all be reached and opened from the keyboard.
+  - **Settings are saved atomically**, and a settings file that could not be read is never overwritten with defaults.
+  - **Profiles:** usage insights and the Context page read the profile the icon shows; a profile keeps its identity while Claude Code is rewriting its config file.
+  - **Sessions:** the list and any call tree you opened stay put through a refresh; deleted conversations are kept correctly behind a linked projects folder.
+  - **Context:** plugin skills are counted, and a project's drift no longer resets.
+  - Counted strings say "1 conversation" instead of "1 conversations" in every language, and dates use the Gregorian calendar everywhere.
 
   **Install or update:** from the [Microsoft Store](https://apps.microsoft.com/detail/9P27BHWNT56D), with `winget install alegauss.ClaudeCodeTray`, or by downloading `ClaudeTray-Setup.exe` below. Installed copies offer the update from the tray menu.
 
   ---
 
   Unofficial community project, not affiliated with, endorsed by, or sponsored by Anthropic.
-ReleaseNotesUrl: https://github.com/alegauss/claude-tray/releases/tag/v1.9.0
+ReleaseNotesUrl: https://github.com/alegauss/claude-tray/releases/tag/v1.10.0
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0
