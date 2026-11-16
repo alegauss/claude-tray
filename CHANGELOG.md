@@ -827,3 +827,4 @@
 
 - **T453** — The app speaks Simplified Chinese as well as German: lang/zh-Hans.json opens for zh-CN, zh-SG and zh-Hans, the picker lists 中文（简体）, and the README and the site name all seven languages.
 - **T454 (package and listing)** — The package declares de-de and zh-cn, store-listing.md carries both listings with native keywords, and store-shots.ps1 composes their six screenshots in each language.
+- **T455 (first start opens the window)** — A fresh install opens the main window once on its first start, from the Inno installer too, where T413's packaged rule never reached; an update or a restart opens nothing.

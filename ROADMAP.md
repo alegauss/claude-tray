@@ -77,7 +77,7 @@
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 
 - ⏳ **T454** (deps: T453 ✅) (requires: store-account) **The Store page has no Chinese or German listing, because the package declares neither language** — A Store submission carrying both listings and their screenshots, and acquisitions by market compared before and after for China and Germany. → §CXIII.2
-- 📋 **T455** (deps: —) **A first launch from the Store shows nothing but an icon that Windows often hides in the overflow** — The Store funnel counts 40 installs and 21 opens in the first ten days; a click on Open that seems to do nothing loses half of them. → §CXIII.3
+- ⏳ **T455** (deps: —) (requires: store-release-day) **A first launch from the Store shows nothing but an icon that Windows often hides in the overflow** — The Store funnel counted 40 installs and 21 opens in ten days; the first start opens the window now, and the case and the funnel remain. → §CXIII.3
 - 📋 **T456** (deps: —) **The site and the README offer only winget and the GitHub installer, never the Microsoft Store** — The Store build has no SmartScreen warning and brought 164 acquisitions in ten days, yet a visitor without a terminal is sent to the warned installer. → §CXIII.4
 
 ## Non-goals (do NOT add as tasks)

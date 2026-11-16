@@ -268,6 +268,19 @@ internal sealed class Settings
     /// update, a profile switch or a dismissal (T410).</summary>
     public bool StarInvited { get; set; } = false;
 
+    /// <summary>
+    /// Whether this installation has opened its window on its own once already (T455). A first launch
+    /// starts in the notification area, where Windows 11 often files a new icon in the overflow, so from the
+    /// outside nothing happened; the first one opens the window instead, and it never repeats.
+    ///
+    /// <para><b>True unless proven new.</b> The default is <c>true</c>, so a settings file written before
+    /// this existed, which has no such key, reads as an installation that has been seen: an update says
+    /// nothing. Only <see cref="Load(string)"/> finding no file at all, which is a fresh install, starts it
+    /// at <c>false</c>. A file that could not be read keeps the default too: an unreadable file is not a
+    /// new user.</para>
+    /// </summary>
+    public bool Welcomed { get; set; } = true;
+
     /// <summary>Where the app keeps its own state — <c>%LocalAppData%\ClaudeTray</c>: this file, the
     /// caches, the usage/context history and the reset log. Public so the System information page can
     /// show (and open) it without a second copy of the path.</summary>
@@ -297,7 +310,7 @@ internal sealed class Settings
         {
             try
             {
-                if (!File.Exists(path)) { HeldBack.Remove(path); return new Settings(); }
+                if (!File.Exists(path)) { HeldBack.Remove(path); return new Settings { Welcomed = false }; }
                 string text = string.Join("\n", SharedRead.Lines(path));
                 Settings s = JsonSerializer.Deserialize<Settings>(text) ?? throw new JsonException("null document");
                 s.Clamp();

@@ -1097,6 +1097,11 @@ once. Either way, the first launch is remembered in settings, so a reinstall or 
 nothing. On a machine without Claude Code signed in, the same moment says so instead of showing an
 empty icon.
 
+Found while shipping the first half: a launch the user makes through the package already opened the
+window (T413, in 1.9.0), so the gap was the Inno installer's own unpackaged launch.
+`Settings.Welcomed` now opens the window on a fresh install's first start, defaulting to true so an
+older file, an update, says nothing.
+
 **Done when** a clean install, from the MSIX and from the Inno installer, shows that first message
 once and never again, a case covers it, and the Store funnel's open rate can be compared over the
 four weeks after the release that carries it.

@@ -100,8 +100,14 @@ internal sealed class TrayContext : ApplicationContext
         if (!Program.SecondTray)
         {
             ShowRequest.Listen(() => _ui.Post(_ => OpenMain(), null));
-            if (PackageIdentity.OpensWindow(PackageIdentity.IsPackaged, PackageIdentity.ActivationKind()))
+            bool welcome = WelcomesOnStart(_settings.Welcomed, ProfileStore.Observing);
+            if (welcome || PackageIdentity.OpensWindow(PackageIdentity.IsPackaged, PackageIdentity.ActivationKind()))
                 _ui.Post(_ => OpenMain(), null);
+            if (welcome)
+            {
+                _settings.Welcomed = true;
+                SaveSettingsQuietly();
+            }
         }
 
         _poll.Interval = _settings.RefreshSeconds * 1000;
@@ -1086,6 +1092,14 @@ internal sealed class TrayContext : ApplicationContext
     {
         try { _settings.Save(); } catch { /* nothing the user asked for is waiting on this */ }
     }
+
+    /// <summary>
+    /// Whether this start opens the window because the installation is new (T455). The installer's own
+    /// launch is unpackaged, so <see cref="PackageIdentity.OpensWindow"/> (T413) never covers it, and an icon
+    /// in the overflow is all a new user would see. Never for an observing process: a check's tray must not
+    /// open on its own, and it could not record that it had.
+    /// </summary>
+    internal static bool WelcomesOnStart(bool welcomed, bool observing) => !welcomed && !observing;
 
     private static string AuthLabel(AuthMethod auth) => L.T(auth switch
     {

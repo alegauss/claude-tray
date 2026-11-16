@@ -651,6 +651,22 @@ internal static partial class SelfTestCli
         fallback.Save(path);
         Check("and a file nobody could open is not overwritten with the defaults read in its place",
               Settings.Load(path).RefreshSeconds == 900, $"{Settings.Load(path).RefreshSeconds}s");
+
+        // T455. A fresh install opens its window once; an update, whose file predates the key, says nothing.
+        File.Delete(path);
+        bool fresh = Settings.Load(path).Welcomed;
+        File.WriteAllText(path, "{\"RefreshSeconds\": 600}");
+        bool updated = Settings.Load(path).Welcomed;
+        Check("no settings file is a new installation, and a file without the key is not",
+              !fresh && updated, $"no file reads Welcomed={fresh}, an older file Welcomed={updated}");
+        var saved = new Settings { Welcomed = false };
+        saved.Welcomed = true;
+        saved.Save(path);
+        Check("and once welcomed, it stays welcomed across a restart", Settings.Load(path).Welcomed);
+        Check("a new installation opens the window on its own, an observing process never does",
+              TrayContext.WelcomesOnStart(welcomed: false, observing: false)
+              && !TrayContext.WelcomesOnStart(welcomed: true, observing: false)
+              && !TrayContext.WelcomesOnStart(welcomed: false, observing: true));
     }
 
     /// <summary>
