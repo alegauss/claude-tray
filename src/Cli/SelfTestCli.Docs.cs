@@ -1764,10 +1764,11 @@ internal static partial class SelfTestCli
         Check("and every screenshot in site\\public\\shots is shown by one of them", orphans.Length == 0,
               $"{string.Join(", ", orphans)} — shown nowhere, so nobody re-takes it when the window moves");
 
-        // An identifier, not prose: a user types it, and two spellings send one of them nowhere.
-        string[] ids = Regex.Matches(readmeText + siteText, @"alegauss\.[A-Za-z]+")
+        // An identifier, not prose: a user types it, and two spellings send one of them nowhere. A winget
+        // id's second part is PascalCase and a host's is lowercase, so `alegauss.github` and the site's
+        // `alegauss.com` are never read as ids (T459) — by shape, not by a list of hosts to keep current.
+        string[] ids = Regex.Matches(readmeText + siteText, @"\balegauss\.[A-Z][A-Za-z]+")
             .Select(m => m.Value).Distinct(StringComparer.Ordinal)
-            .Where(v => !v.Equals("alegauss.github", StringComparison.Ordinal))
             .OrderBy(v => v, StringComparer.Ordinal).ToArray();
         Check("the README and the page quote one winget id", ids.Length == 1,
               $"{string.Join(", ", ids)} — one of these installs nothing");

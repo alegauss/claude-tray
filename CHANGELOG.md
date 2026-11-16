@@ -728,6 +728,7 @@
 - **T428** — The resume-hour pair runs on a fixed working-morning clock with no allowed skip, a blind case-run desk prints its hole and fails on CI, and AGENTS.md says ObservingTray reads the real tree.
 - **T446** — A repository check that throws is reported as one failure naming the claim and the exception, and the rest of the suite runs on to its summary.
 - **T458** — The burning-week advice checks build their window on the same fixed Wednesday as the clock they are asked at, so they pass on any day the suite runs.
+- **T459** — The winget-id check tells an id from a host by its PascalCase second part, so the site's alegauss.com no longer reads as a second id.
 
 ## Block AJ — Working here — the repo's own docs and flags
 
