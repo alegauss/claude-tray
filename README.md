@@ -34,6 +34,8 @@ per pillar. Every page is served as `index.md` beside its `index.html`, so an ag
   comes back.
 
 It reuses the login Claude Code already has on your machine, so there is nothing to configure.
+It speaks your Windows display language when that is one of seven: English, Deutsch, Español,
+Français, Português (Brasil and Portugal) and 中文（简体）.
 
 ---
 

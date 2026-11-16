@@ -166,7 +166,7 @@ jobs:
         run: |
           $exe = 'bin\Release\net10.0-windows\win-x64\ClaudeTray.exe'
           $bad = @()
-          foreach ($lang in 'en', 'pt-BR', 'pt-PT', 'fr', 'es', 'de') {
+          foreach ($lang in 'en', 'pt-BR', 'pt-PT', 'fr', 'es', 'de', 'zh-Hans') {
             $p = Start-Process $exe -ArgumentList '--lang', $lang, '--check-toasts' -Wait -PassThru `
                    -RedirectStandardOutput "toasts-$lang.log" -RedirectStandardError "toasts-$lang.err"
             Get-Content "toasts-$lang.log", "toasts-$lang.err" -ErrorAction SilentlyContinue

@@ -1062,28 +1062,6 @@ acquisitions in its first ten days with no promotion, 147 of them from inside th
 funnel counts 328 page views, 64 acquisitions, 40 installs and 21 people who opened the app. This
 block is what those numbers ask of the app.
 
-### CXIII.1 Simplified Chinese and German (T453)
-
-**Why.** China gave 34 and Germany 15 of the first 164 Store acquisitions (Partner Center,
-2026-10-30 to 2026-11-09), the first and fourth markets, and the app answers both in English:
-`L.Languages` ships en, pt-BR, pt-PT, fr and es.
-
-**What.** Two files and two rows, as the summary on `L` (`src/Core/Localization.cs`) says a language
-is added:
-
-- `lang/zh-Hans.json` (Simplified Chinese), matched for `zh-CN`, `zh-SG` and `zh-Hans`; Traditional Chinese (`zh-TW`, 4 acquisitions) stays English for now and falls back cleanly.
-- `lang/de.json`, matched for any `de-*`, with `de-DE` dates.
-
-Every key translated, not machine-filled and left: the toast, the tooltip and the pace warning are
-the strings people read most. German runs about a third longer than English, so the tooltip budget
-(`Fit`, 127 characters) and the narrow cards of the main window and Statistics are checked in
-German. Chinese needs no font of its own (Segoe UI falls back to Microsoft YaHei), but the window is
-looked at in it once.
-
-**Done when** `SelfTestCli.Lang` passes for both languages, the Settings picker lists them by
-endonym (中文（简体）, Deutsch), an OS in either language opens the app in it, and the README and the site
-name the seven languages.
-
 ### CXIII.2 The Store listing in Chinese and German (T454)
 
 **Why.** The Store offers a listing only in the languages the package declares, and

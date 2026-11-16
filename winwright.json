@@ -37,7 +37,8 @@
     "lang/es.json",
     "lang/fr.json",
     "lang/pt-BR.json",
-    "lang/pt-PT.json"
+    "lang/pt-PT.json",
+    "lang/zh-Hans.json"
   ],
 
   // WW291. The other well a derived set comes from: what this application says it has, rather than

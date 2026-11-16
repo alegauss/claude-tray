@@ -24,7 +24,7 @@ namespace ClaudeTray;
 /// </summary>
 internal static class L
 {
-    internal enum Lang { En, PtBr, PtPt, Fr, Es, De }
+    internal enum Lang { En, PtBr, PtPt, Fr, Es, De, ZhHans }
 
     /// <summary>One shipped language. <c>Code</c> is the value stored in Settings; <c>Culture</c> formats
     /// dates (empty = invariant, i.e. English); <c>Endonym</c> names it in the picker (in its own
@@ -43,6 +43,11 @@ internal static class L
         new(Lang.Fr,   "fr",    "fr-FR", "Français",             c => Two(c) == "fr"),
         new(Lang.Es,   "es",    "es-ES", "Español",              c => Two(c) == "es"),
         new(Lang.De,   "de",    "de-DE", "Deutsch",              c => Two(c) == "de"),
+        // Simplified only: zh-TW, zh-HK and zh-MO are Traditional and stay in English rather than be shown
+        // a script their readers did not choose. zh-CN and zh-SG are named because their culture names carry
+        // no script; anything spelled zh-Hans(-*) says it outright.
+        new(Lang.ZhHans, "zh-Hans", "zh-CN", "中文（简体）",
+            c => Named(c, "zh-CN") || Named(c, "zh-SG") || c.Name.StartsWith("zh-Hans", StringComparison.OrdinalIgnoreCase)),
     };
 
     private static Lang? _current;

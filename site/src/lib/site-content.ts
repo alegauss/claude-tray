@@ -913,6 +913,7 @@ export const download = {
     "Windows 10 / 11 · x64",
     "No API key, no account",
     "In-app updates from GitHub Releases",
+    "English, Deutsch, Español, Français, Português (Brasil, Portugal), 中文（简体）",
   ],
   note: [
     "Apache 2.0, and building from source is documented in the ",
