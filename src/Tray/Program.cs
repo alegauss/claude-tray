@@ -303,12 +303,21 @@ internal static class Program
             return;
         }
 
-        // One listing screenshot composed under its headline (T412); build\store-shots.ps1 drives it per
-        // language, since the captures it composes are taken in that language.
+        // One listing screenshot composed under its headline, its line and the badge (T412, T464);
+        // build\store-shots.ps1 drives it per language, since the captures it composes are taken in that language.
         if (args.Length >= 1 && args[0] == "--store-shot")
         {
-            if (args.Length < 4) { Console.WriteLine("usage: --store-shot <capture.png> <out.png> <headline>"); Environment.ExitCode = 1; return; }
-            Environment.ExitCode = PreviewCli.StoreShot(args[1], args[2], args[3]);
+            if (args.Length < 6) { Console.WriteLine("usage: --store-shot <capture.png> <out.png> <headline> <line> <badge>"); Environment.ExitCode = 1; return; }
+            Environment.ExitCode = PreviewCli.StoreShot(args[1], args[2], args[3], args[4], args[5]);
+            return;
+        }
+
+        // The listing's trailer and its thumbnail (T464), from the spec build\store-trailer.ps1 writes. Frames
+        // go to ffmpeg's standard input, so ffmpeg must be on the PATH.
+        if (args.Length >= 1 && args[0] == "--store-trailer")
+        {
+            if (args.Length < 3) { Console.WriteLine("usage: --store-trailer <out.mp4> <spec.json>"); Environment.ExitCode = 1; return; }
+            Environment.ExitCode = StoreTrailer.Make(args[1], args[2]);
             return;
         }
 

@@ -1,7 +1,8 @@
-# store-shots.ps1 - As capturas de tela da listagem da Store, uma serie por idioma (T412).
+# store-shots.ps1 - As capturas de tela da listagem da Store, uma serie por idioma (T412, T464).
 #
 # Para cada idioma da listagem: captura a interface naquele idioma com dados sinteticos (--lang + --sample,
-# nunca os desta maquina) e compoe cada captura sob a sua legenda do store-listing.md (--store-shot).
+# nunca os desta maquina) e compoe cada captura sob a sua manchete, a linha menor e o selo do
+# store-listing.md (--store-shot). A pasta raw fica: o build\store-trailer.ps1 usa o aviso dela.
 # Saida: dist\store-shots\<idioma>\screenshot-<n>.png, na ordem das legendas. Sobe cada pasta no idioma
 # dela no Partner Center; o store-listing-csv.ps1 liga as legendas depois.
 #
@@ -45,10 +46,11 @@ foreach ($code in ($langs.Keys | Sort-Object)) {
     # scroll= fixo cairia num lugar diferente em cada idioma.
     Run @('--lang', $lang, '--capture-settings', (Join-Path $raw 'link.png'), 'ClaudeCode', 'card=LinkHeader', '--sample')
 
-    $captions = $langs[$code].Captions
-    if ($captions.Count -ne $order.Count) { throw "$code tem $($captions.Count) legendas para $($order.Count) capturas" }
+    $l = $langs[$code]
+    if ($l.Shots.Count -ne $order.Count) { throw "$code tem $($l.Shots.Count) legendas para $($order.Count) capturas" }
     for ($i = 0; $i -lt $order.Count; $i++) {
-        Run @('--store-shot', (Join-Path $raw $order[$i]), (Join-Path $dir "screenshot-$($i + 1).png"), $captions[$i])
+        $s = $l.Shots[$i]
+        Run @('--store-shot', (Join-Path $raw $order[$i]), (Join-Path $dir "screenshot-$($i + 1).png"), $s.Headline, $s.Subline, $l.Badge)
     }
     Write-Host "$code -> $dir"
 }

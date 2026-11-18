@@ -373,10 +373,6 @@ internal static class IconRenderer
         g.InterpolationMode = InterpolationMode.HighQualityBicubic;
         g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
 
-        using (var bg = new LinearGradientBrush(new Rectangle(0, 0, w, h),
-                   Color.FromArgb(32, 24, 20), Color.FromArgb(14, 10, 8), 65f))
-            g.FillRectangle(bg, 0, 0, w, h);
-
         float unit = Math.Min(w, h);
         int logo = (int)(unit * 0.40f);
         float titleSize = unit * 0.105f;
@@ -394,6 +390,9 @@ internal static class IconRenderer
         float block = logo + gap + 2 * lineH;
         float top = (h - block) / 2f - h * 0.03f;
 
+        // The listing's own backdrop (T464), glowing behind the logo, so poster and box art match the rest.
+        StoreCanvas.Backdrop(g, w, h, new PointF(w / 2f, top + logo / 2f));
+
         using (var tile = RenderLogo(logo))
             g.DrawImage(tile, (w - logo) / 2f, top, logo, logo);
 
@@ -405,125 +404,6 @@ internal static class IconRenderer
         // the name of the product it refers to, and the art is read as part of the listing.
         g.DrawString("Usage Tray", titleFont, white, new RectangleF(0, ty, w, lineH * 1.2f), centre);
         g.DrawString("for Claude Code", titleFont, clay, new RectangleF(0, ty + lineH, w, lineH * 1.2f), centre);
-
-        return bmp;
-    }
-
-    /// <summary>
-    /// Render the Store's 16:9 hero art (T412): the same backdrop with the logo tile in the upper right and no
-    /// words at all — the Store lays the product title over the lower left, so anything placed there is
-    /// covered, and a name drawn here would be printed twice.
-    /// </summary>
-    public static Bitmap RenderStoreHero(int w, int h)
-    {
-        var bmp = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-        using var g = Graphics.FromImage(bmp);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-
-        using (var bg = new LinearGradientBrush(new Rectangle(0, 0, w, h),
-                   Color.FromArgb(32, 24, 20), Color.FromArgb(14, 10, 8), 25f))
-            g.FillRectangle(bg, 0, 0, w, h);
-
-        // A clay glow behind the tile, so the empty side reads as backdrop rather than as a blank.
-        int logo = (int)(h * 0.42f);
-        float cx = w * 0.70f, cy = h * 0.40f;
-        float glow = logo * 1.9f;
-        using (var path = new GraphicsPath())
-        {
-            path.AddEllipse(cx - glow, cy - glow, glow * 2, glow * 2);
-            using var radial = new PathGradientBrush(path)
-            {
-                CenterColor = Color.FromArgb(70, ClaudeClay),
-                SurroundColors = new[] { Color.FromArgb(0, ClaudeClay) },
-            };
-            g.FillPath(radial, path);
-        }
-
-        using (var tile = RenderLogo(logo))
-            g.DrawImage(tile, cx - logo / 2f, cy - logo / 2f, logo, logo);
-
-        return bmp;
-    }
-
-    /// <summary>
-    /// A screenshot for the Store listing (T412), laid out the way the Store's own featured listings are: a
-    /// headline across the top, the window large beneath it, on a warm clay-lit backdrop. A window taller than
-    /// the room left runs off the bottom edge rather than shrinking to a thumbnail — the top of a window is
-    /// what says what it is. A capture with a transparent corner (a toast, which carries its own shadow) is
-    /// drawn as it is; an opaque one gets rounded corners and a shadow, the frame a window has on a desktop.
-    /// </summary>
-    public static Bitmap RenderStoreShot(Bitmap shot, string headline, int w = 1920, int h = 1080)
-    {
-        var bmp = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-        using var g = Graphics.FromImage(bmp);
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-        g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-
-        // Backdrop: the clay-brown the Store tints this listing's header with, falling to near-black, and a
-        // glow behind where the window sits so it reads as lit rather than pasted on.
-        using (var bg = new LinearGradientBrush(new Rectangle(0, 0, w, h),
-                   Color.FromArgb(78, 44, 32), Color.FromArgb(18, 12, 10), 90f))
-            g.FillRectangle(bg, 0, 0, w, h);
-        using (var path = new GraphicsPath())
-        {
-            path.AddEllipse(w * 0.15f, h * 0.20f, w * 0.70f, h * 1.10f);
-            using var glow = new PathGradientBrush(path)
-            {
-                CenterColor = Color.FromArgb(60, ClaudeClay),
-                SurroundColors = new[] { Color.FromArgb(0, ClaudeClay) },
-            };
-            g.FillPath(glow, path);
-        }
-
-        // Headline, centred, on one line where it fits: the type shrinks before it wraps, down to a floor,
-        // because a second line holding one orphaned word pushes the window down and reads as an accident.
-        float headW = w * 0.88f;
-        float headSize = h * 0.058f;
-        using var centre = new StringFormat { Alignment = StringAlignment.Center };
-        Font headFont = new("Segoe UI Semibold", headSize, FontStyle.Regular, GraphicsUnit.Pixel);
-        while (headSize > h * 0.042f && g.MeasureString(headline, headFont).Width > headW)
-        {
-            headFont.Dispose();
-            headSize -= 1f;
-            headFont = new Font("Segoe UI Semibold", headSize, FontStyle.Regular, GraphicsUnit.Pixel);
-        }
-        using Font disposeHead = headFont;
-        using var cream = new SolidBrush(Color.FromArgb(247, 242, 236));
-        SizeF measured = g.MeasureString(headline, headFont, (int)headW, centre);
-        float headTop = h * 0.075f;
-        g.DrawString(headline, headFont, cream, new RectangleF((w - headW) / 2f, headTop, headW, measured.Height + 4), centre);
-
-        // The window: as large as the width allows, up to 1.3 of the room below (the rest runs off the edge),
-        // and never enlarged past 1.4 — a toast is already rendered at twice its size.
-        float top = headTop + measured.Height + h * 0.05f;
-        float room = h - top;
-        float scale = Math.Min(Math.Min(w * 0.80f / shot.Width, room * 1.3f / shot.Height), 1.4f);
-        float sw = shot.Width * scale, sh = shot.Height * scale;
-        float x = (w - sw) / 2f;
-        float y = sh < room ? top + (room - sh) / 2f - h * 0.02f : top;
-
-        bool framed = shot.GetPixel(0, 0).A == 255;
-        if (framed)
-        {
-            float r = 18f;
-            for (int i = 12; i >= 1; i--)
-            {
-                using var shadowPath = RoundedRect(new RectangleF(x - i * 2, y - i * 2 + 14, sw + i * 4, sh + i * 4), r + i * 2);
-                using var shadow = new SolidBrush(Color.FromArgb(9, 0, 0, 0));
-                g.FillPath(shadow, shadowPath);
-            }
-            using var clip = RoundedRect(new RectangleF(x, y, sw, sh), r);
-            g.SetClip(clip);
-            g.DrawImage(shot, x, y, sw, sh);
-            g.ResetClip();
-            using var edge = new Pen(Color.FromArgb(40, 255, 255, 255), 1.5f);
-            g.DrawPath(edge, clip);
-        }
-        else
-            g.DrawImage(shot, x, y, sw, sh);
 
         return bmp;
     }

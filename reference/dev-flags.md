@@ -197,11 +197,15 @@ are held open by `PageWindow` for every popup, not per call site.
                                       #   hero art and the 300/150/71 tiles, each named for its Partner Center slot.
                                       #   build-msix.ps1 writes them to dist\store-art; default
                                       #   docs\_preview\store-art.
---store-shot <in.png> <out.png> <headline>
-                                      # one Store listing screenshot (T412): the capture large under its
-                                      #   headline on a clay-lit backdrop, 1920x1080. build\store-shots.ps1
+--store-shot <in.png> <out.png> <headline> <line> <badge>
+                                      # one Store listing screenshot (T412, T464): the brand mark, the
+                                      #   badge, the headline with its [bracketed] words in the accent, the
+                                      #   line under it and the capture, 1920x1080. build\store-shots.ps1
                                       #   runs it per image after capturing each language with --lang
                                       #   and --sample, so no screenshot carries this machine's data.
+--store-trailer <out.mp4> <spec.json> # the listing's trailer and its thumbnail beside it (T464), ~35 s at
+                                      #   1920x1080; frames are piped into ffmpeg, which must be on PATH.
+                                      #   build\store-trailer.ps1 writes the spec per language.
 ```
 
 Every one of these creates the directory it is given (T187), so a fresh output folder is fine.

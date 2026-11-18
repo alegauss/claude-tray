@@ -532,21 +532,21 @@ internal static class PreviewCli
 
         Save(IconRenderer.RenderStoreArt(1440, 2160), "poster-9x16-1440x2160.png");
         Save(IconRenderer.RenderStoreArt(2160, 2160), "box-1x1-2160x2160.png");
-        Save(IconRenderer.RenderStoreHero(3840, 2160), "hero-16x9-3840x2160.png");
+        Save(StoreCanvas.Hero(3840, 2160), "hero-16x9-3840x2160.png");
         foreach (int size in new[] { 300, 150, 71 })
             Save(IconRenderer.RenderLogo(size), $"tile-{size}x{size}.png");
     }
 
     /// <summary>
-    /// One Store listing screenshot (T412): a capture composed under its headline at 1920x1080, the size the
-    /// Store's desktop slot takes (it refuses anything under 1366x768). The captures and the headlines are
-    /// per language, so <c>build\store-shots.ps1</c> runs this once per image.
+    /// One Store listing screenshot (T412, T464): a capture composed under its headline, its line and the
+    /// badge at 1920x1080, the size the Store's desktop slot takes (it refuses anything under 1366x768). The
+    /// captures and the words are per language, so <c>build\store-shots.ps1</c> runs this once per image.
     /// </summary>
-    internal static int StoreShot(string input, string output, string headline)
+    internal static int StoreShot(string input, string output, string headline, string subline, string badge)
     {
         if (!File.Exists(input)) { Console.WriteLine("no capture at " + input); return 1; }
         using var shot = new Bitmap(input);
-        using Bitmap canvas = IconRenderer.RenderStoreShot(shot, headline);
+        using Bitmap canvas = StoreCanvas.Shot(shot, headline, subline, badge);
         using (FileStream fs = OutFile.Create(output)) canvas.Save(fs, System.Drawing.Imaging.ImageFormat.Png);
         Console.WriteLine("wrote " + Path.GetFullPath(output));
         return 0;

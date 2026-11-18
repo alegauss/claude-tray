@@ -6,8 +6,10 @@
 #   1) pega um token do Microsoft Entra com as credenciais de um app Entra com funcao Gerente no Partner
 #      Center, lidas de STORE_TENANT_ID, STORE_CLIENT_ID e STORE_CLIENT_SECRET (nunca do repositorio);
 #   2) reaproveita a submissao pendente do app, ou cria uma nova (a API clona a ultima publicada);
-#   3) em cada idioma da listagem, marca as capturas atuais para remocao e adiciona as de
-#      dist\store-shots\<idioma> (build\store-shots.ps1), com a legenda daquele idioma do store-listing.md;
+#   3) em cada idioma da listagem, poe o titulo do produto (T463), marca as capturas, o hero, o poster e o
+#      box art atuais para remocao e adiciona as de dist\store-shots\<idioma> (build\store-shots.ps1), com a
+#      legenda daquele idioma do store-listing.md, e a arte de dist\store-art (T464); com um trailer em
+#      dist\store-trailer\<idioma> para cada idioma (build\store-trailer.ps1), troca tambem os trailers;
 #   4) envia as imagens num ZIP para a URL que a submissao fornece, confirma a submissao e acompanha o status.
 #
 # Um idioma do store-listing.md que a submissao ainda nao tem ganha listagem nova (T454), clonada da en-us
@@ -152,6 +154,14 @@ New-Item -ItemType Directory -Force $zipDir | Out-Null
 $zipPath = Join-Path $zipDir 'images.zip'
 Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 $zip = [IO.Compression.ZipFile]::Open($zipPath, 'Create')
+$StoreTitle = 'Usage Tray for Claude Code'
+$listingArt = [ordered]@{
+    'PromotionalArt16x9' = 'hero-16x9-3840x2160.png'
+    'StoreLogo9x16'      = 'poster-9x16-1440x2160.png'
+    'StoreLogoSquare'    = 'box-1x1-2160x2160.png'
+}
+$trailers = @()
+$noTrailer = @()
 try {
     if ($Package) {
         [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $msix, 'ClaudeTray.msix')
@@ -170,7 +180,8 @@ try {
     if ($Screenshots) {
         $have = @($sub.listings.PSObject.Properties | ForEach-Object { $_.Name.ToLowerInvariant() })
         $template = $sub.listings.'en-us' | ConvertTo-Json -Depth 50
-        $art = @{ 'Icon' = 'tile-300x300.png'; 'PromotionalArt16x9' = 'hero-16x9-3840x2160.png' }
+        # O hero, o poster e o box art entram no laco abaixo, em toda listagem; aqui so o que ela nao recebe la.
+        $art = @{ 'Icon' = 'tile-300x300.png' }
         foreach ($code in ($langs.Keys | Sort-Object)) {
             if ($have -contains $code) { continue }
             $new = $template | ConvertFrom-Json
@@ -202,12 +213,16 @@ try {
         if ($files.Count -eq 0) { throw "sem capturas em $src (rode build\store-shots.ps1)" }
 
         $listing = $p.Value.baseListing
+        # O titulo de cada listagem (T463): a Store recusou o que comecava pelo nome do produto a que se refere.
+        $listing | Add-Member -NotePropertyName title -NotePropertyValue $StoreTitle -Force
+        # Capturas, hero, poster e box art saem e voltam de dist\ (T464): a arte antiga desenha o nome antigo.
+        $replaced = 'Screenshot', 'PromotionalArt16x9', 'StoreLogo9x16', 'StoreLogoSquare'
         $kept = @($listing.images | ForEach-Object {
-            if ($_.imageType -eq 'Screenshot') { $_.fileStatus = 'PendingDelete' }
+            if ($_.imageType -in $replaced -and $_.fileStatus -ne 'PendingUpload') { $_.fileStatus = 'PendingDelete' }
             $_
         })
         $captions = $langs[$code].Captions
-        $added = for ($i = 0; $i -lt $files.Count; $i++) {
+        $added = @(for ($i = 0; $i -lt $files.Count; $i++) {
             # Barra normal no nome: e o separador de um ZIP, e o que a API compara com fileName.
             $entry = "$code/$($files[$i].Name)"
             [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $files[$i].FullName, $entry)
@@ -217,9 +232,40 @@ try {
                 imageType   = 'Screenshot'
                 description = if ($i -lt $captions.Count) { $captions[$i] } else { '' }
             }
+        })
+        foreach ($kind in $listingArt.Keys) {
+            $file = Join-Path $root "dist\store-art\$($listingArt[$kind])"
+            if (-not (Test-Path $file)) { throw "sem $file (rode build\build-msix.cmd)" }
+            $entry = "$code/$($listingArt[$kind])"
+            [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $file, $entry)
+            $added += [pscustomobject]@{ fileName = $entry; fileStatus = 'PendingUpload'; imageType = $kind; description = '' }
         }
         $listing.images = @($kept) + @($added)
-        Write-Host "  $code - $($files.Count) capturas novas, $(@($kept | Where-Object { $_.imageType -eq 'Screenshot' }).Count) antigas removidas"
+
+        # Um trailer por idioma (T464), com a miniatura dele, mostrado so na listagem daquele idioma.
+        $video = Join-Path $root "dist\store-trailer\$code\trailer.mp4"
+        $thumb = Join-Path $root "dist\store-trailer\$code\trailer.png"
+        if ((Test-Path $video) -and (Test-Path $thumb)) {
+            [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $video, "trailers/$code.mp4", 'NoCompression')
+            [void][IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $thumb, "trailers/$code.png")
+            $assets = [pscustomobject]@{}
+            $assets | Add-Member -NotePropertyName $code -NotePropertyValue ([pscustomobject]@{
+                    title     = $StoreTitle
+                    imageList = [object[]]@([pscustomobject]@{ fileName = "trailers/$code.png"; description = $StoreTitle })
+                })
+            $trailers += [pscustomobject]@{ videoFileName = "trailers/$code.mp4"; trailerAssets = $assets }
+        } else { $noTrailer += $code }
+        Write-Host "  $code - titulo, $($files.Count) capturas, hero, poster, box art$(if ($noTrailer -notcontains $code) { ', trailer' })"
+    }
+    # Os trailers que a submissao clonou saem e entram estes; um idioma sem trailer deixaria a troca pela metade.
+    if ($Screenshots) {
+        if ($noTrailer.Count -eq 0) {
+            $sub | Add-Member -NotePropertyName trailers -NotePropertyValue ([object[]]$trailers) -Force
+        } elseif ($trailers.Count -gt 0) {
+            throw "sem trailer em $($noTrailer -join ', ') (rode build\store-trailer.ps1)"
+        } else {
+            Write-Host '  nenhum trailer em dist\store-trailer: os da submissao ficam como estao'
+        }
     }
 }
 finally { $zip.Dispose() }

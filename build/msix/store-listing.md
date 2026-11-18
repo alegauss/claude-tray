@@ -12,9 +12,11 @@ the submission API or the page, and the CSV carries the rest:
 
 1. `powershell -File build\store-shots.ps1` captures the window in each language over synthetic data
    (`--lang`, `--sample`) and composes each capture under its caption below, into
-   `dist\store-shots\<language>\screenshot-1..6.png`. Then `powershell -File build\store-submit.ps1`
-   (`-DryRun` first) swaps every language's screenshots and captions through the Store submission API
-   and commits the submission — it needs a Microsoft Entra app with the Manager role in Partner Center
+   `dist\store-shots\<language>\screenshot-1..6.png`. `powershell -File build\store-trailer.ps1` then
+   makes each language's trailer and thumbnail from them into `dist\store-trailer\<language>\` (T464;
+   ffmpeg on PATH). Then `powershell -File build\store-submit.ps1` (`-DryRun` first) sets every
+   language's title, swaps its screenshots and captions, its hero, poster and box art and its trailer
+   through the Store submission API and commits the submission — it needs a Microsoft Entra app with the Manager role in Partner Center
    (Account settings > User management > Microsoft Entra applications), whose tenant id, client id and
    key go in the user variables `STORE_TENANT_ID`, `STORE_CLIENT_ID` and `STORE_CLIENT_SECRET`. Without
    the API, upload each folder in **its own** language through the page.
@@ -27,9 +29,14 @@ the submission API or the page, and the CSV carries the rest:
    each screenshot that language has.
 
 Each language section below must keep its shape — four bold headers (short description, description,
-features, captions) and two `**Label:**` lines (keywords, then copyright) — or the scripts stop and say
-which section broke. The captions are also the screenshots' headlines, in the order `store-shots.ps1`
-captures: week, 5-hour session, pace warning, sessions, throughput, profiles.
+features, captions) and six `**Label:**` lines (keywords, copyright, the badge, then the trailer's
+opening, its local claim and its closing line) — or the scripts stop and say which section broke.
+
+The captions are also the screenshots' headlines (T464), in the order `store-shots.ps1` captures: week,
+5-hour session, pace warning, sessions, throughput, profiles. Each is `headline | smaller line`; the
+words of the headline in `[brackets]` are drawn in the accent, and the Store's caption is the headline
+without them. The two trailer lines with a ` | ` have the same shape. `build\store-trailer.ps1` makes one
+trailer per language, with its thumbnail, from the badge, those lines and the composed screenshots.
 
 ## Images
 
@@ -148,14 +155,22 @@ Anthropic. "Claude" and "Claude Code" are trademarks of Anthropic, PBC.
 
 **Copyright and trademark:** © Alegauss. "Claude" and "Claude Code" are trademarks of Anthropic, PBC.
 
+**Local badge:** Computed on your PC · No telemetry
+
+**Trailer, tray:** Your Claude Code limit, [right in the tray] | The icon fills as you work, and turns red before you run out
+
+**Trailer, local:** Everything is computed [on your PC] | No API key, no account, no telemetry: it reads the sign-in Claude Code already keeps
+
+**Trailer end:** Free on the Microsoft Store
+
 **Screenshot captions**
 
-1. The weekly forecast, paced to the hours you actually work
-2. The 5-hour session and where your pace takes it
-3. A warning while there is still time to change course
-4. Every session, with its cost at API list prices
-5. Live throughput, project by project and token by token
-6. Two profiles, one setup: history, skills and plugins shared
+1. The weekly forecast, [paced to the hours you actually work] | Learned from your own week, so nights and weekends do not count against you
+2. The 5-hour session, [and where your pace takes it] | The dashed line carries your current pace to the moment the window resets
+3. A warning [while there is still time] to change course | It says when the limit runs out at this pace, before it resets
+4. Every session, [with its cost at API list prices] | Tokens, models and cost per conversation, computed on your PC
+5. Live throughput, [project by project] | Tokens per second as you work, split by repository and token type
+6. Two profiles, [one setup] | History, skills and plugins shared between two Claude Code logins
 
 ## Português (Brasil) (pt-br)
 
@@ -195,14 +210,22 @@ Anthropic. "Claude" e "Claude Code" são marcas registradas da Anthropic, PBC.
 
 **Direitos autorais e marcas:** © Alegauss. "Claude" e "Claude Code" são marcas registradas da Anthropic, PBC.
 
+**Local badge:** Calculado no seu PC · Sem telemetria
+
+**Trailer, tray:** Seu limite do Claude Code, [direto na bandeja] | O ícone enche enquanto você trabalha e fica vermelho antes de acabar
+
+**Trailer, local:** Tudo é calculado [no seu PC] | Sem chave de API, sem conta, sem telemetria: usa o login que o Claude Code já guarda
+
+**Trailer end:** Grátis na Microsoft Store
+
 **Legendas das capturas de tela**
 
-1. A previsão semanal, no ritmo das horas em que você trabalha
-2. A sessão de 5 horas e onde o seu ritmo vai levá-la
-3. Um aviso enquanto ainda dá tempo de mudar o rumo
-4. Cada sessão, com o custo a preços de lista da API
-5. Vazão ao vivo, por projeto e por tipo de token
-6. Dois perfis, uma configuração: histórico, skills e plugins compartilhados
+1. A previsão semanal, [no ritmo das horas em que você trabalha] | Aprendida da sua própria semana: noites e fins de semana não contam contra você
+2. A sessão de 5 horas, [e onde o seu ritmo vai levá-la] | A linha tracejada leva o ritmo atual até o momento do reset
+3. Um aviso [enquanto ainda dá tempo] de mudar o rumo | Ele diz quando o limite acaba nesse ritmo, antes do reset
+4. Cada sessão, [com o custo a preços de lista da API] | Tokens, modelos e custo por conversa, calculados no seu PC
+5. Vazão ao vivo, [por projeto] | Tokens por segundo enquanto você trabalha, por repositório e por tipo de token
+6. Dois perfis, [uma configuração] | Histórico, skills e plugins compartilhados entre dois logins do Claude Code
 
 ## Português (Portugal) (pt-pt)
 
@@ -242,14 +265,22 @@ Anthropic. "Claude" e "Claude Code" são marcas registadas da Anthropic, PBC.
 
 **Direitos de autor e marcas:** © Alegauss. "Claude" e "Claude Code" são marcas registadas da Anthropic, PBC.
 
+**Local badge:** Calculado no seu PC · Sem telemetria
+
+**Trailer, tray:** O seu limite do Claude Code, [na área de notificação] | O ícone enche enquanto trabalha e fica vermelho antes de acabar
+
+**Trailer, local:** Tudo é calculado [no seu PC] | Sem chave de API, sem conta, sem telemetria: usa a sessão que o Claude Code já guarda
+
+**Trailer end:** Grátis na Microsoft Store
+
 **Legendas das capturas de ecrã**
 
-1. A previsão semanal, ao ritmo das horas em que trabalha
-2. A sessão de 5 horas e onde o seu ritmo a leva
-3. Um aviso enquanto ainda há tempo para mudar de rumo
-4. Cada sessão, com o custo a preços de tabela da API
-5. Débito ao vivo, por projeto e por tipo de token
-6. Dois perfis, uma configuração: histórico, skills e plugins partilhados
+1. A previsão semanal, [ao ritmo das horas em que trabalha] | Aprendida da sua própria semana: noites e fins de semana não contam contra si
+2. A sessão de 5 horas, [e onde o seu ritmo a leva] | A linha tracejada leva o ritmo atual até ao momento em que repõe
+3. Um aviso [enquanto ainda há tempo] para mudar de rumo | Diz quando o limite acaba a este ritmo, antes de repor
+4. Cada sessão, [com o custo a preços de tabela da API] | Tokens, modelos e custo por conversa, calculados no seu PC
+5. Débito ao vivo, [por projeto] | Tokens por segundo enquanto trabalha, por repositório e por tipo de token
+6. Dois perfis, [uma configuração] | Histórico, skills e plugins partilhados entre duas contas do Claude Code
 
 ## Français (fr-fr)
 
@@ -290,14 +321,22 @@ approuvée, ni sponsorisée par Anthropic. « Claude » et « Claude Code » son
 
 **Droits d'auteur et marques:** © Alegauss. « Claude » et « Claude Code » sont des marques d'Anthropic, PBC.
 
+**Local badge:** Calculé sur votre PC · Aucune télémétrie
+
+**Trailer, tray:** Votre limite Claude Code, [dans la zone de notification] | L'icône se remplit à mesure que vous travaillez et passe au rouge avant d'être à court
+
+**Trailer, local:** Tout est calculé [sur votre PC] | Pas de clé d'API, pas de compte, aucune télémétrie : il utilise la connexion que Claude Code conserve déjà
+
+**Trailer end:** Gratuit sur le Microsoft Store
+
 **Légendes des captures d'écran**
 
-1. La prévision hebdomadaire, calée sur vos heures de travail
-2. La session de 5 heures, et où votre rythme la mène
-3. Une alerte tant qu'il est temps de changer de cap
-4. Chaque session, avec son coût aux tarifs publics de l'API
-5. Le débit en direct, par projet et par type de token
-6. Deux profils, une configuration : historique, skills et plugins partagés
+1. La prévision hebdomadaire, [calée sur vos heures de travail] | Apprise de votre propre semaine : les nuits et les week-ends ne comptent pas contre vous
+2. La session de 5 heures, [et où votre rythme la mène] | La ligne pointillée prolonge votre rythme actuel jusqu'à la réinitialisation
+3. Une alerte [tant qu'il est temps] de changer de cap | Elle indique quand la limite sera atteinte à ce rythme, avant la réinitialisation
+4. Chaque session, [avec son coût aux tarifs publics de l'API] | Tokens, modèles et coût par conversation, calculés sur votre PC
+5. Le débit en direct, [projet par projet] | Les tokens par seconde pendant que vous travaillez, par dépôt et par type de token
+6. Deux profils, [une configuration] | Historique, skills et plugins partagés entre deux connexions Claude Code
 
 ## Español (es-es)
 
@@ -336,14 +375,22 @@ por Anthropic. «Claude» y «Claude Code» son marcas comerciales de Anthropic,
 
 **Derechos de autor y marcas:** © Alegauss. «Claude» y «Claude Code» son marcas comerciales de Anthropic, PBC.
 
+**Local badge:** Calculado en tu PC · Sin telemetría
+
+**Trailer, tray:** Tu límite de Claude Code, [en la bandeja] | El icono se llena mientras trabajas y se pone en rojo antes de que se agote
+
+**Trailer, local:** Todo se calcula [en tu PC] | Sin clave de API, sin cuenta, sin telemetría: usa el inicio de sesión que Claude Code ya guarda
+
+**Trailer end:** Gratis en Microsoft Store
+
 **Leyendas de las capturas de pantalla**
 
-1. La previsión semanal, al ritmo de las horas en que trabajas
-2. La sesión de 5 horas y adónde la lleva tu ritmo
-3. Un aviso mientras aún hay tiempo de cambiar el rumbo
-4. Cada sesión, con su coste a precios de lista de la API
-5. El rendimiento en vivo, por proyecto y por tipo de token
-6. Dos perfiles, una configuración: historial, skills y plugins compartidos
+1. La previsión semanal, [al ritmo de las horas en que trabajas] | Aprendida de tu propia semana: las noches y los fines de semana no cuentan en tu contra
+2. La sesión de 5 horas, [y adónde la lleva tu ritmo] | La línea discontinua lleva tu ritmo actual hasta el reinicio
+3. Un aviso [mientras aún hay tiempo] de cambiar el rumbo | Indica cuándo se agota el límite a este ritmo, antes del reinicio
+4. Cada sesión, [con su coste a precios de lista de la API] | Tokens, modelos y coste por conversación, calculados en tu PC
+5. El rendimiento en vivo, [proyecto a proyecto] | Tokens por segundo mientras trabajas, por repositorio y por tipo de token
+6. Dos perfiles, [una configuración] | Historial, skills y plugins compartidos entre dos inicios de sesión de Claude Code
 
 ## Deutsch (de-de)
 
@@ -383,14 +430,22 @@ Anthropic, PBC.
 
 **Urheberrecht und Marken:** © Alegauss. „Claude“ und „Claude Code“ sind Marken von Anthropic, PBC.
 
+**Local badge:** Auf Ihrem PC berechnet · Keine Telemetrie
+
+**Trailer, tray:** Ihr Claude-Code-Limit, [direkt im Infobereich] | Das Symbol füllt sich beim Arbeiten und wird rot, bevor das Kontingent ausgeht
+
+**Trailer, local:** Alles wird [auf Ihrem PC] berechnet | Kein API-Schlüssel, kein Konto, keine Telemetrie: Die App nutzt die Anmeldung, die Claude Code bereits speichert
+
+**Trailer end:** Kostenlos im Microsoft Store
+
 **Bildunterschriften der Screenshots**
 
-1. Die Wochenprognose, nach den Stunden, in denen Sie arbeiten
-2. Die 5-Stunden-Sitzung und wohin Ihr Tempo sie führt
-3. Eine Warnung, solange noch Zeit zum Gegensteuern ist
-4. Jede Sitzung, mit ihren Kosten zu API-Listenpreisen
-5. Live-Durchsatz, nach Projekt und nach Tokenart
-6. Zwei Profile, eine Einrichtung: Verlauf, Skills und Plugins geteilt
+1. Die Wochenprognose, [nach den Stunden, in denen Sie arbeiten] | Aus Ihrer eigenen Woche gelernt: Nächte und Wochenenden zählen nicht gegen Sie
+2. Die 5-Stunden-Sitzung, [und wohin Ihr Tempo sie führt] | Die gestrichelte Linie schreibt Ihr aktuelles Tempo bis zum Reset fort
+3. Eine Warnung, [solange noch Zeit ist] gegenzusteuern | Sie sagt, wann das Limit bei diesem Tempo erreicht ist – vor dem Reset
+4. Jede Sitzung, [mit ihren Kosten zu API-Listenpreisen] | Tokens, Modelle und Kosten pro Unterhaltung, auf Ihrem PC berechnet
+5. Live-Durchsatz, [Projekt für Projekt] | Tokens pro Sekunde beim Arbeiten, nach Repository und Tokenart
+6. Zwei Profile, [eine Einrichtung] | Verlauf, Skills und Plugins geteilt zwischen zwei Claude-Code-Anmeldungen
 
 ## 中文（简体） (zh-cn)
 
@@ -422,11 +477,19 @@ Usage Tray for Claude Code 以 Windows 通知区域中的清晰图标，显示�
 
 **版权和商标:** © Alegauss。“Claude”和“Claude Code”是 Anthropic, PBC 的商标。
 
+**Local badge:** 在您的电脑上计算 · 无遥测
+
+**Trailer, tray:** 您的 Claude Code 限额，[就在托盘中] | 图标随您的工作逐渐填满，并在用尽之前变红
+
+**Trailer, local:** 一切都[在您的电脑上]计算 | 无需 API 密钥，无需账户，无遥测：它使用 Claude Code 已保存的登录信息
+
+**Trailer end:** 在 Microsoft Store 免费获取
+
 **屏幕截图说明**
 
-1. 按您实际工作时段计算的每周预测
-2. 5 小时会话，以及您的速度会把它带到哪里
-3. 趁还来得及调整时发出的提醒
-4. 每个会话，以及按 API 标价计算的费用
-5. 实时吞吐量，按项目和 token 类型划分
-6. 两个配置文件，一套设置：共享历史、技能和插件
+1. 每周预测，[按您实际工作的时段计算] | 从您自己的一周中学习：夜晚和周末不会被算进去
+2. 5 小时会话，[以及您的速度会把它带到哪里] | 虚线把当前速度延伸到重置时刻
+3. [趁还来得及]调整时发出的提醒 | 告诉您按此速度何时用完限额，赶在重置之前
+4. 每个会话，[以及按 API 标价计算的费用] | 每次对话的 token、模型和费用，在您的电脑上计算
+5. 实时吞吐量，[按项目划分] | 工作时每秒的 token 数，按仓库和 token 类型划分
+6. 两个配置文件，[一套设置] | 两个 Claude Code 登录之间共享历史、技能和插件
