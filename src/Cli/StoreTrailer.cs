@@ -181,17 +181,22 @@ internal static class StoreTrailer
         g.DrawImage(toast, x, y, tw, th);
     }
 
-    // A composed screenshot, eased in from 100% to 105% so it does not sit like a slide.
+    // A composed screenshot, eased in from 100% to 105% so it does not sit like a slide. The zoom crops the
+    // source, by a fractional rectangle, into a destination that never moves: drawn the other way round — a
+    // destination growing by fractions of a pixel — GDI+ snapped it to whole pixels unevenly, and the
+    // picture shook ±1 px from one frame to the next (measured on the first trailers).
     private static Scene Still(string png, double seconds)
     {
         var shot = new Bitmap(png);
+        var edges = new ImageAttributes();
+        edges.SetWrapMode(WrapMode.TileFlipXY);
         Bitmap blank = StoreCanvas.NewCanvas();
         using (Graphics g = Graphics.FromImage(blank)) g.Clear(StoreCanvas.Bottom);
         return new Scene(Frames(seconds), blank, (g, t) =>
         {
             float zoom = 1 + 0.05f * Ease(t);
-            float w = W * zoom, h = H * zoom;
-            g.DrawImage(shot, (W - w) / 2, (H - h) / 2, w, h);
+            float sw = shot.Width / zoom, sh = shot.Height / zoom;
+            g.DrawImage(shot, new Rectangle(0, 0, W, H), (shot.Width - sw) / 2, (shot.Height - sh) / 2, sw, sh, GraphicsUnit.Pixel, edges);
         });
     }
 
