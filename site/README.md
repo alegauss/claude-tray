@@ -1,4 +1,4 @@
-# Claude Code Tray site
+# Usage Tray for Claude Code site
 
 The public site — a self-contained Vite + React 19 + TypeScript + Tailwind v4 workspace, and
 this repository's only Node workspace. It is standalone: `dotnet build` neither builds nor

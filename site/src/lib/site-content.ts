@@ -20,11 +20,11 @@ export type Rich = Run[];
 // the README's headline pitch, word for word; `ClaudeTray.exe --selftest` fails if either drifts
 // from it (T411).
 export const meta = {
-  title: "Claude Code Tray — Claude usage in your Windows tray",
+  title: "Usage Tray for Claude Code — your limit in the Windows tray",
   description:
     "Your Claude Code limit in the Windows tray: red before you run out, and a weekly forecast paced to the hours you actually work. Per-session cost at API list prices and a context audit too — computed on your own machine, with no API key to paste.",
   og: {
-    title: "Claude Code Tray",
+    title: "Usage Tray for Claude Code",
     description:
       "Red before you run out, and a weekly forecast paced to the hours you actually work — your Claude Code limit, always in your Windows tray. Nothing leaves your machine.",
   },

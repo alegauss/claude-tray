@@ -1,4 +1,4 @@
-# Microsoft Store listing — Claude Code Tray (T409, T412)
+# Microsoft Store listing — Usage Tray for Claude Code (T409, T412)
 
 What Partner Center asks for when the package is submitted, kept beside the manifest so a submission and
 the code it describes are reviewed together. Keep the wording in step with the README: the pitch, the
@@ -79,7 +79,7 @@ directory — never message content. Everything it stores stays in its own app d
 Partner Center asks why the package declares `runFullTrust` (Packages > Restricted capabilities). Every
 Win32 app packaged as MSIX declares it; the answer is what the app does with it:
 
-> Claude Code Tray is a classic Win32 desktop application (.NET, WinForms and WPF) packaged as MSIX with
+> Usage Tray for Claude Code is a classic Win32 desktop application (.NET, WinForms and WPF) packaged as MSIX with
 > the Desktop Bridge, so it runs as Windows.FullTrustApplication. runFullTrust is what lets it work as the
 > desktop app it is; it does not elevate, install services or drivers, and runs entirely as the signed-in
 > user.
@@ -120,7 +120,7 @@ hours you actually work.
 
 **Description**
 
-Claude Code Tray shows how much of your Claude Code 5-hour session and weekly limit you have used, as a
+Usage Tray for Claude Code shows how much of your Claude Code 5-hour session and weekly limit you have used, as a
 crisp icon in the Windows notification area.
 
 When your current pace would use the limit up before it resets, the icon turns red and a notification
@@ -166,7 +166,7 @@ ritmo das horas em que você de fato trabalha.
 
 **Descrição**
 
-O Claude Code Tray mostra quanto você já usou da sessão de 5 horas e do limite semanal do Claude Code,
+O Usage Tray for Claude Code mostra quanto você já usou da sessão de 5 horas e do limite semanal do Claude Code,
 num ícone nítido na área de notificação do Windows.
 
 Quando o seu ritmo atual esgotaria o limite antes do reset, o ícone fica vermelho e uma notificação diz
@@ -213,7 +213,7 @@ previsão semanal ao ritmo das horas em que realmente trabalha.
 
 **Descrição**
 
-O Claude Code Tray mostra quanto já usou da sessão de 5 horas e do limite semanal do Claude Code, num
+O Usage Tray for Claude Code mostra quanto já usou da sessão de 5 horas e do limite semanal do Claude Code, num
 ícone nítido na área de notificação do Windows.
 
 Quando o seu ritmo atual esgotaria o limite antes de repor, o ícone fica vermelho e uma notificação diz
@@ -260,7 +260,7 @@ prévision hebdomadaire calée sur les heures où vous travaillez vraiment.
 
 **Description**
 
-Claude Code Tray montre ce que vous avez déjà utilisé de la session de 5 heures et de la limite
+Usage Tray for Claude Code montre ce que vous avez déjà utilisé de la session de 5 heures et de la limite
 hebdomadaire de Claude Code, sous la forme d'une icône nette dans la zone de notification de Windows.
 
 Quand votre rythme actuel épuiserait la limite avant sa réinitialisation, l'icône passe au rouge et une
@@ -308,7 +308,7 @@ al ritmo de las horas en que realmente trabajas.
 
 **Descripción**
 
-Claude Code Tray muestra cuánto has usado de la sesión de 5 horas y del límite semanal de Claude Code,
+Usage Tray for Claude Code muestra cuánto has usado de la sesión de 5 horas y del límite semanal de Claude Code,
 con un icono nítido en el área de notificación de Windows.
 
 Cuando tu ritmo actual agotaría el límite antes del reinicio, el icono se pone en rojo y una
@@ -354,7 +354,7 @@ Stunden, in denen Sie wirklich arbeiten.
 
 **Beschreibung**
 
-Claude Code Tray zeigt, wie viel Sie von der 5-Stunden-Sitzung und dem Wochenlimit von Claude Code
+Usage Tray for Claude Code zeigt, wie viel Sie von der 5-Stunden-Sitzung und dem Wochenlimit von Claude Code
 verbraucht haben, als scharfes Symbol im Infobereich von Windows.
 
 Wenn Ihr aktuelles Tempo das Limit vor dem Reset aufbrauchen würde, wird das Symbol rot und eine
@@ -400,7 +400,7 @@ Anthropic, PBC.
 
 **说明**
 
-Claude Code Tray 以 Windows 通知区域中的清晰图标，显示您已用掉多少 Claude Code 5 小时会话和每周限额。
+Usage Tray for Claude Code 以 Windows 通知区域中的清晰图标，显示您已用掉多少 Claude Code 5 小时会话和每周限额。
 
 当按当前速度会在重置前用完限额时，图标会变红，并通过通知告诉您何时用完 — 趁还来得及调整。每周预测按您实际工作的时段计算，而不是一条贯穿夜晚和周末的直线。
 

@@ -110,7 +110,7 @@ internal static partial class SelfTestCli
         bool quick = flags.Contains("--quick");
         long started = DateTime.UtcNow.Ticks;
 
-        Console.WriteLine("Claude Code Tray — self-check (synthetic inputs, no real profile is read or written)");
+        Console.WriteLine("Usage Tray for Claude Code — self-check (synthetic inputs, no real profile is read or written)");
         Console.WriteLine();
 
         Section("pacing — the shape and the staircase (Block J)");

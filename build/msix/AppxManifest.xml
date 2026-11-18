@@ -28,7 +28,7 @@
             ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>Claude Code Tray</DisplayName>
+    <DisplayName>Usage Tray for Claude Code</DisplayName>
     <PublisherDisplayName>Alegauss</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -50,7 +50,7 @@
   <Applications>
     <Application Id="ClaudeTray" Executable="ClaudeTray.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="Claude Code Tray"
+        DisplayName="Usage Tray for Claude Code"
         Description="Unofficial Windows tray app for your Claude Code limit."
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
@@ -62,7 +62,7 @@
           </uap5:AppExecutionAlias>
         </uap5:Extension>
         <desktop:Extension Category="windows.startupTask">
-          <desktop:StartupTask TaskId="ClaudeTray" Enabled="true" DisplayName="Claude Code Tray" />
+          <desktop:StartupTask TaskId="ClaudeTray" Enabled="true" DisplayName="Usage Tray for Claude Code" />
         </desktop:Extension>
       </Extensions>
     </Application>

@@ -22,7 +22,7 @@ import { Burnup } from "./ui/Burnup";
 // The chrome every route shares, drawn by the design system's site layer (T389). What is left
 // here is this product's half of it: which links, which words, and the band the footer stands on.
 
-const brand = { href: "/claude-tray/", name: "Claude Code Tray", logo: "/claude-tray/logo.png" };
+const brand = { href: "/claude-tray/", name: "Usage Tray for Claude Code", logo: "/claude-tray/logo.png" };
 
 const themeLabel = (next: string) => `Switch to ${next} theme`;
 

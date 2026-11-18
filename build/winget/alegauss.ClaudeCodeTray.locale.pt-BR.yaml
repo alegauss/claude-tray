@@ -6,14 +6,14 @@ Publisher: Alexandre Oliveira
 PublisherUrl: https://github.com/alegauss
 PublisherSupportUrl: https://github.com/alegauss/claude-tray/issues
 Author: Alexandre Oliveira
-PackageName: Claude Code Tray (não oficial)
+PackageName: Usage Tray for Claude Code (não oficial)
 PackageUrl: https://alegauss.com/claude-tray/
 License: Apache-2.0
 LicenseUrl: https://github.com/alegauss/claude-tray/blob/main/LICENSE
 Copyright: Copyright (c) 2026 Alexandre Oliveira
 ShortDescription: Monitor não oficial dos limites do Claude Code na bandeja do Windows — o ícone mostra seu uso de 5h ou da semana e fica vermelho antes de a cota acabar, e a previsão semanal segue as horas em que você de fato trabalha.
 Description: >-
-  O Claude Code Tray é um monitor não oficial, feito pela comunidade, do seu uso de cota do
+  O Usage Tray for Claude Code é um monitor não oficial, feito pela comunidade, do seu uso de cota do
   Claude Code, que fica na bandeja do sistema do Windows. Ele desenha um ícone vetorial nítido
   e com reconhecimento de DPI mostrando a porcentagem de uso atual com uma barra de preenchimento
   no estilo do Gerenciador de Tarefas, e projeta quando você vai atingir 100% — uma linha de

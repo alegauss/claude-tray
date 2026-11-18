@@ -832,3 +832,4 @@
 - **T454 (package and listing)** — The package declares de-de and zh-cn, store-listing.md carries both listings with native keywords, and store-shots.ps1 composes their six screenshots in each language.
 - **T455 (first start opens the window)** — A fresh install opens the main window once on its first start, from the Inno installer too, where T413's packaged rule never reached; an update or a restart opens nothing.
 - **T456 (links)** — The site, the README and llms.txt offer the Microsoft Store first, above winget and the installer, with one line on why and campaign ids site and readme on the links; a plain button stands in for the hotlinked badge.
+- **T463** — The product is Usage Tray for Claude Code in the package, the listing, the app, the installer, winget, the README, the site and the Store art, under a name reserved on the existing product; the AppId, the winget id, the exe and the data folders keep their old names.

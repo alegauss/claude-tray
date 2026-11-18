@@ -1,6 +1,6 @@
 ---
 name: scanner
-description: Read-only defect scanner for one partition of Claude Code Tray (.NET 10 WinForms + WPF tray app, GDI+ icon, transcript readers, Vite/React site). Reports findings in a fixed one-line format; never fixes anything. Used by the /audit skill, one instance per partition.
+description: Read-only defect scanner for one partition of Usage Tray for Claude Code (.NET 10 WinForms + WPF tray app, GDI+ icon, transcript readers, Vite/React site). Reports findings in a fixed one-line format; never fixes anything. Used by the /audit skill, one instance per partition.
 tools: Read, Grep, Glob
 model: sonnet
 effort: high

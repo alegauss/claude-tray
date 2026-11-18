@@ -331,7 +331,7 @@ internal partial class SettingsPage
     private void SysCopy_Click(object sender, RoutedEventArgs e)
     {
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"{L.T("settings.sys.title")} — Claude Code Tray v{Updater.CurrentVersion}");
+        sb.AppendLine($"{L.T("settings.sys.title")} — Usage Tray for Claude Code v{Updater.CurrentVersion}");
         foreach ((string label, string value) in
                  new (string, string)[]
                  {

@@ -1,6 +1,6 @@
 ---
 name: verifier
-description: Adversarial verifier for Claude Code Tray audits. FINDINGS mode classifies scanner findings as CONFIRMED / FALSE POSITIVE / UNVERIFIABLE; ROADMAP mode checks each open roadkeep task against the code. Never modifies any file.
+description: Adversarial verifier for Usage Tray for Claude Code audits. FINDINGS mode classifies scanner findings as CONFIRMED / FALSE POSITIVE / UNVERIFIABLE; ROADMAP mode checks each open roadkeep task against the code. Never modifies any file.
 tools: Read, Grep, Glob, Bash
 model: opus
 effort: xhigh

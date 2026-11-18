@@ -1199,9 +1199,10 @@
                                                RenderOptions.BitmapScalingMode="HighQuality" />
                                     </Border>
                                     <StackPanel Margin="22,0,0,0" VerticalAlignment="Center" MaxWidth="360">
-                                        <TextBlock Text="Claude Code Tray"
-                                                   FontSize="29" FontWeight="Bold"
-                                                   Foreground="White" TextWrapping="Wrap" />
+                                        <!-- Broken where the Store art breaks it: left to wrap, it strands "Code". -->
+                                        <TextBlock FontSize="29" FontWeight="Bold"
+                                                   Foreground="White" TextWrapping="Wrap"
+                                                   AutomationProperties.Name="Usage Tray for Claude Code"><Run Text="Usage Tray" /><LineBreak /><Run Text="for Claude Code" /></TextBlock>
                                         <TextBlock Text="{local:Loc settings.about.tagline}"
                                                    Margin="0,4,0,0" FontSize="13"
                                                    TextWrapping="Wrap" Foreground="#EEFFFFFF" />

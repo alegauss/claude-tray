@@ -6,14 +6,14 @@ Publisher: Alexandre Oliveira
 PublisherUrl: https://github.com/alegauss
 PublisherSupportUrl: https://github.com/alegauss/claude-tray/issues
 Author: Alexandre Oliveira
-PackageName: Claude Code Tray (unofficial)
+PackageName: Usage Tray for Claude Code (unofficial)
 PackageUrl: https://alegauss.com/claude-tray/
 License: Apache-2.0
 LicenseUrl: https://github.com/alegauss/claude-tray/blob/main/LICENSE
 Copyright: Copyright (c) 2026 Alexandre Oliveira
 ShortDescription: Unofficial Windows tray monitor for Claude Code limits — the icon shows your 5h or weekly usage and turns red before you run out, and the weekly forecast is paced to the hours you actually work.
 Description: >-
-  Claude Code Tray is an unofficial, community-built Windows system-tray monitor for your
+  Usage Tray for Claude Code is an unofficial, community-built Windows system-tray monitor for your
   Claude Code rate-limit usage. It draws a crisp, DPI-aware vector icon showing the current
   usage percentage with a Task Manager-style fill bar, and projects when you'll hit 100% —
   a proportional pace line for the weekly window and a burn-rate regression for the 5h session

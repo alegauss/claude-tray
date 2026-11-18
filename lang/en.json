@@ -1,6 +1,6 @@
 ﻿{
   // English — the source language and the fallback for any key missing from a translation.
-  // Product names (Claude, Claude Code, Claude Code Tray, Anthropic), CLI tokens (/login, claude),
+  // Product names (Claude, Claude Code, Usage Tray for Claude Code, Anthropic), CLI tokens (/login, claude),
   // model ids and raw API status words are intentionally NOT localized.
   // NOTE: this file is the canonical key list. When adding a key, add it here first, then to each
   // translation (a missing key in a translation simply falls back to this English value).
@@ -36,7 +36,7 @@
   "main.nav.statistics": "Statistics",
   "main.nav.context": "Context",
   "main.nav.settings": "Settings",
-  "main.iconHidden.text": "The Claude Code Tray icon is hidden in the taskbar overflow (^). Turn it on under “Other system tray icons” to see your limit without opening anything.",
+  "main.iconHidden.text": "The Usage Tray for Claude Code icon is hidden in the taskbar overflow (^). Turn it on under “Other system tray icons” to see your limit without opening anything.",
   "main.iconHidden.button": "Open taskbar settings",
   "menu.refreshNow": "Refresh now",
   "menu.openClaude": "Open Claude Code",
@@ -106,13 +106,13 @@
   "dur.now": "now",
 
   // ---- Update balloon ----
-  "update.title": "Claude Code Tray — update available",
+  "update.title": "Usage Tray for Claude Code — update available",
   "update.body": "Version {0} is available (you have {1}). Click to install.",
 
   // ---- Message boxes / dialogs ----
-  "dialog.appName": "Claude Code Tray",
+  "dialog.appName": "Usage Tray for Claude Code",
   "dialog.saveFailed": "Could not save settings:\n{0}",
-  "dialog.restartForLanguage": "The display language was changed. Restart Claude Code Tray now to apply it?",
+  "dialog.restartForLanguage": "The display language was changed. Restart Usage Tray for Claude Code now to apply it?",
   "dialog.downloadFailed": "Could not download the update:\n{0}",
   "dialog.launchFailed": "Could not launch Claude Code automatically.\nOpen a terminal, run \"claude\", type /login to sign in, then choose \"Refresh now\".\n\n{0}",
   "dialog.openLinkFailed": "Could not open the link:\n{0}\n\n{1}",
@@ -180,7 +180,7 @@
   "settings.general.slowIdleDesc": "After 30 minutes with no Claude Code activity on this machine, check every 30 minutes instead, and still right after a reset. The first check that sees new work goes back to the interval above.",
   "settings.general.startup": "Startup",
   "settings.general.startWithWindows": "Start with Windows",
-  "settings.general.startWithWindowsDesc": "Launch Claude Code Tray automatically when you sign in.",
+  "settings.general.startWithWindowsDesc": "Launch Usage Tray for Claude Code automatically when you sign in.",
   "settings.general.startupOpenSettings": "Open Windows startup settings",
   "settings.general.language": "Language",
   "settings.general.appLanguage": "Display language",
@@ -282,7 +282,7 @@
   "settings.cc.linkWithheldGrants.many": "your decision - {0} rules would grant something new",
   "settings.cc.linkNeverDetail": "kept separate, always",
   "settings.cc.linkWrite": "Write the script",
-  "settings.cc.linkWriteDesc": "Claude Code Tray writes a PowerShell script and shows you where it is. It never runs it. The script itself changes nothing either until you run it a second time with -Apply, so you can read exactly what it would do first.",
+  "settings.cc.linkWriteDesc": "Usage Tray for Claude Code writes a PowerShell script and shows you where it is. It never runs it. The script itself changes nothing either until you run it a second time with -Apply, so you can read exactly what it would do first.",
   "settings.cc.linkWriteButton": "Write script…",
   "settings.cc.linkWrote": "Written.",
   "settings.cc.linkSaveTitle": "Save the linking script",
@@ -381,7 +381,7 @@
   "settings.sys.projects": "Projects tracked",
   "settings.sys.projectsDesc": "Directories Claude Code has registered as projects in its configuration.",
   "settings.sys.app": "This app & machine",
-  "settings.sys.tray": "Claude Code Tray",
+  "settings.sys.tray": "Usage Tray for Claude Code",
   "settings.sys.trayDesc": "The running version, and where it runs from.",
   "settings.sys.machine": "Windows",
   "settings.sys.machineDesc": "Build, runtime and architecture — the three lines a bug report needs.",
@@ -401,7 +401,7 @@
   // About page
   "settings.about.tagline": "A native Windows tray monitor for your Claude Code usage — at a glance, always on.",
   "settings.about.platform": "Windows 10 · 11",
-  "settings.about.intro": "Claude Code Tray draws your rate-limit usage as a crisp, DPI-aware icon that lives only in the Windows tray — the session (5h), week (7d) and extra windows, with a burn-rate projection that warns before you run out. It's free, open source, and made by the community.",
+  "settings.about.intro": "Usage Tray for Claude Code draws your rate-limit usage as a crisp, DPI-aware icon that lives only in the Windows tray — the session (5h), week (7d) and extra windows, with a burn-rate projection that warns before you run out. It's free, open source, and made by the community.",
   "settings.about.links": "Project & links",
   "settings.about.github": "GitHub repository",
   "settings.about.githubDesc": "Source, README & docs",
@@ -801,7 +801,7 @@
   "toast.profile.subtitle": "{0} — {1}",
   "toast.profile.caption": "Sessions started from now on use it. One already running keeps the profile it started with.",
   "toast.profile.captionFailed": "CLAUDE_CONFIG_DIR still reads {0}.",
-  "toast.star.title": "Enjoying Claude Code Tray?",
+  "toast.star.title": "Enjoying Usage Tray for Claude Code?",
   "toast.star.subtitle": "It's free and open source.",
   "toast.star.caption": "A star on GitHub is how other people find it. This is the only time it will ask.",
   "toast.star.open": "Star on GitHub",

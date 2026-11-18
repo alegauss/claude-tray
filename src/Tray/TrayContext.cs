@@ -1833,7 +1833,7 @@ internal sealed class TrayContext : ApplicationContext
         Projection verdict = CurrentProjection().verdict;
 
         // Before we're connected to Claude Code — either still connecting (no data yet) or signed out
-        // on a 401 (expired token) — show the Claude Code Tray logo rather than a gray "0" or a play
+        // on a 401 (expired token) — show the Usage Tray for Claude Code logo rather than a gray "0" or a play
         // triangle. On a live API error (e.g. an HTTP 403) show the same logo but with a red error dot
         // in the corner, instead of an amber tile with a misleading usage number. Once a poll succeeds
         // the usage icon takes over.

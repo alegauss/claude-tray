@@ -1,4 +1,4 @@
-# Dev flags (Claude Code Tray)
+# Dev flags (Usage Tray for Claude Code)
 
 Every flag the app's own `.exe` exposes. **This file is a reference, consulted rather than read** —
 which is why it lives here and not in [AGENTS.md](../AGENTS.md), whose whole content is loaded

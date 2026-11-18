@@ -42,7 +42,7 @@ export const features: FeatureRecord[] = [
     title: "Projection: the icon tells you before the window resets",
     description:
       "A proportional pace line for the 7-day week and least-squares regression for the 5h session, so the tray warns you before you hit 100% rather than after — and says clay when extra usage is paying, red only when work has stopped.",
-    ogTitle: "Claude Code Tray: the projection",
+    ogTitle: "Usage Tray for Claude Code: the projection",
     ogDescription:
       "Two windows, two models, four states — and why clay is not red.",
     eyebrow: "Observability",
@@ -120,7 +120,7 @@ export const features: FeatureRecord[] = [
     title: "Statistics: burn-up charts, live throughput and what each session cost",
     description:
       "Each rate-limit window as a burn-up chart with a dashed projection, a three-minute live throughput strip split by repo and token type, and one row per conversation priced at Anthropic's published API rates.",
-    ogTitle: "Claude Code Tray: Statistics",
+    ogTitle: "Usage Tray for Claude Code: Statistics",
     ogDescription:
       "Burn-up charts, live tok/s, and one row per conversation with what it cost at list prices.",
     eyebrow: "Consumption pace",
@@ -206,7 +206,7 @@ export const features: FeatureRecord[] = [
     title: "Notifications: eight toasts, and only four of them celebrate",
     description:
       "Four reset toasts with their own colour and headline so you can read them without reading a word, and four that state a fact instead of celebrating one — a heavy startup context, extra usage starting, a limit you are on pace to hit before it resets, and a machine-wide profile switch confirming itself.",
-    ogTitle: "Claude Code Tray: the notifications",
+    ogTitle: "Usage Tray for Claude Code: the notifications",
     ogDescription:
       "Four resets with a colour each, and four that deliberately have no confetti — including a warning before a limit runs out.",
     eyebrow: "Reset alerts",
@@ -283,7 +283,7 @@ export const features: FeatureRecord[] = [
     title: "Context: what every session costs you before you type",
     description:
       "Claude Code loads your instruction files, memory index and every skill description before the first prompt. The context audit measures that toll per project, says which parts were ever used, and hands the fix to Claude Code rather than editing anything.",
-    ogTitle: "Claude Code Tray: the context audit",
+    ogTitle: "Usage Tray for Claude Code: the context audit",
     ogDescription:
       "The invisible toll on every request of the session, measured — and never edited.",
     eyebrow: "Local · Private",
@@ -347,7 +347,7 @@ export const features: FeatureRecord[] = [
     title: "Privacy: what this reads, what it doesn't, and what it sends",
     description:
       "Token counts, model ids and flags — never message content, with one visible exception. A 1-token API call on a timer, an update check, history on local disk, and nothing uploaded.",
-    ogTitle: "Claude Code Tray: privacy",
+    ogTitle: "Usage Tray for Claude Code: privacy",
     ogDescription:
       "A 1-token call on a timer and an update check. Everything else is computed on your machine.",
     eyebrow: "Privacy by design",

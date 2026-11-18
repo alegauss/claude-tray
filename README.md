@@ -1,8 +1,10 @@
 <div align="center">
 
-<img src="site/public/logo.png" alt="Claude Code Tray logo" width="120">
+<img src="site/public/logo.png" alt="Usage Tray for Claude Code logo" width="120">
 
-# Claude Code Tray
+# Usage Tray for Claude Code
+
+<sub>Formerly Claude Code Tray.</sub>
 
 **Your Claude Code limit in the Windows tray: red before you run out, and a weekly forecast paced to the hours you actually work.**
 
@@ -685,7 +687,7 @@ not because they are not, but because nothing here has a view. Per-machine cache
 counted rather than named. If something you keep in one of those folders matters to you, that line is
 where you will see it.
 
-**The button writes a script; nothing else happens.** Claude Code Tray has no way to write into a
+**The button writes a script; nothing else happens.** Usage Tray for Claude Code has no way to write into a
 configuration folder and isn't growing one — so **Write script…** saves a PowerShell file where you point
 it and opens the folder. Read it, then run it. Even then a bare run only *prints* what it would do: it
 takes a second run with `-Apply` to change anything, it never asks for administrator rights, and it never

@@ -1,6 +1,6 @@
 {
   // Deutsch — Übersetzung von en.json. Fehlende Schlüssel fallen auf das Englische zurück.
-  // Produktnamen (Claude, Claude Code, Claude Code Tray, Anthropic), CLI-Befehle (/login, claude),
+  // Produktnamen (Claude, Claude Code, Usage Tray for Claude Code, Anthropic), CLI-Befehle (/login, claude),
   // Modell-IDs und rohe API-Statuswörter werden bewusst NICHT übersetzt.
 
   // ---- Tray menu ----
@@ -34,7 +34,7 @@
   "main.nav.statistics": "Statistik",
   "main.nav.context": "Kontext",
   "main.nav.settings": "Einstellungen",
-  "main.iconHidden.text": "Das Symbol von Claude Code Tray ist im Überlaufbereich der Taskleiste (^) versteckt. Aktivieren Sie es unter „Andere Infobereichssymbole“, um Ihr Limit zu sehen, ohne etwas zu öffnen.",
+  "main.iconHidden.text": "Das Symbol von Usage Tray for Claude Code ist im Überlaufbereich der Taskleiste (^) versteckt. Aktivieren Sie es unter „Andere Infobereichssymbole“, um Ihr Limit zu sehen, ohne etwas zu öffnen.",
   "main.iconHidden.button": "Taskleisteneinstellungen öffnen",
   "menu.refreshNow": "Jetzt aktualisieren",
   "menu.openClaude": "Claude Code öffnen",
@@ -104,13 +104,13 @@
   "dur.now": "jetzt",
 
   // ---- Update balloon ----
-  "update.title": "Claude Code Tray — Update verfügbar",
+  "update.title": "Usage Tray for Claude Code — Update verfügbar",
   "update.body": "Version {0} ist verfügbar (Sie haben {1}). Zum Installieren klicken.",
 
   // ---- Message boxes / dialogs ----
-  "dialog.appName": "Claude Code Tray",
+  "dialog.appName": "Usage Tray for Claude Code",
   "dialog.saveFailed": "Einstellungen konnten nicht gespeichert werden:\n{0}",
-  "dialog.restartForLanguage": "Die Anzeigesprache wurde geändert. Claude Code Tray jetzt neu starten, um sie anzuwenden?",
+  "dialog.restartForLanguage": "Die Anzeigesprache wurde geändert. Usage Tray for Claude Code jetzt neu starten, um sie anzuwenden?",
   "dialog.downloadFailed": "Das Update konnte nicht heruntergeladen werden:\n{0}",
   "dialog.launchFailed": "Claude Code konnte nicht automatisch gestartet werden.\nÖffnen Sie ein Terminal, führen Sie \"claude\" aus, geben Sie /login ein, um sich anzumelden, und wählen Sie dann \"Jetzt aktualisieren\".\n\n{0}",
   "dialog.openLinkFailed": "Der Link konnte nicht geöffnet werden:\n{0}\n\n{1}",
@@ -178,7 +178,7 @@
   "settings.general.slowIdleDesc": "Nach 30 Minuten ohne Claude-Code-Aktivität auf diesem Rechner nur noch alle 30 Minuten prüfen, direkt nach einem Reset aber weiterhin. Die erste Prüfung, die neue Arbeit sieht, kehrt zum Intervall oben zurück.",
   "settings.general.startup": "Start",
   "settings.general.startWithWindows": "Mit Windows starten",
-  "settings.general.startWithWindowsDesc": "Claude Code Tray beim Anmelden automatisch starten.",
+  "settings.general.startWithWindowsDesc": "Usage Tray for Claude Code beim Anmelden automatisch starten.",
   "settings.general.startupOpenSettings": "Windows-Autostart-Einstellungen öffnen",
   "settings.general.language": "Sprache",
   "settings.general.appLanguage": "Anzeigesprache",
@@ -280,7 +280,7 @@
   "settings.cc.linkWithheldGrants.many": "Ihre Entscheidung - {0} Regeln würden etwas Neues erlauben",
   "settings.cc.linkNeverDetail": "immer getrennt",
   "settings.cc.linkWrite": "Skript schreiben",
-  "settings.cc.linkWriteDesc": "Claude Code Tray schreibt ein PowerShell-Skript und zeigt Ihnen, wo es liegt. Es führt es nie aus. Auch das Skript selbst ändert nichts, bis Sie es ein zweites Mal mit -Apply ausführen, sodass Sie vorher genau lesen können, was es tun würde.",
+  "settings.cc.linkWriteDesc": "Usage Tray for Claude Code schreibt ein PowerShell-Skript und zeigt Ihnen, wo es liegt. Es führt es nie aus. Auch das Skript selbst ändert nichts, bis Sie es ein zweites Mal mit -Apply ausführen, sodass Sie vorher genau lesen können, was es tun würde.",
   "settings.cc.linkWriteButton": "Skript schreiben…",
   "settings.cc.linkWrote": "Geschrieben.",
   "settings.cc.linkSaveTitle": "Verknüpfungsskript speichern",
@@ -379,7 +379,7 @@
   "settings.sys.projects": "Erfasste Projekte",
   "settings.sys.projectsDesc": "Verzeichnisse, die Claude Code in seiner Konfiguration als Projekte registriert hat.",
   "settings.sys.app": "Diese App & dieser Rechner",
-  "settings.sys.tray": "Claude Code Tray",
+  "settings.sys.tray": "Usage Tray for Claude Code",
   "settings.sys.trayDesc": "Die laufende Version und von wo sie läuft.",
   "settings.sys.machine": "Windows",
   "settings.sys.machineDesc": "Build, Laufzeit und Architektur — die drei Zeilen, die ein Fehlerbericht braucht.",
@@ -399,7 +399,7 @@
   // About page
   "settings.about.tagline": "Ein nativer Windows-Infobereichsmonitor für Ihre Claude-Code-Nutzung — auf einen Blick, immer aktiv.",
   "settings.about.platform": "Windows 10 · 11",
-  "settings.about.intro": "Claude Code Tray zeichnet Ihre Ratenlimit-Nutzung als scharfes, DPI-gerechtes Symbol, das nur im Windows-Infobereich lebt — Sitzung (5 Std.), Woche (7 T.) und Zusatzfenster, mit einer Verbrauchsprognose, die warnt, bevor Ihnen das Kontingent ausgeht. Kostenlos, quelloffen und von der Community gemacht.",
+  "settings.about.intro": "Usage Tray for Claude Code zeichnet Ihre Ratenlimit-Nutzung als scharfes, DPI-gerechtes Symbol, das nur im Windows-Infobereich lebt — Sitzung (5 Std.), Woche (7 T.) und Zusatzfenster, mit einer Verbrauchsprognose, die warnt, bevor Ihnen das Kontingent ausgeht. Kostenlos, quelloffen und von der Community gemacht.",
   "settings.about.links": "Projekt & Links",
   "settings.about.github": "GitHub-Repository",
   "settings.about.githubDesc": "Quellcode, README & Dokumentation",
@@ -799,7 +799,7 @@
   "toast.profile.subtitle": "{0} — {1}",
   "toast.profile.caption": "Ab jetzt gestartete Sitzungen verwenden es. Eine bereits laufende behält das Profil, mit dem sie gestartet wurde.",
   "toast.profile.captionFailed": "CLAUDE_CONFIG_DIR lautet weiterhin {0}.",
-  "toast.star.title": "Gefällt Ihnen Claude Code Tray?",
+  "toast.star.title": "Gefällt Ihnen Usage Tray for Claude Code?",
   "toast.star.subtitle": "Es ist kostenlos und quelloffen.",
   "toast.star.caption": "Ein Stern auf GitHub ist der Weg, über den andere es finden. Dies ist das einzige Mal, dass gefragt wird.",
   "toast.star.open": "Auf GitHub markieren",

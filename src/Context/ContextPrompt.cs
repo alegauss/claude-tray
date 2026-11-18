@@ -44,7 +44,7 @@ internal static class ContextPrompt
         sb.AppendLine();
         sb.AppendLine("Claude Code loads instruction files, the memory index and every skill's description");
         sb.AppendLine("before the first prompt, so that part of the context is paid on every request of the");
-        sb.AppendLine("session. The findings below were measured locally by Claude Code Tray — file sizes,");
+        sb.AppendLine("session. The findings below were measured locally by Usage Tray for Claude Code — file sizes,");
         sb.AppendLine("names, timestamps and token estimates only, never file contents.");
         sb.AppendLine();
         if (truncated)

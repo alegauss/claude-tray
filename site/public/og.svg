@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Claude Code Tray — your Claude Code usage, always in the tray">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Usage Tray for Claude Code — your Claude Code usage, always in the tray">
   <defs>
     <linearGradient id="ct-body" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#E89070"/>
@@ -26,7 +26,7 @@
     <text x="80" y="112" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-size="58" font-weight="bold" fill="#ffffff">62</text>
   </g>
 
-  <text x="238" y="180" font-family="DejaVu Sans, sans-serif" font-size="52" font-weight="bold" fill="#f4ece4">Claude Code Tray</text>
+  <text x="238" y="180" font-family="DejaVu Sans, sans-serif" font-size="52" font-weight="bold" fill="#f4ece4">Usage Tray for Claude Code</text>
   <text x="240" y="216" font-family="DejaVu Sans Mono, monospace" font-size="20" fill="#8a7868">part of alegauss</text>
 
   <text x="90" y="360" font-family="DejaVu Sans, sans-serif" font-size="66" font-weight="bold" fill="#f4ece4">Your Claude Code usage,</text>

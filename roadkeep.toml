@@ -1,4 +1,4 @@
-# Claude Code Tray, governed by roadkeep (https://github.com/alegauss/roadkeep).
+# Usage Tray for Claude Code, governed by roadkeep (https://github.com/alegauss/roadkeep).
 # The four files below are written by `roadkeep`, not by hand: the format is refused at
 # the point of insertion instead of being a convention this file asks an author to keep.
 
@@ -159,6 +159,6 @@ shipped = "✅"
 retired = "🗑"
 
 [project]
-name = "Claude Code Tray"
+name = "Usage Tray for Claude Code"
 description = "A Windows tray app that shows what Claude Code is doing, without a window."
 icon = "🔔"

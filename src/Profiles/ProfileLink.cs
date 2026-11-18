@@ -417,7 +417,7 @@ internal static class ProfileLink
     private static string Header(Plan plan) => $$"""
         # Link two Claude Code profiles into one setup
         #
-        # Composed by Claude Code Tray. Read it before you run it: it moves directories, and the
+        # Composed by Usage Tray for Claude Code. Read it before you run it: it moves directories, and the
         # profile named second stops having files of its own for every entry below.
         #
         #   keeps its files : {{plan.PrimaryLabel}}
@@ -497,7 +497,7 @@ internal static class ProfileLink
     private static string AutoFollowNote(Plan plan) => !plan.CostsAutoFollow ? "" : $"""
         #
         # One consequence, and it is not a warning: sharing `projects` means both profiles report the
-        # same "last turn", so Claude Code Tray can no longer tell which of the two you are working in.
+        # same "last turn", so Usage Tray for Claude Code can no longer tell which of the two you are working in.
         # Its "Follow the active profile" setting stops moving the icon between {plan.PrimaryLabel} and
         # {plan.SecondaryLabel} - the icon stays wherever you put it. A third profile with a tree of its
         # own is unaffected, and unlinking `projects` gives the pair back.

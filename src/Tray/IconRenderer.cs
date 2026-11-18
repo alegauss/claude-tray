@@ -348,8 +348,8 @@ internal static class IconRenderer
         using var muted = new SolidBrush(Color.FromArgb(185, 182, 178));
         using var faint = new SolidBrush(Color.FromArgb(130, 126, 122));
 
-        g.DrawString("Claude Code", titleFont, white, tx, 168);
-        g.DrawString("Tray", titleFont, clay, tx, 268);
+        g.DrawString("Usage Tray", titleFont, white, tx, 168);
+        g.DrawString("for Claude Code", titleFont, clay, tx, 268);
 
         var tagRect = new RectangleF(tx + 2, 396, w - tx - 80, 170);
         g.DrawString("Rate-limit %, burn-rate projection, and a 24h usage breakdown — always in your Windows tray.",
@@ -380,6 +380,12 @@ internal static class IconRenderer
         float unit = Math.Min(w, h);
         int logo = (int)(unit * 0.40f);
         float titleSize = unit * 0.105f;
+        // The longer line must fit the narrow 9:16 canvas with a margin, so the size yields to the width.
+        using (var probe = new Font("Segoe UI", titleSize, FontStyle.Bold, GraphicsUnit.Pixel))
+        {
+            float wide = g.MeasureString("for Claude Code", probe).Width;
+            if (wide > w * 0.84f) titleSize *= w * 0.84f / wide;
+        }
         using var titleFont = new Font("Segoe UI", titleSize, FontStyle.Bold, GraphicsUnit.Pixel);
         float lineH = titleSize * 1.22f;
 
@@ -395,8 +401,10 @@ internal static class IconRenderer
         using var clay = new SolidBrush(ClaudeClay);
         using var centre = new StringFormat { Alignment = StringAlignment.Center };
         float ty = top + logo + gap;
-        g.DrawString("Claude Code", titleFont, white, new RectangleF(0, ty, w, lineH * 1.2f), centre);
-        g.DrawString("Tray", titleFont, clay, new RectangleF(0, ty + lineH, w, lineH * 1.2f), centre);
+        // The product's name leads (T454's certification report, policy 10.1.1.1): a title may not open on
+        // the name of the product it refers to, and the art is read as part of the listing.
+        g.DrawString("Usage Tray", titleFont, white, new RectangleF(0, ty, w, lineH * 1.2f), centre);
+        g.DrawString("for Claude Code", titleFont, clay, new RectangleF(0, ty + lineH, w, lineH * 1.2f), centre);
 
         return bmp;
     }

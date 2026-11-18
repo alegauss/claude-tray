@@ -1,4 +1,4 @@
-# Claude Code Tray
+# Usage Tray for Claude Code
 
 > Your Claude Code limit in the Windows (10/11) tray: red before you run out, and a weekly
 > forecast paced to the hours you actually work. The icon shows your rate-limit usage

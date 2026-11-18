@@ -37,7 +37,7 @@ internal static class ContextReport
         sb.AppendLine("# Context load report");
         sb.AppendLine();
         sb.Append("Generated ").Append(nowLocal.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture))
-          .Append(" by Claude Code Tray ").Append(Updater.CurrentVersion.ToString(3)).AppendLine(".");
+          .Append(" by Usage Tray for Claude Code ").Append(Updater.CurrentVersion.ToString(3)).AppendLine(".");
         sb.AppendLine();
         sb.AppendLine("> Measured locally from `~/.claude`: **paths, sizes, timestamps and token estimates only —");
         sb.AppendLine("> no file contents**, and nothing left this machine to produce it. Token counts are");

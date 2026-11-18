@@ -47,14 +47,14 @@ const written = prerenderSite({
   // VDS253: each route's crumb is its last path segment, title-cased (`/features/locate` -> "Locate");
   // the <title> is a sentence, too long for a breadcrumb.
   routes: ROUTE_META.map((route) => ({ ...route, breadcrumb: crumbName(route.path) })),
-  breadcrumbs: { name: "Claude Code Tray", above: [{ name: "alegauss.com", url: "https://alegauss.com/" }] },
+  breadcrumbs: { name: "Usage Tray for Claude Code", above: [{ name: "alegauss.com", url: "https://alegauss.com/" }] },
   render,
   canonicalUrl,
   outputDir,
   ogImage: OG_IMAGE,
   // The Markdown twin, converted from the same component tree as clean static HTML.
   twin: (path) => htmlToMarkdown(renderStatic(path)),
-  manifest: { name: "Claude Code Tray", base: "/claude-tray/", llms: "llms.txt" },
+  manifest: { name: "Usage Tray for Claude Code", base: "/claude-tray/", llms: "llms.txt" },
   git: { cwd: siteDir },
   log: console.log,
 });

@@ -1,9 +1,9 @@
 ---
 name: preview-ui
-description: Build and visually verify the Claude Code Tray window by launching it and capturing a screenshot. Use whenever a change touches MainWindow, any of its pages (SettingsPage / StatisticsPage / ContextPage) or any windowed UI, before claiming the layout works.
+description: Build and visually verify the Usage Tray for Claude Code window by launching it and capturing a screenshot. Use whenever a change touches MainWindow, any of its pages (SettingsPage / StatisticsPage / ContextPage) or any windowed UI, before claiming the layout works.
 ---
 
-# Preview UI (Claude Code Tray)
+# Preview UI (Usage Tray for Claude Code)
 
 The cardinal rule of UI work in this repo: **never claim a window looks right without looking at it.**
 WinForms/WPF layout is easy to get wrong on paper; this skill closes the loop by rendering the real

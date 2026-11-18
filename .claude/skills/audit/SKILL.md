@@ -1,6 +1,6 @@
 ---
 name: audit
-description: Full audit of Claude Code Tray — build, self-test, parallel per-partition scanners, adversarial verification, and reconciliation of the roadkeep backlog (close done tasks, retire outdated ones, reword unclear ones, file confirmed findings). Use when asked to audit the repo, hunt for bugs across the codebase, or reconcile the roadmap against the code.
+description: Full audit of Usage Tray for Claude Code — build, self-test, parallel per-partition scanners, adversarial verification, and reconciliation of the roadkeep backlog (close done tasks, retire outdated ones, reword unclear ones, file confirmed findings). Use when asked to audit the repo, hunt for bugs across the codebase, or reconcile the roadmap against the code.
 ---
 
 # /audit

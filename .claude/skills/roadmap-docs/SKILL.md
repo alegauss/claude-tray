@@ -1,6 +1,6 @@
 ---
 name: roadmap-docs
-description: Claude Code Tray's own shipping discipline — the one-task-one-commit rule, the user-facing-surface gate (README, the site/ copy modules, lang/*.json) a shipped feature must pass, and how a release is cut. The roadmap/changelog/rationale write path itself is NOT here: roadkeep owns it, and its own skill says which command to call. Use whenever a task is finished, before committing, or when a shipped feature might be user-visible.
+description: Usage Tray for Claude Code's own shipping discipline — the one-task-one-commit rule, the user-facing-surface gate (README, the site/ copy modules, lang/*.json) a shipped feature must pass, and how a release is cut. The roadmap/changelog/rationale write path itself is NOT here: roadkeep owns it, and its own skill says which command to call. Use whenever a task is finished, before committing, or when a shipped feature might be user-visible.
 ---
 
 # Shipping discipline

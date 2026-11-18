@@ -1,9 +1,9 @@
 ---
 name: file-map
-description: The per-file map of Claude Code Tray's own sources — every file under src/, one row each, with what it is responsible for and the rules its type carries. Use when you need to know which file owns a behaviour, where a new file goes, or what a type already does before writing a second reader of the same thing.
+description: The per-file map of Usage Tray for Claude Code's own sources — every file under src/, one row each, with what it is responsible for and the rules its type carries. Use when you need to know which file owns a behaviour, where a new file goes, or what a type already does before writing a second reader of the same thing.
 ---
 
-# File map (Claude Code Tray)
+# File map (Usage Tray for Claude Code)
 
 The map is **[`reference/file-map.md`](../../../reference/file-map.md)**. Read it there, and edit it
 there: a new source file gets its row in that file, and `--selftest` fails a file under `src/` that no

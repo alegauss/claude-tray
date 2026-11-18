@@ -29,7 +29,7 @@ export function Landing() {
     <>
       <Nav />
       <SiteHero
-        icon={{ src: "/claude-tray/logo.png", alt: "Claude Code Tray logo" }}
+        icon={{ src: "/claude-tray/logo.png", alt: "Usage Tray for Claude Code logo" }}
         badge={hero.badge}
         title={hero.titleLead}
         titleAccent={hero.titleAccent}

@@ -1,4 +1,4 @@
-# AGENTS.md — Claude Code Tray
+# AGENTS.md — Usage Tray for Claude Code
 
 Foundation doc for working in this repo with maximum predictability and minimum friction.
 Read this before touching UI or build. Keep it current when conventions change.

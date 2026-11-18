@@ -1,4 +1,4 @@
-; Inno Setup script for Claude Code Tray
+; Inno Setup script for Usage Tray for Claude Code
 ; Build (from the repo root):
 ;   1) dotnet publish -c Release
 ;   2) "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build\installer.iss
@@ -6,7 +6,7 @@
 ; Every relative path below is resolved against THIS file's directory (build\), so the
 ; three that point at the repo root are "..\"-relative — see IMPROVEMENTS §VIII.3.
 
-#define MyAppName "Claude Code Tray"
+#define MyAppName "Usage Tray for Claude Code"
 #define MyAppPublisher "Alexandre Oliveira"
 #define MyAppExeName "ClaudeTray.exe"
 #define MyPublishDir "..\bin\Release\net10.0-windows\win-x64\publish"

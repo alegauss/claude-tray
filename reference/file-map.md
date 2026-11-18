@@ -1,4 +1,4 @@
-# File map (Claude Code Tray)
+# File map (Usage Tray for Claude Code)
 
 Every file under `src/`, one row each. **This file is a reference, consulted rather than read** —
 which is why it lives here and not in [AGENTS.md](../AGENTS.md), whose whole content is loaded

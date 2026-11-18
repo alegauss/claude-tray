@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "The public site for Claude Code Tray — copy in one module, sections only render it.",
+  "description": "The public site for Usage Tray for Claude Code — copy in one module, sections only render it.",
   "scripts": {
     "dev": "vite",
     "generate": "node scripts/shots.mjs",
