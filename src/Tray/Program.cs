@@ -892,17 +892,20 @@ internal static class Program
         // app entitled to keep books (T239). Before Application.Run, so nothing it does on startup —
         // the first poll, the environment reconcile, an auto-follow save — reaches their files.
         if (SecondTray) ProfileStore.Observe();
+        // Before the mutex rather than after it, because a launch that finds it held may now ask a question
+        // (T466), and a dialog needs the process's DPI mode and visual styles set first.
+        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+        ApplicationConfiguration.Initialize();
         _instanceMutex = new Mutex(initiallyOwned: true, @"Local\ClaudeTray.SingleInstance", out bool createdNew);
         // The launch that found it held is the user asking for the app, so the resident tray opens its
-        // window rather than leaving the click with nothing to show.
-        if (!createdNew && !SecondTray)
+        // window rather than leaving the click with nothing to show — unless the running copy is the other
+        // build (Store beside winget), which this launch names and offers to settle first (T466).
+        if (!createdNew && !SecondTray && !CopyHandover.Resolve(_instanceMutex))
         {
             ShowRequest.Signal();
             return;
         }
 
-        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
-        ApplicationConfiguration.Initialize();
         // Without this the WPF windows this app opens receive no keyboard input at all (T135).
         WpfInputBridge.Install();
         Application.Run(new TrayContext());

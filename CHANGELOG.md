@@ -109,6 +109,7 @@
 - **T417** — build\store-submit.ps1 -Package sends dist\ClaudeTray.msix in place of the published packages, keeping the screenshots unless -Screenshots is given, and refuses before any upload a version that is not above the published one or an .msix older than the csproj.
 - **T418** — Release notes are written once in build\release-notes.md and reach both the GitHub release and the en-US winget manifest, the installer manifest keeps AppsAndFeaturesEntries at the manifest level, and --selftest fails a manifest that loses either or carries another version's notes.
 - **T433** — The build's fallback publishes build/release-notes.md and refuses notes for another version, and the installer's tasks, shortcuts and finish page read from per-language messages, so an English install reads English.
+- **T466 (the handover and its unpackaged side)** — A launch that finds the other build running names it: an unpackaged copy that starts with Windows offers to stop beside the package (driven live on 2026-11-19), and the package offers to take a winget copy's place.
 
 ## Block C — Settings window (WPF Fluent)
 

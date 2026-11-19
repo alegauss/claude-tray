@@ -111,6 +111,8 @@
   "dialog.appName": "Usage Tray for Claude Code",
   "dialog.saveFailed": "无法保存设置：\n{0}",
   "dialog.restartForLanguage": "显示语言已更改。现在重新启动 Usage Tray for Claude Code 以应用更改吗？",
+  "dialog.handover.takeOver": "另一份不是从 Microsoft Store 安装的 Usage Tray for Claude Code 正在运行：\n{0}\n\n要切换到这份 Microsoft Store 版本吗？另一份将不再随 Windows 启动并会关闭；不会卸载任何内容，您的设置和历史记录保持不变。",
+  "dialog.handover.stopStarting": "Microsoft Store 版本的 Usage Tray for Claude Code 已在运行。\n\n要让这份副本不再随 Windows 启动吗？不会卸载任何内容。",
   "dialog.downloadFailed": "无法下载更新：\n{0}",
   "dialog.launchFailed": "无法自动启动 Claude Code。\n请打开终端，运行 \"claude\"，输入 /login 登录，然后选择 \"立即刷新\"。\n\n{0}",
   "dialog.openLinkFailed": "无法打开链接：\n{0}\n\n{1}",

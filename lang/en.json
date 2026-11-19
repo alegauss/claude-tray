@@ -113,6 +113,8 @@
   "dialog.appName": "Usage Tray for Claude Code",
   "dialog.saveFailed": "Could not save settings:\n{0}",
   "dialog.restartForLanguage": "The display language was changed. Restart Usage Tray for Claude Code now to apply it?",
+  "dialog.handover.takeOver": "Another copy of Usage Tray for Claude Code is running, installed outside the Microsoft Store:\n{0}\n\nSwitch to this Microsoft Store copy? That copy stops starting with Windows and closes; nothing is uninstalled, and your settings and history stay as they are.",
+  "dialog.handover.stopStarting": "The Microsoft Store copy of Usage Tray for Claude Code is already running.\n\nStop starting this copy with Windows? Nothing is uninstalled.",
   "dialog.downloadFailed": "Could not download the update:\n{0}",
   "dialog.launchFailed": "Could not launch Claude Code automatically.\nOpen a terminal, run \"claude\", type /login to sign in, then choose \"Refresh now\".\n\n{0}",
   "dialog.openLinkFailed": "Could not open the link:\n{0}\n\n{1}",

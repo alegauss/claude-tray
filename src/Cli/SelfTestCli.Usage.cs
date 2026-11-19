@@ -2667,6 +2667,25 @@ internal static partial class SelfTestCli
               PackageIdentity.IsPackaged
                   == File.Exists(Path.Combine(Path.GetDirectoryName(Environment.ProcessPath ?? "") ?? "",
                                               "AppxManifest.xml")));
+        // T466. A launch that finds the other build running says so, and only then. The Store package beside
+        // a winget copy sat installed for nineteen days on the developer's machine without running once.
+        const string StoreExe = @"C:\Program Files\WindowsApps\Alegauss.ClaudeCodeTray_1.10.0.0_x64__d7cpypw1jc0bm\ClaudeTray.exe";
+        const string WingetExe = @"C:\Users\someone\AppData\Local\ClaudeTray\ClaudeTray.exe";
+        Check("the package offers to take the place of a winget or GitHub copy it finds running",
+              CopyHandover.Decide(thisPackaged: true, WingetExe, thisStartsWithWindows: false) == CopyHandover.Offer.TakeOver);
+        Check("an unpackaged copy that starts with Windows offers to stop, beside a running package",
+              CopyHandover.Decide(thisPackaged: false, StoreExe, thisStartsWithWindows: true) == CopyHandover.Offer.StopStartingThisCopy);
+        Check("and one opened by hand, with nothing to stop, just opens the package's window",
+              CopyHandover.Decide(thisPackaged: false, StoreExe, thisStartsWithWindows: false) == CopyHandover.Offer.None);
+        Check("the same build running, or a running copy whose path is unreadable, offers nothing",
+              CopyHandover.Decide(true, StoreExe, false) == CopyHandover.Offer.None
+              && CopyHandover.Decide(false, WingetExe, true) == CopyHandover.Offer.None
+              && CopyHandover.Decide(true, null, false) == CopyHandover.Offer.None);
+        Check("a Run value is removed only when it launches that copy's exe, quoted or not",
+              CopyHandover.RunValueLaunches($"\"{WingetExe}\"", WingetExe)
+              && CopyHandover.RunValueLaunches(WingetExe.ToUpperInvariant(), WingetExe)
+              && !CopyHandover.RunValueLaunches(@"""D:\elsewhere\ClaudeTray.exe""", WingetExe)
+              && !CopyHandover.RunValueLaunches(null, WingetExe));
         // T404. What a profile's settings.json already says, so the row can show it is done.
         Check("a settings file that runs this app with --statusline is ours, wherever the exe lives",
               StatusLineFeed.Classify("""{ "statusLine": { "type": "command", "command": "C:/x/ClaudeTray.exe --statusline" } }""", There)

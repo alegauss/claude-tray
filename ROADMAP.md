@@ -49,7 +49,7 @@
 ## Block B — Packaging, self-update, CI
 
 - ⏳ **T412** (deps: —) (requires: store-account) **The Store build has not yet replaced the winget install for a week of daily use** — The app is listed on the Store as 9P27BHWNT56D; a week on that build in place of winget, holding the startup task, the alias and a profile switch, is left. → §CVIII.2
-- 📋 **T466** (deps: —) **A Store install beside a winget or GitHub copy never runs: the running copy holds the mutex and the package exits** — Whoever moves from winget to the Store keeps running the old build without knowing it, and the Store counts an install that never opened. → §CVIII.3
+- ⏳ **T466** (deps: —) (requires: store-release-day) **A Store install beside a winget or GitHub copy never runs: the running copy holds the mutex and the package exits** — The package's takeover of a winget copy runs only in a Store build that carries it: the next Store release. → §CVIII.3
 
 ## Block AO — What a stranger meets first
 
