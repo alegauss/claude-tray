@@ -906,8 +906,15 @@ capability is needed.
 The package passed certification and the Store lists the app
 (apps.microsoft.com/detail/9P27BHWNT56D), so the submission and the sign-in policy question are
 behind it. What is left is the owner's: **a week on the Store build** in place of the winget one.
-They cannot run side by side: they share the `Local\ClaudeTray.SingleInstance` mutex, and the
-package's `%LocalAppData%` is redirected, so its settings start fresh.
+They cannot run side by side: they share the `Local\ClaudeTray.SingleInstance` mutex, so with both
+set to start at sign-in the winget copy came up first and the Store one exited without a word. That
+is why the package's own data folder was still empty on 2026-11-19, nineteen days after it was
+installed. Nor does it start fresh: `%LocalAppData%\ClaudeTray` already existed, so the package
+writes there in place, into the winget copy's settings and stores.
+
+**The week began on 2026-11-19 at 12:03**, on 1.10.0.0: the winget copy's `HKCU\...\Run` entry was
+removed, its tray stopped, and the package's startup task left enabled. Read it back from the
+process path of the tray running after each sign-in.
 
 Done means a week of use on the Store build held the startup task, the alias and a profile switch.
 
