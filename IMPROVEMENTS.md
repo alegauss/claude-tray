@@ -918,6 +918,32 @@ process path of the tray running after each sign-in.
 
 Done means a week of use on the Store build held the startup task, the alias and a profile switch.
 
+### CVIII.3 A Store install that loses to the copy already there (T466)
+
+Found while starting T412's week on 2026-11-19. The Store package had been installed on this machine
+for nineteen days beside the winget copy and had never run once: its data folder held nothing but
+what the installer wrote. Both copies start at sign-in, the winget one through
+`HKCU\...\Run\ClaudeTray` and the package through its `startupTask`. They share the
+`Local\ClaudeTray.SingleInstance` mutex, so whichever comes up second exits without a word, and on
+this machine that was always the package. Opening the app from the Start menu does the same: the
+click lands on the copy already running and nothing visible happens.
+
+Anyone who moves from winget or the GitHub installer to the Store does exactly this. They keep
+running the old build, which keeps updating itself from GitHub, believe they are on the Store one,
+and the Store counts an acquisition that never opened. Partner Center's funnel already shows more
+installs than opens (T455), and this is one cause of that gap that no first-run window can reach.
+
+What to build: when a launch finds the mutex held, it asks which build holds it before exiting. If a
+packaged launch finds an unpackaged copy running, it says so in one sentence and offers to take
+over: remove that copy's `Run` entry, ask it to exit, and start in its place. The data needs no
+move, because `%LocalAppData%\ClaudeTray` already exists and the package writes there in place
+(measured on the same day). The reverse (an unpackaged launch beside the package) keeps the package
+and only says which copy is running. Nothing is uninstalled automatically, since that is the user's
+call.
+
+Done when installing from the Store beside a winget copy and signing in leaves the package running,
+or names the copy that is running and offers the switch.
+
 ## CX What a stranger meets first
 
 The first minutes of somebody who has never seen the app: what the first launch shows, what an icon
