@@ -46,8 +46,6 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T448** (deps: —) **No case proves the live chart's project strip opens the Sessions pane on Enter or Space** — The chart strip's Space opens Sessions only while a session ran in the last 300s, and the bench's transcript is stamped once, so a case there would race the clock. → §CXI.30
-
 ## Block B — Packaging, self-update, CI
 
 - ⏳ **T412** (deps: —) (requires: store-account) **The Store build has not yet replaced the winget install for a week of daily use** — The app is listed on the Store as 9P27BHWNT56D; a week on that build in place of winget, holding the startup task, the alias and a profile switch, is left. → §CVIII.2

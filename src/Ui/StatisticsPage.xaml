@@ -638,7 +638,7 @@
                      minute of ordinary work sits on the 1px floor next to a single large cache write.
                      Given a tab it gets the height that makes a rate legible, and the two window
                      averages come along for comparison: same tokens, slower clock. -->
-                <TabItem Header="{local:Loc stats.tab.throughput}">
+                <TabItem x:Name="ThroughputPane" Header="{local:Loc stats.tab.throughput}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <!-- Bottom margin, not padding-by-accident: the pane clips, and a line cut in half
                          at the viewport edge reads as a bug even when the content does scroll. -->
@@ -671,10 +671,12 @@
                              strip is five minutes and the list is seven days, so a task cannot light this
                              chart, but this chart can name the running task (T337). -->
                     </StackPanel>
-                        <Border x:Name="ChartProjects" Grid.Row="1" Cursor="Hand"
+                        <!-- A PeeredBorder and not a Border: a keyboard stop a reader can name (T448). -->
+                        <local:PeeredBorder x:Name="ChartProjects" Grid.Row="1" Cursor="Hand"
                                 MouseLeftButtonUp="LiveChart_Clicked"
                                 Focusable="True" KeyDown="LiveChart_Key"
                                 ToolTip="{local:Loc stats.live.clickTip}"
+                                AutomationProperties.Name="{local:Loc stats.throughput.byProject}"
                                 Margin="0,6,0,0" CornerRadius="6" ClipToBounds="True"
                                 Background="{DynamicResource SubtleFillColorSecondaryBrush}" />
                     <StackPanel Grid.Row="2">

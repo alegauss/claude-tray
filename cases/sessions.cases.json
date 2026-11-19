@@ -32,6 +32,22 @@
       // the two claims fail for different reasons, and a run that reports "the sessions case failed"
       // over both of them is the flattening this format exists to undo.
       "shareable": false
+    },
+    {
+      // T448. The same window over a session that is running as it opens. The strip names a session
+      // only when its last turn is inside five minutes, and the bench stamps its transcript once at
+      // the start of the run, so this appends one turn stamped now before every launch rather than
+      // hoping the case lands early.
+      "name": "the main window over a session running now",
+      "arguments": ["--main", "--observing", "--lang", "en"],
+      "language": "en",
+      "shareable": false,
+      "before": [
+        {
+          "run": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "arguments": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "{root}\\cases\\fixtures\\live-turn.ps1"]
+        }
+      ]
     }
   ],
 
@@ -225,6 +241,64 @@
           "with": "Enter",
           "discloses": true,
           "named": "Enter discloses the call tree under the focused row"
+        }
+      ]
+    },
+
+    {
+      // T448, the other half of T438's keyboard path: Space on the focused live strip names what is
+      // running, which is a move to the Sessions pane. The claim is the move, read on the tab itself,
+      // and it can only be made from somewhere else: the case starts on Throughput, where the strip is.
+      "name": "Space on the focused live strip moves to the Sessions pane",
+      "catches": "a strip that names the running session under the pointer and is a dead keyboard stop, or a stop no reader can see at all",
+      "filed": "T448",
+      "tags": ["sessions"],
+      "fixture": "the main window over a session running now",
+      "needs": ["a transcript to report on"],
+
+      "steps": [
+        {
+          // The list is what the strip consults, and it loads with the pane: a Space before the scan
+          // landed would only start it, which is the application's behaviour and not this claim.
+          "locator": "TabItem#SessionsPane",
+          "act": "select",
+          "expect": "selected",
+          "reads": "selected",
+          "named": "the Sessions tab is the selected one, so its list is loaded"
+        },
+        {
+          "locator": "#SessionList > DataItem[order=top]",
+          "act": "read",
+          "spoken": true,
+          "named": "the list has landed, with the running session in it"
+        },
+        {
+          "locator": "TabItem#ThroughputPane",
+          "act": "select",
+          "expect": "selected",
+          "reads": "selected",
+          "named": "the Throughput tab is the selected one, where the strip is"
+        },
+        {
+          "locator": "#ChartProjects",
+          "act": "focus",
+          "reads": "focused",
+          "expect": "focused",
+          "named": "the live strip holds the keyboard focus"
+        },
+        {
+          "locator": "#ChartProjects",
+          "act": "press",
+          "with": "Space",
+          "named": "press Space on the strip"
+        },
+        {
+          // The expectation is what says the key landed; the engine waits for it.
+          "locator": "TabItem#SessionsPane",
+          "act": "read",
+          "reads": "selected",
+          "expect": "selected",
+          "named": "the Sessions pane is the selected one, named by the strip"
         }
       ]
     },

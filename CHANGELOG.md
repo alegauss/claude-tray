@@ -51,7 +51,7 @@
 | [AF](#block-af--six-surfaces-shipped-and-what-nothing-was-checking) | Six surfaces shipped, and what nothing was checking |
 | [AG](#block-ag--the-interaction-check-grew-two-cases-and-nobody-runs-it) | The interaction check grew two cases, and nobody runs it |
 | [AH](#block-ah--what-block-afs-own-captures-turned-up) | What Block AF's own captures turned up |
-| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change (active — see ROADMAP) |
+| [AI](#block-ai--verification--the-checks-that-prove-a-change) | Verification — the checks that prove a change |
 | [AJ](#block-aj--working-here--the-repos-own-docs-and-flags) | Working here — the repo's own docs and flags |
 | [AK](#block-ak--sessions--what-one-conversation-cost-and-what-it-did) | Sessions — what one conversation cost, and what it did |
 | [AL](#block-al--the-site-is-a-workspace-not-a-page) | The site is a workspace, not a page |
@@ -733,7 +733,7 @@
 - **T458** — The burning-week advice checks build their window on the same fixed Wednesday as the clock they are asked at, so they pass on any day the suite runs.
 - **T459** — The winget-id check tells an id from a host by its PascalCase second part, so the site's alegauss.com no longer reads as a second id.
 - **T449** — Preview pictures of a dark-themed window are readable again: the harness and Winwright.InApp move to winwright 1.1.9, whose in-app render paints the theme's background under a backdrop window (WW611).
-- **T448 (the Sessions row)** — A case focuses the top Sessions row through UI Automation and presses Enter under --main, and the call tree unfolds; the row's focus moved from an inner Border, which no reader could see, to its item container.
+- **T448** — Space on the focused live strip moves to the Sessions pane under a case, over a turn a fixture stamps at launch; the strip is a PeeredBorder now, a keyboard stop a reader can name (design §CXI.30 recorded in `cases/fixtures/live-turn.ps1`).
 
 ## Block AJ — Working here — the repo's own docs and flags
 

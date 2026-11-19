@@ -239,8 +239,8 @@ public sealed class CasesLoad
 
         // Three since T392: the calendar view's period rows are a third surface of the same pane, and
         // the rules below — acts, needs a transcript, lends no window — hold for it unchanged. Four
-        // since T448, the row's keyboard path, under the same rules.
-        Assert.Equal(4, sessions.Count);
+        // since T448, the row's keyboard path, and five with the live strip's, under the same rules.
+        Assert.Equal(5, sessions.Count);
         Assert.All(sessions, one => Assert.True(one.Justified, "a case that says nothing about why it exists says nothing about deleting it"));
         Assert.All(sessions, one => Assert.Equal(["a transcript to report on"], one.Needs));
 
@@ -293,6 +293,15 @@ public sealed class CasesLoad
         var focused = Assert.Single(keyed.Steps, one => one.Verb.Name == "focus");
         Assert.Equal("focused", focused.Expected);
         Assert.True(keyed.Steps.ToList().IndexOf(focused) < keyed.Steps.ToList().IndexOf(pressed));
+
+        // T448. The strip's Space, whose claim is the move to Sessions: so it must start somewhere else,
+        // and end by reading the Sessions tab back as selected after the key, never before it.
+        var strip = Assert.Single(sessions, one => one.Name.Contains("live strip", StringComparison.Ordinal));
+        var steps = strip.Steps.ToList();
+        var space = Assert.Single(steps, one => one.Verb.Name == "press");
+        Assert.Equal("focus", steps[steps.IndexOf(space) - 1].Verb.Name);
+        Assert.Equal("selected", steps[^1].Expected);
+        Assert.True(steps.IndexOf(space) < steps.Count - 1);
     }
 
     [Fact]

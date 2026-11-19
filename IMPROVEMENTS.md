@@ -916,41 +916,6 @@ Done means a week of use on the Store build held the startup task, the alias and
 The first minutes of somebody who has never seen the app: what the first launch shows, what an icon
 in the overflow says, and what the app says on a machine it cannot read anything from yet.
 
-## CXI What the November 2026 audit found
-
-The defects the 2026-11-05 audit confirmed against the code: six scanners over the source
-partitions, each finding then checked by an adversarial verifier, and the survivors grouped so that
-one subsection is one fix that ships in one commit. The baseline was green when they were found
-(build with warnings as errors, `--selftest --quick`, the site's typecheck and tests, `roadkeep
-lint`), so none of these is caught by an existing check; where a check was meant to hold the
-property, the subsection says why it did not.
-
-Several share one cause and are grouped by it rather than by file: a transcript or store opened with
-a share mode that a concurrent writer refuses, a child process read to the end before its timed
-wait, a counted string with one form. Where a shipped task promised the property and the code no
-longer keeps it, the subsection names that task as a regression rather than as new design.
-
-### CXI.30 The chart strip's keyboard path, with no case (T448)
-
-T438 made the Sessions rows and the live chart's project strip focusable, opening on Enter or Space.
-The row half has its case now: `cases/sessions.cases.json` focuses `#SessionList >
-DataItem[order=top]` through winwright's `focus` act (WW610) under `--main` and presses Enter, and
-the call tree unfolds. Writing it found that T438 had put the focus on an inner `Border`, which has
-no automation peer, so a reader never saw the focused row; the focus is the item container's now.
-
-The strip is left. The case wanted is `focus` on `#ChartProjects`, `press` Space, then read that
-`TabItem#SessionsPane` is the selected one. What stops it is not winwright any more but the data:
-`NameRunning` jumps only to a session whose last turn is within `LiveRate.HistorySeconds` (300s),
-and does nothing otherwise, which is the honest answer. The bench
-(`tests/ClaudeTray.Cases/Bench.cs`) writes its transcript once, newest turn stamped when the run
-starts, so whether the strip has a running session to name depends on how far into the run the case
-lands.
-
-What to build: a fresh turn at the moment the case launches, not a wider window. Either the fixture
-runs a `before` command that appends one turn stamped now to the bench transcript, or the bench
-gains a second, live transcript that a precondition measures at case time, so a run that reaches the
-case late reports a hole rather than a red. Then write the case and close this line.
-
 ## CXII The tray's own footprint (Block AP)
 
 A tray icon that sits idle in the notification area was measured at 565 MB private on 2026-11-07.
