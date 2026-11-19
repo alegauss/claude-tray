@@ -930,22 +930,26 @@ a share mode that a concurrent writer refuses, a child process read to the end b
 wait, a counted string with one form. Where a shipped task promised the property and the code no
 longer keeps it, the subsection names that task as a regression rather than as new design.
 
-### CXI.30 The keyboard path T438 added, with no case (T448)
+### CXI.30 The chart strip's keyboard path, with no case (T448)
 
-T438 made the Sessions rows and the live chart's project strip focusable, opening on Enter or Space,
-and turned the Context overview's rows and the Settings sidebar into buttons. The buttons are
-covered: the keyboard, panels and names cases address them, and a pointer click or the Invoke
-pattern reaches each. The two focusable rows are not. Their keyboard path was checked once by hand,
-and no case holds it.
+T438 made the Sessions rows and the live chart's project strip focusable, opening on Enter or Space.
+The row half has its case now: `cases/sessions.cases.json` focuses `#SessionList >
+DataItem[order=top]` through winwright's `focus` act (WW610) under `--main` and presses Enter, and
+the call tree unfolds. Writing it found that T438 had put the focus on an inner `Border`, which has
+no automation peer, so a reader never saw the focused row; the focus is the item container's now.
 
-The case wanted, in `cases/sessions.cases.json` under `--main` (the WinForms pump, convention 7):
-select the Sessions tab, press Enter with focus on `#SessionList > DataItem[order=top]`, then read
-that the row's call tree is in the tree, as the existing row-click case does. The chart strip wants
-the same with Space on `#ChartProjects`, reading that the Sessions tab became the selected one.
+The strip is left. The case wanted is `focus` on `#ChartProjects`, `press` Space, then read that
+`TabItem#SessionsPane` is the selected one. What stops it is not winwright any more but the data:
+`NameRunning` jumps only to a session whose last turn is within `LiveRate.HistorySeconds` (300s),
+and does nothing otherwise, which is the honest answer. The bench
+(`tests/ClaudeTray.Cases/Bench.cs`) writes its transcript once, newest turn stamped when the run
+starts, so whether the strip has a running session to name depends on how far into the run the case
+lands.
 
-winwright cannot say it yet. `press` already names Enter and Space, but it sends them at the window,
-so no step can put focus on an element first. Filed upstream as WW610, which adds a `focus` act.
-When it ships, write each case as `focus` on the row and then `press`, and close this line.
+What to build: a fresh turn at the moment the case launches, not a wider window. Either the fixture
+runs a `before` command that appends one turn stamped now to the bench transcript, or the bench
+gains a second, live transcript that a precondition measures at case time, so a run that reaches the
+case late reports a hole rather than a red. Then write the case and close this line.
 
 ## CXII The tray's own footprint (Block AP)
 

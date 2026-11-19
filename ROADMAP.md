@@ -46,7 +46,7 @@
 
 ## Block AI — Verification — the checks that prove a change
 
-- 📋 **T448** (deps: —) (requires: winwright-ww610) **No case proves a Sessions row or the chart strip opens on Enter or Space** — T438's focusable rows open on Enter or Space, but winwright's press cannot focus an element and press Enter there (WW610), so no case holds the keyboard path. → §CXI.30
+- 📋 **T448** (deps: —) **No case proves the live chart's project strip opens the Sessions pane on Enter or Space** — The chart strip's Space opens Sessions only while a session ran in the last 300s, and the bench's transcript is stamped once, so a case there would race the clock. → §CXI.30
 
 ## Block B — Packaging, self-update, CI
 

@@ -733,6 +733,7 @@
 - **T458** — The burning-week advice checks build their window on the same fixed Wednesday as the clock they are asked at, so they pass on any day the suite runs.
 - **T459** — The winget-id check tells an id from a host by its PascalCase second part, so the site's alegauss.com no longer reads as a second id.
 - **T449** — Preview pictures of a dark-themed window are readable again: the harness and Winwright.InApp move to winwright 1.1.9, whose in-app render paints the theme's background under a backdrop window (WW611).
+- **T448 (the Sessions row)** — A case focuses the top Sessions row through UI Automation and presses Enter under --main, and the call tree unfolds; the row's focus moved from an inner Border, which no reader could see, to its item container.
 
 ## Block AJ — Working here — the repo's own docs and flags
 

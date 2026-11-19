@@ -238,8 +238,9 @@ public sealed class CasesLoad
         var sessions = loaded.Where(one => one.Tags.Contains("sessions")).ToList();
 
         // Three since T392: the calendar view's period rows are a third surface of the same pane, and
-        // the rules below — acts, needs a transcript, lends no window — hold for it unchanged.
-        Assert.Equal(3, sessions.Count);
+        // the rules below — acts, needs a transcript, lends no window — hold for it unchanged. Four
+        // since T448, the row's keyboard path, under the same rules.
+        Assert.Equal(4, sessions.Count);
         Assert.All(sessions, one => Assert.True(one.Justified, "a case that says nothing about why it exists says nothing about deleting it"));
         Assert.All(sessions, one => Assert.Equal(["a transcript to report on"], one.Needs));
 
@@ -283,6 +284,15 @@ public sealed class CasesLoad
         var readable = Assert.Single(row.Steps, one => one.Spoken);
         Assert.Equal("read", readable.Verb.Name);
         Assert.True(row.Steps.ToList().IndexOf(readable) < row.Steps.ToList().IndexOf(unfolds));
+
+        // T448. The same disclosure by the keyboard: a key and not a pointer, after a focus that is read
+        // back, so a press that lands on whatever held the focus before cannot pass as the row's.
+        var keyed = Assert.Single(sessions, one => one.Name.Contains("Enter", StringComparison.Ordinal));
+        var pressed = Assert.Single(keyed.Steps, one => one.Discloses);
+        Assert.Equal("press", pressed.Verb.Name);
+        var focused = Assert.Single(keyed.Steps, one => one.Verb.Name == "focus");
+        Assert.Equal("focused", focused.Expected);
+        Assert.True(keyed.Steps.ToList().IndexOf(focused) < keyed.Steps.ToList().IndexOf(pressed));
     }
 
     [Fact]

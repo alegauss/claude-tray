@@ -185,6 +185,51 @@
     },
 
     {
+      // T448. T438 made the rows focusable and opening on Enter or Space, and the click case above
+      // cannot speak for that path: the click is a mouse handler on the list, the key is a KeyDown
+      // handler on it that walks up from whatever holds the keyboard focus. Under `--main`, which is
+      // the WinForms pump, because convention 7 is that a keyboard path is only real there (T135).
+      //
+      // The focus goes on the row by UI Automation (WW610) rather than by Tabbing to it, because a
+      // walk of Tab through every control above the list is a claim about tab order, which is not
+      // what this case is about, and its count would change every time the pane grew a control.
+      "name": "Enter on a focused conversation row unfolds it, as a click does",
+      "catches": "a row that opens under the pointer and does nothing under the keyboard, which no picture and no click case could tell apart",
+      "filed": "T448",
+      "tags": ["sessions"],
+      "fixture": "the main window for the sessions pane",
+      "needs": ["a transcript to report on"],
+
+      "steps": [
+        {
+          "locator": "TabItem#SessionsPane",
+          "act": "select",
+          "expect": "selected",
+          "reads": "selected",
+          "named": "the Sessions tab is the selected one, so its pane is built"
+        },
+        {
+          // Read back, so a row that would not take the focus is a red here and never a press that
+          // landed on whatever had the focus before.
+          "locator": "#SessionList > DataItem[order=top]",
+          "act": "focus",
+          "reads": "focused",
+          "expect": "focused",
+          "named": "the topmost row holds the keyboard focus"
+        },
+        {
+          // The same claim the click case makes, by the same comparison: more under the row than a
+          // moment earlier, and no count typed here.
+          "locator": "#SessionList > DataItem[order=top]",
+          "act": "press",
+          "with": "Enter",
+          "discloses": true,
+          "named": "Enter discloses the call tree under the focused row"
+        }
+      ]
+    },
+
+    {
       // T392. The calendar view swaps the list for a second ItemsControl, collapsed until the picker
       // asks for it — and a collapsed WPF element is absent from the accessibility tree, so the only
       // way to know the period rows are readable is to make them visible and read one.

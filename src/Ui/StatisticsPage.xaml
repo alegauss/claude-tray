@@ -95,9 +95,11 @@
 
         <DataTemplate x:Key="SessionRowTemplate">
           <StackPanel>
-            <!-- Focusable so Tab reaches a row and Enter or Space opens it (T438): the row was mouse-only. -->
+            <!-- Tab reaches a row and Enter or Space opens it (T438). The focus is the item container's,
+                 set on SessionList, and not this Border's: a Border has no automation peer, so focus
+                 here was invisible to a screen reader and to any case (T448). -->
             <Border Padding="8,7" CornerRadius="5" Background="Transparent" ToolTip="{Binding Tip}"
-                    Cursor="Hand" Focusable="True">
+                    Cursor="Hand">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" MinWidth="120" />
@@ -991,7 +993,15 @@
                                       HorizontalScrollBarVisibility="Disabled" Margin="0,2,0,0">
                             <Grid>
                                 <ItemsControl x:Name="SessionList"
-                                              ItemTemplate="{StaticResource SessionRowTemplate}" />
+                                              ItemTemplate="{StaticResource SessionRowTemplate}">
+                                    <!-- The row's focus lives on its container, the element UI Automation
+                                         names as the DataItem, so the keyboard and a reader agree (T448). -->
+                                    <ItemsControl.ItemContainerStyle>
+                                        <Style TargetType="ContentPresenter">
+                                            <Setter Property="Focusable" Value="True" />
+                                        </Style>
+                                    </ItemsControl.ItemContainerStyle>
+                                </ItemsControl>
                                 <ItemsControl x:Name="SessionPeriods" Visibility="Collapsed">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
