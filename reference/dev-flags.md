@@ -380,6 +380,13 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   `--main`, `--settings` or a read-out, which would otherwise keep
                                       #   books like an ordinary run: its first guest run came back with
                                       #   session-index.json rewritten. Stripped before anything parses.
+--isolated                            # know ONE profile, the CLAUDE_CONFIG_DIR this process started with,
+                                      #   listed even with no login in it (T465): no ~/.claude, no
+                                      #   ~/.claude-*, no registered list, no WSL. For a check that points
+                                      #   a tray at a fixture and must not also measure the desk's own
+                                      #   profiles — the idle-footprint child read 94-296 MB on a working
+                                      #   machine and 42 on CI until it passed this. Stripped like
+                                      #   --observing.
 ```
 
 ## Flags that go with anything

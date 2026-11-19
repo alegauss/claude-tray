@@ -165,6 +165,17 @@ internal static class Program
             ProfileStore.Observe();
         }
 
+        // `--isolated` (T465): this process knows one profile, the config dir it was started with, and
+        // nothing else on the machine — no home sweep, no registered list, no WSL. The idle-footprint
+        // check launches its tray over a fixture of known size, and without this the tray also found
+        // the developer's own profiles and walked months of transcripts, so the reading measured the
+        // desk (94 to 296 MB) rather than the build. Taken out of the arguments like `--observing`.
+        if (args.Contains("--isolated"))
+        {
+            args = args.Where(one => one != "--isolated").ToArray();
+            ClaudeAccount.Isolate();
+        }
+
         // `--lang <code>` anywhere in the arguments overrides the display language for this process
         // only, leaving the saved preference alone. It exists for the i18n screenshot loop: verifying
         // that a window still fits in Spanish should not mean editing the user's settings and

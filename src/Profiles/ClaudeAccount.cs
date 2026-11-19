@@ -589,11 +589,22 @@ internal static class ClaudeAccount
         return found;
     }
 
+    /// <summary>Whether discovery is confined to this process's own config dir (T465, <c>--isolated</c>).</summary>
+    internal static bool Isolated { get; private set; }
+
+    /// <summary>
+    /// Confine discovery to <see cref="ConfigDir"/>, listed whether or not it holds an account: a fixture
+    /// of transcripts with no login is still the profile the process was pointed at, and dropping it
+    /// would leave a tray scanning nothing — a footprint reading about an empty machine.
+    /// </summary>
+    internal static void Isolate() => Isolated = true;
+
     /// <summary>The actual sweep, without the label dedupe — <see cref="Discover(IEnumerable{ClaudeProfile}?)"/>
     /// needs to apply typed-name overrides before that step, so it calls this instead of the public
     /// overload above.</summary>
     private static List<ClaudeInfo> DiscoverCore(IEnumerable<string>? registered)
     {
+        if (Isolated) registered = [ConfigDir];
         var regs = new List<string>();
         foreach (string r in registered ?? Enumerable.Empty<string>())
             if (Normalize(r) is { Length: > 0 } n) regs.Add(n);
@@ -625,6 +636,7 @@ internal static class ClaudeAccount
     private static IEnumerable<string> Candidates(List<string> registered)
     {
         yield return ConfigDir;          // what this process would use (env override, if any)
+        if (Isolated) yield break;       // T465: nothing else on this machine
         yield return HomeConfigDir;      // ~/.claude, which still exists when an override is set
 
         foreach (string d in SettingsOverride(Path.Combine(ConfigDir, "settings.json"))) yield return d;

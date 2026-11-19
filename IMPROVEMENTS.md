@@ -965,28 +965,6 @@ winwright does not have. A run on an empty profile must not pass for a ceiling m
 
 Done when a run on a build that holds twice the ceiling fails and names both numbers.
 
-### CXII.6 An idle ceiling the developer machine cannot pass (T465)
-
-T452's idle ceiling is 220 MB, set at half again the 137 MB the Debug build read on this machine on
-2026-11-16. Three days later the same check fails here on every run, at HEAD and on the build with
-Winwright.InApp 1.1.9 alike: 296, 213, 221, 265 and 244 MB idle over the same 25 MB fixture, all on
-unchanged sources. CI's runner reads 42 MB on the commit before HEAD and passes. The resident
-installed tray read 273 MB private at the same time, so the machine, not the build, moved.
-
-So the gate is red on the developer's machine for a reason no commit made, which leaves every task
-committing over a red `--selftest` or not at all. Two things are unknown and both are to be read,
-not guessed. What the extra 100+ MB is: native or managed, and which module (a
-`dotnet-counters`/`vmmap` read of the `--second-tray` child, against the same read in the guest).
-And what the child shares with the machine despite `CLAUDE_CONFIG_DIR`: the shared caches under
-`%LocalAppData%\ClaudeTray` resolve through the shell's known-folder API, so pointing `LOCALAPPDATA`
-at an empty folder did not isolate them (244 MB, nothing written there).
-
-Two exits, decided by that reading. If the child is reading machine state, isolate it the way the
-fixture isolates `~/.claude`, and the ceiling stays. If the figure is the machine's own (drivers or
-injected modules counted as private bytes), state the ceiling against a reading in the guest and on
-CI, not the desk, and say beside it which machines it holds on. Raising the number to pass here is
-the wrong fix: a doubled footprint would then pass on CI, where the reading is 42 MB.
-
 ## CXIII Where the Microsoft Store sends people (Block AQ)
 
 Partner Center's analytics, read on 2026-11-09 for 2026-10-30 to 2026-11-09, give the Store 164

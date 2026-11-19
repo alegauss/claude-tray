@@ -827,6 +827,7 @@
 - **T461** — The published exe is no longer a compressed bundle: idle private memory drops from about 186 to 135 MB, the installer shrinks from 67.5 to 49.8 MB, the MSIX holds level, and the installed exe grows to 166.8 MB (design §CXII.4 recorded in `ClaudeTray.csproj`).
 - **T462** — An idle tray hands back what startup used: the transcript tail reuses one buffer and decodes line by line (idle private 124 to 108 MB, free LOH 71 to 30 MB), and one LOH compaction five minutes in leaves 59 MB against 80 with free LOH at 1 MB (design §CXII.5 recorded in `src/Usage/TranscriptTail.cs`).
 - **T452 (idle ceiling)** — The full selftest launches the built exe as an observing tray over a 25 MB fixture and fails above 220 MB private, naming both numbers; Debug, Release and the published exe measure 129 to 146 MB.
+- **T465** — The idle-footprint child runs --isolated, knowing only its fixture profile, so it reads 46-50 MB on a developer's desk as CI reads 42; the ceiling comes down to 80 MB from those clean readings.
 
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 

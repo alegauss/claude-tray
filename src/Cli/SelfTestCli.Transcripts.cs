@@ -1685,12 +1685,15 @@ internal static partial class SelfTestCli
     /// transcripts — so the tray is pointed at this fixture through <c>CLAUDE_CONFIG_DIR</c>, never at the
     /// machine's own tree.
     ///
-    /// <para>Measured on 2026-11-16 over this fixture (25 MB), after T461 and T462: 137 MB idle in the Debug
-    /// build, 144 MB in the Release output <c>check.yml</c> runs, 129 MB in the published single-file exe
-    /// <c>build.yml</c> runs. The ceiling is half as much again as the highest of the three, so ordinary
-    /// drift passes, and under twice it, so a build that doubles the footprint fails.</para>
+    /// <para>Measured on 2026-11-19 over this fixture (25 MB) with the child <c>--isolated</c> (T465):
+    /// 46 and 50 MB idle in the Debug build on a developer's machine, 42 MB in the Release output
+    /// <c>check.yml</c> runs. The 2026-11-16 figures this replaced (137, 144, 129 MB, and a ceiling of 220)
+    /// were taken before isolation, so they counted the measuring machine's own profiles too — the same
+    /// build later read 94 to 296 MB on one desk. The ceiling is half as much again as the highest clean
+    /// reading, rounded up, so ordinary drift passes, and under twice the lowest, so a build that doubles
+    /// the footprint fails.</para>
     /// </summary>
-    private const int IdleCeilingMb = 220;
+    private const int IdleCeilingMb = 80;
     private const int FootprintFiles = 60;
     private const int FootprintTurns = 1500;
 
@@ -1717,7 +1720,10 @@ internal static partial class SelfTestCli
             bytes += new FileInfo(path).Length;
         }
 
-        var psi = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!, "--second-tray")
+        // `--isolated` (T465): the fixture and nothing else. Without it the tray also discovered this
+        // machine's own profiles and walked their transcripts, so a developer's desk read 94 to 296 MB
+        // over the same build CI read at 42 — the ceiling was measuring whose machine it ran on.
+        var psi = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!, "--second-tray --isolated")
         {
             UseShellExecute = false,
         };
