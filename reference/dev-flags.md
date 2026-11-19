@@ -380,6 +380,12 @@ No window, no screen — the arithmetic and the readings as text.
                                       #   `--main`, `--settings` or a read-out, which would otherwise keep
                                       #   books like an ordinary run: its first guest run came back with
                                       #   session-index.json rewritten. Stripped before anything parses.
+--sample-first-run                    # answer as a fresh install's FIRST start (T455): `Welcomed` reads
+                                      #   false and the window opens on its own, even beside
+                                      #   --second-tray, through the same WelcomesOnStart decision. Implies
+                                      #   --observing, so it records nothing — not even that it welcomed.
+                                      #   The icon case drives it; a real first start needs a machine
+                                      #   with no settings file. Stripped before anything parses.
 --isolated                            # know ONE profile, the CLAUDE_CONFIG_DIR this process started with,
                                       #   listed even with no login in it (T465): no ~/.claude, no
                                       #   ~/.claude-*, no registered list, no WSL. For a check that points

@@ -72,8 +72,6 @@
 
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 
-- ⏳ **T455** (deps: —) (requires: store-release-day) **A first launch from the Store shows nothing but an icon that Windows often hides in the overflow** — The Store funnel counted 40 installs and 21 opens in ten days; the first start opens the window now, and the case and the funnel remain. → §CXIII.3
-
 ## Non-goals (do NOT add as tasks)
 
 Binding constraints — see [IMPROVEMENTS.md](IMPROVEMENTS.md) §I for the full text. Summary:

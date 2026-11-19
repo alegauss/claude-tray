@@ -507,6 +507,19 @@ public sealed class CasesLoad
     }
 
     [Fact]
+    public void The_first_start_case_opens_the_window_with_nothing_clicked()
+    {
+        // T455. The claim is that nobody clicked: a click anywhere in it would make it the case below.
+        var loaded = ScenarioFile.Across(ScenarioFile.LoadAll(Path.Combine(Repository(), "cases")));
+        var first = Assert.Single(loaded, one => one.Name.Contains("first start opens the window", StringComparison.Ordinal));
+
+        Assert.True(first.Justified, "a case that says nothing about why it exists says nothing about deleting it");
+        Assert.DoesNotContain(first.Steps, one => one.ClicksTheTrayIcon || one.Verb.Synthesises);
+        Assert.Contains("--sample-first-run", first.Fixture.Arguments);
+        Assert.Contains("--second-tray", first.Fixture.Arguments);
+    }
+
+    [Fact]
     public void The_icon_case_asserts_the_left_click_claim_the_script_made()
     {
         // WW86, and the last of the harness's claims to become one. T158 clicked the icon and then

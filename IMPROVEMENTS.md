@@ -1005,30 +1005,3 @@ acquisitions in its first ten days with no promotion, 147 of them from inside th
 (34) and Germany (15) are the first and fourth markets, and both see the listing in English. The
 funnel counts 328 page views, 64 acquisitions, 40 installs and 21 people who opened the app. This
 block is what those numbers ask of the app.
-
-### CXIII.3 The first launch says where the app went (T455)
-
-**Why.** Partner Center's funnel for 2026-10-30 to 2026-11-09 counts 40 people who installed from
-the Store and 21 who opened the app. The funnel lags and counts unique people, so the ratio is a
-hint, not a measure; but it fits what a Store install looks like. The person clicks Open, the app
-starts in the notification area, Windows 11 often hides a new icon in the overflow, and no window
-appears. From the outside nothing happened.
-
-**What.** The first launch after an install, and only that one, says where the app went:
-
-- a toast in the app's own words ("Claude Code Tray is in the notification area. Click the icon to see your limits"), with a button that opens the main window;
-- or the main window itself, once, closing to the tray as usual.
-
-Which of the two is the product's call; the toast is lighter, and the window shows the numbers at
-once. Either way, the first launch is remembered in settings, so a reinstall or an update says
-nothing. On a machine without Claude Code signed in, the same moment says so instead of showing an
-empty icon.
-
-Found while shipping the first half: a launch the user makes through the package already opened the
-window (T413, in 1.9.0), so the gap was the Inno installer's own unpackaged launch.
-`Settings.Welcomed` now opens the window on a fresh install's first start, defaulting to true so an
-older file, an update, says nothing.
-
-**Done when** a clean install, from the MSIX and from the Inno installer, shows that first message
-once and never again, a case covers it, and the Store funnel's open rate can be compared over the
-four weeks after the release that carries it.

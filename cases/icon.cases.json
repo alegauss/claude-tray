@@ -36,6 +36,16 @@
       // Not shared. This case leaves a window standing that the launch never drew, so a case after
       // it would inherit a desk this one opened.
       "shareable": false
+    },
+    {
+      // T455. The same tray on a fresh install's first start. `--sample-first-run` reads the settings
+      // as never welcomed and observes, so the window it opens is the decision a real first start makes,
+      // and nothing records that it was made.
+      "name": "a tray of this run's own, on a fresh install's first start",
+      "arguments": ["--second-tray", "--sample-first-run", "--lang", "en"],
+      "resident": true,
+      "language": "en",
+      "shareable": false
     }
   ],
 
@@ -89,6 +99,37 @@
           "reads": "name",
           "label": "main.nav.settings",
           "named": "the third destination is on it"
+        }
+      ]
+    },
+
+    {
+      // T455. The other half of the case above: on a first start nobody clicks anything. The Store's
+      // funnel counted 40 installs and 21 opens in ten days, and a new icon often lands in the
+      // overflow, so a first start that only drew an icon was, from the outside, nothing at all. The
+      // case above is what says an ordinary start opens no window; this says the first one does.
+      "name": "a fresh install's first start opens the window with nothing clicked",
+      "catches": "a first launch that draws an icon Windows hides in the overflow and nothing else, which reads as an app that never started",
+      "filed": "T455",
+      "tags": ["icon", "tray"],
+      "fixture": "a tray of this run's own, on a fresh install's first start",
+
+      "steps": [
+        {
+          // The engine waits for it, so the window arriving after the tray's first poll is the same
+          // claim as one arriving at once. No click step anywhere in this case is the point.
+          "locator": "RadioButton#NavStatistics",
+          "act": "read",
+          "reads": "name",
+          "label": "main.nav.statistics",
+          "named": "the window opened on its own, on the first destination"
+        },
+        {
+          "locator": "RadioButton#NavSettings",
+          "act": "read",
+          "reads": "name",
+          "label": "main.nav.settings",
+          "named": "and it is the whole window, not a caption"
         }
       ]
     }

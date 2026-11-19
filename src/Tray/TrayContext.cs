@@ -99,13 +99,18 @@ internal sealed class TrayContext : ApplicationContext
         // A launch the user asked for shows the window, since the icon itself may be in the overflow: a
         // later launch through ShowRequest, and the package's own launch unless the startup task made it.
         // Not for a check's tray, which must neither answer the user's launches nor open on its own.
-        if (!Program.SecondTray)
+        // A sampled first start (T455, `--sample-first-run`) is the one exception for a check's tray: it
+        // reads as unwelcomed and lifts the observing veto, so the case sees the decision this start makes
+        // for real, and it saves nothing because it observes.
+        bool sampled = Program.SampledFirstRun;
+        if (!Program.SecondTray || sampled)
         {
-            ShowRequest.Listen(() => _ui.Post(_ => OpenMain(), null));
-            bool welcome = WelcomesOnStart(_settings.Welcomed, ProfileStore.Observing);
-            if (welcome || PackageIdentity.OpensWindow(PackageIdentity.IsPackaged, PackageIdentity.ActivationKind()))
+            if (!Program.SecondTray) ShowRequest.Listen(() => _ui.Post(_ => OpenMain(), null));
+            bool welcome = WelcomesOnStart(_settings.Welcomed && !sampled, ProfileStore.Observing && !sampled);
+            if (welcome || (!Program.SecondTray
+                            && PackageIdentity.OpensWindow(PackageIdentity.IsPackaged, PackageIdentity.ActivationKind())))
                 _ui.Post(_ => OpenMain(), null);
-            if (welcome)
+            if (welcome && !sampled)
             {
                 _settings.Welcomed = true;
                 SaveSettingsQuietly();

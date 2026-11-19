@@ -84,6 +84,14 @@ internal static class Program
     /// </summary>
     internal static bool SecondTray { get; private set; }
 
+    /// <summary>
+    /// <c>--sample-first-run</c> (T455): this start answers as a fresh install's first one, so it opens the
+    /// window on its own — and observes, so it records nothing, including that it has welcomed. The only
+    /// way a case can see the welcome: a real first start needs a machine with no settings file, and the
+    /// case run asserts it leaves the machine's store untouched.
+    /// </summary>
+    internal static bool SampledFirstRun { get; private set; }
+
     /// <summary>What a second tray's tooltip starts with, so a tray case can find that icon and not the
     /// resident one. One constant rather than a string spelled out in two repositories' worth of places
     /// — a case names it as the icon's subject, matched unanchored.</summary>
@@ -174,6 +182,15 @@ internal static class Program
         {
             args = args.Where(one => one != "--isolated").ToArray();
             ClaudeAccount.Isolate();
+        }
+
+        // `--sample-first-run` (T455): a fresh install's first start, writing nothing. Observing by
+        // construction, so the welcome it shows can never be the one a real first start records.
+        if (args.Contains("--sample-first-run"))
+        {
+            args = args.Where(one => one != "--sample-first-run").ToArray();
+            SampledFirstRun = true;
+            ProfileStore.Observe();
         }
 
         // `--lang <code>` anywhere in the arguments overrides the display language for this process
