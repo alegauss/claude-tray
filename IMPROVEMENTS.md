@@ -1049,30 +1049,3 @@ older file, an update, says nothing.
 **Done when** a clean install, from the MSIX and from the Inno installer, shows that first message
 once and never again, a case covers it, and the Store funnel's open rate can be compared over the
 four weeks after the release that carries it.
-
-### CXIII.4 The site and the README link to the Store (T456)
-
-**Why.** The app has been in the Microsoft Store since 2026-10-31
-(https://apps.microsoft.com/detail/9P27BHWNT56D), and there it is signed by the Store, updated by
-Windows and installed without a SmartScreen warning. It is also where people actually get it: 164
-acquisitions in the first ten days, against 43 visitors to the repository. Yet the site's Install
-section (`site/src/components/sections/Install.tsx`, `wingetCommand` in
-`site/src/lib/site-content.ts`), the README (lines 12 and 49) and `site/public/llms.txt` offer only
-`winget install` and the GitHub release, so a visitor who does not use a terminal is sent to the
-installer that SmartScreen warns about.
-
-**What.** The Store becomes the first way to install, with winget and the release after it:
-
-- the official "Get it from Microsoft" badge, in the visitor's language where the badge exists, linking to the Store page with a campaign id (`?cid=site`, `?cid=readme`), which Partner Center reports per campaign, so the site's share of acquisitions shows up there;
-- one line saying why: signed, updated by Windows, no SmartScreen warning;
-- the same in the README's first screen and its Install section, in `llms.txt`, and in the five languages the site already has.
-
-**Done when** the site and the README link to the Store above the winget command, the badge opens
-the Store page, and Partner Center shows acquisitions under the `site` and `readme` campaigns.
-
-**Read on 2026-11-19** (the analytics API's `appchannelconversions`, `groupby=customCampaignId`, and
-`D:\git\alegauss\visibility`'s daily series): no row under `site` or `readme` yet. Nor is one likely
-soon, because the campaigns count traffic these pages barely get: in November the site had 4
-visitors and the repository 42 unique views, against 762 Store acquisitions since 2026-10-31 (about
-50 a day, from Store search). Read it again after a week of traffic; a row under each campaign
-closes the line.
