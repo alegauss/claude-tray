@@ -947,27 +947,6 @@ winwright cannot say it yet. `press` already names Enter and Space, but it sends
 so no step can put focus on an element first. Filed upstream as WW610, which adds a `focus` act.
 When it ships, write each case as `focus` on the row and then `press`, and close this line.
 
-### CXI.31 A washed-out Context preview (T449)
-
-Every picture the preview cases draw on this machine (Windows in dark mode) is washed out: a white
-page with near-white labels, only self-filled controls (an accent button, a selected row, the grade
-chips) readable. `preview.cmd shell`, `panels` and `context` all do it, and their pictures from
-2026-10-27 already did. The cases pass.
-
-Measured while T447 checked its strings, and the first guess was wrong. It is not `PageWindow`: the
-real shell (`--main`) is washed out the same way. It is not a fade either: moving the harness from
-Winwright 0.1.0-alpha.18 to 1.1.7, which carries WW583's wait for one, draws the same picture. The
-windows set `ThemeMode="System"`, which leaves their background to the system backdrop (Mica), and
-the backdrop is drawn by DWM outside the WPF tree the in-app render reads. Dark-theme text lands on
-white. `--capture-stats`, which renders through `RenderTargetBitmap` onto its own fill, is
-unaffected.
-
-The fix is winwright's, filed there as WW611: paint the theme's window background under a backdrop
-window before rendering it, or refuse the picture. Giving the app's windows an opaque background
-would cost users Mica only to make pictures right. When WW611 ships, bump `Winwright` in
-`tests/ClaudeTray.Cases` (the harness here is still on 0.1.0-alpha.18 while `Winwright.InApp` is on
-1.1.5), re-run `preview.cmd shell` and look.
-
 ## CXII The tray's own footprint (Block AP)
 
 A tray icon that sits idle in the notification area was measured at 565 MB private on 2026-11-07.
@@ -1016,6 +995,28 @@ adds no dependency and runs in `check.yml`, or a winwright case does, which need
 winwright does not have. A run on an empty profile must not pass for a ceiling meant for a full one.
 
 Done when a run on a build that holds twice the ceiling fails and names both numbers.
+
+### CXII.6 An idle ceiling the developer machine cannot pass (T465)
+
+T452's idle ceiling is 220 MB, set at half again the 137 MB the Debug build read on this machine on
+2026-11-16. Three days later the same check fails here on every run, at HEAD and on the build with
+Winwright.InApp 1.1.9 alike: 296, 213, 221, 265 and 244 MB idle over the same 25 MB fixture, all on
+unchanged sources. CI's runner reads 42 MB on the commit before HEAD and passes. The resident
+installed tray read 273 MB private at the same time, so the machine, not the build, moved.
+
+So the gate is red on the developer's machine for a reason no commit made, which leaves every task
+committing over a red `--selftest` or not at all. Two things are unknown and both are to be read,
+not guessed. What the extra 100+ MB is: native or managed, and which module (a
+`dotnet-counters`/`vmmap` read of the `--second-tray` child, against the same read in the guest).
+And what the child shares with the machine despite `CLAUDE_CONFIG_DIR`: the shared caches under
+`%LocalAppData%\ClaudeTray` resolve through the shell's known-folder API, so pointing `LOCALAPPDATA`
+at an empty folder did not isolate them (244 MB, nothing written there).
+
+Two exits, decided by that reading. If the child is reading machine state, isolate it the way the
+fixture isolates `~/.claude`, and the ceiling stays. If the figure is the machine's own (drivers or
+injected modules counted as private bytes), state the ceiling against a reading in the guest and on
+CI, not the desk, and say beside it which machines it holds on. Raising the number to pass here is
+the wrong fix: a doubled footprint would then pass on CI, where the reading is 42 MB.
 
 ## CXIII Where the Microsoft Store sends people (Block AQ)
 

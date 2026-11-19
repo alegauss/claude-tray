@@ -47,7 +47,6 @@
 ## Block AI — Verification — the checks that prove a change
 
 - 📋 **T448** (deps: —) (requires: winwright-ww610) **No case proves a Sessions row or the chart strip opens on Enter or Space** — T438's focusable rows open on Enter or Space, but winwright's press cannot focus an element and press Enter there (WW610), so no case holds the keyboard path. → §CXI.30
-- 📋 **T449** (deps: —) (requires: winwright-ww611) **Every preview case's picture of a dark-themed window is washed out: near-white labels on a white page** — The in-app render cannot see the Mica backdrop the windows leave their background to, so dark-theme text lands on white, and the cases still pass. → §CXI.31
 
 ## Block B — Packaging, self-update, CI
 
@@ -71,6 +70,7 @@
 
 - 📋 **T451** (deps: —) (requires: store-release-day) **An idle tray's private memory grew from 565 MB to 595 MB in ten minutes, and no one knows where it stops** — A tray runs for days, so growth that never levels off costs more than any fixed footprint T450 can find. → §CXII.2
 - ⏳ **T452** (deps: T450 ✅, T461 ✅, T462 ✅) (requires: winwright-ww629) **No check reads the tray's own memory, so a release can double it unnoticed** — An idle ceiling is checked on every build; a window that is never released still shows only after it is opened and closed. → §CXII.3
+- 📋 **T465** (deps: —) **The idle-footprint check fails on the developer machine at HEAD, reading 213 to 296 MB against a 220 MB ceiling** — A gate that is red on the desk at HEAD makes every commit there land over a red selftest, while CI at 42 MB says nothing. → §CXII.6
 
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 

@@ -732,6 +732,7 @@
 - **T446** — A repository check that throws is reported as one failure naming the claim and the exception, and the rest of the suite runs on to its summary.
 - **T458** — The burning-week advice checks build their window on the same fixed Wednesday as the clock they are asked at, so they pass on any day the suite runs.
 - **T459** — The winget-id check tells an id from a host by its PascalCase second part, so the site's alegauss.com no longer reads as a second id.
+- **T449** — Preview pictures of a dark-themed window are readable again: the harness and Winwright.InApp move to winwright 1.1.9, whose in-app render paints the theme's background under a backdrop window (WW611).
 
 ## Block AJ — Working here — the repo's own docs and flags
 
