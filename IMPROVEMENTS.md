@@ -1036,3 +1036,9 @@ installer that SmartScreen warns about.
 
 **Done when** the site and the README link to the Store above the winget command, the badge opens
 the Store page, and Partner Center shows acquisitions under the `site` and `readme` campaigns.
+
+**Read on 2026-11-19**, three days after the links went live (38630e7, 2026-11-16): the analytics
+API's `appchannelconversions` for 9P27BHWNT56D, `groupby=customCampaignId` from 2026-10-31, returns
+one row with no campaign id (2168 page clicks), so neither `site` nor `readme` has been attributed
+yet. The token is the `STORE_*` client's, with resource `https://manage.devcenter.microsoft.com`.
+Read it again after a week of traffic; a row under each campaign closes the line.
