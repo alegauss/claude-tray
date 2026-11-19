@@ -1006,23 +1006,6 @@ acquisitions in its first ten days with no promotion, 147 of them from inside th
 funnel counts 328 page views, 64 acquisitions, 40 installs and 21 people who opened the app. This
 block is what those numbers ask of the app.
 
-### CXIII.2 The Store listing in Chinese and German (T454)
-
-**Why.** The Store offers a listing only in the languages the package declares, and
-`build/msix/AppxManifest.xml` declares en-us, pt-br, pt-pt, fr-fr and es-es. So a shopper in China
-or Germany, 49 of the first 164 acquisitions, reads the English page, searched by English keywords.
-
-**What.** Once the app speaks both languages:
-
-- `<Resource Language="zh-cn" />` and `<Resource Language="de-de" />` in the manifest.
-- Two sections in `build/msix/store-listing.md`, in the shape the scripts check: short description, description, features, captions, keywords and copyright. Keywords are what people type in the Store in that language (for German, words like "Nutzungslimit" and "Kontingent" beside "Claude Code"), not a translation of the English list.
-- `build/store-shots.ps1` captures the six screenshots in both languages, and `store-submit.ps1` sends them with the next submission.
-- `update-winget.ps1` may add the two locales to the winget manifest, if it carries more than one.
-
-**Done when** the Store page opens in Simplified Chinese and in German, with screenshots of the app
-in that language, and Partner Center's acquisitions by market can be compared before and after for
-China and Germany.
-
 ### CXIII.3 The first launch says where the app went (T455)
 
 **Why.** Partner Center's funnel for 2026-10-30 to 2026-11-09 counts 40 people who installed from

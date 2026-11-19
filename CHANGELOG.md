@@ -832,7 +832,7 @@
 ## Block AQ — Where the Microsoft Store sends people: their language and the first run
 
 - **T453** — The app speaks Simplified Chinese as well as German: lang/zh-Hans.json opens for zh-CN, zh-SG and zh-Hans, the picker lists 中文（简体）, and the README and the site name all seven languages.
-- **T454 (package and listing)** — The package declares de-de and zh-cn, store-listing.md carries both listings with native keywords, and store-shots.ps1 composes their six screenshots in each language.
+- **T454** — The Store page opens in Simplified Chinese and in German with screenshots in each, and acquisitions by market compare: China 7.1 a day before 2026-11-16 and 9.8 in the four days after, Germany 1.9 and 2.0, the US 3.7 and 5.3, the newest days still settling.
 - **T455 (first start opens the window)** — A fresh install opens the main window once on its first start, from the Inno installer too, where T413's packaged rule never reached; an update or a restart opens nothing.
 - **T456** — The site, the README and llms.txt offer the Microsoft Store first, with a campaign id on each link; per-campaign acquisitions are left to the visibility repo, since the site had 4 visitors in November against 762 Store acquisitions.
 - **T463** — The product is Usage Tray for Claude Code in the package, the listing, the app, the installer, winget, the README, the site and the Store art, under a name reserved on the existing product; the AppId, the winget id, the exe and the data folders keep their old names.
